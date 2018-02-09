@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -27,98 +28,146 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import javax.annotation.CheckForNull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
-import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.security.Privilege;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.binary.ExternalBinary;
 import org.apache.jackrabbit.oak.api.binary.ExternalBinaryValueFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
-public class ExternalBinaryIT {
+public class ExternalBinaryIT extends AbstractRepositoryTest {
 
     private static final int MB = 1024 * 1024;
     private static final int SECONDS = 1000;
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
-
-    private Repository repository;
-
-    @Before
-    public void setUp() throws Exception {
-        repository = new Jcr(
-            new Oak(
-                buildNodeStoreWithS3()
-            )
-        ).createRepository();
+    @Parameterized.Parameters(name = "{0}")
+    public static Iterable<?> fixture() {
+        // could add Azure Blob store as another test case here later
+        return Collections.singletonList(new S3DataStoreWithMemorySegmentFixture());
     }
 
-    protected NodeStore buildNodeStoreWithS3() throws IOException {
-        // create a SegmentNodeStore with
-        // - segments in memory
-        // - S3 data store as blob store
-        return SegmentNodeStoreBuilders.builder(new MemoryStore() {
-            @CheckForNull
-            @Override
-            public BlobStore getBlobStore() {
-                try {
-                    // read S3 config file
-                    Properties s3Props = new Properties();
-                    s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
+    public ExternalBinaryIT(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
-                    // create S3 DS
-                    S3DataStore s3 = new S3DataStore();
-                    s3.setProperties(s3Props);
+    // --------------------------------------------------------------------------------------------------
 
-                    // init with a new folder inside a temporary one
-                    s3.init(folder.newFolder().getAbsolutePath());
-                    return new DataStoreBlobStore(s3);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return null;
-                }
+    // TODO: one test for each requirement
+    // F1 - basic test
+    // F2 - CDN & transfer accelerators
+    // F3 - chunked upload
+    // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
+    // F5 - more cloud stores => new fixtures, mock fixture
+    // F6/F7 - no additional final request, notification API via SQS
+
+    // A1 - get put url, change it and try uploading somewhere else in S3
+    // A2 - configure short expiry time, wait, ensure upload fails after expired
+    // A3 - covered by A2
+    // A4 - no test, SHOULD requirement only, hard to test
+    // A5 - get S3 URL (how?) and try an upload
+    // A7 - only get write access after all AC checks/session.save() => like A6 but test before save
+
+    // D1 - immutable after initial upload
+    // D2 - unique identifiers
+    // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
+    // D4 - same as A7
+    // D5 - support dangling ref => get binary before upload, catch expected exception etc.
+
+    // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
+    //      where the user has JCR set_property permission.
+    @Test
+    public void testWritePermissionRequired() throws Exception {
+        // 1. create external binary
+        addExternalBinary(getAdminSession(), "/file");
+
+        // 2. then get existing external binary using read-only session
+        ExternalBinary externalBinary = (ExternalBinary) getBinary(createAnonymousSession(), "/file");
+        try {
+            // 3. ensure trying to get writeable URL fails
+            externalBinary.getPutURL();
+            fail("did not throw AccessDeniedException when session does not have write permissions on the property");
+        } catch (AccessDeniedException ignored) {
+        }
+    }
+
+    @Test
+    public void testExternalBinary() throws Exception {
+        // 1. check if external binary is supported? no => 2, yes => 3
+        // 2. no support: create structure with no/empty binary prop, overwrite later in 2nd request with InputStream
+        // 3. state intention for an ExternalBinary, so oak knows it needs to generate a unique UUID and no content hash
+        // 4. save() session (acl checks only happen fully upon save())
+        // 5. retrieve ExternalBinary again, now put-enabled due to ACL checks in 4.
+        // 6. get Put URL from ExternalBinary
+
+        Session session = createAdminSession();
+        Node file = getOrCreateNtFile(session, "/file");
+
+        ValueFactory valueFactory = session.getValueFactory();
+
+        Binary placeholderBinary = null;
+        if (valueFactory instanceof ExternalBinaryValueFactory) {
+            System.out.println(">>> YES external binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
+            // might return null if external binaries are not configured
+            placeholderBinary = ((ExternalBinaryValueFactory) valueFactory).createNewExternalBinary();
+        }
+        if (placeholderBinary == null) {
+            // fallback
+            System.out.println(">>> NO external binary support");
+            // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
+            // generate 2 MB of meaningless bytes
+            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
+        }
+        Value binaryValue = valueFactory.createValue(placeholderBinary);
+        file.setProperty(JcrConstants.JCR_DATA, binaryValue);
+        session.save();
+
+        // have to retrieve the persisted binary again to get access to the the URL
+        Binary binary = getBinary(session, "/file");
+        if (binary instanceof ExternalBinary) {
+            ExternalBinary externalBinary = (ExternalBinary) binary;
+            String putURL = externalBinary.getPutURL();
+            System.out.println("- uploading binary via PUT to " + putURL);
+            int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
+            Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
+        }
+
+        Session anonymousSession = createAnonymousSession();
+        Binary anonBinary = getOrCreateNtFile(anonymousSession, "/file").getProperty(JcrConstants.JCR_DATA).getBinary();
+        if (anonBinary instanceof ExternalBinary) {
+            ExternalBinary extAnonBinary = (ExternalBinary) anonBinary;
+            try {
+                extAnonBinary.getPutURL();
+                fail("did not throw AccessDeniedException when session does not have write permissions on the property");
+            } catch (AccessDeniedException ignored) {
             }
-        }).build();
-    }
-
-    protected Session createAdminSession() throws RepositoryException {
-        return repository.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
-    }
-
-    /** Create an anonymous session and ensure anonymous has read permission at the root */
-    protected Session createAnonymousSession() throws RepositoryException {
-        Session admin = createAdminSession();
-        AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(), new String[] {Privilege.JCR_READ}, true);
-        admin.save();
-        return repository.login(new GuestCredentials());
+        }
     }
 
     // disabled, just a comparison playground for current blob behavior
@@ -141,59 +190,119 @@ public class ExternalBinaryIT {
         }
     }
 
-    @Test
-    public void testExternalBinary() throws Exception {
-        Session session = createAdminSession();
-        Node file = session.getRootNode().addNode("file");
+    // -----------------------------------------------------------------< helpers >--------------
 
-        ValueFactory valueFactory = session.getValueFactory();
+    // for this integration test create a SegmentNodeStore with
+    // - segments in memory
+    // - S3 data store as blob store
+    // - S3 configuration from "s3.properties" file or "-Ds3.config=<filename>" system property
+    private static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture {
 
-        // 1. check if external binary is supported? no => 2, yes => 3
-        // 2. no support: create structure with no/empty binary prop, overwrite later in 2nd request with InputStream
-        // 3. state intention for an ExternalBinary, so oak knows it needs to generate a unique UUID and no content hash
-        // 4. save() session (acl checks only happen fully upon save())
-        // 5. retrieve ExternalBinary again, now put-enabled due to ACL checks in 4.
-        // 6. get Put URL from ExternalBinary
+        // track create temp folder(s) to delete them in dispose()
+        private Map<NodeStore, File> tempFolders = new HashMap<>();
 
-        Binary placeholderBinary = null;
-        if (valueFactory instanceof ExternalBinaryValueFactory) {
-            System.out.println(">>> YES external binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
-            // might return null if external binaries are not configured
-            placeholderBinary = ((ExternalBinaryValueFactory) valueFactory).createNewExternalBinary();
-        }
-        if (placeholderBinary == null) {
-            // fallback
-            System.out.println(">>> NO external binary support");
-            // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
-            // generate 2 MB of meaning less bytes
-            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
-        }
-        Value binaryValue = valueFactory.createValue(placeholderBinary);
-        file.setProperty("binary", binaryValue);
-        session.save();
-
-        // have to retrieve the persisted binary again to get access to the the URL
-        Binary binary = file.getProperty("binary").getBinary();
-        if (binary instanceof ExternalBinary) {
-            ExternalBinary externalBinary = (ExternalBinary) binary;
-            String putURL = externalBinary.getPutURL();
-            System.out.println("- uploading binary via PUT to " + putURL);
-            int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
-            Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
-        }
-
-        Session anonymousSession = createAnonymousSession();
-        Binary anonBinary = anonymousSession.getNode("/file").getProperty("binary").getBinary();
-        if (anonBinary instanceof ExternalBinary) {
-            ExternalBinary extAnonBinary = (ExternalBinary) anonBinary;
+        @Override
+        public NodeStore createNodeStore() {
             try {
-                extAnonBinary.getPutURL();
-                Assert.fail("did not throw AccessDeniedException when session does not have write permissions on the property");
-            } catch (AccessDeniedException ignored) {
+                // create inside maven's "target" folder
+                File dataStoreFolder = createTempFolder(new File("target"));
+
+                SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore() {
+                    @CheckForNull
+                    @Override
+                    public BlobStore getBlobStore() {
+                        try {
+                            // read S3 config file
+                            Properties s3Props = new Properties();
+                            s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
+
+                            // create S3 DS
+                            S3DataStore s3 = new S3DataStore();
+                            s3.setProperties(s3Props);
+
+                            // init with a new folder inside a temporary one
+                            s3.init(dataStoreFolder.getAbsolutePath());
+
+                            return new DataStoreBlobStore(s3);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    }
+
+                }).build();
+
+                tempFolders.put(nodeStore, dataStoreFolder);
+
+                return nodeStore;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
             }
         }
 
-        waitForS3Uploads();
+        @Override
+        public void dispose(NodeStore nodeStore) {
+            for (File folder : tempFolders.values()) {
+                try {
+                    FileUtils.deleteDirectory(folder);
+                } catch (IOException e) {
+                    System.out.println("Could not cleanup temp folder after test: " + e.getMessage());
+                }
+            }
+        }
+
+        // for nice Junit parameterized test labels
+        @Override
+        public String toString() {
+            return getClass().getSimpleName();
+        }
+
+        private File createTempFolder(File parent) throws IOException {
+            File tempFolder = File.createTempFile("junit", "", parent);
+            tempFolder.delete();
+            tempFolder.mkdir();
+            return tempFolder;
+        }
+    }
+
+    private Binary createBinary() throws RepositoryException {
+        Session session = getAdminSession();
+
+        ValueFactory valueFactory = session.getValueFactory();
+        if (valueFactory instanceof ExternalBinaryValueFactory) {
+            return ((ExternalBinaryValueFactory) valueFactory).createNewExternalBinary();
+        }
+        return null;
+    }
+
+    private Node getOrCreateNtFile(Session session, String path) throws RepositoryException {
+        if (session.nodeExists(path + "/" + JcrConstants.JCR_CONTENT)) {
+            return session.getNode(path + "/" + JcrConstants.JCR_CONTENT);
+        }
+        Node file = session.getRootNode().addNode(path.substring(1), JcrConstants.NT_FILE);
+        return file.addNode(JcrConstants.JCR_CONTENT, JcrConstants.NT_RESOURCE);
+    }
+
+    private Binary getBinary(Session session, String ntFilePath) throws RepositoryException {
+        return session.getNode(ntFilePath)
+            .getNode(JcrConstants.JCR_CONTENT)
+            .getProperty(JcrConstants.JCR_DATA)
+            .getBinary();
+    }
+
+    /** Creates an nt:file with an external binary at the given path and saves the session. */
+    private ExternalBinary addExternalBinary(Session session, String path) throws RepositoryException {
+        Node resource = getOrCreateNtFile(session, path);
+        Binary binary = createBinary();
+        resource.setProperty(JcrConstants.JCR_DATA, binary);
+        session.save();
+
+        Binary binary2 = resource.getProperty(JcrConstants.JCR_DATA).getBinary();
+        if (binary instanceof ExternalBinary) {
+            return (ExternalBinary) binary2;
+        }
+        return null;
     }
 
     private void waitForS3Uploads() throws InterruptedException {
