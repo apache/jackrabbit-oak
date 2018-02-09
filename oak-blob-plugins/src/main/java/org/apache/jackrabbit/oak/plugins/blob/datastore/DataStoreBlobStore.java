@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -675,11 +676,11 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public String getPutURL(String blobId) {
+    public URL getWriteURL(String blobId) {
         if (delegate instanceof URLWritableDataStore && isURLWritableBlob(blobId)) {
             URLWritableDataStore urlWritableDataStore = (URLWritableDataStore) delegate;
             String id = blobId.substring(CLOUD_BLOB_PREFIX.length());
-            return urlWritableDataStore.getPutURL(new DataIdentifier(id));
+            return urlWritableDataStore.getWriteURL(new DataIdentifier(id));
         }
         return null;
     }

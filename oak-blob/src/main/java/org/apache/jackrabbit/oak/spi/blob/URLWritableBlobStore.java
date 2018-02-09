@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.IOException;
+import java.net.URL;
 
 public interface URLWritableBlobStore extends BlobStore {
 
@@ -26,5 +27,5 @@ public interface URLWritableBlobStore extends BlobStore {
 
     boolean isURLWritableBlob(String blobId);
 
-    String getPutURL(String blobId);
+    URL getWriteURL(String blobId);
 }

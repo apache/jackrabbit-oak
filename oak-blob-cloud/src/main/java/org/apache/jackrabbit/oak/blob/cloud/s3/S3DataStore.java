@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.net.URL;
 import java.util.Properties;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -78,7 +79,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public String getPutURL(DataIdentifier identifier) {
+    public URL getWriteURL(DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }

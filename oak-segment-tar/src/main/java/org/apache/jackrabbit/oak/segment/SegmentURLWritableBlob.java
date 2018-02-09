@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.net.URL;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.URLWritableBlob;
@@ -34,7 +35,7 @@ public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBl
     }
 
     @Override
-    public String getPutURL() {
-        return urlWritableBlobStore.getPutURL(getBlobId());
+    public URL getWriteURL() {
+        return urlWritableBlobStore.getWriteURL(getBlobId());
     }
 }

@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.spi.blob;
 
+import java.net.URL;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -27,5 +28,5 @@ public interface URLWritableDataStore {
     void setURLWritableBinaryExpiryTime(int seconds);
 
     @Nullable
-    String getPutURL(DataIdentifier identifier);
+    URL getWriteURL(DataIdentifier identifier);
 }

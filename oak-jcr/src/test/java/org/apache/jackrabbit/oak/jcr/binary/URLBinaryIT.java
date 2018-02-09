@@ -85,7 +85,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         URLWritableBinary urlWritableBinary = (URLWritableBinary) getBinary(createAnonymousSession(), "/file");
         try {
             // 3. ensure trying to get writeable URL fails
-            urlWritableBinary.getPutURL();
+            urlWritableBinary.getWriteURL();
             fail("did not throw AccessDeniedException when session does not have write permissions on the property");
         } catch (AccessDeniedException ignored) {
         }
@@ -126,10 +126,12 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         Binary binary = getBinary(session, "/file");
         if (binary instanceof URLWritableBinary) {
             URLWritableBinary urlWritableBinary = (URLWritableBinary) binary;
-            String putURL = urlWritableBinary.getPutURL();
+            URL putURL = urlWritableBinary.getWriteURL();
             assertNotNull(putURL);
+
             System.out.println("- uploading binary via PUT to " + putURL);
-            int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
+            int code = httpPut(putURL, getTestInputStream("hello world"));
+
             Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
         }
     }
@@ -142,7 +144,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         URLWritableBinary binary = addNtFileWithURLWritableBinary(getAdminSession(), "/file");
         // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
         assertNotNull(binary);
-        assertNull(binary.getPutURL());
+        assertNull(binary.getWriteURL());
     }
 
     // disabled, just a comparison playground for current blob behavior

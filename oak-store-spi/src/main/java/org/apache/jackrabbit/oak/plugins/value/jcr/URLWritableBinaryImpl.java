@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
+import java.net.URL;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
@@ -38,7 +39,7 @@ public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBina
     }
 
     @Override
-    public String getPutURL() throws AccessDeniedException, RepositoryException {
+    public URL getWriteURL() throws AccessDeniedException, RepositoryException {
         // check if user can write to binary
         if (accessControlManager != null) {
             boolean canWrite = accessControlManager.hasPrivileges(nodePath, new Privilege[] {
@@ -48,7 +49,7 @@ public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBina
                 throw new AccessDeniedException("Cannot write binary");
             }
         }
-        return urlWritableBlob.getPutURL();
+        return urlWritableBlob.getWriteURL();
     }
 
     public void setJCRContext(String nodePath, AccessControlManager accessControlManager) {

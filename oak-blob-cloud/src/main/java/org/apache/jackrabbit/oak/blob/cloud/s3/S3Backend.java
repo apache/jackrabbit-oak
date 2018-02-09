@@ -587,7 +587,7 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public String createPresignedPutURL(DataIdentifier identifier) {
+    public URL createPresignedPutURL(DataIdentifier identifier) {
         if (presignedPutExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -607,7 +607,7 @@ public class S3Backend extends AbstractSharedBackend {
 
             LOG.debug("Presigned URL for key {}: {}", key, url.toString());
 
-            return url.toString();
+            return url;
 
         } catch (AmazonServiceException e) {
             LOG.error("AWS request to create presigned S3 PUT URL failed. " +

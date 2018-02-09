@@ -18,10 +18,11 @@
 
 package org.apache.jackrabbit.oak.api;
 
+import java.net.URL;
 import javax.annotation.Nullable;
 
 public interface URLWritableBlob {
 
     @Nullable
-    String getPutURL();
+    URL getWriteURL();
 }
