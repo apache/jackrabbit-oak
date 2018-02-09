@@ -78,6 +78,7 @@ import java.io.InputStream;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -92,6 +93,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.CountingInputStream;
@@ -107,6 +109,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -873,6 +876,134 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         explanation = explain(query);
         assertThat(explanation, containsString("lucene:test1"));
         assertQuery(query, asList("/node2"));
+    }
+
+    @Test
+    public void sortOnNodeName() throws Exception {
+        Tree rootTree = root.getTree("/").addChild("test");
+
+        IndexDefinitionBuilder fnNameFunctionIndex = new IndexDefinitionBuilder().noAsync();
+        IndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
+                .property("nodeName", null)
+                .propertyIndex()
+                .ordered();
+
+        // setup function index on "fn:name()"
+        rule.function("fn:name()");
+        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnName"), STRINGS);
+        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnName"));
+
+        // same index as above except for function - "name()"
+        rule.function("name()");
+        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("name"), STRINGS);
+        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("name"));
+
+        List<String> expected = Lists.newArrayList("/test/oak:index");
+        for (int i = 0; i < 3; i++) {
+            String nodeName = "a" + i;
+            rootTree.addChild(nodeName);
+            expected.add("/test/" + nodeName);
+        }
+        Collections.sort(expected);
+        root.commit();
+
+        String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
+        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
+        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
+        assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+
+        // order by fn:name() although function index is on "name()"
+        query = "/jcr:root/test/* order by fn:name() option(index tag name)";
+        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
+        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
+        assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+    }
+
+    @Test
+    public void sortOnLocalName() throws Exception {
+        Tree rootTree = root.getTree("/").addChild("test");
+
+        IndexDefinitionBuilder fnNameFunctionIndex = new IndexDefinitionBuilder().noAsync();
+        IndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base")
+                .property("nodeName", null)
+                .propertyIndex()
+                .ordered();
+
+        // setup function index on "fn:name()"
+        rule.function("fn:local-name()");
+        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnLocalName"), STRINGS);
+        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnLocalName"));
+
+        // same index as above except for function - "name()"
+        rule.function("localname()");
+        fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("localName"), STRINGS);
+        fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("localName"));
+
+        List<String> expected = Lists.newArrayList("/test/oak:index");
+        for (int i = 0; i < 3; i++) {
+            String nodeName = "ja" + i;//'j*' should come after (asc) 'index' in sort order
+            rootTree.addChild(nodeName);
+            expected.add("/test/" + nodeName);
+        }
+
+        //sort expectation based on local name
+        Collections.sort(expected, (s1, s2) -> {
+            final StringBuffer sb1 = new StringBuffer();
+            PathUtils.elements(s1).forEach(elem -> {
+                String[] split = elem.split(":", 2);
+                sb1.append(split[split.length - 1]);
+            });
+            s1 = sb1.toString();
+
+            final StringBuffer sb2 = new StringBuffer();
+            PathUtils.elements(s2).forEach(elem -> {
+                String[] split = elem.split(":", 2);
+                sb2.append(split[split.length - 1]);
+            });
+            s2 = sb2.toString();
+
+            return s1.compareTo(s2);
+        });
+        root.commit();
+
+        String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
+        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
+        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
+        assertXpathPlan(query, "lucene:fnLocalName(/test/oak:index/fnLocalName)");
+        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+
+        // order by fn:name() although function index is on "name()"
+        query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
+        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
+        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
+        assertEquals(expected, executeQuery(query, XPATH));
+
+        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
+        assertXpathPlan(query, "lucene:localName(/test/oak:index/localName)");
+        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
     }
 
     //OAK-4517
@@ -2747,9 +2878,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 "lucene:test1(/oak:index/test1)", asList("/d"));
     }
 
-    private void assertPlanAndQuery(String query, String planExpectation, List<String> paths){
-        assertThat(explain(query), containsString(planExpectation));
-        assertQuery(query, paths);
+    private void assertPlanAndQuery(String query, String planExpectation, List<String> paths) {
+        assertPlanAndQuery(query, planExpectation, paths, false);
+    }
+    private void assertPlanAndQuery(String query, String planExpectation, List<String> paths, boolean ordered){
+        assertPlan(query, planExpectation);
+        assertQuery(query, SQL2, paths, ordered);
     }
 
     private static Tree createNodeWithMixinType(Tree t, String nodeName, String typeName){
@@ -2793,6 +2927,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     //TODO Test for range with Date. Check for precision
+
+    private void assertPlan(String query, String planExpectation) {
+        assertThat(explain(query), containsString(planExpectation));
+    }
+
+    private void assertXpathPlan(String query, String planExpectation) throws ParseException {
+        assertThat(explainXpath(query), containsString(planExpectation));
+    }
 
     private String explain(String query){
         String explain = "explain " + query;
