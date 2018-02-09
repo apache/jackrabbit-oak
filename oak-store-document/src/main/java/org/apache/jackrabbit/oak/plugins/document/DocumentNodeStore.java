@@ -106,7 +106,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWr
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.blob.ExternalBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLAccessBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -1861,11 +1861,10 @@ public final class DocumentNodeStore
 
     @Override
     public Blob createExternalBlob() throws IOException {
-        if (blobStore == null || !(blobStore instanceof ExternalBlobStore)) {
-            // SegmentNodeStore itself cannot provide (true) external binaries
+        if (blobStore == null || !(blobStore instanceof URLAccessBlobStore)) {
             return null;
         }
-        ExternalBlobStore extBlobStore = (ExternalBlobStore) blobStore;
+        URLAccessBlobStore extBlobStore = (URLAccessBlobStore) blobStore;
         String blobId = extBlobStore.createExternalBlobId();
         if (blobId == null) {
             return null;

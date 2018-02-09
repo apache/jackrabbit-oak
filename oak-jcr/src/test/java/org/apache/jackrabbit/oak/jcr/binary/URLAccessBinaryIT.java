@@ -45,8 +45,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.oak.api.binary.ExternalBinary;
-import org.apache.jackrabbit.oak.api.binary.ExternalBinaryValueFactory;
+import org.apache.jackrabbit.oak.api.binary.URLAccessBinary;
+import org.apache.jackrabbit.oak.api.binary.URLAccessBinaryValueFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -58,11 +58,9 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.junit.runners.Parameterized;
 
-public class ExternalBinaryIT extends AbstractRepositoryTest {
+public class URLAccessBinaryIT extends AbstractRepositoryTest {
 
     private static final int MB = 1024 * 1024;
     private static final int SECONDS = 1000;
@@ -73,7 +71,7 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
         return Collections.singletonList(new S3DataStoreWithMemorySegmentFixture());
     }
 
-    public ExternalBinaryIT(NodeStoreFixture fixture) {
+    public URLAccessBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
     }
 
@@ -99,32 +97,33 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
     // D4 - same as A7
     // D5 - support dangling ref => get binary before upload, catch expected exception etc.
+    // DX - get existing regular binary and try to overwrite it (doesn't work)
 
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
     //      where the user has JCR set_property permission.
     @Test
     public void testWritePermissionRequired() throws Exception {
-        // 1. create external binary
-        addExternalBinary(getAdminSession(), "/file");
+        // 1. create URL access binary
+        addURLAccessBinary(getAdminSession(), "/file");
 
-        // 2. then get existing external binary using read-only session
-        ExternalBinary externalBinary = (ExternalBinary) getBinary(createAnonymousSession(), "/file");
+        // 2. then get existing url access binary using read-only session
+        URLAccessBinary URLAccessBinary = (URLAccessBinary) getBinary(createAnonymousSession(), "/file");
         try {
             // 3. ensure trying to get writeable URL fails
-            externalBinary.getPutURL();
+            URLAccessBinary.getPutURL();
             fail("did not throw AccessDeniedException when session does not have write permissions on the property");
         } catch (AccessDeniedException ignored) {
         }
     }
 
     @Test
-    public void testExternalBinary() throws Exception {
-        // 1. check if external binary is supported? no => 2, yes => 3
+    public void testURLAccessBinary() throws Exception {
+        // 1. check if url access binary is supported? no => 2, yes => 3
         // 2. no support: create structure with no/empty binary prop, overwrite later in 2nd request with InputStream
-        // 3. state intention for an ExternalBinary, so oak knows it needs to generate a unique UUID and no content hash
+        // 3. state intention for an URLAccessBinary, so oak knows it needs to generate a unique UUID and no content hash
         // 4. save() session (acl checks only happen fully upon save())
-        // 5. retrieve ExternalBinary again, now put-enabled due to ACL checks in 4.
-        // 6. get Put URL from ExternalBinary
+        // 5. retrieve URLAccessBinary again, now put-enabled due to ACL checks in 4.
+        // 6. get Put URL from URLAccessBinary
 
         Session session = createAdminSession();
         Node file = getOrCreateNtFile(session, "/file");
@@ -132,14 +131,14 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
         ValueFactory valueFactory = session.getValueFactory();
 
         Binary placeholderBinary = null;
-        if (valueFactory instanceof ExternalBinaryValueFactory) {
-            System.out.println(">>> YES external binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
-            // might return null if external binaries are not configured
-            placeholderBinary = ((ExternalBinaryValueFactory) valueFactory).createNewExternalBinary();
+        if (valueFactory instanceof URLAccessBinaryValueFactory) {
+            System.out.println(">>> YES url binary support [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅] [̲̅$̲̅(̲̅1̲̅)̲̅$̲̅]");
+            // might return null if url access binaries are not configured
+            placeholderBinary = ((URLAccessBinaryValueFactory) valueFactory).createNewExternalBinary();
         }
         if (placeholderBinary == null) {
             // fallback
-            System.out.println(">>> NO external binary support");
+            System.out.println(">>> NO url binary support");
             // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
             // generate 2 MB of meaningless bytes
             placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
@@ -150,9 +149,9 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
 
         // have to retrieve the persisted binary again to get access to the the URL
         Binary binary = getBinary(session, "/file");
-        if (binary instanceof ExternalBinary) {
-            ExternalBinary externalBinary = (ExternalBinary) binary;
-            String putURL = externalBinary.getPutURL();
+        if (binary instanceof URLAccessBinary) {
+            URLAccessBinary URLAccessBinary = (URLAccessBinary) binary;
+            String putURL = URLAccessBinary.getPutURL();
             System.out.println("- uploading binary via PUT to " + putURL);
             int code = httpPut(new URL(putURL), getTestInputStream("hello world"));
             Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
@@ -160,8 +159,8 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
 
         Session anonymousSession = createAnonymousSession();
         Binary anonBinary = getOrCreateNtFile(anonymousSession, "/file").getProperty(JcrConstants.JCR_DATA).getBinary();
-        if (anonBinary instanceof ExternalBinary) {
-            ExternalBinary extAnonBinary = (ExternalBinary) anonBinary;
+        if (anonBinary instanceof URLAccessBinary) {
+            URLAccessBinary extAnonBinary = (URLAccessBinary) anonBinary;
             try {
                 extAnonBinary.getPutURL();
                 fail("did not throw AccessDeniedException when session does not have write permissions on the property");
@@ -270,8 +269,8 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
         Session session = getAdminSession();
 
         ValueFactory valueFactory = session.getValueFactory();
-        if (valueFactory instanceof ExternalBinaryValueFactory) {
-            return ((ExternalBinaryValueFactory) valueFactory).createNewExternalBinary();
+        if (valueFactory instanceof URLAccessBinaryValueFactory) {
+            return ((URLAccessBinaryValueFactory) valueFactory).createNewExternalBinary();
         }
         return null;
     }
@@ -291,16 +290,16 @@ public class ExternalBinaryIT extends AbstractRepositoryTest {
             .getBinary();
     }
 
-    /** Creates an nt:file with an external binary at the given path and saves the session. */
-    private ExternalBinary addExternalBinary(Session session, String path) throws RepositoryException {
+    /** Creates an nt:file with an url access binary at the given path and saves the session. */
+    private URLAccessBinary addURLAccessBinary(Session session, String path) throws RepositoryException {
         Node resource = getOrCreateNtFile(session, path);
         Binary binary = createBinary();
         resource.setProperty(JcrConstants.JCR_DATA, binary);
         session.save();
 
         Binary binary2 = resource.getProperty(JcrConstants.JCR_DATA).getBinary();
-        if (binary instanceof ExternalBinary) {
-            return (ExternalBinary) binary2;
+        if (binary instanceof URLAccessBinary) {
+            return (URLAccessBinary) binary2;
         }
         return null;
     }

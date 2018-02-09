@@ -23,18 +23,18 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.api.ExternalBlob;
-import org.apache.jackrabbit.oak.api.binary.ExternalBinary;
+import org.apache.jackrabbit.oak.api.URLAccessBlob;
+import org.apache.jackrabbit.oak.api.binary.URLAccessBinary;
 
-public class ExternalBinaryImpl extends BinaryImpl implements ExternalBinary {
+public class URLAccessBinaryImpl extends BinaryImpl implements URLAccessBinary {
 
-    private final ExternalBlob externalBlob;
+    private final URLAccessBlob urlAccessBlob;
     private String nodePath;
     private AccessControlManager accessControlManager;
 
-    ExternalBinaryImpl(ValueImpl value, ExternalBlob externalBlob) {
+    URLAccessBinaryImpl(ValueImpl value, URLAccessBlob urlAccessBlob) {
         super(value);
-        this.externalBlob = externalBlob;
+        this.urlAccessBlob = urlAccessBlob;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class ExternalBinaryImpl extends BinaryImpl implements ExternalBinary {
                 throw new AccessDeniedException("Cannot write binary");
             }
         }
-        return externalBlob.getPutURL();
+        return urlAccessBlob.getPutURL();
     }
 
     public void setJCRContext(String nodePath, AccessControlManager accessControlManager) {

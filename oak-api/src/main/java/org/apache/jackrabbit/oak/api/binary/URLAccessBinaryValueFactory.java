@@ -16,25 +16,23 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.api.binary;
 
-import javax.annotation.Nonnull;
+import javax.jcr.Binary;
+import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.ExternalBlob;
-import org.apache.jackrabbit.oak.spi.blob.ExternalBlobStore;
+public interface URLAccessBinaryValueFactory {
 
-public class SegmentExternalBlob extends SegmentBlob implements ExternalBlob {
-
-    private final ExternalBlobStore extBlobStore;
-
-    SegmentExternalBlob(@Nonnull ExternalBlobStore extBlobStore,
-                        @Nonnull RecordId id) {
-        super(extBlobStore, id);
-        this.extBlobStore = extBlobStore;
-    }
-
-    @Override
-    public String getPutURL() {
-        return extBlobStore.getPutURL(getBlobId());
-    }
+    /**
+     * Creates a new URL accessible binary as a placeholder, if supported.
+     *
+     * This allows upload or download of the binary stream directly to cloud storage such as S3 after the
+     * session has been persisted.
+     *
+     * If the underlying data store does not support this, {@code null}
+     * is returned and the binary has to be passed in directly using InputStream as in JCR 2.0.
+     *
+     * @return a new external Binary placeholder or {@code null} if external binaries are not supported
+     */
+    Binary createNewExternalBinary() throws RepositoryException;
 }

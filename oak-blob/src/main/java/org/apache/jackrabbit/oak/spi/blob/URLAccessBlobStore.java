@@ -16,14 +16,15 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.api.binary;
+package org.apache.jackrabbit.oak.spi.blob;
 
-import javax.jcr.AccessDeniedException;
-import javax.jcr.RepositoryException;
+import java.io.IOException;
 
-public interface ExternalBinary {
+public interface URLAccessBlobStore extends BlobStore {
 
-    String getPutURL() throws AccessDeniedException, RepositoryException;
+    String createExternalBlobId() throws IOException;
 
-    //String getGetURL();
+    boolean isExternalBlob(String blobId);
+
+    String getPutURL(String blobId);
 }

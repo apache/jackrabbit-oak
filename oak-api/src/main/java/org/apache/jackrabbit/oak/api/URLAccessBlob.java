@@ -16,15 +16,8 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.spi.blob;
+package org.apache.jackrabbit.oak.api;
 
-import java.io.IOException;
-
-public interface ExternalBlobStore extends BlobStore {
-
-    String createExternalBlobId() throws IOException;
-
-    boolean isExternalBlob(String blobId);
-
-    String getPutURL(String blobId);
+public interface URLAccessBlob {
+    String getPutURL();
 }

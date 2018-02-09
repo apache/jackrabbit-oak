@@ -32,7 +32,6 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
@@ -40,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.binary.ExternalBinaryValueFactory;
+import org.apache.jackrabbit.oak.api.binary.URLAccessBinaryValueFactory;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -66,7 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory, ExternalBinaryValueFactory {
+public class ValueFactoryImpl implements ValueFactory, URLAccessBinaryValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;

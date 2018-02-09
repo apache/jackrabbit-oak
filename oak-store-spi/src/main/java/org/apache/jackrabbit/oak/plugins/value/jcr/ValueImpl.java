@@ -30,12 +30,11 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-import javax.jcr.security.AccessControlManager;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.ExternalBlob;
+import org.apache.jackrabbit.oak.api.URLAccessBlob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -305,8 +304,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
     public Binary getBinary() throws RepositoryException {
         // TODO: this comes at a small cost, we have to read the blob id here already, not lazily within BinaryImpl methods
         Blob blob = getBlob();
-        if (blob instanceof ExternalBlob) {
-            return new ExternalBinaryImpl(this, (ExternalBlob) blob);
+        if (blob instanceof URLAccessBlob) {
+            return new URLAccessBinaryImpl(this, (URLAccessBlob) blob);
         } else {
             return new BinaryImpl(this);
         }

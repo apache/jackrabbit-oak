@@ -16,8 +16,11 @@
  * from Adobe Systems Incorporated.
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.spi.blob;
 
-public interface ExternalBlob {
-    String getPutURL();
+import org.apache.jackrabbit.core.data.DataIdentifier;
+
+public interface URLAccessDataStore {
+
+    String getPutURL(DataIdentifier identifier);
 }

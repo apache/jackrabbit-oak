@@ -21,14 +21,14 @@ import java.util.Properties;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.ExternalDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLAccessDataStore;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
 
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements ExternalDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements URLAccessDataStore {
 
     protected Properties properties;
 
