@@ -141,11 +141,6 @@ public final class ImmutableRoot implements Root, ReadOnly {
     }
 
     @Override
-    public URLWritableBlob createURLWritableBlob() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Blob getBlob(@Nonnull String reference) {
         return null;
     }

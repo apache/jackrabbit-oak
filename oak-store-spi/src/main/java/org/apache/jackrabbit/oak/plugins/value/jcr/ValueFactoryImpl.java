@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.URLWritableBlobRoot;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
@@ -307,8 +308,12 @@ public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFac
 
     @Override
     public URLWritableBinary createURLWritableBinary() throws RepositoryException {
+        if (!(root instanceof URLWritableBlobRoot)) {
+            // TODO: maybe throw exception instead, since incorrectly called on an ImmutableRoot or the like?
+            return null;
+        }
         try {
-            URLWritableBlob urlWritableBlob = root.createURLWritableBlob();
+            URLWritableBlob urlWritableBlob = ((URLWritableBlobRoot) root).createURLWritableBlob();
             if (urlWritableBlob == null) {
                 // not supported
                 return null;

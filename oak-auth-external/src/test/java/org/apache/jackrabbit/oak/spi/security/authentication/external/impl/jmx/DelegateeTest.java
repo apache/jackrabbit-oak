@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -322,11 +323,6 @@ public class DelegateeTest extends AbstractJmxTest {
         @Override
         public Blob createBlob(@Nonnull InputStream stream) throws IOException {
             return base.createBlob(stream);
-        }
-
-        @Override
-        public Blob createURLWritableBlob() throws IOException {
-            return base.createURLWritableBlob();
         }
 
         @CheckForNull
