@@ -25,7 +25,7 @@ import javax.jcr.RepositoryException;
 public interface URLWritableBinaryValueFactory {
 
     /**
-     * Creates a new URLWritableBinary for uploading to the binary content through a URL instead of
+     * Creates a new URLWritableBinary for uploading the binary content through a URL instead of
      * an InputStream passed through the JCR API, if supported.
      *
      * A typical use case is if the repository is backed by a binary cloud storage such as S3, where
