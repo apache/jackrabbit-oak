@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;

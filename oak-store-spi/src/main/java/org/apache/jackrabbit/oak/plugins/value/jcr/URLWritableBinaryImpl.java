@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.value.jcr;
 import java.net.URL;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 
 public class URLWritableBinaryImpl extends BinaryImpl implements URLWritableBinary {

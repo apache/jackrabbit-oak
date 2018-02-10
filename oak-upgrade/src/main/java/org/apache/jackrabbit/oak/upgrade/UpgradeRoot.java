@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.tree.impl.NodeBuilderTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 

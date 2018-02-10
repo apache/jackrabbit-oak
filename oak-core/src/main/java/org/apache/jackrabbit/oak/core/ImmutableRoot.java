@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;

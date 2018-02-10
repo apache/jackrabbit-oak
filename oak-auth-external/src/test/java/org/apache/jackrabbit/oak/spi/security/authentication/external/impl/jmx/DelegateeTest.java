@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;

@@ -16,20 +16,13 @@
  *
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.api;
+package org.apache.jackrabbit.oak.api.blob;
 
-import java.net.URL;
-import javax.annotation.Nullable;
+import java.io.IOException;
 
-public interface URLWritableBlob extends Blob {
+import org.apache.jackrabbit.oak.api.Root;
 
-    @Nullable
-    URL getWriteURL();
+public interface URLWritableBlobRoot extends Root {
 
-    /**
-     * Called when the tree was committed and the blob is referenced at least once in a property.
-     * Implementations must generated the write URL inside this method and start any expiry
-     * time at this point.
-     */
-    void commit();
+    URLWritableBlob createURLWritableBlob() throws IOException;
 }

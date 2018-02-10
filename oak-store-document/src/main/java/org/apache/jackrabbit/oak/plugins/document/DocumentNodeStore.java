@@ -84,7 +84,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -107,7 +107,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWr
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;

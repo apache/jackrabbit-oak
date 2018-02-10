@@ -34,7 +34,6 @@ import javax.jcr.ValueFormatException;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

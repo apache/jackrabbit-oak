@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 import java.net.URL;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 
 public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBlob {
