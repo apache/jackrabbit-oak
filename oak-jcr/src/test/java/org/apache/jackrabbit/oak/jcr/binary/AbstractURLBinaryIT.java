@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import static org.junit.Assert.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -27,12 +28,12 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -196,7 +196,10 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         return new ByteArrayInputStream(blob);
     }
 
-    protected static int httpPut(URL url, InputStream in) throws IOException  {
+    protected int httpPut(@Nullable URL url, InputStream in) throws IOException  {
+        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
+        assertNotNull(url);
+
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
         connection.setRequestMethod("PUT");
@@ -206,7 +209,15 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         return connection.getResponseCode();
     }
 
-    protected static int httpPutTestStream(URL url) throws IOException {
+    protected int httpPutTestStream(URL url) throws IOException {
         return httpPut(url, getTestInputStream("hello world"));
+    }
+
+    protected InputStream httpGet(@Nullable URL url) throws IOException  {
+        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
+        assertNotNull(url);
+
+        URLConnection conn = url.openConnection();
+        return conn.getInputStream();
     }
 }

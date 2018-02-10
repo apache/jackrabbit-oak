@@ -106,6 +106,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     // 0 = off by default
     private int presignedPutExpirySeconds = 0;
+    private int presignedGetExpirySeconds = 0;
 
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -175,6 +176,11 @@ public class S3Backend extends AbstractSharedBackend {
             String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
             if (putExpiry != null) {
                 setURLWritableBinaryExpirySeconds(Integer.parseInt(putExpiry));
+            }
+
+            String getExpiry = properties.getProperty(S3Constants.PRESIGNED_GET_EXPIRY_SEC);
+            if (getExpiry != null) {
+                setURLReadableBinaryExpirySeconds(Integer.parseInt(getExpiry));
             }
 
             LOG.debug("S3 Backend initialized in [{}] ms",
@@ -588,37 +594,6 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public URL createPresignedPutURL(DataIdentifier identifier) {
-        if (presignedPutExpirySeconds <= 0) {
-            // feature disabled
-            return null;
-        }
-
-        final String key = getKeyName(identifier);
-
-        try {
-            final Date expiration = new Date();
-            expiration.setTime(expiration.getTime() + presignedPutExpirySeconds * 1000);
-
-            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key);
-            request.setMethod(HttpMethod.PUT);
-            request.setExpiration(expiration);
-
-            URL url = s3service.generatePresignedUrl(request);
-
-            LOG.debug("Presigned URL for key {}: {}", key, url.toString());
-
-            return url;
-
-        } catch (AmazonServiceException e) {
-            LOG.error("AWS request to create presigned S3 PUT URL failed. " +
-                      "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
-                      key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
-
-            return null;
-        }
-    }
-
     public void setURLWritableBinaryExpirySeconds(int seconds) {
         this.presignedPutExpirySeconds = seconds;
     }
@@ -642,6 +617,54 @@ public class S3Backend extends AbstractSharedBackend {
             return identifier;
         }
         throw new DataStoreException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
+    }
+
+    public URL createPresignedPutURL(DataIdentifier identifier) {
+        if (presignedPutExpirySeconds <= 0) {
+            // feature disabled
+            return null;
+        }
+
+        return createPresignedURL(identifier, HttpMethod.PUT, presignedPutExpirySeconds);
+    }
+
+    public void setURLReadableBinaryExpirySeconds(int seconds) {
+        this.presignedGetExpirySeconds = seconds;
+    }
+
+    public URL createPresignedGetURL(DataIdentifier identifier) {
+        if (presignedGetExpirySeconds <= 0) {
+            // feature disabled
+            return null;
+        }
+
+        return createPresignedURL(identifier, HttpMethod.GET, presignedGetExpirySeconds);
+    }
+
+    private URL createPresignedURL(DataIdentifier identifier, HttpMethod method, int expirySeconds) {
+        final String key = getKeyName(identifier);
+
+        try {
+            final Date expiration = new Date();
+            expiration.setTime(expiration.getTime() + expirySeconds * 1000);
+
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key);
+            request.setMethod(method);
+            request.setExpiration(expiration);
+
+            URL url = s3service.generatePresignedUrl(request);
+
+            LOG.debug("Presigned {} URL for key {}: {}", method.name(), key, url.toString());
+
+            return url;
+
+        } catch (AmazonServiceException e) {
+            LOG.error("AWS request to create presigned S3 {} URL failed. " +
+                    "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
+                method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
+
+            return null;
+        }
     }
 
     /**

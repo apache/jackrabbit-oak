@@ -19,11 +19,14 @@
 package org.apache.jackrabbit.oak.jcr.binary;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -33,6 +36,7 @@ import javax.jcr.ValueFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.oak.api.binary.URLReadableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -48,6 +52,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
     private static final String FILE_PATH = "/file";
 
+    private static final String CONTENT = "hi there, I'm a binary blob!";
+
     public URLBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
     }
@@ -58,7 +64,6 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
     // F5 - more cloud stores => new fixtures, mock fixture
     // F6/F7 - no additional final request, notification API via SQS
-    // F9 - URLReadableBinary for binary after read
     // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
 
     // A1 - get put url, change it and try uploading somewhere else in S3
@@ -100,26 +105,58 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         System.out.println("- uploading binary via PUT to " + url);
         int code = httpPutTestStream(url);
 
-        Assert.assertEquals("PUT to pre-signed S3 URL failed", 200, code);
+        assertEquals("PUT to pre-signed S3 URL failed", 200, code);
 
         Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
         binary2.getStream();
     }
 
+    // D1/S2 - test reading getBinary().getInputStream() once uploaded
+    @Test
+    public void testWriteURLDoesNotChange() throws Exception {
+        // 1. add binary
+        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+
+        // 2. request url for the 1st time
+        URL url = binary.getWriteURL();
+
+        // 3. assert that 2nd request yields the exact same URL
+        assertEquals(url, binary.getWriteURL());
+    }
+
     // F8 - test reading getBinary().getInputStream() once uploaded
     @Test
     public void testStreamBinaryThroughJCRAfterURLWrite() throws Exception {
-        final String CONTENT = "hi there, I'm a binary blob!";
 
         // 1. add binary and upload
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         httpPut(binary.getWriteURL(), getTestInputStream(CONTENT));
 
-        Thread.sleep(1 * SECONDS);
+//        Thread.sleep(1 * SECONDS);
 
         // 2. stream through JCR and validate it's the same
         Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
         assertTrue(IOUtils.contentEquals(binaryRead.getStream(), getTestInputStream(CONTENT)));
+    }
+
+    // F9 - URLReadableBinary for binary after write using URLWritableBinary
+    @Test
+    public void testURLReadableBinary() throws Exception {
+        // 1. add binary and upload
+        URLWritableBinary newBinary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+        httpPut(newBinary.getWriteURL(), getTestInputStream(CONTENT));
+
+//        Thread.sleep(1 * SECONDS);
+
+        // 2. read binary, check it's a URLReadableBinary and get the URL
+        Binary binary = getBinary(getAdminSession(), FILE_PATH);
+        assertTrue(binary instanceof URLReadableBinary);
+        URL url = ((URLReadableBinary) binary).getReadURL();
+        assertNotNull(url);
+
+        // 3. GET on URL and verify contents are the same
+        InputStream stream = httpGet(url);
+        assertTrue(IOUtils.contentEquals(stream, getTestInputStream(CONTENT)));
     }
 
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
@@ -213,6 +250,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     }
 
     /** Creates an nt:file with an url access binary at the given path and saves the session. */
+    @Nonnull
     private URLWritableBinary saveFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
         Node resource = getOrCreateNtFile(session, path);
 

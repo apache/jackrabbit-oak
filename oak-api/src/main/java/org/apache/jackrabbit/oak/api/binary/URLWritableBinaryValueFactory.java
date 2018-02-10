@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.api.binary;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+// TODO: should probably move to jackrabbit-api
 public interface URLWritableBinaryValueFactory {
 
     /**

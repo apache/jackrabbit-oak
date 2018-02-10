@@ -23,6 +23,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
@@ -30,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements URLWritableDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements URLWritableDataStore, URLReadableDataStore {
 
     protected Properties properties;
 
@@ -90,5 +91,20 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
             return null;
         }
         return s3Backend.createPresignedPutURL(identifier);
+    }
+
+    @Override
+    public void setURLReadableBinaryExpirySeconds(int seconds) {
+        if (s3Backend != null) {
+            s3Backend.setURLReadableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    @Override
+    public URL getReadURL(DataIdentifier identifier) {
+        if (s3Backend == null) {
+            return null;
+        }
+        return s3Backend.createPresignedGetURL(identifier);
     }
 }

@@ -64,6 +64,8 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
@@ -78,7 +80,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLWritableBlobStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLWritableBlobStore, URLReadableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -673,6 +675,15 @@ public class DataStoreBlobStore
     public URL getWriteURL(String blobId) {
         if (delegate instanceof URLWritableDataStore) {
             return ((URLWritableDataStore) delegate).getWriteURL(new DataIdentifier(blobId));
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getReadURL(String blobId) {
+        if (delegate instanceof URLReadableDataStore) {
+            return ((URLReadableDataStore) delegate).getReadURL(new DataIdentifier(blobId));
         }
         return null;
     }

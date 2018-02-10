@@ -20,20 +20,25 @@ import static com.google.common.base.Objects.toStringHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.binary.URLReadableBinary;
+import org.apache.jackrabbit.oak.api.blob.URLReadableBlob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
-class BinaryImpl implements ReferenceBinary {
+class BinaryImpl implements ReferenceBinary, URLReadableBinary {
     private static final Logger LOG = LoggerFactory.getLogger(BinaryImpl.class);
 
     private final ValueImpl value;
@@ -112,5 +117,15 @@ class BinaryImpl implements ReferenceBinary {
     @Override
     public String toString() {
         return toStringHelper(this).addValue(value).toString();
+    }
+
+    @Nullable
+    @Override
+    public URL getReadURL() throws RepositoryException {
+        Blob blob = value.getBlob();
+        if (blob instanceof URLReadableBlob) {
+            return ((URLReadableBlob) blob).getReadURL();
+        }
+        return null;
     }
 }

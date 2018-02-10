@@ -16,23 +16,16 @@
  *
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.spi.blob;
+package org.apache.jackrabbit.oak.api.binary;
 
 import java.net.URL;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Binary;
+import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.DataStoreException;
-
-public interface URLWritableDataStore extends DataStore {
-
-    void setURLWritableBinaryExpirySeconds(int seconds);
-
-    @Nonnull
-    DataIdentifier addNewRecord() throws DataStoreException;
+// TODO: should probably move to jackrabbit-api
+public interface URLReadableBinary extends Binary {
 
     @Nullable
-    URL getWriteURL(DataIdentifier identifier);
+    URL getReadURL() throws RepositoryException;
 }

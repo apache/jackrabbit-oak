@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
+// TODO: should probably move to jackrabbit-api
 public interface URLWritableBinary extends Binary {
 
     @Nullable
