@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -307,6 +308,7 @@ public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFac
     }
 
     @Override
+    @Nullable
     public URLWritableBinary createURLWritableBinary() throws RepositoryException {
         if (!(root instanceof URLWritableBlobRoot)) {
             // TODO: maybe throw exception instead, since incorrectly called on an ImmutableRoot or the like?

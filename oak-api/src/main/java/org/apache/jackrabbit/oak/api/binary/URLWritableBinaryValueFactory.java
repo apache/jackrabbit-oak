@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.api.binary;
 
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 public interface URLWritableBinaryValueFactory {
@@ -37,5 +38,6 @@ public interface URLWritableBinaryValueFactory {
      *
      * @return a new URLWritableBinary or {@code null} if external binaries are not supported
      */
+    @Nullable
     URLWritableBinary createURLWritableBinary() throws RepositoryException;
 }
