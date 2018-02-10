@@ -143,13 +143,6 @@ public class CachingSegmentReader implements SegmentReader {
     @Nonnull
     @Override
     public SegmentBlob readBlob(@Nonnull RecordId id) {
-        if (blobStore instanceof URLWritableBlobStore) {
-            URLWritableBlobStore urlWritableBlobStore = (URLWritableBlobStore) blobStore;
-            String blobId = SegmentBlob.readBlobId(id.getSegment(), id.getRecordNumber());
-            if (urlWritableBlobStore.isURLWritableBlob(blobId)) {
-                return new SegmentURLWritableBlob(urlWritableBlobStore, id);
-            }
-        }
         return new SegmentBlob(blobStore, id);
     }
 

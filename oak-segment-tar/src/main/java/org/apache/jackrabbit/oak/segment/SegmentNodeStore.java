@@ -244,7 +244,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
         if (blobId == null) {
             return null;
         }
-        // TODO: writer.writeBlobId is WRONG HERE
         return new SegmentURLWritableBlob(urlWritableBlobStore, writer.writeBlobId(blobId));
     }
 

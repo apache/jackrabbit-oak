@@ -19,13 +19,18 @@
 package org.apache.jackrabbit.oak.spi.blob;
 
 import java.net.URL;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataStoreException;
 
 public interface URLWritableDataStore {
 
     void setURLWritableBinaryExpirySeconds(int seconds);
+
+    @Nonnull
+    DataIdentifier addNewRecord() throws DataStoreException;
 
     @Nullable
     URL getWriteURL(DataIdentifier identifier);

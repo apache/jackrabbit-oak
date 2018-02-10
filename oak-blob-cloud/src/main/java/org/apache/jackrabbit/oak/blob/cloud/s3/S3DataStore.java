@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.Properties;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
@@ -76,6 +77,11 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
         if (s3Backend != null) {
             s3Backend.setURLWritableBinaryExpirySeconds(seconds);
         }
+    }
+
+    @Override
+    public DataIdentifier addNewRecord() throws DataStoreException {
+        return s3Backend.addNewRecord();
     }
 
     @Override

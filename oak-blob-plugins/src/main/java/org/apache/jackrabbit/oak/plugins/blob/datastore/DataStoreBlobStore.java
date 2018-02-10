@@ -34,7 +34,6 @@ import java.io.SequenceInputStream;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -657,30 +656,23 @@ public class DataStoreBlobStore
         return encodedBlobId;
     }
 
-    private static final String CLOUD_BLOB_PREFIX = "cloud/";
-
     @Override
     public String createURLWritableBlobId() throws IOException {
         if (delegate instanceof URLWritableDataStore) {
-            // a random UUID instead of a content hash for a new external binary
-            String extBlobId = CLOUD_BLOB_PREFIX + UUID.randomUUID().toString();
-            log.info("created new external blob id: {}", extBlobId);
-            return extBlobId;
+            try {
+                DataIdentifier identifier = ((URLWritableDataStore) delegate).addNewRecord();
+                return identifier.toString();
+            } catch (DataStoreException e) {
+                throw new IOException("Cannot create new unique blob id for URLWritableBinary", e);
+            }
         }
         return null;
     }
 
     @Override
-    public boolean isURLWritableBlob(String blobId) {
-        return blobId != null && blobId.startsWith(CLOUD_BLOB_PREFIX);
-    }
-
-    @Override
     public URL getWriteURL(String blobId) {
-        if (delegate instanceof URLWritableDataStore && isURLWritableBlob(blobId)) {
-            URLWritableDataStore urlWritableDataStore = (URLWritableDataStore) delegate;
-            String id = blobId.substring(CLOUD_BLOB_PREFIX.length());
-            return urlWritableDataStore.getWriteURL(new DataIdentifier(id));
+        if (delegate instanceof URLWritableDataStore) {
+            return ((URLWritableDataStore) delegate).getWriteURL(new DataIdentifier(blobId));
         }
         return null;
     }

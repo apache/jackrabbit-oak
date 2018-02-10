@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -593,7 +594,7 @@ public class S3Backend extends AbstractSharedBackend {
             return null;
         }
 
-        final String key = identifier.toString();
+        final String key = getKeyName(identifier);
 
         try {
             final Date expiration = new Date();
@@ -620,6 +621,27 @@ public class S3Backend extends AbstractSharedBackend {
 
     public void setURLWritableBinaryExpirySeconds(int seconds) {
         this.presignedPutExpirySeconds = seconds;
+    }
+
+    private static final String SPECIAL_SUFFIX = "_NO_HASH";
+    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
+
+    public DataIdentifier addNewRecord() throws DataStoreException {
+        // in case our random uuid generation fails and hits only existing keys (however unlikely)
+        // try only a limited number of times to avoid endless loop and throw instead
+        for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
+            // a random UUID instead of a content hash
+            final String id = UUID.randomUUID().toString() + SPECIAL_SUFFIX;
+
+            final DataIdentifier identifier = new DataIdentifier(id);
+            if (exists(identifier)) {
+                LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
+                continue;
+            }
+            LOG.info("Created new unique record id: {}", id);
+            return identifier;
+        }
+        throw new DataStoreException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
     }
 
     /**

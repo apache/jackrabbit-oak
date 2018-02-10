@@ -20,12 +20,13 @@ package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.IOException;
 import java.net.URL;
+import javax.annotation.Nullable;
 
 public interface URLWritableBlobStore extends BlobStore {
 
+    @Nullable
     String createURLWritableBlobId() throws IOException;
 
-    boolean isURLWritableBlob(String blobId);
-
+    @Nullable
     URL getWriteURL(String blobId);
 }
