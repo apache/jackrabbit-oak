@@ -22,7 +22,6 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import javax.jcr.Binary;

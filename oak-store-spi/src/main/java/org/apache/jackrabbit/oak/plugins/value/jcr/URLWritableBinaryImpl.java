@@ -19,10 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
 import java.net.URL;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.api.URLWritableBlob;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;

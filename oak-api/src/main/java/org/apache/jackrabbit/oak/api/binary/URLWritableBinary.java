@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.api.binary;
 
 import java.net.URL;
 import javax.annotation.Nullable;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
