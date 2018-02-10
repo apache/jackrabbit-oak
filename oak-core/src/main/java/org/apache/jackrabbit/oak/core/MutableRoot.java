@@ -346,7 +346,14 @@ class MutableRoot implements Root, URLWritableBlobRoot {
         return store.createURLWritableBlob();
     }
 
-    public void trackURLWritableBlob(URLWritableBlob urlWritableBlob) {
+    /**
+     * Called when a property was set with a URLWritableBlob as value. Only when
+     * actually used in a property such a blob will be {@link URLWritableBlob#commit() committed}
+     * upon commit(), thus enabling the blob to provide a URL to the client.
+     * That's why this does not happen in {@link #createURLWritableBlob()}, because
+     * there is no guarantee a client will persist the blob somewhere.
+     */
+    public void onURLWritableBlobPropertySet(URLWritableBlob urlWritableBlob) {
         addedURLWritableBlobs.add(urlWritableBlob);
     }
 

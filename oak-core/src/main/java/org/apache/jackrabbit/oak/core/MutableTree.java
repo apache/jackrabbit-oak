@@ -232,7 +232,7 @@ final class MutableTree extends AbstractMutableTree {
             // TODO: multi-value support for URLWritableBlob
             Blob blob = property.getValue(Type.BINARY);
             if (blob instanceof URLWritableBlob) {
-                root.trackURLWritableBlob((URLWritableBlob) blob);
+                root.onURLWritableBlobPropertySet((URLWritableBlob) blob);
             }
         }
         root.updated();
