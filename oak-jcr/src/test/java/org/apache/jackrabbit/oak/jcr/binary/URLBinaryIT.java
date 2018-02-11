@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.api.binary.URLReadableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -51,8 +50,9 @@ import org.junit.Test;
 public class URLBinaryIT extends AbstractURLBinaryIT {
 
     private static final String FILE_PATH = "/file";
-
     private static final String CONTENT = "hi there, I'm a binary blob!";
+    private static final int REGULAR_WRITE_EXPIRY = 60; // seconds
+    private static final int REGULAR_READ_EXPIRY = 60; // seconds
 
     public URLBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
@@ -81,11 +81,16 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F1 - basic test
     @Test
     public void testURLWritableBinary() throws Exception {
+        // enable writable URL feature
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+
+        // create JCR nt:file structure for holding binary
         Node file = getOrCreateNtFile(getAdminSession(), FILE_PATH);
 
         ValueFactory valueFactory = getAdminSession().getValueFactory();
         assertTrue(valueFactory instanceof URLWritableBinaryValueFactory);
 
+        // create new binary
         URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
         assertNotNull(binary);
 
@@ -99,6 +104,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
         getAdminSession().save();
 
+        // validate
         URL url = binary.getWriteURL();
         assertNotNull(url);
 
@@ -114,11 +120,15 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // D1/S2 - test reading getBinary().getInputStream() once uploaded
     @Test
     public void testWriteURLDoesNotChange() throws Exception {
+        // enable writable URL feature
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+
         // 1. add binary
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
 
-        // 2. request url for the 1st time
+        // 2. request url for the 1st time (and check it's not null)
         URL url = binary.getWriteURL();
+        assertNotNull(url);
 
         // 3. assert that 2nd request yields the exact same URL
         assertEquals(url, binary.getWriteURL());
@@ -127,12 +137,12 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F8 - test reading getBinary().getInputStream() once uploaded
     @Test
     public void testStreamBinaryThroughJCRAfterURLWrite() throws Exception {
+        // enable writable URL feature
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. add binary and upload
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         httpPut(binary.getWriteURL(), getTestInputStream(CONTENT));
-
-//        Thread.sleep(1 * SECONDS);
 
         // 2. stream through JCR and validate it's the same
         Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
@@ -142,11 +152,13 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F9 - URLReadableBinary for binary after write using URLWritableBinary
     @Test
     public void testURLReadableBinary() throws Exception {
+        // enable writable URL feature
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+
         // 1. add binary and upload
         URLWritableBinary newBinary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         httpPut(newBinary.getWriteURL(), getTestInputStream(CONTENT));
-
-//        Thread.sleep(1 * SECONDS);
 
         // 2. read binary, check it's a URLReadableBinary and get the URL
         Binary binary = getBinary(getAdminSession(), FILE_PATH);
@@ -177,7 +189,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testDisabledURLWritableBinary() throws Exception {
         // disable in data store config by setting expiry to zero
-        getDataStore().setURLWritableBinaryExpirySeconds(0);
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(0);
 
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
@@ -200,7 +212,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testExpiryOfURLWritableBinary() throws Exception {
         // short timeout
-        getDataStore().setURLWritableBinaryExpirySeconds(1);
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(1);
 
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         URL url = binary.getWriteURL();

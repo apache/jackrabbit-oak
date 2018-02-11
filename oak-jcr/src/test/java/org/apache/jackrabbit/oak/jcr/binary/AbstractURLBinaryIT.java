@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.runners.Parameterized;
@@ -75,7 +76,11 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         URLWritableDataStore getURLWritableDataStore();
     }
 
-    protected URLWritableDataStore getDataStore() throws RepositoryException {
+    private interface URLReadableDataStoreFixture {
+        URLReadableDataStore getURLReadableDataStore();
+    }
+
+    protected URLWritableDataStore getURLWritableDataStore() throws RepositoryException {
         // ensure fixture has created repo
         getRepository();
         if (fixture instanceof URLWritableDataStoreFixture) {
@@ -84,11 +89,21 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         throw new AssertionError("issue with test setup, cannot retrieve underlying URLWritableDataStore");
     }
 
+    protected URLReadableDataStore getURLReadableDataStore() throws RepositoryException {
+        // ensure fixture has created repo
+        getRepository();
+        if (fixture instanceof URLReadableDataStoreFixture) {
+            return ((URLReadableDataStoreFixture) fixture).getURLReadableDataStore();
+        }
+        throw new AssertionError("issue with test setup, cannot retrieve underlying URLWritableDataStore");
+    }
+
     // for this integration test create a SegmentNodeStore with
     // - segments in memory
     // - S3 data store as blob store
     // - S3 configuration from "s3.properties" file or "-Ds3.config=<filename>" system property
-    private static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture implements URLWritableDataStoreFixture {
+    private static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture
+        implements URLWritableDataStoreFixture, URLReadableDataStoreFixture {
 
         private S3DataStore s3DataStore;
 
@@ -166,6 +181,11 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
 
         @Override
         public URLWritableDataStore getURLWritableDataStore() {
+            return s3DataStore;
+        }
+
+        @Override
+        public URLReadableDataStore getURLReadableDataStore() {
             return s3DataStore;
         }
     }
