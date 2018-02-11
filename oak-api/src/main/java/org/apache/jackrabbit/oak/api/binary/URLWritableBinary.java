@@ -22,7 +22,43 @@ import java.net.URL;
 import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
+/**
+ * A special {@link Binary} where the client can upload the binary contents to the underlying blob
+ * storage directly. A typical example would be a HTTP PUT request to a cloud storage provider
+ * such as Amazon S3.
+ *
+ * <h3>Constraints</h3>
+
+ * <p>
+ * This direct access in form of a URL will usually be time limited, controlled by the repository,
+ * and starting at the time of the session save.
+ * The repository will be under full control of the name of the blob object, which will be encoded
+ * in e.g. the {@link #getWriteURL()}, and might typically be some random UUID. The client must
+ * not infer any semantics from this name. The URL would typically include a cryptographic signature
+ * that covers authentication and expiry time. Any change to the URL will likely result in a failing
+ * request.
+ * </p>
+ *
+ * <h3>Usage</h3>
+ * <p>
+ * This binary can be created using {@link URLWritableBinaryValueFactory}, which is an optional
+ * extension interface of the standard {@link javax.jcr.ValueFactory Session.getValueFactory()}.
+ * A client has to add this binary to a JCR property first and then persist the session, while
+ * keeping the reference to this URLWritableBinary object. After a successful {@link Session#save() save},
+ * the client can retrieve e.g. the {@link #getWriteURL() write URL} and use that to upload
+ * the binary contents to the blob storage.
+ * </p>
+ *
+ * <p>
+ * Note that an existing Binary value by when reading a JCR property will never support
+ * URLWritableBinary. To overwrite such a binary property, clients have to follow the same
+ * procedure as creating a new binary property initially: create a new URLWritableBinary via
+ * the value factory first, then set this as new binary value on the property, save the session,
+ * and finally retrieve the write URL and upload the binary contents.
+ * </p>
+ */
 // TODO: should probably move to jackrabbit-api
 public interface URLWritableBinary extends Binary {
 
