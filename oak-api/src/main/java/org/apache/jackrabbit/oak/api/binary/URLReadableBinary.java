@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Optional interface which {@link Binary} values implement that can provide a direct
  * download URL to the underlying blob storage.
@@ -58,6 +60,7 @@ import javax.jcr.RepositoryException;
  * </pre>
  */
 // TODO: should probably move to jackrabbit-api
+@ProviderType
 public interface URLReadableBinary extends Binary {
 
     @Nullable

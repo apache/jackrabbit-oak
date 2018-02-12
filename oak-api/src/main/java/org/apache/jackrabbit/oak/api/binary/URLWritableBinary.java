@@ -24,6 +24,8 @@ import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * A special {@link Binary} where the client can upload the binary contents to the underlying blob
  * storage directly. A typical example would be a HTTP PUT request to a cloud storage provider
@@ -91,6 +93,7 @@ import javax.jcr.Session;
  * </pre>
  */
 // TODO: should probably move to jackrabbit-api
+@ProviderType
 public interface URLWritableBinary extends Binary {
 
     @Nullable

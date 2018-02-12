@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.api.blob;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface URLWritableBlobRoot extends Root {
 
     URLWritableBlob createURLWritableBlob() throws IOException;

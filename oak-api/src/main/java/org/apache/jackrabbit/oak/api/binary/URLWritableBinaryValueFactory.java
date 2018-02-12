@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.api.binary;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Optional interface that a {@link javax.jcr.ValueFactory} might implement for a repository
  * that supports direct upload of binaries to the underlying blob storage.
@@ -30,6 +32,7 @@ import javax.jcr.RepositoryException;
  * </p>
  */
 // TODO: should probably move to jackrabbit-api
+@ProviderType
 public interface URLWritableBinaryValueFactory {
 
     /**

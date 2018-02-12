@@ -22,7 +22,9 @@ import java.net.URL;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface URLReadableBlob extends Blob {
 
     @Nullable
