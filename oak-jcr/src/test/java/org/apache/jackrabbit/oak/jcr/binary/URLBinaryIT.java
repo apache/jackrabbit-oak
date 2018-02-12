@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -40,13 +41,17 @@ import org.apache.jackrabbit.oak.api.binary.URLReadableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
  * (such as S3) for each {@link AbstractURLBinaryIT#dataStoreFixtures() configured fixture}.
  * Data store must be configured through s3.properties.
  */
+@RunWith(Parameterized.class)
 public class URLBinaryIT extends AbstractURLBinaryIT {
 
     private static final String FILE_PATH = "/file";
@@ -56,6 +61,15 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
     public URLBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    @Before
+    public void cleanRepoContents() throws RepositoryException {
+        Session adminSession = getAdminSession();
+        if (adminSession.nodeExists(FILE_PATH)) {
+            adminSession.getNode(FILE_PATH).remove();
+            adminSession.save();
+        }
     }
 
     // TODO: one test for each requirement

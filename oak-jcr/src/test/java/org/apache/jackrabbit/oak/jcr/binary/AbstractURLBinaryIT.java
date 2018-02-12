@@ -102,8 +102,10 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
     // - segments in memory
     // - S3 data store as blob store
     // - S3 configuration from "s3.properties" file or "-Ds3.config=<filename>" system property
-    private static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture
+    protected static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture
         implements URLWritableDataStoreFixture, URLReadableDataStoreFixture {
+
+        private NodeStore nodeStore;
 
         private S3DataStore s3DataStore;
 
@@ -113,25 +115,31 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
 
         @Override
         public NodeStore createNodeStore() {
-            try {
-                return SegmentNodeStoreBuilders.builder(new MemoryStore() {
+            // HACK: reuse repo for multiple tests so they are much faster
+            // this forces tests to properly clean their test content, and might create issues with dispose() below
+            // which deletes the data store directory after each test run, although that seems to be ok
+            if (nodeStore == null) {
+                System.out.println("-------------------------- creating S3 backed repo --------------------------");
+                try {
+                    nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore() {
 
-                    private BlobStore blobStore;
+                        private BlobStore blobStore;
 
-                    @CheckForNull
-                    @Override
-                    public BlobStore getBlobStore() {
-                        if (blobStore == null) {
-                            blobStore = createBlobStore();
+                        @CheckForNull
+                        @Override
+                        public BlobStore getBlobStore() {
+                            if (blobStore == null) {
+                                blobStore = createBlobStore();
+                            }
+                            return blobStore;
                         }
-                        return blobStore;
-                    }
 
-                }).build();
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
+                    }).build();
+                } catch (IOException e) {
+                    throw new AssertionError("Cannot create test repo fixture " + toString(), e);
+                }
             }
+            return nodeStore;
         }
 
         public BlobStore createBlobStore() {
