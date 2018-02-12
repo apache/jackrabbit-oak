@@ -21,6 +21,14 @@ package org.apache.jackrabbit.oak.api.binary;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+/**
+ * Optional interface that a {@link javax.jcr.ValueFactory} might implement for a repository
+ * that supports direct upload of binaries to the underlying blob storage.
+ *
+ * <p>
+ * More information at {@link URLWritableBinary}.
+ * </p>
+ */
 // TODO: should probably move to jackrabbit-api
 public interface URLWritableBinaryValueFactory {
 
@@ -37,7 +45,7 @@ public interface URLWritableBinaryValueFactory {
      * If the underlying data store does not support this feature, {@code null}
      * is returned and the binary has to be passed in directly using InputStream as in JCR 2.0.
      *
-     * @return a new URLWritableBinary or {@code null} if external binaries are not supported
+     * @return a new URLWritableBinary or {@code null} if external binaries are not enabled or supported
      */
     @Nullable
     URLWritableBinary createURLWritableBinary() throws RepositoryException;

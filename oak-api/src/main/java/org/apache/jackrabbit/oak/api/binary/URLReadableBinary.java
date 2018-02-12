@@ -23,6 +23,40 @@ import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
+/**
+ * Optional interface which {@link Binary} values implement that can provide a direct
+ * download URL to the underlying blob storage.
+ *
+ * <h3>Constraints</h3>
+ * <p>
+ * This direct access in form of a URL will usually be time limited, controlled by the repository,
+ * and starting at the time of retrieving the URL. It will only grant access to the particular blob.
+ * The client cannot infer any semantics from the URL structure and path names.
+ * The URL would typically include a cryptographic signature that covers authentication and expiry time.
+ * Any change to the URL will likely result in a failing request.
+ * </p>
+ *
+ * <h3>Usage</h3>
+ * <p>
+ * Retrieve a binary from a persisted property and check if it provides the URLReadableBinary interface.
+ * Then use {@link #getReadURL()} to retrieve the GET URL for downloading the binary contents.
+ * </p>
+ *
+ * Example code:
+ * <pre>
+ Node file = //... "jcr:content" node beneath a file
+
+ Binary binary = file.getProperty(JcrConstants.JCR_DATA).getBinary();
+ if (binary instanceof URLReadableBinary) {
+     URL url = ((URLReadableBinary) binary).getReadURL();
+
+     // do HTTP GET on `url` to download the binary contents from the blob storage directly
+ } else {
+     // not supported, stream normally
+     InputStream stream = binary.getInputStream();
+ }
+ * </pre>
+ */
 // TODO: should probably move to jackrabbit-api
 public interface URLReadableBinary extends Binary {
 

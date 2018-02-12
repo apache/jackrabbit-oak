@@ -30,15 +30,22 @@ import javax.jcr.Session;
  * such as Amazon S3.
  *
  * <h3>Constraints</h3>
-
  * <p>
  * This direct access in form of a URL will usually be time limited, controlled by the repository,
- * and starting at the time of the session save.
+ * and starting at the time of the session save. It will only grant access to the particular blob.
  * The repository will be under full control of the name of the blob object, which will be encoded
- * in e.g. the {@link #getWriteURL()}, and might typically be some random UUID. The client must
- * not infer any semantics from this name. The URL would typically include a cryptographic signature
+ * in e.g. the {@link #getWriteURL()}, and might typically be some random UUID. The client cannot
+ * infer any semantics from this name. The URL would typically include a cryptographic signature
  * that covers authentication and expiry time. Any change to the URL will likely result in a failing
  * request.
+ * </p>
+ *
+ * <p>
+ * Note that an existing Binary value by when reading a JCR property will never support
+ * URLWritableBinary. To overwrite such a binary property, clients have to follow the same
+ * procedure as creating a new binary property initially: create a new URLWritableBinary via
+ * the value factory first, then set this as new binary value on the property, save the session,
+ * and finally retrieve the write URL and upload the binary contents.
  * </p>
  *
  * <h3>Usage</h3>
@@ -51,13 +58,37 @@ import javax.jcr.Session;
  * the binary contents to the blob storage.
  * </p>
  *
- * <p>
- * Note that an existing Binary value by when reading a JCR property will never support
- * URLWritableBinary. To overwrite such a binary property, clients have to follow the same
- * procedure as creating a new binary property initially: create a new URLWritableBinary via
- * the value factory first, then set this as new binary value on the property, save the session,
- * and finally retrieve the write URL and upload the binary contents.
- * </p>
+ * Example code:
+ * <pre>
+ Session session = // ... jcr session for writing
+ Node file       = //... "jcr:content" node beneath a file
+
+ ValueFactory valueFactory = session.getValueFactory();
+
+ // true for repository implementations that generally support this feature,
+ // but it does not mean the feature is enabled for the particular setup
+ if (valueFactory instanceof URLWritableBinaryValueFactory) {
+
+     URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
+     if (binary == null) {
+         // feature not supported, add binary through InputStream
+         // for example, leave out the binary property yet, but create the JCR structure
+         // then tell the client to upload to an application servlet which then writes the JCR_DATA property using InputStream
+     }
+     file.setProperty(JcrConstants.JCR_DATA, binary);
+
+     // this will throw if access denied etc.
+     session.save();
+
+     // retrieve the URL, only available after the save()
+     URL url = binary.getWriteURL();
+
+     // do HTTP PUT on `url` with the binary to upload directly to blob storage...
+
+ } else {
+     // handle older JR2/Oak versions here, if needed
+ }
+ * </pre>
  */
 // TODO: should probably move to jackrabbit-api
 public interface URLWritableBinary extends Binary {
