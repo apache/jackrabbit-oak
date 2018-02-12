@@ -26,7 +26,6 @@ import static org.junit.Assert.assertNull;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -49,7 +48,16 @@ import org.junit.runners.Parameterized;
 /**
  * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
  * (such as S3) for each {@link AbstractURLBinaryIT#dataStoreFixtures() configured fixture}.
- * Data store must be configured through s3.properties.
+ * 
+ * Data store must be configured through aws.properties.
+ *
+ * Run this IT in maven using either:
+ *
+ *   single test:
+ *     mvn clean test -Dtest=URLBinaryIT
+ * 
+ *   as part of all integration tests:
+ *     mvn -PintegrationTesting clean install
  */
 @RunWith(Parameterized.class)
 public class URLBinaryIT extends AbstractURLBinaryIT {

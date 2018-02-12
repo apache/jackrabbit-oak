@@ -29,9 +29,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Properties;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -56,7 +56,16 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
         // could add Azure Blob store as another test case here later
-        return Collections.singletonList(new S3DataStoreWithMemorySegmentFixture());
+
+        Collection<NodeStoreFixture> fixtures = new ArrayList<>();
+        // only add fixture if configured
+        Properties s3Props = S3DataStoreWithMemorySegmentFixture.loadS3Properties();
+        if (s3Props != null) {
+            fixtures.add(new S3DataStoreWithMemorySegmentFixture(s3Props));
+        } else {
+            System.out.println("Skipping AbstractURLBinaryIT based test for S3 repo fixture as no S3 properties file found given by 's3.config' system property or named 'aws.properties'.");
+        }
+        return fixtures;
     }
 
     protected AbstractURLBinaryIT(NodeStoreFixture fixture) {
@@ -101,9 +110,11 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
     // for this integration test create a SegmentNodeStore with
     // - segments in memory
     // - S3 data store as blob store
-    // - S3 configuration from "s3.properties" file or "-Ds3.config=<filename>" system property
+    // - S3 configuration from "aws.properties" file or "-Ds3.config=<filename>" system property
     protected static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture
         implements URLWritableDataStoreFixture, URLReadableDataStoreFixture {
+
+        private final Properties s3Props;
 
         private NodeStore nodeStore;
 
@@ -112,6 +123,21 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         // track create temp folder to delete them in dispose()
         // note this assumes the fixture is only used once to createNodeStore()
         private File dataStoreFolder;
+
+        public S3DataStoreWithMemorySegmentFixture(Properties s3Props) {
+            this.s3Props = s3Props;
+        }
+
+        @Nullable
+        public static Properties loadS3Properties() {
+            Properties s3Props = new Properties();
+            try {
+                s3Props.load(new FileReader(System.getProperty("s3.config", "aws.properties")));
+            } catch (IOException e) {
+                return null;
+            }
+            return s3Props;
+        }
 
         @Override
         public NodeStore createNodeStore() {
@@ -146,10 +172,6 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
             try {
                 // create data store disk cache inside maven's "target" folder
                 dataStoreFolder = createTempFolder(new File("target"));
-
-                // read S3 config file
-                Properties s3Props = new Properties();
-                s3Props.load(new FileReader(System.getProperty("s3.config", "s3.properties")));
 
                 // create S3 DS
                 s3DataStore = new S3DataStore();
