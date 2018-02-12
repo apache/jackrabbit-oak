@@ -31,8 +31,11 @@
         </encoder>
     </appender>
 
+<!-- for debugging URLBinaryIT -->
+<!--
     <logger name="com.amazonaws.http" level="DEBUG"/>
     <logger name="sun.net.www.protocol.http.HttpURLConnection" level="DEBUG"/>
+-->
 
     <logger name="org.apache.jackrabbit.test.api" level="DEBUG"/>
     <logger name="com.mongodb.tcp" level="ERROR"/>
