@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -651,6 +652,73 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     "failure to round-trip " + testname + " through " + super.dsname + " (JDK roundtripping: " + roundTrips + ")",
                     test, nd.get("foo"));
             super.ds.remove(Collection.NODES, id);
+        }
+    }
+
+    @Test
+    public void testInterestingValidIds() {
+        // OAK-7261
+        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
+                "tab:a\tb" };
+
+        for (String t : tests) {
+            int pos = t.indexOf(":");
+            String test = t.substring(pos + 1);
+            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingValidIds-" + test);
+            super.ds.remove(Collection.NODES, id);
+            UpdateOp up = new UpdateOp(id, true);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("failed to insert a document with id '" + id + "' in " + super.dsname, success);
+            // re-read from persistence
+            super.ds.invalidateCache();
+            NodeDocument nd = super.ds.find(Collection.NODES, id);
+            assertEquals("failure to round-trip " + t + " through " + super.dsname, id, nd.getId());
+            super.ds.remove(Collection.NODES, id);
+        }
+    }
+
+    @Test
+    @Ignore("OAK-7261")
+    public void testInterestingInvalidIds() {
+        // OAK-7261
+        String[] tests = new String[] {"nul:a\u0000b", "brokensurrogate:\ud800" };
+
+        for (String t : tests) {
+            int pos = t.indexOf(":");
+            String test = t.substring(pos + 1);
+            String id = Utils.getIdFromPath("/" + this.getClass().getName() + ".testInterestingInvalidIds-" + test);
+
+            try {
+                super.ds.remove(Collection.NODES, id);
+            }
+            catch (DocumentStoreException acceptable) {
+                // it would be acceptable to reject the delete request due to
+                // malformed string (for instance, PostgreSQL behaves like that)
+            }
+
+            UpdateOp up = new UpdateOp(id, true);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+
+            // failing to persist is ok - otherwise proceed with consistency tests
+            if (success) {
+                // re-read from persistence
+                super.ds.invalidateCache();
+                NodeDocument nd = super.ds.find(Collection.NODES, id);
+                assertEquals("failure to round-trip " + t + " through " + super.dsname, id, nd.getId());
+
+                // if the character does not roundtrip through UTF-8, try to delete
+                // the remapped one and do another lookup            
+                if (!roundtripsThroughJavaUTF8(id)) {
+                    Charset utf8 = Charset.forName("UTF-8");
+                    String mapped = new String(id.getBytes(utf8), utf8);
+                    super.ds.remove(Collection.NODES, mapped);
+                    super.ds.invalidateCache();
+                    NodeDocument nd2 = super.ds.find(Collection.NODES, id);
+                    assertNotNull("deleting '" + mapped + "' has caused '" + id + "' to disappear", nd2);
+                }
+
+                super.ds.remove(Collection.NODES, id);
+            }
         }
     }
 
