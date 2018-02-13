@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTI
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTION_RETRY_COUNT;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTION_SIZE_DELTA_ESTIMATION;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_SEGMENT_STORE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.GC_PROGRESS_LOG;
@@ -316,6 +317,12 @@ public class SegmentNodeStoreService {
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
+    @Property(boolValue = false,
+            label = "Custom segment store",
+            description = "Boolean value indicating that a custom (non-tar) segment store is used"
+    )
+    public static final String CUSTOM_SEGMENT_STORE = "customSegmentStore";
+
     @Property(
             label = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
@@ -330,6 +337,13 @@ public class SegmentNodeStoreService {
             target = ONLY_STANDALONE_TARGET
     )
     private volatile BlobStore blobStore;
+
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile SegmentNodeStorePersistence segmentStore;
 
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
@@ -374,9 +388,14 @@ public class SegmentNodeStoreService {
                     "store becomes available");
             return;
         }
+        if (segmentStore == null && configuration.hasCustomSegmentStore()) {
+            log.info("customSegmentStore enabled. SegmentNodeStore will be initialized once the custom segment " +
+                    "store becomes available");
+            return;
+        }
         closer = Closer.create();
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        registerSegmentStore(context, blobStore, statisticsProvider, closer, whiteboard, null, true);
+        registerSegmentStore(context, blobStore, segmentStore, statisticsProvider, closer, whiteboard, null, true);
     }
 
     /**
@@ -387,6 +406,8 @@ public class SegmentNodeStoreService {
      *
      * @param context            An instance of {@link ComponentContext}.
      * @param blobStore          An instance of {@link BlobStore}. It can be
+     *                           {@code null}.
+     * @param segmentStore       An instance of {@link SegmentNodeStorePersistence}. It can be
      *                           {@code null}.
      * @param statisticsProvider An instance of {@link StatisticsProvider}.
      * @param closer             An instance of {@link Closer}. It will be used
@@ -406,6 +427,7 @@ public class SegmentNodeStoreService {
     static SegmentNodeStore registerSegmentStore(
             @Nonnull ComponentContext context,
             @Nullable BlobStore blobStore,
+            @Nullable SegmentNodeStorePersistence segmentStore,
             @Nonnull StatisticsProvider statisticsProvider,
             @Nonnull Closer closer,
             @Nonnull Whiteboard whiteboard,
@@ -467,6 +489,11 @@ public class SegmentNodeStoreService {
         if (configuration.hasCustomBlobStore() && blobStore != null) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             builder.withBlobStore(blobStore);
+        }
+
+        if (configuration.hasCustomSegmentStore() && segmentStore != null) {
+            log.info("Initializing SegmentNodeStore with custom persistence [{}]", segmentStore);
+            builder.withCustomPersistence(segmentStore);
         }
 
         if (configuration.isStandbyInstance()) {
@@ -932,6 +959,10 @@ class Configuration {
 
     boolean hasCustomBlobStore() {
         return toBoolean(property(CUSTOM_BLOB_STORE), false);
+    }
+
+    boolean hasCustomSegmentStore() {
+        return toBoolean(property(CUSTOM_SEGMENT_STORE), false);
     }
 
     long getBlobGcMaxAge() {

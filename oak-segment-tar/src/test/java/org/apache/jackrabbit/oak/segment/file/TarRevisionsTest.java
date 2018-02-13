@@ -45,7 +45,9 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -64,29 +66,36 @@ public class TarRevisionsTest {
         return folder.getRoot();
     }
 
+    protected SegmentNodeStorePersistence getPersistence() throws IOException {
+        return new TarPersistence(getFileStoreFolder());
+    }
+
     @Before
     public void setup() throws Exception {
-        store = FileStoreBuilder.fileStoreBuilder(getFileStoreFolder()).build();
+        store = FileStoreBuilder.fileStoreBuilder(getFileStoreFolder()).withCustomPersistence(getPersistence()).build();
         revisions = store.getRevisions();
         reader = store.getReader();
         store.flush();
     }
 
     @After
-    public void tearDown() throws IOException {
-        store.close();
+    public void tearDown() {
+        if (store != null) {
+            store.close();
+            store = null;
+        }
     }
 
     @Test(expected = IllegalStateException.class)
     public void unboundRevisions() throws IOException {
-        try (TarRevisions tarRevisions = new TarRevisions(folder.getRoot())) {
+        try (TarRevisions tarRevisions = new TarRevisions(getPersistence())) {
             tarRevisions.getHead();
         }
     }
 
     @Nonnull
     private JournalReader createJournalReader() throws IOException {
-        return new JournalReader(new File(getFileStoreFolder(), TarRevisions.JOURNAL_FILE_NAME));
+        return new JournalReader(getPersistence().getJournalFile());
     }
 
     @Test
@@ -150,7 +159,7 @@ public class TarRevisionsTest {
 
     @Test
     public void concurrentSetHeadFromFunction()
-    throws IOException, InterruptedException, ExecutionException, TimeoutException {
+    throws InterruptedException, ExecutionException, TimeoutException {
         ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
         try {
             ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {

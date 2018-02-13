@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -141,10 +142,10 @@ public class JournalReaderTest {
         }
     }
 
-    private JournalReader createJournalReader(String s) throws IOException {
+    protected JournalReader createJournalReader(String s) throws IOException {
         File journalFile = folder.newFile("jrt");
         write(journalFile, s);
-        return new JournalReader(journalFile);
+        return new JournalReader(new LocalJournalFile(journalFile));
     }
 
 }

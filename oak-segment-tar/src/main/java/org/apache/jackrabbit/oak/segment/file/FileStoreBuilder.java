@@ -40,6 +40,7 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.RecordCache;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -87,6 +89,8 @@ public class FileStoreBuilder {
     private int nodeDeduplicationCacheSize = DEFAULT_NODE_CACHE_SIZE;
 
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
+
+    private SegmentNodeStorePersistence persistence;
 
     @Nonnull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
@@ -139,6 +143,7 @@ public class FileStoreBuilder {
     private FileStoreBuilder(@Nonnull File directory) {
         this.directory = checkNotNull(directory);
         this.gcListener.registerGCMonitor(new LoggingGCMonitor(LOG));
+        this.persistence = new TarPersistence(directory);
     }
 
     /**
@@ -314,6 +319,11 @@ public class FileStoreBuilder {
         return this;
     }
     
+    public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) throws IOException {
+        this.persistence = persistence;
+        return this;
+    }
+
     /**
      * Create a new {@link FileStore} instance with the settings specified in this
      * builder. If none of the {@code with} methods have been called before calling
@@ -336,7 +346,7 @@ public class FileStoreBuilder {
         checkState(!built, "Cannot re-use builder");
         built = true;
         directory.mkdirs();
-        TarRevisions revisions = new TarRevisions(directory);
+        TarRevisions revisions = new TarRevisions(persistence);
         LOG.info("Creating file store {}", this);
         FileStore store;
         try {
@@ -376,7 +386,7 @@ public class FileStoreBuilder {
         checkState(directory.exists() && directory.isDirectory(),
                 "%s does not exist or is not a directory", directory);
         built = true;
-        ReadOnlyRevisions revisions = new ReadOnlyRevisions(directory);
+        ReadOnlyRevisions revisions = new ReadOnlyRevisions(persistence);
         LOG.info("Creating file store {}", this);
         ReadOnlyFileStore store;
         try {
@@ -441,6 +451,10 @@ public class FileStoreBuilder {
     @Nonnull
     SegmentNotFoundExceptionListener getSnfeListener() {
         return snfeListener;
+    }
+
+    SegmentNodeStorePersistence getPersistence() {
+        return persistence;
     }
 
     /**

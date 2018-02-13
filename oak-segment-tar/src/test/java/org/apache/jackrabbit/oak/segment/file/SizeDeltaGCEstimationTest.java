@@ -23,6 +23,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +39,8 @@ public class SizeDeltaGCEstimationTest {
 
     @Before
     public void setUpJournal() throws Exception {
-        journal = new GCJournal(folder.getRoot());
+        SegmentNodeStorePersistence persistence = new TarPersistence(folder.getRoot());
+        journal = new GCJournal(persistence.getGCJournalFile());
     }
 
     @Test

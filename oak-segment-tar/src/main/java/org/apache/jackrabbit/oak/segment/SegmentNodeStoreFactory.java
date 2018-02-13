@@ -75,6 +75,12 @@ public class SegmentNodeStoreFactory {
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     @Property(boolValue = false,
+            label = "Custom segment store",
+            description = "Boolean value indicating that a custom (non-tar) segment store is used"
+    )
+    public static final String CUSTOM_SEGMENT_STORE = "customSegmentStore";
+
+    @Property(boolValue = false,
             label = "Register JCR descriptors as OSGi services",
             description="Should only be done for one factory instance")
     public static final String REGISTER_DESCRIPTORS = "registerDescriptors";
@@ -89,6 +95,13 @@ public class SegmentNodeStoreFactory {
     )
     private volatile BlobStore blobStore;
 
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile SegmentNodeStorePersistence segmentStore;
+
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
@@ -100,6 +113,7 @@ public class SegmentNodeStoreFactory {
         // In secondaryNodeStore mode customBlobStore is always enabled
         boolean isSecondaryStoreMode = "secondary".equals(role);
         boolean customBlobStore = Boolean.parseBoolean(property(CUSTOM_BLOB_STORE, context)) || isSecondaryStoreMode;
+        boolean customSegmentStore = Boolean.parseBoolean(property(CUSTOM_SEGMENT_STORE, context));
         boolean registerRepositoryDescriptors = Boolean.parseBoolean(property(REGISTER_DESCRIPTORS, context));
         log.info("activate: SegmentNodeStore '" + role + "' starting.");
 
@@ -108,10 +122,15 @@ public class SegmentNodeStoreFactory {
             return;
         }
 
+        if (segmentStore == null && customSegmentStore) {
+            log.info("customSegmentStore enabled. SegmentNodeStore will be initialized once the custom segment store becomes available");
+            return;
+        }
+
         if (role != null) {
             registrations = Closer.create();
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-            final SegmentNodeStore store = SegmentNodeStoreService.registerSegmentStore(context, blobStore,
+            final SegmentNodeStore store = SegmentNodeStoreService.registerSegmentStore(context, blobStore, segmentStore,
                     statisticsProvider, registrations, whiteboard, role, registerRepositoryDescriptors);
             if (store != null) {
                 Map<String, Object> props = new HashMap<String, Object>();

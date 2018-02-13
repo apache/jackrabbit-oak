@@ -17,9 +17,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.ManifestFile;
+
 import java.io.IOException;
 import java.util.Properties;
 
@@ -34,12 +34,8 @@ class Manifest {
      * @return A manifest file.
      * @throws IOException If any error occurs when loading the manifest.
      */
-    static Manifest load(File file) throws IOException {
-        Properties properties = new Properties();
-        try (FileReader r = new FileReader(file)) {
-            properties.load(r);
-        }
-        return new Manifest(properties);
+    static Manifest load(ManifestFile file) throws IOException {
+        return new Manifest(file.load());
     }
 
     /**
@@ -85,8 +81,8 @@ class Manifest {
      * @param file The file to save the manifest to.
      * @throws IOException if an error occurs while saving the manifest.
      */
-    void save(File file) throws IOException {
-        properties.store(new FileWriter(file), null);
+    void save(ManifestFile file) throws IOException {
+        file.save(properties);
     }
 
     private int getIntegerProperty(String name, int otherwise) {
