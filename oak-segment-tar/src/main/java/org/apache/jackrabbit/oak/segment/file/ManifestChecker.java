@@ -17,21 +17,22 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.ManifestFile;
+
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.File;
 import java.io.IOException;
 
 public class ManifestChecker {
 
-    public static ManifestChecker newManifestChecker(File path, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
-        checkArgument(path != null, "path");
+    public static ManifestChecker newManifestChecker(ManifestFile file, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
+        checkArgument(file != null, "file");
         checkArgument(minStoreVersion > 0, "minStoreVersion");
         checkArgument(maxStoreVersion > 0, "maxStoreVersion");
-        return new ManifestChecker(path, shouldExist, minStoreVersion, maxStoreVersion);
+        return new ManifestChecker(file, shouldExist, minStoreVersion, maxStoreVersion);
     }
 
-    private final File file;
+    private final ManifestFile file;
 
     private final boolean shouldExist;
 
@@ -39,7 +40,7 @@ public class ManifestChecker {
 
     private final int maxStoreVersion;
 
-    private ManifestChecker(File file, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
+    private ManifestChecker(ManifestFile file, boolean shouldExist, int minStoreVersion, int maxStoreVersion) {
         this.file = file;
         this.shouldExist = shouldExist;
         this.minStoreVersion = minStoreVersion;

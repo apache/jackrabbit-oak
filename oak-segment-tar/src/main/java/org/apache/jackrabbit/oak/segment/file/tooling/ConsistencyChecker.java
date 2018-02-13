@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -138,7 +139,7 @@ public class ConsistencyChecker implements Closeable {
             PrintWriter errWriter
     ) throws IOException, InvalidFileStoreVersionException {
         try (
-                JournalReader journal = new JournalReader(new File(directory, journalFileName));
+                JournalReader journal = new JournalReader(new LocalJournalFile(directory, journalFileName));
                 ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval, ioStatistics, outWriter, errWriter)
         ) {
             Set<String> checkpointsSet = Sets.newLinkedHashSet();

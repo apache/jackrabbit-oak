@@ -43,12 +43,8 @@ import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -74,6 +70,7 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
@@ -85,7 +82,6 @@ import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
-import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -107,8 +103,6 @@ public class FileStore extends AbstractFileStore {
 
     private static final int MB = 1024 * 1024;
 
-    static final String LOCK_FILE_NAME = "repo.lock";
-
     /**
      * GC counter for logging purposes
      */
@@ -122,10 +116,7 @@ public class FileStore extends AbstractFileStore {
 
     private final TarFiles tarFiles;
 
-    private final RandomAccessFile lockFile;
-
-    @Nonnull
-    private final FileLock lock;
+    private final SegmentNodeStorePersistence.RepositoryLock repositoryLock;
 
     private volatile TarRevisions revisions;
 
@@ -139,7 +130,7 @@ public class FileStore extends AbstractFileStore {
      * not be removed immediately, because they first need to be closed, and the
      * JVM needs to release the memory mapped file references.
      */
-    private final FileReaper fileReaper = new FileReaper();
+    private final FileReaper fileReaper;
 
     /**
      * This flag is periodically updated by calling the {@code SegmentGCOptions}
@@ -163,13 +154,8 @@ public class FileStore extends AbstractFileStore {
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
-        lockFile = new RandomAccessFile(new File(directory, LOCK_FILE_NAME), "rw");
-        try {
-            lock = lockFile.getChannel().lock();
-        } catch (OverlappingFileLockException ex) {
-            throw new IllegalStateException(directory.getAbsolutePath()
-                    + " is in use by another store.", ex);
-        }
+        SegmentNodeStorePersistence persistence = builder.getPersistence();
+        repositoryLock = persistence.lockRepository();
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
                 .withGeneration(() -> getGcGeneration().nonGC())
@@ -180,23 +166,28 @@ public class FileStore extends AbstractFileStore {
         this.garbageCollector = new GarbageCollector(
                 builder.getGcOptions(),
                 builder.getGcListener(),
-                new GCJournal(directory),
+                new GCJournal(persistence.getGCJournalFile()),
                 builder.getCacheManager()
                         .withAccessTracking("COMPACT", builder.getStatsProvider()));
 
-        newManifestChecker(directory, builder.getStrictVersionCheck()).checkAndUpdateManifest();
+        newManifestChecker(persistence, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
         this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
-        this.tarFiles = TarFiles.builder()
+
+        TarFiles.Builder tarFilesBuilder = TarFiles.builder()
                 .withDirectory(directory)
                 .withMemoryMapping(memoryMapping)
                 .withTarRecovery(recovery)
                 .withIOMonitor(ioMonitor)
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
-                .build();
+                .withPersistence(builder.getPersistence());
+
+        this.tarFiles = tarFilesBuilder.build();
         long size = this.tarFiles.size();
         this.stats.init(size);
+
+        this.fileReaper = this.tarFiles.createFileReaper();
 
         this.snfeListener = builder.getSnfeListener();
 
@@ -448,9 +439,8 @@ public class FileStore extends AbstractFileStore {
             }
 
             Closer closer = Closer.create();
-            closer.register(lockFile);
-            closer.register(lock::release);
-            closer.register(tarFiles);
+            closer.register(repositoryLock::unlock);
+            closer.register(tarFiles) ;
             closer.register(revisions);
 
             closeAndLogOnFail(closer);
@@ -923,7 +913,7 @@ public class FileStore extends AbstractFileStore {
          * @throws IOException
          */
         @Nonnull
-        synchronized List<File> cleanup() throws IOException {
+        synchronized List<String> cleanup() throws IOException {
             return cleanup(CompactionResult.skipped(
                 lastCompactionType,
                 getGcGeneration(),
@@ -938,7 +928,7 @@ public class FileStore extends AbstractFileStore {
          * @throws IOException
          */
         @Nonnull
-        private List<File> cleanup(@Nonnull CompactionResult compactionResult)
+        private List<String> cleanup(@Nonnull CompactionResult compactionResult)
             throws IOException {
             PrintableStopwatch watch = PrintableStopwatch.createStarted();
 
@@ -950,7 +940,7 @@ public class FileStore extends AbstractFileStore {
             // to clear stale weak references in the SegmentTracker
             System.gc();
 
-            CleanupResult cleanupResult = tarFiles.cleanup(newCleanupContext(compactionResult.reclaimer()));
+            TarFiles.CleanupResult cleanupResult = tarFiles.cleanup(newCleanupContext(compactionResult.reclaimer()));
             if (cleanupResult.isInterrupted()) {
                 gcListener.info("cleanup interrupted");
             }
@@ -972,7 +962,7 @@ public class FileStore extends AbstractFileStore {
             return cleanupResult.getRemovableFiles();
         }
 
-        private String toFileNames(@Nonnull List<File> files) {
+        private String toFileNames(@Nonnull List<String> files) {
             if (files.isEmpty()) {
                 return "none";
             } else {

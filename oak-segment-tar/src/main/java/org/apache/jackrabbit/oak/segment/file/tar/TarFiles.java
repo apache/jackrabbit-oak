@@ -24,7 +24,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
-import static org.apache.commons.io.FileUtils.listFiles;
 
 import java.io.Closeable;
 import java.io.File;
@@ -52,6 +51,9 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +78,7 @@ public class TarFiles implements Closeable {
 
         private long reclaimedSize;
 
-        private List<File> removableFiles;
+        private List<String> removableFiles;
 
         private Set<UUID> reclaimedSegmentIds;
 
@@ -88,7 +90,7 @@ public class TarFiles implements Closeable {
             return reclaimedSize;
         }
 
-        public List<File> getRemovableFiles() {
+        public List<String> getRemovableFiles() {
             return removableFiles;
         }
 
@@ -117,6 +119,8 @@ public class TarFiles implements Closeable {
         private long maxFileSize;
 
         private boolean readOnly;
+
+        private SegmentNodeStorePersistence persistence;
 
         private Builder() {
             // Prevent external instantiation.
@@ -158,15 +162,54 @@ public class TarFiles implements Closeable {
             return this;
         }
 
+        public Builder withPersistence(SegmentNodeStorePersistence persistence) {
+            this.persistence = persistence;
+            return this;
+        }
+
         public TarFiles build() throws IOException {
             checkState(directory != null, "Directory not specified");
             checkState(tarRecovery != null, "TAR recovery strategy not specified");
             checkState(ioMonitor != null, "I/O monitor not specified");
             checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
             checkState(readOnly || maxFileSize != 0, "Max file size not specified");
+            if (persistence == null) {
+                persistence = new TarPersistence(directory);
+            }
             return new TarFiles(this);
         }
 
+        public File getDirectory() {
+            return directory;
+        }
+
+        public boolean isMemoryMapping() {
+            return memoryMapping;
+        }
+
+        public TarRecovery getTarRecovery() {
+            return tarRecovery;
+        }
+
+        public IOMonitor getIoMonitor() {
+            return ioMonitor;
+        }
+
+        public FileStoreMonitor getFileStoreMonitor() {
+            return fileStoreMonitor;
+        }
+
+        public long getMaxFileSize() {
+            return maxFileSize;
+        }
+
+        public boolean isReadOnly() {
+            return readOnly;
+        }
+
+        private SegmentArchiveManager buildArchiveManager() throws IOException {
+            return persistence.createArchiveManager(memoryMapping, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
+        }
     }
 
     private static final Logger log = LoggerFactory.getLogger(TarFiles.class);
@@ -218,13 +261,13 @@ public class TarFiles implements Closeable {
         };
     }
 
-    private static Map<Integer, Map<Character, File>> collectFiles(File directory) {
-        Map<Integer, Map<Character, File>> dataFiles = newHashMap();
-        for (File file : listFiles(directory, null, false)) {
-            Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
+    private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
+        Map<Integer, Map<Character, String>> dataFiles = newHashMap();
+        for (String file : archiveManager.listArchives()) {
+            Matcher matcher = FILE_NAME_PATTERN.matcher(file);
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
-                Map<Character, File> files = dataFiles.get(index);
+                Map<Character, String> files = dataFiles.get(index);
                 if (files == null) {
                     files = newHashMap();
                     dataFiles.put(index, files);
@@ -245,9 +288,7 @@ public class TarFiles implements Closeable {
 
     private final long maxFileSize;
 
-    private final boolean memoryMapping;
-
-    private final IOMonitor ioMonitor;
+    private SegmentArchiveManager archiveManager;
 
     /**
      * Guards access to the {@link #readers} and {@link #writer} references.
@@ -281,9 +322,9 @@ public class TarFiles implements Closeable {
 
     private TarFiles(Builder builder) throws IOException {
         maxFileSize = builder.maxFileSize;
-        memoryMapping = builder.memoryMapping;
-        ioMonitor = builder.ioMonitor;
-        Map<Integer, Map<Character, File>> map = collectFiles(builder.directory);
+        archiveManager = builder.buildArchiveManager();
+
+        Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
 
@@ -295,9 +336,9 @@ public class TarFiles implements Closeable {
         for (Integer index : indices) {
             TarReader r;
             if (builder.readOnly) {
-                r = TarReader.openRO(map.get(index), memoryMapping, builder.tarRecovery, ioMonitor);
+                r = TarReader.openRO(map.get(index), builder.tarRecovery, archiveManager);
             } else {
-                r = TarReader.open(map.get(index), memoryMapping, builder.tarRecovery, ioMonitor);
+                r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
             }
             readers = new Node(r, readers);
         }
@@ -308,10 +349,9 @@ public class TarFiles implements Closeable {
         if (indices.length > 0) {
             writeNumber = indices[indices.length - 1] + 1;
         }
-        writer = new TarWriter(builder.directory, builder.fileStoreMonitor, writeNumber, builder.ioMonitor);
+        writer = new TarWriter(archiveManager, writeNumber);
     }
 
-    @Override
     public void close() throws IOException {
         shutdown = true;
 
@@ -510,7 +550,7 @@ public class TarFiles implements Closeable {
         if (newWriter == writer) {
             return;
         }
-        readers = new Node(TarReader.open(writer.getFile(), memoryMapping, ioMonitor), readers);
+        readers = new Node(TarReader.open(writer.getFileName(), archiveManager), readers);
         writer = newWriter;
     }
 
@@ -657,7 +697,7 @@ public class TarFiles implements Closeable {
             } catch (IOException e) {
                 log.warn("Unable to close swept TAR reader", e);
             }
-            result.removableFiles.add(closeable.getFile());
+            result.removableFiles.add(closeable.getFileName());
         }
 
         return result;
@@ -711,7 +751,7 @@ public class TarFiles implements Closeable {
         Map<UUID, List<UUID>> graph = null;
 
         for (TarReader reader : iterable(head)) {
-            if (fileName.equals(reader.getFile().getName())) {
+            if (fileName.equals(reader.getFileName())) {
                 index = reader.getUUIDs();
                 graph = reader.getGraph();
                 break;
@@ -744,9 +784,12 @@ public class TarFiles implements Closeable {
 
         Map<String, Set<UUID>> index = new HashMap<>();
         for (TarReader reader : iterable(head)) {
-            index.put(reader.getFile().getName(), reader.getUUIDs());
+            index.put(reader.getFileName(), reader.getUUIDs());
         }
         return index;
     }
 
+    public FileReaper createFileReaper() {
+        return new FileReaper(archiveManager);
+    }
 }

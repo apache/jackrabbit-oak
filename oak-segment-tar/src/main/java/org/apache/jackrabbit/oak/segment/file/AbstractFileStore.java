@@ -24,7 +24,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -32,7 +31,6 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
@@ -45,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -66,8 +65,6 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractFileStore.class);
 
-    private static final String MANIFEST_FILE_NAME = "manifest";
-
     /**
      * The minimum supported store version. It is possible for an implementation
      * to support in a transparent and backwards-compatible way older versions
@@ -88,18 +85,13 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      */
     private static final int MAX_STORE_VERSION = 2;
 
-    static ManifestChecker newManifestChecker(File directory, boolean strictVersionCheck) {
+    static ManifestChecker newManifestChecker(SegmentNodeStorePersistence persistence, boolean strictVersionCheck) throws IOException {
         return ManifestChecker.newManifestChecker(
-                new File(directory, MANIFEST_FILE_NAME),
-                notEmptyDirectory(directory),
+                persistence.getManifestFile(),
+                persistence.segmentFilesExist(),
                 strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
                 MAX_STORE_VERSION
         );
-    }
-
-    private static boolean notEmptyDirectory(File path) {
-        Collection<File> entries = FileUtils.listFiles(path, new String[] {"tar"}, false);
-        return !entries.isEmpty();
     }
 
     @Nonnull
