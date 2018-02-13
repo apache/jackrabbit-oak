@@ -86,7 +86,6 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
     // F5 - more cloud stores => new fixtures, mock fixture
     // F6/F7 - no additional final request, notification API via SQS
-    // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
 
     // A1 - get put url, change it and try uploading somewhere else in S3
     // A4 - no test, SHOULD requirement only, hard to test
@@ -174,7 +173,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // F9 - URLReadableBinary for binary after write using URLWritableBinary
     @Test
     public void testURLReadableBinary() throws Exception {
-        // enable writable URL feature
+        // enable writable and readable URL feature
         getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
         getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -191,6 +190,30 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         // 3. GET on URL and verify contents are the same
         InputStream stream = httpGet(url);
         assertTrue(IOUtils.contentEquals(stream, getTestInputStream(CONTENT)));
+    }
+
+    // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
+    @Test
+    public void testURLReadableBinaryFromInputStream() throws Exception {
+        // enable readable URL feature
+        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+
+        // 1. add binary via input stream (must be larger than 16 KB segmentstore inline binary limit)
+        Node resource = getOrCreateNtFile(getAdminSession(), FILE_PATH);
+        Binary streamBinary = getAdminSession().getValueFactory().createBinary(getTestInputStream(MB));
+        resource.setProperty(JcrConstants.JCR_DATA, streamBinary);
+
+        waitForUploads();
+
+        // 2. read binary, check it's a URLReadableBinary and get the URL
+        Binary binary = getBinary(getAdminSession(), FILE_PATH);
+        assertTrue(binary instanceof URLReadableBinary);
+        URL url = ((URLReadableBinary) binary).getReadURL();
+        assertNotNull(url);
+
+        // 3. GET on URL and verify contents are the same
+        InputStream stream = httpGet(url);
+        assertTrue(IOUtils.contentEquals(stream, getTestInputStream(MB)));
     }
 
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property

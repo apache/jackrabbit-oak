@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AfterClass;
 import org.junit.runners.Parameterized;
 
 /** Base class with all the logic to test different data stores that support URL writable or readable binaries */
@@ -66,6 +67,17 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
             System.out.println("Skipping AbstractURLBinaryIT based test for S3 repo fixture as no S3 properties file found given by 's3.config' system property or named 'aws.properties'.");
         }
         return fixtures;
+    }
+
+    private static File staticDataStoreFolder;
+
+    // HACK: delete data store folder at the end of this test class, as we reuse the NodeStore
+    // in the NodeStoreFixture and NodeStoreFixture.dispose() would delete between test runs
+    @AfterClass
+    public static void cleanupStores() throws IOException {
+        if (staticDataStoreFolder != null) {
+            FileUtils.deleteDirectory(staticDataStoreFolder);
+        }
     }
 
     protected AbstractURLBinaryIT(NodeStoreFixture fixture) {
@@ -172,6 +184,7 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
             try {
                 // create data store disk cache inside maven's "target" folder
                 dataStoreFolder = createTempFolder(new File("target"));
+                staticDataStoreFolder = dataStoreFolder;
 
                 // create S3 DS
                 s3DataStore = new S3DataStore();
@@ -196,11 +209,13 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
 
         @Override
         public void dispose(NodeStore nodeStore) {
-            try {
-                FileUtils.deleteDirectory(dataStoreFolder);
-            } catch (IOException e) {
-                System.out.println("Could not cleanup temp folder after test: " + e.getMessage());
-            }
+            // HACK: can't clean up here, as we reuse the NodeStore in the NodeStoreFixture
+            // and NodeStoreFixture.dispose() would delete between test runs
+//            try {
+//                FileUtils.deleteDirectory(dataStoreFolder);
+//            } catch (IOException e) {
+//                System.out.println("Could not cleanup temp folder after test: " + e.getMessage());
+//            }
         }
 
         // for nice Junit parameterized test labels

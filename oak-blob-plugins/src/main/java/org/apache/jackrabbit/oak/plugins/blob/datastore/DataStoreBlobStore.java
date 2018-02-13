@@ -681,9 +681,12 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URL getReadURL(String blobId) {
+    public URL getReadURL(String encodedBlobId) {
         if (delegate instanceof URLReadableDataStore) {
-            return ((URLReadableDataStore) delegate).getReadURL(new DataIdentifier(blobId));
+            final BlobId blobId = BlobId.of(encodedBlobId);
+            final DataIdentifier identifier = new DataIdentifier(blobId.blobId);
+            
+            return ((URLReadableDataStore) delegate).getReadURL(identifier);
         }
         return null;
     }

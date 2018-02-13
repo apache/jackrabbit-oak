@@ -265,7 +265,13 @@ public class SegmentBlob extends Record implements Blob, URLReadableBlob {
     @Override
     public URL getReadURL() {
         if (blobStore instanceof URLReadableBlobStore) {
-            return ((URLReadableBlobStore) blobStore).getReadURL(getBlobId());
+            String blobId = getBlobId();
+            if (blobId != null) {
+                return ((URLReadableBlobStore) blobStore).getReadURL(blobId);
+            } else {
+                // inlined blob, no URL support
+                return null;
+            }
         }
         return null;
     }
