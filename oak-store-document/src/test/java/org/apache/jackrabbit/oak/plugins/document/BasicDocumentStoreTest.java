@@ -681,10 +681,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     @Ignore("OAK-7261")
     public void testInterestingInvalidIds() {
-        // OAK-7261
+        // see OAK-7261
         assumeTrue("fails on MongoDocumentStore, see OAK-7271", !(dsf instanceof DocumentStoreFixture.MongoFixture));
 
-        String[] tests = new String[] {"nul:a\u0000b", "brokensurrogate:\ud800" };
+        String[] tests = new String[] { "nul:a\u0000b", "brokensurrogate:\ud800" };
 
         for (String t : tests) {
             int pos = t.indexOf(":");
@@ -693,8 +693,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             try {
                 super.ds.remove(Collection.NODES, id);
-            }
-            catch (DocumentStoreException acceptable) {
+            } catch (DocumentStoreException acceptable) {
                 // it would be acceptable to reject the delete request due to
                 // malformed string (for instance, PostgreSQL behaves like that)
             }
@@ -702,15 +701,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
 
-            // failing to persist is ok - otherwise proceed with consistency tests
+            // failing to persist is ok - otherwise proceed with consistency
+            // tests
             if (success) {
                 // re-read from persistence
                 super.ds.invalidateCache();
                 NodeDocument nd = super.ds.find(Collection.NODES, id);
                 assertEquals("failure to round-trip " + t + " through " + super.dsname, id, nd.getId());
 
-                // if the character does not round-trip through UTF-8, try to delete
-                // the remapped one and do another lookup
+                // if the character does not round-trip through UTF-8, try to
+                // delete the remapped one and do another lookup
                 if (!roundtripsThroughJavaUTF8(id)) {
                     Charset utf8 = Charset.forName("UTF-8");
                     String mapped = new String(id.getBytes(utf8), utf8);
