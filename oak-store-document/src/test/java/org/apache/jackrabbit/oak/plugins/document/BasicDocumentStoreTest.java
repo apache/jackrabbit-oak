@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -681,6 +682,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Ignore("OAK-7261")
     public void testInterestingInvalidIds() {
         // OAK-7261
+        assumeTrue("fails on MongoDocumentStore, see OAK-7271", !(dsf instanceof DocumentStoreFixture.MongoFixture));
+
         String[] tests = new String[] {"nul:a\u0000b", "brokensurrogate:\ud800" };
 
         for (String t : tests) {
@@ -706,8 +709,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 NodeDocument nd = super.ds.find(Collection.NODES, id);
                 assertEquals("failure to round-trip " + t + " through " + super.dsname, id, nd.getId());
 
-                // if the character does not roundtrip through UTF-8, try to delete
-                // the remapped one and do another lookup            
+                // if the character does not round-trip through UTF-8, try to delete
+                // the remapped one and do another lookup
                 if (!roundtripsThroughJavaUTF8(id)) {
                     Charset utf8 = Charset.forName("UTF-8");
                     String mapped = new String(id.getBytes(utf8), utf8);
