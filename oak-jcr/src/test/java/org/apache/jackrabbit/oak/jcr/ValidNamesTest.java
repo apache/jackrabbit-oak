@@ -276,6 +276,8 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
     @Test
     public void testEnclosedNonXMLChars() {
+        // see OAK-7270
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("rdb"));
         // see https://www.w3.org/TR/xml/#NT-Char
         for (int c = 0; c < 32; c++) {
             if (!(c == 0x9 || c == 0xa || c == 0xd)) {
@@ -312,6 +314,8 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     public void testUnpairedSurrogateInside() {
         // see OAK-5506
         org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
+        // see OAK-7270
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("rdb"));
         nameTest("foo" + SURROGATE_PAIR[0] + "bar");
         nameTest("foo" + SURROGATE_PAIR[1] + "bar");
     }
