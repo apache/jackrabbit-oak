@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingWindowReservoir;
+import com.codahale.metrics.UniformReservoir;
 import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -155,7 +155,7 @@ public class LockBasedScheduler implements Scheduler {
 
     private final SegmentNodeStoreStats stats;
     
-    private final Histogram commitTimeHistogram = new Histogram(new SlidingWindowReservoir(1000));
+    private final Histogram commitTimeHistogram = new Histogram(new UniformReservoir());
     
     private final Random random = new Random();
 
