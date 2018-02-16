@@ -300,6 +300,7 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     public void testUnpairedHighSurrogateEnd() {
         // see OAK-5506
         org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("rdb"));
         nameTest("foo" + SURROGATE_PAIR[0]);
     }
 
@@ -307,6 +308,7 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     public void testUnpairedLowSurrogateStart() {
         // see OAK-5506
         org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("rdb"));
         nameTest(SURROGATE_PAIR[1] + "foo");
     }
 
