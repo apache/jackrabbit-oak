@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -679,7 +678,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    @Ignore("OAK-7261")
     public void testInterestingInvalidIds() {
         // see OAK-7261
         assumeTrue("fails on MongoDocumentStore, see OAK-7271", !(dsf instanceof DocumentStoreFixture.MongoFixture));
