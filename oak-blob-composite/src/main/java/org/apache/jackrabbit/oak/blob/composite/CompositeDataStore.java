@@ -518,8 +518,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
                 try {
-                    String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
-                    ((SharedDataStore) ds).addMetadataRecord(f, cdsName);
+                    ((SharedDataStore) ds).addMetadataRecord(f, name);
                 }
                 catch (DataStoreException dse) {
                     if (null == aggregateException) {
@@ -543,8 +542,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
-                String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
-                DataRecord result = ((SharedDataStore) ds).getMetadataRecord(cdsName);
+                DataRecord result = ((SharedDataStore) ds).getMetadataRecord(name);
                 if (null != result) {
                     return result;
                 }
@@ -555,7 +553,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
-        List<DataRecord> records = Lists.newArrayList();
+        Set<DataRecord> records = Sets.newHashSet();
         Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
         while (iter.hasNext()) {
             DataStore ds = iter.next();
@@ -563,7 +561,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
                 records.addAll(((SharedDataStore) ds).getAllMetadataRecords(prefix));
             }
         }
-        return records;
+        return Lists.newArrayList(records);
     }
 
     @Override
@@ -573,8 +571,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
-                String cdsName = String.format("%s-compositeds-%s", name, rolesForDelegates.get(ds));
-                result = result || ((SharedDataStore) ds).deleteMetadataRecord(cdsName);
+                result = result || ((SharedDataStore) ds).deleteMetadataRecord(name);
             }
         }
         return result;
