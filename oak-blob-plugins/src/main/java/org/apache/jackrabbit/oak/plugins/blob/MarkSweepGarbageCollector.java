@@ -441,8 +441,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         if(count != deleted) {
             LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob " 
                          + "modified time is > "
-                         + "than the max deleted time ({})", deleted, count,
+                         + "than the max deleted time ({}), or when using CompositeDataStore", deleted, count,
                         timestampToString(maxModifiedTime));
+
+            // Remove all the merged marked references if all repositories have performed the sweep phase
+            GarbageCollectionType.get(blobStore).addSweepCompleteMarker(blobStore, repoId);
+            GarbageCollectionType.get(blobStore).removeAllMarkedReferencesIfAllSweepsComplete(blobStore);
+        }
+        else
+        {
+            // Remove all the merged marked references
+            GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         }
 
         if (deletedSize > 0) {
@@ -451,9 +460,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(deletedSize), deletedSize);
         }
 
-        // Remove all the merged marked references
-        GarbageCollectionType.get(blobStore).addSweepCompleteMarker(blobStore, repoId);
-        GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         LOG.debug("Ending sweep phase of the garbage collector");
         return deleted;
     }
@@ -674,6 +680,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
              */
             @Override
             void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {
+                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
+            }
+
+            @Override
+            void removeAllMarkedReferencesIfAllSweepsComplete(GarbageCollectableBlobStore blobStore) {
                 List<DataRecord> repoFiles =
                         ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
                 List<DataRecord> sweepCompleteFiles =
@@ -777,6 +789,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         DEFAULT;
 
         void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {}
+
+        void removeAllMarkedReferencesIfAllSweepsComplete(GarbageCollectableBlobStore blobStore) {}
 
         void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
                 String repoId) throws DataStoreException, IOException {}
