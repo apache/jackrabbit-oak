@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.io.InputStream;
 import java.net.URL;
 import javax.annotation.Nonnull;
 
@@ -46,5 +47,29 @@ public class SegmentURLWritableBlob extends SegmentBlob implements URLWritableBl
         if (writeURL == null) {
             writeURL = urlWritableBlobStore.getWriteURL(getBlobId());
         }
+    }
+
+    @Nonnull
+    @Override
+    public InputStream getNewStream() {
+        throw new UnsupportedOperationException("URLWritableBlob can only be used to add a binary to the repository, but cannot be read");
+    }
+
+    @Override
+    public long length() {
+        throw new UnsupportedOperationException("URLWritableBlob can only be used to add a binary to the repository, but cannot be read");
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        // each URLWritableBlob instance is unique by design (and has a unique blob id)
+        return (object instanceof SegmentURLWritableBlob && this == object);
+    }
+
+    @Override
+    public int hashCode() {
+        // each URLWritableBlob is unique by design and can be used in a hash map
+        // (unlike the Blob javadoc states for "normal" blobs)
+        return System.identityHashCode(this);
     }
 }

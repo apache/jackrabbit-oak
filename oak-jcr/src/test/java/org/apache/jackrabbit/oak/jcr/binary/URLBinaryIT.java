@@ -269,6 +269,25 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         assertTrue(httpPutTestStream(url) > HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
+    // this tests an initial unexpected side effect bug where the underlying URLWritableBlob implementation
+    // failed to work in a hash set with at least two blobs because of default equals/hashCode methods trying
+    // to read the length() of the binary which is not available for to be written URLWritableBlobs
+    @Test
+    public void testMultipleURLWritableBinariesInOneSave() throws Exception {
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+
+        URLWritableBinary binary1 = createFileWithURLWritableBinary(getAdminSession(), FILE_PATH, false);
+        URLWritableBinary binary2 = createFileWithURLWritableBinary(getAdminSession(), FILE_PATH + "2", false);
+        getAdminSession().save();
+
+        URL url1 = binary1.getWriteURL();
+        assertNotNull(url1);
+        assertEquals(200, httpPutTestStream(url1));
+        URL url2 = binary2.getWriteURL();
+        assertNotNull(url2);
+        assertEquals(200, httpPutTestStream(url2));
+    }
+
     // disabled, just a comparison playground for current blob behavior
     //@Test
     public void testReferenceBinary() throws Exception {
@@ -309,6 +328,12 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     /** Creates an nt:file with an url access binary at the given path and saves the session. */
     @Nonnull
     private URLWritableBinary saveFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
+        return createFileWithURLWritableBinary(session, path, true);
+    }
+
+    /** Creates an nt:file with an url access binary at the given path. */
+    @Nonnull
+    private URLWritableBinary createFileWithURLWritableBinary(Session session, String path, boolean autoSave) throws RepositoryException {
         Node resource = getOrCreateNtFile(session, path);
 
         ValueFactory valueFactory = session.getValueFactory();
@@ -317,8 +342,12 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
         assertNotNull("URLWritableBinary not supported", binary);
         resource.setProperty(JcrConstants.JCR_DATA, binary);
-        session.save();
+
+        if (autoSave) {
+            session.save();
+        }
 
         return binary;
     }
+
 }
