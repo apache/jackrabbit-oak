@@ -14,37 +14,43 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
+#set($h1 = '#')
+#set($h2 = '##')
+#set($h3 = '###')
+#set($h4 = '####')
 
-## Oak SQL-2 Query Grammar
+#set($sql2-grammar = ${project.basedir} + '/src/site/resources/grammar/sql2.csv')
 
-* [Query](#query)
-* [Column](#column)
-* [Selector](#selector)
-* [Join](#join)
-* [Constraint](#constraint)
-* [And Condition](#andCondition)
-* [Condition](#condition)
-* [Comparison](#comparison)
-* [In Comparison](#inComparison)
-* [Static Operand](#staticOperand)
-* [Ordering](#ordering)
-* [Dynamic Operand](#dynamicOperand)
-* [Type](#type)
-* [Options](#options)
-* [Explain](#explain)
-* [Measure](#measure)
+#macro( railroad_link $topic )
+<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic|renderLink=true} -->
+#end
 
-<hr />
-<h3 id="query">Query</h3>
+#macro( render $topic )
+<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic} -->
+#end
 
-<h4>
-SELECT [ DISTINCT ] { * | { <a href="#column">column</a> [ , ... ] } }
-<br/> FROM { <a href="#selector">selector</a> [ <a href="#join">join</a> ... ] }
-<br/> [ WHERE <a href="#constraint">constraint</a> ]
-<br/> [ UNION [ ALL ] <a href="#query">query</a> ]
-<br/> [ ORDER BY { <a href="#ordering">ordering</a> [ , ... ] } ]
-<br/> [ <a href="#options">queryOptions</a> ]
-</h4>
+$h2 Oak SQL-2 Query Grammar
+
+* #railroad_link( 'Query' )
+* #railroad_link( 'Column' )
+* #railroad_link( 'Selector' )
+* #railroad_link( 'Join' )
+* #railroad_link( 'Constraint' )
+* #railroad_link( 'And Condition' )
+* #railroad_link( 'Condition' )
+* #railroad_link( 'Comparison' )
+* #railroad_link( 'In Comparison' )
+* #railroad_link( 'Static Operand' )
+* #railroad_link( 'Ordering' )
+* #railroad_link( 'Dynamic Operand' )
+* #railroad_link( 'Type' )
+* #railroad_link( 'Options' )
+* #railroad_link( 'Explain' )
+* #railroad_link( 'Measure' )
+
+---
+
+#render( 'Query' )
 
 All queries should have a path restriction 
 (even if it's just, for example, "/content"), as this allows to shrink indexes.
@@ -64,15 +70,9 @@ Examples:
     select [jcr:path] from [oak:QueryIndexDefinition] as a where [type] = 'lucene' and isdescendantnode(a, '/') order by [reindexCount] desc
     select [jcr:path], [jcr:score], * from [nt:base] as a where [type] = 'report' and isdescendantnode(a, '/etc') option(traversal fail)
 
-<hr />
-<h3 id="column">Column</h3>
+---
 
-<h4>
-{ [ selectorName . ] { propertyName | * }
-<br/> | EXCERPT([selectorName])
-<br/> | rep:spellcheck()
-<br/> } [ AS aliasName ]
-</h4>
+#render( 'Column' )
 
 It is recommended to enclose property names in square brackets.
 
@@ -90,12 +90,9 @@ Examples:
     a.*
     a.[sling:resourceType]
 
-<hr />
-<h3 id="selector">Selector</h3>
+---
 
-<h4>
-nodeTypeName [ AS selectorName ]
-</h4>
+#render( 'Selector' )
 
 The nodetype name can be either a primary nodetype or a mixin nodetype.
 It is recommended to specify the nodetype name in square brackes.
@@ -104,16 +101,9 @@ Examples:
 
     [sling:Folder] as a
 
-<hr />
-<h3 id="join">Join</h3>
+---
 
-<h4>
-{ INNER | { LEFT | RIGHT } OUTER } JOIN <a href="#selector">rightSelector</a> ON
-<br/> { selectorName . propertyName = joinSelectorName . joinPropertyName }
-<br/> | { ISSAMENODE( selectorName , joinSelectorName [ , selectorPathName ] ) }
-<br/> | { ISCHILDNODE( childSelectorName , parentSelectorName ) }
-<br/> | { ISDESCENDANTNODE( descendantSelectorName , ancestorSelectorName ) }
-</h4>
+#render( 'Join' )
 
 An "inner join" only returns entries if nodes are found on both the left and right selector.
 A "left outer join" will return entries that don't have matching nodes on the right selector.
@@ -130,13 +120,9 @@ All nodes below /oak:index that _don't_ have a child node:
       and b.[jcr:primaryType] is null 
       order by a.[jcr:path]
 
+---
 
-<hr />
-<h3 id="constraint">Constraint</h3>
-
-<h4>
-<a href="#andCondition">andCondition</a> [ { OR <a href="#andCondition">andCondition</a> } [...] ]
-</h4>
+#render( 'Constraint' )
 
 "or" conditions of the form "[x]=1 or [x]=2" are automatically converted to "[x] in(1, 2)",
 and can use the same an index.
@@ -148,34 +134,18 @@ If using "union" results in a lower estimated cost, then "union" is used.
 This can be the case, for example, if there are two distinct indexes,
 one on x, and another on y.
 
-<hr />
-<h3 id="andCondition">And Condition</h3>
+---
 
-<h4>
-<a href="#condition">condition</a> [ { AND <a href="#condition">condition</a> } [...] ]
-</h4>
+#render( 'And Condition' )
 
 A special case (not found in relational databases) is
 "and" conditions of the form "[x]=1 and [x]=2".
 They will match nodes with multi-valued properties, 
 where the property value contains both 1 and 2.
 
-<hr />
-<h3 id="condition">Condition</h3>
+---
 
-<h4>
-<a href="#comparison">comparison</a>
-<br/> <a href="#inComparison">inComparison</a>
-<br/> | NOT <a href="#constraint">constraint</a>
-<br/> | ( <a href="#constraint">constraint</a> )
-<br/> | [ selectorName . ] propertyName IS [ NOT ] NULL
-<br/> | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , staticOperand )
-<br/> | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathString )
-<br/> | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
-<br/> | NATIVE ( [ selectorName , ] language , staticOperand )
-<br/> | SPELLCHECK ( [ selectorName , ] staticOperand )
-<br/> | SUGGEST ( [ selectorName , ] staticOperand )
-</h4>
+#render( 'Condition' )
 
 "not" conditions can not typically use an index.
 
@@ -196,15 +166,9 @@ Examples:
     select [rep:suggest()] from [nt:base] where suggest('in ') and issamenode('/')
     select [rep:spellcheck()] from [nt:base] as a where spellcheck('helo') and issamenode(a, '/')
 
+---
 
-<hr />
-<h3 id="comparison">Comparison</h3>
-
-<h4>
-<a href="#dynamicOperand">dynamicOperand</a> 
-{ = | &lt;&gt; | &lt; | &lt;= | &gt; | &gt;= | LIKE } 
-<a href="#staticOperand">staticOperand</a>
-</h4>
+#render( 'Comparison' )
 
 "like": when comparing with LIKE, the wildcards characters are '_' (any one character) 
 and '%' (any characters). An index is used, 
@@ -217,27 +181,17 @@ Examples:
 
     [name] like '%: 100 \%'
 
+---
 
-<hr />
-<h3 id="inComparison">In Comparison</h3>
-
-<h4>
-<a href="#dynamicOperand">dynamicOperand</a> IN ( <a href="#staticOperand">staticOperand</a> [, ...] )
-</h4>
+#render( 'In Comparison' )
 
 Examples:
 
     [status] in('active', 'inactive')
 
+---
 
-<hr />
-<h3 id="staticOperand">Static Operand</h3>
-
-<h4>
-literal
-<br/> | $ bindVariableName
-<br/> | CAST ( literal AS <a href="#type">type</a> )
-</h4>
+#render( 'Static Operand' )
 
 A string (text) literal starts and ends with a single quote. 
 Two single quotes can be used to create a single quote inside a string.
@@ -248,13 +202,9 @@ Example:
     $uuid
     cast('2020-12-01T20:00:00.000' as date)
 
+---
 
-<hr />
-<h3 id="ordering">Ordering</h3>
-
-<h4>
-<a href="#dynamicOperand">dynamicOperand</a> [ ASC | DESC ]
-</h4>
+#render( 'Ordering' )
 
 Ordering by an indexed property will use that index if possible.
 If there is no index that can be used for the given sort order,
@@ -271,18 +221,9 @@ Examples:
     [lastName]
     [price] desc
 
+---
 
-<hr />
-<h3 id="dynamicOperand">Dynamic Operand</h3>
-
-<h4>
-[ selectorName . ] propertyName
-<br/>  | LENGTH( dynamicOperand  )
-<br/>  | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
-<br/>  | { LOWER | UPPER } ( dynamicOperand )
-<br/>  | COALESCE ( dynamicOperand1, dynamicOperand2 )
-<br/>  | PROPERTY ( propertyName, <a href="#type">type</a> )
-</h4>
+#render( 'Dynamic Operand' )
 
 The selector name is only needed if the query contains multiple selectors.
 
@@ -303,37 +244,15 @@ Examples:
     coalesce([lastName], name())
     length(coalesce([lastName], name()))
 
+---
 
-<hr />
-<h3 id="type">Type</h3>
-
-<h4>
-<br/>STRING 
-<br/> | BINARY 
-<br/> | DATE 
-<br/> | LONG 
-<br/> | DOUBLE 
-<br/> | DECIMAL 
-<br/> | BOOLEAN 
-<br/> | NAME 
-<br/> | PATH 
-<br/> | REFERENCE 
-<br/> | WEAKREFERENCE 
-<br/> | URI
-</h4>
+#render( 'Type' )
 
 This is the list of all JCR property types.
 
+---
 
-<hr />
-<h3 id="options">Options</h3>
-
-<h4>
-OPTION( { 
-<br/>&nbsp;&nbsp; TRAVERSAL { OK | WARN | FAIL | DEFAULT } | 
-<br/>&nbsp;&nbsp; INDEX TAG tagName 
-<br/> } [ , ... ] )
-</h4>
+#render( 'Options' )
 
 "traversal": by default, queries without index will log a warning,
 except if the configuration option `QueryEngineSettings.failTraversal` is changed
@@ -351,13 +270,9 @@ Examples:
 
     option(traversal fail)
 
+---
 
-<hr />
-<h3 id="explain">Explain Query</h3>
-
-<h4>
-EXPLAIN [MEASURE] { <a href="#query">query</a> }
-</h4>
+#render( 'Explain' )
 
 Does not run the query, but only computes and returns the query plan.
 With EXPLAIN MEASURE, the expected cost is calculated as well.
@@ -377,13 +292,9 @@ Result:
 This means the property index named "uuid" is used for this query.
 The expected cost (roughly the number of uncached I/O operations) is 2.
 
+---
 
-<hr />
-<h3 id="measure">Measure</h3>
-
-<h4>
-MEASURE { <a href="#query">query</a> }
-</h4>
+#render( 'Measure' )
 
 Runs the query, but instead of returning the result, returns the number of rows traversed.
 The query result has two columns, one called 'selector' and one called 'scanCount'.
