@@ -229,13 +229,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
                 return rec;
             }
         }
-//        DataIdentifier referenceIdentifier = getIdentifierFromReference(reference);
-//        if (null != referenceIdentifier) {
-//            String computedReference = getReferenceFromIdentifier(referenceIdentifier, getReferenceKey());
-//            if (reference.equals(computedReference)) {
-//                return getRecordIfStored(referenceIdentifier);
-//            }
-//        }
         return null;
     }
 
@@ -450,33 +443,48 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
         Iterator<DataStore> iter = delegateHandler.getWritableDelegatesIterator(identifier);
         if (! iter.hasNext()) {
-            // Check to see if this id exists in any delegate.  If it exists but not
-            // in a writable delegate, simply do nothing.
-            iter = delegateHandler.getAllDelegatesIterator(identifier);
-            if (! iter.hasNext()) {
-                throw new DataStoreException(String.format("No such record for identifier %s", identifier.toString()));
-            }
-            return;
+            iter = delegateHandler.getWritableDelegatesIterator();
         }
+
+        boolean deleted = false;
         while (iter.hasNext()) {
             DataStore ds = iter.next();
-            boolean deleted = false;
-            if (ds instanceof MultiDataStoreAware) {
-                ((MultiDataStoreAware) ds).deleteRecord(identifier);
-                deleted = true;
-            }
-            else if (ds instanceof DataStoreBlobStore) {
-                try {
-                    ((DataStoreBlobStore) ds).deleteChunks(Lists.newArrayList(identifier.toString()), 0L);
+            if (null != ds.getRecordIfStored(identifier)) {
+                if (ds instanceof MultiDataStoreAware) {
+                    ((MultiDataStoreAware) ds).deleteRecord(identifier);
                     deleted = true;
-                }
-                catch (Exception e) {
-                    throw new DataStoreException(e);
+                } else if (ds instanceof DataStoreBlobStore) {
+                    try {
+                        ((DataStoreBlobStore) ds).deleteChunks(Lists.newArrayList(identifier.toString()), 0L);
+                        deleted = true;
+                    } catch (Exception e) {
+                        throw new DataStoreException(e);
+                    }
                 }
             }
             if (deleted) {
                 delegateHandler.unmapIdentifierFromDelegates(identifier);
             }
+        }
+
+        if (! deleted) {
+            // Check to see if this id exists in any delegate.  If it exists but not
+            // in a writable delegate, simply do nothing.
+            iter = delegateHandler.getAllDelegatesIterator(identifier);
+            if (! iter.hasNext()) {
+                iter = delegateHandler.getAllDelegatesIterator();
+            }
+            if (! iter.hasNext()) {
+                throw new DataStoreException(String.format("No such record for identifier %s", identifier.toString()));
+            }
+            else {
+                while (iter.hasNext()) {
+                    if (null != iter.next().getRecordIfStored(identifier)) {
+                        return;
+                    }
+                }
+            }
+            throw new DataStoreException(String.format("No such record for identifier %s", identifier.toString()));
         }
     }
 
@@ -604,6 +612,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     @Override
     public DataRecord getRecordForId(@Nonnull DataIdentifier id) throws DataStoreException {
         Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(id);
+        if (! iter.hasNext()) {
+            // Maybe no mapping exists for this identifier yet, so look through all delegates instead.
+            iter = delegateHandler.getAllDelegatesIterator();
+        }
+
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {

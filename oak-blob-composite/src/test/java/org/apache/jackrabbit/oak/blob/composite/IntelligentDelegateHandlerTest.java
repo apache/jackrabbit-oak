@@ -10,6 +10,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.InMemoryDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -160,6 +161,7 @@ public class IntelligentDelegateHandlerTest {
         verifyDelegates(sut);
     }
 
+    @Ignore
     @Test
     public void testSelectWritableDelegateSingleDelegateWithMatchingId() throws RepositoryException, IOException {
         DataStore ds = getInMemoryDataStore();
@@ -183,6 +185,7 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds, sut.getWritableDelegatesIterator().next());
     }
 
+    @Ignore
     @Test
     public void testSelectWritableDelegateTwoDelegatesFirstDelegateMatches() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();
@@ -198,6 +201,7 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds1, sut.getWritableDelegatesIterator(id).next());
     }
 
+    @Ignore
     @Test
     public void testSelectWritableDelegateTwoDelegatesSecondDelegateMatches() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();
@@ -233,6 +237,7 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds1, sut.getWritableDelegatesIterator().next());
     }
 
+    @Ignore
     @Test
     public void testSelectWritableDelegateMultipleDelegatesMultipleMatches() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();
@@ -375,6 +380,7 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    @Ignore
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsMatchingDataStoreOnly() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();
@@ -393,6 +399,7 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    @Ignore
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsAllMatchingDataStores() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();
@@ -443,6 +450,7 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    @Ignore
     @Test
     public void testGetWriteableDelegateIteratorWithIdentifier() throws RepositoryException, IOException {
         DataStore ds1 = getInMemoryDataStore();

@@ -303,6 +303,10 @@ public class CompositeDataStoreTestUtils {
         Map<String, DataRecord> metastore = Maps.newConcurrentMap();
         Map<DataIdentifier, DataRecord> recordsById = Maps.newConcurrentMap();
 
+        public SharedInMemoryDataStore() {
+            this.setSecret("123456");
+        }
+
         private DataRecord recordFromString(String s) {
             DataRecord r = mock(DataRecord.class);
             if (null != s) {
@@ -384,7 +388,16 @@ public class CompositeDataStoreTestUtils {
 
         @Override
         public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
-            return getRecord(id);
+            try {
+                return getRecord(id);
+            }
+            catch (DataStoreException e) {
+                return null;
+            }
+        }
+
+        public String getReferenceFromIdentifier(DataIdentifier id) {
+            return super.getReferenceFromIdentifier(id);
         }
 
         @Override

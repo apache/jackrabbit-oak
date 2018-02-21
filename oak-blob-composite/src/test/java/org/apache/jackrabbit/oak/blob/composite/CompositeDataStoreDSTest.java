@@ -44,7 +44,6 @@ import java.util.Set;
 
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNull;
-import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStore.getReferenceKey;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.addTestRecord;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createCompositeDataStore;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createEmptyCompositeDataStore;
@@ -58,7 +57,6 @@ import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUti
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.verifyRecordIdCount;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.verifyRecordIds;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.verifyRecords;
-import static org.apache.jackrabbit.oak.spi.blob.DataStoreReference.getReferenceFromIdentifier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -66,6 +64,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -264,7 +263,7 @@ public class CompositeDataStoreDSTest {
         }
 
         for (DataStore ds : dataStores) {
-            verify(ds, times(1))
+            verify(ds, atLeast(1))
                     .getRecordIfStored(any(DataIdentifier.class));
         }
     }
@@ -299,7 +298,6 @@ public class CompositeDataStoreDSTest {
         catch (NullPointerException e) { }
     }
 
-    // TODO: getRecordFromReference() tests
     @Test
     public void testGetRecordFromReference() throws RepositoryException, IOException {
         CompositeDataStore cds = createEmptyCompositeDataStore(twoRoles);
@@ -307,7 +305,12 @@ public class CompositeDataStoreDSTest {
         List<DataRecord> records = createRecordsForAllDataStores(cds, dataStores, 2);
         List<String> refs = Lists.newArrayList();
         for (DataRecord record : records) {
-            refs.add(getReferenceFromIdentifier(record.getIdentifier(), getReferenceKey()));
+            for (DataStore ds : dataStores) {
+                if (null != ds.getRecordIfStored(record.getIdentifier())) {
+                    refs.add(((CompositeDataStoreTestUtils.SharedInMemoryDataStore)ds).getReferenceFromIdentifier(record.getIdentifier()));
+                    break;
+                }
+            }
         }
         cds.init(homedir);
 
