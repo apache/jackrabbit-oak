@@ -16,28 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.sql.Timestamp;
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -67,10 +45,30 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.sql.Timestamp;
+import java.util.ArrayDeque;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static com.google.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.commons.io.FileUtils.moveFile;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -454,6 +452,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         // Remove all the merged marked references
+        GarbageCollectionType.get(blobStore).addSweepCompleteMarker(blobStore, repoId);
         GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         LOG.debug("Ending sweep phase of the garbage collector");
         return deleted;
@@ -675,7 +674,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
              */
             @Override
             void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {
-                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                List<DataRecord> repoFiles =
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
+                List<DataRecord> sweepCompleteFiles =
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.SWEEP_COMPLETE_MARKER.getType());
+                if (repoFiles.size() == sweepCompleteFiles.size()) {
+                    ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                    ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.SWEEP_COMPLETE_MARKER.getType());
+                }
                 ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
             }
 
@@ -756,6 +762,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     LOG.debug("Error creating marked time marker for repo : {}", repoId);
                 }
             }
+
+            @Override
+            public void addSweepCompleteMarker(GarbageCollectableBlobStore blobStore, String repoId) {
+                try {
+                    ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                            SharedStoreRecordType.SWEEP_COMPLETE_MARKER.getIdFromName(repoId));
+                }
+                catch (DataStoreException e) {
+                    LOG.debug("Error creating sweep complete marker for repo : {}", repoId);
+                }
+            }
         },
         DEFAULT;
 
@@ -782,6 +799,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
     
         public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {}
+        public void addSweepCompleteMarker(GarbageCollectableBlobStore blobStore, String repoId) {}
     }
 
     /**
