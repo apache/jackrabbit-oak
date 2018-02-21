@@ -14,14 +14,17 @@
 # limitations under the License.
 
 "SECTION","TOPIC","SYNTAX","TEXT"
+
 "Grammar","Query","
-SELECT { * | { column [ , ... ] } }  FROM { selector [ join ... ] }
-[ WHERE constraint ] [ ORDER BY { ordering [ , ... ] } ]
+SELECT [ DISTINCT ] { * | { column [ , ... ] } } FROM { selector [ join ... ] }
+[ WHERE constraint ] [ UNION [ ALL ] query ] 
+[ ORDER BY { ordering [ , ... ] } ] [ queryOptions ]
 ","
 "
 
 "Grammar","Column","
-{ [ selectorName . ] propertyName [ AS columnName ] } | { selectorName . * }
+{ [ selectorName . ] { propertyName | * } | EXCERPT( [ selectorName ] ) | REP:SPELLCHECK() } 
+[ AS columnName ]
 ","
 "
 
@@ -50,10 +53,14 @@ condition [ { AND condition } [...] ]
 "
 
 "Grammar","Condition","
-comparison | NOT constraint | ( constraint )
+comparison | inComparison | NOT constraint | ( constraint )
     | [ selectorName . ] propertyName IS [ NOT ] NULL
-    | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , fulltextSearchExpression )
-    | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] PathName )
+    | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , staticOperand )
+    | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathName )
+    | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
+    | NATIVE ( [ selectorName , ] languageName , staticOperand )
+    | SPELLCHECK ( [ selectorName , ] staticOperand )
+    | SUGGEST ( [ selectorName , ] staticOperand )
 ","
 "
 
@@ -62,15 +69,36 @@ dynamicOperand { = | <> | < | <= | > | >= | LIKE } staticOperand
 ","
 "
 
-"Grammar","Fulltext Search Expression","
-' anythingExceptSingleQuote ' | $ bindVariableName
+"Grammar","In Comparison","
+dynamicOperand IN ( staticOperand [, ...] )
 ","
 "
 
 "Grammar","Static Operand","
 literal
     | $ bindVariableName
-    | CAST ( literal AS { STRING | BINARY | DATE | LONG | DOUBLE | DECIMAL | BOOLEAN | NAME | PATH | REFERENCE | WEAKREFERENCE | URI } )
+    | CAST ( literal AS { type } )
+","
+"
+
+"Grammar","Ordering","
+simpleName [ ASC | DESC ]
+","
+"
+
+"Grammar","Dynamic Operand","
+[ selectorName . ] propertyName
+    | LENGTH( dynamicOperand )
+    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
+    | { LOWER | UPPER } ( dynamicOperand )
+    | COALESCE ( dynamicOperand, dynamicOperand )
+    | PROPERTY ( propertyName, type )
+","
+"
+
+"Grammar","Type","
+{ STRING | BINARY | DATE | LONG | DOUBLE | DECIMAL 
+    | BOOLEAN | NAME | PATH | REFERENCE | WEAKREFERENCE | URI }
 ","
 "
 
@@ -91,20 +119,25 @@ literal
 ","
 "
 
-"Grammar","Dynamic Operand","
-[ selectorName . ] propertyName
-    | LENGTH( [ selectorName . ] propertyName  )
-    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
-    | { LOWER | UPPER } ( dynamicOperand )
-","
-"
-
-"Grammar","Ordering","
-simpleName [ ASC | DESC ]
-","
-"
-
 "Grammar","Name","
-simpleName | '[' quotedName ']'
+simpleName
+","
+"
+
+"Grammar","Options","
+OPTION( {
+    TRAVERSAL { OK | WARN | FAIL | DEFAULT } |
+    INDEX TAG tagName
+    } [ , ... ] )
+","
+"
+
+"Grammar","Explain","
+EXPLAIN [MEASURE] { query }
+","
+"
+
+"Grammar","Measure","
+MEASURE { query }
 ","
 "
