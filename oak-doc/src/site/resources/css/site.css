@@ -53,14 +53,14 @@ pre {
 .c {
     padding: 1px 3px;
     margin: 0px 0px;
-    border: 2px solid;
+    border: 2px solid black;
     -moz-border-radius: 0.4em;
     -webkit-border-radius: 0.4em;
     -khtml-border-radius: 0.4em;
     border-radius: 0.4em;
     background-color: #fff;
     color: black;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .ts {
