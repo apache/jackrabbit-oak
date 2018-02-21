@@ -80,7 +80,7 @@ public class ThreadDumpCleaner {
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
                 "at sun.nio.ch.WindowsSelectorImpl\\$SubSelector.poll0(?s).*?\n\n",
-                
+
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
                 "at sun.management.ThreadImpl.dumpThreads0(?s).*?\n\n",
 
@@ -107,7 +107,7 @@ public class ThreadDumpCleaner {
             PATTERNS.add(Pattern.compile(s));
         }
     }
-    
+
     public static File process(File file) throws IOException {
         String fileName = file.getName();
         if (fileName.endsWith(".txt")) {
@@ -115,7 +115,7 @@ public class ThreadDumpCleaner {
         }
         File target = new File(file.getParentFile(), fileName + ".filtered.txt");
         PrintWriter writer = new PrintWriter(new BufferedWriter(
-                new FileWriter(target)));       
+                new FileWriter(target)));
         try {
             processFile(file, writer);
         } finally {
@@ -123,7 +123,7 @@ public class ThreadDumpCleaner {
         }
         return target;
     }
-    
+
     private static void processFile(File file, PrintWriter writer) throws IOException {
         LineNumberReader r = new LineNumberReader(new BufferedReader(
                 new FileReader(file)));
@@ -144,7 +144,7 @@ public class ThreadDumpCleaner {
             }
             if (line.startsWith("Full thread dump") || line.startsWith("Full Java thread dump")) {
                 if (activeThreadCount > 0) {
-                    System.out.println("Active threads: " + activeThreadCount);
+                    // System.out.println("Active threads: " + activeThreadCount);
                 }
                 activeThreadCount = 0;
             }
