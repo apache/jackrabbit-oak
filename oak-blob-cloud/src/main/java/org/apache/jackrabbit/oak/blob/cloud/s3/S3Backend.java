@@ -96,6 +96,10 @@ public class S3Backend extends AbstractSharedBackend {
 
     private static final String REF_KEY = "reference.key";
 
+    private static final String NEW_RECORD_SUFFIX = "_NO_HASH";
+
+    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
+
     private AmazonS3Client s3service;
 
     // needed only in case of transfer acceleration is enabled for presigned URLs
@@ -582,7 +586,7 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                if (key.endsWith(SPECIAL_SUFFIX)) {
+                if (key.endsWith(NEW_RECORD_SUFFIX)) {
                     // present as empty
                     LOG.debug("new URLWritableBlob not uploaded yet", e);
                     return new EmptyRecord(identifier);
@@ -652,15 +656,12 @@ public class S3Backend extends AbstractSharedBackend {
         this.presignedPutExpirySeconds = seconds;
     }
 
-    private static final String SPECIAL_SUFFIX = "_NO_HASH";
-    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
-
     public DataIdentifier addNewRecord() throws DataStoreException {
         // in case our random uuid generation fails and hits only existing keys (however unlikely)
         // try only a limited number of times to avoid endless loop and throw instead
         for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
             // a random UUID instead of a content hash
-            final String id = UUID.randomUUID().toString() + SPECIAL_SUFFIX;
+            final String id = UUID.randomUUID().toString() + NEW_RECORD_SUFFIX;
 
             final DataIdentifier identifier = new DataIdentifier(id);
             if (exists(identifier)) {
