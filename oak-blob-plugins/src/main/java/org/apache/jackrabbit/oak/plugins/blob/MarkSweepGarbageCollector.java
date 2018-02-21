@@ -682,6 +682,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {
                 ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
                 ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
+                ((SharedDataStore) blobStore).deleteAllMetadataRecords(SharedStoreRecordType.SWEEP_COMPLETE_MARKER.getType());
             }
 
             @Override
