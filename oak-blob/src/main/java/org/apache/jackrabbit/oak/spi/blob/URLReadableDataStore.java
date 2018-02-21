@@ -28,6 +28,8 @@ public interface URLReadableDataStore extends DataStore {
 
     void setURLReadableBinaryExpirySeconds(int seconds);
 
+    void setURLReadableBinaryURLCacheSize(int maxSize);
+
     @Nullable
     URL getReadURL(DataIdentifier identifier);
 }

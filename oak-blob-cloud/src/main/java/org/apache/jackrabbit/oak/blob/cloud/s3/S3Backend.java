@@ -58,6 +58,8 @@ import com.amazonaws.util.StringUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -103,6 +105,8 @@ public class S3Backend extends AbstractSharedBackend {
     private Date startTime;
 
     private S3RequestDecorator s3ReqDecorator;
+
+    private Cache<DataIdentifier, URL> presignedGetURLCache;
 
     // 0 = off by default
     private int presignedPutExpirySeconds = 0;
@@ -180,7 +184,16 @@ public class S3Backend extends AbstractSharedBackend {
 
             String getExpiry = properties.getProperty(S3Constants.PRESIGNED_GET_EXPIRY_SEC);
             if (getExpiry != null) {
-                setURLReadableBinaryExpirySeconds(Integer.parseInt(getExpiry));
+                final int getExpirySeconds = Integer.parseInt(getExpiry);
+                setURLReadableBinaryExpirySeconds(getExpirySeconds);
+
+                int cacheMaxSize = 0; // off by default
+                String cacheMaxSizeStr = properties.getProperty(S3Constants.PRESIGNED_GET_URL_CACHE_MAX_SIZE);
+                if (cacheMaxSizeStr != null) {
+                    cacheMaxSize = Integer.parseInt(cacheMaxSizeStr);
+                }
+
+                setURLReadableBinaryURLCacheSize(cacheMaxSize);
             }
 
             LOG.debug("S3 Backend initialized in [{}] ms",
@@ -632,13 +645,39 @@ public class S3Backend extends AbstractSharedBackend {
         this.presignedGetExpirySeconds = seconds;
     }
 
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        // max size 0 or smaller is used to turn off the cache
+        if (maxSize > 0) {
+            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, presignedGetExpirySeconds / 2);
+            presignedGetURLCache = CacheBuilder.newBuilder()
+                .maximumSize(maxSize)
+                // cache for half the expiry time of the urls before giving out new ones
+                .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
+                .build();
+        } else {
+            LOG.info("presigned GET URL cache disabled");
+            presignedGetURLCache = null;
+        }
+    }
+
     public URL createPresignedGetURL(DataIdentifier identifier) {
         if (presignedGetExpirySeconds <= 0) {
             // feature disabled
             return null;
         }
 
-        return createPresignedURL(identifier, HttpMethod.GET, presignedGetExpirySeconds);
+        URL url = null;
+        // if cache is enabled, check the cache
+        if (presignedGetURLCache != null) {
+            url = presignedGetURLCache.getIfPresent(identifier);
+        }
+        if (url == null) {
+            url = createPresignedURL(identifier, HttpMethod.GET, presignedGetExpirySeconds);
+            if (url != null && presignedGetURLCache != null) {
+                presignedGetURLCache.put(identifier, url);
+            }
+        }
+        return url;
     }
 
     private URL createPresignedURL(DataIdentifier identifier, HttpMethod method, int expirySeconds) {

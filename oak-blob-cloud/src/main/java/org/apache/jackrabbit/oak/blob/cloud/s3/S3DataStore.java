@@ -101,6 +101,13 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        if (s3Backend != null) {
+            s3Backend.setURLReadableBinaryURLCacheSize(maxSize);
+        }
+    }
+
+    @Override
     public URL getReadURL(DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;

@@ -288,6 +288,50 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         assertEquals(200, httpPutTestStream(url2));
     }
 
+    @Test
+    public void testURLReadableBinaryCache() throws Exception {
+        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+        getURLReadableDataStore().setURLReadableBinaryURLCacheSize(100);
+
+        // 1. create URL access binary
+        saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+
+        // 2. then get url binary twice
+        Binary binary1 = getBinary(getAdminSession(), FILE_PATH);
+        Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
+
+        // test that we actually have different binaries
+        assertFalse(binary1 == binary2);
+        assertTrue(binary1 instanceof URLReadableBinary);
+        assertTrue(binary2 instanceof URLReadableBinary);
+
+        // 3. ensure URLs are the same because caching
+        URL url1 = ((URLReadableBinary) binary1).getReadURL();
+        assertNotNull(url1);
+        URL url2 = ((URLReadableBinary) binary2).getReadURL();
+        assertNotNull(url2);
+        assertEquals(url1, url2);
+
+        // ------------------------------------------------------
+        // turn off cache
+        getURLReadableDataStore().setURLReadableBinaryURLCacheSize(100);
+
+        binary1 = getBinary(getAdminSession(), FILE_PATH);
+        binary2 = getBinary(getAdminSession(), FILE_PATH);
+
+        // test that we actually have different binaries
+        assertFalse(binary1 == binary2);
+        assertTrue(binary1 instanceof URLReadableBinary);
+        assertTrue(binary2 instanceof URLReadableBinary);
+
+        // 3. ensure URLs are the same because caching
+        url1 = ((URLReadableBinary) binary1).getReadURL();
+        assertNotNull(url1);
+        url2 = ((URLReadableBinary) binary2).getReadURL();
+        assertNotNull(url2);
+        assertEquals(url1, url2);
+    }
+
     // disabled, just a comparison playground for current blob behavior
     //@Test
     public void testReferenceBinary() throws Exception {
