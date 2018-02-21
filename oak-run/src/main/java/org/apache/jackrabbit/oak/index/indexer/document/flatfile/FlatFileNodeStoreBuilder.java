@@ -21,31 +21,34 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.Collections;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Files;
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.Iterables.size;
+
 public class FlatFileNodeStoreBuilder {
-    private static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
-    private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
-    private static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    private static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
+    private static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
+    static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
     private Iterable<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
+    private PathElementComparator comparator;
+    private NodeStateEntryWriter entryWriter;
+    private long entryCount = 0;
 
-    private boolean useZip = Boolean.getBoolean(OAK_INDEXER_USE_ZIP);
-    private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
-    private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, 5);
+    private boolean useZip = Boolean.valueOf(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private boolean useTraverseWithSort = Boolean.valueOf(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
 
     public FlatFileNodeStoreBuilder(Iterable<NodeStateEntry> nodeStates, File workDir) {
         this.nodeStates = nodeStates;
@@ -63,47 +66,56 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public FlatFileStore build() throws IOException {
-        //TODO Check not null blobStore
-        File flatFileStoreDir = createStoreDir();
-        File storeFile = writeToStore(flatFileStoreDir, "store.json");
-        File sortedFile = sortStoreFile(storeFile);
-        return new FlatFileStore(sortedFile, new NodeStateEntryReader(blobStore));
+        logFlags();
+        comparator = new PathElementComparator(preferredPathElements);
+        entryWriter = new NodeStateEntryWriter(blobStore);
+        FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
+                size(preferredPathElements), useZip);
+        if (entryCount > 0) {
+            store.setEntryCount(entryCount);
+        }
+        return store;
     }
 
-    private File sortStoreFile(File storeFile) throws IOException {
-        File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
-        FileUtils.forceMkdir(sortWorkDir);
-        NodeStateEntrySorter sorter =
-                new NodeStateEntrySorter(new PathElementComparator(preferredPathElements), storeFile, sortWorkDir);
+    private File createdSortedStoreFile() throws IOException {
+        String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
+        if (sortedFilePath != null) {
+            File sortedFile = new File(sortedFilePath);
+            if (sortedFile.exists() && sortedFile.isFile() && sortedFile.canRead()) {
+                log.info("Reading from provided sorted file [{}] (via system property '{}')",
+                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+                return sortedFile;
+            } else {
+                String msg = String.format("Cannot read sorted file at [%s] configured via system property '%s'",
+                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+                throw new IllegalArgumentException(msg);
+            }
+        } else {
+            File flatFileStoreDir = createStoreDir();
+            SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+            File result = strategy.createSortedStoreFile();
+            entryCount = strategy.getEntryCount();
+            return result;
+        }
+    }
 
-        logFlags();
-
-        sorter.setUseZip(useZip);
-        sorter.setMaxMemoryInGB(maxMemory);
-        sorter.setDeleteOriginal(deleteOriginal);
-        sorter.sort();
-        return sorter.getSortedFile();
+    private SortStrategy createSortStrategy(File dir){
+        if (useTraverseWithSort) {
+            log.info("Using TraverseWithSortStrategy");
+            return new TraverseWithSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
+        } else {
+            log.info("Using StoreAndSortStrategy");
+            return new StoreAndSortStrategy(nodeStates, comparator, entryWriter, dir, useZip);
+        }
     }
 
     private void logFlags() {
+        log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
-        log.info("Delete original dump from traversal : {} ({})", deleteOriginal, OAK_INDEXER_DELETE_ORIGINAL);
-        log.info("Max heap memory (GB) to be used for merge sort : {} ({})", maxMemory, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB);
-    }
 
-    private File writeToStore(File dir, String fileName) throws IOException {
-        File file = new File(dir, fileName);
-        Stopwatch sw = Stopwatch.createStarted();
-        try (
-                Writer w = Files.newWriter(file, Charsets.UTF_8);
-                NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore, w)
-        ) {
-            for (NodeStateEntry e : nodeStates) {
-                entryWriter.write(e);
-            }
-        }
-        log.info("Dumped nodestates in json format in {}", sw);
-        return file;
+        String strategy = useTraverseWithSort ?
+                TraverseWithSortStrategy.class.getSimpleName() : StoreAndSortStrategy.class.getSimpleName();
+        log.info("Sort strategy : {} ({})", strategy, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 
     private File createStoreDir() throws IOException {

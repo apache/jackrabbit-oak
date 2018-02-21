@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
+import java.sql.Timestamp;
 
 /**
  * A tool that converts a file with date/time and thread dumps into a list of
@@ -79,8 +80,28 @@ public class ThreadDumpThreadNames {
             }
             if (line.startsWith("\"")) {
                 line = line.substring(0, line.lastIndexOf('\"') + 1);
+                line = appendTimestamp(line);
                 writer.write(dateAndTime + " " + line + "\n");
             }
+        }
+    }
+
+    private static String appendTimestamp(String line) {
+        int start = line.indexOf("[");
+        if (start < 0) {
+            return line;
+        }
+        int end = line.indexOf("]", start);
+        if (end < 0) {
+            return line;
+        }
+        String millis = line.substring(start + 1, end);
+        try {
+            long m = Long.parseLong(millis);
+            String t = new Timestamp(m).toString();
+            return line + ": " + t;
+        } catch (NumberFormatException e) {
+            return line;
         }
     }
 

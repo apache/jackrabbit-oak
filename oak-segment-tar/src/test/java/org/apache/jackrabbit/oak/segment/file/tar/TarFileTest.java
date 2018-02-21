@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,18 +44,22 @@ import org.junit.rules.TemporaryFolder;
 
 public class TarFileTest {
 
-    private static GCGeneration generation(int full) {
+    protected static GCGeneration generation(int full) {
         return newGCGeneration(full, 0, false);
     }
-
-    private File file;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
+    protected SegmentArchiveManager archiveManager;
+
     @Before
     public void setUp() throws IOException {
-        file = folder.newFile();
+        archiveManager = new SegmentTarManager(folder.newFolder(), new FileStoreMonitorAdapter(), new IOMonitorAdapter(), false);
+    }
+
+    protected long getWriteAndReadExpectedSize() {
+        return 5120;
     }
 
     @Test
@@ -64,14 +69,13 @@ public class TarFileTest {
         long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
             assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         }
 
-        assertEquals(5120, file.length());
-
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+            assertEquals(getWriteAndReadExpectedSize(), reader.size());
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         }
     }
@@ -84,11 +88,11 @@ public class TarFileTest {
         String data = "test";
         byte[] buffer = data.getBytes(UTF_8);
 
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, false));
         }
 
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             TarEntry[] entries = reader.getEntries();
             assertEquals(newGCGeneration(1, 2, false), entries[0].generation());
         }
@@ -102,11 +106,11 @@ public class TarFileTest {
         String data = "test";
         byte[] buffer = data.getBytes(UTF_8);
 
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, true));
         }
 
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             TarEntry[] entries = reader.getEntries();
             assertEquals(newGCGeneration(1, 2, true), entries[0].generation());
         }
@@ -114,7 +118,7 @@ public class TarFileTest {
 
     @Test
     public void testWriteAndReadBinaryReferences() throws Exception {
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
 
             writer.addBinaryReference(generation(1), new UUID(1, 0), "r0");
@@ -154,7 +158,7 @@ public class TarFileTest {
         expected.put(generation(2), two);
         expected.put(generation(3), three);
 
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             Map<GCGeneration, Map<UUID, Set<String>>> actual = new HashMap<>();
 
             reader.getBinaryReferences().forEach((generation, full, compacted, id, reference) -> {
@@ -170,7 +174,7 @@ public class TarFileTest {
 
     @Test
     public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
             writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
             writer.writeEntry(2, 1, new byte[] {1}, 0, 1, generation(2));
@@ -185,7 +189,7 @@ public class TarFileTest {
 
         Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
 
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
                 assertNotNull(swept);
 
@@ -214,12 +218,12 @@ public class TarFileTest {
 
     @Test
     public void binaryReferencesIndexShouldContainCompleteGCGeneration() throws Exception {
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(0x00, 0x00, new byte[] {0x01, 0x02, 0x3}, 0, 3, generation(0));
             writer.addBinaryReference(newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
             writer.addBinaryReference(newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
         }
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             Set<GCGeneration> expected = new HashSet<>();
             expected.add(newGCGeneration(1, 2, false));
             expected.add(newGCGeneration(3, 4, true));
@@ -233,7 +237,7 @@ public class TarFileTest {
 
     @Test
     public void graphShouldBeTrimmedDownOnSweep() throws Exception {
-        try (TarWriter writer = new TarWriter(file, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(1, 1, new byte[] {1}, 0, 1, generation(1));
             writer.writeEntry(1, 2, new byte[] {1}, 0, 1, generation(1));
             writer.writeEntry(1, 3, new byte[] {1}, 0, 1, generation(1));
@@ -249,7 +253,7 @@ public class TarFileTest {
 
         Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
 
-        try (TarReader reader = TarReader.open(file, false, new IOMonitorAdapter())) {
+        try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
                 assertNotNull(swept);
 

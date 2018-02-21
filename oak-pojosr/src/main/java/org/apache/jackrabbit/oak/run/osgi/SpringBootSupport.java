@@ -132,7 +132,8 @@ class SpringBootSupport {
             if (ENTRY_URL_METHOD == null){
                 Preconditions.checkState(jarEntry.getClass().getName().startsWith(SPRING_BOOT_PACKAGE),
                         "JarEntry class %s does not belong to Spring package", jarEntry.getClass());
-                ENTRY_URL_METHOD = jarEntry.getClass().getMethod("getUrl");
+                ENTRY_URL_METHOD = jarEntry.getClass().getDeclaredMethod("getUrl");
+                ENTRY_URL_METHOD.setAccessible(true);
             }
             return ENTRY_URL_METHOD;
         }

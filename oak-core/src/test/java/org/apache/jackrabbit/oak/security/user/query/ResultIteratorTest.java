@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -31,7 +32,7 @@ public class ResultIteratorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void createWithNegativeOffset() {
-        ResultIterator.create(-1, ResultIterator.MAX_ALL, Iterators.emptyIterator());
+        ResultIterator.create(-1, ResultIterator.MAX_ALL, Collections.emptyIterator());
     }
 
     @Test

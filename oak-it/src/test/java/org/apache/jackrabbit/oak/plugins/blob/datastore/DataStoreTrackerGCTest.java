@@ -33,6 +33,7 @@ import java.util.concurrent.ScheduledFuture;
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
@@ -59,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.google.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.union;
@@ -81,6 +83,7 @@ import static org.apache.jackrabbit.oak.spi.commit.EmptyHook.INSTANCE;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeThat;
 
@@ -202,13 +205,25 @@ public class DataStoreTrackerGCTest {
 
     @Test
     public void consistencyCheckNoActiveDeletion() throws Exception {
-        Cluster cluster = new Cluster("cluster1");
-        BlobStore s = cluster.blobStore;
-        BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
-        DataStoreState state = init(cluster.nodeStore, 0);
+        File tmpFolder = folder.newFolder();
+        String previousTmp = System.setProperty(JAVA_IO_TMPDIR.key(), tmpFolder.getAbsolutePath());
 
-        // Since datastore in consistent state and only active deletions the missing list should be empty
-        assertEquals(0, cluster.gc.checkConsistency());
+        try {
+            Cluster cluster = new Cluster("cluster1");
+            BlobStore s = cluster.blobStore;
+            BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+            DataStoreState state = init(cluster.nodeStore, 0);
+
+            // Since datastore in consistent state and only active deletions the missing list should be empty
+            assertEquals(0, cluster.gc.checkConsistency());
+            assertTrue(FileUtils.listFiles(tmpFolder, null, true).size() == 0);
+        } finally {
+            if (previousTmp != null) {
+                System.setProperty(JAVA_IO_TMPDIR.key(), previousTmp);
+            } else {
+                System.clearProperty(JAVA_IO_TMPDIR.key());
+            }
+        }
     }
 
     @Test

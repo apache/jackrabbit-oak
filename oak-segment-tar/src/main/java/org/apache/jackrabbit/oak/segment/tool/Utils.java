@@ -30,10 +30,12 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -65,7 +67,7 @@ final class Utils {
     }
 
     static List<String> readRevisions(File store) {
-        File journal = new File(store, "journal.log");
+        JournalFile journal = new LocalJournalFile(store, "journal.log");
 
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {

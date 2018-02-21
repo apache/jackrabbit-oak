@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.isShared;
-import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTI
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTION_RETRY_COUNT;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.COMPACTION_SIZE_DELTA_ESTIMATION;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_SEGMENT_STORE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.DEFAULT_BLOB_SNAPSHOT_INTERVAL;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.GC_PROGRESS_LOG;
@@ -69,6 +69,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.DEFAULT_MAX_FILE_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
+import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -81,6 +82,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Supplier;
+import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -97,7 +100,6 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
@@ -107,7 +109,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
-import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
@@ -119,6 +120,9 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.spi.commit.ObserverTracker;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -131,14 +135,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Supplier;
-import com.google.common.io.Closer;
 
 /**
  * An OSGi wrapper for the segment node store.
@@ -277,8 +277,9 @@ public class SegmentNodeStoreService {
             intValue = RETAINED_GENERATIONS_DEFAULT,
             label = "Compaction retained generations",
             description = "Number of segment generations to retain during garbage collection. " +
-                    "Must be set to at least 2. " +
-                    "Default value is '" + RETAINED_GENERATIONS_DEFAULT + "'."
+                "The number of generations defaults to " + RETAINED_GENERATIONS_DEFAULT + " and " +
+                "can't be changed. This configuration option is considered deprecated " +
+                "and will be removed in the future."
     )
     public static final String RETAINED_GENERATIONS = "compaction.retainedGenerations";
 
@@ -316,6 +317,12 @@ public class SegmentNodeStoreService {
     )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
+    @Property(boolValue = false,
+            label = "Custom segment store",
+            description = "Boolean value indicating that a custom (non-tar) segment store is used"
+    )
+    public static final String CUSTOM_SEGMENT_STORE = "customSegmentStore";
+
     @Property(
             label = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
@@ -330,6 +337,13 @@ public class SegmentNodeStoreService {
             target = ONLY_STANDALONE_TARGET
     )
     private volatile BlobStore blobStore;
+
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.STATIC,
+            policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile SegmentNodeStorePersistence segmentStore;
 
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
@@ -374,9 +388,14 @@ public class SegmentNodeStoreService {
                     "store becomes available");
             return;
         }
+        if (segmentStore == null && configuration.hasCustomSegmentStore()) {
+            log.info("customSegmentStore enabled. SegmentNodeStore will be initialized once the custom segment " +
+                    "store becomes available");
+            return;
+        }
         closer = Closer.create();
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        registerSegmentStore(context, blobStore, statisticsProvider, closer, whiteboard, null, true);
+        registerSegmentStore(context, blobStore, segmentStore, statisticsProvider, closer, whiteboard, null, true);
     }
 
     /**
@@ -387,6 +406,8 @@ public class SegmentNodeStoreService {
      *
      * @param context            An instance of {@link ComponentContext}.
      * @param blobStore          An instance of {@link BlobStore}. It can be
+     *                           {@code null}.
+     * @param segmentStore       An instance of {@link SegmentNodeStorePersistence}. It can be
      *                           {@code null}.
      * @param statisticsProvider An instance of {@link StatisticsProvider}.
      * @param closer             An instance of {@link Closer}. It will be used
@@ -406,6 +427,7 @@ public class SegmentNodeStoreService {
     static SegmentNodeStore registerSegmentStore(
             @Nonnull ComponentContext context,
             @Nullable BlobStore blobStore,
+            @Nullable SegmentNodeStorePersistence segmentStore,
             @Nonnull StatisticsProvider statisticsProvider,
             @Nonnull Closer closer,
             @Nonnull Whiteboard whiteboard,
@@ -432,12 +454,22 @@ public class SegmentNodeStoreService {
                     + "Please use 'compaction.sizeDeltaEstimation' instead and "
                     + "'compaction.disableEstimation' to disable estimation.");
         }
+        if (configuration.getRetainedGenerations() != RETAINED_GENERATIONS_DEFAULT) {
+            log.warn(
+                "The number of retained generations defaults to {} and can't be " +
+                    "changed. This configuration option is considered deprecated " +
+                    "and will be removed in the future.",
+                RETAINED_GENERATIONS_DEFAULT
+            );
+        }
         SegmentGCOptions gcOptions = new SegmentGCOptions(configuration.getPauseCompaction(), configuration.getRetryCount(), configuration.getForceCompactionTimeout())
-                .setRetainedGenerations(configuration.getRetainedGenerations())
                 .setGcSizeDeltaEstimation(configuration.getSizeDeltaEstimation())
                 .setMemoryThreshold(configuration.getMemoryThreshold())
                 .setEstimationDisabled(configuration.getDisableEstimation())
                 .setGCLogInterval(configuration.getGCProcessLog());
+        if (configuration.isStandbyInstance()) {
+            gcOptions.setRetainedGenerations(1);
+        }
 
         // Build the FileStore
         FileStoreBuilder builder = fileStoreBuilder(configuration.getSegmentDirectory())
@@ -457,6 +489,11 @@ public class SegmentNodeStoreService {
         if (configuration.hasCustomBlobStore() && blobStore != null) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             builder.withBlobStore(blobStore);
+        }
+
+        if (configuration.hasCustomSegmentStore() && segmentStore != null) {
+            log.info("Initializing SegmentNodeStore with custom persistence [{}]", segmentStore);
+            builder.withCustomPersistence(segmentStore);
         }
 
         if (configuration.isStandbyInstance()) {
@@ -922,6 +959,10 @@ class Configuration {
 
     boolean hasCustomBlobStore() {
         return toBoolean(property(CUSTOM_BLOB_STORE), false);
+    }
+
+    boolean hasCustomSegmentStore() {
+        return toBoolean(property(CUSTOM_SEGMENT_STORE), false);
     }
 
     long getBlobGcMaxAge() {

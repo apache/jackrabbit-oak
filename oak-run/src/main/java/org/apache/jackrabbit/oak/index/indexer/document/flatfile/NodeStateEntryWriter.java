@@ -19,10 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.Writer;
+import java.util.List;
 
+import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -32,42 +31,44 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
 
-public class NodeStateEntryWriter implements Closeable{
+public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
     private static final String DELIMITER = "|";
-    private final Writer writer;
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
+    private final Joiner pathJoiner = Joiner.on('/');
 
     //TODO Possible optimizations
     //1. Compression
     //2. Dictionary for properties
 
-    public NodeStateEntryWriter(BlobStore blobStore, Writer writer) {
-        this.writer = writer;
+    public NodeStateEntryWriter(BlobStore blobStore) {
         this.serializer = new JsonSerializer(jw, new BlobIdSerializer(blobStore));
     }
 
-    public void write(NodeStateEntry e) throws IOException {
-        String text = asText(e.getNodeState());
-        writer.append(e.getPath())
+    public String toString(NodeStateEntry e) {
+        return toString(e.getPath(), asJson(e.getNodeState()));
+    }
+
+    public String toString(String path, String nodeStateAsJson) {
+        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + path.length() + 1);
+        sb.append(path)
                 .append(DELIMITER)
-                .append(text)
-                .append(LINE_SEPARATOR.value());
+                .append(nodeStateAsJson);
+        return sb.toString();
     }
 
-    @Override
-    public void close() throws IOException {
-        writer.flush();
+    public String toString(List<String> pathElements, String nodeStateAsJson) {
+        int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
+        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
+        sb.append('/');
+        pathJoiner.appendTo(sb, pathElements);
+        sb.append(DELIMITER).append(nodeStateAsJson);
+        return sb.toString();
     }
 
-    private String asText(NodeState nodeState) {
-        return asJson(nodeState);
-    }
-
-    private String asJson(NodeState nodeState) {
+    public String asJson(NodeState nodeState) {
         jw.resetWriter();
         jw.object();
         for (PropertyState ps : nodeState.getProperties()) {

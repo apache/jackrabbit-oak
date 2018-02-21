@@ -86,6 +86,7 @@ The build consists of the following components:
   - oak-store-spi     - Oak NodeStore and Commit SPI 
   - oak-segment-tar   - TarMK API and nodestore implementation
   - oak-store-document - Oak DocumentNodeStore implementation on MongoDB and RDB
+  - oak-store-composite - CompositeNodeStore implementation
 
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak and sidegrading Oak to Oak
    

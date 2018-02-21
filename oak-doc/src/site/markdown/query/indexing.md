@@ -491,7 +491,11 @@ Reindexing of existing indexes is required in the following scenarios:
   and during that time, after one day or later, datastore garbage collection was run concurrently.
   Some binaries created during by reindexing can get missing because 
   datastore garbage collection removes unreferenced binaries older than one day.
-  Indexing or reindexing using oak-run is not affected by this.  
+  Indexing or reindexing using oak-run is not affected by this. 
+* I: Prior to Oak 1.0.27 / 1.2.11, 
+  if an index file gets larger than 2 GB, then possibly the index can not be opened
+  (exception "Invalid seek request"), and subsequently the index might get corrupt.
+  See also [OAK-3911][OAK-3911].
 
 New indexes are built automatically once the index definition is stored.
 To reindex an _existing_ index (when needed), set the `reindex` property to `true` in the respective index definition:
@@ -538,6 +542,7 @@ remove the index definition (for a new index),
 or change the index type to `disabled`. Store the change. Finally, call the operation `resume()`
 so that regular indexing operations can continue.
 
+[OAK-3911]: https://issues.apache.org/jira/browse/OAK-3911
 [OAK-4065]: https://issues.apache.org/jira/browse/OAK-4065
 [OAK-4412]: https://issues.apache.org/jira/browse/OAK-4412
 [OAK-4684]: https://issues.apache.org/jira/browse/OAK-4684

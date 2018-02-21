@@ -254,7 +254,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.AND);
+                config.getContext(), CompositionType.AND, getRootProvider());
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
@@ -265,7 +265,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.OR);
+                config.getContext(), CompositionType.OR, getRootProvider());
     }
 
     @Test

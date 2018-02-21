@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user.query;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 
 import java.text.ParseException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -87,7 +88,7 @@ public class UserQueryManager {
         query.build(builder);
 
         if (builder.getMaxCount() == 0) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
 
         String statement = buildXPathStatement(builder);

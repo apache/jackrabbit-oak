@@ -79,10 +79,7 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
     @Override
     protected SecurityProvider initSecurityProvider() {
         SecurityProvider sp = super.initSecurityProvider();
-        AuthorizationConfiguration acConfig = sp.getConfiguration(AuthorizationConfiguration.class);
-        Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
-        ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())
-                .bindMountInfoProvider(mountInfoProvider);
+        MountUtils.bindMountInfoProvider(sp, mountInfoProvider);
         return sp;
     }
 

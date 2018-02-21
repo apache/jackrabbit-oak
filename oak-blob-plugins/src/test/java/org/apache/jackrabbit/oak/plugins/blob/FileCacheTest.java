@@ -38,6 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
@@ -57,6 +58,9 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     private File root;
     private TestCacheLoader loader;
     private Closer closer;
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -109,6 +113,25 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache.close();
 
         LOG.info("Finished zeroCache");
+    }
+
+    @Test
+    public void loadError() throws Exception {
+        LOG.info("Started loadError");
+
+        loader = new TestErrorCacheLoader<String, InputStream>(folder.newFolder(), 8192);
+        cache = FileCache.build(12 * 1024/* KB */, root, loader, null);
+        closer.register(cache);
+        createFile(0, loader, cache, folder, 12 * 1024);
+        try {
+            cache.get(ID_PREFIX + 0);
+        } catch (IOException e) {
+        }
+
+        expectedEx.expect(IOException.class);
+        cache.get(ID_PREFIX + 0);
+
+        LOG.info("Finished loadError");
     }
 
     /**
@@ -503,9 +526,14 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         assertTrue(Files.equal(f, cached));
     }
 
+    private static File createFile(int seed, TestCacheLoader loader, FileCache cache, TemporaryFolder folder)
+        throws Exception {
+        return createFile(seed, loader, cache, folder, 4 * 1024);
+    }
+
     private static File createFile(int seed, TestCacheLoader loader, FileCache cache,
-        TemporaryFolder folder) throws Exception {
-        File f = copyToFile(randomStream(0, 4 * 1024),
+        TemporaryFolder folder, int size) throws Exception {
+        File f = copyToFile(randomStream(0, size),
             folder.newFile());
         loader.write(ID_PREFIX + seed, f);
         assertNull(cache.getIfPresent(ID_PREFIX + seed));

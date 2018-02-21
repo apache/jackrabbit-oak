@@ -51,6 +51,12 @@ public class NodeStateEntry {
 
     @Override
     public int hashCode() {
-        return Objects.hash(nodeState, path);
+        //AbstractNodeState#hashCode
+        return 0;
+    }
+
+    @Override
+    public String toString() {
+        return path;
     }
 }

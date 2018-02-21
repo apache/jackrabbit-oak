@@ -43,7 +43,7 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
     private static final String INDEX_MSG = "Incremental indexing";
 
     private final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
-    private final Stopwatch watch = Stopwatch.createStarted();
+    private Stopwatch watch = Stopwatch.createStarted();
     private final IndexUpdateCallback updateCallback;
     private final NodeTraversalCallback traversalCallback;
     private final Map<String, IndexUpdateState> indexUpdateStates = new HashMap<>();
@@ -170,6 +170,16 @@ public class IndexingProgressReporter implements NodeTraversalCallback {
 
     public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator) {
         this.nodeCountEstimator = nodeCountEstimator;
+    }
+
+    public void setEstimatedCount(long estimatedCount) {
+        this.estimatedCount = estimatedCount;
+    }
+
+    public void reset(){
+        watch = Stopwatch.createStarted();
+        traversalCount = 0;
+        messagePrefix = INDEX_MSG;
     }
 
     private String estimatePendingTraversal(double nodesPerSecond) {

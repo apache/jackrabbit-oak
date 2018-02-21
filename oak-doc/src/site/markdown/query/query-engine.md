@@ -34,6 +34,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
         * [Equality for Path Constraints](#Equality_for_Path_Constraints)
     * [Slow Queries and Read Limits](#Slow_Queries_and_Read_Limits)
     * [Full-Text Queries](#Full-Text_Queries)
+    * [Excerpts and Highlighting](#Excerpts_and_Highlighting)
     * [Native Queries](#Native_Queries)
     * [Similarity Queries](#Similarity_Queries)
     * [Spellchecking](#Spellchecking)
@@ -303,7 +304,14 @@ When using `or` in combination with the same property, as in `a=1 or a=2`, then 
 ### Full-Text Queries
 
 The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specification.
-The following syntax is supported within `contains` queries:
+
+By default (that is, using a Lucene index with `compatVersion` 2), Jackrabbit Oak uses the 
+[Apache Lucene grammar for fulltext search](https://lucene.apache.org/core/4_7_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html).
+[See also how to escape queries.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+
+For older Lucene indexes (`compatVersion` 1), 
+the following syntax is supported within `contains` queries.
+This is a subset of the Apache Lucene syntax:
 
     FullTextSearch ::= Or
     Or ::= And { ' OR ' And }* 
@@ -328,6 +336,24 @@ For compatibility with Jackrabbit 2.x, single quoted phrase queries are currentl
 That means the query `contains(., "word ''hello world'' word")` is supported.
 New applications should not rely on this feature.
 
+### Excerpts and Highlighting
+
+If excerpts and highlighting is needed, then queries should contains the "excerpt" property, as follows:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt())
+    
+That way, the excerpt and highlighting features of Lucene are used.
+That is, if a Lucene index is configured for the query, and excerpts are generated
+(see <a href="lucene.html#Property_Definitions">useInExcerpt</a>).
+On the other hand, If the query doesn't contain the excerpt property, for example as follows:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]
+
+and the excerpt is requested after running the query, 
+then the SimpleExcerptProvider utility is used, which generates excerpt from the content, and does highlighting.
+This is not not recommended; specially highlighting is limited 
+(eg. stopwords are ignored, highlighting is case sensitive).
+The same problem occurs if excerpts for properties are requested that are not specified in the query.
 
 ### Native Queries
 
@@ -480,7 +506,7 @@ facets can be retrieved on properties (backed by a proper
 field in Lucene / Solr) using the following snippet:
 
     String sql2 = "select [jcr:path], [rep:facet(tags)] from [nt:base] " +
-                    "where contains([jcr:title], 'oak');
+                    "where contains([jcr:title], 'oak')");
     Query q = qm.createQuery(sql2, Query.JCR_SQL2);
     QueryResult result = q.execute();
     FacetResult facetResult = new FacetResult(result);

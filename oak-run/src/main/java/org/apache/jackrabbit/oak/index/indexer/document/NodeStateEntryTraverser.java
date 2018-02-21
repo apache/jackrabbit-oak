@@ -90,8 +90,14 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     @SuppressWarnings("Guava")
     private Iterable<NodeStateEntry> getIncludedDocs() {
         return FluentIterable.from(getDocsFilteredByPath())
-                .filter(doc -> !doc.isSplitDocument())
+                .filter(doc -> includeDoc(doc))
                 .transformAndConcat(doc -> getEntries(doc));
+    }
+
+    private boolean includeDoc(NodeDocument doc) {
+        return !doc.isSplitDocument()
+                && !NodeStateUtils.isHiddenPath(doc.getPath())
+                && pathPredicate.test(doc.getPath());
     }
 
     @SuppressWarnings("StaticPseudoFunctionalStyleMethod")

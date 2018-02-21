@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.8-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -48,23 +48,6 @@
             <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
           </instructions>
         </configuration>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-            <phase>pre-integration-test</phase>
-            <configuration>
-              <!--
-                This is required as classes present in this module
-                were part of oak-core. This should be removed
-                post 1.8 release
-              -->
-              <comparisonArtifactId>oak-core</comparisonArtifactId>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -327,6 +310,12 @@
       <groupId>com.github.fakemongo</groupId>
       <artifactId>fongo</artifactId>
       <version>2.0.6</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.flapdoodle.embed</groupId>
+      <artifactId>de.flapdoodle.embed.mongo</artifactId>
+      <version>2.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

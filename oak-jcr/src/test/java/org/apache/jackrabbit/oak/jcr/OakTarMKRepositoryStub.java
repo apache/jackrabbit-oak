@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
  * @deprecated Use {@link OakSegmentTarRepositoryStub} instead.
  */
 @Deprecated
-public class OakTarMKRepositoryStub extends OakRepositoryStub {
+public class OakTarMKRepositoryStub extends BaseRepositoryStub {
 
     private final FileStore store;
 

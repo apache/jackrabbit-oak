@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
@@ -169,7 +168,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             out.close();
 
             String coreConfDir = solrCoreDir + "/conf/";
-            copy("/solr/oak/conf/currency.xml", coreConfDir);
             copy("/solr/oak/conf/schema.xml", coreConfDir);
             copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
         } else if (!solrCorePathFile.isDirectory()) {
@@ -179,12 +177,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         File solrDataPathFile = new File(solrHomePathFile + "/" + coreName + "/data/index");
         if (solrDataPathFile.exists()) {
             log.debug("deleting stale lock files");
-            File[] locks = solrDataPathFile.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return "write.lock".equals(name);
-                }
-            });
+            File[] locks = solrDataPathFile.listFiles((dir, name) -> "write.lock".equals(name));
             log.debug("found {} lock files", locks.length);
             // remove eventaul previous lock files (e.g. due to ungraceful shutdown)
             if (locks.length > 0) {
@@ -197,10 +190,12 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
         // check if the a core with the given coreName exists
         String[] files = solrHomePathFile.list();
-        Arrays.sort(files);
-        if (Arrays.binarySearch(files, coreName) < 0) {
-            throw new IOException("could not find a directory with the coreName '" + coreName
-                    + "' in the solrHomePath '" + solrHomePath + "'");
+        if (files != null) {
+            Arrays.sort(files);
+            if (Arrays.binarySearch(files, coreName) < 0) {
+                throw new IOException("could not find a directory with the coreName '" + coreName
+                        + "' in the solrHomePath '" + solrHomePath + "'");
+            }
         }
     }
 

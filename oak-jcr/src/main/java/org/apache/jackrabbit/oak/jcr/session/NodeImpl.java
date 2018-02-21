@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -1285,9 +1286,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Nonnull
-    private Iterator<String> getMixinTypeNames(@Nonnull Tree tree) throws RepositoryException {
-        Iterator<String> mixinNames = Iterators.emptyIterator();
-        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadProperty(tree, JcrConstants.JCR_MIXINTYPES)) {
+    private Iterator<String> getMixinTypeNames(@Nonnull Tree tree) {
+        Iterator<String> mixinNames = Collections.emptyIterator();
+        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
             mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
         } else if (tree.getStatus() != Status.NEW) {
             // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
@@ -1297,12 +1298,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     JcrConstants.JCR_MIXINTYPES).iterator();
         }
         return mixinNames;
-    }
-
-    private boolean canReadProperty(@Nonnull Tree tree, @Nonnull String propName) throws RepositoryException {
-        String propPath = PathUtils.concat(tree.getPath(), propName);
-        String permName = Permissions.PERMISSION_NAMES.get(Permissions.READ_PROPERTY);
-        return sessionContext.getAccessManager().hasPermissions(propPath, permName);
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {

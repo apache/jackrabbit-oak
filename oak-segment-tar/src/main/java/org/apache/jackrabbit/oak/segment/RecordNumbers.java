@@ -17,8 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Iterators.emptyIterator;
-
+import java.util.Collections;
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
@@ -42,7 +41,7 @@ interface RecordNumbers extends Iterable<Entry> {
         @Nonnull
         @Override
         public Iterator<Entry> iterator() {
-            return emptyIterator();
+            return Collections.emptyIterator();
         }
     };
 

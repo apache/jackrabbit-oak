@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -56,6 +56,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final Context ctx;
 
+    private final RootProvider rootProvider;
+
     private CompiledPermissions compiledPermissions;
 
     private Root immutableRoot;
@@ -65,20 +67,22 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                                   @Nonnull Set<Principal> principals,
                                   @Nonnull RestrictionProvider restrictionProvider,
                                   @Nonnull ConfigurationParameters options,
-                                  @Nonnull Context ctx) {
+                                  @Nonnull Context ctx,
+                                  @Nonnull RootProvider rootProvider) {
         this.root = root;
         this.workspaceName = workspaceName;
         this.principals = principals;
         this.restrictionProvider = restrictionProvider;
         this.options = options;
         this.ctx = ctx;
+        this.rootProvider = rootProvider;
 
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
     }
 
     @Override
     public void refresh() {
-        immutableRoot = RootFactory.createReadOnlyRoot(root);
+        immutableRoot = rootProvider.createReadOnlyRoot(root);
         getCompiledPermissions().refresh(immutableRoot, workspaceName);
     }
 

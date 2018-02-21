@@ -40,7 +40,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
@@ -1318,7 +1317,7 @@ public final class NodeDocument extends Document {
     @Nonnull
     Iterator<NodeDocument> getAllPreviousDocs() {
         if (getPreviousRanges().isEmpty()) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
         //Currently this method would fire one query per previous doc
         //If that poses a problem we can try to find all prev doc by relying
@@ -1353,7 +1352,7 @@ public final class NodeDocument extends Document {
     @Nonnull
     Iterator<NodeDocument> getPreviousDocLeaves() {
         if (getPreviousRanges().isEmpty()) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
         // create a mutable copy
         final NavigableMap<Revision, Range> ranges = Maps.newTreeMap(getPreviousRanges());

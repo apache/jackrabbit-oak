@@ -789,6 +789,24 @@ public class Utils {
     }
 
     /**
+     * Returns {@code true} if changes identified by the {@code from} and
+     * {@code to} {@code RevisionVector} are considered local changes. That is
+     * the only difference between the two revision vectors are for the given
+     * (local) {@code clusterId}.
+     *
+     * @param from the from revision vector.
+     * @param to the to revision vector.
+     * @param clusterId the local clusterId.
+     * @return whether the changes are considered local.
+     */
+    public static boolean isLocalChange(@Nonnull RevisionVector from,
+                                        @Nonnull RevisionVector to,
+                                        int clusterId) {
+        RevisionVector diff = to.difference(from);
+        return diff.getDimensions() == 1 && diff.getRevision(clusterId) != null;
+    }
+
+    /**
      * Wraps the given iterable and aborts iteration over elements when the
      * predicate on an element evaluates to {@code false}.
      *

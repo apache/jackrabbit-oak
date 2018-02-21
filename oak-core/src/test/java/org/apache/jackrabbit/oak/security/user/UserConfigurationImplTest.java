@@ -59,6 +59,9 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     @Test
     public void testValidators() {
         UserConfigurationImpl configuration = new UserConfigurationImpl(getSecurityProvider());
+        configuration.setRootProvider(getRootProvider());
+        configuration.setTreeProvider(getTreeProvider());
+
         List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.<Principal>emptySet(), new MoveTracker());
         assertEquals(2, validators.size());
 

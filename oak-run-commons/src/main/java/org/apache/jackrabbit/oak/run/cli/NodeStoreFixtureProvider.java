@@ -30,6 +30,8 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -62,8 +64,14 @@ public class NodeStoreFixtureProvider {
         wb.register(StatisticsProvider.class, statisticsProvider, emptyMap());
 
         NodeStore store;
-        if (commonOpts.isMongo() || commonOpts.isRDB()) {
-            store = DocumentFixtureProvider.configureDocumentMk(options, blobStore, wb, closer, readOnly);
+        if (commonOpts.isMemory()) {
+            store = new MemoryNodeStore();
+        } else if (commonOpts.isMongo() || commonOpts.isRDB()) {
+            DocumentNodeStore dns = DocumentFixtureProvider.configureDocumentMk(options, blobStore, wb, closer, readOnly);
+            store = dns;
+            if (blobStore == null) {
+                blobStore = dns.getBlobStore();
+            }
         } else if (commonOpts.isOldSegment()) {
             store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
         } else {

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
@@ -33,20 +32,15 @@ import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGI
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileDescriptor;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
 import org.slf4j.Logger;
@@ -61,38 +55,7 @@ class TarWriter implements Closeable {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(TarWriter.class);
 
-    private static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
-
-    static int getPaddingSize(int size) {
-        int remainder = size % BLOCK_SIZE;
-        if (remainder > 0) {
-            return BLOCK_SIZE - remainder;
-        } else {
-            return 0;
-        }
-    }
-
     private final int writeIndex;
-
-    /**
-     * The file being written. This instance is also used as an additional
-     * synchronization point by {@link #flush()} and {@link #close()} to
-     * allow {@link #flush()} to work concurrently with normal reads and
-     * writes, but not with a concurrent {@link #close()}.
-     */
-    private final File file;
-
-    private final FileStoreMonitor monitor;
-
-    /**
-     * File handle. Initialized lazily in {@link #writeEntry(UUID, byte[],
-     * byte[], int, int, GCGeneration)} to avoid creating an extra empty file
-     * when just reading from the repository. Should only be accessed from
-     * synchronized code.
-     */
-    private RandomAccessFile access = null;
-
-    private FileChannel channel = null;
 
     /**
      * Flag to indicate a closed writer. Accessing a closed writer is illegal.
@@ -121,24 +84,30 @@ class TarWriter implements Closeable {
      */
     private final Map<UUID, Set<UUID>> graph = newHashMap();
 
-    private final IOMonitor ioMonitor;
+    private final SegmentArchiveManager archiveManager;
+
+    private final SegmentArchiveManager.SegmentArchiveWriter archive;
+
+    /** This object is used as an additional
+     *  synchronization point by {@link #flush()} and {@link #close()} to
+     *  allow {@link #flush()} to work concurrently with normal reads and
+     *  writes, but not with a concurrent {@link #close()}. */
+    private final Object closeMonitor = new Object();
 
     /**
      * Used for maintenance operations (GC or recovery) via the TarReader and
      * tests
      */
-    TarWriter(File file, IOMonitor ioMonitor) {
-        this.file = file;
-        this.monitor = new FileStoreMonitorAdapter();
+    TarWriter(SegmentArchiveManager archiveManager, String archiveName) throws IOException {
+        this.archiveManager = archiveManager;
+        this.archive = archiveManager.create(archiveName);
         this.writeIndex = -1;
-        this.ioMonitor = ioMonitor;
     }
 
-    TarWriter(File directory, FileStoreMonitor monitor, int writeIndex, IOMonitor ioMonitor) {
-        this.file = new File(directory, format(FILE_NAME_FORMAT, writeIndex, "a"));
-        this.monitor = monitor;
+    TarWriter(SegmentArchiveManager archiveManager, int writeIndex) throws IOException {
+        this.archiveManager = archiveManager;
+        this.archive = archiveManager.create(format(FILE_NAME_FORMAT, writeIndex, "a"));
         this.writeIndex = writeIndex;
-        this.ioMonitor = ioMonitor;
     }
 
     synchronized boolean containsEntry(long msb, long lsb) {
@@ -155,18 +124,13 @@ class TarWriter implements Closeable {
      * @return the byte buffer, or null if not in this file
      */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
-        checkState(!closed);
-        
         TarEntry entry;
         synchronized (this) {
+            checkState(!closed);
             entry = index.get(new UUID(msb, lsb));
         }
         if (entry != null) {
-            checkState(channel != null); // implied by entry != null
-            ByteBuffer data = ByteBuffer.allocate(entry.size());
-            channel.read(data, entry.offset());
-            data.rewind();
-            return data;
+            return archive.readSegment(entry);
         } else {
             return null;
         }
@@ -176,50 +140,17 @@ class TarWriter implements Closeable {
         checkNotNull(data);
         checkPositionIndexes(offset, offset + size, data.length);
 
-        UUID uuid = new UUID(msb, lsb);
-        CRC32 checksum = new CRC32();
-        checksum.update(data, offset, size);
-        String entryName = String.format("%s.%08x", uuid, checksum.getValue());
-        byte[] header = newEntryHeader(entryName, size);
+        synchronized (this) {
+            checkState(!closed);
 
-        log.debug("Writing segment {} to {}", uuid, file);
-        return writeEntry(uuid, header, data, offset, size, generation);
-    }
+            TarEntry entry = archive.writeSegment(msb, lsb, data, offset, size, generation);
+            long currentLength = archive.getLength();
 
-    private synchronized long writeEntry(UUID uuid, byte[] header, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
-        checkState(!closed);
+            checkState(currentLength <= Integer.MAX_VALUE);
+            index.put(new UUID(msb, lsb), entry);
 
-        if (access == null) {
-            access = new RandomAccessFile(file, "rw");
-            channel = access.getChannel();
+            return currentLength;
         }
-
-        long msb = uuid.getMostSignificantBits();
-        long lsb = uuid.getLeastSignificantBits();
-
-        int padding = getPaddingSize(size);
-
-        long initialLength = access.getFilePointer();
-
-        access.write(header);
-
-        ioMonitor.beforeSegmentWrite(file, msb, lsb, size);
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        access.write(data, offset, size);
-        ioMonitor.afterSegmentWrite(file, msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
-
-        if (padding > 0) {
-            access.write(ZERO_BYTES, 0, padding);
-        }
-
-        long currentLength = access.getFilePointer();
-        monitor.written(currentLength - initialLength);
-
-        checkState(currentLength <= Integer.MAX_VALUE);
-        TarEntry entry = new TarEntry(msb, lsb, (int) (currentLength - size - padding), size, generation);
-        index.put(uuid, entry);
-
-        return currentLength;
     }
 
     void addBinaryReference(GCGeneration generation, UUID segmentId, String reference) {
@@ -246,17 +177,15 @@ class TarWriter implements Closeable {
      * @throws IOException if the tar file could not be flushed
      */
     void flush() throws IOException {
-        synchronized (file) {
-            FileDescriptor descriptor = null;
+        synchronized (closeMonitor) {
+            boolean doFlush;
 
             synchronized (this) {
-                if (access != null && !closed) {
-                    descriptor = access.getFD();
-                }
+                doFlush = archive.isCreated() && !closed;
             }
 
-            if (descriptor != null) {
-                descriptor.sync();
+            if (doFlush) {
+                archive.flush();
             }
         }
     }
@@ -277,28 +206,21 @@ class TarWriter implements Closeable {
         }
 
         // If nothing was written to this file, then we're already done.
-        if (access == null) {
+        if (!archive.isCreated()) {
             return;
         }
 
         // Complete the tar file by adding the graph, the index and the
-        // trailing two zero blocks. This code is synchronized on the file
-        // instance to  ensure that no concurrent thread is still flushing
+        // trailing two zero blocks. This code is synchronized on the closeMonitor
+        // to ensure that no concurrent thread is still flushing
         // the file when we close the file handle.
-        long initialPosition, currentPosition;
-        synchronized (file) {
-            initialPosition = access.getFilePointer();
+        synchronized (closeMonitor) {
             writeBinaryReferences();
             writeGraph();
             writeIndex();
-            access.write(ZERO_BYTES);
-            access.write(ZERO_BYTES);
 
-            currentPosition = access.getFilePointer();
-            access.close();
+            archive.close();
         }
-
-        monitor.written(currentPosition - initialPosition);
     }
 
     /**
@@ -311,24 +233,17 @@ class TarWriter implements Closeable {
         checkState(writeIndex >= 0);
         // If nothing was written to this file, then we're already done.
         synchronized (this) {
-            if (access == null) {
+            if (!archive.isCreated()) {
                 return this;
             }
         }
         close();
         int newIndex = writeIndex + 1;
-        return new TarWriter(file.getParentFile(), monitor, newIndex, ioMonitor);
+        return new TarWriter(archiveManager, newIndex);
     }
 
     private void writeBinaryReferences() throws IOException {
-        byte[] data = binaryReferences.write();
-        int paddingSize = getPaddingSize(data.length);
-        byte[] header = newEntryHeader(file.getName() + ".brf", data.length + paddingSize);
-        access.write(header);
-        if (paddingSize > 0) {
-            access.write(ZERO_BYTES, 0, paddingSize);
-        }
-        access.write(data);
+        archive.writeBinaryReferences(binaryReferences.write());
     }
 
     private void writeGraph() throws IOException {
@@ -391,15 +306,7 @@ class TarWriter implements Closeable {
         buffer.putInt(graphSize);
         buffer.putInt(GRAPH_MAGIC);
 
-        int padding = getPaddingSize(graphSize);
-
-        access.write(newEntryHeader(file.getName() + ".gph", graphSize + padding));
-
-        if (padding > 0) {
-            access.write(ZERO_BYTES, 0, padding);
-        }
-
-        access.write(buffer.array());
+        archive.writeGraph(buffer.array());
     }
 
     private void writeIndex() throws IOException {
@@ -418,70 +325,15 @@ class TarWriter implements Closeable {
         }
 
         byte[] index = writer.write();
-        access.write(newEntryHeader(file.getName() + ".idx", index.length));
-        access.write(index);
-    }
-
-    private static byte[] newEntryHeader(String name, int size) {
-        byte[] header = new byte[BLOCK_SIZE];
-
-        // File name
-        byte[] nameBytes = name.getBytes(UTF_8);
-        System.arraycopy(
-                nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
-
-        // File mode
-        System.arraycopy(
-                String.format("%07o", 0400).getBytes(UTF_8), 0,
-                header, 100, 7);
-
-        // User's numeric user ID
-        System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
-                header, 108, 7);
-
-        // Group's numeric user ID
-        System.arraycopy(
-                String.format("%07o", 0).getBytes(UTF_8), 0,
-                header, 116, 7);
-
-        // File size in bytes (octal basis)
-        System.arraycopy(
-                String.format("%011o", size).getBytes(UTF_8), 0,
-                header, 124, 11);
-
-        // Last modification time in numeric Unix time format (octal)
-        long time = System.currentTimeMillis() / 1000;
-        System.arraycopy(
-                String.format("%011o", time).getBytes(UTF_8), 0,
-                header, 136, 11);
-
-        // Checksum for header record
-        System.arraycopy(
-                new byte[] {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}, 0,
-                header, 148, 8);
-
-        // Type flag
-        header[156] = '0';
-
-        // Compute checksum
-        int checksum = 0;
-        for (byte aHeader : header) {
-            checksum += aHeader & 0xff;
-        }
-        System.arraycopy(
-                String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
-                header, 148, 8);
-
-        return header;
+        archive.writeIndex(index);
     }
 
     synchronized long fileLength() {
-        return file.length();
+        return archive.getLength();
     }
 
-    synchronized File getFile() {
-        return file;
+    synchronized String getFileName() {
+        return archive.getName();
     }
 
     synchronized boolean isClosed() {
@@ -492,7 +344,7 @@ class TarWriter implements Closeable {
 
     @Override
     public String toString() {
-        return file.toString();
+        return getFileName();
     }
 
 }

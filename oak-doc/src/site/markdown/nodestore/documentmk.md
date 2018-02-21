@@ -25,6 +25,7 @@
     * [Clock requirements](#clock-requirements)
     * [Branches](#branches)
     * [Previous Documents](#previous-documents)
+    * [Sweep Revision](#sweep-revision)
     * [Node Bundling](#node-bundling)
     * [Background Operations](#background-operations)
         * [Renew Cluster Id Lease](#renew-cluster-id-lease)
@@ -80,15 +81,27 @@ explain and illustrate concepts of the DocumentNodeStore.
 
 ## <a name="content-model"></a> Content Model
 
-The repository data is stored in two collections: the `nodes` collection for node data,
-and the `blobs` collection for binaries. There is a third collection, `clusterNodes`,
-which contains metadata of all cluster nodes. The data can be viewed using the 
-MongoDB shell:
+The repository data is stored in two collections: the `nodes` collection for
+node data, and the `blobs` collection for binaries. The `journal` collection
+contains a log of changes applied to the repository. Entries older than 24 hours
+are automatically purged by the repository.
+
+The `clusterNodes` collection contains a document for each DocumentNodeStore
+connected to MongoDB in read-write mode. A DocumentNodeStore uses the documents
+in this collection to discover all other instances.
+
+Cluster wide information is stored in the `settings` collection. This includes
+checkpoints, journal and revision GC status, format version and the current
+cluster view.
+
+The data can be viewed using the MongoDB shell:
 
     > show collections
     blobs
     clusterNodes
+    journal
     nodes
+    settings
 
 ## <a name="node-content-model"></a> Node Content Model
 
@@ -135,15 +148,18 @@ modified the node the last time in revision `r13f3875b5d1-0-1`, when it created
 the node. The revision key in the `_lastRev` sub-document is synthetic and the
 only information actually used by the DocumentNodeStore is the clusterId. The `_lastRev`
 sub-document is only updated for non-branch commits or on merge, when changes
-become visible to all readers.
+become visible to all readers. Starting with Oak 1.2 the `_lastRev` value for
+a cluster node is only updated when there is no corresponding entry in `_revisions`
+or `_commitRoot`. That is, when the node wasn't changed but a descendant node
+was added, removed or modified.
 
 The `_modified` field contains an indexed low-resolution timestamp when the node
 was last modified. The time resolution is five seconds. This field is also updated
 when a branch commit modifies a node.
 
 The `_modCount` field contains a modification counter, which is incremented with
-every change to the document. This field allows the DocumentNodeStore to perform conditional updates
-without requesting the whole document.
+every change to the document. This field allows the DocumentNodeStore to perform
+conditional updates without requesting the whole document.
 
 The `_children` field is a boolean flag to indicate if this node has child nodes. By
 default a node would not have this field. If any node gets added as child of this node
@@ -205,6 +221,7 @@ After the node is deleted the document looks like this:
         },
         "prop" : {
             "r13f38818ab6-0-1" : "\"foo\""
+            "r13f38835063-2-1" : null
         }
     }
 
@@ -248,8 +265,8 @@ the commit root is the common ancestor of all nodes modified in a commit, the
 commit root of a branch commit is always the root node. This is because a
 branch will likely have multiple commits and a commit root must already be
 known when the first commit happens on a branch. To make sure the following
-branch commits can use the same commit root, the DocumentNodeStore simply picks the root
-node, which always works in this case.
+branch commits can use the same commit root, the DocumentNodeStore simply picks
+the root node, which always works in this case.
 
 A root node may look like this:
 
@@ -292,13 +309,21 @@ the root node looks like this:
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
-			"r13fcda919eb-0-1" : "r13fcda91720-0-1"
+            "r13fcda919eb-0-1" : "r13fcda91720-0-1"
+        },
+        "_bc" : {
+            "r13fcda919eb-0-1" : "true"
         },
         "prop" : {
             "r13fcda91720-0-1" : "\"foo\"",
-			"r13fcda919eb-0-1" : "\"bar\"",
+            "r13fcda919eb-0-1" : "\"bar\"",
         }
     }
+
+Note, the `_bc` sub-document was introduced with Oak 1.8 and is not present in
+older versions. The branch commit revision is added to `_bc` whenever a change
+is done on a document with a branch commit. This helps the DocumentNodeStore to
+more easily identify branch commit changes.
 
 At this point the modified property is only visible to a reader
 when it reads with the branch revision `r13fcda919eb-0-1` because
@@ -321,11 +346,14 @@ When the branch is later merged, the root node will look like this:
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
-			"r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+            "r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+        },
+        "_bc" : {
+            "r13fcda919eb-0-1" : "true"
         },
         "prop" : {
             "r13fcda91720-0-1" : "\"foo\"",
-			"r13fcda919eb-0-1" : "\"bar\"",
+            "r13fcda919eb-0-1" : "\"bar\"",
         }
     }
 
@@ -340,7 +368,7 @@ before it decides whether a reader is able to see a given change.
 
 Over time the size of a document grows because the DocumentNodeStore adds data to the document
 with every modification, but never deletes anything to keep the history. Old data
-is moved when there are 1000 commits to be moved or the document is bigger than
+is moved when there are 100 commits to be moved or the document is bigger than
 1 MB. A document with a reference to old data looks like this:
 
     {
@@ -356,14 +384,17 @@ is moved when there are 1000 commits to be moved or the document is bigger than
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
             "r13fcda91720-0-1" : "c",
-			"r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+            "r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+        },
+        "_bc" : {
+            "r13fcda919eb-0-1" : "true"
         },
         "_prev" : {
             "r13fcda88ae0-0-1" : "r13fcda91710-0-1"
         },
         "prop" : {
             "r13fcda91720-0-1" : "\"foo\"",
-			"r13fcda919eb-0-1" : "\"bar\"",
+            "r13fcda919eb-0-1" : "\"bar\"",
         }
     }
 
@@ -382,13 +413,13 @@ is `1:p/r13fcda88ae0-0-1` and may looks like this:
             "r13fcda88ae0-0-1" : "c",
             "r13fcda88af0-0-1" : "c",
             ...  
-			"r13fcda91710-0-1" : "c"
+            "r13fcda91710-0-1" : "c"
         },
         "prop" : {
             "r13fcda88ae0-0-1" : "\"foo\"",
             "r13fcda88af0-0-1" : "\"bar\"",
             ...
-			"r13fcda91710-0-1" : "\"baz\""
+            "r13fcda91710-0-1" : "\"baz\""
         }
     }
 
@@ -396,6 +427,45 @@ Previous documents only contain immutable data, which means it only contains
 committed and merged `_revisions`. This also means the previous ranges of
 committed data may overlap because branch commits are not moved to previous
 documents until the branch is merged.
+
+## <a name="sweep-revision"></a> Sweep Revision
+
+`@since Oak 1.8`
+
+With Oak 1.8 the concept of a sweep revision was introduced in the
+DocumentNodeStore. The sweep revision of a DocumentNodeStore indicates up to
+which revision non-branch changes are guaranteed to be committed. This allows
+to optimize read operations because a lookup of the commit root document can
+be avoided in most cases. It also means the Revision Garbage Collector can
+remove previous documents that contain `_revisions` entries if they are all
+older than the sweep revision.
+
+The sweep revision is maintained per DocumentNodeStore instance on the root
+document. Below is the root document already presented above, amended with the
+sweep revision.
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "r0-0-1" : "r13fcda91720-0-1"
+        },
+        "_modified" : NumberLong(274708995),
+        "_modCount" : NumberLong(2),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c"
+        },
+        "_sweepRev" : {
+            "r0-0-1" : "r13fcda91720-0-1",
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\""
+        }
+    }
+
 
 ## <a name="node-bundling"></a> node-bundling
 

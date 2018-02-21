@@ -266,16 +266,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return documentStoreSupplier.get();
     }
 
-    public DiffCache getDiffCache() {
+    public DiffCache getDiffCache(int clusterId) {
         if (diffCache == null) {
-            diffCache = new TieredDiffCache(this);
+            diffCache = new TieredDiffCache(this, clusterId);
         }
         return diffCache;
-    }
-
-    public T setDiffCache(DiffCache diffCache) {
-        this.diffCache = diffCache;
-        return thisBuilder();
     }
 
     /**

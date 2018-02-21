@@ -16,7 +16,21 @@
   -->
 # Oak Composite NodeStore
 
-**The documentation and the Composite NodeStore implementation are a work-in-progress. Please ask on oak-dev for things that are missing or unclear.**
+**The documentation of the Composite NodeStore implementation is work-in-progress. Please ask on oak-dev for things that are missing or unclear.**
+
+## Overview
+
+The `CompositeNodeStore` is a `NodeStore` implementation that wraps multiple `NodeStore` instances
+and exposes them through a single API. It is possible, for instance, to store all data in a 
+`DocumentNodeStore` instance and relocate `/libs` and `/apps` in a `SegmentNodeStore` instance.
+
+Each node stored wrapped by the composite node store instance is called a _mount_.
+
+## Design limitations
+
+The implementation allows for a default mount, which is read-write, and for any number of 
+additional mounts, which are read-only. This limitation is by design and is not expected to
+be removed in future Oak version.
 
 ## Checking for read-only access
 

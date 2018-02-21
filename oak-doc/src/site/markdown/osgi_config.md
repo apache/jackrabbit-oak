@@ -47,7 +47,7 @@ The first of these configurations, identified by `org.apache.jackrabbit.oak.segm
 This implementation is the newest and the only actively maintained one, and should be used unless some legacy use case needs to be supported.
 
 The second and last configuration, identified by `org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService`, refers to the old implementation of the Node Store provided by the `oak-segment` bundle.
-This implementation has been deprecated, will not receive any further improvements and should not be used, if possible.
+This implementation has been deprecated and removed in Oak 1.8. It will not receive any further improvements and should not be used in new projects.
 
 ##### <a name="config-SegmentNodeStoreService"></a> org.apache.jackrabbit.oak.segment.SegmentNodeStoreService
 
@@ -114,7 +114,7 @@ compaction.disableEstimation (boolean) - false
 If this property is set to `true`, the estimation phase of the compaction process will never run, and compaction will always be triggered for any amount of garbage in the Node Store.
 
 compaction.retainedGenerations (int) - 2
-: The number of generations to retain the Node Store.
+: The number of generations to retain the Node Store. As of Oak 1.8 this option is deprecated. Its value defaults to `2` and cannot be changed by the user.
 
 compaction.memoryThreshold (int) - 15
 : The percentage of heap memory that should always be free while compaction runs.
@@ -139,7 +139,7 @@ Placeholders of any kind in the path are not supported.
 
 ##### org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService
 
-**This configuration is deprecated.
+**This configuration is deprecated and has been removed in Oak 1.8.
 It belongs to the legacy Node Store implementation provided by the oak-segment bundle.
 This implementation should not be used anymore.
 Instead, rely on the Node Store implementation provided by the oak-segment-tar bundle, whose configuration is described above.**

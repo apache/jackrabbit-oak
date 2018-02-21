@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -119,4 +120,26 @@ public class SQL2ParserTest {
         p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], [b], [c])='a'");
     }
 
+    @Ignore("OAK-7131")
+    @Test
+    public void orderingWithUnionOfNodetype() throws Exception {
+        XPathToSQL2Converter c = new XPathToSQL2Converter();
+
+        String xpath;
+
+        xpath = "//(element(*, type1) | element(*, type2)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2) | element(*, type3)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2) | element(*, type3) | element(*, type4)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2))[@a='b'] order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+    }
 }

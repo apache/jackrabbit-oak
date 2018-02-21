@@ -27,7 +27,6 @@ import java.util.TreeSet;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
@@ -76,7 +75,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         long cnt = 0;
         existingNames.clear();
         for (String name : principalNames) {
-            long n = cache.getNumEntries(store, name, maxSize);
+            long n = store.getNumEntries(name, maxSize);
             /*
             if cache.getNumEntries (n) returns a number bigger than 0, we
             remember this principal name int the 'existingNames' set
@@ -124,7 +123,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     @Nonnull
     public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
         if (existingNames.isEmpty()) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             return new EntryIterator(predicate);
         }
@@ -172,7 +171,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         private final EntryPredicate predicate;
 
         // the ordered permission entries at a given path in the hierarchy
-        private Iterator<PermissionEntry> nextEntries = Iterators.emptyIterator();
+        private Iterator<PermissionEntry> nextEntries = Collections.emptyIterator();
 
         // the next oak path for which to retrieve permission entries
         private String path;

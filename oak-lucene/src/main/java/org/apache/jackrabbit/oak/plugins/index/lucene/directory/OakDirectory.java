@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -35,6 +36,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.NoLockFactory;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
@@ -49,6 +51,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -60,9 +63,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
  */
 public class OakDirectory extends Directory {
     static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(OakDirectory.class.getName() + ".perf"));
+    static final Logger LOG = LoggerFactory.getLogger(OakDirectory.class.getName());
     public static final String PROP_DIR_LISTING = "dirListing";
     static final String PROP_BLOB_SIZE = "blobSize";
     static final String PROP_UNIQUE_KEY = "uniqueKey";
+    public static final String PROP_UNSAFE_FOR_ACTIVE_DELETION = "unsafeForActiveDeletion";
     static final int UNIQUE_KEY_SIZE = 16;
 
     private final static SecureRandom secureRandom = new SecureRandom();
@@ -147,19 +152,27 @@ public class OakDirectory extends Directory {
         checkArgument(!readOnly, "Read only directory");
         fileNames.remove(name);
         NodeBuilder f = directoryBuilder.getChildNode(name);
-        PropertyState property = f.getProperty(JCR_DATA);
-        if (property != null) {
-            if (property.getType() == BINARIES || property.getType() == BINARY) {
-                for (Blob b : property.getValue(BINARIES)) {
-                    //Mark the blob as deleted. Also, post index path, type of directory
-                    //(:suggest, :data, etc) and filename being deleted
-                    String blobId = b.getContentIdentity();
-                    if (blobId != null) {
-                        blobDeletionCallback.deleted(blobId,
-                                Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+
+        if (!f.hasProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION)
+                || !f.getProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION).getValue(BOOLEAN)) {
+            PropertyState property = f.getProperty(JCR_DATA);
+            if (property != null) {
+                if (property.getType() == BINARIES || property.getType() == BINARY) {
+                    for (Blob b : property.getValue(BINARIES)) {
+                        //Mark the blob as deleted. Also, post index path, type of directory
+                        //(:suggest, :data, etc) and filename being deleted
+                        String blobId = b.getContentIdentity();
+
+                        // OAK-7066: Also, make sure that we have at least some non-inlined chunks to delete
+                        if (blobId != null && !InMemoryDataRecord.isInstance(blobId)) {
+                            blobDeletionCallback.deleted(blobId,
+                                    Lists.newArrayList(definition.getIndexPath(), dataNodeName, name));
+                        }
                     }
                 }
             }
+        } else {
+            LOG.debug("Not marking {} under {} for active deletion", name, indexName);
         }
         f.remove();
         markDirty();
@@ -198,6 +211,10 @@ public class OakDirectory extends Directory {
         String key = StringUtils.convertBytesToHex(uniqueKey);
         file.setProperty(PROP_UNIQUE_KEY, key);
         file.setProperty(PROP_BLOB_SIZE, definition.getBlobSize());
+        if (blobDeletionCallback.isMarkingForActiveDeletionUnsafe()) {
+            file.setProperty(PROP_UNSAFE_FOR_ACTIVE_DELETION, true);
+            LOG.debug("Setting {} under {} as unsafe for active deletion", name, indexName);
+        }
 
         fileNames.add(name);
         markDirty();

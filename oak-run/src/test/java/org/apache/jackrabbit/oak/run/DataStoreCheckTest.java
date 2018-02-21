@@ -315,21 +315,17 @@ public class DataStoreCheckTest {
     }
 
     private void testAllParams(File dump, File repoHome) throws Exception {
-        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath());
-
-        checkCommand.execute(argsList.toArray(new String[0]));
+        DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     private void testAllParamsVerbose(File dump, File repoHome) throws Exception {
-        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--" + dsOption, cfgFilePath, "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", repoHome.getAbsolutePath(), "--verbose");
-
-        checkCommand.execute(argsList.toArray(new String[0]));
+        DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     @Test
@@ -344,11 +340,10 @@ public class DataStoreCheckTest {
     }
 
     public void testTarNoDSOption(File dump) throws Exception {
-        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
         List<String> argsList = Lists
             .newArrayList("--id", "--ref", "--consistency", "--nods", "--store", storePath,
                 "--dump", dump.getAbsolutePath(), "--repoHome", temporaryFolder.newFolder().getAbsolutePath());
-        checkCommand.execute(argsList.toArray(new String[0]));
+        DataStoreCheckCommand.checkDataStore(argsList.toArray(new String[0]));
     }
 
     @Test
@@ -412,9 +407,7 @@ public class DataStoreCheckTest {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
 
-        DataStoreCheckCommand checkCommand = new DataStoreCheckCommand();
-
-        checkCommand.execute(argList.toArray(new String[0]));
+        DataStoreCheckCommand.checkDataStore(argList.toArray(new String[0]));
         String message = buffer.toString(UTF_8.toString());
         log.info("Assert message: {}", assertMsg);
         log.info("Message logged in System.err: {}", message);

@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCond
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableMetaData;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
+import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1008,15 +1009,18 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static void setIdInStatement(RDBTableMetaData tmd, PreparedStatement stmt, int idx, String id) throws SQLException {
-        if (tmd.isIdBinary()) {
-            try {
-                stmt.setBytes(idx, id.getBytes("UTF-8"));
-            } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported??", ex);
-                throw new DocumentStoreException(ex);
+        try {
+            if (tmd.isIdBinary()) {
+                stmt.setBytes(idx, UTF8Encoder.encodeAsByteArray(id));
+            } else {
+                if (!UTF8Encoder.canEncode(id)) {
+                    throw new IOException("can not encode as UTF-8");
+                }
+                stmt.setString(idx, id);
             }
-        } else {
-            stmt.setString(idx, id);
+        } catch (IOException ex) {
+            LOG.warn("Invalid ID: " + id, ex);
+            throw new DocumentStoreException("Invalid ID: " + id, ex);
         }
     }
 

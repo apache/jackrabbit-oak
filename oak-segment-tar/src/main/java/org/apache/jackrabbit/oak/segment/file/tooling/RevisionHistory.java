@@ -36,6 +36,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
@@ -75,7 +76,7 @@ public class RevisionHistory {
      * @return
      * @throws IOException
      */
-    public Iterator<HistoryElement> getHistory(@Nonnull File journal, @Nonnull final String path)
+    public Iterator<HistoryElement> getHistory(@Nonnull JournalFile journal, @Nonnull final String path)
             throws IOException {
         checkNotNull(path);
         

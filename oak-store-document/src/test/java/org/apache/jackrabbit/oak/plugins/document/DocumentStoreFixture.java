@@ -91,10 +91,14 @@ public abstract class DocumentStoreFixture {
 
     public abstract String getName();
 
-    public abstract DocumentStore createDocumentStore(int clusterId);
+    public abstract DocumentStore createDocumentStore(DocumentMK.Builder builder);
+
+    public DocumentStore createDocumentStore(int clusterId) {
+        return createDocumentStore(new DocumentMK.Builder().setClusterId(clusterId));
+    }
 
     public DocumentStore createDocumentStore() {
-        return createDocumentStore(1);
+        return createDocumentStore(new DocumentMK.Builder().setClusterId(1));
     }
 
     public boolean isAvailable() {
@@ -126,7 +130,7 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
+        public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
             return new MemoryDocumentStore();
         }
 
@@ -163,12 +167,12 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
-            if (clusterId == 1) {
-                store1 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(1), options);
+        public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
+            if (builder.getClusterId() == 1) {
+                store1 = new RDBDocumentStore(dataSource, builder, options);
                 return store1;
-            } else if (clusterId == 2) {
-                store2 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(2), options);
+            } else if (builder.getClusterId() == 2) {
+                store2 = new RDBDocumentStore(dataSource, builder, options);
                 return store2;
             } else {
                 throw new RuntimeException("expect clusterId == 1 or == 2");
@@ -206,12 +210,12 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
+        public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
             try {
                 MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
                 DB db = connection.getDB();
-                return new MongoDocumentStore(db, new DocumentMK.Builder().setClusterId(clusterId));
+                return new MongoDocumentStore(db, builder);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

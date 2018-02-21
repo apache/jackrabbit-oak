@@ -162,10 +162,17 @@ public class BinaryTextExtractor {
                 stream.close();
             }
         } catch (LinkageError e) {
-            // Capture and ignore errors caused by extraction libraries
+            // Capture errors caused by extraction libraries
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
+            log.debug(
+                    "[{}] Failed to extract text from a binary property: {}."
+                            + " This often happens when some media types are disabled by configuration."
+                            + " The stack trace is included to flag some 'unintended' failures",
+                    getIndexName(), path, e);
+            extractedTextCache.put(v, ExtractedText.ERROR);
+            return TEXT_EXTRACTION_ERROR;
         } catch (TimeoutException t) {
             log.warn(
                     "[{}] Failed to extract text from a binary property due to timeout: {}.",
@@ -185,6 +192,8 @@ public class BinaryTextExtractor {
                         getIndexName(), path, t);
                 extractedTextCache.put(v, ExtractedText.ERROR);
                 return TEXT_EXTRACTION_ERROR;
+            } else {
+                log.debug("Extracted text size exceeded configured limit({})", definition.getMaxExtractLength());
             }
         }
         String result = handler.toString();

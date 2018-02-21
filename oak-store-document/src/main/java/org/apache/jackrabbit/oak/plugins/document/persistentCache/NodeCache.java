@@ -207,6 +207,13 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<
         } else {
             return value;
         }
+
+        // do not bother the persistent cache if the
+        // key was excluded by configuration
+        if (!type.shouldCache(nodeStore, key)) {
+            return null;
+        }
+
         stats.markRequest();
 
         // it takes care of updating memCacheMetadata

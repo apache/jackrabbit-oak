@@ -220,6 +220,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private int bulkRetries =
             Integer.getInteger("oak.mongo.bulkRetries", 0);
 
+    /**
+     * How many times a query to MongoDB should be retried when it fails with a
+     * MongoException.
+     */
+    private final int queryRetries =
+            Integer.getInteger("oak.mongo.queryRetries", 2);
+
     private String lastReadWriteMode;
 
     private final Map<String, String> metadata;
@@ -230,7 +237,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
+    private final boolean readOnly;
+
     public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilderBase<?> builder) {
+        this.readOnly = builder.getReadOnlyMode();
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
             mongoStatus = new MongoStatus(db);
@@ -331,6 +341,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 mongoStatus.getServerDetails());
     }
 
+    public boolean isReadOnly() {
+        return readOnly;
+    }
+
     @Override
     public void finalize() throws Throwable {
         super.finalize();
@@ -422,7 +436,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                        final int maxCacheAge) {
         if (collection != Collection.NODES) {
             return findUncachedWithRetry(collection, key,
-                    DocumentReadPreference.PRIMARY, 2);
+                    DocumentReadPreference.PRIMARY);
         }
         NodeDocument doc;
         if (maxCacheAge > 0 || preferCached) {
@@ -460,7 +474,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
                 final NodeDocument d = (NodeDocument) findUncachedWithRetry(
                         collection, key,
-                        getReadPreference(maxCacheAge), 2);
+                        getReadPreference(maxCacheAge));
                 invalidateCache(collection, key);
                 doc = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
@@ -483,7 +497,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         } catch (RuntimeException e) {
             t = e;
         }
-        throw new DocumentStoreException("Failed to load document with " + key, t);
+        throw handleException(t, collection, key);
     }
 
     /**
@@ -493,20 +507,17 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @param collection the collection to read from.
      * @param key the key of the document to find.
      * @param docReadPref the read preference.
-     * @param retries the number of retries. Must not be negative.
      * @param <T> the document type of the given collection.
      * @return the document or {@code null} if the document doesn't exist.
      */
     @CheckForNull
     private <T extends Document> T findUncachedWithRetry(
             Collection<T> collection, String key,
-            DocumentReadPreference docReadPref,
-            int retries) {
-        checkArgument(retries >= 0, "retries must not be negative");
+            DocumentReadPreference docReadPref) {
         if (key.equals("0:/")) {
             LOG.trace("root node");
         }
-        int numAttempts = retries + 1;
+        int numAttempts = queryRetries + 1;
         MongoException ex = null;
         for (int i = 0; i < numAttempts; i++) {
             if (i > 0) {
@@ -519,7 +530,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             }
         }
         if (ex != null) {
-            throw ex;
+            throw handleException(ex, collection, key);
         } else {
             // impossible to get here
             throw new IllegalStateException();
@@ -574,19 +585,52 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                               String indexedProperty,
                                               long startValue,
                                               int limit) {
-        return queryInternal(collection, fromKey, toKey, indexedProperty,
+        return queryWithRetry(collection, fromKey, toKey, indexedProperty,
                 startValue, limit, maxQueryTimeMS);
+    }
+
+    /**
+     * Queries for documents and performs a number of retries if the read fails
+     * with an exception.
+     */
+    @Nonnull
+    private <T extends Document> List<T> queryWithRetry(Collection<T> collection,
+                                                        String fromKey,
+                                                        String toKey,
+                                                        String indexedProperty,
+                                                        long startValue,
+                                                        int limit,
+                                                        long maxQueryTime) {
+        int numAttempts = queryRetries + 1;
+        MongoException ex = null;
+        for (int i = 0; i < numAttempts; i++) {
+            if (i > 0) {
+                LOG.warn("Retrying query, fromKey={}, toKey={}", fromKey, toKey);
+            }
+            try {
+                return queryInternal(collection, fromKey, toKey,
+                        indexedProperty, startValue, limit, maxQueryTime);
+            } catch (MongoException e) {
+                ex = e;
+            }
+        }
+        if (ex != null) {
+            throw handleException(ex, collection, Lists.newArrayList(fromKey, toKey));
+        } else {
+            // impossible to get here
+            throw new IllegalStateException();
+        }
     }
 
     @SuppressWarnings("unchecked")
     @Nonnull
-    <T extends Document> List<T> queryInternal(Collection<T> collection,
-                                                       String fromKey,
-                                                       String toKey,
-                                                       String indexedProperty,
-                                                       long startValue,
-                                                       int limit,
-                                                       long maxQueryTime) {
+    protected <T extends Document> List<T> queryInternal(Collection<T> collection,
+                                                         String fromKey,
+                                                         String toKey,
+                                                         String indexedProperty,
+                                                         long startValue,
+                                                         int limit,
+                                                         long maxQueryTime) {
         log("query", fromKey, toKey, indexedProperty, startValue, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
@@ -1693,7 +1737,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    private <T extends Document> DocumentStoreException handleException(Exception ex,
+    private <T extends Document> DocumentStoreException handleException(Throwable ex,
                                                                         Collection<T> collection,
                                                                         Iterable<String> ids) {
         if (collection == Collection.NODES) {
@@ -1704,7 +1748,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return DocumentStoreException.convert(ex, ids);
     }
 
-    private <T extends Document> DocumentStoreException handleException(Exception ex,
+    private <T extends Document> DocumentStoreException handleException(Throwable ex,
                                                                         Collection<T> collection,
                                                                         String id) {
         return handleException(ex, collection, Collections.singleton(id));

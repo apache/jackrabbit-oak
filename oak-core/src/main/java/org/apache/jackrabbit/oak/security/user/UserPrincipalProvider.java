@@ -171,7 +171,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             }
         } catch (ParseException e) {
             log.debug(e.getMessage());
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     }
 
@@ -430,7 +430,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             org.apache.jackrabbit.api.security.user.Group g = getGroup();
-            return (g == null) ? Iterators.<Authorizable>emptyIterator() : g.getMembers();
+            return (g == null) ? Collections.<Authorizable>emptyIterator() : g.getMembers();
         }
 
         @CheckForNull

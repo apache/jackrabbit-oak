@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Assume;
@@ -127,13 +129,20 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
     }
 
     @Test
+    public void indexMongoRepo_WithCompressionDisabled() throws Exception{
+        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "false");
+        indexMongoRepo();
+        System.clearProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP);
+    }
+
+    @Test
     public void bundling() throws Exception{
         DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
         DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
-        wb.register(MongoDocumentStore.class, ds, emptyMap());
+        Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
 
         configureIndex(store);
@@ -158,6 +167,16 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         assertNotNull(getNodeDocument(ds, "/test/book.jpg"));
 
         String checkpoint = store.checkpoint(100000);
+
+        //Shut down this store and restart in readOnly mode
+        store.dispose();
+        r1.unregister();
+
+        DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
+                .setMongoDB(connectionFactory.getConnection().getDB());
+        ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
+        store = docBuilderRO.build();
+        wb.register(MongoDocumentStore.class, ds, emptyMap());
 
         IndexHelper helper = new IndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), asList(TEST_INDEX_PATH));
@@ -259,10 +278,12 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         }
 
         @Override
-        public void index(NodeStateEntry entry) throws IOException, CommitFailedException {
+        public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
             if (p.test(entry.getPath())) {
                 paths.add(entry.getPath());
+                return true;
             }
+            return false;
         }
 
         @Override

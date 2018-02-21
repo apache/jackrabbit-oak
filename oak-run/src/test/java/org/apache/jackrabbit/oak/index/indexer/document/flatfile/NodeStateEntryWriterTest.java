@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.BufferedReader;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -32,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -40,22 +41,18 @@ import static org.junit.Assert.assertTrue;
 public class NodeStateEntryWriterTest {
     private BlobStore blobStore = new MemoryBlobStore();
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private StringWriter sw = new StringWriter();
 
     @Test
-    public void newLines() throws Exception{
-        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore, sw);
+    public void newLines() {
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
 
         builder.setProperty("foo", 1);
         builder.setProperty("foo2", Arrays.asList("a", "b"), Type.STRINGS);
         builder.setProperty("foo3", "text with \n new line");
-        nw.write(new NodeStateEntry(builder.getNodeState(), "/a"));
-        nw.close();
+        String line = nw.toString(new NodeStateEntry(builder.getNodeState(), "/a"));
 
         NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
-        BufferedReader br = new BufferedReader(new StringReader(sw.toString()));
 
-        String line = br.readLine();
         NodeStateEntry ne = nr.read(line);
         assertEquals("/a", ne.getPath());
         assertEquals("/a", NodeStateEntryWriter.getPath(line));
@@ -63,8 +60,8 @@ public class NodeStateEntryWriterTest {
     }
 
     @Test
-    public void multipleEntries() throws Exception{
-        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore, sw);
+    public void multipleEntries() {
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
 
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");
@@ -75,20 +72,18 @@ public class NodeStateEntryWriterTest {
         NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a");
         NodeStateEntry e2 = new NodeStateEntry(b2.getNodeState(), "/a");
 
-        nw.write(e1);
-        nw.write(e2);
-        nw.close();
+        String line1 = nw.toString(e1);
+        String line2 = nw.toString(e2);
 
         NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
-        BufferedReader br = new BufferedReader(new StringReader(sw.toString()));
 
-        assertEquals(e1, nr.read(br.readLine()));
-        assertEquals(e2, nr.read(br.readLine()));
+        assertEquals(e1, nr.read(line1));
+        assertEquals(e2, nr.read(line2));
     }
 
     @Test
-    public void childOrderNotWritten() throws Exception{
-        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore, sw);
+    public void childOrderNotWritten(){
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
 
         NodeBuilder b1 = EMPTY_NODE.builder();
         b1.setProperty("foo", "bar");
@@ -97,15 +92,53 @@ public class NodeStateEntryWriterTest {
 
         NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a");
 
-        nw.write(e1);
-        nw.close();
+        String line = nw.toString(e1);
 
         NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
-        BufferedReader br = new BufferedReader(new StringReader(sw.toString()));
 
-        NodeStateEntry r1 = nr.read(br.readLine());
+        NodeStateEntry r1 = nr.read(line);
         assertTrue(r1.getNodeState().hasProperty(":hidden"));
         assertFalse(r1.getNodeState().hasProperty(":childOrder"));
+    }
+
+    @Test
+    public void pathElements(){
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b1 = EMPTY_NODE.builder();
+        b1.setProperty("foo", "bar");
+
+        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a/b/c/d");
+
+        String json = nw.asJson(e1.getNodeState());
+        List<String> pathElements = copyOf(elements(e1.getPath()));
+
+        String line = nw.toString(pathElements, json);
+
+        NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+        NodeStateEntry r1 = nr.read(line);
+        assertTrue(r1.getNodeState().hasProperty("foo"));
+        assertEquals("/a/b/c/d", r1.getPath());
+
+    }
+
+    @Test
+    public void pathElements_root(){
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b1 = EMPTY_NODE.builder();
+        b1.setProperty("foo", "bar");
+
+        NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/");
+
+        String json = nw.asJson(e1.getNodeState());
+        List<String> pathElements = copyOf(elements(e1.getPath()));
+
+        String line = nw.toString(pathElements, json);
+
+        NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+        NodeStateEntry r1 = nr.read(line);
+        assertTrue(r1.getNodeState().hasProperty("foo"));
+        assertEquals("/", r1.getPath());
+
     }
 
 }

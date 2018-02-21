@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
@@ -600,6 +601,35 @@ public class FacetTest extends AbstractQueryTest {
         List<FacetResult.Facet> facets = facetResult.getFacets(pn);
         assertNotNull(facets);
         assertEquals(7, facets.size());
+    }
+
+    // OAK-7078
+    public void testFacetsOfResultSetThatDoesntContainDim() throws Exception {
+        Node content = testRootNode.addNode("absentDimFacets");
+
+        // create a document with a simple/tags property
+        Node foo = content.addNode("foo");
+        Node fooSimple = foo.addNode("jc");
+        foo.setProperty("text", "lorem lorem");
+        fooSimple.setProperty("text", new String[]{"tag1", "tag2"});
+        // now create a document without simple/tags property
+        Node bar = content.addNode("bar");
+        bar.setProperty("text", "lorem ipsum");
+
+        superuser.save();
+
+        String query = "select [rep:facet(jc/text)] from [nt:base] where contains(*, 'ipsum')";
+
+        Query q = qm.createQuery(query, Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertTrue(facetResult.getDimensions().isEmpty());
+
+        RowIterator rows = result.getRows();
+        assertTrue(rows.hasNext());
+        assertEquals(bar.getPath(), rows.nextRow().getPath());
+        assertFalse(rows.hasNext());
     }
 
     private void markIndexForReindex() throws RepositoryException {

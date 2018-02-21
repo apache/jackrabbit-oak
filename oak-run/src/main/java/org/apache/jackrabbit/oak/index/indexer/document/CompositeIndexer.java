@@ -51,10 +51,12 @@ public class CompositeIndexer implements NodeStateIndexer {
     }
 
     @Override
-    public void index(NodeStateEntry entry) throws IOException, CommitFailedException {
+    public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
+        boolean result = false;
         for (NodeStateIndexer indexer : indexers) {
-            indexer.index(entry);
+            result |= indexer.index(entry);
         }
+        return result;
     }
 
     @Override

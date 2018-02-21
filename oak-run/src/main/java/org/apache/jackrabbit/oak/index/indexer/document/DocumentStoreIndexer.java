@@ -22,10 +22,12 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -65,6 +68,7 @@ public class DocumentStoreIndexer implements Closeable{
     private final IndexerSupport indexerSupport;
     private final IndexingProgressReporter progressReporter =
             new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+    private final Set<String> indexerPaths = new HashSet<>();
 
     public DocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport) throws IOException {
         this.indexHelper = indexHelper;
@@ -108,8 +112,14 @@ public class DocumentStoreIndexer implements Closeable{
                 .build();
         closer.register(flatFileStore);
 
+        progressReporter.reset();
+        if (flatFileStore.getEntryCount() > 0){
+            progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> flatFileStore.getEntryCount());
+        }
+
         progressReporter.reindexingTraversalStart("/");
 
+        Stopwatch indexerWatch = Stopwatch.createStarted();
         for (NodeStateEntry entry : flatFileStore) {
             reportDocumentRead(entry.getPath());
             indexer.index(entry);
@@ -117,6 +127,7 @@ public class DocumentStoreIndexer implements Closeable{
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
+        log.info("Completed the indexing in {}", indexerWatch);
 
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -133,13 +144,20 @@ public class DocumentStoreIndexer implements Closeable{
             MetricRegistry registry = ((MetricStatisticsProvider) statsProvider).getRegistry();
             progressReporter.setTraversalRateEstimator(new MetricRateEstimator("async", registry));
         }
-
-        MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
-        if (mongoConnection != null) {
-            long nodesCount = mongoConnection.getDB().getCollection("nodes").count();
+        long nodesCount = getEstimatedDocumentCount();
+        if (nodesCount > 0) {
             progressReporter.setNodeCountEstimator((String basePath, Set<String> indexPaths) -> nodesCount);
+            progressReporter.setEstimatedCount(nodesCount);
             log.info("Estimated number of documents in Mongo are {}", nodesCount);
         }
+    }
+
+    private long getEstimatedDocumentCount(){
+        MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
+        if (mongoConnection != null) {
+            return mongoConnection.getDB().getCollection("nodes").count();
+        }
+        return 0;
     }
 
     @Override
@@ -167,12 +185,18 @@ public class DocumentStoreIndexer implements Closeable{
                 log.warn("No 'type' property found on indexPath [{}]. Skipping it", indexPath);
                 continue;
             }
+
+            removeIndexState(idxBuilder);
+
+            idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, false);
+
             for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
                 NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, idxBuilder, root, progressReporter);
                 if (indexer != null) {
                     indexers.add(indexer);
                     closer.register(indexer);
                     progressReporter.registerIndex(indexPath, true, -1);
+                    indexerPaths.add(indexPath);
                 }
             }
         }
@@ -191,5 +215,19 @@ public class DocumentStoreIndexer implements Closeable{
 
     private NodeStateIndexerProvider createLuceneIndexProvider() throws IOException {
         return new LuceneIndexerProvider(indexHelper, indexerSupport);
+    }
+
+    //TODO OAK-7098 - Taken from IndexUpdate. Refactor to abstract out common logic like this
+    private void removeIndexState(NodeBuilder definition) {
+        // as we don't know the index content node name
+        // beforehand, we'll remove all child nodes
+        for (String rm : definition.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(rm)) {
+                NodeBuilder childNode = definition.getChildNode(rm);
+                if (!childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
+                    definition.getChildNode(rm).remove();
+                }
+            }
+        }
     }
 }

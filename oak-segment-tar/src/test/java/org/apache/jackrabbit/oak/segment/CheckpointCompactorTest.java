@@ -35,7 +35,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
@@ -171,7 +170,6 @@ public class CheckpointCompactorTest {
 
         return new CheckpointCompactor(
                 GCMonitor.EMPTY,
-                new AtomicLong(),
                 fileStore.getReader(),
                 writer,
                 fileStore.getBlobStore(),

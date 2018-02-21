@@ -87,7 +87,7 @@ import static com.google.common.base.Preconditions.checkState;
  * is set to 1 and each user will become member of each of the groups as defined
  * by {@code numberOfGroups}.
  */
-abstract class AbstractExternalTest extends AbstractTest {
+abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
     private static final String PATH_PREFIX = "pathPrefix";
 
@@ -151,10 +151,10 @@ abstract class AbstractExternalTest extends AbstractTest {
     }
 
     @Override
-    public void run(Iterable iterable, List concurrencyLevels) {
+    public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         // make sure the desired JAAS config is set
         Configuration.setConfiguration(createConfiguration());
-        super.run(iterable, concurrencyLevels);
+        super.run(fixtures, concurrencyLevels);
     }
 
     @Override
@@ -256,7 +256,7 @@ abstract class AbstractExternalTest extends AbstractTest {
         private final int numberOfUsers;
         private final int membershipSize;
 
-        private TestIdentityProvider(int numberOfUsers, int membershipSize) {
+        TestIdentityProvider(int numberOfUsers, int membershipSize) {
             this.numberOfUsers = numberOfUsers;
             this.membershipSize = membershipSize;
         }
@@ -337,9 +337,9 @@ abstract class AbstractExternalTest extends AbstractTest {
         }
     }
 
-    private class PrincipalResolvingProvider extends TestIdentityProvider implements PrincipalNameResolver {
+    private final class PrincipalResolvingProvider extends TestIdentityProvider implements PrincipalNameResolver {
 
-        private PrincipalResolvingProvider(int numberOfUsers, int membershipSize) {
+        PrincipalResolvingProvider(int numberOfUsers, int membershipSize) {
             super(numberOfUsers, membershipSize);
         }
 

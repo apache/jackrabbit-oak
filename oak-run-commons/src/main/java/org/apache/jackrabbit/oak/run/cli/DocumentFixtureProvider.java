@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilde
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -46,7 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStor
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 class DocumentFixtureProvider {
-    static NodeStore configureDocumentMk(Options options,
+    static DocumentNodeStore configureDocumentMk(Options options,
                                          BlobStore blobStore,
                                          Whiteboard wb,
                                          Closer closer,

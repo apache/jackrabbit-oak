@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -34,11 +36,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.ImmutableList.copyOf;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 public class NodeStateEntrySorter {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -51,6 +53,7 @@ public class NodeStateEntrySorter {
     private boolean useZip;
     private boolean deleteOriginal;
     private long maxMemory = ONE_GB * 5;
+    private long actualFileSize;
 
     public NodeStateEntrySorter(Comparator<Iterable<String>> pathComparator, File nodeStateFile, File workDir) {
         this(pathComparator, nodeStateFile, workDir, getSortedFileName(nodeStateFile));
@@ -75,28 +78,22 @@ public class NodeStateEntrySorter {
         this.maxMemory = maxMemoryInGb * ONE_GB;
     }
 
+    public void setActualFileSize(long actualFileSize) {
+        this.actualFileSize = actualFileSize;
+    }
+
+
     public void sort() throws IOException {
         long estimatedMemory = estimateAvailableMemory();
         long memory = Math.min(estimatedMemory, maxMemory);
         log.info("Sorting with memory {} (estimated {})", humanReadableByteCount(memory), humanReadableByteCount(estimatedMemory));
         Stopwatch w = Stopwatch.createStarted();
 
-        Comparator<NodeStateEntryHolder> comparator = Comparator.naturalOrder();
-        Function<String, NodeStateEntryHolder> func1 = (line) -> line == null ? null : new NodeStateEntryHolder(line, pathComparator);
-        Function<NodeStateEntryHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+        Comparator<NodeStateHolder> comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
+        Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
+        Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
 
-        List<File> sortedFiles = ExternalSort.sortInBatch(nodeStateFile,
-                comparator, //Comparator to use
-                DEFAULTMAXTEMPFILES,
-                memory,
-                charset, //charset
-                workDir,  //temp directory where intermediate files are created
-                false,
-                0,
-                useZip,
-                func2,
-                func1
-        );
+        List<File> sortedFiles = sortInBatch(memory, comparator, func1, func2);
 
         log.info("Batch sorting done in {} with {} files of size {} to merge", w, sortedFiles.size(),
                 humanReadableByteCount(sizeOf(sortedFiles)));
@@ -108,20 +105,61 @@ public class NodeStateEntrySorter {
 
         Stopwatch w2 = Stopwatch.createStarted();
 
-        ExternalSort.mergeSortedFiles(sortedFiles,
-                sortedFile,
-                comparator,
-                charset,
-                false,
-                false,
-                useZip,
-                func2,
-                func1
-
-        );
+        mergeSortedFiles(comparator, func1, func2, sortedFiles);
 
         log.info("Merging of sorted files completed in {}", w2);
         log.info("Sorting completed in {}", w);
+    }
+
+    private void mergeSortedFiles(Comparator<NodeStateHolder> comparator, Function<String, NodeStateHolder> func1,
+                                  Function<NodeStateHolder, String> func2, List<File> sortedFiles) throws IOException {
+        try(BufferedWriter writer = createWriter(sortedFile, useZip)) {
+            ExternalSort.mergeSortedFiles(sortedFiles,
+                    writer,
+                    comparator,
+                    charset,
+                    true, //distinct
+                    useZip, //useZip
+                    func2,
+                    func1
+
+            );
+        }
+    }
+
+    private List<File> sortInBatch(long memory, Comparator<NodeStateHolder> comparator,
+                                   Function<String, NodeStateHolder> func1,
+                                   Function<NodeStateHolder, String> func2) throws IOException {
+        if (useZip) {
+            try (BufferedReader reader = createReader(nodeStateFile, useZip)) {
+                return ExternalSort.sortInBatch(reader,
+                        actualFileSize,
+                        comparator, //Comparator to use
+                        DEFAULTMAXTEMPFILES,
+                        memory,
+                        charset, //charset
+                        workDir,  //temp directory where intermediate files are created
+                        true, //distinct
+                        0,
+                        useZip, //useZip
+                        func2,
+                        func1
+                );
+            }
+        } else {
+            return ExternalSort.sortInBatch(nodeStateFile,
+                    comparator, //Comparator to use
+                    DEFAULTMAXTEMPFILES,
+                    memory,
+                    charset, //charset
+                    workDir,  //temp directory where intermediate files are created
+                    true,
+                    0,
+                    useZip,
+                    func2,
+                    func1
+            );
+        }
     }
 
     public File getSortedFile() {
@@ -132,10 +170,6 @@ public class NodeStateEntrySorter {
         String extension = FilenameUtils.getExtension(file.getName());
         String baseName = FilenameUtils.getBaseName(file.getName());
         return new File(file.getParentFile(), baseName + "-sorted." + extension);
-    }
-
-    private static long sizeOf(List<File> sortedFiles) {
-        return sortedFiles.stream().mapToLong(File::length).sum();
     }
 
     /**
@@ -152,27 +186,6 @@ public class NodeStateEntrySorter {
         long allocatedMemory = r.totalMemory() - r.freeMemory();
         long presFreeMemory = r.maxMemory() - allocatedMemory;
         return presFreeMemory;
-    }
-
-    static class NodeStateEntryHolder implements Comparable<NodeStateEntryHolder> {
-        final String line;
-        final List<String> pathElements;
-        final Comparator<Iterable<String>> comparator;
-
-        public NodeStateEntryHolder(String line, Comparator<Iterable<String>> comparator) {
-            this.line = line;
-            this.comparator = comparator;
-            this.pathElements = copyOf(elements(getPath(line)));
-        }
-
-        public String getLine() {
-            return line;
-        }
-
-        @Override
-        public int compareTo(NodeStateEntryHolder o) {
-            return comparator.compare(this.pathElements, o.pathElements);
-        }
     }
 
 }

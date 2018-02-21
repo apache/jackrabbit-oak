@@ -33,6 +33,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static java.util.Collections.emptyMap;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -52,6 +53,7 @@ public class DocumentFixtureTest {
             NodeBuilder builder = store.getRoot().builder();
             builder.setChildNode("foo");
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            assertNotNull(fixture.getBlobStore());
         }
     }
 

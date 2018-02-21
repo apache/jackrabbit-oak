@@ -73,6 +73,56 @@ public enum RDBDocumentStoreDB {
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 11, description);
         }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+            Map<String, String> result = new HashMap<String, String>();
+            Connection con = null;
+
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("SELECT T.* FROM TABLE (SYSCS_DIAG.SPACE_TABLE(?,?)) AS T")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        long totalSize = 0;
+                        long totalIndexSize = 0;
+                        int nindexes = 0;
+                        while (rs.next()) {
+                            String conglomerateName = rs.getString("CONGLOMERATENAME");
+                            int isIndex = rs.getInt("ISINDEX");
+                            long numAllocatedPages = rs.getLong("NUMALLOCATEDPAGES");
+                            long numFreePages = rs.getLong("NUMFREEPAGES");
+                            long numUnfilledPages = rs.getLong("NUMUNFILLEDPAGES");
+                            int pageSize = rs.getInt("PAGESIZE");
+                            String raw = "NUMALLOCATEDPAGES=" + numAllocatedPages + ", NUMFREEPAGES=" + numFreePages
+                                    + ", NUMUNFILLEDPAGES=" + numUnfilledPages + ", PAGESIZE=" + pageSize;
+                            long size = pageSize * (numAllocatedPages + numFreePages);
+                            if (isIndex == 0) {
+                                result.put("_data", raw);
+                                result.put("storageSize", Long.toString(size));
+                            } else {
+                                result.put(conglomerateName + "._data", raw);
+                                result.put("indexSizes." + conglomerateName, Long.toString(size));
+                                totalIndexSize += size;
+                                nindexes += 1;
+                            }
+                            totalSize += pageSize * (numAllocatedPages + numFreePages);
+                        }
+                        result.put("totalSize", Long.toString(totalSize));
+                        result.put("totalIndexSize", Long.toString(totalIndexSize));
+                        result.put("nindexes", Long.toString(nindexes));
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            return result;
+        }
     },
 
     POSTGRES("PostgreSQL") {
@@ -151,27 +201,25 @@ public enum RDBDocumentStoreDB {
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
             Map<String, String> result = new HashMap<String, String>();
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
             SortedSet<String> indexNames = Collections.emptySortedSet();
 
             // get index names
             try {
                 SortedSet<String> in = new TreeSet<String>();
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?");
-                stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    in.add(rs.getString(1));
+                try (PreparedStatement stmt = con.prepareStatement("SELECT indexname FROM pg_indexes WHERE tablename=?")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            in.add(rs.getString(1));
+                        }
+                    }
                 }
                 con.commit();
                 indexNames = in;
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -180,30 +228,30 @@ public enum RDBDocumentStoreDB {
                 StringBuilder query = new StringBuilder("SELECT pg_total_relation_size(?), pg_table_size(?), pg_indexes_size(?)");
                 indexNames.forEach(name -> query.append(", pg_relation_size(?)"));
                 con = ch.getROConnection();
-                stmt = con.prepareStatement(query.toString());
-                int i = 1;
-                stmt.setString(i++, tableName);
-                stmt.setString(i++, tableName);
-                stmt.setString(i++, tableName);
-                for(String name : indexNames) {
-                    stmt.setString(i++, name);
-                }
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    i = 1;
-                    result.put("storageSize", rs.getString(i++));
-                    result.put("size", rs.getString(i++));
-                    result.put("totalIndexSize", rs.getString(i++));
+                try (PreparedStatement stmt = con.prepareStatement(query.toString())) {
+                    int i = 1;
+                    stmt.setString(i++, tableName);
+                    stmt.setString(i++, tableName);
+                    stmt.setString(i++, tableName);
                     for (String name : indexNames) {
-                        result.put("indexSizes." + name, rs.getString(i++));
+                        stmt.setString(i++, name);
+                    }
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            i = 1;
+                            result.put("storageSize", rs.getString(i++));
+                            result.put("size", rs.getString(i++));
+                            result.put("totalIndexSize", rs.getString(i++));
+                            for (String name : indexNames) {
+                                result.put("indexSizes." + name, rs.getString(i++));
+                            }
+                        }
                     }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
             return result;
@@ -290,54 +338,52 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
 
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
                     "card npages mpages fpages overflow pctfree avgrowsize stats_time");
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?");
-                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
-                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String data = extractFields(rs, tableStats);
-                    result.put("_data", data);
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM syscat.tables WHERE tabschema=? and tabname=?")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
-                ex.printStackTrace();
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
                     "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time");
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?");
-                stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
-                stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String index = rs.getString("indname");
-                    String data = extractFields(rs, indexStats);
-                    result.put("index." + index + "._data", data);
+                try (PreparedStatement stmt = con
+                        .prepareStatement("SELECT * FROM syscat.indexes WHERE tabschema=? and tabname=?")) {
+                    stmt.setString(1, catalog.toUpperCase(Locale.ENGLISH));
+                    stmt.setString(2, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("indname");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -405,51 +451,49 @@ public enum RDBDocumentStoreDB {
             Map<String, String> result = new HashMap<String, String>();
 
             Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".TABLE_STATS",
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
                     "num_rows blocks avg_row_len sample_size last_analyzed");
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?");
-                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String data = extractFields(rs, tableStats);
-                    result.put("_data", data.toString());
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_tables WHERE table_name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data.toString());
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".INDEX_STATS",
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
                     "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed");
 
             try {
                 con = ch.getROConnection();
-                stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?");
-                stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    String index = rs.getString("index_name");
-                    String data = extractFields(rs, indexStats);
-                    result.put("index." + index + "._data", data);
+                try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM user_indexes WHERE table_name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("index_name");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
                 }
                 con.commit();
             } catch (SQLException ex) {
                 LOG.debug("while getting diagnostics", ex);
             } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
                 ch.closeConnection(con);
             }
 
@@ -544,6 +588,60 @@ public enum RDBDocumentStoreDB {
             }
             return result.toString();
         }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+
+            Map<String, String> result = new HashMap<String, String>();
+
+            Connection con = null;
+
+            // table data
+            String tableStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
+                    "engine version row_format rows avg_row_length data_length index_length data_free collation");
+
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("show table status from " + catalog + " where name=?")) {
+                    stmt.setString(1, tableName.toUpperCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String data = extractFields(rs, tableStats);
+                            result.put("_data", data.toString());
+                        }
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            // index data
+            String indexStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS",
+                    "column_name cardinality index_type sub_part");
+
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("show index from " + tableName + " in " + catalog)) {
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("key_name");
+                            String data = extractFields(rs, indexStats);
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            return result;
+        }
     },
 
     MSSQL("Microsoft SQL Server") {
@@ -618,6 +716,80 @@ public enum RDBDocumentStoreDB {
                 ch.closeConnection(con);
             }
             return result.toString();
+        }
+
+        private long parseSize(String readable) {
+            try {
+                if (readable != null && readable.endsWith(" KB")) {
+                    return 1024 * Long.parseLong(readable.substring(0, readable.length() - 3));
+                } else {
+                    return -1;
+                }
+            } catch (NumberFormatException ex) {
+                return -1;
+            }
+        }
+
+        @Override
+        public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
+            Map<String, String> result = new HashMap<String, String>();
+            Connection con = null;
+
+            // table data
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement("exec sp_spaceused ?")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            long treserved = parseSize(rs.getString("reserved"));
+                            long tdata = parseSize(rs.getString("data"));
+                            long tindexSize = parseSize(rs.getString("index_size"));
+                            long tunused = parseSize(rs.getString("unused"));
+                            if (treserved >= 0 && tdata >= 0 && tindexSize >= 0 && tunused >= 0) {
+                                result.put("storageSize", Long.toString(treserved + tdata + tindexSize + tunused));
+                                result.put("size", Long.toString(treserved + tdata + tunused));
+                                result.put("totalIndexSize", Long.toString(tindexSize));
+                            }
+                            String data = extractFields(rs, "rows reserved data index_size unused");
+                            result.put("_data", data);
+                        }
+                    }
+                    con.commit();
+                }
+            } catch (SQLException ex) {
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            // index data
+            try {
+                con = ch.getROConnection();
+                try (PreparedStatement stmt = con.prepareStatement(
+                        "SELECT i.[name] AS name, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
+                                + "FROM sys.dm_db_partition_stats AS s "
+                                + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
+                                + "    AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) " + "GROUP BY i.[name]")) {
+                    stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            String index = rs.getString("name");
+                            String data = extractFields(rs, "rows usedKB reservedKB");
+                            result.put("index." + index + "._data", data);
+                        }
+                    }
+                    con.commit();
+                }
+                con.commit();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                LOG.debug("while getting diagnostics", ex);
+            } finally {
+                ch.closeConnection(con);
+            }
+
+            return result;
         }
     };
 
@@ -722,6 +894,74 @@ public enum RDBDocumentStoreDB {
         return result;
     }
 
+    /**
+     * Returns additional DB-specific statistics, augmenting the return value of
+     * {@link RDBDocumentStore#getStats()}.
+     * <p>
+     * Where applicable, the following fields are returned similar to the output
+     * for MongoDB:
+     * <dl>
+     * <dt>storageSize</dt>
+     * <dd>total size of table</dd>
+     * <dt>size</dt>
+     * <dd>size of table (excl. indexes)</dd>
+     * <dt>totalIndexSize</dt>
+     * <dd>total size of all indexes</dd>
+     * <dt>indexSizes.<em>indexName</em></dt>
+     * <dd>size of individual indexes</dd>
+     * </dl>
+     * <p>
+     * Additionally, a information obtained from the databases system
+     * tables/views can be included:
+     * <dl>
+     * <dt>_data</dt>
+     * <dd>table specific data</dd>
+     * <dt><em>indexName</em>._data</dt>
+     * <dd>index specific data</dd>
+     * </dl>
+     * <p>
+     * These fields will just contain DB-specific name/value pairs obtained from
+     * the database. The exact fields to fetch are preconfigured by can be tuned
+     * using system properties, such as:
+     * 
+     * <pre>
+     * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.TABLE_STATS="card npages mpages fpages overflow pctfree avgrowsize stats_time"
+     * -Dorg.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB2.INDEX_STATS="indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time"
+     * </pre>
+     * <p>
+     * (this currently applies to DB types: {@link #DB2}, {@link #ORACLE}, and
+     * {@link #MYSQL}).
+     * <p>
+     * See links below for the definition of the individual fields:
+     * <ul>
+     * <li>{@link #POSTGRES} - <a href=
+     * "https://www.postgresql.org/docs/9.6/static/functions-admin.html#FUNCTIONS-ADMIN-DBOBJECT">PostgreSQL
+     * 9.6.6 Documentation - 9.26.7. Database Object Management Functions</a>
+     * <li>{@link #DB2} - DB2 10.5 for Linux, UNIX, and Windows: <a href=
+     * "https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001063.html">SYSCAT.TABLES
+     * catalog view</a>, <a href=
+     * "https://www.ibm.com/support/knowledgecenter/en/SSEPGG_10.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0001047.html">SYSCAT.INDEXES
+     * catalog view</a>
+     * <li>{@link #ORACLE} - Oracle Database Online Documentation 12c Release 1
+     * (12.1): <a href=
+     * "https://docs.oracle.com/database/121/REFRN/GUID-6823CD28-0681-468E-950B-966C6F71325D.htm#REFRN20286">3.118
+     * ALL_TABLES</a>, <a href=
+     * "https://docs.oracle.com/database/121/REFRN/GUID-E39825BA-70AC-45D8-AF30-C7FF561373B6.htm#REFRN20088">2.127
+     * ALL_INDEXES</a>
+     * <li>{@link #MYSQL} - MySQL 5.7 Reference Manual: <a href=
+     * "https://dev.mysql.com/doc/refman/5.7/en/show-table-status.html">13.7.5.36
+     * SHOW TABLE STATUS Syntax</a>, <a href=
+     * "https://dev.mysql.com/doc/refman/5.7/en/show-index.html">13.7.5.22 SHOW
+     * INDEX Syntax</a>
+     * <li>{@link #MSSQL} - Developer Reference for SQL Server: <a href=
+     * "https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-partition-stats-transact-sql">sys.dm_db_partition_stats
+     * (Transact-SQL)</a>, <a href=
+     * "https://docs.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-spaceused-transact-sql">sp_spaceused
+     * (Transact-SQL)</a>
+     * <li>{@link #DERBY} - Derby Reference Manual: <a href=
+     * "http://db.apache.org/derby/docs/10.14/ref/rrefsyscsdiagspacetable.html">SYSCS_DIAG.SPACE_TABLE diagnostic table function</a>
+     * </ul>
+     */
     public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
         return "";
     }

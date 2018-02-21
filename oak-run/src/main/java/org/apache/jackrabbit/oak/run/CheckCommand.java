@@ -30,6 +30,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Check;
 
 class CheckCommand implements Command {
 
@@ -39,8 +40,6 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
                 "journal", "journal file")
                 .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
-        OptionSpec<?> deep = parser.accepts(
-                "deep", "<deprecated> enable deep consistency checking.");
         ArgumentAcceptingOptionSpec<Long> notify = parser.accepts(
                 "notify", "number of seconds between progress notifications")
                 .withRequiredArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
@@ -48,6 +47,10 @@ class CheckCommand implements Command {
         ArgumentAcceptingOptionSpec<String> filter = parser.accepts(
                 "filter", "comma separated content paths to be checked")
                 .withRequiredArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("/");
+        OptionSpec<?> head = parser.accepts("head", "checks only latest /root (i.e without checkpoints)");
+        ArgumentAcceptingOptionSpec<String> cp = parser.accepts(
+                "checkpoints", "checks only specified checkpoints (comma separated); use --checkpoints all to check all checkpoints")
+                .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',').defaultsTo("all");
         OptionSpec<?> ioStatistics = parser.accepts("io-stats", "Print I/O statistics (only for oak-segment-tar)");
 
         OptionSet options = parser.parse(args);
@@ -63,13 +66,27 @@ class CheckCommand implements Command {
         String journalFileName = journal.value(options);
         long debugLevel = notify.value(options);
         Set<String> filterPaths = new LinkedHashSet<String>(filter.values(options));
-
-        if (options.has(deep)) {
-            printUsage(parser, err, "The --deep option was deprecated! Please do not use it in the future!"
-                    , "A deep scan of the content tree, traversing every node, will be performed by default.");
+        Set<String> checkpoints = new LinkedHashSet<>();
+        if (options.has(cp) || !options.has(head)) {
+            checkpoints.addAll(cp.values(options));
         }
-        
-        SegmentTarUtils.check(dir, journalFileName, debugLevel, options.has(bin), filterPaths, options.has(ioStatistics), out, err);
+
+        boolean checkHead = !options.has(cp) || options.has(head);
+
+        int statusCode = Check.builder()
+            .withPath(dir)
+            .withJournal(journalFileName)
+            .withDebugInterval(debugLevel)
+            .withCheckBinaries(options.has(bin))
+            .withCheckHead(checkHead)
+            .withCheckpoints(checkpoints)
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(options.has(ioStatistics))
+            .withOutWriter(out)
+            .withErrWriter(err)
+            .build()
+            .run();
+        System.exit(statusCode);
     }
 
     private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {

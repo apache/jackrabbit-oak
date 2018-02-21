@@ -73,7 +73,7 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
     }
 
     private TreePermission createRootTreePermission(AggregatedPermissionProvider... providers) {
-        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, CompositionType.AND)
+        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, CompositionType.AND, getRootProvider())
                 .getTreePermission(rootTree, TreePermission.EMPTY);
     }
 

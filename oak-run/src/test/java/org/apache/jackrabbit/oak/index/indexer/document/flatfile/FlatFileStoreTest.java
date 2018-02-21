@@ -25,9 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,7 +45,7 @@ public class FlatFileStoreTest {
     @Test
     public void basicTest() throws Exception {
         List<String> paths = createTestPaths();
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(createEntries(paths), folder.getRoot());
+        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(TestUtils.createEntries(paths), folder.getRoot());
         FlatFileStore flatStore = builder.withBlobStore(new MemoryBlobStore())
                 .withPreferredPathElements(preferred)
                 .build();
@@ -56,17 +54,13 @@ public class FlatFileStoreTest {
                 .map(NodeStateEntry::getPath)
                 .collect(Collectors.toList());
 
-        List<String> sortedPaths = PathElementComparatorTest.sortPaths(paths, preferred);
+        List<String> sortedPaths = TestUtils.sortPaths(paths, preferred);
 
         assertEquals(sortedPaths, entryPaths);
     }
 
     private List<String> createTestPaths() {
         return asList("/a", "/b", "/c", "/a/b w", "/a/jcr:content", "/a/b", "/", "/b/l");
-    }
-
-    private Iterable<NodeStateEntry> createEntries(List<String> paths) {
-        return Iterables.transform(paths, p -> new NodeStateEntry(EmptyNodeState.EMPTY_NODE, p));
     }
 
 }

@@ -24,7 +24,7 @@ import java.util.Comparator;
  * A file entry location in a tar file. This is used for the index with a tar
  * file.
  */
-class TarEntry {
+public class TarEntry {
 
     /** Size in bytes a tar entry takes up in the tar file */
     static final int SIZE = 33;
@@ -52,7 +52,7 @@ class TarEntry {
 
     private final GCGeneration generation;
 
-    TarEntry(long msb, long lsb, int offset, int size, GCGeneration generation) {
+    public TarEntry(long msb, long lsb, int offset, int size, GCGeneration generation) {
         this.msb = msb;
         this.lsb = lsb;
         this.offset = offset;
@@ -60,19 +60,19 @@ class TarEntry {
         this.generation = generation;
     }
 
-    long msb() {
+    public long msb() {
         return msb;
     }
 
-    long lsb() {
+    public long lsb() {
         return lsb;
     }
 
-    int offset() {
+    public int offset() {
         return offset;
     }
 
-    int size() {
+    public int size() {
         return size;
     }
 

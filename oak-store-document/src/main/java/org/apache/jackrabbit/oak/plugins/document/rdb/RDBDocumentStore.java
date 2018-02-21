@@ -174,6 +174,7 @@ import com.google.common.collect.Sets;
  * <td>smallint</td>
  * <td>Split Document type.</td>
  * </tr>
+ * <tr>
  * <th>SDMAXREVTIME</th>
  * <td>bigint</td>
  * <td>Split document max revision time..</td>
@@ -485,6 +486,24 @@ public class RDBDocumentStore implements DocumentStore {
         return result;
     }
 
+    @CheckForNull
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, Set<String> keys) {
+        if (collection == Collection.NODES) {
+            return this.nodesCache.registerTracker(keys);
+        } else {
+            return null;
+        }
+    }
+
+    @CheckForNull
+    private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, String fromKey, String toKey) {
+        if (collection == Collection.NODES) {
+            return this.nodesCache.registerTracker(fromKey, toKey);
+        } else {
+            return null;
+        }
+    }
+
     private <T extends Document> Map<UpdateOp, T> bulkUpdate(Collection<T> collection, List<UpdateOp> updates, Map<String, T> oldDocs, boolean upsert) {
         Set<String> missingDocs = new HashSet<String>();
         for (UpdateOp op : updates) {
@@ -492,61 +511,55 @@ public class RDBDocumentStore implements DocumentStore {
                 missingDocs.add(op.getId());
             }
         }
-        for (T doc : readDocumentsUncached(collection, missingDocs).values()) {
-            oldDocs.put(doc.getId(), doc);
-            if (collection == Collection.NODES) {
-                nodesCache.putIfAbsent((NodeDocument) doc);
+        oldDocs.putAll(readDocumentsUncached(collection, missingDocs));
+
+        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
+            List<T> docsToUpdate = new ArrayList<T>(updates.size());
+            Set<String> keysToUpdate = new HashSet<String>();
+            for (UpdateOp update : updates) {
+                String id = update.getId();
+                T modifiedDoc = collection.newDocument(this);
+                if (oldDocs.containsKey(id)) {
+                    oldDocs.get(id).deepCopy(modifiedDoc);
+                }
+                UpdateUtils.applyChanges(modifiedDoc, update);
+                docsToUpdate.add(modifiedDoc);
+                keysToUpdate.add(id);
             }
-        }
 
-        List<T> docsToUpdate = new ArrayList<T>(updates.size());
-        Set<String> keysToUpdate = new HashSet<String>();
-        for (UpdateOp update : updates) {
-            String id = update.getId();
-            T modifiedDoc = collection.newDocument(this);
-            if (oldDocs.containsKey(id)) {
-                oldDocs.get(id).deepCopy(modifiedDoc);
-            }
-            UpdateUtils.applyChanges(modifiedDoc, update);
-            docsToUpdate.add(modifiedDoc);
-            keysToUpdate.add(id);
-        }
+            Connection connection = null;
+            RDBTableMetaData tmd = getTable(collection);
+            try {
+                connection = this.ch.getRWConnection();
+                Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
+                connection.commit();
 
-        Connection connection = null;
-        RDBTableMetaData tmd = getTable(collection);
-        try {
-            connection = this.ch.getRWConnection();
-            Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
-            connection.commit();
+                Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+                oldDocs.keySet().removeAll(failedUpdates);
 
-            Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
-            oldDocs.keySet().removeAll(failedUpdates);
-
-            if (collection == Collection.NODES) {
-                for (T doc : docsToUpdate) {
-                    String id = doc.getId();
-                    if (successfulUpdates.contains(id)) {
-                        if (oldDocs.containsKey(id)) {
-                            nodesCache.replaceCachedDocument((NodeDocument) oldDocs.get(id), (NodeDocument) doc);
-                        } else {
-                            nodesCache.putIfAbsent((NodeDocument) doc);
+                if (collection == Collection.NODES) {
+                    List<NodeDocument> docsToCache = new ArrayList<>();
+                    for (T doc : docsToUpdate) {
+                        if (successfulUpdates.contains(doc.getId())) {
+                            docsToCache.add((NodeDocument) doc);
                         }
                     }
+                    nodesCache.putNonConflictingDocs(tracker, docsToCache);
                 }
-            }
 
-            Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
-            for (UpdateOp op : updates) {
-                if (successfulUpdates.contains(op.getId())) {
-                    result.put(op, oldDocs.get(op.getId()));
+                Map<UpdateOp, T> result = new HashMap<UpdateOp, T>();
+                for (UpdateOp op : updates) {
+                    if (successfulUpdates.contains(op.getId())) {
+                        result.put(op, oldDocs.get(op.getId()));
+                    }
                 }
+                return result;
+            } catch (SQLException ex) {
+                this.ch.rollbackConnection(connection);
+                throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
+            } finally {
+                this.ch.closeConnection(connection);
             }
-            return result;
-        } catch (SQLException ex) {
-            this.ch.rollbackConnection(connection);
-            throw handleException("update failed for: " + keysToUpdate, ex, collection, keysToUpdate);
-        } finally {
-            this.ch.closeConnection(connection);
         }
     }
 
@@ -583,8 +596,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void invalidateNodesCache(String id, boolean remove) {
-        Lock lock = locks.acquire(id);
-        try {
+        try (CacheLock lock = acquireLockFor(id)) {
             if (remove) {
                 nodesCache.invalidate(id);
             } else {
@@ -594,8 +606,6 @@ public class RDBDocumentStore implements DocumentStore {
                     entry.markUpToDate(0);
                 }
             }
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -804,6 +814,31 @@ public class RDBDocumentStore implements DocumentStore {
         return metadata;
     }
 
+    /**
+     * Statistics are generated for each table. The following fields are always
+     * added:
+     * <dl>
+     * <dt><em>tableName</em>.ns</dt>
+     * <dd>fully qualified name of the database table</dd>
+     * <dt><em>tableName</em>.schemaInfo</dt>
+     * <dd>DDL information for table, as obtained during startup</dd>
+     * <dt><em>tableName</em>.indexInfo</dt>
+     * <dd>DDL information for associated indexes, as obtained during
+     * startup</dd>
+     * <dt><em>tableName</em>.count</dt>
+     * <dd>exact number of rows</dd>
+     * </dl>
+     * In addition, some statistics information for
+     * {@link Collection#CLUSTER_NODES} is added:
+     * <dl>
+     * <dt>clusterNodes.updates</dt>
+     * <dd>Writes to the table, counted by cluster node ID</dd>
+     * </dl>
+     * Finally, additional database-specific statistics may be added; see
+     * descriptions in
+     * {@link RDBDocumentStoreDB#getAdditionalStatistics(RDBConnectionHandler, String, String)}
+     * for details.
+     **/
     @Nonnull
     @Override
     public Map<String, String> getStats() {
@@ -959,7 +994,7 @@ public class RDBDocumentStore implements DocumentStore {
                 .put("db", md.getDatabaseProductName())
                 .put("version", md.getDatabaseProductVersion())
                 .put("driver", md.getDriverName())
-                .put("versionVersion", md.getDriverVersion())
+                .put("driverVersion", md.getDriverVersion())
                 .build();
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
@@ -1345,8 +1380,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             try {
-                Lock lock = locks.acquire(id);
-                try {
+                try (CacheLock lock = acquireLockFor(id)) {
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
                         invalidateNodesCache(id, true);
@@ -1379,8 +1413,6 @@ public class RDBDocumentStore implements DocumentStore {
                         doc = wrap(ndoc);
                         nodesCache.put(doc);
                     }
-                } finally {
-                    lock.unlock();
                 }
                 return castAsT(unwrap(doc));
             } catch (ExecutionException e) {
@@ -1494,12 +1526,10 @@ public class RDBDocumentStore implements DocumentStore {
             maintainUpdateStats(collection, update.getId());
             addUpdateCounters(update);
             T doc = createNewDocument(collection, oldDoc, update);
-            Lock l = locks.acquire(update.getId());
             final Stopwatch watch = startWatch();
             boolean success = false;
             int retries = maxRetries;
-            try {
-
+            try (CacheLock lock = acquireLockFor(update.getId())) {
                 while (!success && retries > 0) {
                     long lastmodcount = modcountOf(oldDoc);
                     success = updateDocument(collection, doc, update, lastmodcount);
@@ -1542,7 +1572,6 @@ public class RDBDocumentStore implements DocumentStore {
 
                 return oldDoc;
             } finally {
-                l.unlock();
                 int numOfAttempts = maxRetries - retries - 1;
                 stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection,
                         update.getId(), false, success, numOfAttempts);
@@ -1581,11 +1610,8 @@ public class RDBDocumentStore implements DocumentStore {
 
         final Stopwatch watch = startWatch();
         int resultSize = 0;
-        CacheChangesTracker tracker = null;
-        try {
-            if (collection == Collection.NODES) {
-                tracker = nodesCache.registerTracker(fromKey, toKey);
-            }
+
+        try (CacheChangesTracker tracker = obtainTracker(collection, fromKey, toKey)) {
             long now = System.currentTimeMillis();
             connection = this.ch.getROConnection();
             String from = collection == Collection.NODES && NodeDocument.MIN_ID_VALUE.equals(fromKey) ? null : fromKey;
@@ -1613,14 +1639,11 @@ public class RDBDocumentStore implements DocumentStore {
                     // and a tracker is present
                     long lastmodified = modifiedOf(doc);
                     if (lastmodified == row.getModified() && lastmodified >= 1) {
-                        Lock lock = locks.acquire(row.getId());
-                        try {
+                        try (CacheLock lock = acquireLockFor(row.getId())) {
                             if (!tracker.mightBeenAffected(row.getId())) {
                                 // otherwise mark it as fresh
                                 ((NodeDocument) doc).markUpToDate(now);
                             }
-                        } finally {
-                            lock.unlock();
                         }
                     }
                     else {
@@ -1647,9 +1670,6 @@ public class RDBDocumentStore implements DocumentStore {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
-            if (tracker != null) {
-                tracker.close();
-            }
             this.ch.closeConnection(connection);
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
                     !conditions.isEmpty(), resultSize, -1, false);
@@ -2201,6 +2221,24 @@ public class RDBDocumentStore implements DocumentStore {
 
         public UnsupportedIndexedPropertyException(String message) {
             super(message);
+        }
+    }
+
+    private CacheLock acquireLockFor(String id) {
+        return new CacheLock(this.locks, id);
+    }
+
+    private static class CacheLock implements AutoCloseable {
+
+        private final Lock lock;
+
+        public CacheLock(NodeDocumentLocks locks, String id) {
+            this.lock = locks.acquire(id);
+        }
+
+        @Override
+        public void close() {
+            lock.unlock();
         }
     }
 

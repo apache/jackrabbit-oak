@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -133,12 +132,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
-                List<AccessControlManager> mgrs = Lists.transform(configurations, new Function<AuthorizationConfiguration, AccessControlManager>() {
-                    @Override
-                    public AccessControlManager apply(AuthorizationConfiguration authorizationConfiguration) {
-                        return authorizationConfiguration.getAccessControlManager(root, namePathMapper);
-                    }
-                });
+                List<AccessControlManager> mgrs = Lists.transform(configurations, authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(root, namePathMapper));
                 return new CompositeAccessControlManager(root, namePathMapper, getSecurityProvider(), mgrs);
 
         }
@@ -191,7 +185,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         pp = aggrPermissionProviders.get(0);
                         break;
                     default :
-                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext(), compositionType);
+                        pp = new CompositePermissionProvider(root, aggrPermissionProviders, getContext(), compositionType, getRootProvider());
                 }
                 return pp;
         }
