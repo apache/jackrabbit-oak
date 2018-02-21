@@ -264,6 +264,7 @@ class MutableRoot implements Root, URLWritableBlobRoot {
         for (URLWritableBlob blob : addedURLWritableBlobs) {
             blob.commit();
         }
+        addedURLWritableBlobs.clear();
     }
 
     @Override
