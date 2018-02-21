@@ -118,6 +118,8 @@ public final class S3Constants {
 
     public static final String PRESIGNED_GET_URL_CACHE_MAX_SIZE = "presignedGetURLCacheMaxSize";
 
+    public static final String PRESIGNED_URL_ENABLE_ACCELERATION = "presignedURLEnableTransferAcceleration";
+
     /**
      * private constructor so that class cannot initialized from outside.
      */

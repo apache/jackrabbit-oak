@@ -30,6 +30,8 @@ public interface URLWritableDataStore extends DataStore {
 
     void setURLWritableBinaryExpirySeconds(int seconds);
 
+    void setURLBinaryTransferAcceleration(boolean enabled);
+
     @Nonnull
     DataIdentifier addNewRecord() throws DataStoreException;
 

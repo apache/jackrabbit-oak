@@ -40,10 +40,13 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
+import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.GetBucketAccelerateConfigurationRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -64,6 +67,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -94,6 +98,9 @@ public class S3Backend extends AbstractSharedBackend {
 
     private AmazonS3Client s3service;
 
+    // needed only in case of transfer acceleration is enabled for presigned URLs
+    private AmazonS3Client s3PresignService;
+
     private String bucket;
 
     private byte[] secret;
@@ -123,6 +130,8 @@ public class S3Backend extends AbstractSharedBackend {
 
             s3ReqDecorator = new S3RequestDecorator(properties);
             s3service = Utils.openService(properties);
+            s3PresignService = s3service;
+
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
                 // Alternately check if the 'container' property is set
@@ -177,6 +186,8 @@ public class S3Backend extends AbstractSharedBackend {
                 renameKeys();
             }
 
+            // settings around pre-signing
+
             String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
             if (putExpiry != null) {
                 setURLWritableBinaryExpirySeconds(Integer.parseInt(putExpiry));
@@ -196,6 +207,9 @@ public class S3Backend extends AbstractSharedBackend {
                 setURLReadableBinaryURLCacheSize(cacheMaxSize);
             }
 
+            String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
+            setURLBinaryTransferAcceleration(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
@@ -214,6 +228,27 @@ public class S3Backend extends AbstractSharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    public void setURLBinaryTransferAcceleration(boolean enabled) {
+        if (enabled) {
+            // verify acceleration is enabled on the bucket
+            BucketAccelerateConfiguration accelerateConfig = s3service.getBucketAccelerateConfiguration(new GetBucketAccelerateConfigurationRequest(bucket));
+            if (accelerateConfig.isAccelerateEnabled()) {
+                // If transfer acceleration is enabled for presigned urls, we need a separate AmazonS3Client
+                // instance with the acceleration mode enabled, because we don't want the requests from the
+                // data store itself to S3 to use acceleration
+                s3PresignService = Utils.openService(properties);
+                s3PresignService.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
+                LOG.info("S3 Transfer Acceleration enabled for presigned URLs.");
+
+            } else {
+                LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URLs.",
+                    bucket, S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
+            }
+        } else {
+            s3PresignService = s3service;
         }
     }
 
@@ -547,9 +582,15 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                LOG.info(
-                    "getRecord:Identifier [{}] not found. Took [{}] ms.",
-                    identifier, (System.currentTimeMillis() - start));
+                if (key.endsWith(SPECIAL_SUFFIX)) {
+                    // present as empty
+                    LOG.debug("new URLWritableBlob not uploaded yet", e);
+                    return new EmptyRecord(identifier);
+                } else {
+                    LOG.info(
+                        "getRecord:Identifier [{}] not found. Took [{}] ms.",
+                        identifier, (System.currentTimeMillis() - start));
+                }
             }
             throw new DataStoreException(e);
         } finally {
@@ -691,7 +732,7 @@ public class S3Backend extends AbstractSharedBackend {
             request.setMethod(method);
             request.setExpiration(expiration);
 
-            URL url = s3service.generatePresignedUrl(request);
+            URL url = s3PresignService.generatePresignedUrl(request);
 
             LOG.debug("Presigned {} URL for key {}: {}", method.name(), key, url.toString());
 
@@ -994,6 +1035,54 @@ public class S3Backend extends AbstractSharedBackend {
 
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
+        }
+    }
+
+    private class EmptyRecord implements DataRecord {
+
+        private final DataIdentifier identifier;
+
+        public EmptyRecord(DataIdentifier identifier) {
+            this.identifier = identifier;
+        }
+
+        @Override
+        public DataIdentifier getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String getReference() {
+            return null;
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            return 0;
+        }
+
+        @Override
+        public InputStream getStream() throws DataStoreException {
+            // return empty stream
+            return new NullInputStream(0);
+        }
+
+        @Override
+        public long getLastModified() {
+            return 0;
+        }
+
+        public String toString() {
+            return identifier.toString();
+        }
+
+        public boolean equals(Object object) {
+            return (object instanceof DataRecord)
+                && identifier.equals(((DataRecord) object).getIdentifier());
+        }
+
+        public int hashCode() {
+            return identifier.hashCode();
         }
     }
 }

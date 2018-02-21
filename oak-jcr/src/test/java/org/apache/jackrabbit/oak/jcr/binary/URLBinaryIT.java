@@ -332,6 +332,30 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         assertEquals(url1, url2);
     }
 
+    // TODO: this test is S3 specific for now
+    @Test
+    public void testTransferAcceleration() throws Exception {
+        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getURLWritableDataStore().setURLBinaryTransferAcceleration(true);
+
+        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+        URL url = binary.getWriteURL();
+        assertNotNull(url);
+
+        System.out.println("accelerated URL: " + url);
+        assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
+
+        getURLWritableDataStore().setURLBinaryTransferAcceleration(false);
+
+        binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+        url = binary.getWriteURL();
+        assertNotNull(url);
+
+        System.out.println("non-accelerated URL: " + url);
+        assertFalse(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
+    }
+
     // disabled, just a comparison playground for current blob behavior
     //@Test
     public void testReferenceBinary() throws Exception {

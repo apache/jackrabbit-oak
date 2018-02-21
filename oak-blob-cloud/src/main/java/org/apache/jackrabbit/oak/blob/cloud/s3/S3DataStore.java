@@ -81,6 +81,13 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
+    public void setURLBinaryTransferAcceleration(boolean enabled) {
+        if (s3Backend != null) {
+            s3Backend.setURLBinaryTransferAcceleration(enabled);
+        }
+    }
+
+    @Override
     public DataIdentifier addNewRecord() throws DataStoreException {
         return s3Backend.addNewRecord();
     }
