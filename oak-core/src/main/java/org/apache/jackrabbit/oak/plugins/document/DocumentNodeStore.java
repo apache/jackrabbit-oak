@@ -666,7 +666,13 @@ public final class DocumentNodeStore
             }
         } else {
             // branch commit
-            c.applyToCache(c.getBaseRevision(), isBranch);
+            try {
+                c.applyToCache(c.getBaseRevision(), isBranch);
+            } finally {
+                if (isDisableBranches()) {
+                    backgroundOperationLock.readLock().unlock();
+                }
+            }
         }
     }
 
@@ -676,6 +682,17 @@ public final class DocumentNodeStore
                 commitQueue.canceled(c.getRevision());
             } finally {
                 backgroundOperationLock.readLock().unlock();
+            }
+        } else {
+            try {
+                Branch b = branches.getBranch(c.getBaseRevision());
+                if (b != null) {
+                    b.removeCommit(c.getRevision().asBranchRevision());
+                }
+            } finally {
+                if (isDisableBranches()) {
+                    backgroundOperationLock.readLock().unlock();
+                }
             }
         }
     }
@@ -2021,7 +2038,16 @@ public final class DocumentNodeStore
                 "base must be a branch revision: " + base);
 
         checkOpen();
-        return new Commit(this, newRevision(), base, branch);
+        Commit c = new Commit(this, newRevision(), base, branch);
+        if (isDisableBranches()) {
+            // Regular branch commits do not need to acquire the background
+            // operation lock because the head is not updated and no pending
+            // lastRev updates are done on trunk. When branches are disabled,
+            // a branch commit becomes a pseudo trunk commit and the lock
+            // must be acquired.
+            backgroundOperationLock.readLock().lock();
+        }
+        return c;
     }
 
     /**
