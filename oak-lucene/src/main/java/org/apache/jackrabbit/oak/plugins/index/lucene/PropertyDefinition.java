@@ -44,6 +44,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.get
 
 public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
+
+    private static final String[] EMPTY_ANCESTORS = new String[0];
+
     /**
      * The default boost: 1.0f.
      */
@@ -232,7 +235,9 @@ public class PropertyDefinition {
     }
 
     static boolean isRelativeProperty(String propertyName){
-        return !isAbsolute(propertyName) && PathUtils.getNextSlash(propertyName, 0) > 0;
+        return !isAbsolute(propertyName)
+                && !LuceneIndexConstants.REGEX_ALL_PROPS.equals(propertyName)
+                && PathUtils.getNextSlash(propertyName, 0) > 0;
     }
 
     //~---------------------------------------------< internal >
@@ -265,8 +270,12 @@ public class PropertyDefinition {
         return PathUtils.getName(name);
     }
 
-    private static String[] computeAncestors(String parentPath) {
-        return toArray(copyOf(elements(PathUtils.getParentPath(parentPath))), String.class);
+    private static String[] computeAncestors(String path) {
+        if (LuceneIndexConstants.REGEX_ALL_PROPS.equals(path)) {
+            return EMPTY_ANCESTORS;
+        } else {
+            return toArray(copyOf(elements(PathUtils.getParentPath(path))), String.class);
+        }
     }
 
 

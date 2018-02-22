@@ -1521,13 +1521,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
                 if (propName.equals(includeAllProp)){
                     prop.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
-                }
-
-                //Copy over the property configuration
-                NodeState propDefNode  = getPropDefnNode(defn, propName);
-                if (propDefNode != null){
-                    for (PropertyState ps : propDefNode.getProperties()){
-                        prop.setProperty(ps);
+                } else {
+                    //Copy over the property configuration
+                    NodeState propDefNode  = getPropDefnNode(defn, propName);
+                    if (propDefNode != null){
+                        for (PropertyState ps : propDefNode.getProperties()){
+                            prop.setProperty(ps);
+                        }
                     }
                 }
             }
