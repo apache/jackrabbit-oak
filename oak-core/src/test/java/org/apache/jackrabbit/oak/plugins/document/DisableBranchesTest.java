@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -66,7 +65,6 @@ public class DisableBranchesTest {
         logCustomizer.finished();
     }
 
-    @Ignore("OAK-6392")
     @Test
     public void backgroundWrite() throws Exception {
         final int NUM_UPDATES = DocumentRootBuilder.UPDATE_LIMIT * 3 / 2;
