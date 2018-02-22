@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.jcr.PropertyType;
 
@@ -65,6 +66,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -1196,6 +1199,35 @@ public class IndexDefinitionTest {
         assertTrue(defn.indexesRelativeNodes());
     }
 
+    @Test
+    public void regexAllProps() {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("p");
+        builder.indexRule("nt:base").property("all", LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
+        IndexDefinition def = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        IndexingRule rule = def.getApplicableIndexingRule(root);
+        assertNotNull(rule);
+
+        PropertyDefinition pd = rule.getConfig("p");
+        assertNotNull(pd);
+        assertFalse(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        pd = rule.getConfig("all");
+        assertNotNull(pd);
+        assertTrue(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        assertThat(rule.getAggregate().getIncludes(), is(empty()));
+        assertFalse(rule.getAggregate().hasNodeAggregates());
+        List<Aggregate.Matcher> matchers = rule.getAggregate()
+                .createMatchers(new TestRoot("/"));
+        assertThat(matchers, is(empty()));
+        assertThat(def.getRelativeNodeNames(), is(empty()));
+    }
 
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
@@ -1220,4 +1252,21 @@ public class IndexDefinitionTest {
         return builder;
     }
 
+    private static class TestRoot implements Aggregate.AggregateRoot {
+
+        private final String path;
+
+        public TestRoot(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public void markDirty() {
+        }
+
+        @Override
+        public String getPath() {
+            return path;
+        }
+    }
 }
