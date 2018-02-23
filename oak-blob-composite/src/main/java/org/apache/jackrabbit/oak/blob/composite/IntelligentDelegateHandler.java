@@ -37,7 +37,8 @@ import java.util.List;
 public class IntelligentDelegateHandler implements DelegateHandler {
     private static Logger LOG = LoggerFactory.getLogger(IntelligentDelegateHandler.class);
 
-    //private Map<DataStoreProvider, Set<DataIdentifier>> handledProviders = Maps.newConcurrentMap();
+    // TODO:  Add mapping from blob IDs to DataStore (e.g. enhanced Bloom filter supporting deletes) -MR
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     private List<DataStore> nonFilteredWritableDataStores = Lists.newArrayList();
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
@@ -55,9 +56,8 @@ public class IntelligentDelegateHandler implements DelegateHandler {
 
     @Override
     public void addDelegateDataStore(final DelegateDataStore ds) {
-//        if (! handledProviders.containsKey(ds.getDataStore())) {
-//            handledProviders.put(ds.getDataStore(), Sets.newConcurrentHashSet());
-//        }
+        // TODO:  Add this data store to the blob ID mapper if not already there -MR
+        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
         DataStore delegate = ds.getDataStore().getDataStore();
         if (ds.isReadOnly()) {
             if (! nonFilteredReadOnlyDataStores.contains(delegate)) {
@@ -77,9 +77,8 @@ public class IntelligentDelegateHandler implements DelegateHandler {
                 nonFilteredReadOnlyDataStores)) {
             wasProviderRemoved |= l.remove(provider.getDataStore());
         }
-//        if (wasProviderRemoved && handledProviders.containsKey(provider)) {
-//            handledProviders.remove(provider);
-//        }
+        // TODO:  Remove this data store from the blob ID mapper if exists -MR
+        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
         return wasProviderRemoved;
     }
 
@@ -90,27 +89,19 @@ public class IntelligentDelegateHandler implements DelegateHandler {
 
     @Override
     public void mapIdentifierToDelegate(final DataIdentifier identifier, final DataStore delegate) {
-//        for (Map.Entry<DataStoreProvider, Set<DataIdentifier>> entry : handledProviders.entrySet()) {
-//            if (entry.getKey().getDataStore().equals(delegate)) {
-//                entry.getValue().add(identifier);
-//            }
-//        }
+        // TODO:  Remember the mapping for this identifier to the data store -MR
+        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     }
 
     @Override
     public void unmapIdentifierFromDelegates(final DataIdentifier identifier) {
-//        for (Set<DataIdentifier> idSet : handledProviders.values()) {
-//            idSet.remove(identifier);
-//        }
+        // TODO:  Remove the mapping for this identifier from the data store -MR
+        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     }
 
     private boolean delegateProbablyHandlesIdentifier(final DataStore delegate, final DataIdentifier identifier) {
-//        for (Map.Entry<DataStoreProvider, Set<DataIdentifier>> entry : handledProviders.entrySet()) {
-//            if (entry.getKey().getDataStore().equals(delegate)
-//                    && entry.getValue().contains(identifier)) {
-//                return true;
-//            }
-//        }
+        // TODO:  Check to see if the blob ID mapper maps this identifier to the delegate -MR
+        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
         return false;
     }
 
