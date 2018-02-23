@@ -227,6 +227,11 @@ Examples:
 
 The selector name is only needed if the query contains multiple selectors.
 
+Property names can be relative, so that for example 'jcr:content/test'
+means the property names 'test' in the child node 'jcr:content'.
+
+The wildcard '*' means any property.
+
 "coalesce": this returns the first operand if it is not null,
 and the second operand otherwise.
 `@since Oak 1.8`
@@ -243,6 +248,7 @@ Examples:
     lower([firstName])
     coalesce([lastName], name())
     length(coalesce([lastName], name()))
+    [jcr:content/title]
 
 ---
 

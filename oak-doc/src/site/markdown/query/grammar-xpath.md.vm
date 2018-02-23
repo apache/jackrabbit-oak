@@ -276,6 +276,8 @@ Examples:
 #render( 'Dynamic Operand' )
 
 The "*" stands for any property.
+Using it in a condition requires a relative path. 
+For example: `[./* = 'test']` means where any property matches the word 'test'.
 
 "jcr:score()" is the score returned by the index.
 
