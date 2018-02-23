@@ -363,6 +363,9 @@ public class S3Backend extends AbstractSharedBackend {
             S3Object object = s3service.getObject(bucket, key);
             InputStream in = object.getObjectContent();
             LOG.debug("[{}] read took [{}]ms", identifier, (System.currentTimeMillis() - start));
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("binary downloaded from S3: " + identifier, new Exception());
+            }
             return in;
         } catch (AmazonServiceException e) {
             throw new DataStoreException("Object not found: " + key, e);
@@ -871,6 +874,9 @@ public class S3Backend extends AbstractSharedBackend {
             String id = getKeyName(getIdentifier());
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("binary downloaded from S3: " + getIdentifier(), new Exception());
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }
