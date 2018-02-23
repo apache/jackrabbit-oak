@@ -286,26 +286,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             throw new IllegalArgumentException("stream");
         }
 
-        // NOTE:  There is discussion going on as to whether we should update the last modified
-        // time of this object in a read-only delegate if it exists there.  One train of thought
-        // is that we should do this, keeping only a single reference instead of creating a copy
-        // of the same reference in a writable delegate which is what this current implementation
-        // would do.  Garbage collection should work fine in either case, as the references
-        // end up not being shared.  It's just less efficient.
-        //
-        // The problem is knowing for sure that the update to the read-only delegate will only
-        // modify the last modified time of the blob.  JCR specifies that addRecord will add
-        // the binary or update the last modified time if the binary already exists.  There is
-        // potential for a race condition between the time we would check the delegate to see
-        // if the binary exists and the time we call addRecord().  If the binary existed but
-        // then was deleted before addRecord() was called, that would have the effect of
-        // creating the blob again, thus actually modifying the read-only delegate.  There is
-        // no API for doing this in the DataStore or related interfaces.
-        //
-        // For now I'm settling on the idea of having two copies, since I believe it will
-        // at least behave consistently and not risk modifying the read-only delegate.
-        // -MR
-
         DataStore selectedDataStore = null;
         Iterator<DataStore> iter = delegateHandler.getWritableDelegatesIterator();
         if (iter.hasNext()) {
@@ -496,6 +476,10 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             throw new IllegalArgumentException("Input stream must not be null");
         }
 
+        // Create a temporary file and write this stream to the temporary file.
+        // Then use the temporary file to call addMetadataRecord on every delegate.
+        // Otherwise the stream will be consumed by the first delegate and the
+        // write will fail on subsequent delegates.
         File tmpFile = null;
         try {
             tmpFile = File.createTempFile("compositeds-temp", null);

@@ -180,6 +180,8 @@ public class IntelligentDelegateHandlerTest {
         verifyDelegates(sut);
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testSelectWritableDelegateSingleDelegateWithMatchingId() throws RepositoryException, IOException {
@@ -204,6 +206,8 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds, sut.getWritableDelegatesIterator().next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testSelectWritableDelegateTwoDelegatesFirstDelegateMatches() throws RepositoryException, IOException {
@@ -220,6 +224,8 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds1, sut.getWritableDelegatesIterator(id).next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testSelectWritableDelegateTwoDelegatesSecondDelegateMatches() throws RepositoryException, IOException {
@@ -256,6 +262,8 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds1, sut.getWritableDelegatesIterator().next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testSelectWritableDelegateMultipleDelegatesMultipleMatches() throws RepositoryException, IOException {
@@ -399,6 +407,8 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsMatchingDataStoreOnly() throws RepositoryException, IOException {
@@ -418,6 +428,8 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsAllMatchingDataStores() throws RepositoryException, IOException {
@@ -469,6 +481,8 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     @Ignore
     @Test
     public void testGetWriteableDelegateIteratorWithIdentifier() throws RepositoryException, IOException {

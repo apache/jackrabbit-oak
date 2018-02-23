@@ -167,6 +167,7 @@ public class CompositeDataStoreDSTest {
     // handing the stream off to the delegate data store, which is additional complexity not
     // required for the first composite data store use case which is 1 read-only and 1
     // writable delegate.
+    // See:  https://issues.apache.org/jira/browse/OAK-7090
     // -MR
     @Ignore
     @Test
