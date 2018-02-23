@@ -89,6 +89,9 @@ public abstract class AbstractDataStoreFactory {
                 log.info("Registered DataStoreProvider of type {} with role {}", dataStore.getClass().getSimpleName(), role);
             }
         }
+        else {
+            log.warn("Could not register DataStoreProvider - no role defined");
+        }
     }
 
     @Deactivate
