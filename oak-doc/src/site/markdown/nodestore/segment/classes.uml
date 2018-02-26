@@ -43,9 +43,18 @@ together {
 SegmentNodeStore -|> NodeStore
 FileStore -|> SegmentStore
 
+together {
+    class TarFiles
+    class TarReader
+    class TarWriter
+}
+
+FileStore --> TarFiles
+TarFiles *-- TarReader
+TarFiles *-- TarWriter
+
 NodeStore -[hidden]-> SegmentStore
 SegmentNodeStore -[hidden]--> FileStore
-
 
 SegmentNodeStore -> Revisions
 SegmentNodeStore -> SegmentReader
