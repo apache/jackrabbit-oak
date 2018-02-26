@@ -26,4 +26,8 @@ The `SegmentNodeStore` is Oak Segment Tar's implementation of the [NodeStore API
 
 The `SegmentStore` serves as a persistence backend for the `SegmentNodeStore`. It is responsible for providing concrete implementations of `Revisions`, `SegmentReader` and `BlobStore` to the former.  
 
-The `FileStore` is the implementation the `SegmentStore` that persists segments in tar files. The `MemoryStore` (not shown above) is an alternative implementation, which stores the segments in memory only. It is used for testing. 
+The `FileStore` is the implementation the `SegmentStore` that persists segments in tar files. The `MemoryStore` (not shown above) is an alternative implementation, which stores the segments in memory only. It is used for testing.
+
+The `FileStore` depends on `TarFiles` for the management of the TAR files on the file system.
+`TarFiles` is an aggregation of one `TarWriter` and zero or more `TarReader`.
+This design represents the foundation of the append-only store implemented by the `FileStore`, where data is appended to one `TarWriter` and archived in many `TarReader` over time. 
