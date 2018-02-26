@@ -23,7 +23,9 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
@@ -98,4 +100,27 @@ public class FlatFileStoreIteratorTest {
         }
     }
 
+    @Ignore("OAK-7284")
+    @Test
+    public void comodificationException() {
+        Set<String> preferred = ImmutableSet.of("j:c");
+
+        CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/j:c", "/a/j:c/j:c", "/a/b"));
+
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred.size());
+
+        NodeStateEntry a = fitr.next();
+        assertEquals("/a", a.getPath());
+
+        NodeState aNS = a.getNodeState();
+
+        // fake aggregate rule like "j:c/*"
+        for (ChildNodeEntry cne : aNS.getChildNodeEntries()) {
+            NodeState childNS = cne.getNodeState();
+            // read preferred names for aggregation sub-tree nodes
+            for (String prefName : preferred) {
+                childNS.getChildNode(prefName);
+            }
+        }
+    }
 }
