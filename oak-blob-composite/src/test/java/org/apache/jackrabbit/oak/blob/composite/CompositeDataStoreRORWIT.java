@@ -229,7 +229,7 @@ public class CompositeDataStoreRORWIT {
     public void testDSGC() throws Exception {
         final int childNodeCount = 10;
 
-        for (int i=0; i<4; ++i) {
+        for (int i=0; i<2; ++i) {
             Closer closer = Closer.create();
 
             // Step 1:  Set up the primary repo and secondary repo as shown.
@@ -455,22 +455,20 @@ public class CompositeDataStoreRORWIT {
 
             TimeUnit.MILLISECONDS.sleep(5); // Make eligible for GC
 
-            // Invoke DGSC.  Four different orderings, one for each trip through the loop.
-            if (i < 2) {
-                primaryRepo.mark();
-                secondaryRepo.mark();
-            }
-            else {
-                secondaryRepo.mark();
-                primaryRepo.mark();
-            }
+            // Invoke DGSC.  Correct order requires one repo to mark, the other to mark and sweep,
+            // then the second to mark and the first to mark and sweep.  We will try it in both
+            // orderings.
             if (0 == i % 2) {
-                primaryRepo.sweep();
+                primaryRepo.mark();
                 secondaryRepo.sweep();
+                secondaryRepo.mark();
+                primaryRepo.sweep();
             }
             else {
-                secondaryRepo.sweep();
+                secondaryRepo.mark();
                 primaryRepo.sweep();
+                primaryRepo.mark();
+                secondaryRepo.sweep();
             }
 
 
