@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.ListIterator;
 
 import com.google.common.collect.AbstractIterator;
+import org.apache.commons.collections.list.CursorableLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ import static com.google.common.collect.Iterators.singletonIterator;
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
-    private final LinkedList<NodeStateEntry> buffer = new LinkedList<>();
+    private final CursorableLinkedList buffer = new CursorableLinkedList();
     private NodeStateEntry current;
     private final int checkChildLimit;
     private int maxBufferSize;
@@ -67,7 +67,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
             log.info("Max buffer size changed {} for path {}", maxBufferSize, current.getPath());
         }
         if (!buffer.isEmpty()) {
-            return buffer.remove();
+            return (NodeStateEntry)buffer.removeFirst();
         }
         if (baseItr.hasNext()) {
             return wrap(baseItr.next());
