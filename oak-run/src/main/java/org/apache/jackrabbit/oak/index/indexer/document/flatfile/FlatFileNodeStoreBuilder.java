@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Iterables.size;
+import static com.google.common.collect.Iterables.unmodifiableIterable;
 
 public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
@@ -70,7 +70,7 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                size(preferredPathElements), useZip);
+                unmodifiableIterable(preferredPathElements), useZip);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }

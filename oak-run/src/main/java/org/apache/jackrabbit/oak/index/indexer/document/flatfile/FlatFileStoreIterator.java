@@ -37,12 +37,12 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private final Iterator<NodeStateEntry> baseItr;
     private final CursorableLinkedList buffer = new CursorableLinkedList();
     private NodeStateEntry current;
-    private final int checkChildLimit;
+    private final Iterable<String> preferredPathElements;
     private int maxBufferSize;
 
-    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, int checkChildLimit) {
+    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, Iterable<String> preferredPathElements) {
         this.baseItr = baseItr;
-        this.checkChildLimit = checkChildLimit;
+        this.preferredPathElements = preferredPathElements;
     }
 
     int getBufferSize(){
@@ -77,7 +77,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
 
     private NodeStateEntry wrap(NodeStateEntry baseEntry) {
         NodeState state = new LazyChildrenNodeState(baseEntry.getNodeState(),
-                new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), checkChildLimit));
+                new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), preferredPathElements));
         return new NodeStateEntry(state, baseEntry.getPath());
     }
 

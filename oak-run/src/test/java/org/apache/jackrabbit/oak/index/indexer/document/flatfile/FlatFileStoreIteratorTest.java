@@ -41,7 +41,7 @@ public class FlatFileStoreIteratorTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e"));
 
-        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred.size());
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred);
         NodeStateEntry a = fitr.next();
         assertEquals("/a", a.getPath());
 
@@ -76,7 +76,7 @@ public class FlatFileStoreIteratorTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e"));
 
-        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred.size());
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred);
         NodeStateEntry a = fitr.next();
         assertEquals("/a", a.getPath());
 
@@ -106,7 +106,7 @@ public class FlatFileStoreIteratorTest {
 
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/j:c", "/a/j:c/j:c", "/a/b"));
 
-        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred.size());
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred);
 
         NodeStateEntry a = fitr.next();
         assertEquals("/a", a.getPath());
@@ -121,5 +121,25 @@ public class FlatFileStoreIteratorTest {
                 childNS.getChildNode(prefName);
             }
         }
+    }
+
+    // OAK-7285
+    @Test
+    public void getChildNodeLimitedByNonPreferred() {
+        // have more than 1 preferred names
+        Set<String> preferred = ImmutableSet.of("j:c", "md");
+
+        CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/c"));
+
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred);
+
+        NodeStateEntry a = fitr.next();
+        assertEquals("/a", a.getPath());
+
+        NodeState aNS = a.getNodeState();
+        aNS.getChildNode("j:c");
+
+        // Don't read whole tree to conclude that "j:c" doesn't exist (reading /a/b should imply that it doesn't exist)
+        assertEquals(1, fitr.getBufferSize());
     }
 }

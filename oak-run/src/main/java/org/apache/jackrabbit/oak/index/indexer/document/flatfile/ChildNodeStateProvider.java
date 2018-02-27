@@ -25,15 +25,16 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterators.limit;
 import static com.google.common.collect.Iterators.size;
 import static com.google.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
@@ -45,12 +46,12 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 class ChildNodeStateProvider {
     private final Iterable<NodeStateEntry> entries;
     private final String path;
-    private final int checkChildLimit;
+    private final Iterable<String> preferredPathElements;
 
-    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path, int checkChildLimit) {
+    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path, Iterable<String> preferredPathElements) {
         this.entries = entries;
         this.path = path;
-        this.checkChildLimit = checkChildLimit;
+        this.preferredPathElements = preferredPathElements;
     }
 
     public boolean hasChildNode(@Nonnull String name) {
@@ -59,7 +60,8 @@ class ChildNodeStateProvider {
 
     @Nonnull
     public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
-        Optional<NodeStateEntry> o = Iterators.tryFind(limit(children(), checkChildLimit), p -> name.equals(name(p)));
+        boolean isPreferred = Iterables.contains(preferredPathElements, name);
+        Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred), p -> name.equals(name(p)));
         return o.isPresent() ? o.get().getNodeState() : MISSING_NODE;
     }
 
@@ -80,6 +82,10 @@ class ChildNodeStateProvider {
     }
 
     Iterator<NodeStateEntry> children() {
+        return children(false);
+    }
+
+    Iterator<NodeStateEntry> children(boolean preferred) {
         PeekingIterator<NodeStateEntry> pitr = Iterators.peekingIterator(entries.iterator());
         if (!pitr.hasNext()) {
             return emptyIterator();
@@ -100,7 +106,12 @@ class ChildNodeStateProvider {
             @Override
             protected NodeStateEntry computeNext() {
                 if (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
-                    return pitr.next();
+                    NodeStateEntry nextEntry = pitr.next();
+                    String nextEntryName = PathUtils.getName(nextEntry.getPath());
+                    if (preferred && !Iterables.contains(preferredPathElements, nextEntryName)) {
+                        return endOfData();
+                    }
+                    return nextEntry;
                 }
                 return endOfData();
             }
