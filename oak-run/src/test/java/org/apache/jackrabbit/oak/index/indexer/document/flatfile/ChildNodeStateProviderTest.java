@@ -129,6 +129,17 @@ public class ChildNodeStateProviderTest {
     }
 
     @Test
+    public void allPreferredReadable() {
+        Set<String> preferred = ImmutableSet.of("x", "y");
+        CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/x", "/a/x/1", "/a/x/2", "/a/x/3",
+                "/a/y"));
+        ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
+
+        assertTrue(p.hasChildNode("x"));
+        assertTrue(p.hasChildNode("y"));
+    }
+
+    @Test
     public void childCount() {
         Set<String> preferred = ImmutableSet.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));

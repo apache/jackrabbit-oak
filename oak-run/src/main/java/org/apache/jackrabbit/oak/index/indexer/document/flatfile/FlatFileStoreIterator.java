@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Set;
 
 import com.google.common.collect.AbstractIterator;
 import org.apache.commons.collections.list.CursorableLinkedList;
@@ -37,10 +38,10 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private final Iterator<NodeStateEntry> baseItr;
     private final CursorableLinkedList buffer = new CursorableLinkedList();
     private NodeStateEntry current;
-    private final Iterable<String> preferredPathElements;
+    private final Set<String> preferredPathElements;
     private int maxBufferSize;
 
-    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, Iterable<String> preferredPathElements) {
+    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements) {
         this.baseItr = baseItr;
         this.preferredPathElements = preferredPathElements;
     }
