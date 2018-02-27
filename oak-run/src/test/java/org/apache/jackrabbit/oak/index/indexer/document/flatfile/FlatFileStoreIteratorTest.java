@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
@@ -100,7 +99,7 @@ public class FlatFileStoreIteratorTest {
         }
     }
 
-    @Ignore("OAK-7284")
+    // OAK-7284
     @Test
     public void comodificationException() {
         Set<String> preferred = ImmutableSet.of("j:c");
