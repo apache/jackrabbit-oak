@@ -20,12 +20,12 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,9 +46,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 class ChildNodeStateProvider {
     private final Iterable<NodeStateEntry> entries;
     private final String path;
-    private final Iterable<String> preferredPathElements;
+    private final Set<String> preferredPathElements;
 
-    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path, Iterable<String> preferredPathElements) {
+    public ChildNodeStateProvider(Iterable<NodeStateEntry> entries, String path, Set<String> preferredPathElements) {
         this.entries = entries;
         this.path = path;
         this.preferredPathElements = preferredPathElements;
@@ -60,7 +60,7 @@ class ChildNodeStateProvider {
 
     @Nonnull
     public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
-        boolean isPreferred = Iterables.contains(preferredPathElements, name);
+        boolean isPreferred = preferredPathElements.contains(name);
         Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred), p -> name.equals(name(p)));
         return o.isPresent() ? o.get().getNodeState() : MISSING_NODE;
     }
@@ -102,23 +102,23 @@ class ChildNodeStateProvider {
                         "after main iterator has moved past it", path);
 
         //Prepare an iterator to fetch all child node paths i.e. immediate and there children
-        Iterator<NodeStateEntry> itr = new AbstractIterator<NodeStateEntry>() {
+        return new AbstractIterator<NodeStateEntry>() {
             @Override
             protected NodeStateEntry computeNext() {
-                if (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
+                while (pitr.hasNext() && isAncestor(path, pitr.peek().getPath())) {
                     NodeStateEntry nextEntry = pitr.next();
-                    String nextEntryName = PathUtils.getName(nextEntry.getPath());
-                    if (preferred && !Iterables.contains(preferredPathElements, nextEntryName)) {
-                        return endOfData();
+                    String nextEntryPath = nextEntry.getPath();
+                    if (isImmediateChild(nextEntryPath)) {
+                        String nextEntryName = PathUtils.getName(nextEntryPath);
+                        if (preferred && !preferredPathElements.contains(nextEntryName)) {
+                            return endOfData();
+                        }
+                        return nextEntry;
                     }
-                    return nextEntry;
                 }
                 return endOfData();
             }
         };
-
-        //Filter out non immediate children
-        return Iterators.filter(itr, (e) -> isImmediateChild(e.getPath()));
     }
 
     private static String name(NodeStateEntry p) {
