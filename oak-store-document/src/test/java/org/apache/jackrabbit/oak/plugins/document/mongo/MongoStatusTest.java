@@ -65,7 +65,12 @@ public class MongoStatusTest {
         BasicDBObject storageEngine = new BasicDBObject();
         status.setServerStatus(mockServerStatus);
 
-        assertFalse(status.isMajorityReadConcernSupported());
+        if (status.isVersion(3, 6)) {
+            // OAK-7291: majority read concern is enabled by default
+            assertTrue(status.isMajorityReadConcernSupported());
+        } else {
+            assertFalse(status.isMajorityReadConcernSupported());
+        }
 
         mockServerStatus.put("storageEngine", storageEngine);
         status.setServerStatus(mockServerStatus);
