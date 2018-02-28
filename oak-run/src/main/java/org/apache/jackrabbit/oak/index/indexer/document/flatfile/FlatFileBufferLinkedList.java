@@ -43,6 +43,7 @@ public class FlatFileBufferLinkedList {
      * Add {@code item} at the tail of the list
      */
     public void add(@Nonnull NodeStateEntry item) {
+        Preconditions.checkArgument(item != null, "Can't add null to the list");
         tail.next = new ListNode(item);
         tail = tail.next;
         size++;
@@ -93,6 +94,7 @@ public class FlatFileBufferLinkedList {
         }
 
         ListNode(@Nonnull NodeStateEntry data) {
+            Preconditions.checkNotNull(data);
             this.data = data;
             this.next = null;
         }
@@ -102,10 +104,12 @@ public class FlatFileBufferLinkedList {
         private ListNode current;
 
         static NodeIterator iteratorFor(@Nonnull ListNode node) {
+            Preconditions.checkNotNull(node);
             return new NodeIterator(node);
         }
 
         NodeIterator(@Nonnull ListNode start) {
+            Preconditions.checkNotNull(start);
             this.current = start;
         }
 
