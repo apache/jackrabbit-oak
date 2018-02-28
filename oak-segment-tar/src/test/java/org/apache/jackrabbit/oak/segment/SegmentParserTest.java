@@ -61,7 +61,7 @@ public class SegmentParserTest {
 
     private MemoryStore store;
 
-    private SegmentWriter writer;
+    private DefaultSegmentWriter writer;
 
     private static class TestParser extends SegmentParser {
         private final String name;
