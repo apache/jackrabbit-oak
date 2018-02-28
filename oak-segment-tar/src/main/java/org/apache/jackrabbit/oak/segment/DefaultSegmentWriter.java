@@ -139,12 +139,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         writeOperationHandler.flush(store);
     }
 
-    @Override
     @Nonnull
-    public RecordId writeMap(@Nullable final MapRecord base,
-            @Nonnull final Map<String, RecordId> changes
-    )
-            throws IOException {
+    RecordId writeMap(@Nullable final MapRecord base, @Nonnull final Map<String, RecordId> changes) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
 
             @Nonnull
@@ -152,12 +148,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeMap(base, changes);
             }
+
         });
     }
 
-    @Override
     @Nonnull
-    public RecordId writeList(@Nonnull final List<RecordId> list) throws IOException {
+    RecordId writeList(@Nonnull final List<RecordId> list) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
 
             @Nonnull
@@ -165,12 +161,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeList(list);
             }
+
         });
     }
 
-    @Override
     @Nonnull
-    public RecordId writeString(@Nonnull final String string) throws IOException {
+    RecordId writeString(@Nonnull final String string) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
 
             @Nonnull
@@ -178,10 +174,10 @@ public class DefaultSegmentWriter implements SegmentWriter {
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeString(string);
             }
+
         });
     }
 
-    @Override
     @Nonnull
     public RecordId writeBlob(@Nonnull final Blob blob) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
@@ -191,13 +187,12 @@ public class DefaultSegmentWriter implements SegmentWriter {
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeBlob(blob);
             }
+
         });
     }
 
-    @Override
     @Nonnull
-    public RecordId writeBlock(@Nonnull final byte[] bytes, final int offset, final int length)
-            throws IOException {
+    RecordId writeBlock(@Nonnull final byte[] bytes, final int offset, final int length) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
 
             @Nonnull
@@ -205,6 +200,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeBlock(bytes, offset, length);
             }
+
         });
     }
 
@@ -221,9 +217,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         });
     }
 
-    @Override
     @Nonnull
-    public RecordId writeProperty(@Nonnull final PropertyState state) throws IOException {
+    RecordId writeProperty(@Nonnull final PropertyState state) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
 
             @Nonnull
@@ -236,16 +231,15 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @Override
     @Nonnull
-    public RecordId writeNode(
-            @Nonnull final NodeState state,
-            @Nullable final ByteBuffer stableIdBytes)
-    throws IOException {
+    public RecordId writeNode(@Nonnull final NodeState state, @Nullable final ByteBuffer stableIdBytes) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
+
             @Nonnull
             @Override
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeNode(state, stableIdBytes);
             }
+
         });
     }
 

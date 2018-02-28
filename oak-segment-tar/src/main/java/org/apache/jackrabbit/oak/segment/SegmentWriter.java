@@ -20,14 +20,11 @@ package org.apache.jackrabbit.oak.segment;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -36,41 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public interface SegmentWriter {
 
     void flush() throws IOException;
-
-    /**
-     * Write a map record.
-     *
-     * @param base    base map relative to which the {@code changes} are applied
-     *                ot {@code null} for the empty map.
-     * @param changes the changed mapping to apply to the {@code base} map.
-     * @return the record id of the map written
-     * @throws IOException
-     */
-    @Nonnull
-    // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeMap(@Nullable MapRecord base, @Nonnull Map<String, RecordId> changes) throws IOException;
-
-    /**
-     * Write a list record.
-     *
-     * @param list the list to write.
-     * @return the record id of the list written
-     * @throws IOException
-     */
-    @Nonnull
-    // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeList(@Nonnull List<RecordId> list) throws IOException;
-
-    /**
-     * Write a string record.
-     *
-     * @param string the string to write.
-     * @return the record id of the string written.
-     * @throws IOException
-     */
-    @Nonnull
-    // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeString(@Nonnull String string) throws IOException;
 
     /**
      * Write a blob (as list of block records)
@@ -83,18 +45,6 @@ public interface SegmentWriter {
     RecordId writeBlob(@Nonnull Blob blob) throws IOException;
 
     /**
-     * Writes a block record containing the given block of bytes.
-     *
-     * @param bytes  source buffer
-     * @param offset offset within the source buffer
-     * @param length number of bytes to write
-     * @return the record id of the block written
-     */
-    @Nonnull
-    // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length) throws IOException;
-
-    /**
      * Writes a stream value record. The given stream is consumed <em>and
      * closed</em> by this method.
      *
@@ -105,17 +55,6 @@ public interface SegmentWriter {
      */
     @Nonnull
     RecordId writeStream(@Nonnull InputStream stream) throws IOException;
-
-    /**
-     * Write a property.
-     *
-     * @param state the property to write
-     * @return the record id of the property state written
-     * @throws IOException
-     */
-    @Nonnull
-    // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeProperty(@Nonnull PropertyState state) throws IOException;
 
     /**
      * Write a node state. If non null, the passed {@code stableId} will be assigned to
@@ -140,4 +79,5 @@ public interface SegmentWriter {
     default RecordId writeNode(@Nonnull NodeState state) throws IOException {
         return writeNode(state, null);
     }
+
 }

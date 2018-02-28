@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
-import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.junit.Assert.assertEquals;
@@ -28,10 +27,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -59,7 +60,7 @@ public class DefaultStandbyReferenceReaderTest {
         try (FileStore store = newFileStore()) {
             SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
 
-            RecordId id = writer.writeString("test");
+            RecordId id = writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
 
             DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
@@ -73,10 +74,12 @@ public class DefaultStandbyReferenceReaderTest {
         try (FileStore store = newFileStore()) {
             SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
 
-            RecordId a = writer.writeString("test");
+            RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
 
-            RecordId b = writer.writeList(asList(a, a));
+            NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+            builder.setChildNode("reference", store.getReader().readNode(a));
+            RecordId b = writer.writeNode(builder.getNodeState());
             writer.flush();
 
             DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
