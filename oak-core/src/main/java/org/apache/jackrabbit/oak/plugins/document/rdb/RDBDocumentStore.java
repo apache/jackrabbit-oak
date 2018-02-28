@@ -1463,7 +1463,7 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (SQLException ex) {
             this.ch.rollbackConnection(connection);
             String addDiags = "";
-            if (RDBJDBCTools.matchesSQLState(ex, "22", "72")) {
+            if (data != null && RDBJDBCTools.matchesSQLState(ex, "22", "72")) {
                 byte[] bytes = asBytes(data);
                 addDiags = String.format(" (DATA size in Java characters: %d, in octets: %d, computed character limit: %d)",
                         data.length(), bytes.length, tmd.getDataLimitInOctets() / CHAR2OCTETRATIO);
@@ -1592,7 +1592,7 @@ public class RDBDocumentStore implements DocumentStore {
     private static final int QUERYTIMELIMIT = Integer.getInteger(
             "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
 
-    public static byte[] asBytes(String data) {
+    public static byte[] asBytes(@Nonnull String data) {
         byte[] bytes;
         try {
             bytes = data.getBytes("UTF-8");
