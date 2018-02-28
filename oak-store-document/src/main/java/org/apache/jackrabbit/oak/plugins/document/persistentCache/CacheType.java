@@ -126,63 +126,31 @@ public enum CacheType {
         }
     },
 
-    DOC_CHILDREN {
-        @Override
-        public <K> String keyToString(K key) {
-            return ((StringValue) key).asString();
-        }
-        @SuppressWarnings("unchecked")
-        @Override
-        public <K> K keyFromString(String key) {
-            return (K) StringValue.fromString(key);
-        }
-        @Override
-        public <K> int compareKeys(K a, K b) {
-            return ((StringValue) a).asString().compareTo(((StringValue) b).asString());
-        }            
-        @Override
-        public <V> String valueToString(V value) {
-            return ((NodeDocument.Children) value).asString();
-        }
-        @SuppressWarnings("unchecked")
-        @Override
-        public <V> V valueFromString(
-                DocumentNodeStore store, DocumentStore docStore, String value) {
-            return (V) NodeDocument.Children.fromString(value);
-        }
-        @Override
-        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
-            return true;
-        }
-    }, 
-    
     DOCUMENT {
         @Override
         public <K> String keyToString(K key) {
-            return ((StringValue) key).asString();
+            throw new UnsupportedOperationException();
         }
-        @SuppressWarnings("unchecked")
         @Override
         public <K> K keyFromString(String key) {
-            return (K) StringValue.fromString(key);
+            throw new UnsupportedOperationException();
         }
         @Override
         public <K> int compareKeys(K a, K b) {
-            return ((StringValue) a).asString().compareTo(((StringValue) b).asString());
+            throw new UnsupportedOperationException();
         }            
         @Override
         public <V> String valueToString(V value) {
-            return ((NodeDocument) value).asString();
+            throw new UnsupportedOperationException();
         }
-        @SuppressWarnings("unchecked")
         @Override
         public <V> V valueFromString(
                 DocumentNodeStore store, DocumentStore docStore, String value) {
-            return (V) NodeDocument.fromString(docStore, value);
+            throw new UnsupportedOperationException();
         }
         @Override
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
-            return true;
+            return false;
         }
     },
 
@@ -244,40 +212,6 @@ public enum CacheType {
         public <K> boolean shouldCache(DocumentNodeStore store, K key) {
             return true;
         }
-    },
-    
-    BLOB {
-
-        @Override
-        public <K> String keyToString(K key) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <K> K keyFromString(String key) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <K> int compareKeys(K a, K b) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <V> String valueToString(V value) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <V> V valueFromString(DocumentNodeStore store,
-                DocumentStore docStore, String value) {
-            throw new UnsupportedOperationException();
-        }
-        @Override
-        public <K> boolean shouldCache(DocumentNodeStore store, K key) {
-            return true;
-        }
-        
     };
     
     public static final CacheType[] VALUES = CacheType.values();
