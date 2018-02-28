@@ -201,7 +201,9 @@ class TarWriter implements Closeable {
         // this part, as no other synchronized methods should get invoked
         // once close() has been initiated (see related checkState calls).
         synchronized (this) {
-            checkState(!closed);
+            if (closed) {
+                return;
+            }
             closed = true;
         }
 
