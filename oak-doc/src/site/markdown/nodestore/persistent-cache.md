@@ -30,7 +30,7 @@ the load on the storage backend.
 The default OSGi configuration of the persistent cache is:
 
     org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService
-        persistentCache="cache,binary\=0"
+        persistentCache="cache"
 
 Oak version up to 1.4 have the persistent cache disabled by default, which
 is equivalent with a configuration entry set to an empty String. Starting with
@@ -62,11 +62,6 @@ The following other configuration options are available:
 * Size. A file is at most 1 GB by default. To change maximum size of a file,
 use "size=x", where x is the size in MB.
 
-* Binary caching. When using the BlobStore, 
-binaries smaller than 1 MB are stored in the persistent cache by default. 
-The maximum size can be changed using the setting "binary=x",
-where x is the size in bytes. To disable the binary cache, use "binary=0".
-
 * Node caching. By default, nodes at all revisions are cached.
 To disable this option, use "-nodes".
 
@@ -85,10 +80,15 @@ To enable this option, use "+compact".
 * Compression. By default, the cache is compressed, saving space. 
 To disable this option, use "-compress".
 
+* Binary caching (removed in Oak 1.10). When using the BlobStore, 
+binaries smaller than 1 MB are stored in the persistent cache by default. 
+The maximum size can be changed using the setting "binary=x",
+where x is the size in bytes. To disable the binary cache, use "binary=0".
+
 Those setting can be appended to the persistent cache configuration string.
 An example configuration is:
 
-    "cache,size\=2048,binary\=0,-compact,-compress"
+    "cache,size\=2048,-compact,-compress"
 
 To disable the persistent cache entirely in Oak 1.6 and newer, use the following
 configuration:
