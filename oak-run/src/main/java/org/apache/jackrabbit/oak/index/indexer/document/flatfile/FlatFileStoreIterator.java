@@ -20,12 +20,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
-import java.util.ListIterator;
 import java.util.Set;
 
 import com.google.common.collect.AbstractIterator;
-import org.apache.commons.collections.list.CursorableLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileBufferLinkedList.NodeIterator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,7 @@ import static com.google.common.collect.Iterators.singletonIterator;
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
-    private final CursorableLinkedList buffer = new CursorableLinkedList();
+    private final FlatFileBufferLinkedList buffer = new FlatFileBufferLinkedList();
     private NodeStateEntry current;
     private final Set<String> preferredPathElements;
     private int maxBufferSize;
@@ -68,7 +67,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
             log.info("Max buffer size changed {} for path {}", maxBufferSize, current.getPath());
         }
         if (!buffer.isEmpty()) {
-            return (NodeStateEntry)buffer.removeFirst();
+            return buffer.remove();
         }
         if (baseItr.hasNext()) {
             return wrap(baseItr.next());
@@ -87,14 +86,13 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private Iterator<NodeStateEntry> queueIterator() {
-        ListIterator<NodeStateEntry> qitr = buffer.listIterator();
+        NodeIterator qitr = buffer.iterator();
         return new AbstractIterator<NodeStateEntry>() {
             @Override
             protected NodeStateEntry computeNext() {
                 //If queue is empty try to append by getting entry from base
                 if (!qitr.hasNext() && baseItr.hasNext()) {
-                    qitr.add(wrap(baseItr.next()));
-                    qitr.previous(); //Move back the itr
+                    buffer.add(wrap(baseItr.next()));
                 }
                 if (qitr.hasNext()) {
                     return qitr.next();
