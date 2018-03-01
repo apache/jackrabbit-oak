@@ -513,12 +513,7 @@ public class DocumentNodeStoreService {
     }
 
     private String getVersionGCExpression() {
-        String defaultExpr;
-        if (DocumentStoreType.fromString(config.documentStoreType()) == DocumentStoreType.MONGO) {
-            defaultExpr = CONTINUOUS_RGC_EXPR;
-        } else {
-            defaultExpr = "";
-        }
+        String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
         if (Strings.isNullOrEmpty(expr)) {
             expr = defaultExpr;
