@@ -26,10 +26,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class NodeStateEntry {
     private final NodeState nodeState;
     private final String path;
+    private final long memUsage;
 
     public NodeStateEntry(NodeState nodeState, String path) {
+        this(nodeState, path, 0);
+    }
+
+    public NodeStateEntry(NodeState nodeState, String path, long memUsage) {
         this.nodeState = nodeState;
         this.path = path;
+        this.memUsage = memUsage;
     }
 
     public NodeState getNodeState() {
@@ -38,6 +44,10 @@ public class NodeStateEntry {
 
     public String getPath() {
         return path;
+    }
+
+    public long estimatedMemUsage() {
+        return memUsage;
     }
 
     @Override
