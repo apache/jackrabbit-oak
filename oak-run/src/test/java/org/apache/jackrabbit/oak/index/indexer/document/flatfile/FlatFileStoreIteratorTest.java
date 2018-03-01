@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -31,6 +34,7 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.TestUtils.createList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class FlatFileStoreIteratorTest {
@@ -141,5 +145,24 @@ public class FlatFileStoreIteratorTest {
 
         // Don't read whole tree to conclude that "j:c" doesn't exist (reading /a/b should imply that it doesn't exist)
         assertEquals(1, fitr.getBufferSize());
+    }
+
+    @Test
+    public void bufferEstimatesMemory() {
+        List<NodeStateEntry> nseList = Lists.newArrayList(
+                new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 20),
+                new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a/b", 30)
+        );
+        FlatFileStoreIterator fitr = new FlatFileStoreIterator(nseList.iterator(), ImmutableSet.of());
+
+        NodeStateEntry entry = fitr.next();
+        NodeState entryNS = entry.getNodeState();
+        assertEquals("/a", entry.getPath());
+        assertEquals("Fetching from iterator doesn't use buffer", 0, fitr.getBufferSize());
+
+        entryNS.getChildNode("b");
+        assertEquals(1, fitr.getBufferSize());
+        assertEquals("Reaching child from node state should estimate 30 for /a/b",
+                30, fitr.getBufferMemoryUsage());
     }
 }
