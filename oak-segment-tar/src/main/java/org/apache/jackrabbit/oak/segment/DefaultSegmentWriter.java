@@ -178,6 +178,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         });
     }
 
+    @Override
     @Nonnull
     public RecordId writeBlob(@Nonnull final Blob blob) throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {
