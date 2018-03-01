@@ -562,7 +562,10 @@ public class Segment {
                     writer.format("reference %02x: %s%n", i++, segmentId);
                 }
                 for (Entry entry : recordNumbers) {
-                    writer.format("%10s record %08x: %08x%n", entry.getType(), entry.getRecordNumber(), entry.getOffset());
+                    int offset = entry.getOffset();
+                    int address = data.size() - (MAX_SEGMENT_SIZE - offset);
+                    writer.format("%10s record %08x: %08x @ %08x%n",
+                                  entry.getType(), entry.getRecordNumber(), offset, address);
                 }
             }
             writer.println("--------------------------------------------------------------------------");
