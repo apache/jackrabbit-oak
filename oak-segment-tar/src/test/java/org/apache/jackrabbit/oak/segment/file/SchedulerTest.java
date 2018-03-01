@@ -69,6 +69,17 @@ public class SchedulerTest {
         assertEquals("scheduleAtFixedRate", task.getThreadName());
     }
 
+    @Test
+    public void scheduleWithFixedDelay() throws Exception {
+        TestTask task = new TestTask(5);
+        scheduler.scheduleWithFixedDelay("scheduleWithFixedDelay", 200, MILLISECONDS, task);
+
+        assertNull(task.getThreadName());
+        assertTrue(task.await());
+        assertEquals("scheduleWithFixedDelay", task.getThreadName());
+    }
+
+
     private static class TestTask implements Runnable {
         private final AtomicReference<String> threadName = new AtomicReference<>();
         private final CountDownLatch done;

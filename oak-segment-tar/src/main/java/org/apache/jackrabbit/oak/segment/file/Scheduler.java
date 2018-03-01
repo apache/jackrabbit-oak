@@ -123,6 +123,23 @@ public class Scheduler implements Closeable {
     }
 
     /**
+     * Run {@code task} regularly after a fixed delay. The background thread's name is
+     * set to {@code name} during execution of {@code task}.
+     * @param name
+     * @param delay
+     * @param unit
+     * @param task
+     * @see ScheduledExecutorService#scheduleWithFixedDelay(Runnable, long, long, TimeUnit)
+     */
+    public void scheduleWithFixedDelay(
+            @Nonnull String name,
+            long delay,
+            @Nonnull TimeUnit unit,
+            @Nonnull Runnable task) {
+        executor.scheduleWithFixedDelay(new SafeRunnable(name, task), delay, delay, unit);
+    }
+
+    /**
      * Close this scheduler.
      * @see ScheduledExecutorService#shutdown()
      */
