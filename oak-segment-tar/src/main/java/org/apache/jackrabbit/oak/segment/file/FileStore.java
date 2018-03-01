@@ -191,13 +191,13 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS,
-                                               this::tryFlush);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS,
+                                                  this::tryFlush);
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
-                                               fileReaper::reap);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
+                                                  fileReaper::reap);
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
            try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
                if (shutDown.isShutDown()) {
                    log.debug("Shut down in progress, skipping disk space check");
