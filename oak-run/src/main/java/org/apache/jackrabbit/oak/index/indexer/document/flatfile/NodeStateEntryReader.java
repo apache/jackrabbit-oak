@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
+
 public class NodeStateEntryReader {
     private final BlobDeserializer blobDeserializer;
 
@@ -35,7 +37,8 @@ public class NodeStateEntryReader {
 
     public NodeStateEntry read(String line){
         String[] parts = NodeStateEntryWriter.getParts(line);
-        return new NodeStateEntry(parseState(parts[1]), parts[0]);
+        long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
+        return new NodeStateEntry(parseState(parts[1]), parts[0], memUsage);
     }
 
     private NodeState parseState(String part) {

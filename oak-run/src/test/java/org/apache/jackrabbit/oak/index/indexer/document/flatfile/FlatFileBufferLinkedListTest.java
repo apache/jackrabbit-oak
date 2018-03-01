@@ -136,6 +136,20 @@ public class FlatFileBufferLinkedListTest {
     }
 
     @Test
+    public void memUsage() {
+        assertEquals("Empty list must be estimate 0", 0, list.estimatedMemoryUsage());
+
+        list.add(new NodeStateEntry(EMPTY_NODE, "/", 20));
+        assertEquals(20, list.estimatedMemoryUsage());
+
+        list.add(new NodeStateEntry(EMPTY_NODE, "/", 30));
+        assertEquals(50, list.estimatedMemoryUsage());
+
+        list.remove();
+        assertEquals(30, list.estimatedMemoryUsage());
+    }
+
+    @Test
     public void basics() {
         list.add(TEST_NODE_STATE_ENTRY);
         assertEquals("Adding an item should change size", 1, list.size());

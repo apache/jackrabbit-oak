@@ -38,6 +38,7 @@ public class FlatFileBufferLinkedList {
     private ListNode tail = head;
 
     private int size = 0;
+    private long memUsage = 0;
 
     /**
      * Add {@code item} at the tail of the list
@@ -47,6 +48,7 @@ public class FlatFileBufferLinkedList {
         tail.next = new ListNode(item);
         tail = tail.next;
         size++;
+        memUsage += item.estimatedMemUsage();
     }
 
     /**
@@ -59,6 +61,7 @@ public class FlatFileBufferLinkedList {
         head.next.isValid = false;
         head.next = head.next.next;
         size--;
+        memUsage -= ret.estimatedMemUsage();
         if (size == 0) {
             tail = head;
         }
@@ -78,6 +81,10 @@ public class FlatFileBufferLinkedList {
 
     public boolean isEmpty() {
         return size == 0;
+    }
+
+    public long estimatedMemoryUsage() {
+        return memUsage;
     }
 
     /**
