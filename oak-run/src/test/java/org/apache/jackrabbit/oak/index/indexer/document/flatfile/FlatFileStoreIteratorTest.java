@@ -31,10 +31,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreIterator.BUFFER_MEM_LIMIT_CONFIG_NAME;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.TestUtils.createList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class FlatFileStoreIteratorTest {
@@ -158,11 +158,84 @@ public class FlatFileStoreIteratorTest {
         NodeStateEntry entry = fitr.next();
         NodeState entryNS = entry.getNodeState();
         assertEquals("/a", entry.getPath());
-        assertEquals("Fetching from iterator doesn't use buffer", 0, fitr.getBufferSize());
+        assertEquals("Fetching from iterator doesn't use buffer", 0, fitr.getBufferMemoryUsage());
 
         entryNS.getChildNode("b");
         assertEquals(1, fitr.getBufferSize());
         assertEquals("Reaching child from node state should estimate 30 for /a/b",
                 30, fitr.getBufferMemoryUsage());
+    }
+
+    @Test
+    public void memUsageConfig() {
+        String configuredValue = System.clearProperty(BUFFER_MEM_LIMIT_CONFIG_NAME);
+        try {
+            NodeStateEntry root = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/");
+            NodeStateEntry e1Byte = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a/b", 1);
+            NodeStateEntry e1MB = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 1 * 1024 * 1024);
+            NodeStateEntry e100MB = new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 100 * 1024 * 1024);
+
+            {
+                //default configured limit
+                List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
+                FlatFileStoreIterator fitr = new FlatFileStoreIterator(list.iterator(), ImmutableSet.of());
+                NodeState rootNS = fitr.next().getNodeState();
+                NodeState aNS = rootNS.getChildNode("a");//default is 100MB, this should work
+                try {
+                    aNS.getChildNode("b");
+                    fail("Reading beyond default 100MB must fail");
+                } catch (IllegalStateException ise) {
+                    //ignore
+                }
+            }
+
+            {
+                System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, "1");
+
+                List<NodeStateEntry> list = Lists.newArrayList(root, e1MB, e1Byte);
+                FlatFileStoreIterator fitr = new FlatFileStoreIterator(list.iterator(), ImmutableSet.of());
+                NodeState rootNS = fitr.next().getNodeState();
+                NodeState aNS = rootNS.getChildNode("a");//configured limit is 10 bytes, this should work
+                try {
+                    aNS.getChildNode("b");
+                    fail("Reading beyond configured 1MB must fail");
+                } catch (IllegalStateException ise) {
+                    //ignore
+                }
+            }
+
+            {
+                // illegal config behaves as default
+                System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, "1A");
+
+                List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
+                FlatFileStoreIterator fitr = new FlatFileStoreIterator(list.iterator(), ImmutableSet.of());
+                NodeState rootNS = fitr.next().getNodeState();
+                NodeState aNS = rootNS.getChildNode("a");//default is 100MB, this should work
+                try {
+                    aNS.getChildNode("b");
+                    fail("Reading beyond default 100MB must fail");
+                } catch (IllegalStateException ise) {
+                    //ignore
+                }
+            }
+
+            {
+                // negative value for unbounded buffer
+                System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, "-1");
+
+                List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
+                FlatFileStoreIterator fitr = new FlatFileStoreIterator(list.iterator(), ImmutableSet.of());
+                NodeState rootNS = fitr.next().getNodeState();
+                NodeState aNS = rootNS.getChildNode("a");
+                aNS.getChildNode("b");//configure negative value - mem usage limit should be unbounded (long_max)
+            }
+        } finally {
+            if (configuredValue == null) {
+                System.clearProperty(BUFFER_MEM_LIMIT_CONFIG_NAME);
+            } else {
+                System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, configuredValue);
+            }
+        }
     }
 }
