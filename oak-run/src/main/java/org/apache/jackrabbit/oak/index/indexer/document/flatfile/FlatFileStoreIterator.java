@@ -35,14 +35,25 @@ import static com.google.common.collect.Iterators.singletonIterator;
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
-    private final FlatFileBufferLinkedList buffer = new FlatFileBufferLinkedList();
+    private final FlatFileBufferLinkedList buffer;
     private NodeStateEntry current;
     private final Set<String> preferredPathElements;
     private int maxBufferSize;
+    static final String BUFFER_MEM_LIMIT_CONFIG_NAME = "oak.indexer.memLimitInMB";
+    private static final int DEFAULT_BUFFER_MEM_LIMIT_IN_MB = 100;
 
     public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements) {
         this.baseItr = baseItr;
         this.preferredPathElements = preferredPathElements;
+
+        int memLimitConfig = Integer.getInteger(BUFFER_MEM_LIMIT_CONFIG_NAME, DEFAULT_BUFFER_MEM_LIMIT_IN_MB);
+        if (memLimitConfig < 0) {
+            log.info("Setting buffer memory limit unbounded", memLimitConfig);
+            this.buffer = new FlatFileBufferLinkedList();
+        } else {
+            log.info("Setting buffer memory limit to {} MBs", memLimitConfig);
+            this.buffer = new FlatFileBufferLinkedList(memLimitConfig * 1024L * 1024L);
+        }
     }
 
     int getBufferSize(){
