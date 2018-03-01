@@ -39,16 +39,31 @@ public class FlatFileBufferLinkedList {
 
     private int size = 0;
     private long memUsage = 0;
+    private final long memLimit;
+
+    FlatFileBufferLinkedList() {
+        this(Long.MAX_VALUE);
+    }
+
+    FlatFileBufferLinkedList(long memLimit) {
+        this.memLimit = memLimit;
+    }
 
     /**
      * Add {@code item} at the tail of the list
      */
     public void add(@Nonnull NodeStateEntry item) {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
+        long incomingSize = item.estimatedMemUsage();
+        long memUsage = estimatedMemoryUsage();
+        Preconditions.checkState(memUsage + incomingSize <= memLimit,
+                String.format(
+                "Adding item (%s) estimated with %s bytes would increase mem usage beyond upper limit (%s)." +
+                        " Current estimated mem usage is %s bytes", item.getPath(), incomingSize, memLimit, memUsage));
         tail.next = new ListNode(item);
         tail = tail.next;
         size++;
-        memUsage += item.estimatedMemUsage();
+        this.memUsage += incomingSize;
     }
 
     /**

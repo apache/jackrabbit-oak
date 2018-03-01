@@ -150,6 +150,26 @@ public class FlatFileBufferLinkedListTest {
     }
 
     @Test
+    public void memLimit() {
+        list = new FlatFileBufferLinkedList(10);
+        NodeStateEntry e10Bytes = new NodeStateEntry(EMPTY_NODE, "/", 10);
+        NodeStateEntry e1Byte = new NodeStateEntry(EMPTY_NODE, "/", 1);
+
+        list.add(e10Bytes); //this should succeed
+
+        list.remove();
+        list.add(e1Byte);
+        try {
+            list.add(e10Bytes);
+        } catch (IllegalStateException ise) {
+            //ignore
+        }
+
+        assertEquals("Addition beyond mem limit shouldn't get added", 1, list.size());
+        assertEquals("Addition beyond mem limit shouldn't show up in usage", 1, list.estimatedMemoryUsage());
+    }
+
+    @Test
     public void basics() {
         list.add(TEST_NODE_STATE_ENTRY);
         assertEquals("Adding an item should change size", 1, list.size());
