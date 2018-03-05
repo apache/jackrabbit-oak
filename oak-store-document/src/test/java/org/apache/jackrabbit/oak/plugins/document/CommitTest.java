@@ -67,7 +67,7 @@ public class CommitTest {
             try {
                 c.apply();
                 ns.done(c, false, CommitInfo.EMPTY);
-            } catch (DocumentStoreException e) {
+            } catch (ConflictException e) {
                 // expected
             }
         } finally {
@@ -101,7 +101,7 @@ public class CommitTest {
                 c.apply();
                 ns.done(c, false, CommitInfo.EMPTY);
                 fail("commit must fail");
-            } catch (DocumentStoreException e) {
+            } catch (ConflictException e) {
                 // expected
                 assertTrue("Unexpected exception message: " + e.getMessage(),
                         e.getMessage().contains("older than base"));

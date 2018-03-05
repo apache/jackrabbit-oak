@@ -296,7 +296,7 @@ public class DocumentNodeStoreTest {
                     c.addNode(new DocumentNodeState(store, "/deletedNode", new RevisionVector(r)));
                     c.updateProperty("/updateNode", "foo", "baz");
                     c.apply();
-                } catch (DocumentStoreException e) {
+                } catch (Exception e) {
                     exceptions.add(e);
                 }
             }
