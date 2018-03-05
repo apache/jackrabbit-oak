@@ -217,8 +217,8 @@ public class DocumentMK {
             commit.apply();
             rev = nodeStore.done(commit, isBranch, CommitInfo.EMPTY);
             success = true;
-        } catch (DocumentStoreException e) {
-            throw new DocumentStoreException(e);
+        } catch (Exception e) {
+            throw DocumentStoreException.convert(e);
         } finally {
             if (!success) {
                 nodeStore.canceled(commit);
@@ -243,10 +243,8 @@ public class DocumentMK {
         }
         try {
             return nodeStore.merge(revision, CommitInfo.EMPTY).toString();
-        } catch (DocumentStoreException e) {
-            throw new DocumentStoreException(e);
-        } catch (CommitFailedException e) {
-            throw new DocumentStoreException(e);
+        } catch (Exception e) {
+            throw DocumentStoreException.convert(e);
         }
     }
 

@@ -228,7 +228,8 @@ public class Commit {
     /**
      * Apply the changes to the document store and the cache.
      */
-    private void applyInternal() {
+    private void applyInternal()
+            throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
@@ -236,7 +237,8 @@ public class Commit {
         }
     }
 
-    private void prepare(RevisionVector baseRevision) {
+    private void prepare(RevisionVector baseRevision)
+            throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
@@ -262,7 +264,7 @@ public class Commit {
     /**
      * Apply the changes to the document store.
      */
-    void applyToDocumentStore() {
+    void applyToDocumentStore() throws ConflictException, DocumentStoreException {
         applyToDocumentStore(null);
     }
 
@@ -271,11 +273,12 @@ public class Commit {
      *
      * @param baseBranchRevision the base revision of this commit. Currently only
      *                     used for branch commits.
+     * @throws ConflictException if a conflict is detected with another commit.
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
     private void applyToDocumentStore(RevisionVector baseBranchRevision)
-            throws DocumentStoreException {
+            throws ConflictException, DocumentStoreException {
         // initially set the rollbackFailed flag to true
         // the flag will be set to false at the end of the method
         // when the commit succeeds
@@ -370,15 +373,13 @@ public class Commit {
                         String msg = "Conflicting concurrent change. " +
                                 "Update operation failed: " + commitRoot;
                         NodeDocument commitRootDoc = store.find(NODES, commitRoot.getId());
-                        DocumentStoreException dse;
                         if (commitRootDoc == null) {
-                            dse = new DocumentStoreException(msg);
+                            throw new DocumentStoreException(msg);
                         } else {
-                            dse = new ConflictException(msg,
+                            throw new ConflictException(msg,
                                     commitRootDoc.getConflictsFor(
                                             Collections.singleton(revision)));
                         }
-                        throw dse;
                     } else {
                         success = true;
                         // if we get here the commit was successful and
@@ -409,7 +410,11 @@ public class Commit {
                     // and throw the original exception
                     LOG.warn("Rollback failed", ex);
                 }
-                throw DocumentStoreException.convert(e);
+                if (e instanceof ConflictException) {
+                    throw e;
+                } else {
+                    throw DocumentStoreException.convert(e);
+                }
             }
         } finally {
             if (success) {
@@ -500,12 +505,15 @@ public class Commit {
 
     /**
      * Try to create or update the node. If there was a conflict, this method
-     * throws an exception, even though the change is still applied.
+     * throws a {@link ConflictException}, even though the change is still applied.
      *
      * @param store the store
      * @param op the operation
+     * @throws ConflictException if there was a conflict introduced by the
+     *          given update operation.
      */
-    private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
+    private void createOrUpdateNode(DocumentStore store, UpdateOp op)
+            throws ConflictException, DocumentStoreException {
         NodeDocument doc = store.createOrUpdate(NODES, op);
         checkConflicts(op, doc);
         checkSplitCandidate(doc);
@@ -618,7 +626,8 @@ public class Commit {
     }
 
     private void checkConflicts(List<NodeDocument> oldDocs,
-                                List<UpdateOp> updates) {
+                                List<UpdateOp> updates)
+            throws ConflictException {
         int i = 0;
         List<ConflictException> exceptions = new ArrayList<ConflictException>();
         Set<Revision> revisions = new HashSet<Revision>();

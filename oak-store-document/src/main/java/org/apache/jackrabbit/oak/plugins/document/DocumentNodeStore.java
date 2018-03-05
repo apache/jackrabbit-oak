@@ -612,7 +612,11 @@ public final class DocumentNodeStore
             RevisionVector head = new RevisionVector(commitRev);
             DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
-            commit.applyToDocumentStore();
+            try {
+                commit.applyToDocumentStore();
+            } catch (ConflictException e) {
+                throw new IllegalStateException("Conflict while creating root document", e);
+            }
             unsavedLastRevisions.put("/", commitRev);
             sweepRevisions = sweepRevisions.pmax(new RevisionVector(commitRev));
             setRoot(head);
@@ -1686,7 +1690,7 @@ public final class DocumentNodeStore
     @Nonnull
     RevisionVector merge(@Nonnull RevisionVector branchHead,
                          @Nonnull CommitInfo info)
-            throws CommitFailedException {
+            throws ConflictException, CommitFailedException {
         Branch b = getBranches().getBranch(branchHead);
         RevisionVector base = branchHead;
         if (b != null) {
@@ -1721,7 +1725,7 @@ public final class DocumentNodeStore
                     NodeDocument root = Utils.getRootDocument(store);
                     Set<Revision> conflictRevs = root.getConflictsFor(b.getCommits());
                     String msg = "Conflicting concurrent change. Update operation failed: " + op;
-                    throw new ConflictException(msg, conflictRevs).asCommitFailedException();
+                    throw new ConflictException(msg, conflictRevs);
                 }
             } else {
                 // no commits in this branch -> do nothing
