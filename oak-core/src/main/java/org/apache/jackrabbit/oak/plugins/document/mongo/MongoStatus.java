@@ -141,7 +141,7 @@ public class MongoStatus {
         return version;
     }
 
-    private boolean isVersion(int requiredMajor, int requiredMinor) {
+    boolean isVersion(int requiredMajor, int requiredMinor) {
         String v = getVersion();
         Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(v);
         if (!m.matches()) {
