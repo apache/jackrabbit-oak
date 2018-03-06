@@ -16,16 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.io.IOException;
+
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
+import com.mongodb.MongoSocketException;
+import com.mongodb.ServerAddress;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
+import org.bson.BsonString;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.GENERIC;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.TRANSIENT;
 import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -115,5 +127,24 @@ public class MongoUtilsTest {
         DBCollection collection = c.getDB().getCollection("test");
         MongoUtils.createIndex(collection, new String[]{"foo", "bar"},
                 new boolean[]{true}, false, true);
+    }
+
+    @Test
+    public void documentStoreExceptionType() {
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new IOException()));
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new MongoException("message")));
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(createMongoCommandException(42)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11600)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11601)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11602)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoSocketException("message", new ServerAddress())));
+    }
+
+    private static MongoCommandException createMongoCommandException(int code) {
+        BsonDocument response = new BsonDocument();
+        response.put("code", new BsonInt32(code));
+        response.put("errmsg", new BsonString("message"));
+        ServerAddress address = new ServerAddress();
+        return new MongoCommandException(response, address);
     }
 }
