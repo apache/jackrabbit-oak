@@ -219,7 +219,7 @@ public class LockBasedScheduler implements Scheduler {
 
             if (commitSemaphore.availablePermits() < 1) {
                 queuedTime = System.nanoTime();
-                stats.onCommitQueued();
+                stats.onCommitQueued(Thread.currentThread());
                 queued = true;
             }
 
@@ -227,8 +227,7 @@ public class LockBasedScheduler implements Scheduler {
             try {
                 if (queued) {
                     long dequeuedTime = System.nanoTime();
-                    stats.dequeuedAfter(dequeuedTime - queuedTime);
-                    stats.onCommitDequeued();
+                    stats.onCommitDequeued(Thread.currentThread(), dequeuedTime - queuedTime);
                 }
 
                 long beforeCommitTime = System.nanoTime();
@@ -237,9 +236,8 @@ public class LockBasedScheduler implements Scheduler {
                 commit.applied(merged);
 
                 long afterCommitTime = System.nanoTime();
-                stats.committedAfter(afterCommitTime - beforeCommitTime);
                 commitTimeHistogram.update(afterCommitTime - beforeCommitTime);
-                stats.onCommit();
+                stats.onCommit(Thread.currentThread(), afterCommitTime - beforeCommitTime);
 
                 return merged;
             } finally {

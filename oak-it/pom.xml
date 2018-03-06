@@ -212,5 +212,10 @@
             <artifactId>metrics-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+	  		<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+	    	<artifactId>concurrentlinkedhashmap-lru</artifactId>
+	    	<scope>test</scope>
+      	</dependency>
     </dependencies>
 </project>

@@ -21,10 +21,21 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.openmbean.CompositeData;
-
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
+import javax.management.openmbean.TabularData;
+import javax.management.openmbean.TabularDataSupport;
+import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -37,51 +48,50 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     public static final String COMMIT_QUEUE_SIZE = "COMMIT_QUEUE_SIZE";
     public static final String COMMIT_TIME = "COMMIT_TIME";
     public static final String QUEUEING_TIME = "QUEUEING_TIME";
-    
+
     private final StatisticsProvider statisticsProvider;
+    private final CommitsTracker commitsTracker;
     private final MeterStats commitsCount;
     private final CounterStats commitQueueSize;
     private final TimerStats commitTime;
     private final TimerStats queueingTime;
     
+    private boolean collectStackTraces;
+    
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
+        
+        this.commitsTracker = new CommitsTracker();
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
         this.commitTime = statisticsProvider.getTimer(COMMIT_TIME, StatsOptions.DEFAULT);
         this.queueingTime = statisticsProvider.getTimer(QUEUEING_TIME, StatsOptions.DEFAULT);
     }
 
-    //~--------------------------------< SegmentStoreMonitor >
-    
-    @Override
-    public void onCommit() {
-        commitsCount.mark();
-    }
-    
-    @Override
-    public void onCommitQueued() {
-        commitQueueSize.inc();
-    }
-    
-    @Override
-    public void onCommitDequeued() {
-        commitQueueSize.dec();
-    }
-    
+    // ~--------------------------------< SegmentStoreMonitor >
 
     @Override
-    public void committedAfter(long time) {
+    public void onCommit(Thread t, long time) {
+        commitsCount.mark();
         commitTime.update(time, TimeUnit.NANOSECONDS);
+        commitsTracker.trackExecutedCommitOf(t);
     }
-    
+
     @Override
-    public void dequeuedAfter(long time) {
-        queueingTime.update(time, TimeUnit.NANOSECONDS);
+    public void onCommitQueued(Thread t) {
+        commitQueueSize.inc();
+        commitsTracker.trackQueuedCommitOf(t);
     }
-    
-    //~--------------------------------< SegmentStoreStatsMBean >
-    
+
+    @Override
+    public void onCommitDequeued(Thread t, long time) {
+        commitQueueSize.dec();
+        queueingTime.update(time, TimeUnit.NANOSECONDS);
+        commitsTracker.trackDequedCommitOf(t);
+    }
+
+    // ~--------------------------------< SegmentStoreStatsMBean >
+
     @Override
     public CompositeData getCommitsCount() {
         return asCompositeData(getTimeSeries(COMMITS_COUNT), COMMITS_COUNT);
@@ -91,19 +101,86 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     public CompositeData getQueuingCommitsCount() {
         return asCompositeData(getTimeSeries(COMMIT_QUEUE_SIZE), COMMIT_QUEUE_SIZE);
     }
-    
+
     @Override
     public CompositeData getCommitTimes() {
         return asCompositeData(getTimeSeries(COMMIT_TIME), COMMIT_TIME);
     }
-    
+
     @Override
     public CompositeData getQueuingTimes() {
         return asCompositeData(getTimeSeries(QUEUEING_TIME), QUEUEING_TIME);
     }
+
+    @Override
+    public TabularData getCommitsCountPerWriter() throws OpenDataException {
+        CompositeType commitsPerWriterRowType = new CompositeType("commitsPerWriter", "commitsPerWriter",
+                new String[] { "count", "writerName" }, new String[] { "count", "writerName" },
+                new OpenType[] { SimpleType.LONG, SimpleType.STRING });
+
+        TabularDataSupport tabularData = new TabularDataSupport(new TabularType("commitsPerWriter",
+                "Most active writers", commitsPerWriterRowType, new String[] { "writerName" }));
+
+        Map<String, Long> commitsCountMap = commitsTracker.getCommitsCountMap();
+        if (commitsCountMap.isEmpty()) {
+            commitsCountMap.put("N/A", 0L);
+        }
+        
+        commitsCountMap.entrySet().stream()
+                .sorted(Comparator.<Entry<String, Long>> comparingLong(Entry::getValue).reversed()).map(e -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("count", e.getValue());
+                    m.put("writerName", e.getKey());
+                    return m;
+                }).map(d -> mapToCompositeData(commitsPerWriterRowType, d)).forEach(tabularData::put);
+
+        return tabularData;
+    }
+
+    @Override
+    public TabularData getQueuedWriters() throws OpenDataException {
+        CompositeType queuedWritersDetailsRowType = new CompositeType("queuedWritersDetails", "queuedWritersDetails",
+                new String[] { "writerName", "writerDetails" }, new String[] { "writerName", "writerDetails" },
+                new OpenType[] { SimpleType.STRING, SimpleType.STRING });
+
+        TabularDataSupport tabularData = new TabularDataSupport(new TabularType("queuedWritersDetails",
+                "Queued writers details", queuedWritersDetailsRowType, new String[] { "writerName" }));
+
+        Map<String, String> queuedWritersMap = commitsTracker.getQueuedWritersMap();
+        if (queuedWritersMap.isEmpty()) {
+            queuedWritersMap.put("N/A", "N/A");
+        }
+        
+        queuedWritersMap.entrySet().stream().map(e -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("writerName", e.getKey());
+            m.put("writerDetails", e.getValue());
+            return m;
+        }).map(d -> mapToCompositeData(queuedWritersDetailsRowType, d)).forEach(tabularData::put);
+
+        return tabularData; 
+    }
+
+    @Override
+    public void setCollectStackTraces(boolean flag) {
+        this.collectStackTraces = flag;
+        commitsTracker.setCollectStackTraces(flag);
+    }
     
+    @Override
+    public boolean isCollectStackTraces() {
+        return collectStackTraces;
+    }
+
     private TimeSeries getTimeSeries(String name) {
         return statisticsProvider.getStats().getTimeSeries(name, true);
     }
-
+    
+    private static CompositeData mapToCompositeData(CompositeType compositeType, Map<String, Object> data) {
+        try {
+            return new CompositeDataSupport(compositeType, data);
+        } catch (OpenDataException | ArrayStoreException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 }
