@@ -538,6 +538,11 @@
         <version>${guava.version}</version>
       </dependency>
       <dependency>
+	  	<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+	    <artifactId>concurrentlinkedhashmap-lru</artifactId>
+	    <version>1.4.2</version>
+      </dependency>
+      <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
         <version>3.4</version>
