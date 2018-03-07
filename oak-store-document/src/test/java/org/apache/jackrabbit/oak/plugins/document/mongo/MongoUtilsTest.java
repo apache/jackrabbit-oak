@@ -20,10 +20,12 @@ import java.io.IOException;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
+import com.mongodb.WriteConcernException;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -133,18 +135,29 @@ public class MongoUtilsTest {
     public void documentStoreExceptionType() {
         assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new IOException()));
         assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new MongoException("message")));
-        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(createMongoCommandException(42)));
-        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11600)));
-        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11601)));
-        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(createMongoCommandException(11602)));
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(newMongoCommandException(42)));
+        assertEquals(GENERIC, getDocumentStoreExceptionTypeFor(new DuplicateKeyException(response(11000), new ServerAddress(), null)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11600)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11601)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newWriteConcernException(11602)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11600)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11601)));
+        assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11602)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoSocketException("message", new ServerAddress())));
     }
 
-    private static MongoCommandException createMongoCommandException(int code) {
+    private static MongoCommandException newMongoCommandException(int code) {
+        return new MongoCommandException(response(code), new ServerAddress());
+    }
+
+    private static WriteConcernException newWriteConcernException(int code) {
+        return new WriteConcernException(response(code), new ServerAddress(), null);
+    }
+
+    private static BsonDocument response(int code) {
         BsonDocument response = new BsonDocument();
         response.put("code", new BsonInt32(code));
         response.put("errmsg", new BsonString("message"));
-        ServerAddress address = new ServerAddress();
-        return new MongoCommandException(response, address);
+        return response;
     }
 }
