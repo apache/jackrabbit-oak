@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.TRANSIENT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
@@ -3602,6 +3603,38 @@ public class DocumentNodeStoreTest {
                 of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
                 of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
         );
+    }
+
+    @Test
+    public void retryOnTransientDocumentStoreException() {
+        FailingDocumentStore store = new FailingDocumentStore(new MemoryDocumentStore());
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+
+        store.fail().after(0).once();
+        try {
+            merge(ns, builder);
+            fail("CommitFailedException expected");
+        } catch (CommitFailedException e) {
+            // expected
+        } finally {
+            store.fail().never();
+        }
+
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+
+        store.fail().after(0).withType(TRANSIENT).once();
+        try {
+            merge(ns, builder);
+        } catch (CommitFailedException e) {
+            fail(e.toString());
+        } finally {
+            store.fail().never();
+        }
+        assertTrue(ns.getRoot().hasChildNode("bar"));
     }
 
     private void getChildNodeCountTest(int numChildren,
