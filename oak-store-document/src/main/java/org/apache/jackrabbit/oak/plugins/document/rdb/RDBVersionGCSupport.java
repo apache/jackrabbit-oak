@@ -72,6 +72,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
                                                      final long oldestRevTimeStamp) {
         Iterable<NodeDocument> it1;
         Iterable<NodeDocument> it2;
+        String name1, name2;
 
         // for schema 0 or 1 rows, we'll have to constrain the path
         List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
@@ -85,6 +86,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             List<QueryCondition> conditions1 = new ArrayList<QueryCondition>();
             conditions1.add(new QueryCondition(NodeDocument.SD_TYPE, "in", gcTypeCodes));
             conditions1.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, ">=", 2));
+            name1 = "version 2 query";
             it1 = store.queryAsIterable(Collection.NODES, null, null, Collections.emptyList(), conditions1,
                     Integer.MAX_VALUE, null);
 
@@ -92,6 +94,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             conditions2.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, "null or <", 2));
             it2 = store.queryAsIterable(Collection.NODES, null, null, excludeKeyPatterns, conditions2,
                     Integer.MAX_VALUE, null);
+            name2 = "version <2 fallback on " + excludeKeyPatterns;
         } catch (UnsupportedIndexedPropertyException ex) {
             // this will happen if we query a table that doesn't have the SD*
             // columns - create a new query without the constraint, and let the
@@ -99,24 +102,72 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             it1 = store.queryAsIterable(Collection.NODES, null, null, excludeKeyPatterns, Collections.emptyList(),
                     Integer.MAX_VALUE, null);
             it2 = Collections.emptySet();
+            name1 = "version <2 fallback on " + excludeKeyPatterns;
+            name2 = "";
         }
 
         final Iterable<NodeDocument> fit1 = it1;
         final Iterable<NodeDocument> fit2 = it2;
 
-        return CloseableIterable.wrap(Iterables.filter(Iterables.concat(fit1, fit2), new Predicate<NodeDocument>() {
+        Predicate<NodeDocument> pred =  new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument doc) {
                 return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
                         && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
             }
-        }), new Closeable() {
+        };
+
+        final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
+        final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
+
+        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1), Iterables.filter(fit2, cp2)), new Closeable() {
             @Override
             public void close() throws IOException {
                 Utils.closeIfCloseable(fit1);
                 Utils.closeIfCloseable(fit2);
+                if (LOG.isDebugEnabled()) {
+                    String stats1 = cp1.getStats();
+                    String stats2 = cp2.getStats();
+                    String message = "";
+                    if (!stats1.isEmpty()) {
+                        message = stats1;
+                    }
+                    if (!stats2.isEmpty()) {
+                        if (!message.isEmpty()) {
+                            message += ", ";
+                        }
+                        message += stats2;
+                    }
+                    if (!message.isEmpty()) {
+                        LOG.debug(message);
+                    }
+                }
             }
         });
+    }
+
+    private static class CountingPredicate<T> implements Predicate<T> {
+
+        private final String name;
+        private final Predicate<T> predicate;
+        private int count, matches;
+
+        public CountingPredicate(String name, Predicate<T> predicate) {
+            this.name = name;
+            this.predicate = predicate;
+        }
+
+        public String getStats() {
+            return count == 0 ? "" : ("Predicate statistics for '" + name + "': " + matches + "/" + count);
+        }
+
+        @Override
+        public boolean apply(T doc) {
+            count += 1;
+            boolean match = predicate.apply(doc);
+            matches += (match ? 1 : 0);
+            return match;
+        }
     }
 
     @Override
