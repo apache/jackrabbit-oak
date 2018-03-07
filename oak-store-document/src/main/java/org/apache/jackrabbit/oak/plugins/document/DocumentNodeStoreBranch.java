@@ -347,7 +347,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         if (msg == null) {
             msg = "Failed to merge changes to the underlying store";
         }
-        return new CommitFailedException(OAK, 1, msg, t);
+        String type = OAK;
+        if (t instanceof DocumentStoreException) {
+            DocumentStoreException dse = (DocumentStoreException) t;
+            if (dse.getType() == DocumentStoreException.Type.TRANSIENT) {
+                // set type to MERGE, which indicates a retry may work
+                type = MERGE;
+            }
+        }
+        return new CommitFailedException(type, 1, msg, t);
     }
 
     /**
