@@ -64,7 +64,6 @@ import org.apache.jackrabbit.oak.segment.SegmentParser.ValueInfo;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -374,8 +373,6 @@ public class SegmentParserTest {
     @Test
     public void longBlob() throws IOException {
         SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(MEDIUM_LIMIT)));
-        // FIXME OAK-7317: SegmentParser#parseBlob does not long ids of external blobs
-        Assume.assumeTrue(blob.getBlobId() == null || "shortId".equals(blob.getBlobId()));
         ValueInfo valueInfo = new TestParser(store.getReader(), "longBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
