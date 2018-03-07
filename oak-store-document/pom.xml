@@ -59,6 +59,15 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgs>
+            <!-- OAK-7310 -->
+            <arg>-Xpkginfo:always</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
