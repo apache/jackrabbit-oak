@@ -85,6 +85,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
             List<QueryCondition> conditions1 = new ArrayList<QueryCondition>();
             conditions1.add(new QueryCondition(NodeDocument.SD_TYPE, "in", gcTypeCodes));
+            conditions1.add(new QueryCondition(NodeDocument.SD_MAX_REV_TIME_IN_SECS, "<=", NodeDocument.getModifiedInSecs(oldestRevTimeStamp)));
             conditions1.add(new QueryCondition(RDBDocumentStore.VERSIONPROP, ">=", 2));
             name1 = "version 2 query";
             it1 = store.queryAsIterable(Collection.NODES, null, null, Collections.emptyList(), conditions1,
