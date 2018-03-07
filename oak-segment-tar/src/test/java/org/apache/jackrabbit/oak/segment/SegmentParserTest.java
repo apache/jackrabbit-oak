@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Strings.repeat;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -30,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.EXTERNAL;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.LONG;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.MEDIUM;
 import static org.apache.jackrabbit.oak.segment.SegmentParser.BlobType.SMALL;
@@ -37,12 +39,19 @@ import static org.apache.jackrabbit.oak.segment.TestUtils.newRecordId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import javax.annotation.CheckForNull;
+
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,11 +62,36 @@ import org.apache.jackrabbit.oak.segment.SegmentParser.MapInfo;
 import org.apache.jackrabbit.oak.segment.SegmentParser.NodeInfo;
 import org.apache.jackrabbit.oak.segment.SegmentParser.ValueInfo;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class SegmentParserTest {
+
+    @Parameterized.Parameters(name="{1}")
+    public static Collection<Object[]> fixtures() throws Exception {
+        BlobStore shortIdBlobStore = mock(BlobStore.class);
+        when(shortIdBlobStore.writeBlob(any())).thenReturn("shortId");
+
+        BlobStore longIdBlobStore = mock(BlobStore.class);
+        when(longIdBlobStore.writeBlob(any())).thenReturn(Strings.repeat("shortId", 1000));
+
+        return newArrayList(
+                new Object[]{null, "No BlobStore"},
+                new Object[]{shortIdBlobStore, "Short Id BlobStore"},
+                new Object[]{longIdBlobStore, "Long Id BlobStore"});
+    }
+
+    private final BlobStore blobStore;
+
+    public SegmentParserTest(BlobStore blobStore, String name) {
+        this.blobStore = blobStore;
+    }
 
     private MemoryStore store;
 
@@ -138,7 +172,13 @@ public class SegmentParserTest {
 
     @Before
     public void setup() throws IOException {
-        store = new MemoryStore();
+        store = new MemoryStore() {
+            @CheckForNull
+            @Override
+            public BlobStore getBlobStore() {
+                return blobStore;
+            }
+        };
         writer = defaultSegmentWriterBuilder("").build(store);
     }
 
@@ -334,12 +374,14 @@ public class SegmentParserTest {
     @Test
     public void longBlob() throws IOException {
         SegmentBlob blob = new SegmentBlob(store.getBlobStore(), writer.writeBlob(createRandomBlob(MEDIUM_LIMIT)));
+        // FIXME OAK-7317: SegmentParser#parseBlob does not long ids of external blobs
+        Assume.assumeTrue(blob.getBlobId() == null || "shortId".equals(blob.getBlobId()));
         ValueInfo valueInfo = new TestParser(store.getReader(), "longBlob") {
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
                 BlobInfo blobInfo = parseBlob(blobId);
                 assertEquals(blobId, blobInfo.blobId);
-                assertEquals(LONG, blobInfo.blobType);
+                assertEquals(blobStore == null ? LONG : EXTERNAL, blobInfo.blobType);
             }
             @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseValue(null, blob.getRecordId(), BINARY);
