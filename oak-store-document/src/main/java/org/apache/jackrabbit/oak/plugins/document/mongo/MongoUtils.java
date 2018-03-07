@@ -27,6 +27,7 @@ import com.mongodb.MongoException;
 import com.mongodb.MongoNotPrimaryException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
+import com.mongodb.WriteConcernException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 
@@ -153,8 +154,9 @@ class MongoUtils {
                 || t instanceof MongoWriteConcernException
                 || t instanceof MongoNotPrimaryException) {
             type = Type.TRANSIENT;
-        } else if (t instanceof MongoCommandException) {
-            int code = ((MongoCommandException) t).getErrorCode();
+        } else if (t instanceof MongoCommandException
+                || t instanceof WriteConcernException) {
+            int code = ((MongoException) t).getCode();
             if (code == 11600               // InterruptedAtShutdown
                     || code == 11601        // Interrupted
                     || code == 11602) {     // InterruptedDueToReplStateChange
