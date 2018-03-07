@@ -42,7 +42,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class BlobIdRecordTest {
 
-    private static abstract class IdMappingBlobStore implements BlobStore {
+    private abstract static class IdMappingBlobStore implements BlobStore {
 
         private final MemoryBlobStore bs = new MemoryBlobStore();
 
