@@ -51,6 +51,7 @@
         <include>org.apache.jackrabbit:oak-security-spi</include>
         <include>org.apache.jackrabbit:oak-blob-plugins</include>
         <include>io.dropwizard.metrics:metrics-core</include>
+        <include>com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru</include>
       </includes>
     </dependencySet>
   </dependencySets>
