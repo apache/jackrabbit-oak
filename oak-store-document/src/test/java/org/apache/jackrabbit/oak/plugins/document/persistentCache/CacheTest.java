@@ -22,10 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Random;
 
 import com.google.common.cache.Cache;
 import org.apache.commons.io.FileUtils;
@@ -34,8 +32,6 @@ import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Test;
 
 public class CacheTest {
@@ -95,26 +91,6 @@ public class CacheTest {
         assertTrue(new File("target/cacheTest/cache-3.data").exists());
     }
 
-    @Test
-    public void test() throws Exception {
-        FileUtils.deleteDirectory(new File("target/cacheTest"));
-        PersistentCache cache = new PersistentCache("target/cacheTest,size=1,-compress");
-        try {
-            MemoryBlobStore mem = new MemoryBlobStore();
-            mem.setBlockSizeMin(100);
-            BlobStore b = cache.wrapBlobStore(mem);
-            Random r = new Random();
-            for (int i = 0; i < 10000; i++) {
-                byte[] data = new byte[100];
-                r.nextBytes(data);
-                String id = b.writeBlob(new ByteArrayInputStream(data));
-                b.readBlob(id, 0, new byte[1], 0, 1);
-            }
-        } finally {
-            cache.close();
-        }
-    }
-    
     @Test
     public void interrupt() throws Exception {
         FileUtils.deleteDirectory(new File("target/cacheTest"));

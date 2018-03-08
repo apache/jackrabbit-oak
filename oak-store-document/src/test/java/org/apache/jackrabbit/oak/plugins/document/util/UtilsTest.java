@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -317,5 +319,14 @@ public class UtilsTest {
         assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r11, r22), 1));
         assertFalse(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r22), 1));
         assertTrue(Utils.isLocalChange(new RevisionVector(r11, r12), new RevisionVector(r21, r12), 1));
+    }
+
+    @Test
+    public void abortingIterableIsCloseable() throws Exception {
+        AtomicBoolean closed = new AtomicBoolean(false);
+        Iterable<String> iterable = CloseableIterable.wrap(
+                Collections.emptyList(), () -> closed.set(true));
+        Utils.closeIfCloseable(Utils.abortingIterable(iterable, s -> true));
+        assertTrue(closed.get());
     }
 }

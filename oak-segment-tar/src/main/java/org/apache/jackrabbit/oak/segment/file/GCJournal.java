@@ -19,20 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.nio.file.Files.newBufferedWriter;
-import static java.nio.file.Files.readAllLines;
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.DSYNC;
-import static java.nio.file.StandardOpenOption.WRITE;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -42,13 +32,15 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Persists the repository size and the reclaimed size following a cleanup
- * operation in the {@link #GC_JOURNAL gc journal} file with the format:
+ * operation in the {@link TarPersistence#GC_JOURNAL gc journal} file with the format:
  * 'repoSize, reclaimedSize, timestamp, gc generation, gc full generation (since Oak 1.8),
  * number of nodes compacted, root id (since Oak 1.8)'.
  */
@@ -56,15 +48,12 @@ public class GCJournal {
 
     private static final Logger LOG = LoggerFactory.getLogger(GCJournal.class);
 
-    public static final String GC_JOURNAL = "gc.log";
-
-    @Nonnull
-    private final File directory;
+    private final GCJournalFile journalFile;
 
     private GCJournalEntry latest;
 
-    public GCJournal(@Nonnull File directory) {
-        this.directory = checkNotNull(directory);
+    public GCJournal(@Nonnull GCJournalFile journalFile) {
+        this.journalFile = journalFile;
     }
 
     /**
@@ -90,13 +79,8 @@ public class GCJournal {
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
                 System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
-        Path path = new File(directory, GC_JOURNAL).toPath();
         try {
-            try (BufferedWriter w = newBufferedWriter(path, UTF_8, WRITE,
-                    APPEND, CREATE, DSYNC)) {
-                w.write(latest.toString());
-                w.newLine();
-            }
+            journalFile.writeLine(latest.toString());
         } catch (IOException e) {
             LOG.error("Error writing gc journal", e);
         }
@@ -130,13 +114,10 @@ public class GCJournal {
     }
 
     private List<String> readLines() {
-        File file = new File(directory, GC_JOURNAL);
-        if (file.exists()) {
-            try {
-                return readAllLines(file.toPath(), UTF_8);
-            } catch (IOException e) {
-                LOG.error("Error reading gc journal", e);
-            }
+        try {
+            return journalFile.readLines();
+        } catch (IOException e) {
+            LOG.error("Error reading gc journal", e);
         }
         return new ArrayList<String>();
     }

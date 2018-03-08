@@ -23,9 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
@@ -34,31 +32,19 @@ import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ReadOnlyRevisions implements Revisions, Closeable {
-
-    private static final Logger LOG = LoggerFactory
-            .getLogger(ReadOnlyRevisions.class);
-
-    public static final String JOURNAL_FILE_NAME = "journal.log";
 
     @Nonnull
     private final AtomicReference<RecordId> head;
 
     @Nonnull
-    private final File directory;
+    private final SegmentNodeStorePersistence.JournalFile journalFile;
 
-    @Nonnull
-    private final RandomAccessFile journalFile;
-
-    public ReadOnlyRevisions(@Nonnull File directory) throws IOException {
-        this.directory = checkNotNull(directory);
-        this.journalFile = new RandomAccessFile(new File(directory,
-                JOURNAL_FILE_NAME), "r");
-        this.journalFile.seek(journalFile.length());
+    public ReadOnlyRevisions(@Nonnull SegmentNodeStorePersistence persistence) {
+        this.journalFile = checkNotNull(persistence).getJournalFile();
         this.head = new AtomicReference<>(null);
     }
 
@@ -74,7 +60,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
         if (head.get() != null) {
             return;
         }
-        RecordId persistedId = findPersistedRecordId(store, idProvider, new File(directory, JOURNAL_FILE_NAME));
+        RecordId persistedId = findPersistedRecordId(store, idProvider, journalFile);
         if (persistedId == null) {
             throw new IllegalStateException("Cannot start readonly store from empty journal");
         }
@@ -112,14 +98,8 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
         throw new UnsupportedOperationException("ReadOnly Revisions");
     }
 
-    /**
-     * Close the underlying journal file.
-     * 
-     * @throws IOException
-     */
     @Override
     public void close() throws IOException {
-        journalFile.close();
+        // do nothing
     }
-
 }

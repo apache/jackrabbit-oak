@@ -39,6 +39,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
@@ -124,7 +125,7 @@ public class UpgradeIT {
     }
 
     private void checkStoreVersion(int version) throws IOException, InvalidFileStoreVersionException {
-        newManifestChecker(new File(fileStoreHome.getRoot(), "manifest"),
+        newManifestChecker(new LocalManifestFile(fileStoreHome.getRoot(), "manifest"),
                 true, version, version).checkManifest();
     }
 

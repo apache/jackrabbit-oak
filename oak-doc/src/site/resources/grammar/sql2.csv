@@ -1,0 +1,143 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"SECTION","TOPIC","SYNTAX","TEXT"
+
+"Grammar","Query","
+SELECT [ DISTINCT ] { * | { column [ , ... ] } } FROM { selector [ join ... ] }
+[ WHERE constraint ] [ UNION [ ALL ] query ] 
+[ ORDER BY { ordering [ , ... ] } ] [ queryOptions ]
+","
+"
+
+"Grammar","Column","
+{ [ selectorName . ] { propertyName | * } | EXCERPT( [ selectorName ] ) | REP:SPELLCHECK() } 
+[ AS columnName ]
+","
+"
+
+"Grammar","Selector","
+nodeTypeName [ AS selectorName ]
+","
+"
+
+"Grammar","Join","
+{ INNER | { LEFT | RIGHT } OUTER } JOIN rightSelector ON
+{ selectorName . propertyName = joinSelectorName . joinPropertyName }
+    | { ISSAMENODE( selectorName , joinSelectorName [ , selectorPathName ] ) }
+    | { ISCHILDNODE( childSelectorName , parentSelectorName ) }
+    | { ISDESCENDANTNODE( descendantSelectorName , ancestorSelectorName ) }
+","
+"
+
+"Grammar","Constraint","
+andCondition [ { OR andCondition } [...] ]
+","
+"
+
+"Grammar","And Condition","
+condition [ { AND condition } [...] ]
+","
+"
+
+"Grammar","Condition","
+comparison | inComparison | NOT constraint | ( constraint )
+    | [ selectorName . ] propertyName IS [ NOT ] NULL
+    | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , staticOperand )
+    | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathName )
+    | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
+    | NATIVE ( [ selectorName , ] languageName , staticOperand )
+    | SPELLCHECK ( [ selectorName , ] staticOperand )
+    | SUGGEST ( [ selectorName , ] staticOperand )
+","
+"
+
+"Grammar","Comparison","
+dynamicOperand { = | <> | < | <= | > | >= | LIKE } staticOperand
+","
+"
+
+"Grammar","In Comparison","
+dynamicOperand IN ( staticOperand [, ...] )
+","
+"
+
+"Grammar","Static Operand","
+literal
+    | $ bindVariableName
+    | CAST ( literal AS { type } )
+","
+"
+
+"Grammar","Ordering","
+simpleName [ ASC | DESC ]
+","
+"
+
+"Grammar","Dynamic Operand","
+[ selectorName . ] propertyName
+    | LENGTH( dynamicOperand )
+    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
+    | { LOWER | UPPER } ( dynamicOperand )
+    | COALESCE ( dynamicOperand, dynamicOperand )
+    | PROPERTY ( propertyName, type )
+","
+"
+
+"Grammar","Type","
+{ STRING | BINARY | DATE | LONG | DOUBLE | DECIMAL 
+    | BOOLEAN | NAME | PATH | REFERENCE | WEAKREFERENCE | URI }
+","
+"
+
+"Grammar","Literal","
+' anythingExceptSingleQuote '
+    | "" anythingExceptDoubleQuote ""
+    | numberLiteral
+","
+"
+
+"Grammar","Number Literal","
+[ + | - ] { { number [ . number ] } | { . number } } [ E [ + | - ] expNumber [...] ] ]
+","
+"
+
+"Grammar","Number","
+0-9 [...]
+","
+"
+
+"Grammar","Name","
+simpleName
+","
+"
+
+"Grammar","Options","
+OPTION( {
+    TRAVERSAL { OK | WARN | FAIL | DEFAULT } |
+    INDEX TAG tagName
+    } [ , ... ] )
+","
+"
+
+"Grammar","Explain","
+EXPLAIN [MEASURE] { query }
+","
+"
+
+"Grammar","Measure","
+MEASURE { query }
+","
+"

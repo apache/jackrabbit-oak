@@ -22,7 +22,14 @@ import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoNotPrimaryException;
+import com.mongodb.MongoSocketException;
+import com.mongodb.MongoWriteConcernException;
+import com.mongodb.WriteConcernException;
+
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -132,5 +139,30 @@ class MongoUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns the {@code DocumentStoreException} {@link Type} for the given
+     * throwable.
+     *
+     * @param t the throwable.
+     * @return the type.
+     */
+    static Type getDocumentStoreExceptionTypeFor(Throwable t) {
+        Type type = Type.GENERIC;
+        if (t instanceof MongoSocketException
+                || t instanceof MongoWriteConcernException
+                || t instanceof MongoNotPrimaryException) {
+            type = Type.TRANSIENT;
+        } else if (t instanceof MongoCommandException
+                || t instanceof WriteConcernException) {
+            int code = ((MongoException) t).getCode();
+            if (code == 11600               // InterruptedAtShutdown
+                    || code == 11601        // Interrupted
+                    || code == 11602) {     // InterruptedDueToReplStateChange
+                type = Type.TRANSIENT;
+            }
+        }
+        return type;
     }
 }

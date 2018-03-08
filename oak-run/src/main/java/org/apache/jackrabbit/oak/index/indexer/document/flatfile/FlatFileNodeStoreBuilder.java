@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
@@ -30,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Iterables.size;
+import static java.util.Collections.unmodifiableSet;
 
 public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
@@ -41,7 +42,7 @@ public class FlatFileNodeStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterable<NodeStateEntry> nodeStates;
     private final File workDir;
-    private Iterable<String> preferredPathElements = Collections.emptySet();
+    private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
     private PathElementComparator comparator;
     private NodeStateEntryWriter entryWriter;
@@ -60,7 +61,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withPreferredPathElements(Iterable<String> preferredPathElements) {
+    public FlatFileNodeStoreBuilder withPreferredPathElements(Set<String> preferredPathElements) {
         this.preferredPathElements = preferredPathElements;
         return this;
     }
@@ -70,7 +71,7 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                size(preferredPathElements), useZip);
+                unmodifiableSet(preferredPathElements), useZip);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }

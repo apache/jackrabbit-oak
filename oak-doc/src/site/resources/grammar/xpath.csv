@@ -1,0 +1,149 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"SECTION","TOPIC","SYNTAX","TEXT"
+
+"Grammar","Query","
+'/jcr:root' { filter [ ... ] }
+    [ ( column [ | ... ] ) ]
+    [ 'order by' { ordering [ , ... ] } ]
+    [ queryOptions ]
+","
+"
+
+"Grammar","Filter","
+/ directChildNodeFilter
+    | // descendantNodeFilter
+    | *
+    | 'element'( [ * | nodeName ] [, nodeType] )
+    | 'text()'
+    | '[' constraint ']'
+    | ( filter '|' unionFilter [...] )
+","
+"
+
+"Grammar","Column","
+'rep:excerpt'( [. | [ relativePath / ] @propertyName ]  )
+    | 'rep:spellcheck'()
+    | 'rep:suggest'( [.] )
+    | 'rep:facet' ( [ relativePath / ] @propertyName )
+","
+"
+
+"Grammar","Constraint","
+andCondition [ { 'or' andCondition } [...] ]
+","
+"
+
+"Grammar","And Condition","
+condition [ { 'and' condition } [...] ]
+","
+"
+
+"Grammar","Condition","
+comparison
+    inComparison
+    | [ 'fn:not' | 'not' ] (constraint)
+    | ( constraint )
+    | 'jcr:contains'( [ { propertyName | . } , ] 'fulltextSearchExpression' )
+    | 'jcr:like'( dynamicOperand , staticOperand )
+    | 'rep:similar' ( propertyName , staticOperand )
+    | 'rep:native' ( languageName , staticOperand )
+    | 'rep:spellcheck' ( staticOperand )
+    | 'rep:suggest' ( staticOperand )
+","
+"
+
+"Grammar","Comparison","
+dynamicOperand
+    { = | <> | != | < | <= | > | >= }
+    staticOperand
+","
+"
+
+"Grammar","Static Operand","
+textLiteral
+    | $ bindVariableName
+    | [ + | - ] numberLiteral
+    | 'true' [ () ]
+    | 'false' [ () ]
+    | 'xs:dateTime' ( literal )
+","
+"
+
+"Grammar","Ordering","
+dynamicOperand [ 'ascending' | 'descending' ]
+","
+"
+
+"Grammar","Dynamic Operand","
+[ relativePath / ] { @propertyName | * }
+    | 'fn:string-length' ( dynamicOperand  )
+    | { 'fn:name' | 'fn:local-name' } ( [ . ] )
+    | 'jcr:score' ( )
+    | { 'fn:lower-case' | 'fn:upper-case' } ( dynamicOperand )
+    | 'fn:coalesce' ( firstDynamicOperand, secondDynamicOperand )
+","
+"
+
+"Grammar","Path","
+{ simpleName / [ ... ] }
+","
+"
+
+"Grammar","Literal","
+' anythingExceptSingleQuote '
+    | "" anythingExceptDoubleQuote ""
+    | numberLiteral
+","
+"
+
+"Grammar","Number Literal","
+[ + | - ] { { number [ . number ] } | { . number } } [ E [ + | - ] expNumber [...] ] ]
+","
+"
+
+"Grammar","Number","
+0-9 [...]
+","
+"
+
+"Grammar","Name","
+simpleName
+","
+"
+
+"Grammar","Type","
+simpleType
+","
+"
+
+"Grammar","Options","
+'option'( {
+    'traversal' { 'ok' | 'warn' | 'fail' | 'default' } |
+    'index' 'tag' tagName
+    } [ , ... ] )
+","
+"
+
+"Grammar","Explain","
+'explain' ['measure'] { query }
+","
+"
+
+"Grammar","Measure","
+'measure' { query }
+","
+"

@@ -718,10 +718,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     protected void setGCBlobStore(GarbageCollectableBlobStore s) {
         configureBlobStore(s);
-        PersistentCache p = getPersistentCache();
-        if (p != null) {
-            s = p.wrapBlobStore(s);
-        }
         this.blobStore = s;
     }
 

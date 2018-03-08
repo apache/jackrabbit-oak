@@ -23,6 +23,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;
 
@@ -123,7 +125,7 @@ public class History {
 
     private final File path;
 
-    private final File journal;
+    private final JournalFile journal;
 
     private final String node;
 
@@ -131,7 +133,7 @@ public class History {
 
     private History(Builder builder) {
         this.path = builder.path;
-        this.journal = builder.journal;
+        this.journal = new LocalJournalFile(builder.journal);
         this.node = builder.node;
         this.depth = builder.depth;
     }

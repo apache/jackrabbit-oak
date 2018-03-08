@@ -612,7 +612,11 @@ public final class DocumentNodeStore
             RevisionVector head = new RevisionVector(commitRev);
             DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
-            commit.applyToDocumentStore();
+            try {
+                commit.applyToDocumentStore();
+            } catch (ConflictException e) {
+                throw new IllegalStateException("Conflict while creating root document", e);
+            }
             unsavedLastRevisions.put("/", commitRev);
             sweepRevisions = sweepRevisions.pmax(new RevisionVector(commitRev));
             setRoot(head);
@@ -1686,7 +1690,7 @@ public final class DocumentNodeStore
     @Nonnull
     RevisionVector merge(@Nonnull RevisionVector branchHead,
                          @Nonnull CommitInfo info)
-            throws CommitFailedException {
+            throws ConflictException, CommitFailedException {
         Branch b = getBranches().getBranch(branchHead);
         RevisionVector base = branchHead;
         if (b != null) {
@@ -1721,7 +1725,7 @@ public final class DocumentNodeStore
                     NodeDocument root = Utils.getRootDocument(store);
                     Set<Revision> conflictRevs = root.getConflictsFor(b.getCommits());
                     String msg = "Conflicting concurrent change. Update operation failed: " + op;
-                    throw new ConflictException(msg, conflictRevs).asCommitFailedException();
+                    throw new ConflictException(msg, conflictRevs);
                 }
             } else {
                 // no commits in this branch -> do nothing
@@ -3131,27 +3135,38 @@ public final class DocumentNodeStore
         /** OAK-4859 : log if time between two renewClusterIdLease calls is too long **/
         private long lastRenewClusterIdLeaseCall = -1;
 
+        /** elapsed time for previous update operation **/
+        private long elapsedForPreviousRenewal  = -1;
+
+        private static int INTERVAL_MS = 1000;
+        private static int TOLERANCE_FOR_WARNING_MS = 2000;
+
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
+            super(nodeStore, isDisposed, Suppliers.ofInstance(INTERVAL_MS));
         }
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
             // OAK-4859 : keep track of invocation time of renewClusterIdLease
             // and warn if time since last call is longer than 5sec
-            final long now = System.currentTimeMillis();
-            if (lastRenewClusterIdLeaseCall <= 0) {
-                lastRenewClusterIdLeaseCall = now;
-            } else {
+            Clock clock = nodeStore.getClock();
+            long now = clock.getTime();
+
+            if (lastRenewClusterIdLeaseCall >= 0) {
                 final long diff = now - lastRenewClusterIdLeaseCall;
-                if (diff > 5000) {
-                    LOG.warn("BackgroundLeaseUpdate.execute: time since last renewClusterIdLease() call longer than expected: {}ms", diff);
+                if (diff > INTERVAL_MS + TOLERANCE_FOR_WARNING_MS) {
+                    String renewTimeMessage = elapsedForPreviousRenewal <= 0 ? ""
+                            : String.format(" (of which the last update operation took %dms)", elapsedForPreviousRenewal);
+                    LOG.warn(
+                            "BackgroundLeaseUpdate.execute: time since last renewClusterIdLease() call longer than expected: {}ms{} (expected ~{}ms)",
+                            diff, renewTimeMessage, INTERVAL_MS);
                 }
-                lastRenewClusterIdLeaseCall = now;
             }
-            // first renew the clusterId lease
+            lastRenewClusterIdLeaseCall = now;
+
             nodeStore.renewClusterIdLease();
+            elapsedForPreviousRenewal = clock.getTime() - now;
         }
     }
 

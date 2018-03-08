@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -38,15 +40,25 @@ public class TarWriterTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
+    protected SegmentArchiveManager archiveManager;
+
+    protected TestFileStoreMonitor monitor;
+
+    @Before
+    public void setUp() throws IOException {
+        monitor = new TestFileStoreMonitor();
+        archiveManager = new SegmentTarManager(folder.newFolder(), monitor, new IOMonitorAdapter(), false);
+    }
+
     @Test
     public void createNextGenerationTest() throws IOException {
         int counter = 2222;
-        TarWriter t0 = new TarWriter(folder.newFolder(), new FileStoreMonitorAdapter(), counter, new IOMonitorAdapter());
+        TarWriter t0 = new TarWriter(archiveManager, counter);
 
         // not dirty, will not create a new writer
         TarWriter t1 = t0.createNextGeneration();
         assertEquals(t0, t1);
-        assertTrue(t1.getFile().getName().contains("" + counter));
+        assertTrue(t1.getFileName().contains("" + counter));
 
         // dirty, will create a new writer
         UUID id = UUID.randomUUID();
@@ -58,10 +70,10 @@ public class TarWriterTest {
         TarWriter t2 = t1.createNextGeneration();
         assertNotEquals(t1, t2);
         assertTrue(t1.isClosed());
-        assertTrue(t2.getFile().getName().contains("" + (counter + 1)));
+        assertTrue(t2.getFileName().contains("" + (counter + 1)));
     }
 
-    private static class TestFileStoreMonitor extends FileStoreMonitorAdapter {
+    public static class TestFileStoreMonitor extends FileStoreMonitorAdapter {
 
         long written;
 
@@ -74,8 +86,7 @@ public class TarWriterTest {
 
     @Test
     public void testFileStoreMonitor() throws Exception {
-        TestFileStoreMonitor monitor = new TestFileStoreMonitor();
-        try (TarWriter writer = new TarWriter(folder.getRoot(), monitor, 0, new IOMonitorAdapter())) {
+        try (TarWriter writer = new TarWriter(archiveManager, 0)) {
             long sizeBefore = writer.fileLength();
             long writtenBefore = monitor.written;
             writer.writeEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));

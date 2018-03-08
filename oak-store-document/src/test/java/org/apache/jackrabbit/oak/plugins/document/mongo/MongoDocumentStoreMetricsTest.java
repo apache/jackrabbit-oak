@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -34,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNode
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNotNull;
 
 public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
 
@@ -48,24 +50,30 @@ public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
     }
 
     @Test
-    public void updateCounters() throws Exception {
+    public void updateCounters() {
+        MongoConnection connection = connectionFactory.getConnection();
+        assumeNotNull(connection);
         MongoDocumentStore store = new MongoDocumentStore(
-                mongoConnection.getDB(), newMongoDocumentNodeStoreBuilder());
-        MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
-        metrics.run();
-        // document for root node
-        assertEquals(1, getCount("MongoDB.nodes.count"));
-        // one cluster node
-        assertEquals(1, getCount("MongoDB.clusterNodes.count"));
+                connection.getDB(), newMongoDocumentNodeStoreBuilder());
+        try {
+            MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
+            metrics.run();
+            // document for root node
+            assertEquals(1, getCount("MongoDB.nodes.count"));
+            // one cluster node
+            assertEquals(1, getCount("MongoDB.clusterNodes.count"));
 
-        List<UpdateOp> updates = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            updates.add(new UpdateOp("id-" + i, true));
+            List<UpdateOp> updates = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                updates.add(new UpdateOp("id-" + i, true));
+            }
+            assertTrue(store.create(Collection.NODES, updates));
+
+            metrics.run();
+            assertEquals(11, getCount("MongoDB.nodes.count"));
+        } finally {
+            store.dispose();
         }
-        assertTrue(store.create(Collection.NODES, updates));
-
-        metrics.run();
-        assertEquals(11, getCount("MongoDB.nodes.count"));
     }
 
     private long getCount(String name) {

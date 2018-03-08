@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static com.google.common.collect.Iterables.cycle;
 import static com.google.common.collect.Iterables.limit;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -39,6 +39,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
@@ -406,15 +407,18 @@ public class RDBJDBCTools {
             @Override
             public int setParameters(PreparedStatement stmt, int startIndex) throws SQLException {
                 for (String value : values) {
-                    if (binary) {
-                        try {
-                            stmt.setBytes(startIndex++, value.getBytes("UTF-8"));
-                        } catch (UnsupportedEncodingException ex) {
-                            LOG.error("UTF-8 not supported??", ex);
-                            throw new DocumentStoreException(ex);
+                    try {
+                        if (binary) {
+                            stmt.setBytes(startIndex++, UTF8Encoder.encodeAsByteArray(value));
+                        } else {
+                            if (!UTF8Encoder.canEncode(value)) {
+                                throw new IOException("can not encode as UTF-8");
+                            }
+                            stmt.setString(startIndex++, value);
                         }
-                    } else {
-                        stmt.setString(startIndex++, value);
+                    } catch (IOException ex) {
+                        LOG.warn("Invalid ID: " + value, ex);
+                        throw new DocumentStoreException("Invalid ID: " + value, ex);
                     }
                 }
                 return startIndex;

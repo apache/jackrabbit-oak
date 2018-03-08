@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingWindowReservoir;
+import com.codahale.metrics.UniformReservoir;
 import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -155,7 +155,7 @@ public class LockBasedScheduler implements Scheduler {
 
     private final SegmentNodeStoreStats stats;
     
-    private final Histogram commitTimeHistogram = new Histogram(new SlidingWindowReservoir(1000));
+    private final Histogram commitTimeHistogram = new Histogram(new UniformReservoir());
     
     private final Random random = new Random();
 
@@ -219,7 +219,7 @@ public class LockBasedScheduler implements Scheduler {
 
             if (commitSemaphore.availablePermits() < 1) {
                 queuedTime = System.nanoTime();
-                stats.onCommitQueued();
+                stats.onCommitQueued(Thread.currentThread());
                 queued = true;
             }
 
@@ -227,8 +227,7 @@ public class LockBasedScheduler implements Scheduler {
             try {
                 if (queued) {
                     long dequeuedTime = System.nanoTime();
-                    stats.dequeuedAfter(dequeuedTime - queuedTime);
-                    stats.onCommitDequeued();
+                    stats.onCommitDequeued(Thread.currentThread(), dequeuedTime - queuedTime);
                 }
 
                 long beforeCommitTime = System.nanoTime();
@@ -237,9 +236,8 @@ public class LockBasedScheduler implements Scheduler {
                 commit.applied(merged);
 
                 long afterCommitTime = System.nanoTime();
-                stats.committedAfter(afterCommitTime - beforeCommitTime);
                 commitTimeHistogram.update(afterCommitTime - beforeCommitTime);
-                stats.onCommit();
+                stats.onCommit(Thread.currentThread(), afterCommitTime - beforeCommitTime);
 
                 return merged;
             } finally {

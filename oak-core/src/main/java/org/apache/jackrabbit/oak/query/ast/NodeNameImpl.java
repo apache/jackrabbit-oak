@@ -186,7 +186,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
             return null;
         }
         return new OrderEntry(
-                QueryConstants.RESTRICTION_NAME, 
+                QueryConstants.FUNCTION_RESTRICTION_PREFIX + getFunction(s),
             Type.STRING, 
             o.isDescending() ? 
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);

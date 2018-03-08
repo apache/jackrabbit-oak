@@ -27,11 +27,11 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * A document store exception with an optional conflict revision. The
- * DocumentNodeStore implementation will throw this exception when a commit
- * or merge fails with a conflict.
+ * An exception with an optional conflict revision. The DocumentNodeStore
+ * implementation will throw this exception when a commit or merge fails with a
+ * conflict.
  */
-class ConflictException extends DocumentStoreException {
+class ConflictException extends Exception {
 
     private static final long serialVersionUID = 1418838561903727231L;
 
@@ -85,7 +85,7 @@ class ConflictException extends DocumentStoreException {
 
     /**
      * List of conflict revisions.
-     * 
+     *
      * @return a list of conflict revisions (may be empty)
      */
     @Nonnull

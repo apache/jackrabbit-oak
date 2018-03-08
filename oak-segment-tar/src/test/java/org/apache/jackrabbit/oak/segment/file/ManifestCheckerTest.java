@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.nio.file.Files;
 
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.ManifestFile;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,16 +34,19 @@ public class ManifestCheckerTest {
     @Rule
     public TemporaryFolder root = new TemporaryFolder(new File("target"));
 
-    private File manifest;
+    private File file;
+
+    private ManifestFile manifest;
 
     @Before
     public void setUp() throws Exception {
-        manifest = root.newFile();
+        file = root.newFile();
+        manifest = new LocalManifestFile(file);
     }
 
     @Test(expected = InvalidFileStoreVersionException.class)
     public void testManifestShouldExist() throws Exception {
-        Files.delete(manifest.toPath());
+        Files.delete(file.toPath());
         newManifestChecker(manifest, true, 1, 2).checkManifest();
     }
 
@@ -81,7 +85,7 @@ public class ManifestCheckerTest {
 
     @Test
     public void testUpdateNonExistingManifest() throws Exception {
-        Files.delete(manifest.toPath());
+        Files.delete(file.toPath());
         newManifestChecker(manifest, false, 2, 3).checkAndUpdateManifest();
         assertEquals(3, Manifest.load(manifest).getStoreVersion(0));
     }

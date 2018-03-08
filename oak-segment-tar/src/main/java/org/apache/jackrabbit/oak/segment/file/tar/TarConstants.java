@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-class TarConstants {
+public class TarConstants {
 
     private TarConstants() {
         // Prevent instantiation.
@@ -42,11 +42,11 @@ class TarConstants {
      * (size, checksum, the number of UUIDs).</li>
      * </ul>
      */
-    static final int GRAPH_MAGIC = ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
+    public static final int GRAPH_MAGIC = ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
 
     /**
      * The tar file block size.
      */
-    static final int BLOCK_SIZE = 512;
+    public static final int BLOCK_SIZE = 512;
 
 }

@@ -47,11 +47,13 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class SegmentTarExplorerBackend implements ExplorerBackend {
@@ -85,7 +87,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public List<String> readRevisions() {
-        File journal = new File(path, "journal.log");
+        JournalFile journal = new LocalJournalFile(path, "journal.log");
 
         if (!journal.exists()) {
             return newArrayList();

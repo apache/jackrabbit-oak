@@ -808,34 +808,33 @@ public class Utils {
 
     /**
      * Wraps the given iterable and aborts iteration over elements when the
-     * predicate on an element evaluates to {@code false}.
+     * predicate on an element evaluates to {@code false}. Calling
+     * {@code close()} on the returned iterable will close the passed iterable
+     * if it is {@link Closeable}.
      *
      * @param iterable the iterable to wrap.
      * @param p the predicate.
      * @return the aborting iterable.
      */
-    public static <T> Iterable<T> abortingIterable(final Iterable<T> iterable,
-                                                   final Predicate<T> p) {
+    public static <T> CloseableIterable<T> abortingIterable(Iterable<T> iterable,
+                                                            Predicate<T> p) {
         checkNotNull(iterable);
         checkNotNull(p);
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                final Iterator<T> it = iterable.iterator();
-                return new AbstractIterator<T>() {
-                    @Override
-                    protected T computeNext() {
-                        if (it.hasNext()) {
-                            T next = it.next();
-                            if (p.apply(next)) {
-                                return next;
-                            }
+        return new CloseableIterable<T>(() -> {
+            final Iterator<T> it = iterable.iterator();
+            return new AbstractIterator<T>() {
+                @Override
+                protected T computeNext() {
+                    if (it.hasNext()) {
+                        T next = it.next();
+                        if (p.apply(next)) {
+                            return next;
                         }
-                        return endOfData();
                     }
-                };
-            }
-        };
+                    return endOfData();
+                }
+            };
+        }, () -> closeIfCloseable(iterable));
     }
 
     /**

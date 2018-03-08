@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.RandomAccessFile;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -40,10 +39,13 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 
 /**
  * Perform an offline compaction of an existing segment store.
@@ -270,23 +272,27 @@ public class Compact {
         Stopwatch watch = Stopwatch.createStarted();
 
         try (FileStore store = newFileStore()) {
-            store.compactFull();
+            if (!store.compactFull()) {
+                System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
+                return 1;
+            }
             System.out.printf("    -> cleaning up\n");
             store.cleanup();
+            JournalFile journal = new LocalJournalFile(path, "journal.log");
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
                 head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
             }
-            try (RandomAccessFile journalFile = new RandomAccessFile(journal, "rw")) {
+
+            try (JournalFileWriter journalWriter = journal.openJournalWriter()) {
                 System.out.printf("    -> writing new %s: %s\n", journal.getName(), head);
-                journalFile.setLength(0);
-                journalFile.writeBytes(head);
-                journalFile.getChannel().force(false);
+                journalWriter.truncate();
+                journalWriter.writeLine(head);
             }
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
-            System.out.printf("Compaction failed in %s.\n", printableStopwatch(watch));
+            System.out.printf("Compaction failed after %s.\n", printableStopwatch(watch));
             return 1;
         }
 

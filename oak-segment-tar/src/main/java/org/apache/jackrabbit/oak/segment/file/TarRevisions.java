@@ -19,16 +19,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -44,13 +41,15 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * This implementation of {@code Revisions} is backed by a
- * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
+ * {@link TarPersistence#JOURNAL_FILE_NAME journal} file where the current head is persisted
  * by calling {@link #tryFlush(Flusher)}.
  * <p>
  * The {@link #setHead(Function, Option...)} method supports a timeout
@@ -62,8 +61,6 @@ import org.slf4j.LoggerFactory;
 public class TarRevisions implements Revisions, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(TarRevisions.class);
 
-    public static final String JOURNAL_FILE_NAME = "journal.log";
-
     /**
      * The lock protecting {@link #journalFile}.
      */
@@ -72,14 +69,15 @@ public class TarRevisions implements Revisions, Closeable {
     @Nonnull
     private final AtomicReference<RecordId> head;
 
-    @Nonnull
-    private final File directory;
+    private final SegmentNodeStorePersistence persistence;
+
+    private final SegmentNodeStorePersistence.JournalFile journalFile;
 
     /**
-     * The journal file. It is protected by {@link #journalFileLock}. It becomes
+     * The journal file writer. It is protected by {@link #journalFileLock}. It becomes
      * {@code null} after it's closed.
      */
-    private volatile RandomAccessFile journalFile;
+    private volatile SegmentNodeStorePersistence.JournalFileWriter journalFileWriter;
 
     /**
      * The persisted head of the root journal, used to determine whether the
@@ -138,16 +136,15 @@ public class TarRevisions implements Revisions, Closeable {
     /**
      * Create a new instance placing the journal log file into the passed
      * {@code directory}.
-     * @param directory     directory of the journal file
+     * @param persistence object representing the segment persistence
      * @throws IOException
      */
-    public TarRevisions(@Nonnull File directory) throws IOException {
-        this.directory = checkNotNull(directory);
-        this.journalFile = new RandomAccessFile(new File(directory,
-                JOURNAL_FILE_NAME), "rw");
-        this.journalFile.seek(journalFile.length());
+    public TarRevisions(SegmentNodeStorePersistence persistence) throws IOException {
+        this.journalFile = persistence.getJournalFile();
+        this.journalFileWriter = journalFile.openJournalWriter();
         this.head = new AtomicReference<>(null);
         this.persistedHead = new AtomicReference<>(null);
+        this.persistence = persistence;
     }
 
     /**
@@ -164,7 +161,7 @@ public class TarRevisions implements Revisions, Closeable {
         if (head.get() != null) {
             return;
         }
-        RecordId persistedId = findPersistedRecordId(store, idProvider, new File(directory, JOURNAL_FILE_NAME));
+        RecordId persistedId = findPersistedRecordId(store, idProvider, journalFile);
         if (persistedId == null) {
             head.set(writeInitialNode.get());
         } else {
@@ -226,7 +223,7 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     private void doFlush(Flusher flusher) throws IOException {
-        if (journalFile == null) {
+        if (journalFileWriter == null) {
             LOG.debug("No journal file available, skipping flush");
             return;
         }
@@ -238,8 +235,7 @@ public class TarRevisions implements Revisions, Closeable {
         }
         flusher.flush();
         LOG.debug("TarMK journal update {} -> {}", before, after);
-        journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
-        journalFile.getChannel().force(false);
+        journalFileWriter.writeLine(after.toString10() + " root " + System.currentTimeMillis());
         persistedHead.set(after);
     }
 
@@ -354,11 +350,11 @@ public class TarRevisions implements Revisions, Closeable {
     public void close() throws IOException {
         journalFileLock.lock();
         try {
-            if (journalFile == null) {
+            if (journalFileWriter == null) {
                 return;
             }
-            journalFile.close();
-            journalFile = null;
+            journalFileWriter.close();
+            journalFileWriter = null;
         } finally {
             journalFileLock.unlock();
         }

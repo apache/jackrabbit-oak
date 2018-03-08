@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import javax.annotation.Nonnull;
@@ -44,7 +43,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -200,47 +198,14 @@ public class CompactorTest {
 
         @Nonnull
         @Override
-        public RecordId writeMap(
-                @Nullable MapRecord base, @Nonnull Map<String, RecordId> changes)
-        throws IOException {
-            return delegate.writeMap(base, changes);
-        }
-
-        @Nonnull
-        @Override
-        public RecordId writeList(@Nonnull List<RecordId> list) throws IOException {
-            return delegate.writeList(list);
-        }
-
-        @Nonnull
-        @Override
-        public RecordId writeString(@Nonnull String string) throws IOException {
-            return delegate.writeString(string);
-        }
-
-        @Nonnull
-        @Override
         public RecordId writeBlob(@Nonnull Blob blob) throws IOException {
             return delegate.writeBlob(blob);
         }
 
         @Nonnull
         @Override
-        public RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length)
-        throws IOException {
-            return delegate.writeBlock(bytes, offset, length);
-        }
-
-        @Nonnull
-        @Override
         public RecordId writeStream(@Nonnull InputStream stream) throws IOException {
             return delegate.writeStream(stream);
-        }
-
-        @Nonnull
-        @Override
-        public RecordId writeProperty(@Nonnull PropertyState state) throws IOException {
-            return delegate.writeProperty(state);
         }
 
         @Nonnull

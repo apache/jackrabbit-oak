@@ -19,24 +19,16 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
-import static java.nio.ByteBuffer.wrap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
-import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,48 +39,25 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.CRC32;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
-import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
-import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
-import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
-import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class TarReader implements Closeable {
+public class TarReader implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(TarReader.class);
 
-    private static final IndexLoader indexLoader = newIndexLoader(BLOCK_SIZE);
-
-    /**
-     * Pattern of the segment entry names. Note the trailing (\\..*)? group
-     * that's included for compatibility with possible future extensions.
-     */
-    private static final Pattern NAME_PATTERN = Pattern.compile(
-            "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-            + "(\\.([0-9a-f]{8}))?(\\..*)?");
-
-    private static int getEntrySize(int size) {
-        return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
-    }
-
-    static TarReader open(File file, boolean memoryMapping, IOMonitor ioMonitor) throws IOException {
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
+    static TarReader open(String file, SegmentArchiveManager archiveManager) throws IOException {
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
         if (reader != null) {
             return reader;
         } else {
@@ -107,21 +76,17 @@ class TarReader implements Closeable {
      * generations.
      *
      * @param files         The generations of the same TAR file.
-     * @param memoryMapping If {@code true}, opens the TAR file with memory
-     *                      mapping enabled.
      * @param recovery      Strategy for recovering a damaged TAR file.
-     * @param ioMonitor     Callbacks to track internal operations for the open
-     *                      TAR file.
      * @return An instance of {@link TarReader}.
      */
-    static TarReader open(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
-        SortedMap<Character, File> sorted = newTreeMap();
+    static TarReader open(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
+        SortedMap<Character, String> sorted = newTreeMap();
         sorted.putAll(files);
 
-        List<File> list = newArrayList(sorted.values());
+        List<String> list = newArrayList(sorted.values());
         Collections.reverse(list);
 
-        TarReader reader = openFirstFileWithValidIndex(list, memoryMapping, ioMonitor);
+        TarReader reader = openFirstFileWithValidIndex(list, archiveManager);
         if (reader != null) {
             return reader;
         }
@@ -129,15 +94,15 @@ class TarReader implements Closeable {
         // no generation has a valid index, so recover as much as we can
         log.warn("Could not find a valid tar index in {}, recovering...", list);
         LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
-        for (File file : sorted.values()) {
-            collectFileEntries(file, entries, true);
+        for (String file : sorted.values()) {
+            collectFileEntries(file, entries, true, archiveManager);
         }
 
         // regenerate the first generation based on the recovered data
-        File file = sorted.values().iterator().next();
-        generateTarFile(entries, file, recovery, ioMonitor);
+        String file = sorted.values().iterator().next();
+        generateTarFile(entries, file, recovery, archiveManager);
 
-        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
+        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
         if (reader != null) {
             return reader;
         } else {
@@ -145,11 +110,11 @@ class TarReader implements Closeable {
         }
     }
 
-    static TarReader openRO(Map<Character, File> files, boolean memoryMapping, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
+    static TarReader openRO(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
         // for readonly store only try the latest generation of a given
         // tar file to prevent any rollback or rewrite
-        File file = files.get(Collections.max(files.keySet()));
-        TarReader reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
+        String file = files.get(Collections.max(files.keySet()));
+        TarReader reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
         if (reader != null) {
             return reader;
         }
@@ -157,10 +122,10 @@ class TarReader implements Closeable {
         // collecting the entries (without touching the original file) and
         // writing them into an artificial tar file '.ro.bak'
         LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
-        collectFileEntries(file, entries, false);
-        file = findAvailGen(file, ".ro.bak");
-        generateTarFile(entries, file, recovery, ioMonitor);
-        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping, ioMonitor);
+        collectFileEntries(file, entries, false, archiveManager);
+        file = findAvailGen(file, ".ro.bak", archiveManager);
+        generateTarFile(entries, file, recovery, archiveManager);
+        reader = openFirstFileWithValidIndex(singletonList(file), archiveManager);
         if (reader != null) {
             return reader;
         }
@@ -176,21 +141,16 @@ class TarReader implements Closeable {
      *                into.
      * @param backup  If {@code true}, performs a backup of the TAR file.
      */
-    private static void collectFileEntries(File file, LinkedHashMap<UUID, byte[]> entries, boolean backup) throws IOException {
+    private static void collectFileEntries(String file, LinkedHashMap<UUID, byte[]> entries, boolean backup, SegmentArchiveManager archiveManager) throws IOException {
         log.info("Recovering segments from tar file {}", file);
         try {
-            RandomAccessFile access = new RandomAccessFile(file, "r");
-            try {
-                recoverEntries(file, access, entries);
-            } finally {
-                access.close();
-            }
+            archiveManager.recoverEntries(file, entries);
         } catch (IOException e) {
             log.warn("Could not read tar file {}, skipping...", file, e);
         }
 
         if (backup) {
-            backupSafely(file);
+            backupSafely(archiveManager, file);
         }
     }
 
@@ -202,12 +162,11 @@ class TarReader implements Closeable {
      * @param file      The output file that will contain the recovered
      *                  entries.
      * @param recovery  The recovery strategy to execute.
-     * @param ioMonitor An instance of {@link IOMonitor}.
      */
-    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, File file, TarRecovery recovery, IOMonitor ioMonitor) throws IOException {
+    private static void generateTarFile(LinkedHashMap<UUID, byte[]> entries, String file, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
         log.info("Regenerating tar file {}", file);
 
-        try (TarWriter writer = new TarWriter(file, ioMonitor)) {
+        try (TarWriter writer = new TarWriter(archiveManager, file)) {
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
@@ -242,13 +201,13 @@ class TarReader implements Closeable {
      *
      * @param file File to backup.
      */
-    private static void backupSafely(File file) throws IOException {
-        File backup = findAvailGen(file, ".bak");
-        log.info("Backing up {} to {}", file, backup.getName());
-        if (!file.renameTo(backup)) {
+    private static void backupSafely(SegmentArchiveManager archiveManager, String file) throws IOException {
+        String backup = findAvailGen(file, ".bak", archiveManager);
+        log.info("Backing up {} to {}", file, backup);
+        if (!archiveManager.renameTo(file, backup)) {
             log.warn("Renaming failed, so using copy to backup {}", file);
-            FileUtils.copyFile(file, backup);
-            if (!file.delete()) {
+            archiveManager.copyFile(file, backup);
+            if (!archiveManager.delete(file)) {
                 throw new IOException(
                         "Could not remove broken tar file " + file);
             }
@@ -259,62 +218,29 @@ class TarReader implements Closeable {
      * Fine next available generation number so that a generated file doesn't
      * overwrite another existing file.
      *
-     * @param file The file to backup.
+     * @param name The file to backup.
      * @param ext  The extension of the backed up file.
      */
-    private static File findAvailGen(File file, String ext) {
-        File parent = file.getParentFile();
-        String name = file.getName();
-        File backup = new File(parent, name + ext);
-        for (int i = 2; backup.exists(); i++) {
-            backup = new File(parent, name + "." + i + ext);
+    private static String findAvailGen(String name, String ext, SegmentArchiveManager archiveManager) {
+        String backup = name + ext;
+        for (int i = 2; archiveManager.exists(backup); i++) {
+            backup = name + "." + i + ext;
         }
         return backup;
     }
 
-    private static TarReader openFirstFileWithValidIndex(List<File> files, boolean memoryMapping, IOMonitor ioMonitor) {
-        for (File file : files) {
-            String name = file.getName();
+    private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager) {
+        for (String name : archives) {
             try {
-                RandomAccessFile access = new RandomAccessFile(file, "r");
-                try {
-                    Index index = loadAndValidateIndex(access, name);
-                    if (index == null) {
-                        log.info("No index found in tar file {}, skipping...", name);
-                    } else {
-                        // found a file with a valid index, drop the others
-                        for (File other : files) {
-                            if (other != file) {
-                                log.info("Removing unused tar file {}", other.getName());
-                                other.delete();
-                            }
+                SegmentArchiveManager.SegmentArchiveReader reader = archiveManager.open(name);
+                if (reader != null) {
+                    for (String other : archives) {
+                        if (other != name) {
+                            log.info("Removing unused tar file {}", other);
+                            archiveManager.delete(other);
                         }
-
-                        if (memoryMapping) {
-                            try {
-                                FileAccess mapped = new FileAccess.Mapped(access);
-                                return new TarReader(file, mapped, index, ioMonitor);
-                            } catch (IOException e) {
-                                log.warn("Failed to mmap tar file {}. Falling back to normal file " +
-                                        "IO, which will negatively impact repository performance. " +
-                                        "This problem may have been caused by restrictions on the " +
-                                        "amount of virtual memory available to the JVM. Please make " +
-                                        "sure that a 64-bit JVM is being used and that the process " +
-                                        "has access to unlimited virtual memory (ulimit option -v).",
-                                        name, e);
-                            }
-                        }
-
-                        FileAccess random = new FileAccess.Random(access);
-                        // prevent the finally block from closing the file
-                        // as the returned TarReader will take care of that
-                        access = null;
-                        return new TarReader(file, random, index, ioMonitor);
                     }
-                } finally {
-                    if (access != null) {
-                        access.close();
-                    }
+                    return new TarReader(archiveManager, reader);
                 }
             } catch (IOException e) {
                 log.warn("Could not read tar file {}, skipping...", name, e);
@@ -324,160 +250,22 @@ class TarReader implements Closeable {
         return null;
     }
 
-    /**
-     * Tries to read an existing index from the given tar file. The index is
-     * returned if it is found and looks valid (correct checksum, passes sanity
-     * checks).
-     *
-     * @param file The TAR file.
-     * @param name Name of the TAR file, for logging purposes.
-     * @return An instance of {@link ByteBuffer} populated with the content of
-     * the index. If the TAR doesn't contain any index, {@code null} is returned
-     * instead.
-     */
-    private static Index loadAndValidateIndex(RandomAccessFile file, String name) throws IOException {
-        long length = file.length();
+    private final SegmentArchiveManager archiveManager;
 
-        if (length % BLOCK_SIZE != 0) {
-            log.warn("Unable to load index of file {}: Invalid alignment", name);
-            return null;
-        }
-        if (length < 6 * BLOCK_SIZE) {
-            log.warn("Unable to load index of file {}: File too short", name);
-            return null;
-        }
-        if (length > Integer.MAX_VALUE) {
-            log.warn("Unable to load index of file {}: File too long", name);
-            return null;
-        }
-
-        ReaderAtEnd r = (whence, size) -> {
-            ByteBuffer buffer = ByteBuffer.allocate(size);
-            file.seek(length - 2 * BLOCK_SIZE - whence);
-            file.readFully(buffer.array());
-            return buffer;
-        };
-
-        try {
-            return indexLoader.loadIndex(r);
-        } catch (InvalidIndexException e) {
-            log.warn("Unable to load index of file {}: {}", name, e.getMessage());
-        }
-
-        return null;
-    }
-
-    /**
-     * Scans through the tar file, looking for all segment entries.
-     *
-     * @param file    The path of the TAR file.
-     * @param access  The contents of the TAR file.
-     * @param entries The map that will contain the recovered entries. The
-     *                entries are inserted in the {@link LinkedHashMap} in the
-     *                order they appear in the TAR file.
-     */
-    private static void recoverEntries(File file, RandomAccessFile access, LinkedHashMap<UUID, byte[]> entries) throws IOException {
-        byte[] header = new byte[BLOCK_SIZE];
-        while (access.getFilePointer() + BLOCK_SIZE <= access.length()) {
-            // read the tar header block
-            access.readFully(header);
-
-            // compute the header checksum
-            int sum = 0;
-            for (int i = 0; i < BLOCK_SIZE; i++) {
-                sum += header[i] & 0xff;
-            }
-
-            // identify possible zero block
-            if (sum == 0 && access.getFilePointer() + 2 * BLOCK_SIZE == access.length()) {
-                return; // found the zero blocks at the end of the file
-            }
-
-            // replace the actual stored checksum with spaces for comparison
-            for (int i = 148; i < 148 + 8; i++) {
-                sum -= header[i] & 0xff;
-                sum += ' ';
-            }
-
-            byte[] checkbytes = String.format("%06o\0 ", sum).getBytes(UTF_8);
-            for (int i = 0; i < checkbytes.length; i++) {
-                if (checkbytes[i] != header[148 + i]) {
-                    log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
-                             access.getFilePointer() - BLOCK_SIZE, file);
-                }
-            }
-
-            // The header checksum passes, so read the entry name and size
-            ByteBuffer buffer = wrap(header);
-            String name = readString(buffer, 100);
-            buffer.position(124);
-            int size = readNumber(buffer, 12);
-            if (access.getFilePointer() + size > access.length()) {
-                // checksum was correct, so the size field should be accurate
-                log.warn("Partial entry {} in tar file {}, ignoring...", name, file);
-                return;
-            }
-
-            Matcher matcher = NAME_PATTERN.matcher(name);
-            if (matcher.matches()) {
-                UUID id = UUID.fromString(matcher.group(1));
-
-                String checksum = matcher.group(3);
-                if (checksum != null || !entries.containsKey(id)) {
-                    byte[] data = new byte[size];
-                    access.readFully(data);
-
-                    // skip possible padding to stay at block boundaries
-                    long position = access.getFilePointer();
-                    long remainder = position % BLOCK_SIZE;
-                    if (remainder != 0) {
-                        access.seek(position + (BLOCK_SIZE - remainder));
-                    }
-
-                    if (checksum != null) {
-                        CRC32 crc = new CRC32();
-                        crc.update(data);
-                        if (crc.getValue() != Long.parseLong(checksum, 16)) {
-                            log.warn("Checksum mismatch in entry {} of tar file {}, skipping...",
-                                     name, file);
-                            continue;
-                        }
-                    }
-
-                    entries.put(id, data);
-                }
-            } else if (!name.equals(file.getName() + ".idx")) {
-                log.warn("Unexpected entry {} in tar file {}, skipping...",
-                         name, file);
-                long position = access.getFilePointer() + size;
-                long remainder = position % BLOCK_SIZE;
-                if (remainder != 0) {
-                    position += BLOCK_SIZE - remainder;
-                }
-                access.seek(position);
-            }
-        }
-    }
-
-    private final File file;
-
-    private final FileAccess access;
+    private final SegmentArchiveManager.SegmentArchiveReader archive;
 
     private final Index index;
 
     private volatile boolean hasGraph;
 
-    private final IOMonitor ioMonitor;
-
-    private TarReader(File file, FileAccess access, Index index, IOMonitor ioMonitor) {
-        this.file = file;
-        this.access = access;
-        this.index = index;
-        this.ioMonitor = ioMonitor;
+    private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveManager.SegmentArchiveReader archive) {
+        this.archiveManager = archiveManager;
+        this.archive = archive;
+        this.index = archive.getIndex();
     }
 
     long size() {
-        return file.length();
+        return archive.length();
     }
 
     /**
@@ -514,15 +302,7 @@ class TarReader implements Closeable {
      * @return the byte buffer, or null if not in this file.
      */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
-        int idx = findEntry(msb, lsb);
-        if (idx == -1) {
-            return null;
-        }
-        return readEntry(msb, lsb, index.entry(idx));
-    }
-
-    private ByteBuffer readEntry(long msb, long lsb, IndexEntry entry) throws IOException {
-        return readSegment(msb, lsb, entry.getPosition(), entry.getLength());
+        return archive.readSegment(msb, lsb);
     }
 
     /**
@@ -705,7 +485,7 @@ class TarReader implements Closeable {
      * TarReader}, or {@code null}.
      */
     TarReader sweep(@Nonnull Set<UUID> reclaim, @Nonnull Set<UUID> reclaimed) throws IOException {
-        String name = file.getName();
+        String name = archive.getName();
         log.debug("Cleaning up {}", name);
 
         Set<UUID> cleaned = newHashSet();
@@ -716,13 +496,13 @@ class TarReader implements Closeable {
         TarEntry[] entries = getEntries();
         for (int i = 0; i < entries.length; i++) {
             TarEntry entry = entries[i];
-            beforeSize += getEntrySize(entry.size());
+            beforeSize += archive.getEntrySize(entry.size());
             UUID id = new UUID(entry.msb(), entry.lsb());
             if (reclaim.contains(id)) {
                 cleaned.add(id);
                 entries[i] = null;
             } else {
-                afterSize += getEntrySize(entry.size());
+                afterSize += archive.getEntrySize(entry.size());
                 afterCount += 1;
             }
         }
@@ -737,7 +517,7 @@ class TarReader implements Closeable {
             // in which case we'll always generate a new tar file with
             // the graph to speed up future garbage collection runs.
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
-                    access.length() - afterSize, access.length(), name);
+                    archive.length() - afterSize, archive.length(), name);
             return this;
         }
         if (!hasGraph()) {
@@ -751,21 +531,18 @@ class TarReader implements Closeable {
             return this;
         }
 
-        File newFile = new File(
-                file.getParentFile(),
-                name.substring(0, pos) + (char) (generation + 1) + ".tar");
+        String newFile = name.substring(0, pos) + (char) (generation + 1) + ".tar";
 
-        log.debug("Writing new generation {}", newFile.getName());
-        TarWriter writer = new TarWriter(newFile, ioMonitor);
+        log.debug("Writing new generation {}", newFile);
+        TarWriter writer = new TarWriter(archiveManager, newFile);
         for (TarEntry entry : entries) {
             if (entry != null) {
                 long msb = entry.msb();
                 long lsb = entry.lsb();
-                int offset = entry.offset();
                 int size = entry.size();
                 GCGeneration gen = entry.generation();
                 byte[] data = new byte[size];
-                readSegment(msb, lsb, offset, size).get(data);
+                archive.readSegment(msb, lsb).get(data);
                 writer.writeEntry(msb, lsb, data, 0, size, gen);
             }
         }
@@ -809,19 +586,19 @@ class TarReader implements Closeable {
 
         writer.close();
 
-        TarReader reader = openFirstFileWithValidIndex(singletonList(newFile), access.isMemoryMapped(), ioMonitor);
+        TarReader reader = openFirstFileWithValidIndex(singletonList(newFile), archiveManager);
         if (reader != null) {
             reclaimed.addAll(cleaned);
             return reader;
         } else {
-            log.warn("Failed to open cleaned up tar file {}", file);
+            log.warn("Failed to open cleaned up tar file {}", getFileName());
             return this;
         }
     }
 
     @Override
     public void close() throws IOException {
-        access.close();
+        archive.close();
     }
 
     /**
@@ -831,42 +608,11 @@ class TarReader implements Closeable {
      * @return The parsed graph, or {@code null} if one was not found.
      */
     Map<UUID, List<UUID>> getGraph() throws IOException {
-        ByteBuffer graph = loadGraph();
-        if (graph == null) {
-            return null;
-        } else {
-            return parseGraph(graph);
-        }
+        return archive.getGraph();
     }
 
     private boolean hasGraph() {
-        if (!hasGraph) {
-            try {
-                loadGraph();
-            } catch (IOException ignore) { }
-        }
-        return hasGraph;
-    }
-
-    private int getIndexEntrySize() {
-        return getEntrySize(index.size());
-    }
-
-    private int getGraphEntrySize() {
-        ByteBuffer buffer;
-
-        try {
-            buffer = loadGraph();
-        } catch (IOException e) {
-            log.warn("Exception while loading pre-compiled tar graph", e);
-            return 0;
-        }
-
-        if (buffer == null) {
-            return 0;
-        }
-
-        return getEntrySize(buffer.getInt(buffer.limit() - 8));
+        return archive.hasGraph();
     }
 
     /**
@@ -883,126 +629,11 @@ class TarReader implements Closeable {
     BinaryReferencesIndex getBinaryReferences() {
         BinaryReferencesIndex index = null;
         try {
-            index = loadBinaryReferences();
+            index = archive.getBinaryReferences();
         } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
         }
         return index;
-    }
-
-    private BinaryReferencesIndex loadBinaryReferences() throws IOException, InvalidBinaryReferencesIndexException {
-        int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
-        return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, size) -> access.read(end - whence, size));
-    }
-
-    /**
-     * Loads the optional pre-compiled graph entry from the given tar file.
-     *
-     * @return graph buffer, or {@code null} if one was not found
-     * @throws IOException if the tar file could not be read
-     */
-    private ByteBuffer loadGraph() throws IOException {
-        int pos = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
-
-        ByteBuffer meta = access.read(pos - 16, 16);
-
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int bytes = meta.getInt();
-        int magic = meta.getInt();
-
-        if (magic != GRAPH_MAGIC) {
-            log.warn("Invalid graph magic number in {}", file);
-            return null;
-        }
-
-        if (count < 0) {
-            log.warn("Invalid number of entries in {}", file);
-            return null;
-        }
-
-        if (bytes < 4 + count * 34) {
-            log.warn("Invalid entry size in {}", file);
-            return null;
-        }
-
-        ByteBuffer graph = access.read(pos - bytes, bytes);
-
-        byte[] b = new byte[bytes - 16];
-
-        graph.mark();
-        graph.get(b);
-        graph.reset();
-
-        CRC32 checksum = new CRC32();
-        checksum.update(b);
-
-        if (crc32 != (int) checksum.getValue()) {
-            log.warn("Invalid graph checksum in tar file {}", file);
-            return null;
-        }
-
-        hasGraph = true;
-
-        return graph;
-    }
-
-    private ByteBuffer readSegment(long msb, long lsb, int offset, int size) throws IOException {
-        ioMonitor.beforeSegmentRead(file, msb, lsb, size);
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        ByteBuffer buffer = access.read(offset, size);
-        long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
-        ioMonitor.afterSegmentRead(file, msb, lsb, size, elapsed);
-        return buffer;
-    }
-
-    private static Map<UUID, List<UUID>> parseGraph(ByteBuffer buffer) {
-        int nEntries = buffer.getInt(buffer.limit() - 12);
-
-        Map<UUID, List<UUID>> graph = newHashMapWithExpectedSize(nEntries);
-
-        for (int i = 0; i < nEntries; i++) {
-            long msb = buffer.getLong();
-            long lsb = buffer.getLong();
-            int nVertices = buffer.getInt();
-
-            List<UUID> vertices = newArrayListWithCapacity(nVertices);
-
-            for (int j = 0; j < nVertices; j++) {
-                long vMsb = buffer.getLong();
-                long vLsb = buffer.getLong();
-                vertices.add(new UUID(vMsb, vLsb));
-            }
-
-            graph.put(new UUID(msb, lsb), vertices);
-        }
-
-        return graph;
-    }
-
-    private static String readString(ByteBuffer buffer, int fieldSize) {
-        byte[] b = new byte[fieldSize];
-        buffer.get(b);
-        int n = 0;
-        while (n < fieldSize && b[n] != 0) {
-            n++;
-        }
-        return new String(b, 0, n, UTF_8);
-    }
-
-    private static int readNumber(ByteBuffer buffer, int fieldSize) {
-        byte[] b = new byte[fieldSize];
-        buffer.get(b);
-        int number = 0;
-        for (int i = 0; i < fieldSize; i++) {
-            int digit = b[i] & 0xff;
-            if ('0' <= digit && digit <= '7') {
-                number = number * 8 + digit - '0';
-            } else {
-                break;
-            }
-        }
-        return number;
     }
 
     /**
@@ -1010,15 +641,15 @@ class TarReader implements Closeable {
      *
      * @return An instance of {@link File}.
      */
-    File getFile() {
-        return file;
+    String getFileName() {
+        return archive.getName();
     }
 
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
-        return file.toString();
+        return getFileName();
     }
 
 }

@@ -19,24 +19,23 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,10 +45,13 @@ public class GcJournalTest {
     @Rule
     public final TemporaryFolder segmentFolder = new TemporaryFolder(new File("target"));
 
+    protected SegmentNodeStorePersistence getPersistence() throws Exception {
+        return new TarPersistence(segmentFolder.getRoot());
+    }
+
     @Test
     public void tarGcJournal() throws Exception {
-        File directory = segmentFolder.newFolder();
-        GCJournal gc = new GCJournal(directory);
+        GCJournal gc = new GCJournal(getPersistence().getGCJournalFile());
 
         gc.persist(0, 100, newGCGeneration(1, 0, false), 50, RecordId.NULL.toString10());
         GCJournalEntry e0 = gc.read();
@@ -83,32 +85,31 @@ public class GcJournalTest {
         Collection<GCJournalEntry> all = gc.readAll();
         assertEquals(all.size(), 3);
 
-        File file = new File(directory, GCJournal.GC_JOURNAL);
-        assertTrue(file.exists());
-        List<String> allLines = Files.readAllLines(file.toPath(), UTF_8);
+        SegmentNodeStorePersistence.GCJournalFile gcFile = getPersistence().getGCJournalFile();
+        List<String> allLines = gcFile.readLines();
         assertEquals(allLines.size(), 3);
     }
 
     @Test
     public void testGCGeneration() throws Exception {
-        GCJournal out = new GCJournal(segmentFolder.getRoot());
+        GCJournal out = new GCJournal(getPersistence().getGCJournalFile());
         out.persist(1, 100, newGCGeneration(1, 2, false), 50, RecordId.NULL.toString());
-        GCJournal in = new GCJournal(segmentFolder.getRoot());
+        GCJournal in = new GCJournal(getPersistence().getGCJournalFile());
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
 
     @Test
     public void testGCGenerationCompactedFlagCleared() throws Exception {
-        GCJournal out = new GCJournal(segmentFolder.getRoot());
+        GCJournal out = new GCJournal(getPersistence().getGCJournalFile());
         out.persist(1, 100, newGCGeneration(1, 2, true), 50, RecordId.NULL.toString());
-        GCJournal in = new GCJournal(segmentFolder.getRoot());
+        GCJournal in = new GCJournal(getPersistence().getGCJournalFile());
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
 
     @Test
-    public void testReadOak16GCLog() throws IOException {
+    public void testReadOak16GCLog() throws Exception {
         createOak16GCLog();
-        GCJournal gcJournal = new GCJournal(segmentFolder.getRoot());
+        GCJournal gcJournal = new GCJournal(getPersistence().getGCJournalFile());
         GCJournalEntry entry = gcJournal.read();
         assertEquals(45919825920L, entry.getRepoSize());
         assertEquals(41394306048L, entry.getReclaimedSize());
@@ -119,9 +120,9 @@ public class GcJournalTest {
     }
 
     @Test
-    public void testUpdateOak16GCLog() throws IOException {
+    public void testUpdateOak16GCLog() throws Exception {
         createOak16GCLog();
-        GCJournal gcJournal = new GCJournal(segmentFolder.getRoot());
+        GCJournal gcJournal = new GCJournal(getPersistence().getGCJournalFile());
         gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
 
         ArrayList<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
