@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,7 +35,7 @@ import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.junit.Test;
 
 public class SegmentCacheTest {
-    private final SegmentCache cache = new SegmentCache(DEFAULT_SEGMENT_CACHE_MB);
+    private final SegmentCache cache = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB);
 
     private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L, 0xa000000000000001L, cache::recordHit);
     private final Segment segment1 = mock(Segment.class);
@@ -129,7 +130,7 @@ public class SegmentCacheTest {
     }
 
     @Test
-    public void statsTest() throws Exception {
+    public void nonEmptyCacheStatsTest() throws Exception {
         AbstractCacheStats stats = cache.getCacheStats();
 
         // empty cache
@@ -188,6 +189,55 @@ public class SegmentCacheTest {
         assertEquals(1, stats.getMissCount());
         assertEquals(1, stats.getRequestCount());
         assertEquals(1, stats.getEvictionCount());
+    }
+
+    @Test
+    public void emptyCacheStatsTest() throws Exception {
+        SegmentCache cache = newSegmentCache(0);
+        AbstractCacheStats stats = cache.getCacheStats();
+
+        // empty cache
+        assertEquals(0, stats.getElementCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        // load
+        cache.getSegment(id1, () -> segment1);
+        assertEquals(0, stats.getElementCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        // No cache hit
+        try {
+            id1.getSegment();
+            fail(id1 + " should not be in the cache");
+        } catch (SegmentNotFoundException expected) {}
+
+        cache.clear();
+        assertEquals(0, stats.getElementCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        stats.resetStats();
+        assertEquals(0, stats.getElementCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
     }
 
     private static void expect(Class<? extends Throwable> exceptionType, Callable<?> thunk) {
