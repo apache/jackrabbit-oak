@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
 
@@ -158,7 +159,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     public int delete(Connection connection, RDBTableMetaData tmd, Map<String, Long> toDelete)
-            throws SQLException, DocumentStoreException {
+            throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("delete from " + tmd.getName() + " where ID=? and MODIFIED=?");
         try {
             for (Entry<String, Long> entry : toDelete.entrySet()) {
@@ -235,7 +236,7 @@ public class RDBDocumentStoreJDBC {
                 }
             } catch (Exception ex) {
                 LOG.error("Trying to determine time difference to server", ex);
-                throw new DocumentStoreException(ex);
+                throw asDocumentStoreException(ex, "Trying to determine time difference to server");
             } finally {
                 closeResultSet(rs);
                 closeStatement(stmt);
@@ -1000,8 +1001,8 @@ public class RDBDocumentStoreJDBC {
             try {
                 return new String(rs.getBytes(idx), "UTF-8");
             } catch (UnsupportedEncodingException ex) {
-                LOG.error("UTF-8 not supported??", ex);
-                throw new DocumentStoreException(ex);
+                LOG.error("UTF-8 not supported", ex);
+                throw asDocumentStoreException(ex, "UTF-8 not supported");
             }
         } else {
             return rs.getString(idx);
@@ -1020,7 +1021,7 @@ public class RDBDocumentStoreJDBC {
             }
         } catch (IOException ex) {
             LOG.warn("Invalid ID: " + id, ex);
-            throw new DocumentStoreException("Invalid ID: " + id, ex);
+            throw asDocumentStoreException(ex, "Invalid ID: " + id);
         }
     }
 

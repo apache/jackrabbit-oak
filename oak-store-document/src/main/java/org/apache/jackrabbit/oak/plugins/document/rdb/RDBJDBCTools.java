@@ -418,11 +418,15 @@ public class RDBJDBCTools {
                         }
                     } catch (IOException ex) {
                         LOG.warn("Invalid ID: " + value, ex);
-                        throw new DocumentStoreException("Invalid ID: " + value, ex);
+                        throw asDocumentStoreException(ex, "Invalid ID: " + value);
                     }
                 }
                 return startIndex;
             }
         };
+    }
+    
+    public static DocumentStoreException asDocumentStoreException(@Nonnull Exception cause, @Nonnull String message) {
+        return new DocumentStoreException(message, cause);
     }
 }

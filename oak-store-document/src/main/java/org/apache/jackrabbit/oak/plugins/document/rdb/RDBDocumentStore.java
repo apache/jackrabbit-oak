@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.createTableName;
@@ -251,7 +252,7 @@ public class RDBDocumentStore implements DocumentStore {
         try {
             initialize(ds, builder, options);
         } catch (Exception ex) {
-            throw new DocumentStoreException("initializing RDB document store", ex);
+            throw asDocumentStoreException(ex, "initializing RDB document store");
         }
     }
 
@@ -479,7 +480,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
             connection.commit();
         } catch (Exception ex) {
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "trying to read: " + keys);
         } finally {
             this.ch.closeConnection(connection);
         }
@@ -619,7 +620,7 @@ public class RDBDocumentStore implements DocumentStore {
             return result;
         } catch (SQLException ex) {
             LOG.error("Trying to determine time difference to server", ex);
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "Trying to determine time difference to server");
         } finally {
             this.ch.closeConnection(connection);
         }
@@ -1668,7 +1669,7 @@ public class RDBDocumentStore implements DocumentStore {
             return result;
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "SQL exception on query");
         } finally {
             this.ch.closeConnection(connection);
             stats.doneQuery(watch.elapsed(TimeUnit.NANOSECONDS), collection, fromKey, toKey,
@@ -1765,7 +1766,7 @@ public class RDBDocumentStore implements DocumentStore {
             return result;
         } catch (SQLException ex) {
             LOG.error("SQL exception on query", ex);
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "SQL exception on query");
         } finally {
             this.ch.closeConnection(connection);
         }
@@ -1809,7 +1810,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
         } catch (Exception ex) {
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "exception while reading " + id);
         } finally {
             this.ch.closeConnection(connection);
             stats.doneFindUncached(watch.elapsed(TimeUnit.NANOSECONDS), collection, id, docFound, false);
@@ -1892,7 +1893,7 @@ public class RDBDocumentStore implements DocumentStore {
             numDeleted = db.deleteWithCondition(connection, tmd, conditions);
             connection.commit();
         } catch (Exception ex) {
-            throw DocumentStoreException.convert(ex, "deleting " + collection + ": " + conditions);
+            throw asDocumentStoreException(ex, "deleting " + collection + ": " + conditions);
         } finally {
             this.ch.closeConnection(connection);
             stats.doneRemove(watch.elapsed(TimeUnit.NANOSECONDS), collection, numDeleted);
@@ -2064,7 +2065,7 @@ public class RDBDocumentStore implements DocumentStore {
             bytes = data.getBytes("UTF-8");
         } catch (UnsupportedEncodingException ex) {
             LOG.error("UTF-8 not supported??", ex);
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "UTF-8 not supported??");
         }
 
         if (NOGZIP) {
@@ -2083,7 +2084,7 @@ public class RDBDocumentStore implements DocumentStore {
                 return bos.toByteArray();
             } catch (IOException ex) {
                 LOG.error("Error while gzipping contents", ex);
-                throw new DocumentStoreException(ex);
+                throw asDocumentStoreException(ex, "Error while gzipping contents");
             }
         }
     }
@@ -2207,7 +2208,7 @@ public class RDBDocumentStore implements DocumentStore {
                 invalidateCache(collection, id, false);
             }
         }
-        return DocumentStoreException.convert(ex, message);
+        return asDocumentStoreException(ex, message);
     }
 
     private <T extends Document> DocumentStoreException handleException(String message, Exception ex, Collection<T> collection,
