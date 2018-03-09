@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.nio.ByteBuffer;
@@ -261,7 +262,7 @@ public class CacheWeightEstimator {
         final int cacheSizeMB = 100;
         final int bufferSize = 5 * 1024;
         Supplier<Entry<Object, Long[]>> factory = () -> {
-            SegmentCache cache = new SegmentCache(cacheSizeMB);
+            SegmentCache cache = newSegmentCache(cacheSizeMB);
             for (int i = 0; i < count; ++i) {
                 Segment segment = randomSegment(bufferSize);
                 cache.putSegment(segment);

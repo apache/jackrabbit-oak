@@ -243,9 +243,10 @@ public class SegmentId implements Comparable<SegmentId> {
     @Nonnull
     public GCGeneration getGcGeneration() {
         if (gcGeneration == null) {
-            getSegment();
+            return getSegment().getGcGeneration();
+        } else {
+            return gcGeneration;
         }
-        return gcGeneration;
     }
 
     // --------------------------------------------------------< Comparable >--
