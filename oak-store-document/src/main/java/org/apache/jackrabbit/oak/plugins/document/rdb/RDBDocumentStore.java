@@ -1509,7 +1509,8 @@ public class RDBDocumentStore implements DocumentStore {
             if (allowCreate && result == null) {
                 // TODO OAK-2655 need to implement some kind of retry
                 LOG.error("update of " + update.getId() + " failed, race condition?");
-                throw new DocumentStoreException("update of " + update.getId() + " failed, race condition?");
+                throw new DocumentStoreException("update of " + update.getId() + " failed, race condition?", null,
+                        DocumentStoreException.Type.TRANSIENT);
             }
             return result;
         }
@@ -1568,7 +1569,7 @@ public class RDBDocumentStore implements DocumentStore {
 
                 if (!success) {
                     throw new DocumentStoreException("failed update of " + doc.getId() + " (race?) after " + maxRetries
-                            + " retries");
+                            + " retries", null, DocumentStoreException.Type.TRANSIENT);
                 }
 
                 return oldDoc;
