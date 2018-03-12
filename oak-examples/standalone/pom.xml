@@ -136,6 +136,10 @@
           <groupId>org.apache.httpcomponents</groupId>
           <artifactId>httpcore</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>com.tdunning</groupId>
+          <artifactId>json</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
