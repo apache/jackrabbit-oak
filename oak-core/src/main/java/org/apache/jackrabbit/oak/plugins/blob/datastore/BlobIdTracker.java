@@ -133,11 +133,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
 
     @Override
     public void remove(File recs) throws IOException {
+        globalMerge();
         store.removeRecords(recs);
     }
 
     @Override
     public void remove(Iterator<String> recs) throws IOException {
+        globalMerge();
         store.removeRecords(recs);
     }
 
