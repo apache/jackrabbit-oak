@@ -76,14 +76,14 @@ public class Utils {
      * possibly be too large to be used for the primary key for the document
      * store.
      */
-    static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
+    public static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
 
     /**
      * The maximum length of the parent path, in bytes. If the parent path is
      * longer, then the id of a document is no longer the path, but the hash of
      * the parent, and then the node name.
      */
-    static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
+    public static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
 
     /**
      * The maximum size a node name, in bytes. This is only a problem for long path.
