@@ -523,7 +523,7 @@ public class RepositorySidegrade {
             wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
         }
         if (filterLongNames) {
-            wrapped = NameFilteringNodeState.wrap(wrapped);
+            wrapped = NameFilteringNodeState.wrapRoot(wrapped);
         }
         return wrapped;
     }
