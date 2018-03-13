@@ -1019,7 +1019,7 @@ public class RepositoryUpgrade {
     }
 
     private boolean nameMayBeTooLong(String name) {
-        if (name.length() <= Utils.NODE_NAME_LIMIT / 4) {
+        if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
         if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
