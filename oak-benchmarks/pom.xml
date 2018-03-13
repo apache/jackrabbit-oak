@@ -180,6 +180,10 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-annotations</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+                    <artifactId>concurrentlinkedhashmap-lru</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
