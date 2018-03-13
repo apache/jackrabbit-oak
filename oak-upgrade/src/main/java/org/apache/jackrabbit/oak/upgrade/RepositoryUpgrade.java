@@ -60,6 +60,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashBiMap;
@@ -85,6 +86,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -92,7 +94,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
-import org.apache.jackrabbit.oak.plugins.migration.NameFilteringNodeState;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -483,7 +485,7 @@ public class RepositoryUpgrade {
             );
             final NodeState sourceRoot;
             if (filterLongNames) {
-                sourceRoot = NameFilteringNodeState.wrap(reportingSourceRoot);
+                sourceRoot = NameFilteringNodeState.wrapRoot(reportingSourceRoot);
             } else {
                 sourceRoot = reportingSourceRoot;
             }
@@ -992,14 +994,16 @@ public class RepositoryUpgrade {
                     continue;
                 }
                 String name = t.text();
-                if (NameFilteringNodeState.isNameTooLong(name)) {
+                if (nameMayBeTooLong(name)) {
                     TermDocs docs = reader.termDocs(t);
                     if (docs.next()) {
                         int docId = docs.doc();
                         String uuid = reader.document(docId).get(FieldNames.UUID);
                         Node n = session.getNodeByIdentifier(uuid);
-                        logger.warn("Name too long: {}", n.getPath());
-                        longNameFound = true;
+                        if (isNameTooLong(n.getName(), n.getParent().getPath())) {
+                            logger.warn("Name too long: {}", n.getPath());
+                            longNameFound = true;
+                        }
                     }
                 }
             }
@@ -1012,6 +1016,29 @@ public class RepositoryUpgrade {
             logger.error("Node with a long name has been found. Please fix the content or rerun the migration with {} option.", SKIP_NAME_CHECK);
             throw new RepositoryException("Node with a long name has been found.");
         }
+    }
+
+    private boolean nameMayBeTooLong(String name) {
+        if (name.length() <= Utils.NODE_NAME_LIMIT / 4) {
+            return false;
+        }
+        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isNameTooLong(String name, String parentPath) {
+        if (!nameMayBeTooLong(name)) {
+            return false;
+        }
+        if (parentPath.length() < Utils.PATH_SHORT) {
+            return false;
+        }
+        if (parentPath.getBytes(Charsets.UTF_8).length < Utils.PATH_LONG) {
+            return false;
+        }
+        return true;
     }
 
     static class LoggingCompositeHook implements CommitHook {
