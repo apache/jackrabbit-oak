@@ -144,8 +144,8 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     }
 
     @Override public void remove(File recs, Options options) throws IOException {
+        globalMerge();
         if (options == Options.ACTIVE_DELETION) {
-            globalMerge();
             deleteTracker.track(recs);
         }
         store.removeRecords(recs);
@@ -153,11 +153,13 @@ public class BlobIdTracker implements Closeable, BlobTracker {
     }
 
     @Override public void remove(File recs) throws IOException {
+        globalMerge();
         store.removeRecords(recs);
         snapshot(true);
     }
 
     @Override public void remove(Iterator<String> recs) throws IOException {
+        globalMerge();
         store.removeRecords(recs);
         snapshot(true);
     }
