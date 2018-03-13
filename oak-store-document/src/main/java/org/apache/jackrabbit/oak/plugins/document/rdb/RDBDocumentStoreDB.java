@@ -389,6 +389,10 @@ public enum RDBDocumentStoreDB {
 
             return result;
         }
+
+        public String makeIndexConditionalForColumn(String columnName) {
+            return " exclude null keys";
+        }
     },
 
     ORACLE("Oracle") {
@@ -792,6 +796,10 @@ public enum RDBDocumentStoreDB {
 
             return result;
         }
+
+        public String makeIndexConditionalForColumn(String columnName) {
+            return " where " + columnName + " is not null";
+        }
     };
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreDB.class);
@@ -889,8 +897,10 @@ public enum RDBDocumentStoreDB {
         }
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");
-            result.add("create index " + tableName + "_SDT on " + tableName + " (SDTYPE)");
-            result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)");
+            result.add(
+                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"));
+            result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
+                    + makeIndexConditionalForColumn("SDMAXREVTIME"));
         }
         return result;
     }
@@ -979,6 +989,10 @@ public enum RDBDocumentStoreDB {
         return "bigint";
     }
 
+    public String makeIndexConditionalForColumn(String columnName) {
+        return "";
+    }
+
     /**
      * Statements needed to upgrade the DB
      *
@@ -993,8 +1007,9 @@ public enum RDBDocumentStoreDB {
             String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
                     "alter table " + tableName + " add SDMAXREVTIME " + bigint,
                     "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
-                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)",
-                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)", };
+                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"),
+                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
+                            + makeIndexConditionalForColumn("SDMAXREVTIME"), };
             return Arrays.asList(statements);
         } else {
             throw new IllegalArgumentException("level must be 1 or 2");
