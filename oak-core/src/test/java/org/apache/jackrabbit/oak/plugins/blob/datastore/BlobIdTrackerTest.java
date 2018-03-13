@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closer;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -124,6 +122,18 @@ public class BlobIdTrackerTest {
             scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
         scheduledFuture.get();
         assertEquals("Extra elements after add", initAdd, retrieve(tracker));
+
+        remove(tracker, folder.newFile(), initAdd, range(1, 2));
+
+        assertEquals("Extra elements after remove", initAdd, retrieve(tracker));
+    }
+
+    @Test
+    public void snapshotBeforeRemove() throws Exception {
+        Set<String> initAdd = add(tracker, range(0, 4));
+        ScheduledFuture<?> scheduledFuture =
+            scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
+        scheduledFuture.get();
 
         remove(tracker, folder.newFile(), initAdd, range(1, 2));
 
