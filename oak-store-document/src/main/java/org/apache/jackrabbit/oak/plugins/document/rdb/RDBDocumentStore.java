@@ -1112,7 +1112,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    private static String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet, String tableName) {
+    private static String dumpIndexData(DatabaseMetaData met, ResultSetMetaData rmet, String tableName, Set<String> indexedColumns) {
 
         ResultSet rs = null;
         try {
@@ -1134,6 +1134,13 @@ public class RDBDocumentStore implements DocumentStore {
                 // retry ucase
                 rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false, true);
                 indices = getIndexInformation(rs, rmetSchemaName);
+            }
+            if (indexedColumns != null) {
+                for (Map<String, Object> map : indices.values()) {
+                    if (map.containsKey("columns")) {
+                        indexedColumns.addAll((Set<String>) (map.get("columns")));
+                    }
+                }
             }
             return dumpIndexData(indices);
         } catch (SQLException ex) {
@@ -1205,7 +1212,7 @@ public class RDBDocumentStore implements DocumentStore {
                     info.put("tname", tname);
                     String cname = rs.getString("COLUMN_NAME");
                     if (cname != null) {
-                        columns.add(cname);
+                        columns.add(cname.toUpperCase(Locale.ENGLISH));
                         String order = "A".equals(rs.getString("ASC_OR_DESC")) ? " ASC" : ("D".equals(rs.getString("ASC_OR_DESC")) ? " DESC" : "");
                         ((Map<Integer, String>) info.get("fields")).put(rs.getInt("ORDINAL_POSITION"), cname + order);
                     }
@@ -1273,7 +1280,8 @@ public class RDBDocumentStore implements DocumentStore {
 
             String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
             tmd.setSchemaInfo(tableInfo);
-            String indexInfo = dumpIndexData(con.getMetaData(), met, tableName);
+            Set<String> indexOn = new HashSet<String>();
+            String indexInfo = dumpIndexData(con.getMetaData(), met, tableName, indexOn);
             tmd.setIndexInfo(indexInfo);
 
             closeResultSet(checkResultSet);
@@ -1285,6 +1293,10 @@ public class RDBDocumentStore implements DocumentStore {
 
             if (!hasSDTypeColumn && upgradeToSchema >= 2) {
                 dbWasChanged |= upgradeTable(con, tableName, 2);
+            }
+
+            if (!indexOn.contains("MODIFIED") && col == Collection.NODES) {
+                dbWasChanged |= addModifiedIndex(con, tableName);
             }
 
             tablesPresent.add(tableName);
@@ -1353,7 +1365,30 @@ public class RDBDocumentStore implements DocumentStore {
                 closeStatement(upgradeStatement);
             }
         }
-        
+
+        return wasChanged;
+    }
+
+    private boolean addModifiedIndex(Connection con, String tableName) throws SQLException {
+        boolean wasChanged = false;
+
+        String statement = this.dbInfo.getModifiedIndexStatement(tableName);
+        Statement upgradeStatement = null;
+        try {
+            upgradeStatement = con.createStatement();
+            upgradeStatement.execute(statement);
+            upgradeStatement.close();
+            con.commit();
+            LOG.info("Added modified index to " + tableName + " using '" + statement + "'");
+            wasChanged = true;
+        } catch (SQLException exup) {
+            con.rollback();
+            LOG.info("Attempted to add modified index to " + tableName + " using '" + statement
+                    + "', but failed - will continue without.", exup);
+        } finally {
+            closeStatement(upgradeStatement);
+        }
+
         return wasChanged;
     }
     
@@ -1371,7 +1406,7 @@ public class RDBDocumentStore implements DocumentStore {
 
             String tableInfo = RDBJDBCTools.dumpResultSetMeta(met);
             tmd.setSchemaInfo(tableInfo);
-            String indexInfo = dumpIndexData(con.getMetaData(), met, tmd.getName());
+            String indexInfo = dumpIndexData(con.getMetaData(), met, tmd.getName(), null);
             tmd.setIndexInfo(indexInfo);
         } finally {
             closeResultSet(checkResultSet);
