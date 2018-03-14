@@ -239,7 +239,9 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void putSegment(@Nonnull Segment segment) {}
+        public void putSegment(@Nonnull Segment segment) {
+            segment.getSegmentId().unloaded();
+        }
 
         @Override
         public void clear() {}
