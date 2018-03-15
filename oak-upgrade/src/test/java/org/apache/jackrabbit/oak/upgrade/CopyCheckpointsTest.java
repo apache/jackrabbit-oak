@@ -63,11 +63,11 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
 
         BlobStoreContainer blob = new FileDataStoreContainer();
         params.add(new Object[]{
-                "Fails on missing blobstore",
+                "Without data store defined it always copies checkpoints",
                 new SegmentNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
                 asList(),
-                Result.EXCEPTION
+                Result.CHECKPOINTS_COPIED
         });
         params.add(new Object[]{
                 "Suppress the warning",
