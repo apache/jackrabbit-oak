@@ -221,7 +221,7 @@ public class LoopbackBlobStoreTest {
                         assertEquals(numberOfBytesRead,
                                 expectedNumberOfBytesRead);
                         assertEquals(expectedBufferContent,
-                                actualInputStreamAsString);
+                                encodeBufferFreeSpace(actualInputStreamAsString));
                     }
                 }
             }
@@ -273,33 +273,33 @@ public class LoopbackBlobStoreTest {
         return new Object[]{
                 //blobId, offsetToRead, bufSize, bufOffset, lengthToRead, expectedBufferContent, expectedNumOfBytesRead
                 new Object[]{
-                        "",                                 0,  0, 0,   0, "",                                      0},
+                        "",                                 0,  0, 0,   0, "",                      0},
                 new Object[]{
-                        "",                                 0,  0, 0,   1, "",                                      0},
+                        "",                                 0,  0, 0,   1, "",                      0},
                 new Object[]{
-                        "IDX1",                             0,  4, 0,   4, "IDX1",                                  4},
+                        "IDX1",                             0,  4, 0,   4, "IDX1",                  4},
                 new Object[]{
-                        "IDX1",                             4,  0, 0,   4, "",                                      0},
+                        "IDX1",                             4,  0, 0,   4, "",                      0},
                 new Object[]{
-                        "IDX1",                             4,  4, 0,   4, "\0\0\0\0",                              0},
+                        "IDX1",                             4,  4, 0,   4, "####",                  0},
                 new Object[]{
-                        "IDX1",                             0,  5, 0,   4, "IDX1\0",                                4},
+                        "IDX1",                             0,  5, 0,   4, "IDX1#",                 4},
                 new Object[]{
-                        "IDX1",                             1,  4, 0,   3, "DX1\0",                                 3},
+                        "IDX1",                             1,  4, 0,   3, "DX1#",                  3},
                 new Object[]{
-                        "IDX1",                             1,  4, 0,   4, "DX1\0",                                 3},
+                        "IDX1",                             1,  4, 0,   4, "DX1#",                  3},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZYZYYXYZYZYXYZQ", 10, 20, 3,  10, "\0\0\0XXXXYYZYZY\0\0\0\0\0\0\0",       10},
+                        "ID2XXXXXXXXXXXYYZYZYYXYZYZYXYZQ", 10, 20, 3,  10, "###XXXXYYZYZY#######", 10},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZY",              10, 20, 3,  10, "\0\0\0XXXXYYZY\0\0\0\0\0\0\0\0\0",      8},
+                        "ID2XXXXXXXXXXXYYZY",              10, 20, 3,  10, "###XXXXYYZY#########",  8},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZY",              10, 20, 3,  10, "\0\0\0XXXXYYZY\0\0\0\0\0\0\0\0\0",      8},
+                        "ID2XXXXXXXXXXXYYZY",              10, 20, 3,  10, "###XXXXYYZY#########",  8},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZY",              10, 11, 3,  10, "\0\0\0XXXXYYZY",                        8},
+                        "ID2XXXXXXXXXXXYYZY",              10, 11, 3,  10, "###XXXXYYZY",           8},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZY",              10, 11, 2,  10, "\0\0XXXXYYZY\0",                        8},
+                        "ID2XXXXXXXXXXXYYZY",              10, 11, 2,  10, "##XXXXYYZY#",           8},
                 new Object[]{
-                        "ID2XXXXXXXXXXXYYZY",              10, 11, 1,  10, "\0XXXXYYZY\0\0",                        8},
+                        "ID2XXXXXXXXXXXYYZY",              10, 11, 1,  10, "#XXXXYYZY##",           8},
         };
     }
 
@@ -344,6 +344,10 @@ public class LoopbackBlobStoreTest {
                 new Object[]{"ID2XXXXXXXXXXXYYZYZYYXYZYZYXYZQ"},
                 new Object[]{"ABCQ"}
         };
+    }
+
+    private String encodeBufferFreeSpace(final String actualInputStreamAsString) {
+        return actualInputStreamAsString.replace('\0', '#');
     }
 
     private InputStream adaptToUtf8InputStream(final String string)
