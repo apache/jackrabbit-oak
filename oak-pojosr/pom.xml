@@ -31,7 +31,6 @@
   <name>Oak PojoSR</name>
 
   <properties>
-    <skip.deployment>true</skip.deployment>
     <groovy.version>2.4.12</groovy.version>
   </properties>
 

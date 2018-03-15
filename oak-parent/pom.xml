@@ -208,6 +208,7 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.migration</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.name</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype.write</filter>

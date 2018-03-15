@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLTransientException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -418,11 +419,19 @@ public class RDBJDBCTools {
                         }
                     } catch (IOException ex) {
                         LOG.warn("Invalid ID: " + value, ex);
-                        throw new DocumentStoreException("Invalid ID: " + value, ex);
+                        throw asDocumentStoreException(ex, "Invalid ID: " + value);
                     }
                 }
                 return startIndex;
             }
         };
+    }
+    
+    private static DocumentStoreException.Type exceptionTypeFor(Exception cause) {
+        return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
+    }
+    
+    public static DocumentStoreException asDocumentStoreException(@Nonnull Exception cause, @Nonnull String message) {
+        return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
     }
 }
