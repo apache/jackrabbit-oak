@@ -117,6 +117,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         for (String principalName : entries.keySet()) {
             if (permissionRoot.hasChildNode(principalName)) {
                 NodeBuilder principalRoot = permissionRoot.getChildNode(principalName);
+                boolean removed = false;
 
                 // find the ACL node that for this path and principal
                 NodeBuilder parent = principalRoot.getChildNode(nodeName);
@@ -137,12 +138,15 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                             newParent = child;
                         } else {
                             newParent.setChildNode(childName, child.getNodeState());
-                            child.remove();
                         }
                     }
-                    parent.remove();
+
                     if (newParent != null) {
+                        // replace the 'parent', which got removed
                         principalRoot.setChildNode(nodeName, newParent.getNodeState());
+                        removed = true;
+                    } else {
+                        removed = parent.remove();
                     }
                 } else {
                     // check if any of the child nodes match
@@ -152,9 +156,12 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                         }
                         NodeBuilder child = parent.getChildNode(childName);
                         if (PermissionUtil.checkACLPath(child, accessControlledPath)) {
-                            child.remove();
+                            removed = child.remove();
                         }
                     }
+                }
+                if (removed) {
+                    updateNumEntries(principalRoot, -1);
                 }
             } else {
                 log.error("Unable to remove permission entry {}: Principal root missing.", this);
@@ -209,6 +216,10 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 parent.setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath);
             }
             updateEntries(parent, entry.getValue());
+
+            if (parent.isNew()) {
+                updateNumEntries(principalRoot, +1);
+            }
         }
     }
 
@@ -222,6 +233,17 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         for (AcEntry ace: list) {
             ace.writeToPermissionStore(parent);
         }
+    }
+
+    private static void updateNumEntries(@Nonnull NodeBuilder principalRoot, int cnt) {
+        PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
+        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
+        if (ps == null && !principalRoot.isNew() || numEntries < 0) {
+            // existing principal root that doesn't have the rep:numEntries set
+            // or numEntries turned negative
+            return;
+        }
+        principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
     }
 
     private final class JcrAllAcEntry extends AcEntry {

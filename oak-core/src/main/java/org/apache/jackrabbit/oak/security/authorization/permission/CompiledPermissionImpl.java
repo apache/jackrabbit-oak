@@ -110,9 +110,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
-        PermissionEntryCache cache = new PermissionEntryCache();
-        userStore = new PermissionEntryProviderImpl(store, cache, userNames, options);
-        groupStore = new PermissionEntryProviderImpl(store, cache, groupNames, options);
+        userStore = new PermissionEntryProviderImpl(store, userNames, options);
+        groupStore = new PermissionEntryProviderImpl(store, groupNames, options);
 
         typeProvider = new TreeTypeProvider(ctx);
     }

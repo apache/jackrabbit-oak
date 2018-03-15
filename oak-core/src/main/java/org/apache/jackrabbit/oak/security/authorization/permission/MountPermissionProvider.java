@@ -25,7 +25,6 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.LongUtils;
@@ -81,10 +80,10 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
         @CheckForNull
         @Override
-        public Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName,
-                @Nonnull String path) {
+        public Collection<PermissionEntry> load(@Nonnull String principalName,
+                                                @Nonnull String path) {
             for (PermissionStoreImpl store : stores) {
-                Collection<PermissionEntry> col = store.load(null, principalName, path);
+                Collection<PermissionEntry> col = store.load(principalName, path);
                 if (col != null && !col.isEmpty()) {
                     return col;
                 }
@@ -97,22 +96,27 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         public PrincipalPermissionEntries load(@Nonnull String principalName) {
             PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
             for (PermissionStoreImpl store : stores) {
-                ppe.getEntries().putAll(store.load(principalName).getEntries());
+                ppe.putAllEntries(store.load(principalName).getEntries());
             }
             ppe.setFullyLoaded(true);
             return ppe;
         }
 
         @Override
-        public long getNumEntries(@Nonnull String principalName, long max) {
+        public NumEntries getNumEntries(@Nonnull String principalName, long max) {
             long num = 0;
+            boolean isExact = true;
             for (PermissionStoreImpl store : stores) {
-                num = LongUtils.safeAdd(num, store.getNumEntries(principalName, max));
-                if (num >= max) {
+                NumEntries ne = store.getNumEntries(principalName, max);
+                num = LongUtils.safeAdd(num, ne.size);
+                if (!ne.isExact) {
+                    isExact = false;
+                }
+                if (num >= max && !isExact) {
                     break;
                 }
             }
-            return num;
+            return NumEntries.valueOf(num, isExact);
         }
 
         @Override

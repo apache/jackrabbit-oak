@@ -39,6 +39,7 @@ public interface PermissionConstants {
     String REP_ACCESS_CONTROLLED_PATH = "rep:accessControlledPath";
 	String REP_IS_ALLOW = "rep:isAllow";
     String REP_PRIVILEGE_BITS = "rep:privileges";
+    String REP_NUM_PERMISSIONS = "rep:numPermissions";
 
     Set<String> PERMISSION_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE);
     Set<String> PERMISSION_NODE_NAMES = ImmutableSet.of(REP_PERMISSION_STORE);

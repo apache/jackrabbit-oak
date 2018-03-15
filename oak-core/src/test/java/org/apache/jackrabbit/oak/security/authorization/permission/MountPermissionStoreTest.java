@@ -46,6 +46,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class MountPermissionStoreTest extends AbstractSecurityTest {
@@ -114,14 +116,14 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testLoadByAccessControlledPath() {
-        Collection<PermissionEntry> entries = permissionStore.load(null, EveryonePrincipal.NAME, CONTENT_PATH);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, CONTENT_PATH);
         assertNotNull(entries);
         assertEquals(1, entries.size());
     }
 
     @Test
     public void testLoadByNonAccessControlledPath() {
-        Collection<PermissionEntry> entries = permissionStore.load(null, EveryonePrincipal.NAME, TEST_PATH);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, TEST_PATH);
         assertNull(entries);
     }
 
@@ -143,22 +145,36 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
 
     @Test
     public void testGetNumEntries() {
-        assertEquals(2, permissionStore.getNumEntries(EveryonePrincipal.NAME, 10));
+        assertEquals(2, permissionStore.getNumEntries(EveryonePrincipal.NAME, 10).size);
     }
 
+    @Test
+    public void testGetNumEntriesMaxReachedExact() throws Exception {
+        PermissionStoreImpl mock = insertMockStore();
+        when(mock.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(2, true));
+
+        NumEntries ne = permissionStore.getNumEntries(EveryonePrincipal.NAME, 10);
+        assertEquals(NumEntries.valueOf(4, true), ne);
+
+        ne = permissionStore.getNumEntries(EveryonePrincipal.NAME, 2);
+        assertEquals(NumEntries.valueOf(4, true), ne);
+    }
 
     @Test
-    public void testGetNumEntriesMaxReached() throws Exception {
+    public void testGetNumEntriesMaxReachedNotExact() throws Exception {
         PermissionStoreImpl mock = insertMockStore();
-        when(mock.getNumEntries(EveryonePrincipal.NAME, Long.valueOf(10))).thenReturn(Long.valueOf(2));
+        when(mock.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(2, false));
 
-        assertEquals(4, permissionStore.getNumEntries(EveryonePrincipal.NAME, 10));
-        assertEquals(2, permissionStore.getNumEntries(EveryonePrincipal.NAME, 2));
+        NumEntries ne = permissionStore.getNumEntries(EveryonePrincipal.NAME, 10);
+        assertEquals(NumEntries.valueOf(4, false), ne);
+
+        ne = permissionStore.getNumEntries(EveryonePrincipal.NAME, 2);
+        assertEquals(NumEntries.valueOf(2, false), ne);
     }
 
     @Test
     public void testGetNumEntriesUnknownPrincipalName() {
-        assertEquals(0, permissionStore.getNumEntries("unknown", 10));
+        assertEquals(0, permissionStore.getNumEntries("unknown", 10).size);
     }
 
     @Test
@@ -176,7 +192,7 @@ public class MountPermissionStoreTest extends AbstractSecurityTest {
 
         PermissionStoreImpl mock = Mockito.mock(PermissionStoreImpl.class);
         List<PermissionStoreImpl> stores = (List<PermissionStoreImpl>) f.get(permissionStore);
-        stores.add(mock);
+        stores.add(0, mock);
         return mock;
     }
 }

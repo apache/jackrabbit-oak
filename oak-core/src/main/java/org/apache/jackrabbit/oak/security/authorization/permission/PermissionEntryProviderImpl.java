@@ -39,11 +39,16 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private static final long DEFAULT_SIZE = 250;
 
+
     /**
      * The set of principal names for which this {@code PermissionEntryProvider}
      * has been created.
      */
     private final Set<String> principalNames;
+
+    private final PermissionStore store;
+
+    private final long maxSize;
 
     /**
      * The set of principal names for which the store contains any permission
@@ -52,70 +57,26 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
      * this set is empty and thus no permission entries exist for the specified
      * set of principal.
      */
-    private final Set<String> existingNames = new HashSet<String>();
+    private Set<String> existingNames;
 
-    private final PermissionStore store;
+    private PermissionCache permissionCache;
 
-    private final PermissionEntryCache cache;
-
-    private final long maxSize;
-
-    private Map<String, Collection<PermissionEntry>> pathEntryMap;
-
-    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache cache,
-                                @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
+    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
         this.store = store;
-        this.cache = cache;
         this.principalNames = Collections.unmodifiableSet(principalNames);
         this.maxSize = options.getConfigValue(EAGER_CACHE_SIZE_PARAM, DEFAULT_SIZE);
         init();
     }
 
     private void init() {
-        long cnt = 0;
-        existingNames.clear();
-        for (String name : principalNames) {
-            long n = store.getNumEntries(name, maxSize);
-            /*
-            if cache.getNumEntries (n) returns a number bigger than 0, we
-            remember this principal name int the 'existingNames' set
-            */
-            if (n > 0) {
-                existingNames.add(name);
-            }
-            /*
-            Calculate the total number of permission entries (cnt) defined for the
-            given set of principals in order to be able to determine if the cache
-            should be loaded upfront.
-            Note however that cache.getNumEntries (n) may return Long.MAX_VALUE
-            if the underlying implementation does not know the exact value, and
-            the child node count is higher than maxSize (see OAK-2465).
-            */                        
-            if (cnt < Long.MAX_VALUE) {
-                if (Long.MAX_VALUE == n) {
-                    cnt = Long.MAX_VALUE;
-                } else {
-                    cnt = LongUtils.safeAdd(cnt, n);
-                }
-            }
-        }
-
-        if (cnt > 0 && cnt < maxSize) {
-            // the total number of entries is smaller that maxSize, so we can
-            // cache all entries for all principals having any entries right away
-            pathEntryMap = new HashMap<String, Collection<PermissionEntry>>();
-            for (String name : existingNames) {
-                cache.load(store, pathEntryMap, name);
-            }
-        } else {
-            pathEntryMap = null;
-        }
+        PermissionCacheBuilder builder = new PermissionCacheBuilder(store);
+        existingNames = builder.init(principalNames, maxSize);
+        permissionCache = builder.build();
     }
 
     //--------------------------------------------< PermissionEntryProvider >---
     @Override
     public void flush() {
-        cache.flush(principalNames);
         init();
     }
 
@@ -132,38 +93,13 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     @Override
     @Nonnull
     public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
-        if (existingNames.isEmpty()) {
-            return Collections.emptyList();
-        } else if (pathEntryMap != null) {
-            Collection<PermissionEntry> entries = pathEntryMap.get(accessControlledTree.getPath());
-            return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
-        } else {
-            return (accessControlledTree.hasChild(AccessControlConstants.REP_POLICY)) ?
-                    loadEntries(accessControlledTree.getPath()) :
-                    Collections.<PermissionEntry>emptyList();
-        }
+        return permissionCache.getEntries(accessControlledTree);
     }
 
     //------------------------------------------------------------< private >---
     @Nonnull
     private Collection<PermissionEntry> getEntries(@Nonnull String path) {
-        if (existingNames.isEmpty()) {
-            return Collections.emptyList();
-        } else if (pathEntryMap != null) {
-            Collection<PermissionEntry> entries = pathEntryMap.get(path);
-            return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
-        } else {
-            return loadEntries(path);
-        }
-    }
-
-    @Nonnull
-    private Collection<PermissionEntry> loadEntries(@Nonnull String path) {
-        Collection<PermissionEntry> ret = new TreeSet<PermissionEntry>();
-        for (String name : existingNames) {
-            cache.load(store, ret, name, path);
-        }
-        return ret;
+        return permissionCache.getEntries(path);
     }
 
     private final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
