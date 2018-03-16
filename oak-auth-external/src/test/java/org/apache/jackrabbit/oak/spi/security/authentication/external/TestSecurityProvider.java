@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
@@ -30,6 +31,8 @@ public final class TestSecurityProvider {
 
     public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration,
             @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        return new SecurityProviderBuilder().with(configuration).with(externalPrincipalConfiguration, PrincipalConfiguration.class).build();
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
+        SecurityProviderHelper.updateConfig(sp, externalPrincipalConfiguration, PrincipalConfiguration.class);
+        return sp;
     }
 }

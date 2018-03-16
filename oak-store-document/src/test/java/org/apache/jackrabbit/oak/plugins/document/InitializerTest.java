@@ -35,7 +35,7 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         NodeBuilder builder = mk.getNodeStore().getRoot().builder();
         new InitialContent().initialize(builder);
 
-        SecurityProvider provider = new SecurityProviderBuilder().with(
+        SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",
@@ -54,7 +54,7 @@ public class InitializerTest extends AbstractMongoConnectionTest {
         new InitialContent().initialize(builder);
         mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        SecurityProvider provider = new SecurityProviderBuilder().with(
+        SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",

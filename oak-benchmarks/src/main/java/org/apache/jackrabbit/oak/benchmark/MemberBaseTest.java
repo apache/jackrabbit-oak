@@ -164,7 +164,7 @@ abstract class MemberBaseTest extends AbstractTest {
                 public Jcr customize(Oak oak) {
                     ConfigurationParameters conf = ConfigurationParameters.of(UserConfiguration.NAME,
                             ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
-                    SecurityProvider sp = new SecurityProviderBuilder().with(conf).build();
+                    SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
                     return new Jcr(oak).with(sp);
                 }
             });

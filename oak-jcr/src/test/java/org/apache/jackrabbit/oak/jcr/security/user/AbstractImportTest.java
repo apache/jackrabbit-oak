@@ -74,9 +74,9 @@ public abstract class AbstractImportTest {
     public void before() throws Exception {
         ConfigurationParameters config = getConfigurationParameters();
         if (config != null) {
-            securityProvider = new SecurityProviderBuilder().with(config).build();
+            securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
         } else {
-            securityProvider = new SecurityProviderBuilder().build();
+            securityProvider = SecurityProviderBuilder.newBuilder().build();
         }
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setFailTraversal(true);
