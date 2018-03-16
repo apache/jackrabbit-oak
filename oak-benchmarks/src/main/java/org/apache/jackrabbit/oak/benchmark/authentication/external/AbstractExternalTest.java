@@ -236,7 +236,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
     private static SecurityProvider newTestSecurityProvider(
             ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        SecurityProvider delegate = new SecurityProviderBuilder().build();
+        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().build();
 
         PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
         if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {

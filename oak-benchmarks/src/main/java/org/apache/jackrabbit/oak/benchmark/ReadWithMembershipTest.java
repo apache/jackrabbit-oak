@@ -98,7 +98,7 @@ public class ReadWithMembershipTest extends ReadDeepTreeTest {
                 @Override
                 public Jcr customize(Oak oak) {
                     ConfigurationParameters params = ConfigurationParameters.of("eagerCacheSize", 100);
-                    SecurityProvider securityProvider = new SecurityProviderBuilder().with(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params)).build();
+                    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(AuthorizationConfiguration.NAME, params)).build();
                     return new Jcr(oak).with(securityProvider);
                 }
             });

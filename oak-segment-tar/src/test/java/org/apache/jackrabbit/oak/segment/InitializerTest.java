@@ -47,7 +47,7 @@ public class InitializerTest {
         NodeBuilder builder = store.getRoot().builder();
         new InitialContent().initialize(builder);
 
-        SecurityProvider provider = new SecurityProviderBuilder().with(
+        SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
                 ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME,
                         ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
                                 "adminId", "admin",

@@ -81,9 +81,9 @@ public class ImportIgnoreTest {
             params.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
             ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(params));
 
-            securityProvider = new SecurityProviderBuilder().with(config).build();
+            securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
         } else {
-            securityProvider = new SecurityProviderBuilder().build();
+            securityProvider = SecurityProviderBuilder.newBuilder().build();
         }
 
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();

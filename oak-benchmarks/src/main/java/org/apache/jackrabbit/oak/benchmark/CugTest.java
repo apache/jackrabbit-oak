@@ -83,7 +83,7 @@ public class CugTest extends ReadDeepTreeTest {
 
     private static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters params,
             boolean reverseOrder) {
-        SecurityProvider delegate = new SecurityProviderBuilder().with(params).build();
+        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(params).build();
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate
                 .getConfiguration((AuthorizationConfiguration.class));
         AuthorizationConfiguration defaultAuthorization = checkNotNull(authorizationConfiguration.getDefaultConfig());
