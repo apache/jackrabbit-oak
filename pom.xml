@@ -195,11 +195,6 @@
                         <include name="target/*-src.zip*" />
                       </fileset>
                     </copy>
-                    <checksum algorithm="MD5" fileext=".md5">
-                      <fileset dir="${basedir}/target/${project.version}">
-                        <include name="*.zip" />
-                      </fileset>
-                    </checksum>
                     <checksum algorithm="SHA1" fileext=".sha1">
                       <fileset dir="${basedir}/target/${project.version}">
                         <include name="*.zip" />
