@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -70,9 +71,15 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     @Nonnull
     @Override
     public Set<Group> getGroupMembership(@Nonnull Principal principal) {
-        Set<Group> groups = new HashSet<Group>();
+        return Collections.emptySet();
+    }
+
+    @Nonnull
+    @Override
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+        Set<Principal> groups = new HashSet<>();
         for (PrincipalProvider provider : providers) {
-            groups.addAll(provider.getGroupMembership(principal));
+            groups.addAll(provider.getMembershipPrincipals(principal));
         }
         return groups;
     }

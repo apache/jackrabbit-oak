@@ -24,8 +24,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableSet;
-
 /**
  * Implementation of the {@code PrincipalProvider} interface that never
  * returns any principals.
@@ -44,13 +42,19 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
     @Nonnull
     @Override
     public Set<Group> getGroupMembership(@Nonnull Principal principal) {
-        return ImmutableSet.of();
+        return Collections.emptySet();
+    }
+
+    @Nonnull
+    @Override
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+        return Collections.emptySet();
     }
 
     @Nonnull
     @Override
     public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
-        return ImmutableSet.of();
+        return Collections.emptySet();
     }
 
     @Nonnull

@@ -457,7 +457,7 @@ public class AbstractLoginModuleTest {
         Principal principal = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).next();
         Set<Principal> expected = new HashSet<>();
         expected.add(principal);
-        expected.addAll(principalProvider.getGroupMembership(principal));
+        expected.addAll(principalProvider.getMembershipPrincipals(principal));
 
         Set<? extends Principal> principals = loginModule.getPrincipals(principal);
 

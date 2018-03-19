@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Enumeration;
 import java.util.Iterator;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class PrincipalManagerImplTest {
     private Iterable<Principal> testPrincipals = provider.getTestPrincipals();
 
     private static boolean isGroup(Principal p) {
-        return p instanceof Group;
+        return p instanceof GroupPrincipal;
     }
 
     private static void assertIterator(@Nonnull Iterator<? extends Principal> expected, @Nonnull Iterator<? extends Principal> result) {
@@ -144,7 +145,7 @@ public class PrincipalManagerImplTest {
     public void testAllMembersKnown() {
         for (Principal p : testPrincipals) {
             if (isGroup(p)) {
-                Enumeration<? extends Principal> en = ((Group) p).members();
+                Enumeration<? extends Principal> en = ((GroupPrincipal) p).members();
                 while (en.hasMoreElements()) {
                     Principal memb = en.nextElement();
                     assertTrue(principalMgr.hasPrincipal(memb.getName()));
@@ -209,7 +210,7 @@ public class PrincipalManagerImplTest {
 
             assertTrue(isGroup(p));
 
-            Enumeration<? extends Principal> members = ((Group) p).members();
+            Enumeration<? extends Principal> members = ((GroupPrincipal) p).members();
             while (members.hasMoreElements()) {
                 Principal memb = members.nextElement();
 
