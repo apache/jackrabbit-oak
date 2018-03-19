@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -551,7 +550,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     @Test
     public void testSetEntryForGroupPrincipal() throws Exception {
         Privilege[] privs = privilegesFromNames(JCR_READ);
-        Group grPrincipal = (Group) principalManager.getEveryone();
+        Principal grPrincipal = principalManager.getEveryone();
 
         // adding allow-entry must succeed
         assertTrue(acl.addAccessControlEntry(grPrincipal, privs));

@@ -24,6 +24,8 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -80,19 +82,19 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         return config;
     }
 
-    java.security.acl.Group getGroupPrincipal() throws Exception {
+    GroupPrincipal getGroupPrincipal() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
         return getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
     }
 
-    java.security.acl.Group getGroupPrincipal(@Nonnull ExternalIdentityRef ref) throws Exception {
+    GroupPrincipal getGroupPrincipal(@Nonnull ExternalIdentityRef ref) throws Exception {
         String principalName = idp.getIdentity(ref).getPrincipalName();
         Principal p = principalProvider.getPrincipal(principalName);
 
         assertNotNull(p);
-        assertTrue(p instanceof java.security.acl.Group);
+        assertTrue(p instanceof GroupPrincipal);
 
-        return (java.security.acl.Group) p;
+        return (GroupPrincipal) p;
     }
 
     Group createTestGroup() throws Exception {

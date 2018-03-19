@@ -25,6 +25,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -162,7 +163,7 @@ public class L3_PrecedenceRulesTest extends AbstractJCRTest {
     public void testGroupMembership() throws RepositoryException {
         assertFalse(testSession.nodeExists(testRoot));
 
-        assertTrue(((java.security.acl.Group) testGroupPrincipal).isMember(testPrincipal));
+        assertTrue(((GroupPrincipal) testGroupPrincipal).isMember(testPrincipal));
 
         AccessControlUtils.addAccessControlEntry(superuser, testRoot, testGroupPrincipal, AccessControlUtils.privilegesFromNames(superuser, Privilege.JCR_READ), true);
         superuser.save();

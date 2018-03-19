@@ -492,9 +492,9 @@ public abstract class AbstractLoginModule implements LoginModule {
             log.debug("Cannot retrieve principals. No principal provider configured.");
             return Collections.emptySet();
         } else {
-            Set<Principal> principals = new HashSet();
+            Set<Principal> principals = new HashSet<>();
             principals.add(userPrincipal);
-            principals.addAll(principalProvider.getGroupMembership(userPrincipal));
+            principals.addAll(principalProvider.getMembershipPrincipals(userPrincipal));
             return principals;
         }
     }

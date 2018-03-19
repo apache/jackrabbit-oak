@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -182,7 +182,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private boolean isAdmin(@Nonnull Principal principal) {
         if (principal instanceof AdminPrincipal) {
             return true;
-        } else if (principal instanceof Group) {
+        } else if (GroupPrincipals.isGroup(principal)) {
             return false;
         } else {
             try {
@@ -215,7 +215,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             log.debug("Cannot grant impersonation to an unknown principal.");
             return false;
         }
-        if (p instanceof Group) {
+        if (GroupPrincipals.isGroup(p)) {
             log.debug("Cannot grant impersonation to a principal that is a Group.");
             return false;
         }

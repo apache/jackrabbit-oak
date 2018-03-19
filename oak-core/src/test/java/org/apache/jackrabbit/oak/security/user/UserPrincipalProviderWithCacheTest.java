@@ -32,6 +32,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -171,7 +172,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     public void testGetGroupMembershipPopulatesCache() throws Exception {
         PrincipalProvider pp = createPrincipalProvider(systemRoot);
 
-        Set<? extends Principal> principals = pp.getGroupMembership(getTestUser().getPrincipal());
+        Set<? extends Principal> principals = pp.getMembershipPrincipals(getTestUser().getPrincipal());
         assertPrincipals(principals, EveryonePrincipal.getInstance(), testGroup.getPrincipal());
 
         root.refresh();
@@ -234,10 +235,10 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     public void testGetGroupMembershipForGroups() throws Exception {
         PrincipalProvider pp = createPrincipalProvider(systemRoot);
 
-        Set<? extends Principal> principals = pp.getGroupMembership(testGroup.getPrincipal());
+        Set<? extends Principal> principals = pp.getMembershipPrincipals(testGroup.getPrincipal());
         assertPrincipals(principals, EveryonePrincipal.getInstance());
 
-        principals = pp.getGroupMembership(testGroup2.getPrincipal());
+        principals = pp.getMembershipPrincipals(testGroup2.getPrincipal());
         assertPrincipals(principals, EveryonePrincipal.getInstance(), testGroup.getPrincipal());
 
         root.refresh();
@@ -273,7 +274,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         for (Principal p : principals) {
             String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipal", className);
+            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
         }
 
         Principal testPrincipal = getTestUser().getPrincipal();
@@ -288,7 +289,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
             assertTrue(p instanceof TreeBasedPrincipal);
             assertEquals(testGroup.getPath(), ((TreeBasedPrincipal) p).getPath());
 
-            java.security.acl.Group principalGroup = (java.security.acl.Group) p;
+            GroupPrincipal principalGroup = (GroupPrincipal) p;
             assertTrue(principalGroup.isMember(testPrincipal));
 
             Enumeration<? extends Principal> members = principalGroup.members();
@@ -307,7 +308,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         for (Principal p : principals) {
             String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipal", className);
+            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
         }
 
         testGroup.remove();
@@ -326,7 +327,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
             assertTrue(p instanceof TreeBasedPrincipal);
             assertNull(((TreeBasedPrincipal) p).getPath());
 
-            java.security.acl.Group principalGroup = (java.security.acl.Group) p;
+            GroupPrincipal principalGroup = (GroupPrincipal) p;
             assertFalse(principalGroup.isMember(getTestUser().getPrincipal()));
 
             Enumeration<? extends Principal> members = principalGroup.members();
@@ -520,7 +521,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         root.refresh();
 
-        List<PropertyState> props = new ArrayList();
+        List<PropertyState> props = new ArrayList<>();
         props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
         props.add(PropertyStates.createProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
         props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED));
@@ -603,7 +604,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     private static final class GroupPredicate implements Predicate<Principal> {
         @Override
         public boolean apply(@Nullable Principal input) {
-            return (input instanceof java.security.acl.Group) && !EveryonePrincipal.getInstance().equals(input);
+            return (input instanceof GroupPrincipal) && !EveryonePrincipal.getInstance().equals(input);
         }
     }
 }

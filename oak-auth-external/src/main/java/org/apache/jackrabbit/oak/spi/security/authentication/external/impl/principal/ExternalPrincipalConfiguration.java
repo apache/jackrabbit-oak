@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;

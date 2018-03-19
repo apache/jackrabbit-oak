@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -68,11 +69,11 @@ public class EveryoneGroupTest extends AbstractUserTest {
     @Test
     public void testGroupPrincipal() throws Exception {
         Principal everyonePrincipal = everyone.getPrincipal();
-        assertTrue(everyonePrincipal instanceof java.security.acl.Group);
+        assertTrue(everyonePrincipal instanceof GroupPrincipal);
         assertTrue(everyonePrincipal.equals(EveryonePrincipal.getInstance()));
         assertTrue(EveryonePrincipal.getInstance().equals(everyonePrincipal));
 
-        java.security.acl.Group gr = (java.security.acl.Group) everyonePrincipal;
+        GroupPrincipal gr = (GroupPrincipal) everyonePrincipal;
         assertFalse(gr.isMember(everyonePrincipal));
         assertTrue(gr.isMember(getTestUser(superuser).getPrincipal()));
         assertTrue(gr.isMember(new PrincipalImpl("test")));

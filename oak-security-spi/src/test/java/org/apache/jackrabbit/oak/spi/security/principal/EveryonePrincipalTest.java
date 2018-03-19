@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.util.Enumeration;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import org.junit.Test;
 
@@ -46,21 +47,6 @@ public class EveryonePrincipalTest  {
     @Test
     public void testIsMemberSelf() {
         assertFalse(EveryonePrincipal.getInstance().isMember(everyone));
-    }
-
-    @Test
-    public void testAddMember() {
-        assertFalse(EveryonePrincipal.getInstance().addMember(new PrincipalImpl("test")));
-    }
-
-    @Test
-    public void testAddMemberSelf() {
-        assertFalse(EveryonePrincipal.getInstance().addMember(everyone));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testRemoveMember() {
-        EveryonePrincipal.getInstance().removeMember(everyone);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -130,17 +116,7 @@ public class EveryonePrincipalTest  {
         }
     }
 
-    private class OtherEveryoneGroup extends OtherEveryone implements java.security.acl.Group {
-
-        @Override
-        public boolean addMember(Principal principal) {
-            return false;
-        }
-
-        @Override
-        public boolean removeMember(Principal principal) {
-            return false;
-        }
+    private class OtherEveryoneGroup extends OtherEveryone implements GroupPrincipal {
 
         @Override
         public boolean isMember(Principal principal) {

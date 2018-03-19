@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -51,7 +53,7 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
             Principal principal = principalProvider.getPrincipal(princName);
 
             assertNotNull(principal);
-            assertTrue(principal instanceof java.security.acl.Group);
+            assertTrue(principal instanceof GroupPrincipal);
         }
     }
 
@@ -69,9 +71,9 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
                 Principal principal = principalProvider.getPrincipal(inheritedPrincName);
 
                 assertNotNull(principal);
-                assertTrue(principal instanceof java.security.acl.Group);
+                assertTrue(principal instanceof GroupPrincipal);
 
-                java.security.acl.Group inheritedGrPrincipal = (java.security.acl.Group) principal;
+                GroupPrincipal inheritedGrPrincipal = (GroupPrincipal) principal;
                 assertTrue(inheritedGrPrincipal.isMember(new PrincipalImpl(externalUser.getPrincipalName())));
                 assertFalse(inheritedGrPrincipal.isMember(grPrincipal));
             }

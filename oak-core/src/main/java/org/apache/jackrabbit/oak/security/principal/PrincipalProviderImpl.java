@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -81,7 +81,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @Nonnull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
         Authorizable authorizable = getAuthorizable(principal);
         if (authorizable == null) {
             return Collections.emptySet();
@@ -144,14 +144,14 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
-    private Set<Group> getGroupMembership(Authorizable authorizable) {
-        Set<java.security.acl.Group> groupPrincipals = new HashSet<Group>();
+    private Set<Principal> getGroupMembership(Authorizable authorizable) {
+        Set<Principal> groupPrincipals = new HashSet<>();
         try {
             Iterator<org.apache.jackrabbit.api.security.user.Group> groups = authorizable.memberOf();
             while (groups.hasNext()) {
                 Principal grPrincipal = groups.next().getPrincipal();
-                if (grPrincipal instanceof Group) {
-                    groupPrincipals.add((Group) grPrincipal);
+                if (GroupPrincipals.isGroup(grPrincipal)) {
+                    groupPrincipals.add(grPrincipal);
                 }
             }
         } catch (RepositoryException e) {
