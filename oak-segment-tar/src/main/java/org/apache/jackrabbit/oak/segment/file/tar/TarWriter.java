@@ -23,10 +23,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
@@ -40,9 +38,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
-import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,17 +62,6 @@ class TarWriter implements Closeable {
     private boolean closed = false;
 
     /**
-     * Map of the entries that have already been written. Used by the
-     * {@link #containsEntry(long, long)} and {@link #readEntry(long, long)}
-     * methods to retrieve data from this file while it's still being written,
-     * and finally by the {@link #close()} method to generate the tar index.
-     * The map is ordered in the order that entries have been written.
-     * <p>
-     * Should only be accessed from synchronized code.
-     */
-    private final Map<UUID, TarEntry> index = newLinkedHashMap();
-
-    /**
      * List of binary references contained in this TAR file.
      */
     private final BinaryReferencesIndexWriter binaryReferences = newBinaryReferencesIndexWriter();
@@ -86,7 +73,7 @@ class TarWriter implements Closeable {
 
     private final SegmentArchiveManager archiveManager;
 
-    private final SegmentArchiveManager.SegmentArchiveWriter archive;
+    private final SegmentArchiveWriter archive;
 
     /** This object is used as an additional
      *  synchronization point by {@link #flush()} and {@link #close()} to
@@ -112,7 +99,7 @@ class TarWriter implements Closeable {
 
     synchronized boolean containsEntry(long msb, long lsb) {
         checkState(!closed);
-        return index.containsKey(new UUID(msb, lsb));
+        return archive.containsSegment(msb, lsb);
     }
 
     /**
@@ -124,16 +111,10 @@ class TarWriter implements Closeable {
      * @return the byte buffer, or null if not in this file
      */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
-        TarEntry entry;
         synchronized (this) {
             checkState(!closed);
-            entry = index.get(new UUID(msb, lsb));
         }
-        if (entry != null) {
-            return archive.readSegment(entry);
-        } else {
-            return null;
-        }
+        return archive.readSegment(msb, lsb);
     }
 
     long writeEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
@@ -143,11 +124,10 @@ class TarWriter implements Closeable {
         synchronized (this) {
             checkState(!closed);
 
-            TarEntry entry = archive.writeSegment(msb, lsb, data, offset, size, generation);
+            archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
             long currentLength = archive.getLength();
 
             checkState(currentLength <= Integer.MAX_VALUE);
-            index.put(new UUID(msb, lsb), entry);
 
             return currentLength;
         }
@@ -219,7 +199,6 @@ class TarWriter implements Closeable {
         synchronized (closeMonitor) {
             writeBinaryReferences();
             writeGraph();
-            writeIndex();
 
             archive.close();
         }
@@ -309,25 +288,6 @@ class TarWriter implements Closeable {
         buffer.putInt(GRAPH_MAGIC);
 
         archive.writeGraph(buffer.array());
-    }
-
-    private void writeIndex() throws IOException {
-        IndexWriter writer = IndexWriter.newIndexWriter(BLOCK_SIZE);
-
-        for (TarEntry entry : index.values()) {
-            writer.addEntry(
-                    entry.msb(),
-                    entry.lsb(),
-                    entry.offset(),
-                    entry.size(),
-                    entry.generation().getGeneration(),
-                    entry.generation().getFullGeneration(),
-                    entry.generation().isCompacted()
-            );
-        }
-
-        byte[] index = writer.write();
-        archive.writeIndex(index);
     }
 
     synchronized long fileLength() {

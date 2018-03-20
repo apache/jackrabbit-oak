@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment;
+package org.apache.jackrabbit.oak.segment.spi.persistence;
 
-import org.apache.jackrabbit.oak.segment.file.tar.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
 
 public interface SegmentNodeStorePersistence {
 
@@ -40,52 +37,4 @@ public interface SegmentNodeStorePersistence {
 
     RepositoryLock lockRepository() throws IOException;
 
-    interface JournalFile {
-
-        JournalFileReader openJournalReader() throws IOException;
-
-        JournalFileWriter openJournalWriter() throws IOException;
-
-        String getName();
-
-        boolean exists();
-    }
-
-    interface JournalFileReader extends Closeable {
-
-        String readLine() throws IOException;
-
-    }
-
-    interface JournalFileWriter extends Closeable {
-
-        void truncate() throws IOException;
-
-        void writeLine(String line) throws IOException;
-
-    }
-
-    interface GCJournalFile {
-
-        void writeLine(String line) throws IOException;
-
-        List<String> readLines() throws IOException;
-
-    }
-
-    interface ManifestFile {
-
-        boolean exists();
-
-        Properties load() throws IOException;
-
-        void save(Properties properties) throws IOException;
-
-    }
-
-    interface RepositoryLock {
-
-        void unlock() throws IOException;
-
-    }
 }

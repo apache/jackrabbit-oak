@@ -39,8 +39,8 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;

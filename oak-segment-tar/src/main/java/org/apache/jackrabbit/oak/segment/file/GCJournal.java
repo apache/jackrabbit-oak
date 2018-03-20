@@ -32,7 +32,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.GCJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.slf4j.Logger;

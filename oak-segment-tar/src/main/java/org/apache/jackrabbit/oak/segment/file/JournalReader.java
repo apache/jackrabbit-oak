@@ -23,7 +23,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +38,9 @@ import com.google.common.collect.AbstractIterator;
 public final class JournalReader extends AbstractIterator<JournalEntry> implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
-    private final SegmentNodeStorePersistence.JournalFileReader reader;
+    private final JournalFileReader reader;
 
-    public JournalReader(SegmentNodeStorePersistence.JournalFile journal) throws IOException {
+    public JournalReader(JournalFile journal) throws IOException {
         this.reader = journal.openJournalReader();
     }
 

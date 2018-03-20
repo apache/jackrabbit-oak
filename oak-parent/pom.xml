@@ -233,6 +233,8 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.query</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.server</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
+                  <filter>!org.apache.jackrabbit.oak.segment.spi.monitor</filter>
+                  <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
