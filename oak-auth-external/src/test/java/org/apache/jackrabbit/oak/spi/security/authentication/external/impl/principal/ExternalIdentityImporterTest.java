@@ -37,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -71,11 +69,8 @@ public class ExternalIdentityImporterTest {
             "   <sv:property sv:name=\"rep:lastSynced\" sv:type=\"Date\"><sv:value>2016-05-03T10:03:08.061+02:00</sv:value></sv:property>" +
             "</sv:node>";
 
-    private Repository repo;
-
-    @Before
-    public void before() throws Exception {
-        SecurityProvider securityProvider = TestSecurityProvider.newTestSecurityProvider(getConfigurationParameters(),
+    private Repository createRepo() throws Exception {
+        SecurityProvider securityProvider = TestSecurityProvider.newTestSecurityProvider(ConfigurationParameters.EMPTY,
                 new ExternalPrincipalConfiguration());
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setFailTraversal(true);
@@ -83,22 +78,16 @@ public class ExternalIdentityImporterTest {
         Jcr jcr = new Jcr();
         jcr.with(securityProvider);
         jcr.with(queryEngineSettings);
-        repo = jcr.createRepository();
+        return jcr.createRepository();
     }
 
-    @After
-    public void after() throws Exception {
-        if (repo instanceof JackrabbitRepository) {
+    private static void shutdown(Repository repo) throws Exception {
+        if (repo != null && repo instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repo).shutdown();
         }
     }
 
-    @Nonnull
-    ConfigurationParameters getConfigurationParameters() {
-        return ConfigurationParameters.EMPTY;
-    }
-
-    Session createSession(boolean isSystem) throws Exception {
+    Session createSession(Repository repo, boolean isSystem) throws Exception {
         if (isSystem) {
             return Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
                 @Override
@@ -140,9 +129,11 @@ public class ExternalIdentityImporterTest {
 
     @Test
     public void importExternalUser() throws Exception {
+        Repository repo = null;
         Session s = null;
         try {
-            s = createSession(false);
+            repo = createRepo();
+            s = createSession(repo, false);
             Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
             assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
                     ExternalIdentityConstants.REP_LAST_SYNCED);
@@ -151,14 +142,17 @@ public class ExternalIdentityImporterTest {
             if (s != null) {
                 s.logout();
             }
+            shutdown(repo);
         }
     }
 
     @Test
     public void importExternalUserAsSystem() throws Exception {
+        Repository repo = null;
         Session s = null;
         try {
-            s = createSession(true);
+            repo = createRepo();
+            s = createSession(repo, true);
             Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
             assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
                     ExternalIdentityConstants.REP_LAST_SYNCED);
@@ -167,14 +161,17 @@ public class ExternalIdentityImporterTest {
             if (s != null) {
                 s.logout();
             }
+            shutdown(repo);
         }
     }
 
     @Test
     public void importExternalUserWithPrincipalNames() throws Exception {
+        Repository repo = null;
         Session s = null;
         try {
-            s = createSession(false);
+            repo = createRepo();
+            s = createSession(repo, false);
             Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
             assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID);
             assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_LAST_SYNCED,
@@ -183,15 +180,18 @@ public class ExternalIdentityImporterTest {
             if (s != null) {
                 s.logout();
             }
+            shutdown(repo);
         }
 
     }
 
     @Test
     public void importExternalUserWithPrincipalNamesAsSystem() throws Exception {
+        Repository repo = null;
         Session s = null;
         try {
-            s = createSession(true);
+            repo = createRepo();
+            s = createSession(repo, true);
             Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
             assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
                     ExternalIdentityConstants.REP_LAST_SYNCED, ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
@@ -199,6 +199,7 @@ public class ExternalIdentityImporterTest {
             if (s != null) {
                 s.logout();
             }
+            shutdown(repo);
         }
     }
 
