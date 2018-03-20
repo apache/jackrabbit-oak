@@ -23,7 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.nio.file.Files;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.ManifestFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

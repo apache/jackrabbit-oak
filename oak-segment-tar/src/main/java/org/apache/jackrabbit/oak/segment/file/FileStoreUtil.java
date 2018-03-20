@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ class FileStoreUtil {
      * found.
      * @throws IOException If an I/O error occurs.
      */
-    static RecordId findPersistedRecordId(SegmentStore store, SegmentIdProvider idProvider, SegmentNodeStorePersistence.JournalFile journalFile)
+    static RecordId findPersistedRecordId(SegmentStore store, SegmentIdProvider idProvider, JournalFile journalFile)
     throws IOException {
         try (JournalReader journalReader = new JournalReader(journalFile)) {
             while (journalReader.hasNext()) {

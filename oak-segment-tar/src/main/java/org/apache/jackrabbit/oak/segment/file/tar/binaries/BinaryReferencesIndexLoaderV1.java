@@ -35,7 +35,7 @@ class BinaryReferencesIndexLoaderV1 {
 
     static final int FOOTER_SIZE = 16;
 
-    static BinaryReferencesIndex loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
+    static ByteBuffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
         ByteBuffer meta = reader.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
@@ -53,18 +53,41 @@ class BinaryReferencesIndexLoaderV1 {
             throw new InvalidBinaryReferencesIndexException("Invalid size");
         }
 
-        ByteBuffer buffer = reader.readAtEnd(size, size - FOOTER_SIZE);
+        return reader.readAtEnd(size, size);
+    }
+
+    public static BinaryReferencesIndex parseBinaryReferencesIndex(ByteBuffer buffer) throws InvalidBinaryReferencesIndexException {
+        ByteBuffer data = buffer.slice();
+        data.limit(data.limit() - FOOTER_SIZE);
+
+        buffer.position(buffer.limit() - FOOTER_SIZE);
+        ByteBuffer meta = buffer.slice();
+
+        int crc32 = meta.getInt();
+        int count = meta.getInt();
+        int size = meta.getInt();
+        int magic = meta.getInt();
+
+        if (magic != MAGIC) {
+            throw new InvalidBinaryReferencesIndexException("Invalid magic number");
+        }
+        if (count < 0) {
+            throw new InvalidBinaryReferencesIndexException("Invalid count");
+        }
+        if (size < count * 22 + 16) {
+            throw new InvalidBinaryReferencesIndexException("Invalid size");
+        }
 
         CRC32 checksum = new CRC32();
-        buffer.mark();
-        checksum.update(buffer);
-        buffer.reset();
+        data.mark();
+        checksum.update(data);
+        data.reset();
 
         if ((int) (checksum.getValue()) != crc32) {
             throw new InvalidBinaryReferencesIndexException("Invalid checksum");
         }
 
-        return new BinaryReferencesIndex(parseBinaryReferencesIndex(count, buffer));
+        return new BinaryReferencesIndex(parseBinaryReferencesIndex(count, data));
     }
 
     private static Map<Generation, Map<UUID, Set<String>>> parseBinaryReferencesIndex(int count, ByteBuffer buffer) {
@@ -123,5 +146,4 @@ class BinaryReferencesIndexLoaderV1 {
         buffer.get(data);
         return new String(data, Charsets.UTF_8);
     }
-
 }

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,7 +34,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.DSYNC;
 import static java.nio.file.StandardOpenOption.WRITE;
 
-public class LocalGCJournalFile implements SegmentNodeStorePersistence.GCJournalFile {
+public class LocalGCJournalFile implements GCJournalFile {
 
     private final File file;
 

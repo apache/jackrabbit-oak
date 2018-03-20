@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader.loadBinaryReferencesIndex;
+import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader.parseBinaryReferencesIndex;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
 import static org.junit.Assert.assertEquals;
 
@@ -52,7 +53,8 @@ public class BinaryReferencesIndexWriterTest {
 
         byte[] data = writer.write();
 
-        BinaryReferencesIndex index = loadBinaryReferencesIndex((whence, length) -> ByteBuffer.wrap(data, data.length - whence, length));
+        ByteBuffer buffer = loadBinaryReferencesIndex((whence, length) -> ByteBuffer.wrap(data, data.length - whence, length));
+        BinaryReferencesIndex index = parseBinaryReferencesIndex(buffer);
 
         Generation g1 = new Generation(1, 2, false);
         Generation g2 = new Generation(3, 4, true);

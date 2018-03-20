@@ -23,6 +23,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+
 /**
  * Instances of this class represent the garbage collection generation related
  * information of a segment. It consists of the segment's generation, its full
@@ -55,6 +58,10 @@ public final class GCGeneration {
 
     public static GCGeneration newGCGeneration(int generation, int fullGeneration, boolean isCompacted) {
         return new GCGeneration(generation, fullGeneration, isCompacted);
+    }
+
+    public static GCGeneration newGCGeneration(SegmentArchiveEntry indexEntry) {
+        return new GCGeneration(indexEntry.getGeneration(), indexEntry.getFullGeneration(), indexEntry.isCompacted());
     }
 
     private final int generation;

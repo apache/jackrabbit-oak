@@ -15,29 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file.tar;
+package org.apache.jackrabbit.oak.segment.spi.monitor;
 
-import java.io.File;
-
-public class IOMonitorAdapter implements IOMonitor {
+public class FileStoreMonitorAdapter implements FileStoreMonitor {
 
     @Override
-    public void beforeSegmentRead(File file, long msb, long lsb, int length) {
+    public void written(long bytes) {
         // Intentionally left blank
     }
 
     @Override
-    public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
+    public void reclaimed(long bytes) {
         // Intentionally left blank
     }
 
     @Override
-    public void beforeSegmentWrite(File file, long msb, long lsb, int length) {
-        // Intentionally left blank
-    }
-
-    @Override
-    public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {
+    public void flushed() {
         // Intentionally left blank
     }
 

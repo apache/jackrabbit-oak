@@ -44,7 +44,10 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package />
+                        <Export-Package>
+                            org.apache.jackrabbit.oak.segment.spi.monitor,
+                            org.apache.jackrabbit.oak.segment.spi.persistence
+                        </Export-Package>
                         <Embed-Dependency>
                             netty-*,
                             concurrentlinkedhashmap-lru

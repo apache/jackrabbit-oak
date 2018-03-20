@@ -42,6 +42,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

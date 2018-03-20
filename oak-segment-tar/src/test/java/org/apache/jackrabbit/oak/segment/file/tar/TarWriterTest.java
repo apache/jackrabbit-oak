@@ -29,7 +29,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

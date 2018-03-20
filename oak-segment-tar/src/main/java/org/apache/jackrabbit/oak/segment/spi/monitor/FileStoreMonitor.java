@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file.tar;
+package org.apache.jackrabbit.oak.segment.spi.monitor;
 
 /**
  * FileStoreMonitor are notified for any writes or deletes
