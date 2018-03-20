@@ -24,15 +24,15 @@ public final class AzureBlobMetadata {
 
     private static final String METADATA_TYPE = "type";
 
-    private static final String METADATA_SEGMENT_UUID = "segment-uuid";
+    private static final String METADATA_SEGMENT_UUID = "uuid";
 
-    private static final String METADATA_SEGMENT_POSITION = "segment-position";
+    private static final String METADATA_SEGMENT_POSITION = "position";
 
-    private static final String METADATA_SEGMENT_GENERATION = "segment-generation";
+    private static final String METADATA_SEGMENT_GENERATION = "generation";
 
-    private static final String METADATA_SEGMENT_FULL_GENERATION = "segment-fullGeneration";
+    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
 
-    private static final String METADATA_SEGMENT_COMPACTED = "segment-compacted";
+    private static final String METADATA_SEGMENT_COMPACTED = "compacted";
 
     private static final String TYPE_SEGMENT = "segment";
 
