@@ -39,17 +39,10 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
  * This class delegates thread-safety to its underlying state variables. 
  */
 class CommitsTracker {
-    private static final int DEFAULT_COMMITS_COUNT_MAP_SIZE = 20;
-    private static final boolean DEFAULT_COLLECT_STACK_TRACES = true;
-
     private volatile boolean collectStackTraces;
 
     private final ConcurrentMap<String, String> queuedWritersMap;
     private final ConcurrentMap<String, Long> commitsCountMap;
-
-    CommitsTracker() {
-        this(DEFAULT_COMMITS_COUNT_MAP_SIZE, DEFAULT_COLLECT_STACK_TRACES);
-    }
 
     CommitsTracker(int commitsCountMapMaxSize, boolean collectStackTraces) {
         this.collectStackTraces = collectStackTraces;
