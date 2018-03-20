@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.41
+Release Notes - Jackrabbit Oak - Version 1.0.42
 
 Introduction
 ------------
@@ -8,7 +8,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.41 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.42 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
@@ -16,22 +16,27 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.0.41
+Changes in Oak 1.0.42
 ---------------------
 
+Technical task
+    [OAK-7036] - add JDBC driver information to metadata map
+    [OAK-7289] - RDBDocumentStore: potential NPE in error handling code
 
 Bug
-
-    [OAK-7167] - 1.0: oak-lucene uses packages from oak-core that are not exported
+    [OAK-5733] - OAK 1.0 test failures with MongoDB 3.2
+    [OAK-6392] - Partial lastRev update with branches disabled
+    [OAK-7152] - CacheMap.clear() never returns
+    [OAK-7244] - RDBDocumentStore: fix typo in metadata
 
 Improvement
-
-    [OAK-7121] - DocumentStore testing: allow config of DocumentMK.Builder in AbstractDocumentStoreTest
+    [OAK-4859] - Warn if lease update is invoked with large delay
 
 Task
-
-    [OAK-7126] - make RDBCacheConsistency2Test store-agnostic
-    [OAK-7170] - Port OSGiIT.bundleStates() test back to 1.0
+    [OAK-7322] - Mention SHA512 checksums in release notes
+    [OAK-7336] - stop advertising MD5 checksums
+    [OAK-7347] - Incorrect link to KEYS in release notes
+    [OAK-7350] - stop creating MD5 checksums for releases
 
     
 In addition to the above-mentioned changes, this release contains
