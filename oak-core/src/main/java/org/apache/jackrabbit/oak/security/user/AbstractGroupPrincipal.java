@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Base class for {@code Group} principals.
  */
-abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements GroupPrincipal {
+abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements GroupPrincipal, java.security.acl.Group {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGroupPrincipal.class);
 
@@ -112,4 +112,13 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
         return Iterators.asEnumeration(Iterators.filter(principals, Predicates.<Object>notNull()));
     }
 
+    @Override
+    public boolean addMember(Principal principal) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeMember(Principal principal) {
+        throw new UnsupportedOperationException();
+    }
 }

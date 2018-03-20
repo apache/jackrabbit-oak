@@ -272,11 +272,29 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
-    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
+    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal, java.security.acl.Group {
 
         private ExternalGroupPrincipal(String principalName) {
             super(principalName);
 
+        }
+
+        @Override
+        public boolean addMember(Principal user) {
+            if (isMember(user)) {
+                return false;
+            } else {
+                throw new UnsupportedOperationException("Adding members to external group principals is not supported.");
+            }
+        }
+
+        @Override
+        public boolean removeMember(Principal user) {
+            if (!isMember(user)) {
+                return false;
+            } else {
+                throw new UnsupportedOperationException("Removing members from external group principals is not supported.");
+            }
         }
 
         @Override
