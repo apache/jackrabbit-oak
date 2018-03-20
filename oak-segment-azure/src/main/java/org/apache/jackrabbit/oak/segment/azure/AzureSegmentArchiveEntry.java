@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 
-public class AzureSegmentArchiveEntry implements IndexEntry {
+public class AzureSegmentArchiveEntry implements SegmentArchiveEntry {
 
     private final long msb;
 
@@ -54,7 +54,6 @@ public class AzureSegmentArchiveEntry implements IndexEntry {
         return lsb;
     }
 
-    @Override
     public int getPosition() {
         return position;
     }
