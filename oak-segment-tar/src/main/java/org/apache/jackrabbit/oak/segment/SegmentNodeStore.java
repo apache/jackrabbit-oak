@@ -162,13 +162,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
     private SegmentNodeStore(SegmentNodeStoreBuilder builder) {
         this.writer = builder.writer;
         this.blobStore = builder.blobStore;
-        
-        this.scheduler = LockBasedScheduler.builder(builder.revisions, builder.reader)
-                .dispatchChanges(builder.dispatchChanges)
-                .withStatisticsProvider(builder.statsProvider)
-                .build();
-        
         this.stats = new SegmentNodeStoreStats(builder.statsProvider);
+        this.scheduler = LockBasedScheduler.builder(builder.revisions, builder.reader, stats)
+                .dispatchChanges(builder.dispatchChanges)
+                .build();
     }
 
     @Override

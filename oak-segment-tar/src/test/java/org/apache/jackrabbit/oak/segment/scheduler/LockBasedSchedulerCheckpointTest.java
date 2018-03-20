@@ -31,12 +31,13 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
-
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Test;
 
 public class LockBasedSchedulerCheckpointTest {
@@ -48,7 +49,10 @@ public class LockBasedSchedulerCheckpointTest {
     public void testShortWait() throws Exception {
         MemoryStore ms = new MemoryStore();
         System.setProperty("oak.checkpoints.lockWaitTime", "1");
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader()).build();
+        StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
+                .build();
 
         final Semaphore semaphore = new Semaphore(0);
         final AtomicBoolean blocking = new AtomicBoolean(true);
@@ -99,7 +103,10 @@ public class LockBasedSchedulerCheckpointTest {
         final int blockTime = 1;
         MemoryStore ms = new MemoryStore();
         System.setProperty("oak.checkpoints.lockWaitTime", "2");
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader()).build();
+        StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
+                .build();
 
         final Semaphore semaphore = new Semaphore(0);
 

@@ -35,11 +35,13 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreStats;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Test;
 
 public class LockBasedSchedulerTest {
@@ -59,7 +61,10 @@ public class LockBasedSchedulerTest {
     @Test
     public void testSimulatedRaceOnRevisions() throws Exception {
         final MemoryStore ms = new MemoryStore();
-        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader()).build();
+        StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
+        final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
+                .build();
         
         final RecordId initialHead = ms.getRevisions().getHead();
         ExecutorService executorService = newFixedThreadPool(10);
