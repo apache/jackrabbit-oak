@@ -44,24 +44,28 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, SegmentNodeStoreMonitor {
+    private static final boolean DEFAULT_COLLECT_STACK_TRACES = true;
+    private static final int DEFAULT_COMMITS_COUNT_MAP_SIZE = 20;
+
     public static final String COMMITS_COUNT = "COMMITS_COUNT";
     public static final String COMMIT_QUEUE_SIZE = "COMMIT_QUEUE_SIZE";
     public static final String COMMIT_TIME = "COMMIT_TIME";
     public static final String QUEUEING_TIME = "QUEUEING_TIME";
 
     private final StatisticsProvider statisticsProvider;
-    private final CommitsTracker commitsTracker;
     private final MeterStats commitsCount;
     private final CounterStats commitQueueSize;
     private final TimerStats commitTime;
     private final TimerStats queueingTime;
     
-    private boolean collectStackTraces;
+    private volatile CommitsTracker commitsTracker;
+    private boolean collectStackTraces = DEFAULT_COLLECT_STACK_TRACES;
+    private int commitsCountMapMaxSize = DEFAULT_COMMITS_COUNT_MAP_SIZE;
     
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         
-        this.commitsTracker = new CommitsTracker();
+        this.commitsTracker = new CommitsTracker(commitsCountMapMaxSize, collectStackTraces);
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
         this.commitTime = statisticsProvider.getTimer(COMMIT_TIME, StatsOptions.DEFAULT);
@@ -171,11 +175,20 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     public boolean isCollectStackTraces() {
         return collectStackTraces;
     }
+    
+    public int getCommitsCountMapMaxSize() {
+        return commitsCountMapMaxSize;
+    }
+
+    public void setCommitsCountMapMaxSize(int commitsCountMapMaxSize) {
+        this.commitsCountMapMaxSize = commitsCountMapMaxSize;
+        commitsTracker = new CommitsTracker(commitsCountMapMaxSize, collectStackTraces);
+    }
 
     private TimeSeries getTimeSeries(String name) {
         return statisticsProvider.getStats().getTimeSeries(name, true);
     }
-    
+
     private static CompositeData mapToCompositeData(CompositeType compositeType, Map<String, Object> data) {
         try {
             return new CompositeDataSupport(compositeType, data);
