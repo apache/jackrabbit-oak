@@ -458,7 +458,7 @@ public class NodeStoreTest extends OakBaseTest {
         NodeBuilder x = test.getChildNode("x");
         if (fixture == NodeStoreFixtures.SEGMENT_TAR || fixture == NodeStoreFixtures.MEMORY_NS 
                 || fixture == NodeStoreFixtures.COMPOSITE_MEM || fixture == NodeStoreFixtures.COMPOSITE_SEGMENT
-                || fixture == NodeStoreFixtures.COW_DOCUMENT) {
+                || fixture == NodeStoreFixtures.COW_DOCUMENT || fixture == NodeStoreFixtures.SEGMENT_AZURE) {
             assertTrue(x.moveTo(x, "xx"));
             assertFalse(x.exists());
             assertFalse(test.hasChildNode("x"));
