@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,28 +63,17 @@ public class LockBasedScheduler implements Scheduler {
 
         @Nonnull
         private final Revisions revisions;
-
+        
         @Nonnull
-        private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+        private final SegmentNodeStoreStats stats;
 
         private boolean dispatchChanges = true;
 
-        private LockBasedSchedulerBuilder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader) {
+        private LockBasedSchedulerBuilder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader,
+                @Nonnull SegmentNodeStoreStats stats) {
             this.revisions = revisions;
             this.reader = reader;
-        }
-
-        /**
-         * {@link StatisticsProvider} for collecting statistics related to
-         * SegmentStore
-         * 
-         * @param statisticsProvider
-         * @return this instance
-         */
-        @Nonnull
-        public LockBasedSchedulerBuilder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
-            this.statsProvider = checkNotNull(statisticsProvider);
-            return this;
+            this.stats = stats;
         }
 
         @Nonnull
@@ -105,8 +93,9 @@ public class LockBasedScheduler implements Scheduler {
 
     }
 
-    public static LockBasedSchedulerBuilder builder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader) {
-        return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader));
+    public static LockBasedSchedulerBuilder builder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader,
+            @Nonnull SegmentNodeStoreStats stats) {
+        return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader), checkNotNull(stats));
     }
 
     private static final Logger log = LoggerFactory.getLogger(LockBasedScheduler.class);
@@ -166,9 +155,8 @@ public class LockBasedScheduler implements Scheduler {
 
         this.reader = builder.reader;
         this.revisions = builder.revisions;
+        this.stats = builder.stats;
         this.head = new AtomicReference<SegmentNodeState>(reader.readHeadState(revisions));
-
-        this.stats = new SegmentNodeStoreStats(builder.statsProvider);
     }
 
     @Override
