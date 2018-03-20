@@ -83,6 +83,14 @@ public class BenchmarkRunner {
                 .withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
                 .withOptionalArg().defaultsTo("");
+
+        OptionSpec<String> azureConnectionString = parser.accepts("azure", "Azure Connection String")
+                .withOptionalArg().defaultsTo("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;");
+        OptionSpec<String> azureContainerName = parser.accepts("azureContainerName", "Azure container name")
+                .withOptionalArg().defaultsTo("oak");
+        OptionSpec<String> azureRootPath = parser.accepts("azureRootPath", "Azure root path")
+                .withOptionalArg().defaultsTo("/oak");
+
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -230,6 +238,11 @@ public class BenchmarkRunner {
                         mmap.value(options), coldUseDataStore.value(options), fdsCache.value(options), 
                         coldSyncInterval.value(options), coldShareDataStore.value(options), coldSecure.value(options), 
                         coldOneShotRun.value(options)),
+                OakRepositoryFixture.getSegmentTarWithAzureSegmentStore(base.value(options),
+                        azureConnectionString.value(options),
+                        azureContainerName.value(options),
+                        azureRootPath.value(options),
+                        256, cacheSize, true, fdsCache.value(options)),
                 OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
                         rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
                         dropDBAfterTest.value(options), cacheSize * MB, vgcMaxAge.value(options)),
