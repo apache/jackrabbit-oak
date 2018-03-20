@@ -182,6 +182,31 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.deactivate(service, context.bundleContext());
     }
 
+    // OAK-7357
+    @Test
+    public void disableCoRCoW() throws Exception {
+        // inject ds as OAK-7357 revealed ABD bean had a bug - which comes into play only with blob stores
+        CachingFileDataStore ds = DataStoreUtils
+                .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                        folder.newFolder().getAbsolutePath());
+
+        context.registerService(GarbageCollectableBlobStore.class, new DataStoreBlobStore(ds));
+
+        // re-init service and inject references
+        service = new LuceneIndexProviderService();
+        MockOsgi.injectServices(service, context.bundleContext());
+
+        Map<String,Object> config = getDefaultConfig();
+        config.put("enableCopyOnReadSupport", false);
+        config.put("enableCopyOnWriteSupport", false);
+
+        // activation should work
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        // de-activation should work
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
     @Test
     public void enablePrefetchIndexFiles() throws Exception{
         Map<String,Object> config = getDefaultConfig();
