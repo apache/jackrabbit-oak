@@ -1,5 +1,5 @@
 
-Release Notes - Jackrabbit Oak - Version 1.0.42
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.42
 
 Introduction
 ------------
