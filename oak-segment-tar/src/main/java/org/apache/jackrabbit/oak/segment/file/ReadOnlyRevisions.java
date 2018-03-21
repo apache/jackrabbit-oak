@@ -32,7 +32,8 @@ import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 
 public class ReadOnlyRevisions implements Revisions, Closeable {
@@ -41,7 +42,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
     private final AtomicReference<RecordId> head;
 
     @Nonnull
-    private final SegmentNodeStorePersistence.JournalFile journalFile;
+    private final JournalFile journalFile;
 
     public ReadOnlyRevisions(@Nonnull SegmentNodeStorePersistence persistence) {
         this.journalFile = checkNotNull(persistence).getJournalFile();

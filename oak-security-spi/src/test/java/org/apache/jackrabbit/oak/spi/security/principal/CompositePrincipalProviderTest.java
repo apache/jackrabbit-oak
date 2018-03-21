@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Iterator;
 import javax.annotation.Nonnull;
 
@@ -25,6 +24,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.junit.Test;
 
@@ -82,14 +83,14 @@ public class CompositePrincipalProviderTest {
     @Test
     public void getGroupMembership() {
         for (Principal principal : testPrincipals()) {
-            boolean atleastEveryone = cpp.getGroupMembership(principal).contains(EveryonePrincipal.getInstance());
+            boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());
             assertTrue("All principals (except everyone) must be member of the everyone group. Violation: "+principal.getName(), atleastEveryone);
         }
     }
 
     @Test
     public void getGroupMembershipUnknown() {
-        assertTrue(cpp.getGroupMembership(TestPrincipalProvider.UNKNOWN).isEmpty());
+        assertTrue(cpp.getMembershipPrincipals(TestPrincipalProvider.UNKNOWN).isEmpty());
     }
 
     @Test
@@ -109,7 +110,7 @@ public class CompositePrincipalProviderTest {
         Iterable<? extends Principal> expected = Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(), new Predicate<Principal>() {
             @Override
             public boolean apply(Principal input) {
-                return input instanceof Group;
+                return input instanceof GroupPrincipal;
             }
         }));
 
@@ -122,7 +123,7 @@ public class CompositePrincipalProviderTest {
         Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), new Predicate<Principal>() {
             @Override
             public boolean apply(Principal input) {
-                return !(input instanceof Group);
+                return !(input instanceof GroupPrincipal);
             }
         });
 

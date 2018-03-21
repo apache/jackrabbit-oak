@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broa
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.h2.mvstore.FileStore;
 import org.h2.mvstore.MVMap;
@@ -63,8 +62,6 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean cacheDiff = true;
     private boolean cacheLocalDiff = true;
     private boolean cachePrevDocs = true;
-    private boolean cacheDocs;
-    private boolean cacheDocChildren;
     private boolean compactOnClose;
     private boolean compress = true;
     private boolean asyncCache = true;
@@ -79,7 +76,6 @@ public class PersistentCache implements Broadcaster.Listener {
     private int memCache = -1;
     private int readGeneration = -1;
     private int writeGeneration;
-    private long maxBinaryEntry = 1024 * 1024;
     private int autoCompact = 0;
     private boolean appendOnly;
     private boolean manualCommit;
@@ -107,15 +103,11 @@ public class PersistentCache implements Broadcaster.Listener {
         String broadcast = "disabled";
         for (String p : parts) {
             if (p.equals("+docs")) {
-                // enabling this can lead to consistency problems,
-                // specially if multiple cluster nodes are used
-                cacheDocs = true;
+                logUnsupportedWarning("docs");
             } else if (p.equals("-prevDocs")) {
                 cachePrevDocs = false;
             } else if (p.equals("+docChildren")) {
-                // enabling this can lead to consistency problems,
-                // specially if multiple cluster nodes are used
-                cacheDocChildren = true;
+                logUnsupportedWarning("docChildren");
             } else if (p.equals("-nodes")) {
                 cacheNodes = false;
             } else if (p.equals("-children")) {
@@ -125,8 +117,7 @@ public class PersistentCache implements Broadcaster.Listener {
             } else if (p.equals("-localDiff")) {
                 cacheLocalDiff = false;
             } else if (p.equals("+all")) {
-                cacheDocs = true;
-                cacheDocChildren = true;
+                logUnsupportedWarning("all");
             } else if (p.equals("-compact")) {
                 compactOnClose = false;
             } else if (p.equals("+compact")) {
@@ -140,7 +131,7 @@ public class PersistentCache implements Broadcaster.Listener {
             } else if (p.startsWith("memCache=")) {
                 memCache = Integer.parseInt(p.split("=")[1]);
             } else if (p.startsWith("binary=")) {
-                maxBinaryEntry = Long.parseLong(p.split("=")[1]);
+                logUnsupportedWarning("binary");
             } else if (p.startsWith("autoCompact=")) {
                 autoCompact = Integer.parseInt(p.split("=")[1]);
             } else if (p.equals("appendOnly")) {
@@ -214,6 +205,11 @@ public class PersistentCache implements Broadcaster.Listener {
         writeDispatcherThread = new Thread(writeDispatcher, "Oak CacheWriteQueue");
         writeDispatcherThread.setDaemon(true);
         writeDispatcherThread.start();
+    }
+
+    private void logUnsupportedWarning(String configKey) {
+        LOG.warn("Support for '{}' has been removed from persistent cache. " +
+                "Please update the configuration.", configKey);
     }
     
     private void initBroadcast(String broadcast) {
@@ -384,16 +380,6 @@ public class PersistentCache implements Broadcaster.Listener {
         writeBuffer.remove();
     }
     
-    public synchronized GarbageCollectableBlobStore wrapBlobStore(
-            GarbageCollectableBlobStore base) {
-        if (maxBinaryEntry == 0) {
-            return base;
-        }
-        BlobCache c = new BlobCache(this, base);
-        initGenerationCache(c);
-        return c;
-    }
-    
     public synchronized <K, V> Cache<K, V> wrap(
             DocumentNodeStore docNodeStore, 
             DocumentStore docStore,
@@ -422,12 +408,6 @@ public class PersistentCache implements Broadcaster.Listener {
         case LOCAL_DIFF:
             wrap = cacheLocalDiff;
             async = asyncDiffCache;
-            break;
-        case DOC_CHILDREN:
-            wrap = cacheDocChildren;
-            break;
-        case DOCUMENT:
-            wrap = cacheDocs;
             break;
         case PREV_DOCUMENT:
             wrap = cachePrevDocs;
@@ -508,10 +488,6 @@ public class PersistentCache implements Broadcaster.Listener {
     
     public int getMaxSize() {
         return maxSizeMB;
-    }
-    
-    public long getMaxBinaryEntrySize() {
-        return maxBinaryEntry;
     }
     
     public int getOpenCount() {

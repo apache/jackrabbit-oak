@@ -25,6 +25,8 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Base class for {@code Group} principals.
  */
-abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
+abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements GroupPrincipal, java.security.acl.Group {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGroupPrincipal.class);
 

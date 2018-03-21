@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonMember;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonString;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport.appendJsonValue;
@@ -191,7 +192,7 @@ public class RDBDocumentSerializer {
                 blobInUse = true;
             }
         } catch (Exception ex) {
-            throw new DocumentStoreException(ex);
+            throw asDocumentStoreException(ex, "parsing blob data as JSON");
         }
 
         json = new JsopTokenizer(charData);
@@ -243,7 +244,7 @@ public class RDBDocumentSerializer {
             }
 
             LOG.error(message, ex);
-            throw new DocumentStoreException(message, ex);
+            throw asDocumentStoreException(ex, message);
         }
     }
 

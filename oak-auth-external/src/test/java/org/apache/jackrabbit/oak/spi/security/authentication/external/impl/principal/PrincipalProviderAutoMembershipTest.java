@@ -107,7 +107,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
 
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
 
-        Set<java.security.acl.Group> result = principalProvider.getGroupMembership(user.getPrincipal());
+        Set<Principal> result = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
         assertEquals(expected, result);

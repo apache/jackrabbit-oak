@@ -163,7 +163,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
-        assertEquals(3, Iterables.size(Iterables.filter(service.getConfigurations(), Predicates.notNull())));
+        assertEquals(6, Iterables.size(Iterables.filter(service.getConfigurations(), Predicates.notNull())));
     }
 
     @Test

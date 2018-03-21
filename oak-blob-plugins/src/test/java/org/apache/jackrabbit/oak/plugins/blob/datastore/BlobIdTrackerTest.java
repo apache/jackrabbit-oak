@@ -124,7 +124,7 @@ public class BlobIdTrackerTest {
     @Test
     public void addSnapshotRemove() throws Exception {
         LOG.info("In addSnapshotRemove");
-        snapshotRemove(tracker.new SnapshotJob());
+        snapshotRemove(tracker.new SnapshotJob(), false);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class BlobIdTrackerTest {
         LOG.info("In snapshotIgnoreAfterRemove");
         BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob();
 
-        snapshotRemove(job);
+        snapshotRemove(job, false);
 
         // Since already retrieved the datastore should be empty unless the snapshot has actually run
         ScheduledFuture<?> scheduledFuture =
@@ -149,7 +149,8 @@ public class BlobIdTrackerTest {
         Clock clock = Clock.ACCURATE;
         BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob(100, clock);
 
-        Set<String> present = snapshotRemove(job);
+        // Mimics a call to get after add and before remove similar to the calls in GC
+        Set<String> present = snapshotRemove(job, false);
 
         clock.waitUntil(System.currentTimeMillis() + 100);
 
@@ -162,12 +163,36 @@ public class BlobIdTrackerTest {
             read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
     }
 
-    private Set<String> snapshotRemove(BlobIdTracker.SnapshotJob job) throws Exception {
+    @Test
+    public void snapshotBeforeRemove() throws Exception {
+        LOG.info("In snapshotBeforeRemove");
+
+        Clock clock = Clock.ACCURATE;
+        BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob(100, clock);
+
+        //Mimic an intervening snapshot between add and remove by skipping the retrieve call.
+        Set<String> present = snapshotRemove(job, true);
+
+        clock.waitUntil(System.currentTimeMillis() + 100);
+
+        // Since already retrieved the datastore should not be empty unless the snapshot is ignored
+        ScheduledFuture<?> scheduledFuture =
+            scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
+        scheduledFuture.get();
+
+        assertEquals("Elements not equal after snapshot after remove", present,
+            read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
+    }
+
+    private Set<String> snapshotRemove(BlobIdTracker.SnapshotJob job, boolean skipGetBeforeRemove) throws Exception {
         Set<String> initAdd = add(tracker, range(0, 4));
         ScheduledFuture<?> scheduledFuture =
             scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
         scheduledFuture.get();
-        assertEquals("Extra elements after add", initAdd, retrieve(tracker));
+
+        if (!skipGetBeforeRemove) {
+            assertEquals("Extra elements after add", initAdd, retrieve(tracker));
+        }
 
         remove(tracker, folder.newFile(), initAdd, range(1, 2));
         assertEquals("Extra elements after removes synced with datastore",

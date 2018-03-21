@@ -33,7 +33,8 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Rule;
@@ -85,7 +86,7 @@ public class GcJournalTest {
         Collection<GCJournalEntry> all = gc.readAll();
         assertEquals(all.size(), 3);
 
-        SegmentNodeStorePersistence.GCJournalFile gcFile = getPersistence().getGCJournalFile();
+        GCJournalFile gcFile = getPersistence().getGCJournalFile();
         List<String> allLines = gcFile.readLines();
         assertEquals(allLines.size(), 3);
     }

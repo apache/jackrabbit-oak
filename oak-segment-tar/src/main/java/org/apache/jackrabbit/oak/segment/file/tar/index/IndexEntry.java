@@ -17,10 +17,14 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+
+import java.util.Comparator;
+
 /**
  * An entry in the index of entries of a TAR file.
  */
-public interface IndexEntry {
+public interface IndexEntry extends SegmentArchiveEntry {
 
     /**
      * Return the most significant bits of the identifier of this entry.
@@ -71,4 +75,16 @@ public interface IndexEntry {
      */
     boolean isCompacted();
 
+    Comparator<IndexEntry> POSITION_ORDER = new Comparator<IndexEntry>() {
+        @Override
+        public int compare(IndexEntry a, IndexEntry b) {
+            if (a.getPosition() > b.getPosition()) {
+                return 1;
+            } else if (a.getPosition() < b.getPosition()) {
+                return -1;
+            } else {
+                return 0;
+            }
+        }
+    };
 }

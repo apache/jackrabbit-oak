@@ -94,7 +94,7 @@ public class ChangeCollectorProviderTest {
 
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new SecurityProviderBuilder().build();
+            securityProvider = SecurityProviderBuilder.newBuilder().build();
         }
         return securityProvider;
     }

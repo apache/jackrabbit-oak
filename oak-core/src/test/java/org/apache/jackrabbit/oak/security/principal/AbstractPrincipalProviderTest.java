@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -170,7 +171,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
 
         assertNotNull(principal);
-        assertTrue(principal instanceof java.security.acl.Group);
+        assertTrue(principal instanceof GroupPrincipal);
     }
 
     @Test
@@ -196,7 +197,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetGroupMembership() throws Exception {
-        Set<java.security.acl.Group> grPrincipals  = principalProvider.getGroupMembership(userPrincipal);
+        Set<Principal> grPrincipals  = principalProvider.getMembershipPrincipals(userPrincipal);
         assertEquals(2, grPrincipals.size());
         assertTrue(grPrincipals.contains(EveryonePrincipal.getInstance()));
         assertTrue(grPrincipals.contains(testGroup.getPrincipal()));
@@ -204,21 +205,21 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void tstGetGroupMembershipNonExisting() {
-        Set<java.security.acl.Group> grPrincipals = principalProvider.getGroupMembership(nonExisting);
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(nonExisting);
         assertNotNull(grPrincipals);
         assertTrue(grPrincipals.isEmpty());
     }
 
     @Test
     public void testGetGroupMembershipEveryonePrincipal() {
-        Set<java.security.acl.Group> grPrincipals = principalProvider.getGroupMembership(EveryonePrincipal.getInstance());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance());
         assertNotNull(grPrincipals);
         assertTrue(grPrincipals.isEmpty());
     }
 
     @Test
     public void testGetGroupMembershipGroupPrincipal() throws Exception {
-        Set<java.security.acl.Group> grPrincipals = principalProvider.getGroupMembership(testGroup.getPrincipal());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(testGroup.getPrincipal());
         assertNotNull(grPrincipals);
         assertEquals(1, grPrincipals.size());
         assertTrue(grPrincipals.contains(EveryonePrincipal.getInstance()));
@@ -226,7 +227,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetGroupMembershipGroupPrincipal2() throws Exception {
-        Set<java.security.acl.Group> grPrincipals = principalProvider.getGroupMembership(testGroup2.getPrincipal());
+        Set<Principal> grPrincipals = principalProvider.getMembershipPrincipals(testGroup2.getPrincipal());
         assertNotNull(grPrincipals);
         assertEquals(2, grPrincipals.size());
         assertTrue(grPrincipals.contains(testGroup.getPrincipal()));

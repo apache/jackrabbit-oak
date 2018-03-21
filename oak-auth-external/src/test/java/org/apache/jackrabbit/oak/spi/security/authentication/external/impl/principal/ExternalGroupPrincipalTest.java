@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -38,7 +40,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
     @Test
     public void testIsMember() throws Exception {
         ExternalUser externalUser = idp.getUser(USER_ID);
-        java.security.acl.Group principal = getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
+        GroupPrincipal principal = getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
 
         assertTrue(principal.isMember(new PrincipalImpl(externalUser.getPrincipalName())));
         assertTrue(principal.isMember(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
@@ -46,7 +48,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
     @Test
     public void testIsMemberExternalGroup() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
+        GroupPrincipal principal = getGroupPrincipal();
 
         Iterable<String> exGroupPrincNames = Iterables.transform(ImmutableList.copyOf(idp.listGroups()), new Function<ExternalGroup, String>() {
             @Nullable
@@ -63,7 +65,7 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
 
     @Test
     public void testIsMemberLocalUser() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
+        GroupPrincipal principal = getGroupPrincipal();
 
         assertFalse(principal.isMember(getTestUser().getPrincipal()));
         assertFalse(principal.isMember(new PrincipalImpl(getTestUser().getPrincipal().getName())));
@@ -72,39 +74,15 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
     @Test
     public void testIsMemberLocalGroup() throws Exception {
         Group gr = createTestGroup();
-        java.security.acl.Group principal = getGroupPrincipal();
+        GroupPrincipal principal = getGroupPrincipal();
 
         assertFalse(principal.isMember(gr.getPrincipal()));
         assertFalse(principal.isMember(new PrincipalImpl(gr.getPrincipal().getName())));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testAddMember() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
-        principal.addMember(getTestUser().getPrincipal());
-    }
-
-    @Test
-    public void testAddMemberExistingMember() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
-        assertFalse(principal.addMember(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testRemoveMember() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
-        principal.removeMember(getUserManager(root).getAuthorizable(USER_ID).getPrincipal());
-    }
-
-    @Test
-    public void testRemoveMemberNotMember() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
-        assertFalse(principal.removeMember(getTestUser().getPrincipal()));
-    }
-
     @Test
     public void testMembers() throws Exception {
-        java.security.acl.Group principal = getGroupPrincipal();
+        GroupPrincipal principal = getGroupPrincipal();
 
         Principal[] expectedMembers = new Principal[] {
                 getUserManager(root).getAuthorizable(USER_ID).getPrincipal(),

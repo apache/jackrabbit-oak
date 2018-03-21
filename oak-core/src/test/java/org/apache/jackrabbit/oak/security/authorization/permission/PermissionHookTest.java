@@ -22,12 +22,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -38,6 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -53,6 +56,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -79,11 +84,8 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         NodeUtil testNode = rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
         testNode.addChild("childNode", JcrConstants.NT_UNSTRUCTURED);
 
-        AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_ADD_CHILD_NODES));
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
-        acMgr.setPolicy(testPath, acl);
+        addACE(testPath, testPrincipal, JCR_ADD_CHILD_NODES);
+        addACE(testPath, EveryonePrincipal.getInstance(), JCR_READ);
         root.commit();
 
         bitsProvider = new PrivilegeBitsProvider(root);
@@ -106,6 +108,13 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         } finally {
             super.after();
         }
+    }
+
+    private void addACE(@Nonnull String path, @Nonnull Principal principal, @Nonnull String... privilegeNames) throws RepositoryException {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
+        acl.addAccessControlEntry(principal, privilegesFromNames(privilegeNames));
+        acMgr.setPolicy(path, acl);
     }
 
     protected Tree getPrincipalRoot(@Nonnull Principal principal) {
@@ -406,5 +415,244 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         if (parent.exists()) {
             assertFalse(parent.getChild("0").exists());
         }
+    }
+
+    @Test
+    public void testCollisions() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aaPath = testPath + "/Aa";
+        String bbPath = testPath + "/BB";
+
+        if (aaPath.hashCode() == bbPath.hashCode()) {
+            try {
+                Tree parent = root.getTree(testPath);
+                Tree aa = TreeUtil.addChild(parent, "Aa", JcrConstants.NT_UNSTRUCTURED);
+                addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+                Tree bb = TreeUtil.addChild(parent, "BB", JcrConstants.NT_UNSTRUCTURED);
+                addACE(bb.getPath(), testPrincipal, JCR_READ);
+                root.commit();
+
+                assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+
+                Set<String> accessControlledPaths = Sets.newHashSet(testPath, aa.getPath(), bb.getPath());
+                assertEquals(accessControlledPaths, getAccessControlledPaths(testRoot));
+            } finally {
+                root.getTree(aaPath).remove();
+                root.getTree(bbPath).remove();
+                root.commit();
+            }
+        }
+    }
+
+    @Test
+    public void testCollisionRemoval() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aaPath = testPath + "/Aa";
+        String bbPath = testPath + "/BB";
+
+        if (aaPath.hashCode() == bbPath.hashCode()) {
+            Tree parent = root.getTree(testPath);
+            Tree aa = TreeUtil.addChild(parent, "Aa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+            Tree bb = TreeUtil.addChild(parent, "BB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(bb.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            root.getTree(aaPath).remove();
+            root.commit();
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertTrue(testRoot.hasChild(bbPath.hashCode() + ""));
+
+            assertEquals(Sets.newHashSet(testPath, bb.getPath()), getAccessControlledPaths(testRoot));
+        }
+    }
+
+    @Test
+    public void testCollisionRemoval2() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aaPath = testPath + "/Aa";
+        String bbPath = testPath + "/BB";
+
+        if (aaPath.hashCode() == bbPath.hashCode()) {
+            Tree parent = root.getTree(testPath);
+            Tree aa = TreeUtil.addChild(parent, "Aa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+            Tree bb = TreeUtil.addChild(parent, "BB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(bb.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            root.getTree(bbPath).remove();
+            root.commit();
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertTrue(testRoot.hasChild(aaPath.hashCode() + ""));
+
+            assertEquals(Sets.newHashSet(testPath, aa.getPath()), getAccessControlledPaths(testRoot));
+        }
+    }
+
+    @Test
+    public void testCollisionRemoval3() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aaPath = testPath + "/Aa";
+        String bbPath = testPath + "/BB";
+
+        if (aaPath.hashCode() == bbPath.hashCode()) {
+            Tree parent = root.getTree(testPath);
+            Tree aa = TreeUtil.addChild(parent, "Aa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+            Tree bb = TreeUtil.addChild(parent, "BB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(bb.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            root.getTree(aaPath).remove();
+            root.getTree(bbPath).remove();
+            root.commit();
+
+            assertEquals(1, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertFalse(testRoot.hasChild(aaPath.hashCode() + ""));
+            assertFalse(testRoot.hasChild(bbPath.hashCode() + ""));
+
+            assertEquals(Sets.newHashSet(testPath), getAccessControlledPaths(testRoot));
+        }
+    }
+
+    @Test
+    public void testCollisionRemoval4() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aPath = testPath + "/AaAa";
+        String bPath = testPath + "/BBBB";
+        String cPath = testPath + "/AaBB";
+
+        if (aPath.hashCode() == bPath.hashCode() && bPath.hashCode() == cPath.hashCode()) {
+            String name = aPath.hashCode() + "";
+
+            Tree parent = root.getTree(testPath);
+            Tree aa = TreeUtil.addChild(parent, "AaAa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+            Tree bb = TreeUtil.addChild(parent, "BBBB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(bb.getPath(), testPrincipal, JCR_READ);
+
+            Tree cc = TreeUtil.addChild(parent, "AaBB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(cc.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            Set<String> paths = Sets.newHashSet(aPath, bPath, cPath);
+            paths.add(testPath);
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertEquals(paths, getAccessControlledPaths(testRoot));
+
+            String toRemove = null;
+            for (String path : paths) {
+                if (testRoot.hasChild(name) && path.equals(getAccessControlledPath(testRoot.getChild(name)))) {
+                    toRemove = path;
+                    break;
+                }
+            }
+
+            assertNotNull(toRemove);
+            paths.remove(toRemove);
+
+            root.getTree(toRemove).remove();
+            root.commit();
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertTrue(testRoot.hasChild(toRemove.hashCode() + ""));
+            assertNotEquals(toRemove, getAccessControlledPath(testRoot.getChild(name)));
+
+            assertEquals(paths, getAccessControlledPaths(testRoot));
+        }
+    }
+
+    @Test
+    public void testCollisionRemovalSubsequentAdd() throws Exception {
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        String aPath = testPath + "/AaAa";
+        String bPath = testPath + "/BBBB";
+        String cPath = testPath + "/AaBB";
+        String dPath = testPath + "/BBAa";
+
+        if (aPath.hashCode() == bPath.hashCode() && bPath.hashCode() == cPath.hashCode() && cPath.hashCode() == dPath.hashCode()) {
+            String name = aPath.hashCode() + "";
+
+            Tree parent = root.getTree(testPath);
+            Tree aa = TreeUtil.addChild(parent, "AaAa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(aa.getPath(), testPrincipal, JCR_READ);
+
+            Tree bb = TreeUtil.addChild(parent, "BBBB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(bb.getPath(), testPrincipal, JCR_READ);
+
+            Tree cc = TreeUtil.addChild(parent, "AaBB", JcrConstants.NT_UNSTRUCTURED);
+            addACE(cc.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            Set<String> paths = Sets.newHashSet(aPath, bPath, cPath);
+            paths.add(testPath);
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            assertEquals(paths, getAccessControlledPaths(testRoot));
+
+            String toRemove = null;
+            for (String path : paths) {
+                if (testRoot.hasChild(name) && path.equals(getAccessControlledPath(testRoot.getChild(name)))) {
+                    toRemove = path;
+                    break;
+                }
+            }
+
+            paths.remove(toRemove);
+            root.getTree(toRemove).remove();
+            root.commit();
+
+            Tree dd = TreeUtil.addChild(parent, "BBAa", JcrConstants.NT_UNSTRUCTURED);
+            addACE(dd.getPath(), testPrincipal, JCR_READ);
+            root.commit();
+
+            assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+            paths.add(dPath);
+            assertEquals(paths, getAccessControlledPaths(testRoot));
+        } else {
+            fail();
+        }
+    }
+
+    @Nonnull
+    private static Set<String> getAccessControlledPaths(@Nonnull Tree principalTree) {
+        Set<String> s = Sets.newHashSet();
+        for (Tree tree : principalTree.getChildren()) {
+            String path = getAccessControlledPath(tree);
+            if (path != null) {
+                s.add(path);
+            }
+            for (Tree child : tree.getChildren()) {
+                if (child.getName().startsWith("c")) {
+                    String childPath = getAccessControlledPath(child);
+                    if (childPath != null) {
+                        s.add(childPath);
+                    }
+                }
+            }
+        }
+        return s;
+    }
+
+    @CheckForNull
+    private static String getAccessControlledPath(@Nonnull Tree t) {
+        PropertyState pathProp = t.getProperty(REP_ACCESS_CONTROLLED_PATH);
+        return (pathProp == null) ? null : pathProp.getValue(Type.STRING);
+
     }
 }

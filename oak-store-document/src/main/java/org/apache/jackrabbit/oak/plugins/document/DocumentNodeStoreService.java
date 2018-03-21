@@ -136,7 +136,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = false;
-    static final String DEFAULT_PERSISTENT_CACHE = "cache,binary=0";
+    static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
     public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
@@ -513,12 +513,7 @@ public class DocumentNodeStoreService {
     }
 
     private String getVersionGCExpression() {
-        String defaultExpr;
-        if (DocumentStoreType.fromString(config.documentStoreType()) == DocumentStoreType.MONGO) {
-            defaultExpr = CONTINUOUS_RGC_EXPR;
-        } else {
-            defaultExpr = "";
-        }
+        String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
         if (Strings.isNullOrEmpty(expr)) {
             expr = defaultExpr;

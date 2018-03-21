@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.collect.Lists;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
+
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
@@ -39,6 +41,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private AtomicLong numFailures = new AtomicLong(0);
 
+    private Type exceptionType = Type.GENERIC;
+
     class Fail {
 
         private Fail() {
@@ -51,10 +55,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
             return this;
         }
 
+        Fail withType(Type type) {
+            exceptionType = type;
+            return this;
+        }
+
         void never() {
             p = -1;
             numFailures.set(0);
             failAfter.set(Long.MAX_VALUE);
+            exceptionType = Type.GENERIC;
         }
 
         void once() {
@@ -167,7 +177,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private void maybeFail() {
         if (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) {
             if (numFailures.getAndDecrement() > 0) {
-                throw new DocumentStoreException("write operation failed");
+                throw new DocumentStoreException("write operation failed", null, exceptionType);
             }
         }
     }

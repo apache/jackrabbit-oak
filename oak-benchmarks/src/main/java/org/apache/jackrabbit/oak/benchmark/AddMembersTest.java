@@ -137,7 +137,7 @@ public class AddMembersTest extends AbstractTest {
                 public Jcr customize(Oak oak) {
                     ConfigurationParameters config = ConfigurationParameters.of(UserConfiguration.NAME,
                             ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, importBehavior));
-                    SecurityProvider sp = new SecurityProviderBuilder().with(config).build();
+                    SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(config).build();
                     return new Jcr(oak).with(sp);
                 }
             });

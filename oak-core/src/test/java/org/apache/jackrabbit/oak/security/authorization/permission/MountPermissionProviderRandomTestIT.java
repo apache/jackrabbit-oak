@@ -51,7 +51,7 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     @Override
     protected PermissionProvider candidatePermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
             @Nonnull Set<Principal> principals) {
-        SecurityProvider sp = new SecurityProviderBuilder().build();
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().build();
         AuthorizationConfiguration acConfig = MountUtils.bindMountInfoProvider(sp, mountInfoProvider);
         PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);
         Assert.assertTrue(composite instanceof MountPermissionProvider);

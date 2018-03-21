@@ -100,12 +100,12 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Sets.difference;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
@@ -113,6 +113,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 
 /**
@@ -1745,7 +1746,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 invalidateCache(collection, id);
             }
         }
-        return DocumentStoreException.convert(ex, ids);
+        return asDocumentStoreException(ex.getMessage(), ex,
+                getDocumentStoreExceptionTypeFor(ex), ids);
     }
 
     private <T extends Document> DocumentStoreException handleException(Throwable ex,

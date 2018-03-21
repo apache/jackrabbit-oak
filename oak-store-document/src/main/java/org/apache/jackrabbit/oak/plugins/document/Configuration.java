@@ -168,12 +168,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
     @AttributeDefinition(
             name = "Version GC scheduler expression",
             description = "A cron expression that defines when the Version GC is scheduled. " +
-                    "If this configuration entry is left empty, the default behaviour depends on " +
-                    "the 'documentStoreType'. For 'MONGO' the default is to schedule a " +
-                    "run every five seconds (also known as Continuous Revision Garbage " +
-                    "Collection). For 'RDB' the default is no scheduled GC. It must be " +
-                    "enabled explicitly with a cron expression. E.g. the following " +
-                    "expression triggers a GC run every night at 2 AM: '" +
+                    "If this configuration entry is left empty, the default behaviour is to " +
+                    "schedule a run every five seconds (also known as Continuous Revision Garbage " +
+                    "Collection). Otherwise, the schedule can be configured with a cron " +
+                    "expression. E.g. the following expression triggers a GC run every night at 2 AM: '" +
                     DocumentNodeStoreService.CLASSIC_RGC_EXPR + "'."
     )
     String versionGCExpression() default DocumentNodeStoreService.DEFAULT_VER_GC_EXPRESSION;

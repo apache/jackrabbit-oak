@@ -24,8 +24,8 @@ import static com.google.common.collect.Iterables.get;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newConcurrentHashSet;
 import static com.google.common.util.concurrent.Futures.addCallback;
+import static com.google.common.util.concurrent.Futures.dereference;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
-import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.String.valueOf;
@@ -74,7 +74,6 @@ import javax.management.ObjectName;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -450,11 +449,14 @@ public class SegmentCompactionIT {
     private synchronized void scheduleCheckpoints() {
         while (checkpoints.size() < maxCheckpoints) {
             Checkpoint checkpoint = new Checkpoint(nodeStore);
-            ListenableFuture<?> futureCheckpoint = transform(scheduler.schedule(
-                    checkpoint::acquire, rnd.nextInt(checkpointInterval), SECONDS),
-                (AsyncFunction<Void, Void>) __ -> scheduler.schedule(
-                    checkpoint::release, checkpointInterval, SECONDS)
-            );
+
+            // Flatmap that sh..
+            ListenableFuture<Void> futureCheckpoint = dereference(scheduler.schedule(
+                () -> {
+                    checkpoint.acquire();
+                    return scheduler.schedule(checkpoint::release, checkpointInterval, SECONDS);
+                },
+                rnd.nextInt(checkpointInterval), SECONDS));
 
             checkpoints.add(futureCheckpoint);
             addCallback(futureCheckpoint, new FutureCallback<Object>() {

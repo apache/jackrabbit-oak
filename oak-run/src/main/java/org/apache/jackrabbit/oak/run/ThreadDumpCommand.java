@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
+import java.util.zip.ZipInputStream;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -133,7 +134,7 @@ public class ThreadDumpCommand implements Command {
 
     private static File combineAndExpandFiles(File file) throws IOException {
         if (!file.exists() || !file.isDirectory()) {
-            if (!file.getName().endsWith(".gz")) {
+            if (!file.getName().endsWith(".gz") && !file.getName().endsWith(".zip")) {
                 return file;
             }
         }
@@ -176,7 +177,7 @@ public class ThreadDumpCommand implements Command {
             writer.write("file " + file.getAbsolutePath() + "\n");
             writer.write("lastModified " + fileModifiedTime + "\n");
             if (file.getName().endsWith(".gz")) {
-                System.out.println("Extracting " + file.getAbsolutePath());
+                // System.out.println("Extracting " + file.getAbsolutePath());
                 InputStream fileStream = new FileInputStream(file);
                 try {
                     InputStream gzipStream = new GZIPInputStream(fileStream);
@@ -185,6 +186,9 @@ public class ThreadDumpCommand implements Command {
                     fileStream.close();
                     return 0;
                 }
+            } else if (file.getName().endsWith(".zip")) {
+                System.out.println("Warning: file skipped. Please extract first: " + file.getName());
+                return 0;
             } else {
                 System.out.println("Reading " + file.getAbsolutePath());
                 reader = new FileReader(file);
@@ -212,7 +216,7 @@ public class ThreadDumpCommand implements Command {
             }
             if (fullThreadDumps > 0) {
                 count++;
-                System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
+                // System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
             }
         } finally {
             if(reader != null) {

@@ -389,6 +389,10 @@ public enum RDBDocumentStoreDB {
 
             return result;
         }
+
+        public String makeIndexConditionalForColumn(String columnName) {
+            return " exclude null keys";
+        }
     },
 
     ORACLE("Oracle") {
@@ -654,10 +658,11 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-2395
             return ("create table " + tableName
-                    + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + " (ID varbinary(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
                     + (schema >= 1 ? "VERSION smallint, " : "")
                     + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA nvarchar(4000), BDATA varbinary(max))");
+                    + "DATA nvarchar(4000), BDATA varbinary(max), "
+                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))");
         }
 
         @Override
@@ -791,14 +796,15 @@ public enum RDBDocumentStoreDB {
 
             return result;
         }
+
+        public String makeIndexConditionalForColumn(String columnName) {
+            return " where " + columnName + " is not null";
+        }
     };
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreDB.class);
 
     private static final String SYSPROP_PREFIX = "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore";
-
-    // whether to create indices
-    private static final String CREATEINDEX = System.getProperty(SYSPROP_PREFIX + ".CREATEINDEX", "");
 
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
@@ -879,17 +885,13 @@ public enum RDBDocumentStoreDB {
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
         List<String> result = Lists.newArrayList();
-        if (CREATEINDEX.equals("modified-id")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
-        } else if (CREATEINDEX.equals("id-modified")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
-        } else if (CREATEINDEX.equals("modified")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
-        }
+        result.add("create index " + tableName + "_MOD on " + tableName + " (MODIFIED)");
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");
-            result.add("create index " + tableName + "_SDT on " + tableName + " (SDTYPE)");
-            result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)");
+            result.add(
+                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"));
+            result.add("create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
+                    + makeIndexConditionalForColumn("SDMAXREVTIME"));
         }
         return result;
     }
@@ -978,6 +980,14 @@ public enum RDBDocumentStoreDB {
         return "bigint";
     }
 
+    public String makeIndexConditionalForColumn(String columnName) {
+        return "";
+    }
+
+    public String getModifiedIndexStatement(String tableName) {
+        return "create index " + tableName + "_MOD on " + tableName + " (MODIFIED)";
+    }
+
     /**
      * Statements needed to upgrade the DB
      *
@@ -992,8 +1002,9 @@ public enum RDBDocumentStoreDB {
             String[] statements = new String[] { "alter table " + tableName + " add SDTYPE " + smallint,
                     "alter table " + tableName + " add SDMAXREVTIME " + bigint,
                     "create index " + tableName + "_VSN on " + tableName + " (VERSION)",
-                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)",
-                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)", };
+                    "create index " + tableName + "_SDT on " + tableName + " (SDTYPE)" + makeIndexConditionalForColumn("SDTYPE"),
+                    "create index " + tableName + "_SDM on " + tableName + " (SDMAXREVTIME)"
+                            + makeIndexConditionalForColumn("SDMAXREVTIME"), };
             return Arrays.asList(statements);
         } else {
             throw new IllegalArgumentException("level must be 1 or 2");

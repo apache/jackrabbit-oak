@@ -39,9 +39,9 @@ public class EmptyPrincipalProviderTest {
 
     @Test
     public void testGetGroupMembership() {
-        assertTrue(principalProvider.getGroupMembership(EveryonePrincipal.getInstance()).isEmpty());
-        assertTrue(principalProvider.getGroupMembership(new PrincipalImpl(EveryonePrincipal.NAME)).isEmpty());
-        assertTrue(principalProvider.getGroupMembership(testPrincipal).isEmpty());
+        assertTrue(principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance()).isEmpty());
+        assertTrue(principalProvider.getMembershipPrincipals(new PrincipalImpl(EveryonePrincipal.NAME)).isEmpty());
+        assertTrue(principalProvider.getMembershipPrincipals(testPrincipal).isEmpty());
     }
 
     @Test

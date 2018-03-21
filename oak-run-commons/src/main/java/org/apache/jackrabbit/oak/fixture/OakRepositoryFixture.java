@@ -113,6 +113,14 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 memoryMapping, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore, secure, oneShotRun));
     }
 
+    public static RepositoryFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString,
+                                                                       final String azureContainerName, final String azureRootPath,
+                                                                       final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore,
+                                                                       final int dsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTarWithAzureSegmentStore(base, azureConnectionString,
+                azureContainerName, azureRootPath, maxFileSizeMB, cacheSizeMB, useBlobStore, dsCacheInMB));
+    }
+
     public static RepositoryFixture getCompositeStore(File base, int maxFileSizeMB, int cacheSizeMB,
                                                       final boolean memoryMapping, int mounts, int pathsPerMount) {
         return new OakRepositoryFixture(OakFixture.getCompositeStore(OakFixture.OAK_COMPOSITE_STORE,

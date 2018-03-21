@@ -256,19 +256,21 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /**
      * Persists the changes between {@code toPersist} and {@code base}
      * to the underlying store.
-     * <p>
-     * While this method does not declare any exceptions to be thrown, an
-     * implementation may still throw a runtime exception specific to the
-     * concrete implementation of this node store branch.
      *
      * @param toPersist the state with the changes on top of {@code base}.
      * @param base the base state.
      * @param info the commit info.
      * @return the state with the persisted changes.
+     * @throws ConflictException if changes cannot be persisted because a
+     *          conflict occurred. The exception may contain the revisions of
+     *          the conflicting operations.
+     * @throws DocumentStoreException if the persist operation failed because
+     *          of an exception in the underlying {@link DocumentStore}.
      */
     private DocumentNodeState persist(final @Nonnull NodeState toPersist,
                                       final @Nonnull DocumentNodeState base,
-                                      final @Nonnull CommitInfo info) {
+                                      final @Nonnull CommitInfo info)
+            throws ConflictException, DocumentStoreException {
         return persist(new Changes() {
             @Override
             public void with(Commit c) {
@@ -285,10 +287,16 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param base the base state.
      * @param info the commit info.
      * @return the result state.
+     * @throws ConflictException if changes cannot be persisted because a
+     *          conflict occurred. The exception may contain the revisions of
+     *          the conflicting operations.
+     * @throws DocumentStoreException if the persist operation failed because
+     *          of an exception in the underlying {@link DocumentStore}.
      */
     private DocumentNodeState persist(@Nonnull Changes op,
                                       @Nonnull DocumentNodeState base,
-                                      @Nonnull CommitInfo info) {
+                                      @Nonnull CommitInfo info)
+            throws ConflictException, DocumentStoreException {
         boolean success = false;
         Commit c = store.newCommit(base.getRootRevision(), this);
         RevisionVector rev;
@@ -332,6 +340,22 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     @CheckForNull
     static DocumentNodeStoreBranch getCurrentBranch() {
         return BRANCHES.get(Thread.currentThread());
+    }
+
+    private static CommitFailedException mergeFailed(Throwable t) {
+        String msg = t.getMessage();
+        if (msg == null) {
+            msg = "Failed to merge changes to the underlying store";
+        }
+        String type = OAK;
+        if (t instanceof DocumentStoreException) {
+            DocumentStoreException dse = (DocumentStoreException) t;
+            if (dse.getType() == DocumentStoreException.Type.TRANSIENT) {
+                // set type to MERGE, which indicates a retry may work
+                type = MERGE;
+            }
+        }
+        return new CommitFailedException(type, 1, msg, t);
     }
 
     /**
@@ -519,12 +543,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     return newHead;
                 } catch (ConflictException e) {
                     throw e.asCommitFailedException();
-                } catch(DocumentStoreException e) {
-                    throw new CommitFailedException(MERGE, 1,
-                            "Failed to merge changes to the underlying store", e);
-                } catch (Exception e) {
-                    throw new CommitFailedException(OAK, 1,
-                            "Failed to merge changes to the underlying store", e);
+                } catch (Throwable t) {
+                    throw mergeFailed(t);
                 }
             } finally {
                 if (lock != null) {
@@ -623,9 +643,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throw e;
             } catch (ConflictException e) {
                 throw e.asCommitFailedException();
-            } catch (Exception e) {
-                throw new CommitFailedException(MERGE, 1,
-                        "Failed to merge changes to the underlying store", e);
+            } catch (Throwable t) {
+                throw mergeFailed(t);
             } finally {
                 if (lock != null) {
                     lock.unlock();
@@ -636,8 +655,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
         }
 
-        private void persistTransientHead(NodeState newHead) {
-            head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
+        private void persistTransientHead(NodeState newHead)
+                throws DocumentStoreException {
+            try {
+                head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
+            } catch (ConflictException e) {
+                throw DocumentStoreException.convert(e);
+            }
             numCommits++;
             store.getStatsCollector().doneBranchCommit();
         }

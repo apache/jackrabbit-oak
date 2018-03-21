@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.TabularData;
 
 public interface SegmentNodeStoreStatsMBean {
     String TYPE = "SegmentStoreStats";
@@ -43,4 +45,42 @@ public interface SegmentNodeStoreStatsMBean {
      * @return  time series of the queuing times
      */
     CompositeData getQueuingTimes();
+    
+    /**
+     * @return tabular data of the form <commits,writer>
+     * @throws OpenDataException if data is not available
+     */
+    TabularData getCommitsCountPerWriter() throws OpenDataException;
+    
+    /**
+     * @return tabular data of the form <writer,writerDetails> for each writer
+     *         currently in the queue
+     * @throws OpenDataException if data is not available
+     */
+    TabularData getQueuedWriters() throws OpenDataException;
+    
+    /**
+     * Turns on/off, depending on the value of {@code flag}, the collection of 
+     * stack traces for each writer thread.
+     * @param flag {@code boolean} indicating whether to collect or not
+     */
+    void setCollectStackTraces(boolean flag);
+    
+    /**
+     * @return collectStackTraces status flag
+     */
+    boolean isCollectStackTraces();
+    
+    /**
+     * Modifies the maximum number of writing threads to be recorded.
+     * Changing the default value will reset the overall collection process.
+     * 
+     * @param commitsCountMapSize the new size
+     */
+    void setCommitsCountMapMaxSize(int commitsCountMapMaxSize);
+    
+    /**
+     * @return maximum number of writing threads to be recorded
+     */
+    int getCommitsCountMapMaxSize();
 }

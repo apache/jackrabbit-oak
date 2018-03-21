@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -34,7 +35,9 @@ final class CugSecurityProvider {
         ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
         cugConfiguration.activate(params);
 
-        return new SecurityProviderBuilder().with(configuration).with(cugConfiguration, AuthorizationConfiguration.class).build();
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
+        SecurityProviderHelper.updateConfig(sp, cugConfiguration, AuthorizationConfiguration.class);
+        return sp;
     }
 
     public static CugConfiguration getCugConfiguration(@Nonnull SecurityProvider securityProvider) {

@@ -1,16 +1,30 @@
-# Copyright 2004-2018 H2 Group. Multiple-Licensed under the MPL 2.0,
-# and the EPL 1.0 (http://h2database.com/html/license.html).
-# Initial Developer: H2 Group)
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 "SECTION","TOPIC","SYNTAX","TEXT"
+
 "Grammar","Query","
-SELECT { * | { column [ , ... ] } }  FROM { selector [ join ... ] }
-[ WHERE constraint ] [ ORDER BY { ordering [ , ... ] } ]
+SELECT [ DISTINCT ] { * | { column [ , ... ] } } FROM { selector [ join ... ] }
+[ WHERE constraint ] [ UNION [ ALL ] query ] 
+[ ORDER BY { ordering [ , ... ] } ] [ queryOptions ]
 ","
 "
 
 "Grammar","Column","
-{ [ selectorName . ] propertyName [ AS columnName ] } | { selectorName . * }
+{ [ selectorName . ] { propertyName | * } | EXCERPT( [ selectorName ] ) | REP:SPELLCHECK() } 
+[ AS columnName ]
 ","
 "
 
@@ -39,10 +53,14 @@ condition [ { AND condition } [...] ]
 "
 
 "Grammar","Condition","
-comparison | NOT constraint | ( constraint )
+comparison | inComparison | NOT constraint | ( constraint )
     | [ selectorName . ] propertyName IS [ NOT ] NULL
-    | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , fulltextSearchExpression )
-    | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] PathName )
+    | CONTAINS( { { [ selectorName . ] propertyName } | { selectorName . * } } , staticOperand )
+    | { ISSAMENODE | ISCHILDNODE | ISDESCENDANTNODE } (  [ selectorName , ] pathName )
+    | SIMILAR ( [ selectorName . ] { propertyName | * } , staticOperand )
+    | NATIVE ( [ selectorName , ] languageName , staticOperand )
+    | SPELLCHECK ( [ selectorName , ] staticOperand )
+    | SUGGEST ( [ selectorName , ] staticOperand )
 ","
 "
 
@@ -51,15 +69,36 @@ dynamicOperand { = | <> | < | <= | > | >= | LIKE } staticOperand
 ","
 "
 
-"Grammar","Fulltext Search Expression","
-' anythingExceptSingleQuote ' | $ bindVariableName
+"Grammar","In Comparison","
+dynamicOperand IN ( staticOperand [, ...] )
 ","
 "
 
 "Grammar","Static Operand","
 literal
     | $ bindVariableName
-    | CAST ( literal AS { STRING | BINARY | DATE | LONG | DOUBLE | DECIMAL | BOOLEAN | NAME | PATH | REFERENCE | WEAKREFERENCE | URI } )
+    | CAST ( literal AS { type } )
+","
+"
+
+"Grammar","Ordering","
+simpleName [ ASC | DESC ]
+","
+"
+
+"Grammar","Dynamic Operand","
+[ selectorName . ] propertyName
+    | LENGTH( dynamicOperand )
+    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
+    | { LOWER | UPPER } ( dynamicOperand )
+    | COALESCE ( dynamicOperand, dynamicOperand )
+    | PROPERTY ( propertyName, type )
+","
+"
+
+"Grammar","Type","
+{ STRING | BINARY | DATE | LONG | DOUBLE | DECIMAL 
+    | BOOLEAN | NAME | PATH | REFERENCE | WEAKREFERENCE | URI }
 ","
 "
 
@@ -80,20 +119,25 @@ literal
 ","
 "
 
-"Grammar","Dynamic Operand","
-[ selectorName . ] propertyName
-    | LENGTH( [ selectorName . ] propertyName  )
-    | { NAME | LOCALNAME | SCORE } ( [ selectorName ] )
-    | { LOWER | UPPER } ( dynamicOperand )
-","
-"
-
-"Grammar","Ordering","
-simpleName [ ASC | DESC ]
-","
-"
-
 "Grammar","Name","
-simpleName | '[' quotedName ']'
+simpleName
+","
+"
+
+"Grammar","Options","
+OPTION( {
+    TRAVERSAL { OK | WARN | FAIL | DEFAULT } |
+    INDEX TAG tagName
+    } [ , ... ] )
+","
+"
+
+"Grammar","Explain","
+EXPLAIN [MEASURE] { query }
+","
+"
+
+"Grammar","Measure","
+MEASURE { query }
 ","
 "

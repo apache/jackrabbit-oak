@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNotEquals;
 import java.io.File;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.junit.Rule;
@@ -82,7 +83,7 @@ public class SegmentBufferWriterTest {
 
         try (FileStore store = openFileStore()) {
             SegmentWriter writer = defaultSegmentWriterBuilder("t").build(store);
-            writer.writeString("test");
+            writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
         }
 

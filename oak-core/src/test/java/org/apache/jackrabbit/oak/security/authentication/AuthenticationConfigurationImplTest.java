@@ -46,7 +46,7 @@ public class AuthenticationConfigurationImplTest {
 
     @Test
     public void testGetLoginCtxProvider() {
-        authConfiguration.setSecurityProvider(new SecurityProviderBuilder().build());
+        authConfiguration.setSecurityProvider(SecurityProviderBuilder.newBuilder().build());
 
         assertNotNull(authConfiguration.getLoginContextProvider(repo));
     }

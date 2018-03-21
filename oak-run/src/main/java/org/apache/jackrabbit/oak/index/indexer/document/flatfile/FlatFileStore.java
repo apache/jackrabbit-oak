@@ -23,6 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Set;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.io.Closer;
@@ -35,14 +36,14 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final Closer closer = Closer.create();
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
-    private final int checkChildLimit;
+    private final Set<String> preferredPathElements;
     private final boolean compressionEnabled;
     private long entryCount = -1;
 
-    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, int checkChildLimit, boolean compressionEnabled) {
+    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled) {
         this.storeFile = storeFile;
         this.entryReader = entryReader;
-        this.checkChildLimit = checkChildLimit;
+        this.preferredPathElements = preferredPathElements;
         this.compressionEnabled = compressionEnabled;
     }
 
@@ -56,7 +57,7 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        return new FlatFileStoreIterator(createBaseIterator(), checkChildLimit);
+        return new FlatFileStoreIterator(createBaseIterator(), preferredPathElements);
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {

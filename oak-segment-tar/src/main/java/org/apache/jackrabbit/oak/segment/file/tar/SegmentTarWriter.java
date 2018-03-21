@@ -19,7 +19,12 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexWriter;
+import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.file.tar.index.SimpleIndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +33,10 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 
@@ -38,7 +44,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
-public class SegmentTarWriter implements SegmentArchiveManager.SegmentArchiveWriter {
+public class SegmentTarWriter implements SegmentArchiveWriter {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentTarWriter.class);
 
@@ -57,7 +63,18 @@ public class SegmentTarWriter implements SegmentArchiveManager.SegmentArchiveWri
     private final IOMonitor ioMonitor;
 
     /**
-     * File handle. Initialized lazily in {@link #writeSegment(long, long, byte[], int, int, GCGeneration)}
+     * Map of the entries that have already been written. Used by the
+     * {@link #containsSegment(long, long)} and {@link #readSegment(long, long)}
+     * methods to retrieve data from this file while it's still being written,
+     * and finally by the {@link #close()} method to generate the tar index.
+     * The map is ordered in the order that entries have been written.
+     * <p>
+     * The MutableIndex implementation is thread-safe.
+     */
+    private final Map<UUID, IndexEntry> index = Collections.synchronizedMap(new LinkedHashMap<>());
+
+    /**
+     * File handle. Initialized lazily in {@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
      * to avoid creating an extra empty file when just reading from the repository.
      * Should only be accessed from synchronized code.
      */
@@ -74,7 +91,7 @@ public class SegmentTarWriter implements SegmentArchiveManager.SegmentArchiveWri
     }
 
     @Override
-    public TarEntry writeSegment(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
+    public void writeSegment(long msb, long lsb, byte[] data, int offset, int size, int generation, int fullGeneration, boolean compacted) throws IOException {
         UUID uuid = new UUID(msb, lsb);
         CRC32 checksum = new CRC32();
         checksum.update(data, offset, size);
@@ -110,26 +127,25 @@ public class SegmentTarWriter implements SegmentArchiveManager.SegmentArchiveWri
 
         length = currentLength;
 
-        return new TarEntry(msb, lsb, (int) dataOffset, size, generation);
+        index.put(new UUID(msb, lsb), new SimpleIndexEntry(msb, lsb, (int) dataOffset, size, generation, fullGeneration, compacted));
     }
 
     @Override
-    public ByteBuffer readSegment(TarEntry tarEntry) throws IOException {
+    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
+        IndexEntry indexEntry = index.get(new UUID(msb, lsb));
+        if (indexEntry == null) {
+            return null;
+        }
         checkState(channel != null); // implied by entry != null
-        ByteBuffer data = ByteBuffer.allocate(tarEntry.size());
-        channel.read(data, tarEntry.offset());
+        ByteBuffer data = ByteBuffer.allocate(indexEntry.getLength());
+        channel.read(data, indexEntry.getPosition());
         data.rewind();
         return data;
     }
 
     @Override
-    public void writeIndex(byte[] data) throws IOException {
-        byte[] header = newEntryHeader(file.getName() + ".idx", data.length);
-        access.write(header);
-        access.write(data);
-        monitor.written(header.length + data.length);
-
-        length = access.getFilePointer();
+    public boolean containsSegment(long msb, long lsb) {
+        return index.containsKey(new UUID(msb, lsb));
     }
 
     @Override
@@ -165,8 +181,35 @@ public class SegmentTarWriter implements SegmentArchiveManager.SegmentArchiveWri
         return length;
     }
 
+    private void writeIndex() throws IOException {
+        IndexWriter writer = IndexWriter.newIndexWriter(BLOCK_SIZE);
+
+        for (IndexEntry entry : index.values()) {
+            writer.addEntry(
+                    entry.getMsb(),
+                    entry.getLsb(),
+                    entry.getPosition(),
+                    entry.getLength(),
+                    entry.getGeneration(),
+                    entry.getFullGeneration(),
+                    entry.isCompacted()
+            );
+        }
+
+        byte[] data = writer.write();
+
+        byte[] header = newEntryHeader(file.getName() + ".idx", data.length);
+        access.write(header);
+        access.write(data);
+        monitor.written(header.length + data.length);
+
+        length = access.getFilePointer();
+    }
+
     @Override
     public void close() throws IOException {
+        writeIndex();
+
         access.write(ZERO_BYTES);
         access.write(ZERO_BYTES);
         access.close();

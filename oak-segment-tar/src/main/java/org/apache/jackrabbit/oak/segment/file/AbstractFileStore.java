@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 
 import java.io.Closeable;
@@ -43,7 +44,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -51,7 +52,7 @@ import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -129,7 +130,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             }
         });
         this.blobStore = builder.getBlobStore();
-        this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
+        this.segmentCache = newSegmentCache(builder.getSegmentCacheSize());
         this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
         this.ioMonitor = builder.getIOMonitor();

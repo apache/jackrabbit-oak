@@ -139,7 +139,7 @@ public abstract class AbstractSecurityTest {
     }
 
     protected SecurityProvider initSecurityProvider() {
-        return new SecurityProviderBuilder().with(getSecurityConfigParameters()).build();
+        return SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters()).build();
     }
 
     protected Oak withEditors(Oak oak) {

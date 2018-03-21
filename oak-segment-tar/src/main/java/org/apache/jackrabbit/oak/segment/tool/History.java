@@ -23,7 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;

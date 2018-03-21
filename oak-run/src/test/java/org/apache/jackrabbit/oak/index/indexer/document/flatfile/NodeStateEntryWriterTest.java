@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.copyOf;
@@ -139,6 +140,32 @@ public class NodeStateEntryWriterTest {
         assertTrue(r1.getNodeState().hasProperty("foo"));
         assertEquals("/", r1.getPath());
 
+    }
+
+    @Test
+    public void memUsage() {
+        NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+        NodeBuilder b = EMPTY_NODE.builder();
+        b.setProperty("foo", "bar");
+
+        String json1 = nw.asJson(b.getNodeState());
+
+        b.setProperty("foo1", "bar1");
+        String json2 = nw.asJson(b.getNodeState());
+
+        String line1 = nw.toString(copyOf(elements("/")), json1);
+        String line2 = nw.toString(copyOf(elements("/sub-node")), json1);
+        String line3 = nw.toString(copyOf(elements("/sub-node")), json2);
+
+        NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+
+        long size1 = nr.read(line1).estimatedMemUsage();
+        long size2 = nr.read(line2).estimatedMemUsage();
+        long size3 = nr.read(line3).estimatedMemUsage();
+
+        assertTrue("Mem usage should be more than 0", size1 > 0);
+        assertTrue("Mem usage should increase with longer path", size2 > size1);
+        assertTrue("Mem usage should increase with bigger node state", size3 > size2);
     }
 
 }

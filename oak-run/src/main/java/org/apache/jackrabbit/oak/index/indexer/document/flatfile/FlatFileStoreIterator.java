@@ -20,11 +20,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.ListIterator;
+import java.util.Set;
 
 import com.google.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileBufferLinkedList.NodeIterator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,18 +35,33 @@ import static com.google.common.collect.Iterators.singletonIterator;
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
-    private final LinkedList<NodeStateEntry> buffer = new LinkedList<>();
+    private final FlatFileBufferLinkedList buffer;
     private NodeStateEntry current;
-    private final int checkChildLimit;
+    private final Set<String> preferredPathElements;
     private int maxBufferSize;
+    static final String BUFFER_MEM_LIMIT_CONFIG_NAME = "oak.indexer.memLimitInMB";
+    private static final int DEFAULT_BUFFER_MEM_LIMIT_IN_MB = 100;
 
-    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, int checkChildLimit) {
+    public FlatFileStoreIterator(Iterator<NodeStateEntry> baseItr, Set<String> preferredPathElements) {
         this.baseItr = baseItr;
-        this.checkChildLimit = checkChildLimit;
+        this.preferredPathElements = preferredPathElements;
+
+        int memLimitConfig = Integer.getInteger(BUFFER_MEM_LIMIT_CONFIG_NAME, DEFAULT_BUFFER_MEM_LIMIT_IN_MB);
+        if (memLimitConfig < 0) {
+            log.info("Setting buffer memory limit unbounded", memLimitConfig);
+            this.buffer = new FlatFileBufferLinkedList();
+        } else {
+            log.info("Setting buffer memory limit to {} MBs", memLimitConfig);
+            this.buffer = new FlatFileBufferLinkedList(memLimitConfig * 1024L * 1024L);
+        }
     }
 
     int getBufferSize(){
         return buffer.size();
+    }
+
+    long getBufferMemoryUsage() {
+        return buffer.estimatedMemoryUsage();
     }
 
     @Override
@@ -64,7 +79,8 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     private NodeStateEntry computeNextEntry() {
         if (buffer.size() > maxBufferSize) {
             maxBufferSize = buffer.size();
-            log.info("Max buffer size changed {} for path {}", maxBufferSize, current.getPath());
+            log.info("Max buffer size changed {} (estimated memory usage: {} bytes) for path {}",
+                    maxBufferSize, buffer.estimatedMemoryUsage(), current.getPath());
         }
         if (!buffer.isEmpty()) {
             return buffer.remove();
@@ -77,8 +93,8 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
 
     private NodeStateEntry wrap(NodeStateEntry baseEntry) {
         NodeState state = new LazyChildrenNodeState(baseEntry.getNodeState(),
-                new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), checkChildLimit));
-        return new NodeStateEntry(state, baseEntry.getPath());
+                new ChildNodeStateProvider(getEntries(), baseEntry.getPath(), preferredPathElements));
+        return new NodeStateEntry(state, baseEntry.getPath(), baseEntry.estimatedMemUsage());
     }
 
     private Iterable<NodeStateEntry> getEntries() {
@@ -86,14 +102,13 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private Iterator<NodeStateEntry> queueIterator() {
-        ListIterator<NodeStateEntry> qitr = buffer.listIterator();
+        NodeIterator qitr = buffer.iterator();
         return new AbstractIterator<NodeStateEntry>() {
             @Override
             protected NodeStateEntry computeNext() {
                 //If queue is empty try to append by getting entry from base
                 if (!qitr.hasNext() && baseItr.hasNext()) {
-                    qitr.add(wrap(baseItr.next()));
-                    qitr.previous(); //Move back the itr
+                    buffer.add(wrap(baseItr.next()));
                 }
                 if (qitr.hasNext()) {
                     return qitr.next();

@@ -70,7 +70,8 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
@@ -116,7 +117,7 @@ public class FileStore extends AbstractFileStore {
 
     private final TarFiles tarFiles;
 
-    private final SegmentNodeStorePersistence.RepositoryLock repositoryLock;
+    private final RepositoryLock repositoryLock;
 
     private volatile TarRevisions revisions;
 
@@ -191,13 +192,13 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK flush [%s]", directory), 5, SECONDS,
-                                               this::tryFlush);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS,
+                                                  this::tryFlush);
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
-                                               fileReaper::reap);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
+                                                  fileReaper::reap);
 
-        fileStoreScheduler.scheduleAtFixedRate(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK disk space check [%s]", directory), 1, MINUTES, () -> {
            try (ShutDownCloser ignore = shutDown.tryKeepAlive()) {
                if (shutDown.isShutDown()) {
                    log.debug("Shut down in progress, skipping disk space check");

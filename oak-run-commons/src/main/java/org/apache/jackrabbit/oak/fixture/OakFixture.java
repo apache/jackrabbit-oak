@@ -66,6 +66,7 @@ public abstract class OakFixture {
     public static final String OAK_RDB_DS = "Oak-RDB-DS";
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
+    public static final String OAK_SEGMENT_AZURE = "Oak-Segment-Azure";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
     public static final String OAK_SEGMENT_TAR_COLD = "Oak-Segment-Tar-Cold";
 
@@ -344,6 +345,17 @@ public abstract class OakFixture {
         
         return getSegmentTar(OakFixture.OAK_SEGMENT_TAR_COLD, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore,
                 dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
+    }
+
+    public static OakFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString, final String azureContainerName, final String azureRootPath,
+                                                                final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
+        return SegmentTarFixtureBuilder
+                .segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AZURE, base)
+                .withAzure(azureConnectionString, azureContainerName, azureRootPath)
+                .withMaxFileSize(maxFileSizeMB)
+                .withSegmentCacheSize(cacheSizeMB)
+                .withBlobStore(useBlobStore)
+                .withDSCacheSize(dsCacheInMB).build();
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,

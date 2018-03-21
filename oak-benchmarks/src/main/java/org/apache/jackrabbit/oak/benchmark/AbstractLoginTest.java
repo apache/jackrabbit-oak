@@ -143,7 +143,7 @@ abstract class AbstractLoginTest extends AbstractTest {
                                     UserConfiguration.NAME, ConfigurationParameters.of(iterations, cache));
                         }
                         conf = prepare(conf);
-                        SecurityProvider sp = new SecurityProviderBuilder().with(conf).build();
+                        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(conf).build();
                         return new Jcr(oak).with(sp);
                     }
                 });

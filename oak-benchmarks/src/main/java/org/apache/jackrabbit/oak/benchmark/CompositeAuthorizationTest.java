@@ -89,7 +89,7 @@ public class CompositeAuthorizationTest extends ReadDeepTreeTest {
     }
 
     private static SecurityProvider newTestSecurityProvider(int cnt) {
-        SecurityProvider delegate = new SecurityProviderBuilder().build();
+        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().build();
 
         AuthorizationConfiguration authorizationConfiguration = delegate
                 .getConfiguration(AuthorizationConfiguration.class);

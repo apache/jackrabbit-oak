@@ -30,7 +30,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,15 +39,18 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
-import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -232,7 +234,7 @@ public class TarReader implements Closeable {
     private static TarReader openFirstFileWithValidIndex(List<String> archives, SegmentArchiveManager archiveManager) {
         for (String name : archives) {
             try {
-                SegmentArchiveManager.SegmentArchiveReader reader = archiveManager.open(name);
+                SegmentArchiveReader reader = archiveManager.open(name);
                 if (reader != null) {
                     for (String other : archives) {
                         if (other != name) {
@@ -252,16 +254,19 @@ public class TarReader implements Closeable {
 
     private final SegmentArchiveManager archiveManager;
 
-    private final SegmentArchiveManager.SegmentArchiveReader archive;
+    private final SegmentArchiveReader archive;
 
-    private final Index index;
+    private final Set<UUID> segmentUUIDs;
 
     private volatile boolean hasGraph;
 
-    private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveManager.SegmentArchiveReader archive) {
+    private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
         this.archive = archive;
-        this.index = archive.getIndex();
+        this.segmentUUIDs = archive.listSegments()
+                .stream()
+                .map(e -> new UUID(e.getMsb(), e.getLsb()))
+                .collect(Collectors.toSet());
     }
 
     long size() {
@@ -275,7 +280,7 @@ public class TarReader implements Closeable {
      * @return An instance of {@link Set}.
      */
     Set<UUID> getUUIDs() {
-        return index.getUUIDs();
+        return segmentUUIDs;
     }
 
     /**
@@ -287,7 +292,7 @@ public class TarReader implements Closeable {
      * otherwise.
      */
     boolean containsEntry(long msb, long lsb) {
-        return findEntry(msb, lsb) != -1;
+        return archive.containsSegment(msb, lsb);
     }
 
     /**
@@ -306,41 +311,14 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Find the position of the given entry in this TAR file.
-     *
-     * @param msb The most significant bits of the entry identifier.
-     * @param lsb The least significant bits of the entry identifier.
-     * @return The position of the entry in the TAR file, or {@code -1} if the
-     * entry is not found.
-     */
-    private int findEntry(long msb, long lsb) {
-        return index.findEntry(msb, lsb);
-    }
-
-    /**
      * Read the entries in this TAR file.
      *
-     * @return An array of {@link TarEntry}.
+     * @return An array of {@link IndexEntry}.
      */
     @Nonnull
-    TarEntry[] getEntries() {
-        TarEntry[] entries = new TarEntry[index.count()];
-        for (int i = 0; i < entries.length; i++) {
-            IndexEntry e = index.entry(i);
-            entries[i]  = new TarEntry(
-                    e.getMsb(),
-                    e.getLsb(),
-                    e.getPosition(),
-                    e.getLength(),
-                    newGCGeneration(
-                            e.getGeneration(),
-                            e.getFullGeneration(),
-                            e.isCompacted()
-                    )
-            );
-        }
-        Arrays.sort(entries, TarEntry.OFFSET_ORDER);
-        return entries;
+    SegmentArchiveEntry[] getEntries() {
+        List<SegmentArchiveEntry> entryList = archive.listSegments();
+        return entryList.toArray(new SegmentArchiveEntry[entryList.size()]);
     }
 
     /**
@@ -428,16 +406,17 @@ public class TarReader implements Closeable {
      */
     void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context) throws IOException {
         Map<UUID, List<UUID>> graph = getGraph();
-        TarEntry[] entries = getEntries();
+        SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             // A bulk segments is *always* written before any data segment referencing it.
             // Backward iteration ensures we see all references to bulk segments before
             // we see the bulk segment itself. Therefore we can remove a bulk reference
             // from the bulkRefs set once we encounter it, which save us some memory and
             // CPU on subsequent look-ups.
-            TarEntry entry = entries[i];
-            UUID id = new UUID(entry.msb(), entry.lsb());
-            if (context.shouldReclaim(id, entry.generation(), references.remove(id))) {
+            SegmentArchiveEntry entry = entries[i];
+            UUID id = new UUID(entry.getMsb(), entry.getLsb());
+            GCGeneration generation = GCGeneration.newGCGeneration(entry);
+            if (context.shouldReclaim(id, generation, references.remove(id))) {
                 reclaimable.add(id);
             } else {
                 for (UUID refId : getReferences(id, graph)) {
@@ -493,16 +472,16 @@ public class TarReader implements Closeable {
         int beforeSize = 0;
         int afterCount = 0;
 
-        TarEntry[] entries = getEntries();
+        SegmentArchiveEntry[] entries = getEntries();
         for (int i = 0; i < entries.length; i++) {
-            TarEntry entry = entries[i];
-            beforeSize += archive.getEntrySize(entry.size());
-            UUID id = new UUID(entry.msb(), entry.lsb());
+            SegmentArchiveEntry entry = entries[i];
+            beforeSize += archive.getEntrySize(entry.getLength());
+            UUID id = new UUID(entry.getMsb(), entry.getLsb());
             if (reclaim.contains(id)) {
                 cleaned.add(id);
                 entries[i] = null;
             } else {
-                afterSize += archive.getEntrySize(entry.size());
+                afterSize += archive.getEntrySize(entry.getLength());
                 afterCount += 1;
             }
         }
@@ -535,12 +514,12 @@ public class TarReader implements Closeable {
 
         log.debug("Writing new generation {}", newFile);
         TarWriter writer = new TarWriter(archiveManager, newFile);
-        for (TarEntry entry : entries) {
+        for (SegmentArchiveEntry entry : entries) {
             if (entry != null) {
-                long msb = entry.msb();
-                long lsb = entry.lsb();
-                int size = entry.size();
-                GCGeneration gen = entry.generation();
+                long msb = entry.getMsb();
+                long lsb = entry.getLsb();
+                int size = entry.getLength();
+                GCGeneration gen = GCGeneration.newGCGeneration(entry);
                 byte[] data = new byte[size];
                 archive.readSegment(msb, lsb).get(data);
                 writer.writeEntry(msb, lsb, data, 0, size, gen);
@@ -608,7 +587,12 @@ public class TarReader implements Closeable {
      * @return The parsed graph, or {@code null} if one was not found.
      */
     Map<UUID, List<UUID>> getGraph() throws IOException {
-        return archive.getGraph();
+        ByteBuffer buffer = archive.getGraph();
+        if (buffer == null) {
+            return null;
+        } else {
+            return GraphLoader.parseGraph(buffer);
+        }
     }
 
     private boolean hasGraph() {
@@ -629,7 +613,7 @@ public class TarReader implements Closeable {
     BinaryReferencesIndex getBinaryReferences() {
         BinaryReferencesIndex index = null;
         try {
-            index = archive.getBinaryReferences();
+            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(archive.getBinaryReferences());
         } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
         }

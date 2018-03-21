@@ -137,12 +137,13 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                             newParent = child;
                         } else {
                             newParent.setChildNode(childName, child.getNodeState());
-                            child.remove();
                         }
                     }
-                    parent.remove();
                     if (newParent != null) {
+                        // replace the 'parent', which needs to be removed
                         principalRoot.setChildNode(nodeName, newParent.getNodeState());
+                    } else {
+                        parent.remove();
                     }
                 } else {
                     // check if any of the child nodes match

@@ -76,14 +76,14 @@ public class Utils {
      * possibly be too large to be used for the primary key for the document
      * store.
      */
-    static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
+    public static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
 
     /**
      * The maximum length of the parent path, in bytes. If the parent path is
      * longer, then the id of a document is no longer the path, but the hash of
      * the parent, and then the node name.
      */
-    static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
+    public static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
 
     /**
      * The maximum size a node name, in bytes. This is only a problem for long path.
@@ -808,34 +808,33 @@ public class Utils {
 
     /**
      * Wraps the given iterable and aborts iteration over elements when the
-     * predicate on an element evaluates to {@code false}.
+     * predicate on an element evaluates to {@code false}. Calling
+     * {@code close()} on the returned iterable will close the passed iterable
+     * if it is {@link Closeable}.
      *
      * @param iterable the iterable to wrap.
      * @param p the predicate.
      * @return the aborting iterable.
      */
-    public static <T> Iterable<T> abortingIterable(final Iterable<T> iterable,
-                                                   final Predicate<T> p) {
+    public static <T> CloseableIterable<T> abortingIterable(Iterable<T> iterable,
+                                                            Predicate<T> p) {
         checkNotNull(iterable);
         checkNotNull(p);
-        return new Iterable<T>() {
-            @Override
-            public Iterator<T> iterator() {
-                final Iterator<T> it = iterable.iterator();
-                return new AbstractIterator<T>() {
-                    @Override
-                    protected T computeNext() {
-                        if (it.hasNext()) {
-                            T next = it.next();
-                            if (p.apply(next)) {
-                                return next;
-                            }
+        return new CloseableIterable<T>(() -> {
+            final Iterator<T> it = iterable.iterator();
+            return new AbstractIterator<T>() {
+                @Override
+                protected T computeNext() {
+                    if (it.hasNext()) {
+                        T next = it.next();
+                        if (p.apply(next)) {
+                            return next;
                         }
-                        return endOfData();
                     }
-                };
-            }
-        };
+                    return endOfData();
+                }
+            };
+        }, () -> closeIfCloseable(iterable));
     }
 
     /**

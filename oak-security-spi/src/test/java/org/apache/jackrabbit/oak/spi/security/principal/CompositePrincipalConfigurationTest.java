@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.lang.reflect.Field;
 import java.security.Principal;
-import java.security.acl.Group;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +26,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -151,43 +150,46 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         @Nonnull
         @Override
         public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-            return new PrincipalProvider() {
-                @CheckForNull
-                @Override
-                public Principal getPrincipal(@Nonnull String principalName) {
-                    return null;
-                }
-
-                @Nonnull
-                @Override
-                public Set<Group> getGroupMembership(@Nonnull Principal principal) {
-                    return ImmutableSet.of();
-                }
-
-                @Nonnull
-                @Override
-                public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
-                    return ImmutableSet.of();
-                }
-
-                @Nonnull
-                @Override
-                public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-                    return Collections.emptyIterator();
-                }
-
-                @Nonnull
-                @Override
-                public Iterator<? extends Principal> findPrincipals(int searchType) {
-                    return Collections.emptyIterator();
-                }
-            };
+            return new TestPrincipalProvider();
         }
 
         @Nonnull
         @Override
         public String getName() {
             return PrincipalConfiguration.NAME;
+        }
+    }
+
+    private static class TestPrincipalProvider implements PrincipalProvider {
+
+        @CheckForNull
+        @Override
+        public Principal getPrincipal(@Nonnull String principalName) {
+            return null;
+        }
+
+        @Nonnull
+        @Override
+        public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+            return ImmutableSet.of();
+        }
+
+        @Nonnull
+        @Override
+        public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+            return ImmutableSet.of();
+        }
+
+        @Nonnull
+        @Override
+        public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+            return Iterators.emptyIterator();
+        }
+
+        @Nonnull
+        @Override
+        public Iterator<? extends Principal> findPrincipals(int searchType) {
+            return Iterators.emptyIterator();
         }
     }
 

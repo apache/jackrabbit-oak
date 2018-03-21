@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import org.apache.commons.io.input.ReversedLinesFileReader;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +29,7 @@ import java.io.RandomAccessFile;
 
 import static java.nio.charset.Charset.defaultCharset;
 
-public class LocalJournalFile implements SegmentNodeStorePersistence.JournalFile {
+public class LocalJournalFile implements JournalFile {
 
     private final File journalFile;
 
@@ -40,12 +42,12 @@ public class LocalJournalFile implements SegmentNodeStorePersistence.JournalFile
     }
 
     @Override
-    public SegmentNodeStorePersistence.JournalFileReader openJournalReader() throws IOException {
+    public JournalFileReader openJournalReader() throws IOException {
         return new LocalJournalFileReader(journalFile);
     }
 
     @Override
-    public SegmentNodeStorePersistence.JournalFileWriter openJournalWriter() throws IOException {
+    public JournalFileWriter openJournalWriter() throws IOException {
         return new LocalJournalFileWriter(journalFile);
     }
 
@@ -59,7 +61,7 @@ public class LocalJournalFile implements SegmentNodeStorePersistence.JournalFile
         return journalFile.exists();
     }
 
-    private static class LocalJournalFileReader implements SegmentNodeStorePersistence.JournalFileReader {
+    private static class LocalJournalFileReader implements JournalFileReader {
 
         private final ReversedLinesFileReader journal;
 
@@ -78,7 +80,7 @@ public class LocalJournalFile implements SegmentNodeStorePersistence.JournalFile
         }
     }
 
-    private static class LocalJournalFileWriter implements SegmentNodeStorePersistence.JournalFileWriter {
+    private static class LocalJournalFileWriter implements JournalFileWriter {
 
         private final RandomAccessFile journalFile;
 

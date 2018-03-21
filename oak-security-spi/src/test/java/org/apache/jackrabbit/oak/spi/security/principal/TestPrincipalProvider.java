@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
@@ -34,6 +33,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 
 public final class TestPrincipalProvider implements PrincipalProvider {
@@ -67,7 +68,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     }
 
     public Iterable<Principal> all() {
-        Set all = Sets.newHashSet(principals.values());
+        Set<Principal> all = Sets.newHashSet(principals.values());
         all.add(EveryonePrincipal.getInstance());
         return all;
     }
@@ -97,11 +98,11 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     @Nonnull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
         if (principals.equals(TestPrincipals.asMap())) {
             return TestPrincipals.membership(principal.getName());
         } else if (principals.values().contains(principal)) {
-            return ImmutableSet.<Group>of(EveryonePrincipal.getInstance());
+            return ImmutableSet.of(EveryonePrincipal.getInstance());
         } else {
             return ImmutableSet.of();
         }
@@ -114,8 +115,8 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         if (pName != null) {
             Principal p = principals.get(pName);
             if (p != null) {
-                Set s = Sets.newHashSet(p);
-                s.addAll(getGroupMembership(p));
+                Set<Principal> s = Sets.newHashSet(p);
+                s.addAll(getMembershipPrincipals(p));
                 return s;
             }
         }
@@ -153,14 +154,14 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
             switch (searchType) {
                 case PrincipalManager.SEARCH_TYPE_ALL: return true;
-                case PrincipalManager.SEARCH_TYPE_GROUP: return principal instanceof Group;
-                case PrincipalManager.SEARCH_TYPE_NOT_GROUP: return !(principal instanceof Group);
+                case PrincipalManager.SEARCH_TYPE_GROUP: return principal instanceof GroupPrincipal;
+                case PrincipalManager.SEARCH_TYPE_NOT_GROUP: return !(principal instanceof GroupPrincipal);
                 default: throw new IllegalArgumentException();
             }
         }
     }
 
-    private static final class TestGroup extends PrincipalImpl implements Group {
+    private static final class TestGroup extends PrincipalImpl implements GroupPrincipal {
 
         private final Enumeration<? extends Principal> members;
 
@@ -168,16 +169,6 @@ public final class TestPrincipalProvider implements PrincipalProvider {
             super(name);
             Set<? extends Principal> mset = ImmutableSet.copyOf(members);
             this.members = Iterators.asEnumeration(mset.iterator());
-        }
-
-        @Override
-        public boolean addMember(Principal user) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean removeMember(Principal user) {
-            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -195,9 +186,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         private static final Principal a = new PrincipalImpl("a");
         private static final Principal ac = new PrincipalImpl("ac");
-        private static final Group gr1 = new TestGroup("tGr1");
-        private static final Group gr2 = new TestGroup("tGr2", a);
-        private static final Group gr3 = new TestGroup("gr2", gr2, ac);
+        private static final GroupPrincipal gr1 = new TestGroup("tGr1");
+        private static final GroupPrincipal gr2 = new TestGroup("tGr2", a);
+        private static final GroupPrincipal gr3 = new TestGroup("gr2", gr2, ac);
 
         private static final Map<String, Principal> principals = ImmutableMap.<String, Principal>builder()
                 .put(a.getName(), a)
@@ -211,7 +202,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
             return principals;
         }
 
-        private static Set<Group> membership(@Nonnull String name) {
+        private static Set<Principal> membership(@Nonnull String name) {
             if ("a".equals(name)) {
                 return ImmutableSet.of(EveryonePrincipal.getInstance(), gr2, gr3);
             } else if ("ac".equals(name)) {
@@ -219,7 +210,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
             } else if (gr2.getName().equals(name)) {
                 return ImmutableSet.of(EveryonePrincipal.getInstance(), gr3);
             } else if (principals.containsKey(name)) {
-                return ImmutableSet.<Group>of(EveryonePrincipal.getInstance());
+                return ImmutableSet.of(EveryonePrincipal.getInstance());
             } else {
                 return ImmutableSet.of();
             }

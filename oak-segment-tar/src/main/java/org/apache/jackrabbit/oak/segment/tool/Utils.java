@@ -30,7 +30,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;

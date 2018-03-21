@@ -34,6 +34,7 @@
 
     <properties>
         <netty.version>4.1.14.Final</netty.version>
+        <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
     </properties>
 
     <build>
@@ -43,9 +44,13 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package />
+                        <Export-Package>
+                            org.apache.jackrabbit.oak.segment.spi.monitor,
+                            org.apache.jackrabbit.oak.segment.spi.persistence
+                        </Export-Package>
                         <Embed-Dependency>
-                            netty-*
+                            netty-*,
+                            concurrentlinkedhashmap-lru
                         </Embed-Dependency>
                         <Import-Package>
                             com.codahale.metrics*;version="[3.1,4)",
@@ -257,6 +262,8 @@
             <scope>provided</scope>
         </dependency>
 
+		<!-- Embedded dependencies -->
+		
         <!-- Netty -->
 
         <dependency>
@@ -296,6 +303,15 @@
             <scope>compile</scope>
         </dependency>
 
+		<!-- ConcurrentLinkedHashMap -->
+
+        <dependency>
+            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+            <artifactId>concurrentlinkedhashmap-lru</artifactId>
+            <version>${concurrentlinkedhashmap.version}</version>
+            <scope>compile</scope>
+	    </dependency>
+	    
         <!-- Dependencies on Oak testing modules -->
 
         <dependency>
