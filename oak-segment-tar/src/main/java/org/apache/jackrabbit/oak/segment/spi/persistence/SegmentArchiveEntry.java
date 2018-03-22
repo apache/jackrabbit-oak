@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
+/**
+ * Represents a single entry (segment) in the segment archive. The segment is
+ * identified by the {@link java.util.UUID}, which can be split into two
+ * {@link Long} integers. The entry also has its length and 3 properties related
+ * to the garbage collection process: generation, full generation and compacted
+ * status.
+ */
 public interface SegmentArchiveEntry {
 
     /**

@@ -30,6 +30,8 @@ import java.util.UUID;
  * stored in the .tar). It allows to perform a few FS-like operations (delete,
  * rename, copy, etc.) and also opens the segment archives either for reading
  * or reading and writing.
+ * <p>
+ * The implementation doesn't need to be thread-safe.
  */
 public interface SegmentArchiveManager {
 

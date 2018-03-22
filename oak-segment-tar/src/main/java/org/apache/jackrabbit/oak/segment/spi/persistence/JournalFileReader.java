@@ -21,8 +21,19 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.Closeable;
 import java.io.IOException;
 
+/**
+ * The {@link JournalFile} reader. It reads the journal file backwards, starting
+ * from the last written line.
+ * <p>
+ * The implementation doesn't need to be thread-safe.
+ */
 public interface JournalFileReader extends Closeable {
 
+    /**
+     * Read the line from the journal, using LIFO strategy (last in, first out).
+     * @return the journal record
+     * @throws IOException
+     */
     String readLine() throws IOException;
 
 }
