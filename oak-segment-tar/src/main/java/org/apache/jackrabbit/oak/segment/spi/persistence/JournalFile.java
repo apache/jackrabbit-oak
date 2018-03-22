@@ -20,13 +20,42 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
 
+/**
+ * The journal is a special, atomically updated file that records the state of
+ * the repository as a sequence of references to successive root node records.
+ * See <a href="https://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html">
+ * oak-segment-tar</a> documentation for more details.
+ */
 public interface JournalFile {
 
+    /**
+     * Opens the journal file for reading. The returned object will represent
+     * the current state of the journal. Subsequent writes made by the
+     * {@link JournalFileWriter} won't be visible until a new
+     * {@link JournalFileReader} is opened.
+     *
+     * @return the reader representing the current state of the journal
+     * @throws IOException
+     */
     JournalFileReader openJournalReader() throws IOException;
 
+    /**
+     * Opens the journal file for writing.
+     * @return
+     * @throws IOException
+     */
     JournalFileWriter openJournalWriter() throws IOException;
 
+    /**
+     * Return the name representing the journal file.
+     * @return name (eg. file name) representing the journal
+     */
     String getName();
 
+    /**
+     * Check if the journal already exists.
+     * @return {@code true} if the journal has been already created by the
+     * {@link JournalFileWriter}
+     */
     boolean exists();
 }
