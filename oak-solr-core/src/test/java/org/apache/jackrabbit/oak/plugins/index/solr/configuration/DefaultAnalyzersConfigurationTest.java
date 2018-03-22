@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.regex.Pattern;
 
@@ -30,7 +29,6 @@ import org.apache.lucene.analysis.path.PathHierarchyTokenizer;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupTokenFilter;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
-import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
 
