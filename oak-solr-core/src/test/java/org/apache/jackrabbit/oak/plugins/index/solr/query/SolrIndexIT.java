@@ -410,6 +410,30 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    public void testFulltextOperators() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", "the lazy fox jumped over the brown dog");
+        test.addChild("b").setProperty("text", "the lazy bones raised to eat a dog");
+        root.commit();
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy AND brown')]",
+            "xpath", ImmutableList.of("/test/a"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy OR eat')]",
+            "xpath", ImmutableList.of("/test/a", "/test/b"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy AND bones')]",
+            "xpath", ImmutableList.of("/test/b"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy OR dog')]",
+            "xpath", ImmutableList.of("/test/a", "/test/b"));
+    }
+
+    @Test
     public void containsPath() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
