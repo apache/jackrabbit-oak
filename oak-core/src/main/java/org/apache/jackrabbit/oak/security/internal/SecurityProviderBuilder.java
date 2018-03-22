@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAutho
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
-import org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -54,7 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProv
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-public class SecurityProviderBuilder {
+public final class SecurityProviderBuilder {
 
     private Whiteboard whiteboard;
     private RootProvider rootProvider;
