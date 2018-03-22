@@ -94,7 +94,7 @@ public class SecurityProviderBuilder {
             userParams = configuration.getConfigValue(UserConfiguration.NAME, EMPTY);
         } else {
             AuthorizableActionProvider authorizableActionProvider = new DefaultAuthorizableActionProvider();
-            AuthorizableNodeName authorizableNodeName = new RandomAuthorizableNodeName();
+            AuthorizableNodeName authorizableNodeName = AuthorizableNodeName.DEFAULT;
             UserAuthenticationFactory userAuthenticationFactory = UserConfigurationImpl
                     .getDefaultAuthenticationFactory();
 
@@ -182,7 +182,8 @@ public class SecurityProviderBuilder {
         // authorization
         if (authorizationConfiguration == null) {
             authorizationConfiguration = new CompositeAuthorizationConfiguration();
-            authorizationConfiguration.setDefaultConfig(new AuthorizationConfigurationImpl());
+            authorizationConfiguration.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
+                    securityProvider, rootProvider, treeProvider));
         }
         initializeConfigurations(authorizationConfiguration, securityProvider, authorizationParams, rootProvider,
                 treeProvider);
@@ -191,7 +192,8 @@ public class SecurityProviderBuilder {
         // principal
         if (principalConfiguration == null) {
             principalConfiguration = new CompositePrincipalConfiguration();
-            principalConfiguration.setDefaultConfig(new PrincipalConfigurationImpl());
+            principalConfiguration.setDefaultConfig(initializeConfiguration(new PrincipalConfigurationImpl(),
+                    securityProvider, rootProvider, treeProvider));
         }
         initializeConfigurations(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
         securityProvider.setPrincipalConfiguration(principalConfiguration);
@@ -199,12 +201,13 @@ public class SecurityProviderBuilder {
         // token
         if (tokenConfiguration == null) {
             tokenConfiguration = new CompositeTokenConfiguration();
-            tokenConfiguration.setDefaultConfig(new TokenConfigurationImpl());
+            tokenConfiguration.setDefaultConfig(initializeConfiguration(new TokenConfigurationImpl(), securityProvider,
+                    rootProvider, treeProvider));
         }
-
         initializeConfigurations(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
         securityProvider.setTokenConfiguration(tokenConfiguration);
 
+        // whiteboard
         if (whiteboard != null) {
             securityProvider.setWhiteboard(whiteboard);
         }
