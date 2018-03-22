@@ -38,16 +38,15 @@ import javax.security.auth.spi.LoginModule
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
 
 
-class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
+class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
 
     @Before
     void setupRepo(){
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
-    @Ignore
     @Test
-    public void tokenCreationWithPreAuth() throws Exception{
+    public void tokenCreationWithPreAuth() throws Exception {
         repository = repositoryFactory.getRepository(config)
         registry.registerService(LoginModuleFactory.class.name, new PreAuthLoginModuleFactory(), [
                 'jaas.controlFlag' : 'sufficient',
@@ -58,7 +57,6 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
 
         MyCredential myCred = new MyCredential("admin")
         Session session = repository.login(myCred)
-//        assert session.getAttribute(".token")
         assert myCred.getAttribute(".token")
     }
 
