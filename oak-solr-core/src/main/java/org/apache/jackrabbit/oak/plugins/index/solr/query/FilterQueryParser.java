@@ -290,10 +290,13 @@ class FilterQueryParser {
             public boolean visit(FullTextOr or) {
                 fullTextString.append('(');
                 for (int i = 0; i < or.list.size(); i++) {
+                    FullTextExpression e = or.list.get(i);
+                    if (e.toString().equals("\"OR\"")) {
+                        continue;
+                    }
                     if (i > 0 && i < or.list.size()) {
                         fullTextString.append(" OR ");
                     }
-                    FullTextExpression e = or.list.get(i);
                     String orTerm = parseFullTextExpression(e, configuration);
                     fullTextString.append(orTerm);
                 }
@@ -311,10 +314,13 @@ class FilterQueryParser {
             public boolean visit(FullTextAnd and) {
                 fullTextString.append('(');
                 for (int i = 0; i < and.list.size(); i++) {
+                    FullTextExpression e = and.list.get(i);
+                    if (e.toString().equals("\"AND\"")) {
+                        continue;
+                    }
                     if (i > 0 && i < and.list.size()) {
                         fullTextString.append(" AND ");
                     }
-                    FullTextExpression e = and.list.get(i);
                     String andTerm = parseFullTextExpression(e, configuration);
                     fullTextString.append(andTerm);
                 }
