@@ -233,7 +233,7 @@ to be excluded from the evaluation of restricted areas:
 | `principalNames`            | Set\<String\>  | \-       | Name of principals that are always excluded from CUG evaluation.  |
 | | | | |
 
-_Note:_ this is an optional feature to extend the [default](/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.Default.html) 
+_Note:_ This implementation extends the [default](/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.Default.html) 
 exclusion list. Alternatively, it is possible to plug a custom `CugExclude` implementation matching 
 specific needs (see [below](#pluggability)).
 
@@ -296,7 +296,8 @@ in the `org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfigu
 
 1. implement `CugExclude` interface according to you needs,
 2. make your implementation an OSGi service
-3. deploy the bundle containing your implementation in the OSGi container and activate the service.
+3. deploy the bundle containing your implementation in the OSGi container and activate the service. 
+4. make sure the default CUGExclude service is properly replaced by the custom implementation.
 
 ###### Example
 
