@@ -95,7 +95,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     private CugExclude exclude;
 
     @SuppressWarnings("UnusedDeclaration")
@@ -188,6 +188,14 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @Activate
     protected void activate(Map<String, Object> properties) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
         setParameters(ConfigurationParameters.of(properties));
+    }
+
+    public void bindExclude(CugExclude exclude) {
+        this.exclude = exclude;
+    }
+
+    public void unbindExclude(CugExclude exclude) {
+        this.exclude = null;
     }
 
     //--------------------------------------------------------------------------
