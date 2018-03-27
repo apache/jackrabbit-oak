@@ -1078,6 +1078,10 @@ public class VersionGarbageCollector {
                     log.debug("previous runs recommend a {} sec duration, scope now {}",
                             TimeUnit.MILLISECONDS.toSeconds(suggestedIntervalMs), scope);
                 }
+            } else if (scope.getDurationMs() <= options.precisionMs) {
+                // the scope is smaller than the minimum precision
+                // -> no need to refine the scope
+                log.debug("scope <= precision ({} ms)", options.precisionMs);
             } else {
                 /* Need to guess. Count the overall number of _deletedOnce documents. If those
                  * are more than we want to collect in a single run, reduce the time scope so
