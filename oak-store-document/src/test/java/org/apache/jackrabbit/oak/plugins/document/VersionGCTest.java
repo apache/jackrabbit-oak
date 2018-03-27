@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -241,7 +240,6 @@ public class VersionGCTest {
     }
 
     // OAK-7378
-    @Ignore("OAK-7378")
     @Test
     public void recommendedInterval() throws Exception {
         AtomicLong deletedOnceCountCalls = new AtomicLong();
