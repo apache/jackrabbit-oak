@@ -437,17 +437,14 @@ excludeFromAggregation
 
 <a name="weight"></a>
 weight
-: Since 1.6.3
-: At times, we have property definitions which are added to support for dense results right out of 
-  the index (e.g. `contains(*, 'foo') AND [bar]='baz'`). In such cases, the added property definition "might" 
-  not be the best one to answer queries which only have the property restriction (eg only `[bar]='baz'`). This 
-  can happen when that index specifies some exclude paths and hence does not index all `bar` properties.
-  
-  For such cases set `weight` to `0` for such properties. In such a case IndexPlanner would not use those property
-  definitions to determine if that index can answer the query but it would still use them if some other index entry
-  causes that index to be selected for evaluating such a query.
-  
-  Refer [OAK-5899][OAK-5899] for more details
+: Allows to override the estimated number of entries per value, 
+  which affects the cost of the index.
+: Since 1.6.3: if `weight` is set to `0`, then this property is assumed not to reduce the cost. 
+  Queries that contain _only_ this condition should not use that index. 
+  See [OAK-5899][OAK-5899] for details.
+: Since 1.7.11: if `weight` is set to `10`, then the estimated number of unique entries is 10.
+  This means, the cost is reduced by a factor of about 10, for queries that contain this condition.
+  See [OAK-6735][OAK-6735] for details.
 
 <a name="property-names"></a>**Property Names**
 
