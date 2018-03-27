@@ -65,6 +65,9 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 class IndexPlanner {
+
+    public static int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.lucene.defaultPropertyWeight", 5);
+
     private static final String FLAG_ENTRY_COUNT = "oak.lucene.useActualEntryCount";
     private static final Logger log = LoggerFactory.getLogger(IndexPlanner.class);
     private final IndexDefinition definition;
