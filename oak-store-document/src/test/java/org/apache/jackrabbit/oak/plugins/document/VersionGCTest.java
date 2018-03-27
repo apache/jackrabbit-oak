@@ -30,11 +30,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -43,11 +45,13 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -236,6 +240,35 @@ public class VersionGCTest {
         assertEquals(1, store.findVersionGC.get());
     }
 
+    // OAK-7378
+    @Ignore("OAK-7378")
+    @Test
+    public void recommendedInterval() throws Exception {
+        AtomicLong deletedOnceCountCalls = new AtomicLong();
+
+        // override the gc with a custom VersionGCSupport
+        gc = new VersionGarbageCollector(ns, new VersionGCSupport(store) {
+            @Override
+            public long getDeletedOnceCount() {
+                deletedOnceCountCalls.incrementAndGet();
+                return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
+            }
+        });
+
+        // run first RGC
+        gc.gc(1, TimeUnit.HOURS);
+
+        // afterwards there should be no more calls to getDeletedOnceCount()
+        deletedOnceCountCalls.set(0);
+        // try a couple of runs every five seconds to simulate continuous RGC
+        for (int i = 0; i < 10; i++) {
+            advanceClock(5, SECONDS);
+
+            gc.gc(1, TimeUnit.HOURS);
+            assertEquals(0, deletedOnceCountCalls.get());
+        }
+    }
+
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
         return execService.submit(new Callable<VersionGCStats>() {
@@ -261,6 +294,12 @@ public class VersionGCTest {
     private void merge(DocumentNodeStore store, NodeBuilder builder)
             throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private void advanceClock(long time, TimeUnit unit)
+            throws InterruptedException {
+        Clock c = ns.getClock();
+        c.waitUntil(c.getTime() + unit.toMillis(time));
     }
 
     private class TestStore extends MemoryDocumentStore {
