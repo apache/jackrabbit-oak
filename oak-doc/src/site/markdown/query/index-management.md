@@ -33,7 +33,12 @@ To start the interactive mode,
 with the branch-less commit option, and MongoDB, use:
 
     java -jar oak-run-*.jar json-index --disableBranches --script - \
-      mongodb://localhost:27017/oak
+      mongodb://localhost:27017/oak --user admin --password admin
+
+When using the segment store, use:      
+
+    java -jar oak-run-*.jar json-index --disableBranches --script - \
+      repository/segmentstore --read-write --user admin --password admin
 
 This will open the repository and allow to write and read from the repository.
 An example script creates an index "test", and then re-indexes it:
@@ -144,7 +149,7 @@ The following script created the index externalId:
     ]}
     exit
     
-#### Create Nodex for Testing
+#### Create Nodes for Testing
 
 The tool can also be used for testing queries, and creating nodes.
 The following creates 1000 nodes `/test/n<x>`, saving every 100 nodes:
@@ -171,3 +176,11 @@ The following creates 1000 nodes `/test/n<x>`, saving every 100 nodes:
     {"print": "done"}
     exit
 
+#### Estimate the Number of Nodes
+
+The following will estimate the number of nodes in a given subtree.
+
+    {"xpath": "explain measure /jcr:root/content//* option(traversal ok)"}
+    exit
+    
+The field "cost" will contain the number of estimated nodes.

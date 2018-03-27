@@ -90,6 +90,12 @@ public class JsonIndexCommand implements Command {
         OptionSpec<String> scriptOption = parser
                 .accepts("script", "Path to Script").withOptionalArg()
                 .defaultsTo("");
+        OptionSpec<String> userOption = parser
+                .accepts("user", "User name").withOptionalArg()
+                .defaultsTo("admin");
+        OptionSpec<String> passwordOption = parser
+                .accepts("password", "Password").withOptionalArg()
+                .defaultsTo("admin");
 
         Options oakOptions = new Options();
         OptionSet options = oakOptions.parseAndConfigure(parser, args);
@@ -99,9 +105,11 @@ public class JsonIndexCommand implements Command {
 
         NodeStore nodeStore = nodeStoreFixture.getStore();
         String script = scriptOption.value(options);
+        String user = userOption.value(options);
+        String password = passwordOption.value(options);
         LineNumberReader reader = openScriptReader(script);
         try {
-            process(nodeStore, reader);
+            process(nodeStore, reader, user, password);
         } finally {
             nodeStoreFixture.close();
             reader.close();
@@ -120,9 +128,9 @@ public class JsonIndexCommand implements Command {
         return new LineNumberReader(new BufferedReader(reader));
     }
 
-    public void process(NodeStore nodeStore, LineNumberReader reader)
+    public void process(NodeStore nodeStore, LineNumberReader reader, String user, String password)
             throws Exception {
-        session = openSession(nodeStore);
+        session = openSession(nodeStore, user, password);
         System.out.println("Nodestore is open");
         if (interactive) {
             System.out.println("Type \"exit\" to quit");
@@ -176,7 +184,7 @@ public class JsonIndexCommand implements Command {
             }
         }
     }
-    
+
     void execute(String command) throws RepositoryException {
         JsopTokenizer t = new JsopTokenizer(command);
         t.read('{');
@@ -471,7 +479,7 @@ public class JsonIndexCommand implements Command {
         builder.endObject();
     }
 
-    public static Session openSession(NodeStore nodeStore) throws RepositoryException {
+    public static Session openSession(NodeStore nodeStore, String user, String password) throws RepositoryException {
         if (nodeStore == null) {
             return null;
         }
@@ -484,7 +492,7 @@ public class JsonIndexCommand implements Command {
                 .with(createLuceneIndexEditorProvider());
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();
-        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        return repository.login(new SimpleCredentials(user, password.toCharArray()));
     }
 
     private static LuceneIndexEditorProvider createLuceneIndexEditorProvider() {
