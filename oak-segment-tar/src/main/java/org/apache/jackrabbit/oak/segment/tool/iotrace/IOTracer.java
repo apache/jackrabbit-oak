@@ -197,7 +197,7 @@ public class IOTracer {
             @Override
             public String toString() {
                 return System.currentTimeMillis() + "," +  fileName + "," +
-                        new UUID(msb, length) + "," + length + "," + elapsed + "," +
+                        new UUID(msb, lsb) + "," + length + "," + elapsed + "," +
                         join(",", context);
             }
         }
