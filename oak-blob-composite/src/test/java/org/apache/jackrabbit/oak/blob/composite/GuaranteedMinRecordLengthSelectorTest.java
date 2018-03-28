@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +58,7 @@ public class GuaranteedMinRecordLengthSelectorTest {
 
     private DelegateDataStore createDelegateDataStore(final String role, final Map<String, Object> config) {
         return new DelegateDataStore(new DataStoreProvider() {
-            private InMemoryDataStore ds = new InMemoryDataStore(config);
+            private TestableFileDataStore ds = new TestableFileDataStore(config);
             @Override
             public DataStore getDataStore() {
                 return ds;
@@ -100,10 +101,10 @@ public class GuaranteedMinRecordLengthSelectorTest {
         assertEquals(len2, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
-    static class InMemoryDataStore extends org.apache.jackrabbit.core.data.InMemoryDataStore {
+    static class TestableFileDataStore extends OakFileDataStore {
         private static int defaultMinRecordLength = 1024*16;
         private int minRecordLength = defaultMinRecordLength;
-        InMemoryDataStore(final Map<String, Object> config) {
+        TestableFileDataStore(final Map<String, Object> config) {
             Object o = config.get("minRecordLength");
             if (null != o) {
                 minRecordLength = (int) o;

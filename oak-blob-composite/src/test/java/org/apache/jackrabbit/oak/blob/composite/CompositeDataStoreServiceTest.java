@@ -23,7 +23,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.InMemoryDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -60,7 +60,7 @@ public class CompositeDataStoreServiceTest {
 
     private DataStoreProvider createDelegateDataStore(final String role) {
         return new DataStoreProvider() {
-            InMemoryDataStore ds = new InMemoryDataStore();
+            OakFileDataStore ds = new OakFileDataStore();
             @Override
             public String getRole() {
                 return role;

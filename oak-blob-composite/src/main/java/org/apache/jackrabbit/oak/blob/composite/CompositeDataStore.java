@@ -106,11 +106,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     @Override
     public void init(String homeDir) throws RepositoryException {
+        if (Strings.isNullOrEmpty(homeDir)) {
+            throw new IllegalArgumentException("Value required for homeDir");
+        }
         synchronized (this) {
             if (!isInitialized) {
-                if (Strings.isNullOrEmpty(homeDir)) {
-                    throw new IllegalArgumentException("Value required for homeDir");
-                }
                 isInitialized = true;
                 if (path == null) {
                     path = homeDir + "/compositeds";
@@ -530,6 +530,10 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     @Override
     public DataRecord getMetadataRecord(String name) {
+        if (null == name) {
+            throw new IllegalArgumentException("The wildcard must not be null");
+        }
+
         Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
         while (iter.hasNext()) {
             DataStore ds = iter.next();
@@ -604,7 +608,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         while (iter.hasNext()) {
             DataStore ds = iter.next();
             if (ds instanceof SharedDataStore) {
-                DataRecord record = ((SharedDataStore) ds).getRecordForId(id);
+                DataRecord record = null;
+                try {
+                    record = ((SharedDataStore) ds).getRecordForId(id);
+                }
+                catch (DataStoreException e) { } // We will throw our own, if not found anywhere
                 if (null != record) {
                     return record;
                 }

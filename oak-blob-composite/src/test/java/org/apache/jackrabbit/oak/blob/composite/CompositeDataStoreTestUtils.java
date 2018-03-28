@@ -27,17 +27,13 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.InMemoryDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 
 import javax.jcr.RepositoryException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Iterator;
@@ -59,7 +55,7 @@ public class CompositeDataStoreTestUtils {
     static List<String> threeRoles = Lists.newArrayList("role1", "role2", "role3");
 
     static DataStoreProvider createDataStoreProvider(final String role) {
-        return createDataStoreProvider(new InMemoryDataStore(), role);
+        return createDataStoreProvider(new OakFileDataStore(), role);
     }
 
     static DataStoreProvider createDataStoreProvider(final DataStore ds, final String role) {
@@ -125,7 +121,7 @@ public class CompositeDataStoreTestUtils {
     }
 
     static DelegateDataStore createReadOnlyDelegate(String role) {
-        return createReadOnlyDelegate(role, new InMemoryDataStore());
+        return createReadOnlyDelegate(role, new OakFileDataStore());
     }
 
     static DelegateDataStore createReadOnlyDelegate(String role, DataStore ds) {
@@ -146,10 +142,6 @@ public class CompositeDataStoreTestUtils {
         properties.putAll(config);
         CompositeDataStore cds = new CompositeDataStore(properties);
         return cds;
-    }
-
-    static CompositeDataStore createCompositeDataStore(List<String> roles) {
-        return createCompositeDataStore(roles, null);
     }
 
     static CompositeDataStore createCompositeDataStore(List<String> roles, String homedir) {
@@ -176,29 +168,29 @@ public class CompositeDataStoreTestUtils {
         return cds;
     }
 
-    static DataStore getInMemoryDataStore(File dsPath) throws RepositoryException {
-        DataStore ds = new InMemoryDataStore();
+    static DataStore getFileDataStore(File dsPath) throws RepositoryException {
+        DataStore ds = new OakFileDataStore();
         ds.init(dsPath.getAbsolutePath());
         return ds;
     }
 
     static DataStore createSpyDelegate(File homedir, String role, CompositeDataStore cds)
             throws RepositoryException {
-        DataStore ds = spy(getInMemoryDataStore(homedir));
+        DataStore ds = spy(getFileDataStore(homedir));
         cds.addDelegate(createDelegate(role, ds));
         return ds;
     }
 
     static DataStore createReadOnlySpyDelegate(File homedir, String role, CompositeDataStore cds)
             throws RepositoryException, IOException {
-        DataStore ds = spy(getInMemoryDataStore(homedir));
+        DataStore ds = spy(getFileDataStore(homedir));
         cds.addDelegate(createReadOnlyDelegate(role, ds));
         return ds;
     }
 
     static DataStore createSharedDataStoreSpyDelegate(File homedir, String role, CompositeDataStore cds)
             throws RepositoryException {
-        DataStore ds = spy(new CompositeDataStoreTestUtils.SharedInMemoryDataStore());
+        DataStore ds = spy(new CompositeDataStoreTestUtils.TestableFileDataStore());
         ds.init(homedir.getAbsolutePath());
         cds.addDelegate(createDelegate(role, ds));
         return ds;
@@ -206,7 +198,7 @@ public class CompositeDataStoreTestUtils {
 
     static DataStore createReadOnlySharedDataStoreSpyDelegate(File homedir, String role, CompositeDataStore cds)
             throws RepositoryException {
-        DataStore ds = spy(new CompositeDataStoreTestUtils.SharedInMemoryDataStore());
+        DataStore ds = spy(new CompositeDataStoreTestUtils.TestableFileDataStore());
         ds.init(homedir.getAbsolutePath());
         cds.addDelegate(createReadOnlyDelegate(role, ds));
         return ds;
@@ -299,13 +291,9 @@ public class CompositeDataStoreTestUtils {
         return new ByteArrayInputStream(writer.toString().getBytes());
     }
 
-    static class SharedInMemoryDataStore extends InMemoryDataStore implements SharedDataStore {
+    static class TestableFileDataStore extends OakFileDataStore {
         Map<String, DataRecord> metastore = Maps.newConcurrentMap();
         Map<DataIdentifier, DataRecord> recordsById = Maps.newConcurrentMap();
-
-        public SharedInMemoryDataStore() {
-            this.setSecret("123456");
-        }
 
         private DataRecord recordFromString(String s) {
             DataRecord r = mock(DataRecord.class);
@@ -321,88 +309,88 @@ public class CompositeDataStoreTestUtils {
             return r;
         }
 
-        @Override
-        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
-            StringWriter writer = new StringWriter();
-            try {
-                IOUtils.copy(stream, writer, "utf-8");
-                metastore.put(name, recordFromString(writer.toString()));
-            }
-            catch (IOException e) {
-                throw new DataStoreException(e);
-            }
-        }
-
-        @Override
-        public void addMetadataRecord(File f, String name) throws DataStoreException {
-            try {
-                addMetadataRecord(new FileInputStream(f), name);
-            }
-            catch (FileNotFoundException e) {
-                throw new DataStoreException(e);
-            }
-        }
-
-        @Override
-        public DataRecord getMetadataRecord(String name) {
-            return metastore.get(name);
-        }
-
-        @Override
-        public List<DataRecord> getAllMetadataRecords(String prefix) {
-            List<DataRecord> records = Lists.newArrayList();
-            for (String key : metastore.keySet()) {
-                if (key.startsWith(prefix)) {
-                    records.add(getMetadataRecord(key));
-                }
-            }
-            return records;
-        }
-
-        @Override
-        public boolean deleteMetadataRecord(String name) {
-            return null != metastore.remove(name);
-        }
-
-        @Override
-        public void deleteAllMetadataRecords(String prefix) {
-            for (String key : metastore.keySet()) {
-                if (key.startsWith(prefix)) {
-                    deleteMetadataRecord(key);
-                }
-            }
-        }
-
-        @Override
-        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
-            Iterator<DataIdentifier> iter = getAllIdentifiers();
-            List<DataRecord> records = Lists.newArrayList();
-            while (iter.hasNext()) {
-                DataRecord record = getRecord(iter.next());
-                if (null != record) {
-                    records.add(record);
-                }
-            }
-            return records.iterator();
-        }
-
-        @Override
-        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
-            try {
-                return getRecord(id);
-            }
-            catch (DataStoreException e) {
-                return null;
-            }
-        }
+//        @Override
+//        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+//            StringWriter writer = new StringWriter();
+//            try {
+//                IOUtils.copy(stream, writer, "utf-8");
+//                metastore.put(name, recordFromString(writer.toString()));
+//            }
+//            catch (IOException e) {
+//                throw new DataStoreException(e);
+//            }
+//        }
+//
+//        @Override
+//        public void addMetadataRecord(File f, String name) throws DataStoreException {
+//            try {
+//                addMetadataRecord(new FileInputStream(f), name);
+//            }
+//            catch (FileNotFoundException e) {
+//                throw new DataStoreException(e);
+//            }
+//        }
+//
+//        @Override
+//        public DataRecord getMetadataRecord(String name) {
+//            return metastore.get(name);
+//        }
+//
+//        @Override
+//        public List<DataRecord> getAllMetadataRecords(String prefix) {
+//            List<DataRecord> records = Lists.newArrayList();
+//            for (String key : metastore.keySet()) {
+//                if (key.startsWith(prefix)) {
+//                    records.add(getMetadataRecord(key));
+//                }
+//            }
+//            return records;
+//        }
+//
+//        @Override
+//        public boolean deleteMetadataRecord(String name) {
+//            return null != metastore.remove(name);
+//        }
+//
+//        @Override
+//        public void deleteAllMetadataRecords(String prefix) {
+//            for (String key : metastore.keySet()) {
+//                if (key.startsWith(prefix)) {
+//                    deleteMetadataRecord(key);
+//                }
+//            }
+//        }
+//
+//        @Override
+//        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+//            Iterator<DataIdentifier> iter = getAllIdentifiers();
+//            List<DataRecord> records = Lists.newArrayList();
+//            while (iter.hasNext()) {
+//                DataRecord record = getRecord(iter.next());
+//                if (null != record) {
+//                    records.add(record);
+//                }
+//            }
+//            return records.iterator();
+//        }
+//
+//        @Override
+//        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
+//            try {
+//                return getRecord(id);
+//            }
+//            catch (DataStoreException e) {
+//                return null;
+//            }
+//        }
 
         public String getReferenceFromIdentifier(DataIdentifier id) {
             return super.getReferenceFromIdentifier(id);
         }
-
-        @Override
-        public Type getType() {
-            return Type.SHARED;
-        }
+//
+//        @Override
+//        public Type getType() {
+//            return Type.SHARED;
+//        }
     }
 }

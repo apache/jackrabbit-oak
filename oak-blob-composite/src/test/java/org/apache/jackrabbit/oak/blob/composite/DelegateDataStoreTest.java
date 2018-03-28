@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.blob.composite;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.InMemoryDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class DelegateDataStoreTest {
 
     DataStoreProvider createDataStoreProvider(final String role) {
         return new DataStoreProvider() {
-            DataStore ds = new InMemoryDataStore();
+            DataStore ds = new OakFileDataStore();
             @Override
             public DataStore getDataStore() {
                 return ds;

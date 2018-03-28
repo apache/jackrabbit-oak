@@ -70,8 +70,8 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
         homedir = folder.newFolder().getAbsolutePath();
     }
 
-    private DataStore getInMemoryDataStore() throws RepositoryException, IOException {
-        return CompositeDataStoreTestUtils.getInMemoryDataStore(folder.newFolder());
+    private DataStore getFileDataStore() throws RepositoryException, IOException {
+        return CompositeDataStoreTestUtils.getFileDataStore(folder.newFolder());
     }
 
     private DataStore createReadOnlySpyDelegate(String role, CompositeDataStore cds)
@@ -98,7 +98,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
         CompositeDataStore cds = createEmptyCompositeDataStore(twoRoles);
 
         for (String role : twoRoles) {
-            DataStore ds = spy(getInMemoryDataStore());
+            DataStore ds = spy(getFileDataStore());
             dataStores.add(ds);
             cds.addDelegate(createReadOnlyDelegate(role, ds));
         }
@@ -139,7 +139,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
             throws RepositoryException, IOException {
         CompositeDataStore cds = createEmptyCompositeDataStore(twoRoles);
         DataStore ds = createSpyDelegate(folder.newFolder(), twoRoles.get(0), cds);
-        DataStore rods = spy(getInMemoryDataStore());
+        DataStore rods = spy(getFileDataStore());
         cds.addDelegate(createReadOnlyDelegate(twoRoles.get(1), rods));
         cds.init(homedir);
 
