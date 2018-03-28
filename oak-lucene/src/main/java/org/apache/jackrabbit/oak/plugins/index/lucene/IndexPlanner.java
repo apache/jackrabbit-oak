@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
@@ -284,7 +284,7 @@ class IndexPlanner {
 
             // Set a index based guess here. Unique would set its own value below
             if (useActualEntryCount && !definition.isEntryCountDefined()) {
-                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns);
+                int maxPossibleNumDocs = getMaxPossibleNumDocs(result.propDefns, filter);
                 if (maxPossibleNumDocs >= 0) {
                     plan.setEstimatedEntryCount(maxPossibleNumDocs);
                 }
@@ -745,7 +745,7 @@ class IndexPlanner {
         return indexNode.getIndexStatistics().numDocs();
     }
 
-    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns) {
+    private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         int minNumDocs = indexStatistics.numDocs();
         for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
@@ -759,6 +759,24 @@ class IndexPlanner {
             }
 
             int weight = propDef.getValue().weight;
+
+            PropertyRestriction pr = filter.getPropertyRestriction(key);
+            if (pr != null) {
+                if (pr.isNotNullRestriction()) {
+                    // don't use weight for "is not null" restrictions
+                    weight = 1;
+                } else {
+                    if (weight > 1) {
+                        // for non-equality conditions such as
+                        // where x > 1, x < 2, x like y,...:
+                        // use a maximum weight of 3,
+                        // so assume we read at least 30%
+                        if (!isEqualityRestriction(pr)) {
+                            weight = Math.min(3, weight);
+                        }
+                    }
+                }
+            }
 
             if (weight > 1) {
                 // use it to scale down the doc count - in broad strokes, we can think of weight
@@ -776,6 +794,10 @@ class IndexPlanner {
             }
         }
         return minNumDocs;
+    }
+
+    private static boolean isEqualityRestriction(PropertyRestriction pr) {
+        return pr.first != null && pr.first == pr.last;
     }
 
     private List<OrderEntry> createSortOrder(IndexingRule rule) {

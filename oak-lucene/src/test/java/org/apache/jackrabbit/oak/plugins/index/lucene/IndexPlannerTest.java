@@ -1309,6 +1309,29 @@ public class IndexPlannerTest {
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
 
+        // Query on "foo" is not null
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        // Query on "foo" like x
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("bar%"));
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // weight of 3
+        assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
+
+        // Query on "foo" > x
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // weight of 3
+        assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
+
         // Query on "foo1"
         filter = createFilter("nt:base");
         filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
