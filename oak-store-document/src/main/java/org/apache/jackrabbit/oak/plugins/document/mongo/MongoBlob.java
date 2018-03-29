@@ -16,19 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.BasicDBObject;
+import org.bson.BsonDocument;
+import org.bson.BsonDocumentWrapper;
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
+import org.bson.types.Binary;
 
 /**
  * The {@code MongoDB} representation of a blob. Only used by MongoBlobStore
  */
-public class MongoBlob extends BasicDBObject {
+public class MongoBlob implements Bson {
 
     public static final String KEY_ID = "_id";
     public static final String KEY_DATA = "data";
     public static final String KEY_LAST_MOD = "lastMod";
     public static final String KEY_LEVEL = "level";
 
-    private static final long serialVersionUID = 5119970546251968672L;
+    private String id;
+    private byte[] data;
+    private int level;
+    private long lastMod;
 
     /**
      * Default constructor. Needed for MongoDB serialization.
@@ -36,35 +44,63 @@ public class MongoBlob extends BasicDBObject {
     public MongoBlob() {
     }
 
+    static MongoBlob fromDocument(Document doc) {
+        MongoBlob blob = new MongoBlob();
+        blob.setId(doc.getString(KEY_ID));
+        blob.setLevel(doc.getInteger(KEY_LEVEL, 0));
+        if (doc.containsKey(KEY_LAST_MOD)) {
+            blob.setLastMod(doc.getLong(KEY_LAST_MOD));
+        }
+        if (doc.containsKey(KEY_DATA)) {
+            blob.setData(doc.get(KEY_DATA, Binary.class).getData());
+        }
+        return blob;
+    }
+
+    Document asDocument() {
+        Document doc = new Document();
+        doc.put(KEY_ID, id);
+        doc.put(KEY_LEVEL, level);
+        doc.put(KEY_LAST_MOD, lastMod);
+        doc.put(KEY_DATA, data);
+        return doc;
+    }
+
     public String getId() {
-        return getString(KEY_ID);
+        return id;
     }
 
     public void setId(String id) {
-        put(KEY_ID, id);
+        this.id = id;
     }
 
     public byte[] getData() {
-        return (byte[]) get(KEY_DATA);
+        return data;
     }
 
     public void setData(byte[] data) {
-        put(KEY_DATA, data);
+        this.data = data;
     }
 
     public int getLevel() {
-        return getInt(KEY_LEVEL);
+        return level;
     }
 
     public void setLevel(int level) {
-        put(KEY_LEVEL, level);
+        this.level = level;
     }
 
     public long getLastMod() {
-        return getLong(KEY_LAST_MOD);
+        return lastMod;
     }
 
     public void setLastMod(long lastMod) {
-        put(KEY_LAST_MOD, lastMod);
+        this.lastMod = lastMod;
+    }
+
+    @Override
+    public <TDocument> BsonDocument toBsonDocument(Class<TDocument> tDocumentClass,
+                                                   CodecRegistry codecRegistry) {
+        return new BsonDocumentWrapper<>(this, codecRegistry.get(MongoBlob.class));
     }
 }

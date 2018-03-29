@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
-import com.mongodb.client.model.DBCollectionFindOptions;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,11 @@ public class MongoStatus {
             .add("host", "process", "connections", "repl", "storageEngine", "mem")
             .build();
 
-    private final DB db;
+    private final MongoClient client;
+
+    private final String dbName;
+
+    private final ClusterDescriptionProvider descriptionProvider;
 
     private BasicDBObject serverStatus;
 
@@ -54,8 +58,17 @@ public class MongoStatus {
 
     private Boolean majorityReadConcernEnabled;
 
-    public MongoStatus(@Nonnull DB db) {
-        this.db = db;
+    public MongoStatus(@Nonnull MongoClient client,
+                       @Nonnull String dbName) {
+        this(client, dbName, () -> null);
+    }
+
+    public MongoStatus(@Nonnull MongoClient client,
+                       @Nonnull String dbName,
+                       @Nonnull ClusterDescriptionProvider descriptionProvider) {
+        this.client = client;
+        this.dbName = dbName;
+        this.descriptionProvider = descriptionProvider;
     }
 
     public void checkVersion() {
@@ -101,15 +114,15 @@ public class MongoStatus {
             // Mongo API doesn't seem to provide an option to check whether the
             // majority read concern has been enabled, so we have to try to use
             // it and optionally catch the exception.
-            DBCollection emptyCollection = db.getCollection("emptyCollection-" + System.currentTimeMillis());
-            DBCursor cursor = emptyCollection.find(new BasicDBObject(), new DBCollectionFindOptions().readConcern(ReadConcern.MAJORITY));
-            try {
+            MongoCollection<?> emptyCollection = client.getDatabase(dbName)
+                    .getCollection("emptyCollection-" + System.currentTimeMillis());
+            try (MongoCursor cursor = emptyCollection
+                    .withReadConcern(ReadConcern.MAJORITY)
+                    .find(new BasicDBObject()).iterator()) {
                 cursor.hasNext();
                 majorityReadConcernEnabled = true;
             } catch (MongoQueryException | IllegalArgumentException e) {
                 majorityReadConcernEnabled = false;
-            } finally {
-                cursor.close();
             }
         }
         return majorityReadConcernEnabled;
@@ -161,14 +174,16 @@ public class MongoStatus {
 
     private BasicDBObject getServerStatus() {
         if (serverStatus == null) {
-            serverStatus = db.command("serverStatus");
+            serverStatus = client.getDatabase(dbName).runCommand(
+                    new BasicDBObject("serverStatus", 1), BasicDBObject.class);
         }
         return serverStatus;
     }
 
     private BasicDBObject getBuildInfo() {
         if (buildInfo == null) {
-            buildInfo = db.command("buildInfo");
+            buildInfo = client.getDatabase(dbName).runCommand(
+                    new BasicDBObject("buildInfo", 1), BasicDBObject.class);
         }
         return buildInfo;
     }

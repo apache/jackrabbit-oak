@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Map;
 
-import com.mongodb.DB;
-
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -47,11 +45,11 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDBName());
         DocumentMK.Builder builder = new DocumentMK.Builder();
-        store = new TestStore(mongoConnection.getDB(), builder);
+        store = new TestStore(mongoConnection, builder);
         builder.setDocumentStore(store);
-        mk = builder.setMongoDB(mongoConnection.getDB()).open();
+        mk = builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName()).open();
     }
 
     @Test
@@ -59,7 +57,7 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), Document.ID));
         assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
         assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
-        if (new MongoStatus(mongoConnection.getDB()).isVersion(3, 2)) {
+        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
             assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
         } else {
             assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
@@ -75,8 +73,8 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         DocumentMK.Builder builder = new DocumentMK.Builder();
-        TestStore s = new TestStore(c.getDB(), builder);
-        if (new MongoStatus(mongoConnection.getDB()).isVersion(3, 2)) {
+        TestStore s = new TestStore(c, builder);
+        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
             assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
         } else {
             assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
@@ -93,8 +91,8 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
     }
 
     static final class TestStore extends MongoDocumentStore {
-        TestStore(DB db, DocumentMK.Builder builder) {
-            super(db, builder);
+        TestStore(MongoConnection c, DocumentMK.Builder builder) {
+            super(c.getMongoClient(), c.getDBName(), builder);
         }
     }
 }

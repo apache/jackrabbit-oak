@@ -89,7 +89,7 @@ public class MongoDBExceptionTest {
                 }
             }
         };
-        store = new MongoDocumentStore(fongo.getDB("oak"),
+        store = new MongoDocumentStore(fongo.getMongo(), "oak",
                 new DocumentMK.Builder());
 
     }

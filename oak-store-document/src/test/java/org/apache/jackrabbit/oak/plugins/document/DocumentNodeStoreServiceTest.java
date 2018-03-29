@@ -20,9 +20,11 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -154,8 +156,8 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext());
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
-        DB db = MongoDocumentStoreTestHelper.getDB(mds);
-        assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
+        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
+        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test
@@ -213,8 +215,8 @@ public class DocumentNodeStoreServiceTest {
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
         assertNotNull(mds);
-        DB db = MongoDocumentStoreTestHelper.getDB(mds);
-        assertTrue(db.getMongo().getMongoOptions().isSocketKeepAlive());
+        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
+        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test
@@ -232,10 +234,11 @@ public class DocumentNodeStoreServiceTest {
 
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
-        DB db = MongoDocumentStoreTestHelper.getDB(mds);
-        assertFalse(db.getMongo().getMongoOptions().isSocketKeepAlive());
+        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
+        assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
+    @Nonnull
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {
             Field f = s.getClass().getDeclaredField("nonLeaseCheckingStore");
@@ -243,8 +246,8 @@ public class DocumentNodeStoreServiceTest {
             return (MongoDocumentStore) f.get(s);
         } catch (Exception e) {
             fail(e.getMessage());
-            return null;
         }
+        throw new IllegalStateException();
     }
 
     private void assertPersistentCachePath(String expectedPath,

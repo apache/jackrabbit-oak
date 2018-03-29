@@ -22,22 +22,21 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import javax.annotation.Nonnull;
 
 import static com.google.common.collect.Iterables.transform;
-import static com.mongodb.QueryBuilder.start;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
-import com.google.common.base.Function;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.bson.conversions.Bson;
 
 /**
  * Mongo specific version of MissingLastRevSeeker which uses mongo queries
@@ -56,39 +55,32 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     @Override
     @Nonnull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
-        DBObject query =
-                start(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
-                                NodeDocument.getModifiedInSecs(startTime))
-                        .get();
-        DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
+        Bson query = Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime));
+        Bson sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
-        DBCursor cursor =
-                getNodeCollection().find(query)
-                        .sort(sortFields)
-                        .setReadPreference(ReadPreference.primary());
-        return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
-            @Override
-            public NodeDocument apply(DBObject input) {
-                return store.convertFromDBObject(Collection.NODES, input);
-            }
-        }), cursor);
+        FindIterable<BasicDBObject> cursor = getNodeCollection()
+                .withReadPreference(ReadPreference.primary())
+                .find(query).sort(sortFields);
+        return CloseableIterable.wrap(transform(cursor,
+                input -> store.convertFromDBObject(NODES, input)));
     }
 
     @Override
     public boolean isRecoveryNeeded() {
-        QueryBuilder query =
-                start(ClusterNodeInfo.STATE).is(ClusterNodeInfo.ClusterNodeState.ACTIVE.name())
-                .put(ClusterNodeInfo.LEASE_END_KEY).lessThan(clock.getTime());
+        Bson query = Filters.and(
+                Filters.eq(ClusterNodeInfo.STATE, ClusterNodeInfo.ClusterNodeState.ACTIVE.name()),
+                Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime())
+        );
 
-        return getClusterNodeCollection().findOne(query.get()) != null;
+        return getClusterNodeCollection().find(query).iterator().hasNext();
     }
 
-    private DBCollection getNodeCollection() {
-        return store.getDBCollection(Collection.NODES);
+    private MongoCollection<BasicDBObject> getNodeCollection() {
+        return store.getDBCollection(NODES);
     }
 
-    private DBCollection getClusterNodeCollection() {
-        return store.getDBCollection(Collection.CLUSTER_NODES);
+    private MongoCollection<BasicDBObject> getClusterNodeCollection() {
+        return store.getDBCollection(CLUSTER_NODES);
     }
 }
 

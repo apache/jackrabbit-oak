@@ -18,12 +18,13 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -33,6 +34,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNotNull;
 
 public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
 
@@ -43,8 +45,10 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     @Before
     public void before() throws Exception {
         clock.waitUntil(System.currentTimeMillis());
+        MongoConnection connection = connectionFactory.getConnection();
+        assumeNotNull(connection);
         store = new MongoDocumentStore(
-                connectionFactory.getConnection().getDB(),
+                connection.getMongoClient(), connection.getDBName(),
                 new DocumentMK.Builder());
     }
 
@@ -54,9 +58,9 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     }
 
     @Override
-    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
+    protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
         // disable lease check because test waits until lease times out
-        return super.newBuilder(db).setLeaseCheck(false);
+        return super.newBuilder(client, dbName).setLeaseCheck(false);
     }
 
     @Override

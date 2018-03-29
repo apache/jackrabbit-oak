@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.json.simple.JSONObject;
 import org.junit.Test;
 
@@ -35,9 +36,10 @@ public class ClusterJoinTest extends AbstractMongoConnectionTest {
 
         // start a new DocumentMK instance. this instance sees /foo
         // because it started after the commit on the first DocumentMK
+        MongoConnection connection = connectionFactory.getConnection();
         DocumentMK mk2 = new DocumentMK.Builder().
                 setAsyncDelay(0).
-                setMongoDB(connectionFactory.getConnection().getDB()).
+                setMongoDB(connection.getMongoClient(), connection.getDBName()).
                 setClusterId(mk.getNodeStore().getClusterId() + 1).
                 open();
 

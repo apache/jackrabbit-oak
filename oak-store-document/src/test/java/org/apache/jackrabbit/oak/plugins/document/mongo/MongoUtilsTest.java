@@ -17,21 +17,23 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
+import com.mongodb.client.MongoCollection;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
+import org.bson.Document;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,7 +62,7 @@ public class MongoUtilsTest {
     public void createIndex() {
         MongoConnection c = connectionFactory.getConnection();
         c.getDB().dropDatabase();
-        DBCollection collection = c.getDB().getCollection("test");
+        MongoCollection collection = c.getDatabase().getCollection("test");
         MongoUtils.createIndex(collection, "foo", true, false, true);
         MongoUtils.createIndex(collection, "bar", false, true, false);
         MongoUtils.createIndex(collection, new String[]{"baz", "qux"},
@@ -71,9 +73,11 @@ public class MongoUtilsTest {
         assertFalse(MongoUtils.hasIndex(collection, "foo", "bar"));
         assertTrue(MongoUtils.hasIndex(collection, "baz", "qux"));
 
-        assertEquals(4, collection.getIndexInfo().size());
-        for (DBObject info : collection.getIndexInfo()) {
-            DBObject key = (DBObject) info.get("key");
+        List<Document> indexes = new ArrayList<>();
+        collection.listIndexes().into(indexes);
+        assertEquals(4, indexes.size());
+        for (Document info : indexes) {
+            Document key = (Document) info.get("key");
             if (key.keySet().contains("foo")) {
                 assertEquals(1, key.keySet().size());
                 assertEquals(1, key.get("foo"));
@@ -96,25 +100,27 @@ public class MongoUtilsTest {
     public void createPartialIndex() {
         MongoConnection c = connectionFactory.getConnection();
         c.getDB().dropDatabase();
-        MongoStatus status = new MongoStatus(c.getDB());
+        MongoStatus status = new MongoStatus(c.getMongoClient(), c.getDBName());
         assumeTrue(status.isVersion(3, 2));
 
-        DBCollection collection = c.getDB().getCollection("test");
+        MongoCollection collection = c.getDatabase().getCollection("test");
 
         MongoUtils.createPartialIndex(collection, new String[]{"foo", "bar"},
                 new boolean[]{true, true}, "{foo:true}");
         assertTrue(MongoUtils.hasIndex(collection, "_id"));
         assertTrue(MongoUtils.hasIndex(collection, "foo", "bar"));
 
-        assertEquals(2, collection.getIndexInfo().size());
-        for (DBObject info : collection.getIndexInfo()) {
-            DBObject key = (DBObject) info.get("key");
+        List<Document> indexes = new ArrayList<>();
+        collection.listIndexes().into(indexes);
+        assertEquals(2, indexes.size());
+        for (Document info : indexes) {
+            Document key = (Document) info.get("key");
             assertNotNull(key);
             if (key.keySet().contains("foo")) {
                 assertEquals(2, key.keySet().size());
                 assertEquals(1, key.get("foo"));
                 assertEquals(1, key.get("bar"));
-                DBObject filter = (DBObject) info.get("partialFilterExpression");
+                Document filter = (Document) info.get("partialFilterExpression");
                 assertNotNull(filter);
                 assertEquals(Boolean.TRUE, filter.get("foo"));
             }
@@ -126,7 +132,7 @@ public class MongoUtilsTest {
     @Test(expected = IllegalArgumentException.class)
     public void checkArguments() {
         MongoConnection c = connectionFactory.getConnection();
-        DBCollection collection = c.getDB().getCollection("test");
+        MongoCollection collection = c.getDatabase().getCollection("test");
         MongoUtils.createIndex(collection, new String[]{"foo", "bar"},
                 new boolean[]{true}, false, true);
     }

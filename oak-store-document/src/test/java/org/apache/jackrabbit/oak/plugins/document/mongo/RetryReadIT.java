@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -50,10 +50,10 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.clock(getTestClock());
-        store = new TestStore(mongoConnection.getDB(), builder);
+        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDBName(), builder);
         mk = builder.setDocumentStore(store).open();
     }
 
@@ -103,8 +103,8 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
         private int failRead = 0;
 
-        public TestStore(DB db, DocumentMK.Builder builder) {
-            super(db, builder);
+        public TestStore(MongoClient client, String dbName, DocumentMK.Builder builder) {
+            super(client, dbName, builder);
         }
 
         @Override

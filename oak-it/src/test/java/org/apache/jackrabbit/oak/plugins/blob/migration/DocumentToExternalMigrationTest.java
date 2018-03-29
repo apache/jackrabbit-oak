@@ -68,7 +68,7 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
-        builder.setMongoDB(connection.getDB());
+        builder.setMongoDB(connection.getMongoClient(), connection.getDBName());
         return nodeStore = builder.getNodeStore();
     }
 
@@ -88,7 +88,7 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
     @Override
     protected BlobStore createOldBlobStore(File repository) {
         MongoConnection connection = connectionFactory.getConnection();
-        return new MongoBlobStore(connection.getDB());
+        return new MongoBlobStore(connection.getDatabase());
     }
 
     @Override

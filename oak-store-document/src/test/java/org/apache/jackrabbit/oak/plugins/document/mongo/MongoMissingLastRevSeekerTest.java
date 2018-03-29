@@ -57,7 +57,7 @@ public class MongoMissingLastRevSeekerTest {
         assumeTrue(c != null);
         dbName = c.getDB().getName();
         MongoUtils.dropCollections(c.getDB());
-        builder = new DocumentMK.Builder().setMongoDB(c.getDB());
+        builder = new DocumentMK.Builder().setMongoDB(c.getMongoClient(), c.getDBName());
         store = (MongoDocumentStore) builder.getDocumentStore();
         ns = builder.getNodeStore();
     }

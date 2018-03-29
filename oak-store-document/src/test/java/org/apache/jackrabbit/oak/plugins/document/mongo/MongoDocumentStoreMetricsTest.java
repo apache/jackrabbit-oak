@@ -54,7 +54,8 @@ public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
         MongoConnection connection = connectionFactory.getConnection();
         assumeNotNull(connection);
         MongoDocumentStore store = new MongoDocumentStore(
-                connection.getDB(), newMongoDocumentNodeStoreBuilder());
+                connection.getMongoClient(), connection.getDBName(),
+                newMongoDocumentNodeStoreBuilder());
         try {
             MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
             metrics.run();
