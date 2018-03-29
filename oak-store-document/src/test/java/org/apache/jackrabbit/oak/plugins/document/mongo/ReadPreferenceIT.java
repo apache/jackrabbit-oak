@@ -65,12 +65,12 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         setRevisionClock(clock);
         setClusterNodeInfoClock(clock);
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDBName());
         replica = ReplicaSetInfoMock.create(clock);
         mk = new DocumentMK.Builder()
                 .clock(clock)
                 .setClusterId(1)
-                .setMongoDB(mongoConnection.getDB())
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
                 .setLeaseCheck(false)
                 .open();
         mongoDS = (MongoDocumentStore) mk.getDocumentStore();
@@ -80,7 +80,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mk2 = new DocumentMK.Builder()
                 .clock(clock)
                 .setClusterId(2)
-                .setMongoDB(mongoConnection2.getDB())
+                .setMongoDB(mongoConnection2.getMongoClient(), mongoConnection2.getDBName())
                 .setLeaseCheck(false)
                 .open();
     }
@@ -138,7 +138,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
                 mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_SECONDARY));
 
         //Change the default and assert again
-        mongoDS.getDBCollection(NODES).getDB().setReadPreference(ReadPreference.secondary());
+        mongoDS.setReadWriteMode(rwMode(ReadPreference.secondary()));
         assertEquals(ReadPreference.secondary(),
                 mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PREFER_SECONDARY));
 
@@ -155,7 +155,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
     @Test
     public void testMongoReadPreferences() throws Exception {
         ReadPreference testPref = ReadPreference.secondary();
-        mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
+        mongoDS.setReadWriteMode(rwMode(testPref));
 
         NodeStore extNodeStore = mk2.getNodeStore();
         NodeBuilder b1 = extNodeStore.getRoot().builder();
@@ -193,7 +193,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
     public void testMongoReadPreferencesForLocalChanges() throws Exception {
         //Change the default
         ReadPreference testPref = ReadPreference.secondary();
-        mongoDS.getDBCollection(NODES).getDB().setReadPreference(testPref);
+        mongoDS.setReadWriteMode(rwMode(testPref));
 
         NodeStore nodeStore = mk.getNodeStore();
         NodeBuilder b1 = nodeStore.getRoot().builder();
@@ -233,5 +233,9 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         assertTrue(mongoDS.getDBCollection(NODES).getWriteConcern().getJ());
 
         assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
+    }
+
+    private static String rwMode(ReadPreference preference) {
+        return "readpreference=" + preference.getName();
     }
 }

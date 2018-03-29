@@ -27,14 +27,13 @@ import java.util.Random;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.DB;
 
 /**
  * Tests the blob store.
@@ -59,7 +58,8 @@ public class BlobTest {
 
     DocumentMK.Builder setMongoConnection(DocumentMK.Builder builder) {
         if (MONGO_DB) {
-            builder.setMongoDB(connectionFactory.getConnection().getDB());
+            MongoConnection connection = connectionFactory.getConnection();
+            builder.setMongoDB(connection.getMongoClient(), connection.getDBName());
         }
         return builder;
     }

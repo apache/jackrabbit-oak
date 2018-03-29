@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.cluster.AbstractClusterTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -146,8 +147,9 @@ public class ObservationQueueTest extends AbstractClusterTest {
         return new DocumentMongoFixture() {
             @Override
             public NodeStore createNodeStore(int clusterNodeId) {
+                MongoConnection c = MongoUtils.getConnection("oak-test");
                 return new DocumentMK.Builder().setClusterId(clusterNodeId)
-                        .setMongoDB(MongoUtils.getConnection("oak-test").getDB())
+                        .setMongoDB(c.getMongoClient(), c.getDBName())
                         .setPersistentCache("target/persistentCache" + clusterNodeId + ",time,size=128")
                         .setJournalCache("target/journalCache" + clusterNodeId + ",time,size=128")
                         .memoryCacheSize(128 * MB)

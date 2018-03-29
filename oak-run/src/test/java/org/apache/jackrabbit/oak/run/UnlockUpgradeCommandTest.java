@@ -74,13 +74,15 @@ public class UnlockUpgradeCommandTest {
 
     private DocumentNodeStore createDocumentNodeStore() {
         MongoConnection c = connectionFactory.getConnection();
-        MongoUtils.dropCollections(c.getDB().getName());
-        return builderProvider.newBuilder().setMongoDB(c.getDB()).getNodeStore();
+        MongoUtils.dropCollections(c.getDBName());
+        return builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     private void resetFormatVersion(FormatVersion v) {
         MongoConnection c = connectionFactory.getConnection();
-        DocumentStore s = new MongoDocumentStore(c.getDB(), newMongoDocumentNodeStoreBuilder());
+        DocumentStore s = new MongoDocumentStore(c.getMongoClient(),
+                c.getDBName(), newMongoDocumentNodeStoreBuilder());
         s.remove(Collection.SETTINGS, "version");
         assertTrue(v.writeTo(s));
         s.dispose();

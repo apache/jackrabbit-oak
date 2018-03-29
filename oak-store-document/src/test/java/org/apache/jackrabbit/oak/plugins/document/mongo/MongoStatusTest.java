@@ -46,7 +46,7 @@ public class MongoStatusTest {
     @Before
     public void createStatus() {
         MongoConnection c = connectionFactory.getConnection();
-        status = new MongoStatus(c.getDB());
+        status = new MongoStatus(c.getMongoClient(), c.getDBName());
     }
 
     @Test

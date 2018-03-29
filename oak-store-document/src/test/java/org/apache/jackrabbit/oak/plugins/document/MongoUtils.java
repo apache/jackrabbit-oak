@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 
 /**
  * A utility class to get a {@link MongoConnection} to a local mongo instance
@@ -84,9 +85,23 @@ public class MongoUtils {
      * Drop all user defined collections. System collections are not dropped.
      *
      * @param db the connection
+     * @deprecated use {@link #dropCollections(MongoDatabase)} instead.
      */
     public static void dropCollections(DB db) {
         for (String name : db.getCollectionNames()) {
+            if (!name.startsWith("system.")) {
+                db.getCollection(name).drop();
+            }
+        }
+    }
+
+    /**
+     * Drop all user defined collections. System collections are not dropped.
+     *
+     * @param db the connection
+     */
+    public static void dropCollections(MongoDatabase db) {
+        for (String name : db.listCollectionNames()) {
             if (!name.startsWith("system.")) {
                 db.getCollection(name).drop();
             }

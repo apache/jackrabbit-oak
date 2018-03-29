@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import com.google.common.collect.Iterables;
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.junit.Test;
@@ -40,8 +40,8 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
             cacheSize(DEFAULT_PREV_DOC_CACHE_PERCENTAGE);
 
     @Override
-    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
-        return super.newBuilder(db).memoryCacheSize(CACHE_SIZE);
+    protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
+        return super.newBuilder(client, dbName).memoryCacheSize(CACHE_SIZE);
     }
 
     @Test

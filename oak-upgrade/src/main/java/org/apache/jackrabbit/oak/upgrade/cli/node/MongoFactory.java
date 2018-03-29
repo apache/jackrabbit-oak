@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import com.mongodb.DB;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -28,7 +27,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
@@ -50,7 +48,7 @@ public class MongoFactory extends DocumentFactory {
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
         System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
         MongoDocumentNodeStoreBuilder builder = baseConfiguration(newMongoDocumentNodeStoreBuilder(), cacheSize);
-        builder.setMongoDB(getDB(closer));
+        builder.setMongoDB(createClient(closer), getDBName());
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
@@ -66,23 +64,27 @@ public class MongoFactory extends DocumentFactory {
         return documentNodeStore;
     }
 
-    private DB getDB(Closer closer) throws UnknownHostException {
+    private MongoClient createClient(Closer closer) {
+        MongoClient client = new MongoClient(uri);
+        closer.register(client::close);
+        return client;
+    }
+
+    private String getDBName() {
         String db;
         if (uri.getDatabase() == null) {
             db = "aem-author"; // assume an author instance
         } else {
             db = uri.getDatabase();
         }
-        MongoClient client = new MongoClient(uri);
-        closer.register(client::close);
-        return client.getDB(db);
+        return db;
     }
 
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
         Closer closer = Closer.create();
         try {
-            MongoBlobStore mongoBlobStore = new MongoBlobStore(getDB(closer));
+            MongoBlobStore mongoBlobStore = new MongoBlobStore(createClient(closer).getDatabase(getDBName()));
             return !mongoBlobStore.getAllChunkIds(0).hasNext();
         } catch(Throwable e) {
             throw closer.rethrow(e);

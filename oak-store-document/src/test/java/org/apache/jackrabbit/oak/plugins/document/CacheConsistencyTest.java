@@ -30,10 +30,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
-import com.mongodb.DB;
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -47,11 +49,12 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        DB db = mongoConnection.getDB();
+        assertNotNull(mongoConnection);
+        MongoDatabase db = mongoConnection.getDatabase();
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()
                 .clock(getTestClock()).setAsyncDelay(0);
-        store = new TestStore(db, builder);
+        store = new TestStore(mongoConnection.getMongoClient(), db.getName(), builder);
         mk = builder.setDocumentStore(store).open();
     }
 
@@ -106,8 +109,8 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
 
         final Map<Thread, Semaphore> semaphores = Maps.newConcurrentMap();
 
-        TestStore(DB db, DocumentMK.Builder builder) {
-            super(db, builder);
+        TestStore(MongoClient client, String dbName, DocumentMK.Builder builder) {
+            super(client, dbName, builder);
         }
 
         @Override

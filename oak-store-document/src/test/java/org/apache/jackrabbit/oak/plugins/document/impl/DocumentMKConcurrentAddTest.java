@@ -31,8 +31,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.After;
 import org.junit.Test;
 
-import com.mongodb.DB;
-
 /**
  * Test for OAK-566.
  */
@@ -45,8 +43,9 @@ public class DocumentMKConcurrentAddTest extends AbstractMongoConnectionTest {
 
     private DocumentMK createMicroKernel(int clusterId) throws Exception {
         MongoConnection connection = connectionFactory.getConnection();
-        DB mongoDB = connection.getDB();
-        return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE).setMongoDB(mongoDB).setClusterId(clusterId).open();
+        return new DocumentMK.Builder().memoryCacheSize(CACHE_SIZE)
+                .setMongoDB(connection.getMongoClient(), connection.getDBName())
+                .setClusterId(clusterId).open();
     }
 
     @After

@@ -55,7 +55,8 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
         //TODO Temp mode to change the default setting so as to test it
         //If we retain this feature then need to have better config support for it
         System.setProperty("oak.mongo.maxDeltaForModTimeIdxSecs", "120");
-        mongoDS = new MongoDocumentStore(mongoConnection.getDB(), new DocumentMK.Builder());
+        mongoDS = new MongoDocumentStore(mongoConnection.getMongoClient(),
+                mongoConnection.getDBName(), new DocumentMK.Builder());
         mongoDS.setClock(clock);
         TRACE_LOGGER.addHandler(testHandler);
         TRACE_LOGGER.setLevel(Level.FINEST);

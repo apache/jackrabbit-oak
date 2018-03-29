@@ -48,7 +48,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 /**
  * Test for external events from another cluster node.
@@ -73,10 +73,8 @@ public class NonLocalObservationIT extends AbstractClusterTest {
          */
         return new DocumentMongoFixture() {
             
-            private String clusterSuffix = System.currentTimeMillis() + "-NonLocalObservationIT";
+            private String dbName = System.currentTimeMillis() + "-NonLocalObservationIT";
 
-            private DB db;
-            
             /** keep a reference to the node stores so that the db only gets closed after the last nodeStore was closed */
             private Set<NodeStore> nodeStores = new HashSet<NodeStore>();
 
@@ -95,9 +93,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                     DocumentMK.Builder builder = new DocumentMK.Builder();
                     builder.memoryCacheSize(32*1024*1024); // keep this one low to avoid OOME
                     builder.setPersistentCache(null);      // turn this one off to avoid OOME
-                    final String suffix = clusterSuffix;
-                    db = getDb(suffix); // db will be overwritten - but that's fine
-                    builder.setMongoDB(db);
+                    builder.setMongoDB(createClient(), dbName);
                     DocumentNodeStore ns = builder.getNodeStore();
                     nodeStores.add(ns);
                     return ns;
@@ -110,11 +106,9 @@ public class NonLocalObservationIT extends AbstractClusterTest {
             public void dispose(NodeStore nodeStore) {
                 super.dispose(nodeStore);
                 nodeStores.remove(nodeStore);
-                if (db != null && nodeStores.size() == 0) {
-                    try {
-                        db.dropDatabase();
-                        db.getMongo().close();
-                        db = null;
+                if (nodeStores.size() == 0) {
+                    try (MongoClient c = createClient()) {
+                        c.dropDatabase(dbName);
                     } catch (Exception e) {
                         log.error("dispose: Can't close Mongo", e);
                     }

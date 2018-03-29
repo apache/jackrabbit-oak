@@ -93,14 +93,14 @@ public class MongoConnectionTest {
         options.socketKeepAlive(true);
         MongoConnection c = new MongoConnection(MongoUtils.URL, options);
         try {
-            assertTrue(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+            assertTrue(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
         } finally {
             c.close();
         }
         // default is without keep-alive
         c = new MongoConnection(MongoUtils.URL);
         try {
-            assertFalse(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+            assertFalse(c.getMongoClient().getMongoClientOptions().isSocketKeepAlive());
         } finally {
             c.close();
         }

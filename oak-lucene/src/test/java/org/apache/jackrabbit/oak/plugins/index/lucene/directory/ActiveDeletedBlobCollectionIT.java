@@ -96,9 +96,9 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
                 null, Mounts.defaultMountInfoProvider(), adbc);
         provider = new LuceneIndexProvider(copier);
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         if (dataStoreType == DataStoreType.WITHOUT_FDS) {
-            MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDB());
+            MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDatabase());
             blobStore.setBlockSize(128);
             blobStore.setBlockSizeMin(48);
             this.blobStore = new CountingBlobStore(blobStore);
@@ -110,7 +110,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
             this.blobStore = new CountingBlobStore(dsbs);
         }
         nodeStore = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getDB())
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
                 .setBlobStore(this.blobStore)
                 .getNodeStore();
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, editorProvider);

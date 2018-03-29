@@ -16,16 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoDatabase;
+import javax.annotation.CheckForNull;
 
-public final class MongoDocumentStoreTestHelper {
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.event.ClusterDescriptionChangedEvent;
+import com.mongodb.event.ClusterListenerAdapter;
 
-    public static MongoDatabase getDB(MongoDocumentStore store) {
-        return store.getDatabase();
+/**
+ * Remembers the current {@link ClusterDescription} whenever it changes.
+ */
+class MongoClusterListener
+        extends ClusterListenerAdapter
+        implements ClusterDescriptionProvider {
+
+    private volatile ClusterDescription description;
+
+    @CheckForNull
+    public ClusterDescription getClusterDescription() {
+        return description;
     }
 
-    public static MongoClient getClient(MongoDocumentStore store) {
-        return store.getClient();
+    @Override
+    public void clusterDescriptionChanged(ClusterDescriptionChangedEvent event) {
+        description = event.getNewDescription();
     }
 }

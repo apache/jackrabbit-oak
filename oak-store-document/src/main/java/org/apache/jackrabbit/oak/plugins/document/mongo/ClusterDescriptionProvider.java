@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoDatabase;
+import javax.annotation.CheckForNull;
 
-public final class MongoDocumentStoreTestHelper {
+import com.mongodb.connection.ClusterDescription;
 
-    public static MongoDatabase getDB(MongoDocumentStore store) {
-        return store.getDatabase();
-    }
+/**
+ * Provider of the current {@link ClusterDescription}.
+ */
+interface ClusterDescriptionProvider {
 
-    public static MongoClient getClient(MongoDocumentStore store) {
-        return store.getClient();
-    }
+    @CheckForNull
+    ClusterDescription getClusterDescription();
 }

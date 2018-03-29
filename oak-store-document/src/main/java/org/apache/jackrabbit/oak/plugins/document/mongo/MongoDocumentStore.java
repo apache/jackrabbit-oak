@@ -46,8 +46,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.mongodb.Block;
+import com.mongodb.DBObject;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.QueryOperators;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -79,26 +82,30 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
-import com.mongodb.BulkWriteError;
-import com.mongodb.BulkWriteException;
-import com.mongodb.BulkWriteOperation;
-import com.mongodb.BulkWriteResult;
-import com.mongodb.BulkWriteUpsert;
-import com.mongodb.CommandResult;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
-import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
+import com.mongodb.bulk.BulkWriteError;
+import com.mongodb.bulk.BulkWriteResult;
+import com.mongodb.bulk.BulkWriteUpsert;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.ReturnDocument;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.result.UpdateResult;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
@@ -126,7 +133,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             LoggerFactory.getLogger(MongoDocumentStore.class.getName()
                     + ".perf"));
 
-    private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
+    private static final Bson BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -137,12 +144,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     public static final int IN_CLAUSE_BATCH_SIZE = 500;
 
-    private final DBCollection nodes;
-    private final DBCollection clusterNodes;
-    private final DBCollection settings;
-    private final DBCollection journal;
+    private MongoCollection<BasicDBObject> nodes;
+    private final MongoCollection<BasicDBObject> clusterNodes;
+    private final MongoCollection<BasicDBObject> settings;
+    private final MongoCollection<BasicDBObject> journal;
 
-    private final DB db;
+    private final MongoClient client;
+    private final MongoDatabase db;
 
     private final NodeDocumentCache nodesCache;
 
@@ -240,11 +248,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private final boolean readOnly;
 
-    public MongoDocumentStore(DB db, MongoDocumentNodeStoreBuilderBase<?> builder) {
+    public MongoDocumentStore(MongoClient client, String dbName,
+                              MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
-            mongoStatus = new MongoStatus(db);
+            mongoStatus = new MongoStatus(client, dbName);
         }
         mongoStatus.checkVersion();
         metadata = ImmutableMap.<String,String>builder()
@@ -252,12 +261,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 .put("version", mongoStatus.getVersion())
                 .build();
 
-        this.db = db;
+        this.client = client;
+        this.db = client.getDatabase(dbName);
         stats = builder.getDocumentStoreStatsCollector();
-        nodes = db.getCollection(Collection.NODES.toString());
-        clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString());
-        settings = db.getCollection(Collection.SETTINGS.toString());
-        journal = db.getCollection(Collection.JOURNAL.toString());
+        nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+        clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString(), BasicDBObject.class);
+        settings = db.getCollection(Collection.SETTINGS.toString(), BasicDBObject.class);
+        journal = db.getCollection(Collection.JOURNAL.toString(), BasicDBObject.class);
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
@@ -265,7 +275,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             replicaInfo = null;
             localChanges = null;
         } else {
-            replicaInfo = new ReplicaSetInfo(clock, db, builder.getMongoUri(), estimationPullFrequencyMS, maxReplicationLagMillis, builder.getExecutor());
+            replicaInfo = new ReplicaSetInfo(clock, client, dbName, builder.getMongoUri(), estimationPullFrequencyMS, maxReplicationLagMillis, builder.getExecutor());
             Thread replicaInfoThread = new Thread(replicaInfo, "MongoDocumentStore replica set info provider");
             replicaInfoThread.setDaemon(true);
             replicaInfoThread.start();
@@ -541,7 +551,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @CheckForNull
     protected <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         log("findUncached", key, docReadPref);
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         final Stopwatch watch = startWatch();
         boolean isSlaveOk = false;
         boolean docFound = true;
@@ -553,13 +563,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 isSlaveOk = true;
             }
 
-            DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
+            List<BasicDBObject> result = new ArrayList<>(1);
+            dbCollection.withReadPreference(readPreference).find(getByKeyQuery(key)).into(result);
 
-            if(obj == null){
+            if(result.isEmpty()) {
                 docFound = false;
                 return null;
             }
-            T doc = convertFromDBObject(collection, obj);
+            T doc = convertFromDBObject(collection, result.get(0));
             if (doc != null) {
                 doc.seal();
             }
@@ -633,12 +644,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                                          int limit,
                                                          long maxQueryTime) {
         log("query", fromKey, toKey, indexedProperty, startValue, limit);
-        DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
-        queryBuilder.greaterThan(fromKey);
-        queryBuilder.lessThan(toKey);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
 
-        DBObject hint = new BasicDBObject(NodeDocument.ID, 1);
+        List<Bson> clauses = new ArrayList<>();
+        clauses.add(Filters.gt(Document.ID, fromKey));
+        clauses.add(Filters.lt(Document.ID, toKey));
+
+        Bson hint = new BasicDBObject(NodeDocument.ID, 1);
 
         if (indexedProperty != null) {
             if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
@@ -647,11 +659,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                             "unsupported value for property " + 
                                     NodeDocument.DELETED_ONCE);
                 }
-                queryBuilder.and(indexedProperty);
-                queryBuilder.is(true);
+                clauses.add(Filters.eq(indexedProperty, true));
             } else {
-                queryBuilder.and(indexedProperty);
-                queryBuilder.greaterThanEquals(startValue);
+                clauses.add(Filters.gte(indexedProperty, startValue));
 
                 if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
                         && canUseModifiedTimeIdx(startValue)) {
@@ -659,7 +669,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
             }
         }
-        DBObject query = queryBuilder.get();
+        Bson query = Filters.and(clauses);
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         long lockTime = -1;
         final Stopwatch watch  = startWatch();
@@ -671,17 +681,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             cacheChangesTracker = nodesCache.registerTracker(fromKey, toKey);
         }
         try {
-            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
-            if (limit >= 0) {
-                cursor.limit(limit);
-            }
-            if (!disableIndexHint && !hasModifiedIdCompoundIndex) {
-                cursor.hint(hint);
-            }
-            if (maxQueryTime > 0) {
-                // OAK-2614: set maxTime if maxQueryTimeMS > 0
-                cursor.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
-            }
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, null, getDefaultReadPreference(collection));
 
@@ -689,20 +688,28 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 isSlaveOk = true;
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
             }
-
-            cursor.setReadPreference(readPreference);
+            FindIterable<BasicDBObject> result = dbCollection
+                    .withReadPreference(readPreference).find(query).sort(BY_ID_ASC);
+            if (limit >= 0) {
+                result.limit(limit);
+            }
+            if (!disableIndexHint && !hasModifiedIdCompoundIndex) {
+                result.modifiers(new BasicDBObject("$hint", hint));
+            }
+            if (maxQueryTime > 0) {
+                // OAK-2614: set maxTime if maxQueryTimeMS > 0
+                result.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
+            }
 
             List<T> list;
-            try {
+            try (MongoCursor<BasicDBObject> cursor = result.iterator()) {
                 list = new ArrayList<T>();
                 for (int i = 0; i < limit && cursor.hasNext(); i++) {
-                    DBObject o = cursor.next();
+                    BasicDBObject o = cursor.next();
                     T doc = convertFromDBObject(collection, o);
                     list.add(doc);
                 }
                 resultSize = list.size();
-            } finally {
-                cursor.close();
             }
 
             if (cacheChangesTracker != null) {
@@ -729,10 +736,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public <T extends Document> void remove(Collection<T> collection, String key) {
         log("remove", key);
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            dbCollection.remove(getByKeyQuery(key).get());
+            dbCollection.deleteOne(getByKeyQuery(key));
         } catch (Exception e) {
             throw DocumentStoreException.convert(e, "Remove failed for " + key);
         } finally {
@@ -744,13 +751,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
         log("remove", keys);
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
             for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
-                DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
+                Bson query = Filters.in(Document.ID, keyBatch);
                 try {
-                    dbCollection.remove(query);
+                    dbCollection.deleteMany(query);
                 } catch (Exception e) {
                     throw DocumentStoreException.convert(e, "Remove failed for " + keyBatch);
                 } finally {
@@ -770,24 +777,23 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     public <T extends Document> int remove(Collection<T> collection, Map<String, Long> toRemove) {
         log("remove", toRemove);
         int num = 0;
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
             List<String> batchIds = Lists.newArrayList();
-            List<DBObject> batch = Lists.newArrayList();
+            List<Bson> batch = Lists.newArrayList();
             Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, Long> entry = it.next();
                 Condition c = newEqualsCondition(entry.getValue());
-                QueryBuilder query = createQueryForUpdate(
-                        entry.getKey(),  Collections.singletonMap(KEY_MODIFIED, c));
+                Bson clause = createQueryForUpdate(entry.getKey(),
+                        Collections.singletonMap(KEY_MODIFIED, c));
                 batchIds.add(entry.getKey());
-                batch.add(query.get());
+                batch.add(clause);
                 if (!it.hasNext() || batch.size() == IN_CLAUSE_BATCH_SIZE) {
-                    DBObject q = new BasicDBObject();
-                    q.put(QueryOperators.OR, batch);
+                    Bson query = Filters.or(batch);
                     try {
-                        num += dbCollection.remove(q).getN();
+                        num += dbCollection.deleteMany(query).getDeletedCount();
                     } catch (Exception e) {
                         throw DocumentStoreException.convert(e, "Remove failed for " + batch);
                     } finally {
@@ -811,14 +817,15 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             throws DocumentStoreException {
         log("remove", collection, indexedProperty, startValue, endValue);
         int num = 0;
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            QueryBuilder queryBuilder = QueryBuilder.start(indexedProperty);
-            queryBuilder.greaterThan(startValue);
-            queryBuilder.lessThan(endValue);
+            Bson query = Filters.and(
+                    Filters.gt(indexedProperty, startValue),
+                    Filters.lt(indexedProperty, endValue)
+            );
             try {
-                num = dbCollection.remove(queryBuilder.get()).getN();
+                num = (int) Math.min(dbCollection.deleteMany(query).getDeletedCount(), Integer.MAX_VALUE);
             } catch (Exception e) {
                 throw DocumentStoreException.convert(e, "Remove failed for " + collection + ": " +
                     indexedProperty + " in (" + startValue + ", " + endValue + ")");
@@ -844,10 +851,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                                  UpdateOp updateOp,
                                                  boolean upsert,
                                                  boolean checkConditions) {
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
-        DBObject update = createUpdate(updateOp, false);
+        Bson update = createUpdate(updateOp, false);
 
         Lock lock = null;
         if (collection == Collection.NODES) {
@@ -873,17 +880,17 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 // no conditions and the check is OK. this avoid an
                 // unnecessary call when the conditions do not match
                 if (!checkConditions || UpdateUtils.checkConditions(cachedDoc, updateOp.getConditions())) {
-                    QueryBuilder query = createQueryForUpdate(updateOp.getId(),
+                    Bson query = createQueryForUpdate(updateOp.getId(),
                             updateOp.getConditions());
                     // below condition may overwrite a user supplied condition
-                    // on _modCount. This fine, because the conditions were
+                    // on _modCount. This is fine, because the conditions were
                     // already checked against the cached document with the
                     // matching _modCount value. There is no need to check the
                     // user supplied condition on _modCount again on the server
-                    query.and(Document.MOD_COUNT).is(modCount);
+                    query = Filters.and(query, Filters.eq(Document.MOD_COUNT, modCount));
 
-                    WriteResult result = dbCollection.update(query.get(), update);
-                    if (result.getN() > 0) {
+                    UpdateResult result = dbCollection.updateOne(query, update);
+                    if (result.getModifiedCount() > 0) {
                         // success, update cached document
                         if (collection == Collection.NODES) {
                             NodeDocument newDoc = (NodeDocument) applyChanges(collection, cachedDoc, updateOp);
@@ -897,8 +904,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
             // conditional update failed or not possible
             // perform operation and get complete document
-            QueryBuilder query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
-            DBObject oldNode = dbCollection.findAndModify(query.get(), null, null /*sort*/, false /*remove*/, update, false /*returnNew*/, upsert);
+            Bson query = createQueryForUpdate(updateOp.getId(), updateOp.getConditions());
+            FindOneAndUpdateOptions options = new FindOneAndUpdateOptions()
+                    .returnDocument(ReturnDocument.BEFORE).upsert(upsert);
+            BasicDBObject oldNode = dbCollection.findOneAndUpdate(query, update, options);
 
             if (oldNode == null){
                 newEntry = true;
@@ -1130,17 +1139,15 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
         Map<String, T> docs = new HashMap<String, T>();
         if (!keys.isEmpty()) {
-            DBObject[] conditions = new DBObject[keys.size()];
-            int i = 0;
+            List<Bson> conditions = new ArrayList<>(keys.size());
             for (String key : keys) {
-                conditions[i++] = getByKeyQuery(key).get();
+                conditions.add(getByKeyQuery(key));
             }
 
-            QueryBuilder builder = new QueryBuilder();
-            builder.or(conditions);
-            DBCursor cursor = getDBCollection(collection).find(builder.get());
-            while (cursor.hasNext()) {
-                T foundDoc = convertFromDBObject(collection, cursor.next());
+            FindIterable<BasicDBObject> cursor = getDBCollection(collection)
+                    .find(Filters.or(conditions));
+            for (BasicDBObject doc : cursor) {
+                T foundDoc = convertFromDBObject(collection, doc);
                 docs.put(foundDoc.getId(), foundDoc);
             }
         }
@@ -1149,23 +1156,21 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private <T extends Document> BulkUpdateResult sendBulkUpdate(Collection<T> collection,
             java.util.Collection<UpdateOp> updateOps, Map<String, T> oldDocs) {
-        DBCollection dbCollection = getDBCollection(collection);
-        BulkWriteOperation bulk = dbCollection.initializeUnorderedBulkOperation();
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
+        List<WriteModel<BasicDBObject>> writes = new ArrayList<>(updateOps.size());
         String[] bulkIds = new String[updateOps.size()];
         int i = 0;
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
-            QueryBuilder query = createQueryForUpdate(id, updateOp.getConditions());
+            Bson query = createQueryForUpdate(id, updateOp.getConditions());
             T oldDoc = oldDocs.get(id);
-            DBObject update;
             if (oldDoc == null || oldDoc == NodeDocument.NULL) {
-                query.and(Document.MOD_COUNT).exists(false);
-                update = createUpdate(updateOp, true);
+                query = Filters.and(query, Filters.exists(Document.MOD_COUNT, false));
+                writes.add(new UpdateOneModel<>(query, createUpdate(updateOp, true), new UpdateOptions().upsert(true)));
             } else {
-                query.and(Document.MOD_COUNT).is(oldDoc.getModCount());
-                update = createUpdate(updateOp, false);
+                query = Filters.and(query, Filters.eq(Document.MOD_COUNT, oldDoc.getModCount()));
+                writes.add(new UpdateOneModel<>(query, createUpdate(updateOp, false), new UpdateOptions().upsert(true)));
             }
-            bulk.find(query.get()).upsert().updateOne(update);
             bulkIds[i++] = id;
         }
 
@@ -1173,8 +1178,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         Set<String> failedUpdates = new HashSet<String>();
         Set<String> upserts = new HashSet<String>();
         try {
-            bulkResult = bulk.execute();
-        } catch (BulkWriteException e) {
+            bulkResult = dbCollection.bulkWrite(writes,
+                    new BulkWriteOptions().ordered(false));
+        } catch (MongoBulkWriteException e) {
             bulkResult = e.getWriteResult();
             for (BulkWriteError err : e.getWriteErrors()) {
                 failedUpdates.add(bulkIds[err.getIndex()]);
@@ -1199,18 +1205,18 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         log("create", updateOps);
         List<T> docs = new ArrayList<T>();
-        DBObject[] inserts = new DBObject[updateOps.size()];
-        List<String> ids = Lists.newArrayListWithCapacity(updateOps.size());
+        List<BasicDBObject> inserts = new ArrayList<>(updateOps.size());
+        List<String> ids = new ArrayList<>(updateOps.size());
 
-        for (int i = 0; i < updateOps.size(); i++) {
-            inserts[i] = new BasicDBObject();
-            UpdateOp update = updateOps.get(i);
-            inserts[i].put(Document.ID, update.getId());
+        for (UpdateOp update : updateOps) {
+            BasicDBObject doc = new BasicDBObject();
+            inserts.add(doc);
+            doc.put(Document.ID, update.getId());
             UpdateUtils.assertUnconditional(update);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update);
             docs.add(target);
-            ids.add(updateOps.get(i).getId());
+            ids.add(update.getId());
             for (Entry<Key, Operation> entry : update.getChanges().entrySet()) {
                 Key k = entry.getKey();
                 Operation op = entry.getValue();
@@ -1218,28 +1224,20 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     case SET:
                     case MAX:
                     case INCREMENT: {
-                        inserts[i].put(k.toString(), op.value);
+                        doc.put(k.toString(), op.value);
                         break;
                     }
                     case SET_MAP_ENTRY: {
                         Revision r = k.getRevision();
                         if (r == null) {
-                            throw new IllegalStateException(
-                                    "SET_MAP_ENTRY must not have null revision");
+                            throw new IllegalStateException("SET_MAP_ENTRY must not have null revision");
                         }
-                        DBObject value = (DBObject) inserts[i].get(k.getName());
+                        BasicDBObject value = (BasicDBObject) doc.get(k.getName());
                         if (value == null) {
-                            value = new RevisionEntry(r, op.value);
-                            inserts[i].put(k.getName(), value);
-                        } else if (value.keySet().size() == 1) {
-                            String key = value.keySet().iterator().next();
-                            Object val = value.get(key);
-                            value = new BasicDBObject(key, val);
-                            value.put(r.toString(), op.value);
-                            inserts[i].put(k.getName(), value);
-                        } else {
-                            value.put(r.toString(), op.value);
+                            value = new BasicDBObject();
+                            doc.put(k.getName(), value);
                         }
+                        value.put(r.toString(), op.value);
                         break;
                     }
                     case REMOVE:
@@ -1248,18 +1246,18 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                         break;
                 }
             }
-            if (!inserts[i].containsField(Document.MOD_COUNT)) {
-                inserts[i].put(Document.MOD_COUNT, 1L);
+            if (!doc.containsKey(Document.MOD_COUNT)) {
+                doc.put(Document.MOD_COUNT, 1L);
                 target.put(Document.MOD_COUNT, 1L);
             }
         }
 
-        DBCollection dbCollection = getDBCollection(collection);
+        MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         final Stopwatch watch = startWatch();
         boolean insertSuccess = false;
         try {
             try {
-                dbCollection.insert(inserts);
+                dbCollection.insertMany(inserts);
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         nodesCache.putIfAbsent((NodeDocument) doc);
@@ -1290,28 +1288,27 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Nonnull
     private Map<String, ModificationStamp> getModStamps(Iterable<String> keys)
             throws MongoException {
-        QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // Fetch only the modCount and id
         final BasicDBObject fields = new BasicDBObject(Document.ID, 1);
         fields.put(Document.MOD_COUNT, 1);
         fields.put(NodeDocument.MODIFIED_IN_SECS, 1);
 
-        DBCursor cursor = nodes.find(query.get(), fields);
-        cursor.setReadPreference(ReadPreference.primary());
-
         Map<String, ModificationStamp> modCounts = Maps.newHashMap();
-        for (DBObject obj : cursor) {
-            String id = (String) obj.get(Document.ID);
-            Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
-            if (modCount == null) {
-                modCount = -1L;
-            }
-            Long modified = Utils.asLong((Number) obj.get(NodeDocument.MODIFIED_IN_SECS));
-            if (modified == null) {
-                modified = -1L;
-            }
-            modCounts.put(id, new ModificationStamp(modCount, modified));
-        }
+
+        nodes.withReadPreference(ReadPreference.primary())
+                .find(Filters.in(Document.ID, keys)).projection(fields)
+                .forEach((Block<BasicDBObject>) obj -> {
+                    String id = (String) obj.get(Document.ID);
+                    Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
+                    if (modCount == null) {
+                        modCount = -1L;
+                    }
+                    Long modified = Utils.asLong((Number) obj.get(NodeDocument.MODIFIED_IN_SECS));
+                    if (modified == null) {
+                        modified = -1L;
+                    }
+                    modCounts.put(id, new ModificationStamp(modCount, modified));
+                });
         return modCounts;
     }
 
@@ -1432,7 +1429,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return map;
     }
 
-    <T extends Document> DBCollection getDBCollection(Collection<T> collection) {
+    <T extends Document> MongoCollection<BasicDBObject> getDBCollection(Collection<T> collection) {
         if (collection == Collection.NODES) {
             return nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
@@ -1447,8 +1444,16 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    private static QueryBuilder getByKeyQuery(String key) {
-        return QueryBuilder.start(Document.ID).is(key);
+    MongoDatabase getDatabase() {
+        return db;
+    }
+
+    MongoClient getClient() {
+        return client;
+    }
+
+    private static Bson getByKeyQuery(String key) {
+        return Filters.eq(Document.ID, key);
     }
 
     @Override
@@ -1456,7 +1461,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         if (replicaInfo != null) {
             replicaInfo.stop();
         }
-        nodes.getDB().getMongo().close();
+        client.close();
         try {
             nodesCache.close();
         } catch (IOException e) {
@@ -1478,8 +1483,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public Map<String, String> getStats() {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-        List<DBCollection> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
-        all.forEach(c -> toMapBuilder(builder, c.getStats(), c.getName()));
+        List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        all.forEach(c -> toMapBuilder(builder,
+                db.runCommand(
+                    new BasicDBObject("collStats", c.getNamespace().getCollectionName()),
+                        BasicDBObject.class),
+                c.getNamespace().getCollectionName()));
         return builder.build();
     }
 
@@ -1515,27 +1524,31 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @Nonnull
-    private static QueryBuilder createQueryForUpdate(String key,
-                                                     Map<Key, Condition> conditions) {
-        QueryBuilder query = getByKeyQuery(key);
-
+    private static Bson createQueryForUpdate(String key,
+                                             Map<Key, Condition> conditions) {
+        Bson query = getByKeyQuery(key);
+        if (conditions.isEmpty()) {
+            // special case when there are no conditions
+            return query;
+        }
+        List<Bson> conditionList = new ArrayList<>(conditions.size() + 1);
+        conditionList.add(query);
         for (Entry<Key, Condition> entry : conditions.entrySet()) {
             Key k = entry.getKey();
             Condition c = entry.getValue();
             switch (c.type) {
                 case EXISTS:
-                    query.and(k.toString()).exists(c.value);
+                    conditionList.add(Filters.exists(k.toString(), Boolean.TRUE.equals(c.value)));
                     break;
                 case EQUALS:
-                    query.and(k.toString()).is(c.value);
+                    conditionList.add(Filters.eq(k.toString(), c.value));
                     break;
                 case NOTEQUALS:
-                    query.and(k.toString()).notEquals(c.value);
+                    conditionList.add(Filters.ne(k.toString(), c.value));
                     break;
             }
         }
-
-        return query;
+        return Filters.and(conditionList);
     }
 
     /**
@@ -1546,7 +1559,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @return the DBObject.
      */
     @Nonnull
-    private static DBObject createUpdate(UpdateOp updateOp, boolean includeId) {
+    private static BasicDBObject createUpdate(UpdateOp updateOp, boolean includeId) {
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
@@ -1630,13 +1643,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             ReadPreference readPref = uri.getOptions().getReadPreference();
 
             if (!readPref.equals(nodes.getReadPreference())) {
-                nodes.setReadPreference(readPref);
-                LOG.info("Using ReadPreference {} ",readPref);
+                nodes = nodes.withReadPreference(readPref);
+                LOG.info("Using ReadPreference {} ", readPref);
             }
 
             WriteConcern writeConcern = uri.getOptions().getWriteConcern();
             if (!writeConcern.equals(nodes.getWriteConcern())) {
-                nodes.setWriteConcern(writeConcern);
+                nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);
             }
         } catch (Exception e) {
@@ -1684,34 +1697,39 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         final long start = System.currentTimeMillis();
         // assumption here: server returns UTC - ie the returned
         // date object is correctly taking care of time zones.
-        final CommandResult isMaster = db.command("isMaster");
-        if (isMaster == null) {
-            // OAK-4107 / OAK-4515 : extra safety
-            LOG.warn("determineServerTimeDifferenceMillis: db.isMaster returned null - cannot determine time difference - assuming 0ms.");
-            return 0;
+        final BasicDBObject isMaster;
+        try {
+            isMaster = db.runCommand(new BasicDBObject("isMaster", 1), BasicDBObject.class);
+            if (isMaster == null) {
+                // OAK-4107 / OAK-4515 : extra safety
+                LOG.warn("determineServerTimeDifferenceMillis: db.isMaster returned null - cannot determine time difference - assuming 0ms.");
+                return 0;
+            }
+            final Date serverLocalTime = isMaster.getDate("localTime");
+            if (serverLocalTime == null) {
+                // OAK-4107 / OAK-4515 : looks like this can happen - at least
+                // has been seen once on mongo 3.0.9
+                // let's handle this gently and issue a log.warn
+                // instead of throwing a NPE
+                LOG.warn("determineServerTimeDifferenceMillis: db.isMaster.localTime returned null - cannot determine time difference - assuming 0ms.");
+                return 0;
+            }
+            final long end = System.currentTimeMillis();
+
+            final long midPoint = (start + end) / 2;
+            final long serverLocalTimeMillis = serverLocalTime.getTime();
+
+            // the difference should be
+            // * positive when local instance is ahead
+            // * and negative when the local instance is behind
+            final long diff = midPoint - serverLocalTimeMillis;
+
+            return diff;
+        } catch (Exception e) {
+            LOG.warn("determineServerTimeDifferenceMillis: db.isMaster failed with exception - assuming 0ms. "
+                            + "(Result details: server exception=" + e + ", server error message=" + e.getMessage() + ")", e);
         }
-        final Date serverLocalTime = isMaster.getDate("localTime");
-        if (serverLocalTime == null) {
-            // OAK-4107 / OAK-4515 : looks like this can happen - at least
-            // has been seen once on mongo 3.0.9
-            // let's handle this gently and issue a log.warn
-            // instead of throwing a NPE
-            LOG.warn("determineServerTimeDifferenceMillis: db.isMaster.localTime returned null - cannot determine time difference - assuming 0ms. "
-                    + "(Result details: server exception=" + isMaster.getException() + ", server error message=" + isMaster.getErrorMessage() + ")",
-                    isMaster.getException());
-            return 0;
-        }
-        final long end = System.currentTimeMillis();
-
-        final long midPoint = (start + end) / 2;
-        final long serverLocalTimeMillis = serverLocalTime.getTime();
-
-        // the difference should be
-        // * positive when local instance is ahead
-        // * and negative when the local instance is behind
-        final long diff = midPoint - serverLocalTimeMillis;
-
-        return diff;
+        return 0;
     }
 
     @Override
