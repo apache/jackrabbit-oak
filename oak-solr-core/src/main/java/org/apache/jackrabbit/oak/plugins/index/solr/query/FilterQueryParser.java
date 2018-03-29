@@ -291,7 +291,7 @@ class FilterQueryParser {
                 fullTextString.append('(');
                 for (int i = 0; i < or.list.size(); i++) {
                     FullTextExpression e = or.list.get(i);
-                    if (e.toString().equals("\"OR\"")) {
+                    if (e.toString().contains("\"OR\"")) {
                         continue;
                     }
                     if (i > 0 && i < or.list.size()) {
@@ -315,7 +315,7 @@ class FilterQueryParser {
                 fullTextString.append('(');
                 for (int i = 0; i < and.list.size(); i++) {
                     FullTextExpression e = and.list.get(i);
-                    if (e.toString().equals("\"AND\"")) {
+                    if (e.toString().contains("\"AND\"")) {
                         continue;
                     }
                     if (i > 0 && i < and.list.size()) {
