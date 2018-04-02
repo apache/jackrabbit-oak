@@ -16,20 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Utility class for {@link SharedDataStore}.
@@ -97,7 +99,6 @@ public class SharedDataStoreUtils {
         REFERENCES("references"),
         REPOSITORY("repository"),
         MARKED_START_MARKER("markedTimestamp"),
-        DATA_STORE_ID("dsid"),
         BLOBREFERENCES("blob");
 
         private final String type;

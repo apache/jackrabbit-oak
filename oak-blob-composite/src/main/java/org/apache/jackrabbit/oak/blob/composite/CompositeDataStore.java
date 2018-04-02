@@ -35,7 +35,6 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -56,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 
 public class CompositeDataStore implements DataStore, SharedDataStore, TypedDataStore, MultiDataStoreAware {
 
@@ -65,8 +62,8 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     static final String ROLES = "roles";
 
     private Properties properties = new Properties();
+    private Set<DataStore> initialiedDataStores = Sets.newConcurrentHashSet();
     private Set<String> roles = Sets.newConcurrentHashSet();
-    private Set<DataStore> deferredDsidAssignees = Sets.newHashSet();
     private boolean isInitialized = false;
 
     @Reference
@@ -130,12 +127,11 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
             while (iter.hasNext()) {
                 DataStore ds = iter.next();
-                String role = rolesForDelegates.get(ds);
-                String delegateHome = FilenameUtils.concat(path, role);
-                ds.init(delegateHome);
-                if (deferredDsidAssignees.contains(ds)) {
-                    String dsid = assignDataStoreIdentifier((SharedDataStore) ds);
-                    LOG.info("Assigned delegate with role \"{}\" id \"{}\"", role, dsid);
+                if (!initialiedDataStores.contains(ds)) {
+                    initialiedDataStores.add(ds);
+                    String role = rolesForDelegates.get(ds);
+                    String delegateHome = FilenameUtils.concat(path, role);
+                    ds.init(delegateHome);
                 }
             }
         }
@@ -148,21 +144,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     boolean addDelegate(final DelegateDataStore delegate) {
         String delegateRole = delegate.getRole();
         if (null != delegateRole && roles.contains(delegate.getRole())) {
-            String dsid = null;
-            if (isInitialized) {
-                try {
-                    dsid = assignDataStoreIdentifier((SharedDataStore)delegate.getDataStore().getDataStore());
-                    LOG.info("Adding delegate with role \"{}\", id \"{}\"", delegate.getRole(), dsid);
-                } catch (DataStoreException e) {
-                    // probably not initialized yet; keep track of the id for later
-                    deferredDsidAssignees.add(delegate.getDataStore().getDataStore());
-                }
-            }
-            else {
-                deferredDsidAssignees.add(delegate.getDataStore().getDataStore());
-                LOG.info("Adding delegate with role \"{}\"", delegate.getRole());
-            }
-
+            LOG.info("Adding delegate with role \"{}\"", delegate.getRole());
             delegateHandler.addDelegateDataStore(delegate);
             rolesForDelegates.put(delegate.getDataStore().getDataStore(), delegateRole);
             return true;
@@ -174,22 +156,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         LOG.info("Removing delegate with role \"{}\"", ds.getRole());
         rolesForDelegates.remove(ds.getDataStore());
         return delegateHandler.removeDelegateDataStore(ds);
-    }
-
-    private String assignDataStoreIdentifier(SharedDataStore ds) throws DataStoreException {
-        for (DataRecord record : ds.getAllMetadataRecords(
-                SharedDataStoreUtils.SharedStoreRecordType.DATA_STORE_ID.getType())) {
-            return SharedDataStoreUtils.SharedStoreRecordType.DATA_STORE_ID.
-                    getIdFromName(record.getIdentifier().toString());
-        }
-
-        // If we get here there was no record found, so make a new one
-        String dsid = UUID.randomUUID().toString();
-        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                SharedDataStoreUtils.SharedStoreRecordType.DATA_STORE_ID.getNameFromId(dsid)
-        );
-
-        return dsid;
     }
 
     @Override
