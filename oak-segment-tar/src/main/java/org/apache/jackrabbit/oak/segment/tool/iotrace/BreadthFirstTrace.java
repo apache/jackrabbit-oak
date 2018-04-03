@@ -37,13 +37,13 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A breath first traversal trace. 
+ * A breadth first traversal trace.
  * <p>
- * When {@link Trace#run(NodeState) run} this trace performs a breath first traversal starting
+ * When {@link Trace#run(NodeState) run} this trace performs a breadth first traversal starting
  * from the passed node up to a certain depth. It logs the current depth and the number of
  * traversed nodes as additional {@link IOTracer#setContext(List) context}.
  */
-public class BreathFirstTrace implements Trace {
+public class BreadthFirstTrace implements Trace {
 
     /**
      * The context specification of this trace.
@@ -64,12 +64,12 @@ public class BreathFirstTrace implements Trace {
     private final AtomicInteger nodeCount = new AtomicInteger();
 
     /**
-     * Create a new instance of a breath first traversal trace.
+     * Create a new instance of a breadth first traversal trace.
      * @param depth     maximal depth of the nodes to traverse
      * @param path      path of the root node where to start traversing
      * @param context   consumer to pass the additional context to
      */
-    public BreathFirstTrace(int depth, @Nonnull String path, @Nonnull Consumer<List<String>> context) {
+    public BreadthFirstTrace(int depth, @Nonnull String path, @Nonnull Consumer<List<String>> context) {
         checkArgument(depth >= 0);
 
         this.depth = depth;

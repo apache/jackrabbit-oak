@@ -86,7 +86,7 @@ public class IOTracerRunner extends IOMonitorAdapter {
     public void collectTrace() throws IOException, InvalidFileStoreVersionException {
         checkArgument(INPUT != null, "No segment store directory specified");
         System.out.println(format(
-                "Breath first traversing %d levels of %s starting at %s", DEPTH, INPUT, PATH));
+                "Breadth first traversing %d levels of %s starting at %s", DEPTH, INPUT, PATH));
         System.out.println(
                 format("mmap=%b, segment cache=%d", MMAP, SEGMENT_CACHE));
         System.out.println(format("Writing trace to %s", OUTPUT));
@@ -114,9 +114,9 @@ public class IOTracerRunner extends IOMonitorAdapter {
                                     .withSegmentCacheSize(segmentCacheSize)
                                     .withIOMonitor(ioMonitor));
 
-            IOTracer ioTracer = newIOTracer(factory, out, BreathFirstTrace.CONTEXT_SPEC);
+            IOTracer ioTracer = newIOTracer(factory, out, BreadthFirstTrace.CONTEXT_SPEC);
             ioTracer.collectTrace(
-                    new BreathFirstTrace(depth, path, ioTracer::setContext));
+                    new BreadthFirstTrace(depth, path, ioTracer::setContext));
         }
     }
 

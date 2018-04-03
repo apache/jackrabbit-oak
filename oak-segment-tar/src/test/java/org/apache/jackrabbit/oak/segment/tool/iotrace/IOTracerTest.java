@@ -95,9 +95,9 @@ public class IOTracerTest extends IOMonitorAdapter {
         try (StringWriter out = new StringWriter()) {
             Function<IOMonitor, FileStore> factory = this::createFileStore;
 
-            IOTracer ioTracer = newIOTracer(factory, out, BreathFirstTrace.CONTEXT_SPEC);
+            IOTracer ioTracer = newIOTracer(factory, out, BreadthFirstTrace.CONTEXT_SPEC);
             ioTracer.collectTrace(
-                    new BreathFirstTrace(2, "/", ioTracer::setContext));
+                    new BreadthFirstTrace(2, "/", ioTracer::setContext));
 
             try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
                 Optional<String> header = reader.lines().findFirst();

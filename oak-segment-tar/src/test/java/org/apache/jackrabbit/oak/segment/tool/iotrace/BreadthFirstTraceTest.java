@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-public class BreathFirstTraceTest {
+public class BreadthFirstTraceTest {
 
     @Nonnull
     private static NodeState createTree(int depth) {
@@ -46,7 +46,7 @@ public class BreathFirstTraceTest {
     @Test
     public void testTraverseEmptyTree() {
         List<List<String>> trace = newArrayList();
-        new BreathFirstTrace(4, "/", trace::add).run(createTree(0));
+        new BreadthFirstTrace(4, "/", trace::add).run(createTree(0));
         assertEquals(1, trace.size());
         assertEquals(ImmutableList.of("0", "1"), trace.get(0));
     }
@@ -54,7 +54,7 @@ public class BreathFirstTraceTest {
     @Test
     public void testTraverseDepth1Tree() {
         List<List<String>> trace = newArrayList();
-        new BreathFirstTrace(4, "/", trace::add).run(createTree(1));
+        new BreadthFirstTrace(4, "/", trace::add).run(createTree(1));
         assertEquals(2, trace.size());
         assertEquals(ImmutableList.of("0", "1"), trace.get(0));
         assertEquals(ImmutableList.of("1", "2"), trace.get(1));
@@ -63,7 +63,7 @@ public class BreathFirstTraceTest {
     @Test
     public void testTraverseDepth2Tree() {
         List<List<String>> trace = newArrayList();
-        new BreathFirstTrace(4, "/", trace::add).run(createTree(2));
+        new BreadthFirstTrace(4, "/", trace::add).run(createTree(2));
         assertEquals(3, trace.size());
         assertEquals(ImmutableList.of("0", "1"), trace.get(0));
         assertEquals(ImmutableList.of("1", "2"), trace.get(1));
@@ -73,7 +73,7 @@ public class BreathFirstTraceTest {
     @Test
     public void testTraverseDepth3TreeWithLimit2() {
         List<List<String>> trace = newArrayList();
-        new BreathFirstTrace(2, "/", trace::add).run(createTree(3));
+        new BreadthFirstTrace(2, "/", trace::add).run(createTree(3));
         assertEquals(3, trace.size());
         assertEquals(ImmutableList.of("0", "1"), trace.get(0));
         assertEquals(ImmutableList.of("1", "2"), trace.get(1));
