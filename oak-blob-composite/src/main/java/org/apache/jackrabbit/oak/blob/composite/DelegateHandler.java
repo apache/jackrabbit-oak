@@ -53,27 +53,6 @@ public interface DelegateHandler {
     boolean hasDelegate();
 
     /**
-     * Gives a hint to this provider that the specified {@link DataIdentifier} is being
-     * managed by the specified {@link DataStore} delegate.  The handler can then keep
-     * record of these hints for use in filtering delegates by identifier.
-     *
-     * @param identifier A {@link DataIdentifier} being managed by a {@link DataStore}
-     * @param delegate The {@link DataStore} managing the {@link DataIdentifier}
-     */
-    void mapIdentifierToDelegate(final DataIdentifier identifier, final DataStore delegate);
-
-    /**
-     * Suggests to the provider to remove any hints pertaining to the specified
-     * {@link DataIdentifier}.  The handler is not obligated to actually remove the
-     * hint, as some implementations of storing hints (like Bloom filters) may not
-     * support delete operations.
-     *
-     * @param identifier A {@link DataIdentifier} for which mapping hints should
-     *                   be removed
-     */
-    void unmapIdentifierFromDelegates(final DataIdentifier identifier);
-
-    /**
      * Get a data store iterator for all writable delegates managed by the
      * {@link CompositeDataStore}.  They are returned in priority order based on the
      * handler's prioritization strategy.

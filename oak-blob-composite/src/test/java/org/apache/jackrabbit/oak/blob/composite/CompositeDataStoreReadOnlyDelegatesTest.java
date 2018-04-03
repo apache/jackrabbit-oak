@@ -127,7 +127,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
                 rods.addRecord(new ByteArrayInputStream(recordData.getBytes()))
                         .getIdentifier();
 
-        cds.delegateHandler.mapIdentifierToDelegate(id, rods);
+        cds.mapIdToDelegate(id, rods);
 
         verifyRecord(cds.getRecord(id), recordData);
         verify(rods, times(1))
@@ -226,7 +226,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
         for (DataStore ds : dataStores) {
             for (int recnum=0; recnum<5; ++recnum) {
                 DataIdentifier id = ds.addRecord(randomDataRecordStream()).getIdentifier();
-                cds.delegateHandler.mapIdentifierToDelegate(id, ds);
+                cds.mapIdToDelegate(id, ds);
                 ids.add(id);
             }
         }
@@ -347,7 +347,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
                 ds = createReadOnlySharedDataStoreSpyDelegate(folder.newFolder(), role, cds);
             }
             DataRecord record = ds.addRecord(new ByteArrayInputStream(String.format("testRecord%s", role).getBytes()));
-            cds.delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), ds);
+            cds.mapIdToDelegate(record.getIdentifier(), ds);
             records.add(record);
         }
         cds.init(homedir);
@@ -368,7 +368,7 @@ public class CompositeDataStoreReadOnlyDelegatesTest {
                 ds = createReadOnlySharedDataStoreSpyDelegate(folder.newFolder(), role, cds);
             }
             DataRecord record = ds.addRecord(new ByteArrayInputStream(String.format("testRecord%s", role).getBytes()));
-            cds.delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), ds);
+            cds.mapIdToDelegate(record.getIdentifier(), ds);
             ids.add(record.getIdentifier());
         }
         cds.init(homedir);

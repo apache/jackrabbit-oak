@@ -108,7 +108,8 @@ public class CompositeDataStoreDSTest {
         for (DataStore ds : dataStores) {
             for (int i=0; i<numberOfRecords; i++) {
                 DataRecord record = ds.addRecord(randomDataRecordStream());
-                cds.delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), ds);
+                cds.mapIdToDelegate(record.getIdentifier(), ds);
+                //cds.delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), ds);
                 records.add(record);
             }
         }
@@ -180,7 +181,8 @@ public class CompositeDataStoreDSTest {
             DataIdentifier id = addTestRecord(ds, delegateHandler, recordData)
                     .getIdentifier();
             ids.add(id);
-            cds.delegateHandler.mapIdentifierToDelegate(id, ds);
+            cds.mapIdToDelegate(id, ds);
+            //cds.delegateHandler.mapIdentifierToDelegate(id, ds);
         }
 
         for (i = 0; i<records.size(); i++) {
@@ -252,7 +254,8 @@ public class CompositeDataStoreDSTest {
         }
 
         for (int i=0; i<dataStores.size(); ++i) {
-            cds.delegateHandler.mapIdentifierToDelegate(ids.get(i), dataStores.get(i));
+            cds.mapIdToDelegate(ids.get(i), dataStores.get(i));
+            //cds.delegateHandler.mapIdentifierToDelegate(ids.get(i), dataStores.get(i));
         }
 
         for (int i=0; i<ids.size(); ++i) {
@@ -276,7 +279,8 @@ public class CompositeDataStoreDSTest {
         DataIdentifier id1 = record1.getIdentifier();
         DataIdentifier id2 = record2.getIdentifier();
 
-        cds.delegateHandler.mapIdentifierToDelegate(id1, ds1);
+        cds.mapIdToDelegate(id1, ds1);
+        //cds.delegateHandler.mapIdentifierToDelegate(id1, ds1);
         // Do not map record id 2
 
         cds.init(homedir);
@@ -479,7 +483,8 @@ public class CompositeDataStoreDSTest {
         for (String role : threeRoles) {
             DataStore ds = createSpyDelegate(role, cds);
             id = ds.addRecord(new ByteArrayInputStream("recordData".getBytes())).getIdentifier();
-            cds.delegateHandler.mapIdentifierToDelegate(id, ds);
+            cds.mapIdToDelegate(id, ds);
+            //cds.delegateHandler.mapIdentifierToDelegate(id, ds);
             dataStores.add(ds);
         }
         cds.init(homedir);

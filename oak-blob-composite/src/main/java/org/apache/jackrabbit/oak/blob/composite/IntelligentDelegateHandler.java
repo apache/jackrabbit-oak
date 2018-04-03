@@ -37,8 +37,6 @@ import java.util.List;
 public class IntelligentDelegateHandler implements DelegateHandler {
     private static Logger LOG = LoggerFactory.getLogger(IntelligentDelegateHandler.class);
 
-    // TODO:  Add mapping from blob IDs to DataStore (e.g. enhanced Bloom filter supporting deletes) -MR
-    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
     private List<DataStore> nonFilteredWritableDataStores = Lists.newArrayList();
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
@@ -88,24 +86,6 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     }
 
     @Override
-    public void mapIdentifierToDelegate(final DataIdentifier identifier, final DataStore delegate) {
-        // TODO:  Remember the mapping for this identifier to the data store -MR
-        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
-    }
-
-    @Override
-    public void unmapIdentifierFromDelegates(final DataIdentifier identifier) {
-        // TODO:  Remove the mapping for this identifier from the data store -MR
-        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
-    }
-
-    private boolean delegateProbablyHandlesIdentifier(final DataStore delegate, final DataIdentifier identifier) {
-        // TODO:  Check to see if the blob ID mapper maps this identifier to the delegate -MR
-        // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
-        return false;
-    }
-
-    @Override
     public Iterator<DataStore> getWritableDelegatesIterator() {
         return getIterator(null, true);
     }
@@ -126,24 +106,6 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     }
 
     private Iterator<DataStore> getIterator(@Nullable final DataIdentifier identifier, final boolean writableOnly) {
-        if (null != identifier) {
-            List<DataStore> matchingDataStores = Lists.newArrayList();
-            for (DataStore ds : nonFilteredWritableDataStores) {
-                if (delegateProbablyHandlesIdentifier(ds, identifier)) {
-                    matchingDataStores.add(ds);
-                }
-            }
-            if (! writableOnly) {
-                for (DataStore ds : nonFilteredReadOnlyDataStores) {
-                    if (delegateProbablyHandlesIdentifier(ds, identifier)) {
-                        matchingDataStores.add(ds);
-                    }
-                }
-            }
-            return matchingDataStores.iterator();
-        }
-
-        // If no identifier provided, return iterator to all applicable delegates
         return writableOnly ? nonFilteredWritableDataStores.iterator() :
                 Iterators.concat(nonFilteredWritableDataStores.iterator(), nonFilteredReadOnlyDataStores.iterator());
     }

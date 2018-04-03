@@ -82,9 +82,6 @@ public class CompositeDataStoreTestUtils {
 
     static DataRecord addTestRecord(final DataStore ds, final DelegateHandler delegateHandler, final String contents) throws RepositoryException {
         DataRecord record = ds.addRecord(new ByteArrayInputStream(contents.getBytes()));
-        if (null != delegateHandler) {
-            delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), ds);
-        }
         return record;
     }
 

@@ -193,6 +193,9 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds, sut.getWritableDelegatesIterator(id).next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
+    @Ignore
     @Test
     public void testSelectWritableDelegateSingleDelegateWithoutMatchingId() throws RepositoryException, IOException {
         DataStore ds = getFileDataStore();
@@ -241,6 +244,9 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds2, sut.getWritableDelegatesIterator(id).next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
+    @Ignore
     @Test
     public void testSelectWritableDelegateTwoDelegatesWithoutMatchingId() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
@@ -294,6 +300,9 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(ds2, sut.getWritableDelegatesIterator(id3).next());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
+    @Ignore
     @Test
     public void testSelectWritableDelegateWithReadonlyDelegateReturnsEmptyIterator() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
@@ -469,6 +478,9 @@ public class IntelligentDelegateHandlerTest {
         assertEquals(2, i);
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
+    @Ignore
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsEmptyIteratorIfNoMatches() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
@@ -501,6 +513,9 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
+    // TODO:  Enable this test when the blob ID mapping capability is added.
+    // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
+    @Ignore
     @Test
     public void testGetWritableDelegateIteratorWithIdentifierFiltersReadonly() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();

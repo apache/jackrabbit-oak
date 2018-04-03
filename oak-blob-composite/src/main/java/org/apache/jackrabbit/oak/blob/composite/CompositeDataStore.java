@@ -20,6 +20,9 @@
 package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -47,13 +50,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class CompositeDataStore implements DataStore, SharedDataStore, TypedDataStore, MultiDataStoreAware {
 
@@ -65,6 +69,19 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     private Set<DataStore> initialiedDataStores = Sets.newConcurrentHashSet();
     private Set<String> roles = Sets.newConcurrentHashSet();
     private boolean isInitialized = false;
+
+    private LoadingCache<DataIdentifier, DataStore> blobIdMap =
+            CacheBuilder.newBuilder()
+                    .maximumSize(8192)
+                    .expireAfterAccess(12, TimeUnit.HOURS)
+                    .build(
+                            new CacheLoader<DataIdentifier, DataStore>() {
+                                @Override
+                                public DataStore load(DataIdentifier key) throws Exception {
+                                    return null;
+                                }
+                            }
+                    );
 
     @Reference
     DelegateHandler delegateHandler = new IntelligentDelegateHandler();
@@ -109,6 +126,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         if (Strings.isNullOrEmpty(homeDir)) {
             throw new IllegalArgumentException("Value required for homeDir");
         }
+
         synchronized (this) {
             if (!isInitialized) {
                 isInitialized = true;
@@ -158,45 +176,75 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         return delegateHandler.removeDelegateDataStore(ds);
     }
 
+    void mapIdToDelegate(final DataIdentifier identifier, final DataStore delegate) {
+        blobIdMap.put(identifier, delegate);
+    }
+
+    void unmapIdFromDelegate(final DataIdentifier identifier) {
+        blobIdMap.invalidate(identifier);
+    }
+
+    DataStore getDelegateForId(final DataIdentifier identifier) {
+        try {
+            return blobIdMap.get(identifier);
+        }
+        catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
+            return null;
+        }
+    }
+
     @Override
     public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
         LOG.info("Attempt to retrieve record for identifier \"{}\"", identifier);
 
         DataRecord result = null;
 
-        try {
-            Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(identifier);
-            if (iter.hasNext()) {
-                while (iter.hasNext()) {
-                    DataStore ds = iter.next();
-                    result = ds.getRecordIfStored(identifier);
-                    if (null != result) {
-                        LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found>"));
-                        break;
-                    }
-                }
-            } else {
-                LOG.info("No mapping for identifier \"{}\", trying all delegates", identifier);
-                // Try one more time, this time not limiting delegates by identifier.
-                // It may be the case that the identifier is not matched to a delegate yet.
-                iter = delegateHandler.getAllDelegatesIterator();
-                while (iter.hasNext()) {
-                    DataStore ds = iter.next();
-                    result = ds.getRecordIfStored(identifier);
-                    if (null != result) {
-                        delegateHandler.mapIdentifierToDelegate(identifier, ds);
-                        LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found"));
-                        break;
-                    }
-                }
-            }
+        DataStore ds = getDelegateForId(identifier);
+        if (null != ds) {
+            result = ds.getRecordIfStored(identifier);
         }
-        catch (DataStoreException e) {
-            LOG.error("Error retrieving record [{}]", identifier, e);
-            return null;
-        }
+
         if (null == result) {
-            LOG.error("Error retrieving record [{}]", identifier);
+            // We get here if:
+            // a) The cache doesn't have an entry for identifier (never inserted, expired, etc.)
+            // b) The data store no longer has this identifier
+            //
+            // In each case we want to try again by looking more deeply on our own.
+            // If we find it we will put it into the cache for next time.
+            try {
+                Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator(identifier);
+                if (iter.hasNext()) {
+                    while (iter.hasNext()) {
+                        ds = iter.next();
+                        result = ds.getRecordIfStored(identifier);
+                        if (null != result) {
+                            mapIdToDelegate(identifier, ds);
+                            LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found>"));
+                            break;
+                        }
+                    }
+                } else {
+                    LOG.info("No mapping for identifier \"{}\", trying all delegates", identifier);
+                    // Try one more time, this time not limiting delegates by identifier.
+                    // It may be the case that the identifier is not matched to a delegate yet.
+                    iter = delegateHandler.getAllDelegatesIterator();
+                    while (iter.hasNext()) {
+                        ds = iter.next();
+                        result = ds.getRecordIfStored(identifier);
+                        if (null != result) {
+                            mapIdToDelegate(identifier, ds);
+                            LOG.info("Matching record found in delegate role \"{}\"", rolesForDelegates.getOrDefault(ds, "<not found"));
+                            break;
+                        }
+                    }
+                }
+            } catch (DataStoreException e) {
+                LOG.error("Error retrieving record [{}]", identifier, e);
+                return null;
+            }
+            if (null == result) {
+                LOG.error("Error retrieving record [{}]", identifier);
+            }
         }
         return result;
     }
@@ -208,15 +256,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             throw new DataStoreException(String.format("No matching record for identifier %s", identifier.toString()));
         }
         return result;
-    }
-
-    private static byte[] referenceKey = null;
-    static synchronized byte[] getReferenceKey() throws DataStoreException {
-        if (referenceKey == null) {
-            referenceKey = new byte[256];
-            new SecureRandom().nextBytes(referenceKey);
-        }
-        return referenceKey;
     }
 
     @Override
@@ -310,7 +349,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
                 record = dataStore.addRecord(stream);
             }
             if (null != record) {
-                delegateHandler.mapIdentifierToDelegate(record.getIdentifier(), dataStore);
+                mapIdToDelegate(record.getIdentifier(), dataStore);
             }
         }
         catch (Exception e) {
@@ -443,7 +482,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
                 }
             }
             if (deleted) {
-                delegateHandler.unmapIdentifierFromDelegates(identifier);
+                unmapIdFromDelegate(identifier);
             }
         }
 
