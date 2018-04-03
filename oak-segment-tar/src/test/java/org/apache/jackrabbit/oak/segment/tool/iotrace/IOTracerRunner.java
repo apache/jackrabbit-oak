@@ -51,6 +51,7 @@ import org.junit.Test;
  * <br>
  * The test accepts the following properties:<br>
  * {@code -Dinput=/path/to/segmentstore}. Required.<br>
+ * {{@code -Dtrace=breadth|depth}}. Required. <br>
  * {@code -Doutput=/path/to/trace.cvs}. Default: {@code iotrace.csv}<br>
  * {@code -Dmmap=true|false}. Default {@code true}<br>
  * {@code -Dsegment-cache=n}. Default {@code 256}<br>
@@ -63,9 +64,11 @@ public class IOTracerRunner extends IOMonitorAdapter {
     private static final boolean ENABLED =
             IOTracerRunner.class.getSimpleName().equals(getProperty("test"));
 
-    private static final String OUTPUT = getProperty("output", "iotrace.csv");
-
     private static final String INPUT = getProperty("segmentstore");
+
+    private static final String TRACE = getProperty("trace");
+
+    private static final String OUTPUT = getProperty("output", "iotrace.csv");
 
     private static final boolean MMAP = parseBoolean(getProperty("mmap", "true"));
 
@@ -85,16 +88,25 @@ public class IOTracerRunner extends IOMonitorAdapter {
     @Test
     public void collectTrace() throws IOException, InvalidFileStoreVersionException {
         checkArgument(INPUT != null, "No segment store directory specified");
+        checkArgument("breadth".equalsIgnoreCase(TRACE) || "depth".equalsIgnoreCase(TRACE),
+                  "No trace specified");
+
         System.out.println(format(
-                "Breadth first traversing %d levels of %s starting at %s", DEPTH, INPUT, PATH));
+                "%s first traversing %d levels of %s starting at %s", TRACE, DEPTH, INPUT, PATH));
         System.out.println(
                 format("mmap=%b, segment cache=%d", MMAP, SEGMENT_CACHE));
         System.out.println(format("Writing trace to %s", OUTPUT));
 
-        collectTrace(INPUT, MMAP, SEGMENT_CACHE, PATH, DEPTH, OUTPUT);
+        if ("depth".equals(TRACE)) {
+            collectDepthFirstTrace(INPUT, MMAP, SEGMENT_CACHE, PATH, DEPTH, OUTPUT);
+        } else if ("breadth".equals(TRACE)) {
+            collectBreadthFirstTrace(INPUT, MMAP, SEGMENT_CACHE, PATH, DEPTH, OUTPUT);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
-    public void collectTrace(
+    public void collectBreadthFirstTrace(
             @Nonnull String segmentStore,
             boolean mmap,
             int segmentCacheSize,
@@ -119,6 +131,33 @@ public class IOTracerRunner extends IOMonitorAdapter {
                     new BreadthFirstTrace(depth, path, ioTracer::setContext));
         }
     }
+
+    public void collectDepthFirstTrace(
+            @Nonnull String segmentStore,
+            boolean mmap,
+            int segmentCacheSize,
+            @Nonnull String path,
+            int depth,
+            @Nonnull String output)
+    throws IOException, InvalidFileStoreVersionException {
+        checkNotNull(segmentStore);
+        checkNotNull(path);
+        checkNotNull(output);
+
+        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(output, true)))) {
+            Function<IOMonitor, FileStore> factory = ioMonitor ->
+                    newFileStore(
+                            fileStoreBuilder(new File(segmentStore))
+                                    .withMemoryMapping(mmap)
+                                    .withSegmentCacheSize(segmentCacheSize)
+                                    .withIOMonitor(ioMonitor));
+
+            IOTracer ioTracer = newIOTracer(factory, out, DepthFirstTrace.CONTEXT_SPEC);
+            ioTracer.collectTrace(
+                    new DepthFirstTrace(depth, path, ioTracer::setContext));
+        }
+    }
+
 
     @Nonnull
     private static FileStore newFileStore(FileStoreBuilder fileStoreBuilder) {

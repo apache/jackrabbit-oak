@@ -63,17 +63,17 @@ public class IOTracerTest extends IOMonitorAdapter {
         try (FileStore fileStore = fileStoreBuilder(folder.getRoot()).build()) {
             SegmentNodeState currentHead = fileStore.getHead();
             SegmentNodeBuilder root = currentHead.builder();
-            root.setChildNode("0a");
-            root.setChildNode("0b");
-            NodeBuilder builder = root.setChildNode("0c");
+            root.setChildNode("1a");
+            root.setChildNode("1b");
+            NodeBuilder builder = root.setChildNode("1c");
 
-            builder.setChildNode("0d");
-            builder.setChildNode("0e");
-            builder = builder.setChildNode("0f");
+            builder.setChildNode("2d");
+            builder.setChildNode("2e");
+            builder = builder.setChildNode("2f");
 
-            builder.setChildNode("0g");
-            builder.setChildNode("0h");
-            builder.setChildNode("0i").setChildNode("0j");
+            builder.setChildNode("3g");
+            builder.setChildNode("3h");
+            builder.setChildNode("3i").setChildNode("4j");
             SegmentNodeState newHead = root.getNodeState();
             fileStore.getRevisions().setHead(currentHead.getRecordId(), newHead.getRecordId());
         }
@@ -91,7 +91,7 @@ public class IOTracerTest extends IOMonitorAdapter {
     }
 
     @Test
-    public void collectTrace() throws IOException, InvalidFileStoreVersionException {
+    public void collectBreadthFirstTrace() throws IOException, InvalidFileStoreVersionException {
         try (StringWriter out = new StringWriter()) {
             Function<IOMonitor, FileStore> factory = this::createFileStore;
 
@@ -116,6 +116,46 @@ public class IOTracerTest extends IOMonitorAdapter {
 
                 assertEquals("Expected depths 0, 1 and 2",
                         ImmutableSet.of(0, 1, 2),
+                        entries.stream()
+                            .map(row -> parseInt(row[5])) // depth
+                            .distinct().collect(toSet()));
+
+                assertEquals("Expected max 10 nodes",
+                        Optional.of(true),
+                        entries.stream()
+                            .map(row -> parseInt(row[6])) // count
+                            .max(Comparator.naturalOrder())
+                            .map(max -> max <= 10));
+            }
+        }
+    }
+
+    @Test
+    public void collectDepthFirstTrace() throws IOException, InvalidFileStoreVersionException {
+        try (StringWriter out = new StringWriter()) {
+            Function<IOMonitor, FileStore> factory = this::createFileStore;
+
+            IOTracer ioTracer = newIOTracer(factory, out, DepthFirstTrace.CONTEXT_SPEC);
+            ioTracer.collectTrace(
+                    new DepthFirstTrace(2, "/", ioTracer::setContext));
+
+            try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
+                Optional<String> header = reader.lines().findFirst();
+                List<String[]> entries = reader.lines()
+                    .map(line -> line.split(","))
+                    .collect(toList());
+
+                assertTrue(header.isPresent());
+                assertEquals("timestamp,file,segmentId,length,elapsed,depth,count,path", header.get());
+
+                long now = currentTimeMillis();
+                assertTrue("The timestamps of all entries must be in the past",
+                    entries.stream()
+                        .map(row -> parseLong(row[0]))  // ts
+                        .allMatch(ts -> ts <= now));
+
+                assertEquals("Expected depths 0 and 1",
+                        ImmutableSet.of(0, 1),
                         entries.stream()
                             .map(row -> parseInt(row[5])) // depth
                             .distinct().collect(toSet()));
