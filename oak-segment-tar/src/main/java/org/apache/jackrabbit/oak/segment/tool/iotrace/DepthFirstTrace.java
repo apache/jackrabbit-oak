@@ -19,14 +19,12 @@
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Lists.newLinkedList;
 import static java.lang.String.valueOf;
-import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.Writer;
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -37,20 +35,20 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A breadth first traversal trace.
+ * A depth first traversal trace.
  * <p>
- * When {@link Trace#run(NodeState) run} this trace performs a breadth first traversal starting
- * from the passed node down to a certain depth. It logs the current depth and the number of
- * traversed nodes as additional {@link IOTracer#setContext(List) context}.
+ * When {@link Trace#run(NodeState) run} this trace performs a depth first traversal starting
+ * from the passed node down to a certain depth. It logs the current depth, the number of traversed
+ * nodes and the current path as additional {@link IOTracer#setContext(List) context}.
  */
-public class BreadthFirstTrace implements Trace {
+public class DepthFirstTrace implements Trace {
 
     /**
      * The context specification of this trace.
      * @see IOTracer#newIOTracer(Function, Writer, String)
      */
     @Nonnull
-    public static final String CONTEXT_SPEC = "depth,count";
+    public static final String CONTEXT_SPEC = "depth,count,path";
 
     private final int depth;
 
@@ -64,12 +62,12 @@ public class BreadthFirstTrace implements Trace {
     private final AtomicInteger nodeCount = new AtomicInteger();
 
     /**
-     * Create a new instance of a breadth first traversal trace.
+     * Create a new instance of a depth first traversal trace.
      * @param depth     maximal depth of the nodes to traverse
      * @param path      path of the root node where to start traversing
      * @param context   consumer to pass the additional context to
      */
-    public BreadthFirstTrace(int depth, @Nonnull String path, @Nonnull Consumer<List<String>> context) {
+    public DepthFirstTrace(int depth, @Nonnull String path, @Nonnull Consumer<List<String>> context) {
         checkArgument(depth >= 0);
 
         this.depth = depth;
@@ -79,8 +77,7 @@ public class BreadthFirstTrace implements Trace {
 
     @Override
     public void run(@Nonnull NodeState node) {
-        updateContext(context, 0, nodeCount.incrementAndGet());
-        traverse(newLinkedList(singleton(getNode(node, path))), 0);
+        traverse(getNode(node, path), 0, path);
     }
 
     @Nonnull
@@ -92,30 +89,19 @@ public class BreadthFirstTrace implements Trace {
         return node;
     }
 
-    private void traverse(@Nonnull Queue<NodeState> nodes, int depth) {
-        if (!nodes.isEmpty()) {
-            Queue<NodeState> children = newLinkedList();
-            while (!nodes.isEmpty()) {
-                NodeState head = nodes.poll();
-                assert head != null;
-                if (depth < this.depth) {
-                    head.getChildNodeEntries().forEach(
-                        cse -> {
-                            updateContext(context, depth + 1, nodeCount.incrementAndGet());
-                            NodeState child = cse.getNodeState();
-                            if (depth + 1 < this.depth) {
-                                // Only add to children queue if not at last level to save memory
-                                children.offer(child);
-                            }
-                        });
-                }
-            }
-            traverse(children, depth + 1);
+    private void traverse(NodeState node, int depth, @Nonnull String path) {
+        updateContext(context, depth, nodeCount.incrementAndGet(), path);
+        if (depth < this.depth) {
+            node.getChildNodeEntries().forEach(cse -> {
+                String childPath = concat(path, cse.getName());
+                traverse(cse.getNodeState(), depth + 1, childPath);
+            });
         }
     }
 
-    private static void updateContext(@Nonnull Consumer<List<String>> context, int depth, int count) {
-        context.accept(ImmutableList.of(valueOf(depth), valueOf(count)));
+    private static void updateContext(
+            @Nonnull Consumer<List<String>> context, int depth, int count, @Nonnull String path) {
+        context.accept(ImmutableList.of(valueOf(depth), valueOf(count), path));
     }
 
 }
