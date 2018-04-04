@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.Test;
@@ -52,8 +54,8 @@ public class CommitsTrackerTest {
     }
 
     @Test
-    public void testSizeConstraints() throws InterruptedException {
-        CommitsTracker commitsTracker = new CommitsTracker(10, false);
+    public void testCommitsCountOthers() throws InterruptedException {
+        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, 10, false);
         ExecutorService executorService = newFixedThreadPool(30);
         final CountDownLatch addLatch = new CountDownLatch(25);
 
@@ -78,11 +80,11 @@ public class CommitsTrackerTest {
             }
 
             addLatch.await();
-            Map<String, Long> commitsCountMap = commitsTracker.getCommitsCountMap();
+            Map<String, Long> commitsCountOthersMap = commitsTracker.getCommitsCountOthers();
             Map<String, String> queuedWritersMap = commitsTracker.getQueuedWritersMap();
 
-            assertTrue(commitsCountMap.size() >= 10);
-            assertTrue(commitsCountMap.size() < 20);
+            assertTrue(commitsCountOthersMap.size() >= 10);
+            assertTrue(commitsCountOthersMap.size() < 20);
             assertEquals(5, queuedWritersMap.size());
 
             CountDownLatch removeLatch = new CountDownLatch(5);
@@ -94,6 +96,42 @@ public class CommitsTrackerTest {
             queuedWritersMap = commitsTracker.getQueuedWritersMap();
             assertEquals(0, queuedWritersMap.size());
         } finally {
+            commitsTracker.close();
+            new ExecutorCloser(executorService).close();
+        }
+    }
+
+    @Test
+    public void testCommitsCountPerGroup() throws InterruptedException {
+        String[] groups = new String[] { "Thread-1.*", "Thread-2.*", "Thread-3.*" };
+        CommitsTracker commitsTracker = new CommitsTracker(groups, 10, false);
+        ExecutorService executorService = newFixedThreadPool(30);
+        AtomicInteger counter = new AtomicInteger(10);
+        final CountDownLatch latch = new CountDownLatch(30);
+
+        Runnable executedCommitTask = () -> {
+            Thread.currentThread().setName("Thread-" + counter.getAndIncrement());
+            commitsTracker.trackExecutedCommitOf(Thread.currentThread());
+            latch.countDown();
+        };
+
+        try {
+            for (int i = 0; i < 30; i++) {
+                executorService.submit(executedCommitTask);
+            }
+            
+            latch.await();
+            
+            Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroup();
+            assertEquals(3, commitsCountPerGroup.size());
+            
+            for (String group : groups) {
+                Long groupCount = commitsCountPerGroup.get(group);
+                assertNotNull(groupCount);
+                assertEquals(10, (long) groupCount);
+            }
+        } finally {
+            commitsTracker.close();
             new ExecutorCloser(executorService).close();
         }
     }
