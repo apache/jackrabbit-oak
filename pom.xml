@@ -55,6 +55,7 @@
 
     <module>oak-upgrade</module>
     <module>oak-http</module>
+    <module>oak-search</module>
     <module>oak-lucene</module>
     <module>oak-solr-core</module>
     <module>oak-solr-osgi</module>
