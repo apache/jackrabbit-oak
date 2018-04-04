@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.10
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.11
 
 Introduction
 ------------
@@ -7,26 +7,33 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.10 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.11 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.10
+Changes in Oak 1.6.11
 ---------------------
-
-Technical task
-
-    [OAK-7036] - add JDBC driver information to metadata map
-    [OAK-7289] - RDBDocumentStore: potential NPE in error handling
-    code
 
 Bug
 
-    [OAK-6392] - Partial lastRev update with branches disabled
-    [OAK-7244] - RDBDocumentStore: fix typo in metadata
+    [OAK-7209] - Race condition can resurrect blobs during blob GC
+    [OAK-7291] - MongoStatusTest.testReadConcern fails on MongoDB 3.6
+    [OAK-7356] - CugConfiguration may not pick up CugExclude
+    [OAK-7375] - Wrong full text parsing in Oak Solr index with boolean operators
+
+
+Task
+
+    [OAK-7322] - Mention SHA512 checksums in release notes
+    [OAK-7325] - restore line wrapping in release notes
+    [OAK-7335] - oak-upgrade long name filter should consider the path length
+    [OAK-7336] - stop advertising MD5 checksums
+    [OAK-7347] - Incorrect link to KEYS in release notes
+    [OAK-7350] - stop creating MD5 checksums for releases
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
