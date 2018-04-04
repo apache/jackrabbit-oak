@@ -33,6 +33,7 @@ import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.connection.ServerVersion;
+import com.mongodb.session.ClientSession;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.bson.Document;
@@ -171,13 +172,14 @@ public class OakFongo extends Fongo {
 
         @Override
         public synchronized FongoDBCollection doGetCollection(String name,
-                                                              boolean idIsNotUniq) {
+                                                              boolean idIsNotUniq,
+                                                              boolean validateOnInsert) {
             if (name.startsWith("system.")) {
-                return super.doGetCollection(name, idIsNotUniq);
+                return super.doGetCollection(name, idIsNotUniq, validateOnInsert);
             }
             FongoDBCollection coll = collMap.get(name);
             if (coll == null) {
-                coll = new OakFongoDBCollection(this, name, idIsNotUniq);
+                coll = new OakFongoDBCollection(this, name, idIsNotUniq, validateOnInsert);
                 collMap.put(name, coll);
             }
             return coll;
@@ -200,8 +202,9 @@ public class OakFongo extends Fongo {
 
         public OakFongoDBCollection(FongoDB db,
                                     String name,
-                                    boolean idIsNotUniq) {
-            super(db, name, idIsNotUniq);
+                                    boolean idIsNotUniq,
+                                    boolean validateOnInsert) {
+            super(db, name, idIsNotUniq, validateOnInsert);
         }
 
         @Override
@@ -311,56 +314,62 @@ public class OakFongo extends Fongo {
         }
 
         @Override
-        public void insertMany(List<? extends Document> documents,
+        public void insertMany(ClientSession clientSession,
+                               List<? extends Document> documents,
                                InsertManyOptions options) {
             beforeInsert(asDBObjects(documents), new InsertOptions());
-            super.insertMany(documents, options);
+            super.insertMany(clientSession, documents, options);
             WriteResult result = new WriteResult(documents.size(), false, null);
             afterInsert(result);
         }
 
         @Override
-        public DeleteResult deleteMany(Bson filter,
+        public DeleteResult deleteMany(ClientSession clientSession,
+                                       Bson filter,
                                        DeleteOptions options) {
             beforeRemove(asDBObject(filter), getWriteConcern());
-            DeleteResult result = super.deleteMany(filter, options);
+            DeleteResult result = super.deleteMany(clientSession, filter, options);
             afterRemove(new WriteResult((int) result.getDeletedCount(), false, null));
             return result;
         }
 
         @Override
-        public UpdateResult updateMany(Bson filter,
+        public UpdateResult updateMany(ClientSession clientSession,
+                                       Bson filter,
                                        Bson update,
                                        UpdateOptions updateOptions) {
             beforeUpdate(asDBObject(filter), asDBObject(update), updateOptions.isUpsert(), true, getWriteConcern(), new DefaultDBEncoder());
-            UpdateResult result = super.updateMany(filter, update, updateOptions);
+            UpdateResult result = super.updateMany(clientSession, filter, update, updateOptions);
             afterUpdate(new WriteResult((int) result.getModifiedCount(), true, result.getUpsertedId().asString().getValue()));
             return result;
         }
 
         @Override
-        public Document findOneAndUpdate(Bson filter,
+        public Document findOneAndUpdate(ClientSession clientSession,
+                                         Bson filter,
                                          Bson update,
                                          FindOneAndUpdateOptions options) {
             beforeFindAndModify(asDBObject(filter), null, null, false, asDBObject(update), options.getReturnDocument() == ReturnDocument.AFTER, options.isUpsert());
-            Document result = super.findOneAndUpdate(filter, update, options);
+            Document result = super.findOneAndUpdate(clientSession, filter, update, options);
             afterFindAndModify(asDBObject(result));
             return result;
         }
 
         @Override
-        public FindIterable<Document> find(Bson filter) {
+        public FindIterable<Document> find(ClientSession clientSession,
+                                           Bson filter) {
             beforeFind(asDBObject(filter), null);
-            FindIterable<Document> result = super.find(filter);
+            FindIterable<Document> result = super.find(clientSession, filter);
             afterFind(new FongoDBCursor(fongo.getDB(getNamespace().getDatabaseName()).getCollection(getNamespace().getCollectionName()), asDBObject(filter), null));
             return result;
         }
 
         @Override
-        public com.mongodb.bulk.BulkWriteResult bulkWrite(List<? extends WriteModel<? extends Document>> requests,
+        public com.mongodb.bulk.BulkWriteResult bulkWrite(ClientSession clientSession,
+                                                          List<? extends WriteModel<? extends Document>> requests,
                                                           BulkWriteOptions options) {
             beforeExecuteBulkWriteOperation(options.isOrdered(), options.getBypassDocumentValidation(), requests, getWriteConcern());
-            com.mongodb.bulk.BulkWriteResult result = super.bulkWrite(requests, options);
+            com.mongodb.bulk.BulkWriteResult result = super.bulkWrite(clientSession, requests, options);
             afterExecuteBulkWriteOperation(new AcknowledgedBulkWriteResult(result.getInsertedCount(), result.getMatchedCount(), result.getDeletedCount(), result.getModifiedCount(), this.transform(result.getUpserts())));
             return result;
         }
