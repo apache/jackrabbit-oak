@@ -35,13 +35,12 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
@@ -95,7 +94,9 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        merge(before, after, target.child(name), conflictHandler);
+        if (target.hasChildNode(name)) {
+            merge(before, after, target.getChildNode(name), conflictHandler);
+        }
         return true;
     }
 

@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ThreeWayConflictHandlerTest {
@@ -289,7 +288,6 @@ public class ThreeWayConflictHandlerTest {
     }
 
     @Test
-    @Ignore("OAK-7388")
     public void deletedNodesShouldNotBeRecreated() throws Exception {
         NodeState root = EmptyNodeState.EMPTY_NODE;
 
