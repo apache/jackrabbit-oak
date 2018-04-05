@@ -79,12 +79,10 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             throws UnknownHostException {
         this.mongoUri = uri;
 
-        MongoClusterListener listener = new MongoClusterListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addClusterListener(listener);
         options.socketKeepAlive(socketKeepAlive);
         MongoClient client = new MongoClient(new MongoClientURI(uri, options));
-        MongoStatus status = new MongoStatus(client, name, listener);
+        MongoStatus status = new MongoStatus(client, name);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));

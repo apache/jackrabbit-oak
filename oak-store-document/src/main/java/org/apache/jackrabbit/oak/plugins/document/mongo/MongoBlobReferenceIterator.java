@@ -38,7 +38,8 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
 
     private final MongoDocumentStore documentStore;
 
-    public MongoBlobReferenceIterator(DocumentNodeStore nodeStore, MongoDocumentStore documentStore) {
+    public MongoBlobReferenceIterator(DocumentNodeStore nodeStore,
+                                      MongoDocumentStore documentStore) {
         super(nodeStore);
         this.documentStore = documentStore;
     }

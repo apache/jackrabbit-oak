@@ -19,11 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
+import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientException;
 import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.session.ClientSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +49,6 @@ public class MongoStatus {
 
     private final String dbName;
 
-    private final ClusterDescriptionProvider descriptionProvider;
-
     private BasicDBObject serverStatus;
 
     private BasicDBObject buildInfo;
@@ -58,17 +59,12 @@ public class MongoStatus {
 
     private Boolean majorityReadConcernEnabled;
 
-    public MongoStatus(@Nonnull MongoClient client,
-                       @Nonnull String dbName) {
-        this(client, dbName, () -> null);
-    }
+    private Boolean clientSessionSupported;
 
     public MongoStatus(@Nonnull MongoClient client,
-                       @Nonnull String dbName,
-                       @Nonnull ClusterDescriptionProvider descriptionProvider) {
+                       @Nonnull String dbName) {
         this.client = client;
         this.dbName = dbName;
-        this.descriptionProvider = descriptionProvider;
     }
 
     public void checkVersion() {
@@ -170,6 +166,27 @@ public class MongoStatus {
         } else {
             return false;
         }
+    }
+
+    /**
+     * @return {@code true} if client sessions are supported.
+     */
+    boolean isClientSessionSupported() {
+        if (clientSessionSupported == null) {
+            // must be at least 3.6
+            if (isVersion(3, 6)) {
+                ClientSessionOptions options = ClientSessionOptions.builder()
+                        .causallyConsistent(true).build();
+                try (ClientSession ignored = client.startSession(options)) {
+                    clientSessionSupported = true;
+                } catch (MongoClientException e) {
+                    clientSessionSupported = false;
+                }
+            } else {
+                clientSessionSupported = false;
+            }
+        }
+        return clientSessionSupported;
     }
 
     private BasicDBObject getServerStatus() {

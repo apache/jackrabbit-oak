@@ -59,7 +59,6 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
         Bson sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .withReadPreference(ReadPreference.primary())
                 .find(query).sort(sortFields);
         return CloseableIterable.wrap(transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
@@ -76,7 +75,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     private MongoCollection<BasicDBObject> getNodeCollection() {
-        return store.getDBCollection(NODES);
+        return store.getDBCollection(NODES, ReadPreference.primary());
     }
 
     private MongoCollection<BasicDBObject> getClusterNodeCollection() {
