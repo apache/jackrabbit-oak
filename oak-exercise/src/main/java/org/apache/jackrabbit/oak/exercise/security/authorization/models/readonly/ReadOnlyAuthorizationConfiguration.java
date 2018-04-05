@@ -74,7 +74,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * This authorization module forms part of the training material provided by the
  * <i>oak-exercise</i> module and must not be used in a productive environment!
  *
- * <h3>Overview</h3>
+ * <h2>Overview</h2>
  * This simplistic authorization model is limited to permission evaluation and
  * doesn't support access control management.
  *
@@ -85,7 +85,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * There exists a single exception to that rule: For the internal {@link SystemPrincipal}
  * permission evaluation is not enforced by this module i.e. this module is skipped.
  *
- * <h3>Intended Usage</h3>
+ * <h2>Intended Usage</h2>
  * This authorization model is intended to be used in 'AND' combination with the
  * default authorization setup defined by Oak (and optionally additional models
  * such as e.g. <i>oak-authorization-cug</i>.
@@ -93,14 +93,14 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * It is not intended to be used as standalone model as it would grant full read
  * access to everyone.
  *
- * <h3>Limitations</h3>
+ * <h2>Limitations</h2>
  * Experimental model for training purpose and not intended for usage in production.
  *
- * <h3>Key Features</h3>
+ * <h2>Key Features</h2>
  *
- * <h4>Access Control Management</h4>
+ * <h3>Access Control Management</h3>
  *
- * <table align="left">
+ * <table align="left" summary="">
  *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
  *     <tr><td>Supported Privileges</td><td>all</td></tr>
  *     <tr><td>Supports Custom Privileges</td><td>yes</td></tr>
@@ -111,25 +111,25 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *     <tr><td>Effective Policies by Principals</td><td>for every set of principals a single effective policy of type {@link NamedAccessControlPolicy}</td></tr>
  * </table>
  *
- * <h4>Permission Evaluation</h4>
+ * <h3>Permission Evaluation</h3>
  *
- * <table>
+ * <table summary="">
  *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
  *     <tr><td>Supported Permissions</td><td>all</td></tr>
  *     <tr><td>Aggregated Permission Provider</td><td>yes</td></tr>
  * </table>
  *
- * <h3>Representation in the Repository</h3>
+ * <h2>Representation in the Repository</h2>
  *
  * There exists no dedicated access control or permission content for this
  * authorization model as it doesn't persist any information into the repository.
  * {@link SecurityConfiguration#getContext()} therefore returns the {@link Context#DEFAULT default}.
  *
- * <h3>Configuration</h3>
+ * <h2>Configuration</h2>
  *
  * This model doesn't come with any configuration options.
  *
- * <h3>Installation Instructions</h3>
+ * <h2>Installation Instructions</h2>
  *
  * The following steps are required to install this authorization model in an OSGi based Oak setup.
  *
@@ -142,7 +142,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *         <li>make sure the 'Authorization Composition Type' is set to AND</li>
  *     </ul>
  *     </li>
- *     <li>Wait for the {@link SecurityProvider} to be successfully registered again.</li>
+ *     <li>Wait for the {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} to be successfully registered again.</li>
  * </ul>
  *
  */
