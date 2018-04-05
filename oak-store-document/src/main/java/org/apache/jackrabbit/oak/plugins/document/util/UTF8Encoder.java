@@ -69,7 +69,7 @@ public class UTF8Encoder {
     }
 
     /**
-     * @see {@link CharsetEncoder#canEncode(CharSequence)
+     * See {@link CharsetEncoder#canEncode(CharSequence)}.
      */
     public static boolean canEncode(CharSequence input) {
         CharsetEncoder e = CSE.get();
