@@ -165,9 +165,10 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Get the size if known.
      * 
+     * @param rootState the root node state (to initialize the cursor, if needed)
      * @param precision the required precision
      * @param max the maximum nodes read (for an exact size)
      * @return the size, or -1 if unknown
      */
-    public abstract long getSize(SizePrecision precision, long max);
+    public abstract long getSize(NodeState rootState, SizePrecision precision, long max);
 }
