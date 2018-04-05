@@ -271,6 +271,7 @@ The traversal option can be used to change the behavior of the given query:
 "index tag": by default, queries will use the index with the lowest expected cost (as in relational databases).
 To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
 and specify this tag in the query.
+See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
 
 Examples:
 

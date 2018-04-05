@@ -199,3 +199,60 @@ So in this case, only the fulltext restriction of the query was used by the inde
 but this might already be sufficient. If it is not, then the fulltext index might
 be changed to also index `commerceType`, or possibly 
 to use `evaluatePathRestrictions`.
+
+#### Queries With Many OR or UNION Conditions
+
+Queries that contain many "or" conditions, or with many "union" subqueries,
+can be slow as they have to read a lot of data.
+Example query:
+
+    /jcr:root/content/(a|b|c|d|e)//element(*, cq:Page)[
+    jcr:contains(@jcr:title, 'some text') 
+    or jcr:contains(jcr:content/@keywords, 'some text')
+    or jcr:contains(jcr:content/@cq:tags, 'some text')
+    or jcr:contains(jcr:content/@team, 'some text')
+    or jcr:contains(jcr:content/@topics, 'some text')
+    or jcr:contains(jcr:content/@jcr:description, 'some text')]
+
+This query will be internally converted into 5 subqueries, due to the "union" clause (a|b|c|d|e).
+Then, each of the 5 subqueries will run 6 subqueries: one for each jcr:contains condition.
+So, the index will be contacted 30 times.
+
+To avoid this overhead, the index could be changed (or a new index created) to do aggregation
+on the required properties (here: jcr:title, jcr:content/keywords,...).
+This will simplify the query to:
+
+    /jcr:root/content/(a|b|c|d|e)//element(*, cq:Page)[jcr:contains(., 'some text')]
+
+This should resolve most problems.
+To further speed up the query by avoiding to running 5 subqueries, 
+it might be better to use a less specific path constraint,
+but instead use a different way to filter results, such as:
+
+    /jcr:root/content//element(*, cq:Page)[jcr:contains(., 'some text') and @category='x']
+    
+#### Ordering by Score Combined With OR / UNION Conditions
+
+Queries that expect results to be sorted by score ("order by @jcr:score descending"),
+and use "union" or "or" conditions, may not return the result in the expected order,
+depending on the index(es) used. Example:
+
+    /jcr:root/conent/products/(indoor|outdoor)//*[jcr:contains(., 'test')] 
+    order by @jcr:score descending
+
+Here, the query is converted to a "union", and the result of both subqueries is combined.
+If the score for each subquery is not comparable (which is often the case for Lucene indexes),
+then the order of the results may not match the expected order.
+Instead of using path restrictions as above, it is most likely better to use a an additional
+condition in the query, and index that:
+
+    /jcr:root/content/products//*[jcr:contains(., 'test') and 
+    (@productTag='indoor' or @productTag='outdoor')] 
+    order by @jcr:score descending
+
+If this is not possible, then try to avoid using "union", and use an "or" condition as follows.
+This will only work for SQL-2 queries however:
+
+    select * from [nt:base] as a where contains(*, 'test') and issamenode(a, '/content') and 
+    ([jcr:path] like '/content/x800/%' or [jcr:path] like '/content/y900/%') 
+    order by [jcr:score] desc
