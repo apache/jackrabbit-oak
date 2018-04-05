@@ -21,10 +21,12 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.NamedAccessControlPolicy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -51,11 +53,13 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -66,7 +70,82 @@ import org.osgi.service.component.annotations.Component;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
- * TODO ADD DESCRIPTION
+ * <h1>Read Only Authorization Model</h1>
+ *
+ * This authorization module forms part of the training material provided by the
+ * <i>oak-exercise</i> module and must not be used in a productive environment!
+ *
+ * <h3>Overview</h3>
+ * This simplistic authorization model is limited to permission evaluation and
+ * doesn't support access control management.
+ *
+ * The permission evaluation is hardcoded to only allow read access to every single
+ * item in the repository (even access control content). All other permissions are
+ * denied for every set of principals.
+ *
+ * There exists a single exception to that rule: For the internal {@link SystemPrincipal}
+ * permission evaluation is not enforced by this module i.e. this module is skipped.
+ *
+ * <h3>Intended Usage</h3>
+ * This authorization model is intended to be used in 'AND' combination with the
+ * default authorization setup defined by Oak (and optionally additional models
+ * such as e.g. <i>oak-authorization-cug</i>.
+ *
+ * It is not intended to be used as standalone model as it would grant full read
+ * access to everyone.
+ *
+ * <h3>Limitations</h3>
+ * Experimental model for training purpose and not intended for usage in production.
+ *
+ * <h3>Key Features</h3>
+ *
+ * <h4>Access Control Management</h4>
+ *
+ * <table align="left">
+ *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ *     <tr><td>Supported Privileges</td><td>all</td></tr>
+ *     <tr><td>Supports Custom Privileges</td><td>yes</td></tr>
+ *     <tr><td>Management by Path</td><td>not supported</td></tr>
+ *     <tr><td>Management by Principals</td><td>not supported</td></tr>
+ *     <tr><td>Owned Policies</td><td>None</td></tr>
+ *     <tr><td>Effective Policies by Path</td><td>for every path a single effective policy of type {@link NamedAccessControlPolicy}</td></tr>
+ *     <tr><td>Effective Policies by Principals</td><td>for every set of principals a single effective policy of type {@link NamedAccessControlPolicy}</td></tr>
+ * </table>
+ *
+ * <h4>Permission Evaluation</h4>
+ *
+ * <table>
+ *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ *     <tr><td>Supported Permissions</td><td>all</td></tr>
+ *     <tr><td>Aggregated Permission Provider</td><td>yes</td></tr>
+ * </table>
+ *
+ * <h3>Representation in the Repository</h3>
+ *
+ * There exists no dedicated access control or permission content for this
+ * authorization model as it doesn't persist any information into the repository.
+ * {@link SecurityConfiguration#getContext()} therefore returns the {@link Context#DEFAULT default}.
+ *
+ * <h3>Configuration</h3>
+ *
+ * This model doesn't come with any configuration options.
+ *
+ * <h3>Installation Instructions</h3>
+ *
+ * The following steps are required to install this authorization model in an OSGi based Oak setup.
+ *
+ * <ul>
+ *     <li>Upload the oak-exercise bundle</li>
+ *     <li>Go to the configuration of {@link org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
+ *     <ul>
+ *         <li>add {@code org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration}
+  *     to the list of required service IDs</li>
+ *         <li>make sure the 'Authorization Composition Type' is set to AND</li>
+ *     </ul>
+ *     </li>
+ *     <li>Wait for the {@link SecurityProvider} to be successfully registered again.</li>
+ * </ul>
+ *
  */
 @Component(
         service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
@@ -89,7 +168,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
             @Override
             public AccessControlPolicy[] getEffectivePolicies(String absPath) {
-                return new AccessControlPolicy[0];
+                return new AccessControlPolicy[] {ReadOnlyPolicy.INSTANCE};
             }
 
             @Override
@@ -119,7 +198,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
             @Override
             public AccessControlPolicy[] getEffectivePolicies(Set<Principal> set) {
-                return new AccessControlPolicy[0];
+                return new AccessControlPolicy[] {ReadOnlyPolicy.INSTANCE};
             }
         };
     }
@@ -133,83 +212,87 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
-        return new AggregatedPermissionProvider() {
+        if (principals.contains(SystemPrincipal.INSTANCE)) {
+            return EmptyPermissionProvider.getInstance();
+        } else {
+            return new AggregatedPermissionProvider() {
 
-            private Root immutableRoot = getRootProvider().createReadOnlyRoot(root);
+                private Root immutableRoot = getRootProvider().createReadOnlyRoot(root);
 
-            @Nonnull
-            @Override
-            public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-                return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
-            }
+                @Nonnull
+                @Override
+                public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
+                    return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+                }
 
-            @Override
-            public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
-                return permissions;
-            }
+                @Override
+                public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
+                    return permissions;
+                }
 
-            @Override
-            public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
-                return permissions;
-            }
+                @Override
+                public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+                    return permissions;
+                }
 
-            @Override
-            public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
-                return permissions;
-            }
+                @Override
+                public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+                    return permissions;
+                }
 
-            @Override
-            public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
-                return onlyReadPermissions(permissions);
-            }
+                @Override
+                public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+                    return onlyReadPermissions(permissions);
+                }
 
-            @Nonnull
-            @Override
-            public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
-                return new ReadOnlyPermissions();
-            }
+                @Nonnull
+                @Override
+                public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
+                    return new ReadOnlyPermissions();
+                }
 
-            @Override
-            public void refresh() {
-                immutableRoot = getRootProvider().createReadOnlyRoot(root);
-            }
+                @Override
+                public void refresh() {
+                    immutableRoot = getRootProvider().createReadOnlyRoot(root);
+                }
 
-            @Nonnull
-            @Override
-            public Set<String> getPrivileges(@Nullable Tree tree) {
-                return READ_PRIVILEGE_NAMES;
-            }
+                @Nonnull
+                @Override
+                public Set<String> getPrivileges(@Nullable Tree tree) {
+                    return READ_PRIVILEGE_NAMES;
+                }
 
-            @Override
-            public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-                Set<String> privs = Sets.newHashSet(privilegeNames);
-                privs.removeAll(READ_PRIVILEGE_NAMES);
+                @Override
+                public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+                    Set<String> privs = Sets.newHashSet(privilegeNames);
+                    privs.removeAll(READ_PRIVILEGE_NAMES);
 
-                return privs.isEmpty();
-            }
+                    return privs.isEmpty();
+                }
 
-            @Nonnull
-            @Override
-            public RepositoryPermission getRepositoryPermission() {
-                return RepositoryPermission.EMPTY;
-            }
+                @Nonnull
+                @Override
+                public RepositoryPermission getRepositoryPermission() {
+                    return RepositoryPermission.EMPTY;
+                }
 
-            @Nonnull
-            @Override
-            public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-                return ReadOnlyPermissions.INSTANCE;
-            }
+                @Nonnull
+                @Override
+                public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+                    return ReadOnlyPermissions.INSTANCE;
+                }
 
-            @Override
-            public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-                return onlyReadPermissions(permissions);
-            }
+                @Override
+                public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+                    return onlyReadPermissions(permissions);
+                }
 
-            @Override
-            public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-                return onlyReadPermissions(Permissions.getPermissions(jcrActions, TreeLocation.create(root, oakPath), false));
-            }
-        };
+                @Override
+                public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+                    return onlyReadPermissions(Permissions.getPermissions(jcrActions, TreeLocation.create(root, oakPath), false));
+                }
+            };
+        }
     }
 
     private static final boolean onlyReadPermissions(long permissions) {
@@ -308,6 +391,16 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         @Override
         public boolean isGranted(long permissions, @Nonnull PropertyState property) {
             return onlyReadPermissions(permissions);
+        }
+    }
+
+    private static final class ReadOnlyPolicy implements NamedAccessControlPolicy {
+
+        private static final NamedAccessControlPolicy INSTANCE = new ReadOnlyPolicy();
+
+        @Override
+        public String getName() throws RepositoryException {
+            return "Read-only Policy defined by 'ReadOnlyAuthorizationConfiguration'";
         }
     }
 }
