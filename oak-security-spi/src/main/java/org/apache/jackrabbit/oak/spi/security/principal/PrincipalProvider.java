@@ -76,7 +76,7 @@ public interface PrincipalProvider {
     /**
      * Returns an iterator over all group principals for which the given
      * principal is either direct or indirect member of. Thus for any principal
-     * returned in the iterator {@link GroupPrincipal#isMember(Principal)}
+     * returned in the iterator {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal#isMember(Principal)}
      * must return {@code true}.
      * <p>
      * Example:<br>
@@ -85,7 +85,7 @@ public interface PrincipalProvider {
      *
      * @param principal the principal to return it's membership from.
      * @return an iterator returning all groups the given principal is member of.
-     * @see GroupPrincipal#isMember(java.security.Principal)
+     * @see org.apache.jackrabbit.api.security.principal.GroupPrincipal#isMember(java.security.Principal)
      */
     @Nonnull
     default Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
