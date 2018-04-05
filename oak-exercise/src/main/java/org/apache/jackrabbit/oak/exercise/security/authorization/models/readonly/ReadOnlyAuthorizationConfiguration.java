@@ -21,8 +21,7 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
@@ -136,10 +135,10 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <ul>
  *     <li>Upload the oak-exercise bundle</li>
- *     <li>Go to the configuration of {@link org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
+ *     <li>Edit configuration of {@link org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
  *     <ul>
  *         <li>add {@code org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration}
-  *     to the list of required service IDs</li>
+ *             to the list of required service IDs</li>
  *         <li>make sure the 'Authorization Composition Type' is set to AND</li>
  *     </ul>
  *     </li>
@@ -177,13 +176,13 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
             }
 
             @Override
-            public void setPolicy(String absPath, AccessControlPolicy policy) throws UnsupportedRepositoryOperationException {
-                throw new UnsupportedRepositoryOperationException();
+            public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+                throw new AccessControlException();
             }
 
             @Override
-            public void removePolicy(String absPath, AccessControlPolicy policy) throws UnsupportedRepositoryOperationException {
-                throw new UnsupportedRepositoryOperationException();
+            public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+                throw new AccessControlException();
             }
 
             @Override
@@ -217,12 +216,10 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         } else {
             return new AggregatedPermissionProvider() {
 
-                private Root immutableRoot = getRootProvider().createReadOnlyRoot(root);
-
                 @Nonnull
                 @Override
                 public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
-                    return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
+                    return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
                 }
 
                 @Override
@@ -253,7 +250,6 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @Override
                 public void refresh() {
-                    immutableRoot = getRootProvider().createReadOnlyRoot(root);
                 }
 
                 @Nonnull
@@ -399,7 +395,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         private static final NamedAccessControlPolicy INSTANCE = new ReadOnlyPolicy();
 
         @Override
-        public String getName() throws RepositoryException {
+        public String getName() {
             return "Read-only Policy defined by 'ReadOnlyAuthorizationConfiguration'";
         }
     }
