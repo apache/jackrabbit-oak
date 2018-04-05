@@ -47,21 +47,21 @@ public interface SegmentNodeStoreStatsMBean {
     CompositeData getQueuingTimes();
     
     /**
-     * @return tabular data of the form <commits,writerGroup> collected 
+     * @return tabular data of the form &lt;commits,writerGroup&gt; collected 
      *         <b>in the last minute</b>
      * @throws OpenDataException if data is not available
      */
     TabularData getCommitsCountPerWriterGroupLastMinute() throws OpenDataException;
     
     /**
-     * @return tabular data of the form <commits,writer> for writers 
+     * @return tabular data of the form &lt;commits,writer&gt; for writers 
      *         not included in groups
      * @throws OpenDataException if data is not available
      */
     TabularData getCommitsCountForOtherWriters() throws OpenDataException;
     
     /**
-     * @return tabular data of the form <writer,writerDetails> for each writer
+     * @return tabular data of the form &lt;writer,writerDetails&gt; for each writer
      *         currently in the queue
      * @throws OpenDataException if data is not available
      */
