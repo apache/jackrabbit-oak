@@ -135,7 +135,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
-    static final boolean DEFAULT_SO_KEEP_ALIVE = false;
+    static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
