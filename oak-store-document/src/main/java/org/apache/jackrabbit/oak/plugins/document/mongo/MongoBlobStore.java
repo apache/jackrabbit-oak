@@ -22,6 +22,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.bson.Document;
@@ -32,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
@@ -92,24 +93,30 @@ public class MongoBlobStore extends CachingBlobStore {
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        // Check if it already exists?
-        MongoBlob mongoBlob = new MongoBlob();
-        mongoBlob.setId(id);
-        mongoBlob.setData(data);
-        mongoBlob.setLevel(level);
-        mongoBlob.setLastMod(System.currentTimeMillis());
-        // TODO check the return value
-        // TODO verify insert is fast if the entry already exists
+
+        // Create the mongo blob object
+        BasicDBObject mongoBlob = new BasicDBObject(MongoBlob.KEY_ID, id);
+        mongoBlob.append(MongoBlob.KEY_DATA, data);
+        mongoBlob.append(MongoBlob.KEY_LEVEL, level);
+
+        // If update only the lastMod needs to be modified
+        BasicDBObject updateBlob =new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis());
+
+        BasicDBObject upsert = new BasicDBObject();
+        upsert.append("$setOnInsert", mongoBlob)
+            .append("$set", updateBlob);
+
         try {
-            getBlobCollection().insertOne(mongoBlob);
-        } catch (DuplicateKeyException e) {
-            // the same block was already stored before: ignore
-        } catch (MongoException e) {
-            if (e.getCode() == DUPLICATE_KEY_ERROR_CODE) {
-                // the same block was already stored before: ignore
+            Bson query = getBlobQuery(id, -1);
+            UpdateOptions options = new UpdateOptions().upsert(true);
+            UpdateResult result = getBlobCollection().updateOne(query, upsert, options);
+            if (result != null && result.getUpsertedId() == null) {
+                LOG.trace("Block with id [{}] updated", id);
             } else {
-                throw new IOException(e.getMessage(), e);
+                LOG.trace("Block with id [{}] created", id);
             }
+        } catch (MongoException e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -158,9 +165,13 @@ public class MongoBlobStore extends CachingBlobStore {
             return;
         }
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
+        updateTimestamp(id, minLastModified);
+    }
+
+    private void updateTimestamp(String id, long minLastModified) {
         Bson query = getBlobQuery(id, minLastModified);
         Bson update = new BasicDBObject("$set",
-                new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
+            new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
         getBlobCollection().updateOne(query, update);
     }
 
