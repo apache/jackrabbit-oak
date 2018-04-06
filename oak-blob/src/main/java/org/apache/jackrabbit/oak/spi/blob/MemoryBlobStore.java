@@ -33,6 +33,7 @@ public class MemoryBlobStore extends AbstractBlobStore {
 
     private HashMap<BlockId, byte[]> map = new HashMap<BlockId, byte[]>();
     private HashMap<BlockId, byte[]> old = new HashMap<BlockId, byte[]>();
+    private HashMap<BlockId, Long> timestamps = new HashMap<BlockId, Long>();
     private boolean mark;
 
     @Override
@@ -46,7 +47,9 @@ public class MemoryBlobStore extends AbstractBlobStore {
 
     @Override
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) {
-        map.put(new BlockId(digest, 0), data);
+        BlockId id =  new BlockId(digest, 0);
+        map.put(id, data);
+        timestamps.put(id, System.currentTimeMillis());
     }
 
     @Override
@@ -90,8 +93,11 @@ public class MemoryBlobStore extends AbstractBlobStore {
         for (String chunkId : chunkIds) {
             BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
             if (map.containsKey(id)) {
-                map.remove(id);
-                count++;
+                if (maxLastModifiedTime == 0 || (maxLastModifiedTime > 0 && maxLastModifiedTime > timestamps.get(id))) {
+                    map.remove(id);
+                    timestamps.remove(id);
+                    count++;
+                }
             } else if (old.containsKey(id)) {
                 old.remove(id);
                 count++;
