@@ -165,13 +165,9 @@ public class MongoBlobStore extends CachingBlobStore {
             return;
         }
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        updateTimestamp(id, minLastModified);
-    }
-
-    private void updateTimestamp(String id, long minLastModified) {
         Bson query = getBlobQuery(id, minLastModified);
         Bson update = new BasicDBObject("$set",
-            new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
+                new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
         getBlobCollection().updateOne(query, update);
     }
 
