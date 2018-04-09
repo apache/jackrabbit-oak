@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnull;
 
 import com.google.common.io.Closer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -117,7 +118,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                     return readSegmentUncached(tarFiles, id);
                 }
             });
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | UncheckedExecutionException e) {
             throw asSegmentNotFoundException(e, id);
         }
     }
