@@ -70,18 +70,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     private Set<String> roles = Sets.newConcurrentHashSet();
     private boolean isInitialized = false;
 
-    private LoadingCache<DataIdentifier, DataStore> blobIdMap =
-            CacheBuilder.newBuilder()
-                    .maximumSize(8192)
-                    .expireAfterAccess(12, TimeUnit.HOURS)
-                    .build(
-                            new CacheLoader<DataIdentifier, DataStore>() {
-                                @Override
-                                public DataStore load(DataIdentifier key) throws Exception {
-                                    return null;
-                                }
-                            }
-                    );
+    private LoadingCache<DataIdentifier, DataStore> blobIdMap;
 
     @Reference
     DelegateHandler delegateHandler = new IntelligentDelegateHandler();
@@ -98,11 +87,29 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
             LOG.error("No configuration provided for Composite Data Store");
         }
         roles = getRolesFromConfig(properties);
+
+        blobIdMap = setupIdMapper();
     }
 
     CompositeDataStore(final Properties properties, final Collection<String> roles) {
         this.properties = properties;
         this.roles = ImmutableSet.copyOf(roles);
+
+        blobIdMap = setupIdMapper();
+    }
+
+    private LoadingCache<DataIdentifier, DataStore> setupIdMapper() {
+        return CacheBuilder.newBuilder()
+                .maximumSize(8192)
+                .expireAfterAccess(12, TimeUnit.HOURS)
+                .build(
+                        new CacheLoader<DataIdentifier, DataStore>() {
+                            @Override
+                            public DataStore load(DataIdentifier key) throws Exception {
+                                return null;
+                            }
+                        }
+                );
     }
 
     static Set<String> getRolesFromConfig(@Nonnull final Properties properties) {
