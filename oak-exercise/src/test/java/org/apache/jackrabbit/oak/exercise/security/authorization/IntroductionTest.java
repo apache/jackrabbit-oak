@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
  *
  * Goal:
  * Get a basic understanding how authorization is organized in Oak and become
- * familiar with distiction between access control management and permission
+ * familiar with distinction between access control management and permission
  * evaluation.
  *
  * Exercises:
