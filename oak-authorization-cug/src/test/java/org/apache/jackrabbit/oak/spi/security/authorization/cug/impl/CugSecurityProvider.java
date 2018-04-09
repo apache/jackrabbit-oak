@@ -33,7 +33,7 @@ final class CugSecurityProvider {
         CugConfiguration cugConfiguration = new CugConfiguration();
 
         ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
-        cugConfiguration.activate(params);
+        cugConfiguration.setParameters(params);
 
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
         SecurityProviderHelper.updateConfig(sp, cugConfiguration, AuthorizationConfiguration.class);

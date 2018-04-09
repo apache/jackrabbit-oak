@@ -281,7 +281,7 @@ The time-based `RestrictionPattern` used by the example provider above.
     RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new MyRestrictionProvider(), ...);
     Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(PARAM_RESTRICTION_PROVIDER, rProvider);
     ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->

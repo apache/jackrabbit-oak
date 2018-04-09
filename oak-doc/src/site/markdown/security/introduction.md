@@ -91,8 +91,8 @@ The following example has been extracted from the basic test setup:
     NodeStore nodeStore = ...
     
     ConfigurationParameters params = ... // TODO: provide config options
-    SecurityProvider sp = new SecurityProviderImpl(params);   
-    // Optional: bind additional/custom implementations of the supported `SecurityConfiguration`s 
+    // Optional: set additional/custom implementations of the supported `SecurityConfiguration`s via the params
+    SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
     
     Repository repository = new Jcr(nodeStore).with(sp).createRepository();
 
@@ -216,7 +216,7 @@ See section [pluggability](#pluggability) below.
 
 | Parameter                | Type     | Default   | Description            |
 |--------------------------|----------|-----------|------------------------|
-| `Authorization Composition Type`  | String (AND|OR) | AND | The Composite Authorization model uses this flag to determine what type of logic to apply to the existing providers|
+| `Authorization Composition Type`  | String (AND\|OR) | AND | The Composite Authorization model uses this flag to determine what type of logic to apply to the existing providers|
 
 Given a set of permission providers, the composite model can aggregate the results by applying an `AND` logic (for example all providers must allow a specific privilege in order to be granted), or an `OR` (for example any provider can allow a privilege). By default the `AND` version is used.
 
@@ -294,9 +294,23 @@ interface definition.
 Extend the default `SecurityProvider` with a custom `PrincipalConfiguration`.
 See also _oak-exercise_ module for an example.
 
-    SecurityProvider sp = new SecurityProviderImpl();  
-    sp.bindPrincipalConfiguration(new MyPrincipalConfiguration());    
-    Repository repository = new Jcr().with(sp).createRepository();
+    MyPrincipalConfiguration pc = new MyPrincipalConfiguration();
+    
+    ConfigurationParameters params = ConfigurationParameters.EMPTY;
+    pc.setParameters(params);
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params).build();
+    
+    CompositeConfiguration<PrincipalConfiguration> composite = (CompositeConfiguration) securityProvider
+        .getConfiguration(PrincipalConfiguration.class);
+    PrincipalConfiguration defConfig = composite.getDefaultConfig();
+    
+    pc.setSecurityProvider(securityProvider);
+    pc.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+    pc.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+    composite.addConfiguration(pc);
+    composite.addConfiguration(defConfig);
+    
+    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 ##### Initialization of SecurityConfiguration(s)
 
