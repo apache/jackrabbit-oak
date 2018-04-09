@@ -192,13 +192,17 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         return CugContext.INSTANCE;
     }
 
+    @Override
+    public void setParameters(ConfigurationParameters config) {
+        super.setParameters(config);
+        supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
+    }
+
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     protected void activate(Map<String, Object> properties) {
-        ConfigurationParameters params = ConfigurationParameters.of(properties);
-        setParameters(params);
-        supportedPaths = CugUtil.getSupportedPaths(params, mountInfoProvider);
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     @SuppressWarnings("UnusedDeclaration")

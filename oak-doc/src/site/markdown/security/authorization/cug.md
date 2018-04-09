@@ -276,18 +276,27 @@ unit tests for an alternative approach.
      CugConfiguration cug = new CugConfiguration();
      cug.setParameters(params);
      
-     // bind it to the security provider (simplified => subclassing required due to protected access)
-     SecurityProviderImpl securityProvider = new SecurityProviderImpl();
-     securityProvider.bindAuthorizationConfiguration(cug);
+     // bind it to the security provider
+     SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(configuration).build();
+     
+     CompositeConfiguration<AuthorizationConfiguration> composite = (CompositeConfiguration) securityProvider
+           .getConfiguration(AuthorizationConfiguration.class);
+     AuthorizationConfiguration defConfig = composite.getDefaultConfig();
+     
+     cug.setSecurityProvider(securityProvider);
+     cug.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+     cug.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+     composite.addConfiguration(cug);
+     composite.addConfiguration(defConfig);
      
      // create the Oak repository (alternatively: create the JCR repository)
      Oak oak = new Oak()
              .with(new InitialContent())
              // TODO: add all required editors
              .with(securityProvider);
-             withEditors(oak);     
-     ContentRepository contentRepository = oak.createContentRepository();     
-     
+             withEditors(oak);
+     ContentRepository contentRepository = oak.createContentRepository();
+
 #### Customize CugExclude
  
 The following steps are required in order to customize the `CugExclude` implementation

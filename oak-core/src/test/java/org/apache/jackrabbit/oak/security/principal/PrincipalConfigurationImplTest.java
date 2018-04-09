@@ -24,11 +24,16 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -147,5 +152,36 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
 
         PrincipalProvider pp = pc3.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertTrue(pp instanceof PrincipalProviderImpl);
+    }
+
+    @Test
+    public void testGetPrincipalProvider5() {
+        PrincipalProvider pp = EmptyPrincipalProvider.INSTANCE;
+
+        PrincipalConfigurationImpl pc = new PrincipalConfigurationImpl() {
+
+            @Override
+            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+                return pp;
+            }
+        };
+
+        ConfigurationParameters params = ConfigurationParameters.EMPTY;
+        pc.setParameters(params);
+        SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params).build();
+
+        CompositeConfiguration<PrincipalConfiguration> composite = (CompositeConfiguration) securityProvider
+                .getConfiguration(PrincipalConfiguration.class);
+        PrincipalConfiguration defConfig = composite.getDefaultConfig();
+
+        pc.setSecurityProvider(securityProvider);
+        pc.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+        pc.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+
+        composite.addConfiguration(pc);
+        composite.addConfiguration(defConfig);
+
+        PrincipalProvider ppt = pc.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        assertEquals(pp, ppt);
     }
 }
