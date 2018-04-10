@@ -34,6 +34,8 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.api.stats.RepositoryStatistics;
+import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -41,7 +43,12 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,7 +139,7 @@ public class SegmentNodeStoreFactory {
             registrations = Closer.create();
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
             final SegmentNodeStore store = SegmentNodeStoreService.registerSegmentStore(context, blobStore, segmentStore,
-                    statisticsProvider, registrations, whiteboard, role, registerRepositoryDescriptors);
+                    getRoleStatisticsProvider(statisticsProvider, role), registrations, whiteboard, role, registerRepositoryDescriptors);
             if (store != null) {
                 Map<String, Object> props = new HashMap<String, Object>();
                 props.put(NodeStoreProvider.ROLE, role);
@@ -171,6 +178,51 @@ public class SegmentNodeStoreFactory {
 
     static String property(String name, ComponentContext context) {
         return lookupConfigurationThenFramework(context, name);
+    }
+
+    private static StatisticsProvider getRoleStatisticsProvider(StatisticsProvider delegate, String role) {
+       RepositoryStatistics repositoryStatistics = new RepositoryStatistics() {
+                @Override
+                public TimeSeries getTimeSeries(Type type) {
+                    return getTimeSeries(type.name(), type.isResetValueEachSecond());
+                }
+
+                @Override
+                public TimeSeries getTimeSeries(String type, boolean resetValueEachSecond) {
+                    return delegate.getStats().getTimeSeries(addRoleToName(type, role), resetValueEachSecond);
+                }
+        };
+
+        return new StatisticsProvider() {
+            @Override
+            public RepositoryStatistics getStats() {
+                return repositoryStatistics;
+            }
+
+            @Override
+            public MeterStats getMeter(String name, StatsOptions options) {
+                return delegate.getMeter(addRoleToName(name, role), options);
+            }
+
+            @Override
+            public CounterStats getCounterStats(String name, StatsOptions options) {
+                return delegate.getCounterStats(addRoleToName(name, role), options);
+            }
+
+            @Override
+            public TimerStats getTimer(String name, StatsOptions options) {
+                return delegate.getTimer(addRoleToName(name, role), options);
+            }
+
+            @Override
+            public HistogramStats getHistogram(String name, StatsOptions options) {
+                return delegate.getHistogram(addRoleToName(name, role), options);
+            }
+        };
+    }
+
+    private static String addRoleToName(String name, String role) {
+        return new StringBuilder(role).append('.').append(name).toString();
     }
 
 
