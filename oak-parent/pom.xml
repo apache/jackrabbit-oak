@@ -878,6 +878,16 @@
       </build>
     </profile>
     <profile>
+      <id>guava-latest</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <version>20.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>rdb-derby</id>
       <dependencies>
         <dependency>
