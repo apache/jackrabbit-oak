@@ -100,6 +100,7 @@ import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.impl.FileStoreBackupRestoreImpl;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.CacheStatsMBeanWrapper;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
@@ -119,6 +120,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.util.RoleUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -519,7 +521,7 @@ public class SegmentNodeStoreService {
 
         // Expose stats about the segment cache
 
-        CacheStatsMBean segmentCacheStats = store.getSegmentCacheStats();
+        CacheStatsMBean segmentCacheStats = addRoleToName(store.getSegmentCacheStats(), role);
         closeables.add(registrations.registerMBean(
                 CacheStatsMBean.class,
                 segmentCacheStats,
@@ -529,7 +531,7 @@ public class SegmentNodeStoreService {
 
         // Expose stats about the string and template caches
 
-        CacheStatsMBean stringCacheStats = store.getStringCacheStats();
+        CacheStatsMBean stringCacheStats = addRoleToName(store.getStringCacheStats(), role);
         closeables.add(registrations.registerMBean(
                 CacheStatsMBean.class,
                 stringCacheStats,
@@ -537,7 +539,7 @@ public class SegmentNodeStoreService {
                 stringCacheStats.getName()
         ));
 
-        CacheStatsMBean templateCacheStats = store.getTemplateCacheStats();
+        CacheStatsMBean templateCacheStats = addRoleToName(store.getTemplateCacheStats(), role);
         closeables.add(registrations.registerMBean(
                 CacheStatsMBean.class,
                 templateCacheStats,
@@ -546,7 +548,7 @@ public class SegmentNodeStoreService {
         ));
 
         WriterCacheManager cacheManager = builder.getCacheManager();
-        CacheStatsMBean stringDeduplicationCacheStats = cacheManager.getStringCacheStats();
+        CacheStatsMBean stringDeduplicationCacheStats = addRoleToName(cacheManager.getStringCacheStats(), role);
         if (stringDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,
@@ -556,7 +558,7 @@ public class SegmentNodeStoreService {
             ));
         }
 
-        CacheStatsMBean templateDeduplicationCacheStats = cacheManager.getTemplateCacheStats();
+        CacheStatsMBean templateDeduplicationCacheStats = addRoleToName(cacheManager.getTemplateCacheStats(), role);
         if (templateDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,
@@ -566,7 +568,7 @@ public class SegmentNodeStoreService {
             ));
         }
 
-        CacheStatsMBean nodeDeduplicationCacheStats = cacheManager.getNodeCacheStats();
+        CacheStatsMBean nodeDeduplicationCacheStats = addRoleToName(cacheManager.getNodeCacheStats(), role);
         if (nodeDeduplicationCacheStats != null) {
             closeables.add(registrations.registerMBean(
                     CacheStatsMBean.class,
@@ -751,6 +753,14 @@ public class SegmentNodeStoreService {
         closer = null;
     }
 
+    private static CacheStatsMBean addRoleToName(CacheStatsMBean cacheStatsMBean, String role) {
+        return new CacheStatsMBeanWrapper(cacheStatsMBean) {
+            @Override
+            public String getName() {
+                return RoleUtils.maybeAppendRole(super.getName(), role);
+            }
+        };
+    }
 }
 
 /**
@@ -1025,10 +1035,7 @@ class Registrations {
     }
 
     private String maybeAppendRole(String name) {
-        if (role != null) {
-            return name + " - " + role;
-        }
-        return name;
+        return RoleUtils.maybeAppendRole(name, role);
     }
 
     private String jmxRole() {
