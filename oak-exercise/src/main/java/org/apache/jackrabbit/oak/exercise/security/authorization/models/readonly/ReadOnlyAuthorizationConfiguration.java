@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -29,7 +30,6 @@ import javax.jcr.security.NamedAccessControlPolicy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -172,7 +172,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
             @Override
             public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
-                return new AccessControlPolicyIteratorAdapter(Iterators.emptyIterator());
+                return new AccessControlPolicyIteratorAdapter(Collections.emptyIterator());
             }
 
             @Override
