@@ -73,6 +73,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
                     .spliterator(), false)
                     .filter(i -> i instanceof CloudBlobDirectory)
                     .map(i -> (CloudBlobDirectory) i)
+                    .filter(i -> getName(i).endsWith(".tar"))
                     .map(CloudBlobDirectory::getPrefix)
                     .map(Paths::get)
                     .map(Path::getFileName)

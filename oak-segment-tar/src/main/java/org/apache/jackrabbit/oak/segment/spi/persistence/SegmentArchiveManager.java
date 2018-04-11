@@ -36,7 +36,7 @@ import java.util.UUID;
 public interface SegmentArchiveManager {
 
     /**
-     * List names of the available archives.
+     * List names of the available .tar archives.
      *
      * @return archive list
      */
