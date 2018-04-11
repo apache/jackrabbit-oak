@@ -58,7 +58,7 @@ import org.junit.Test;
  * {@code -Ddepth=n}. Default {@code 5}<br>
  * {@code -Dpath=/path/to/start/node}. Default {@code /root}
  * <p>
- * FIXME OAK-5655: Turn this into a development tool and move to the right place.
+ * FIXME OAK-7402: Turn this into a development tool and move to the right place.
  */
 public class IOTracerRunner extends IOMonitorAdapter {
     private static final boolean ENABLED =
