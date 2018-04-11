@@ -155,7 +155,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean exists(String archiveName) {
         try {
-            return listArchives().contains(archiveName);
+            return getBlobs(archiveName).findAny().isPresent();
         } catch (IOException e) {
             log.error("Can't check the existence of {}", archiveName, e);
             return false;
