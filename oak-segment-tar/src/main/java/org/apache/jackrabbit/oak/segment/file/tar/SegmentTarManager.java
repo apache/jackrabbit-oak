@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import org.apache.commons.io.filefilter.SuffixFileFilter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -73,7 +74,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
     @Override
     public List<String> listArchives() {
-        return Arrays.asList(segmentstoreDir.list());
+        return Arrays.asList(segmentstoreDir.list(new SuffixFileFilter(".tar")));
     }
 
     @Override
