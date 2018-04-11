@@ -91,7 +91,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             if (!archiveDirectory.getBlockBlobReference("closed").exists()) {
                 throw new IOException("The archive " + archiveName + " hasn't been closed correctly.");
             }
-            return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor, monitor);
+            return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
         } catch (StorageException | URISyntaxException e) {
             throw new IOException(e);
         }
