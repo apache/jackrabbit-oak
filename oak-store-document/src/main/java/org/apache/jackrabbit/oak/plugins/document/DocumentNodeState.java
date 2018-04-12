@@ -61,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
@@ -121,7 +122,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren));
     }
 
-    private DocumentNodeState(@Nonnull DocumentNodeStore store,
+    protected DocumentNodeState(@Nonnull DocumentNodeStore store,
                               @Nonnull String path,
                               @Nullable RevisionVector lastRevision,
                               @Nullable RevisionVector rootRevision,
@@ -167,6 +168,12 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Nonnull
     public DocumentNodeState fromExternalChange() {
         return new DocumentNodeState(store, path, lastRevision, rootRevision, true, bundlingContext);
+    }
+
+    @Nonnull
+    public DocumentNodeState asBranchRootState(@Nonnull  DocumentNodeStoreBranch branch) {
+        checkState(getRootRevision().isBranch());
+        return new DocumentBranchRootNodeState(store, branch, path, rootRevision, lastRevision, bundlingContext);
     }
 
     /**
@@ -816,7 +823,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return props.containsKey(key);
     }
 
-    private static class BundlingContext {
+    protected static class BundlingContext {
         final Matcher matcher;
         final Map<String, PropertyState> rootProperties;
         final boolean hasBundledChildren;

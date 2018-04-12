@@ -42,6 +42,7 @@ import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
@@ -149,6 +150,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     @Nonnull
     ReadWriteLock getMergeLock() {
         return mergeLock;
+    }
+
+    /**
+     * For test purposes only!
+     * <p>
+     * Forces the branch to persist the changes to the underlying store.
+     */
+    void persist() {
+        branchState.persist();
     }
 
     @Nonnull
@@ -483,8 +493,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     private class InMemory extends BranchState {
         /** Root state of the transient head. */
         private NodeState head;
-        /** Number of in-memory updates */
-        private int numUpdates;
 
         @Override
         public String toString() {
@@ -493,8 +501,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         InMemory(DocumentNodeState base, NodeState head) {
             super(base);
-            this.head = head;
-            this.numUpdates = countChanges(base, head);
+            this.head = newModifiedDocumentNodeState(head);
         }
 
         @Override
@@ -507,10 +514,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         void setRoot(NodeState root) {
             if (base.equals(root)) {
                 branchState = new Unmodified(base);
-            } else if (!head.equals(root)) {
-                numUpdates += countChanges(head, root);
-                head = root;
-                if (numUpdates > updateLimit) {
+            } else {
+                int numChanges = countChanges(base, root);
+                head = newModifiedDocumentNodeState(root);
+                if (numChanges > updateLimit) {
                     persist();
                 }
             }
@@ -519,10 +526,16 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         @Override
         void rebase() {
             DocumentNodeState root = store.getRoot();
-            NodeBuilder builder = root.builder();
+            // is a rebase necessary?
+            if (root.getRootRevision().equals(base.getRootRevision())) {
+                // fresh root is still at the same revision as
+                // the base of the branch
+                return;
+            }
+            NodeBuilder builder = new MemoryNodeBuilder(root);
             head.compareAgainstBaseState(base, new ConflictAnnotatingRebaseDiff(builder));
-            head = builder.getNodeState();
             base = root;
+            head = newModifiedDocumentNodeState(builder.getNodeState());
         }
 
         @Override
@@ -536,21 +549,45 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             Lock lock = acquireMergeLock(exclusive);
             try {
                 rebase();
-                NodeState toCommit = hook.processCommit(base, head, info);
+                boolean success = false;
+                NodeState previousHead = head;
                 try {
-                    NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
-                    branchState = new Merged(base);
-                    return newHead;
-                } catch (ConflictException e) {
-                    throw e.asCommitFailedException();
-                } catch (Throwable t) {
-                    throw mergeFailed(t);
+                    NodeState toCommit = hook.processCommit(base, head, info);
+                    try {
+                        NodeState newHead;
+                        if (this != branchState) {
+                            // branch state is not in-memory anymore
+                            Persisted p = branchState.persist();
+                            RevisionVector branchRev = p.getHead().getRootRevision();
+                            newHead = store.getRoot(store.merge(branchRev, info));
+                            store.getStatsCollector().doneMergeBranch(p.numCommits);
+                        } else {
+                            newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                        }
+                        branchState = new Merged(base);
+                        success = true;
+                        return newHead;
+                    } catch (ConflictException e) {
+                        throw e.asCommitFailedException();
+                    } catch (Throwable t) {
+                        throw mergeFailed(t);
+                    }
+                } finally {
+                    if (!success) {
+                        this.head = previousHead;
+                        // make sure branch state is reset
+                        branchState = this;
+                    }
                 }
             } finally {
                 if (lock != null) {
                     lock.unlock();
                 }
             }
+        }
+
+        private ModifiedDocumentNodeState newModifiedDocumentNodeState(NodeState modified) {
+            return new ModifiedDocumentNodeState(store, DocumentNodeStoreBranch.this, base, modified);
         }
     }
 
@@ -580,7 +617,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         Persisted(DocumentNodeState base) {
             super(base);
-            this.head = createBranch(base);
+            this.head = createBranch(base).asBranchRootState(DocumentNodeStoreBranch.this);
+        }
+
+        @Override
+        Persisted persist() {
+            // nothing to do, this branch state is already persisted
+            return this;
         }
 
         /**
@@ -595,7 +638,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         @Override
         @Nonnull
-        NodeState getHead() {
+        DocumentNodeState getHead() {
             return head;
         }
 
@@ -610,7 +653,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         void rebase() {
             DocumentNodeState root = store.getRoot();
             // perform rebase in store
-            head = store.getRoot(store.rebase(head.getRootRevision(), root.getRootRevision()));
+            head = store.getRoot(store.rebase(head.getRootRevision(), root.getRootRevision()))
+                    .asBranchRootState(DocumentNodeStoreBranch.this);
             base = root;
         }
 
@@ -658,7 +702,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         private void persistTransientHead(NodeState newHead)
                 throws DocumentStoreException {
             try {
-                head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY);
+                head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY)
+                        .asBranchRootState(DocumentNodeStoreBranch.this);
             } catch (ConflictException e) {
                 throw DocumentStoreException.convert(e);
             }
@@ -668,9 +713,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
             try {
-                head = store.getRoot(
-                        store.reset(branchHead.getRootRevision(),
-                                ancestor.getRootRevision()));
+                head = store.getRoot(store.reset(branchHead.getRootRevision(),
+                            ancestor.getRootRevision()))
+                        .asBranchRootState(DocumentNodeStoreBranch.this);
             } catch (Exception e) {
                 CommitFailedException ex = new CommitFailedException(
                         OAK, 100, "Branch reset failed", e);

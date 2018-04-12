@@ -101,4 +101,12 @@ public class TestUtils {
     public static void resetRevisionClockToDefault() {
         Revision.resetClockToDefault();
     }
+
+    public static void persistToBranch(NodeBuilder builder) {
+        if (builder instanceof DocumentRootBuilder) {
+            ((DocumentRootBuilder) builder).persist();
+            return;
+        }
+        fail("Not of type DocumentRootBuilder: " + builder.getClass().getName());
+    }
 }
