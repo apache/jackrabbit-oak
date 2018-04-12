@@ -45,6 +45,7 @@
         <configuration>
           <instructions>
             <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
               com.codahale.metrics*;version="[3.1, 4)";resolution:=optional,
               *
             </Import-Package>

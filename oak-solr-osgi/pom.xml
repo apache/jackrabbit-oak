@@ -40,6 +40,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.lucene.*;resolution:=optional,
                             com.googlecode.*;resolution:=optional,
                             com.vividsolutions.jts.*;resolution:=optional,
