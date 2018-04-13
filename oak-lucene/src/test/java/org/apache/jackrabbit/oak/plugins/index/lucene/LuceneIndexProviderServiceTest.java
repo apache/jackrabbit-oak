@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -90,9 +92,12 @@ public class LuceneIndexProviderServiceTest {
 
     private Whiteboard wb;
 
+    private MountInfoProvider mip;
+
     @Before
     public void setUp(){
-        context.registerService(MountInfoProvider.class, Mounts.defaultMountInfoProvider());
+        mip = Mounts.newBuilder().build();
+        context.registerService(MountInfoProvider.class, mip);
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(ScorerProviderFactory.class, ScorerProviderFactory.DEFAULT);
         context.registerService(IndexAugmentorFactory.class, new IndexAugmentorFactory());
@@ -202,6 +207,27 @@ public class LuceneIndexProviderServiceTest {
 
         // activation should work
         MockOsgi.activate(service, context.bundleContext(), config);
+
+        // get lucene index provider
+        LuceneIndexProvider lip = null;
+        for (QueryIndexProvider qip : context.getServices(QueryIndexProvider.class, null)) {
+            if (qip instanceof LuceneIndexProvider) {
+                lip = (LuceneIndexProvider)qip;
+                break;
+            }
+        }
+        assertNotNull(lip);
+        IndexTracker tracker = lip.getTracker();
+
+        // access reader factory with reflection and implicitly assert that it's DefaultIndexReaderFactory
+        Field readerFactorFld = IndexTracker.class.getDeclaredField("readerFactory");
+        readerFactorFld.setAccessible(true);
+        DefaultIndexReaderFactory readerFactory = (DefaultIndexReaderFactory)readerFactorFld.get(tracker);
+
+        Field mipFld = DefaultIndexReaderFactory.class.getDeclaredField("mountInfoProvider");
+        mipFld.setAccessible(true);
+        // OAK-7408: LIPS was using default tracker ctor and hence reader factor used default mounts
+        assertEquals("Reader factory not using configured MountInfoProvider", mip, mipFld.get(readerFactory));
 
         // de-activation should work
         MockOsgi.deactivate(service, context.bundleContext());

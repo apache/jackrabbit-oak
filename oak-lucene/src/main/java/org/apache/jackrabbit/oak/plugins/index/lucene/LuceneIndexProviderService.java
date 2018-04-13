@@ -523,7 +523,7 @@ public class LuceneIndexProviderService {
             }
             tracker = new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, indexCopier), nrtIndexFactory);
         } else {
-            tracker = new IndexTracker();
+            tracker = new IndexTracker(new DefaultIndexReaderFactory(mountInfoProvider, null));
         }
 
         tracker.setAsyncIndexInfoService(asyncIndexInfoService);
