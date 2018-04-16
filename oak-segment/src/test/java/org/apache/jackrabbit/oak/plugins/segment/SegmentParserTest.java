@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Strings.repeat;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
-import static junitx.framework.ComparableAssert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentParser.BlobType.S
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_10;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.TestUtils.newRecordId;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
