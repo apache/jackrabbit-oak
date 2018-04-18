@@ -129,6 +129,7 @@
             <links>
               <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
               <link>http://jackrabbit.apache.org/api/trunk/</link>
+              <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
             </links>
           </configuration>
         </plugin>
