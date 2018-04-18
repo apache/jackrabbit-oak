@@ -342,18 +342,21 @@ If excerpts and highlighting is needed, then queries should contains the "excerp
 
     /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt())
     
-That way, the excerpt and highlighting features of Lucene are used.
+If the excerpt is read using `row.getValue("rep:excerpt(.)")`, 
+then excerpt and highlighting features of Lucene are used.
 That is, if a Lucene index is configured for the query, and excerpts are generated
 (see <a href="lucene.html#Property_Definitions">useInExcerpt</a>).
-On the other hand, If the query doesn't contain the excerpt property, for example as follows:
+
+On the other hand, if the excerpt is requested for properties
+that are not specified in the query, as in `row.getValue("rep:excerpt(@title)")`, 
+or if the query doesn't contain the excerpt property, for example
 
     /jcr:root/content//*[jcr:contains(., 'test')]
 
-and the excerpt is requested after running the query, 
-then the SimpleExcerptProvider utility is used, which generates excerpt from the content, and does highlighting.
-This is not not recommended; specially highlighting is limited 
-(eg. stopwords are ignored, highlighting is case sensitive).
-The same problem occurs if excerpts for properties are requested that are not specified in the query.
+then the SimpleExcerptProvider utility is used, 
+which generates excerpt from the content, and does highlighting.
+Using the SimpleExcerptProvider is not recommended; specially highlighting is limited 
+(eg. the index configuration is ignored, stopwords are ignored, and highlighting is case sensitive).
 
 ### Native Queries
 
