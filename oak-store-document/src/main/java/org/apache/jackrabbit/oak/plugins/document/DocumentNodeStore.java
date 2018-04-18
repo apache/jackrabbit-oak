@@ -1601,10 +1601,6 @@ public final class DocumentNodeStore
 
     @Nonnull
     DocumentNodeStoreBranch createBranch(DocumentNodeState base) {
-        DocumentNodeStoreBranch b = DocumentNodeStoreBranch.getCurrentBranch();
-        if (b != null) {
-            return b;
-        }
         return new DocumentNodeStoreBranch(this, base, mergeLock);
     }
 

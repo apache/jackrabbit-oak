@@ -340,25 +340,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public NodeBuilder builder() {
         if ("/".equals(getPath())) {
             if (getRootRevision().isBranch()) {
-                // check if this node state is head of a branch
-                Branch b = store.getBranches().getBranch(getRootRevision());
-                if (b == null) {
-                    if (store.isDisableBranches()) {
-                        if (DocumentNodeStoreBranch.getCurrentBranch() != null) {
-                            return new DocumentRootBuilder(this, store);
-                        } else {
-                            return new MemoryNodeBuilder(this);
-                        }
-                    } else {
-                        throw new IllegalStateException("No branch for revision: " + getRootRevision());
-                    }
-                }
-                if (b.isHead(getRootRevision().getBranchRevision())
-                        && DocumentNodeStoreBranch.getCurrentBranch() != null) {
-                    return new DocumentRootBuilder(this, store);
-                } else {
-                    return new MemoryNodeBuilder(this);
-                }
+                throw new IllegalStateException("Cannot create builder from branched DocumentNodeState");
             } else {
                 return new DocumentRootBuilder(this, store);
             }

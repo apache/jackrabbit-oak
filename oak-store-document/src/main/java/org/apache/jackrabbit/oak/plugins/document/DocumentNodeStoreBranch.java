@@ -27,8 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.CountingDiff.count
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -37,7 +35,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -63,7 +60,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     + ".perf"));
     private static final int MAX_LOCK_TRY_TIME_MULTIPLIER = Integer.getInteger("oak.maxLockTryTimeMultiplier", 30);
 
-    private static final ConcurrentMap<Thread, DocumentNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
     private static final Random RANDOM = new Random();
     private static final long MIN_BACKOFF = 50;
 
@@ -326,30 +322,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             }
         }
         return store.getRoot(rev);
-    }
-
-    private <T> T withCurrentBranch(Callable<T> callable) throws Exception {
-        Thread t = Thread.currentThread();
-        Object previous = BRANCHES.putIfAbsent(t, this);
-        try {
-            return callable.call();
-        } finally {
-            if (previous == null) {
-                BRANCHES.remove(t, this);
-            }
-        }
-    }
-
-    /**
-     * Returns the branch instance in use by the current thread or
-     * {@code null} if there is none.
-     * <p>
-     * See also {@link #withCurrentBranch(Callable)}.
-     *
-     */
-    @CheckForNull
-    static DocumentNodeStoreBranch getCurrentBranch() {
-        return BRANCHES.get(Thread.currentThread());
     }
 
     private static CommitFailedException mergeFailed(Throwable t) {
@@ -670,18 +642,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 rebase();
                 previousHead = head;
-                DocumentNodeState newRoot = withCurrentBranch(new Callable<DocumentNodeState>() {
-                    @Override
-                    public DocumentNodeState call() throws Exception {
-                        checkForConflicts();
-                        NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
-                        persistTransientHead(toCommit);
-                        return store.getRoot(store.merge(head.getRootRevision(), info));
-                    }
-                });
+                checkForConflicts();
+                NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
+                persistTransientHead(toCommit);
+                DocumentNodeState newRoot = store.getRoot(store.merge(head.getRootRevision(), info));
+                success = true;
                 branchState = new Merged(base);
                 store.getStatsCollector().doneMergeBranch(numCommits);
-                success = true;
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
