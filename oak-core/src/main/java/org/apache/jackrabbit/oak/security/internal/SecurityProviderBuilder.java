@@ -77,15 +77,20 @@ public final class SecurityProviderBuilder {
     private ConfigurationParameters tokenParams = EMPTY;
     private CompositeTokenConfiguration tokenConfiguration;
 
+    private ConfigurationParameters configuration;
+
     @Nonnull
     public static SecurityProviderBuilder newBuilder() {
         return new SecurityProviderBuilder();
     }
 
     private SecurityProviderBuilder() {
+        this.configuration = ConfigurationParameters.EMPTY;
     }
 
     public SecurityProviderBuilder with(@Nonnull ConfigurationParameters configuration) {
+        this.configuration = configuration;
+
         authenticationParams = configuration.getConfigValue(AuthenticationConfiguration.NAME, EMPTY);
         privilegeParams = configuration.getConfigValue(PrivilegeConfiguration.NAME, EMPTY);
 
@@ -181,6 +186,7 @@ public final class SecurityProviderBuilder {
         // authorization
         if (authorizationConfiguration == null) {
             authorizationConfiguration = new CompositeAuthorizationConfiguration();
+            ((CompositeAuthorizationConfiguration) authorizationConfiguration).withCompositionType(configuration.getConfigValue("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
             authorizationConfiguration.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
                     securityProvider, rootProvider, treeProvider));
         }
