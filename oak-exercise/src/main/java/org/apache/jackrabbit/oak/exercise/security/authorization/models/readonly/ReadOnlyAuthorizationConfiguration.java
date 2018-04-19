@@ -31,6 +31,9 @@ import javax.jcr.security.NamedAccessControlPolicy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -45,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -64,7 +68,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.osgi.service.component.annotations.Component;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
@@ -127,7 +130,10 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <h2>Configuration</h2>
  *
- * This model doesn't come with any configuration options.
+ * This model comes with a single mandatory configurable property:
+ *
+ * - configurationRanking : {@link  CompositeConfiguration#PARAM_RANKING}, no default value.
+ *
  *
  * <h2>Installation Instructions</h2>
  *
@@ -135,6 +141,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <ul>
  *     <li>Upload the oak-exercise bundle</li>
+ *     <li>Edit configuration of 'ReadOnlyAuthorizationConfiguration' specifying the mandatory ranking property</li>
  *     <li>Edit configuration of {@link org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
  *     <ul>
  *         <li>add {@code org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration}
@@ -146,10 +153,17 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * </ul>
  *
  */
-@Component(
-        service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
-        immediate = true,
-        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration")
+@org.apache.felix.scr.annotations.Component(metatype = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
+@Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
+@Properties({
+        @Property(name = CompositeConfiguration.PARAM_RANKING,
+                label = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
+                intValue = 300),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration")
+})
 public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration {
 
     private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;

@@ -68,6 +68,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
  *   Questions:
  *   > Would it be an option to use "OR" as the composition type with the setup you chose?
  *   > What would be the result if this was a valid option?
+ *   > If it was a valid option, imaging a setup scenario where it would not work.
  *   > If it wasn't an option, explain why. Think about a scenario where it was valid.
  *
  * </pre>
