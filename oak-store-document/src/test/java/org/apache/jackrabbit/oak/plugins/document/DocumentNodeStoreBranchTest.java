@@ -66,4 +66,41 @@ public class DocumentNodeStoreBranchTest {
             // expected
         }
     }
+
+    /**
+     * Similar test as {@link #branchedBranch()} but without persistent branch.
+     */
+    @Test
+    public void builderFromStateFromBuilder() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder b1 = ns.getRoot().builder();
+        b1.child("a");
+
+        NodeBuilder b2 = b1.getNodeState().builder();
+        b1.child("b");
+
+        b2.child("c");
+        assertTrue(b2.hasChildNode("a"));
+        assertFalse(b2.hasChildNode("b"));
+        assertTrue(b2.hasChildNode("c"));
+
+        // b1 must still see 'a' and 'b', but not 'c'
+        assertTrue(b1.hasChildNode("a"));
+        assertTrue(b1.hasChildNode("b"));
+        assertFalse(b1.hasChildNode("c"));
+
+        merge(ns, b1);
+
+        assertTrue(ns.getRoot().getChildNode("a").exists());
+        assertTrue(ns.getRoot().getChildNode("b").exists());
+        assertFalse(ns.getRoot().getChildNode("c").exists());
+
+        // b2 must not be able to merge
+        try {
+            merge(ns, b2);
+            fail("Merge must fail with IllegalStateException");
+        } catch (IllegalStateException e) {
+            // expected
+        }
+    }
 }
