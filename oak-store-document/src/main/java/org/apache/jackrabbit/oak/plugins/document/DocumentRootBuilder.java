@@ -71,11 +71,6 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private int updates;
 
     DocumentRootBuilder(@Nonnull DocumentNodeState base,
-                        @Nonnull DocumentNodeStore store) {
-        this(base, store, store.createBranch(base));
-    }
-
-    DocumentRootBuilder(@Nonnull DocumentNodeState base,
                         @Nonnull DocumentNodeStore store,
                         @Nonnull DocumentNodeStoreBranch branch) {
         super(checkNotNull(base));

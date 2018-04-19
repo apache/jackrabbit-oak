@@ -353,7 +353,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             if (getRootRevision().isBranch()) {
                 throw new IllegalStateException("Cannot create builder from branched DocumentNodeState");
             } else {
-                return new DocumentRootBuilder(this, store);
+                return new DocumentRootBuilder(this, store, store.createBranch(this));
             }
         } else {
             return new MemoryNodeBuilder(this);
