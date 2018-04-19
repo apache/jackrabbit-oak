@@ -14,25 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
+package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
+
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * <pre>
- * Module: Advanced Authorization Topics
- * =============================================================================
- *
- * Title: Writing Custom Authorization : Access Control Management
- * -----------------------------------------------------------------------------
- *
- * Goal:
- * TODO
- *
- * Exercises:
- * TODO
- *
- * </pre>
+ * Utils... TODO
  */
-public class L5_CustomAccessControlManagementTest {
+final class Utils {
 
+    private Utils() {}
+
+    static boolean isSupportedPath(@Nonnull String configuredPath, @Nonnull String path) {
+        return Text.isDescendantOrEqual(configuredPath, path);
+    }
 
 }

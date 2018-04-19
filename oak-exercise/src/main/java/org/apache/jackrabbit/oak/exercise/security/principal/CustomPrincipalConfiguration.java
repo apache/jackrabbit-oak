@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -89,5 +90,11 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     private void deactivate(Map<String, Object> properties) {
         knownPrincipals = new String[0];
         log.info("CustomPrincipalConfiguration.deactivate");
+    }
+
+    @Override
+    public void setParameters(@Nonnull ConfigurationParameters config) {
+        super.setParameters(config);
+        knownPrincipals = config.getConfigValue("knownPrincipals", new String[0]);
     }
 }
