@@ -69,13 +69,13 @@ public final class SecurityProviderBuilder {
     private UserConfiguration userConfiguration;
 
     private ConfigurationParameters authorizationParams = EMPTY;
-    private CompositeAuthorizationConfiguration authorizationConfiguration;
+    private AuthorizationConfiguration authorizationConfiguration;
 
     private ConfigurationParameters principalParams = EMPTY;
-    private CompositePrincipalConfiguration principalConfiguration;
+    private PrincipalConfiguration principalConfiguration;
 
     private ConfigurationParameters tokenParams = EMPTY;
-    private CompositeTokenConfiguration tokenConfiguration;
+    private TokenConfiguration tokenConfiguration;
 
     private ConfigurationParameters configuration;
 
@@ -125,11 +125,9 @@ public final class SecurityProviderBuilder {
             @Nonnull ConfigurationParameters authenticationParams,
             @Nonnull PrivilegeConfiguration privilegeConfiguration, @Nonnull ConfigurationParameters privilegeParams,
             @Nonnull UserConfiguration userConfiguration, @Nonnull ConfigurationParameters userParams,
-            @Nonnull CompositeAuthorizationConfiguration authorizationConfiguration,
-            @Nonnull ConfigurationParameters authorizationParams,
-            @Nonnull CompositePrincipalConfiguration principalConfiguration,
-            @Nonnull ConfigurationParameters principalParams, @Nonnull CompositeTokenConfiguration tokenConfiguration,
-            @Nonnull ConfigurationParameters tokenParams) {
+            @Nonnull AuthorizationConfiguration authorizationConfiguration, @Nonnull ConfigurationParameters authorizationParams,
+            @Nonnull PrincipalConfiguration principalConfiguration, @Nonnull ConfigurationParameters principalParams,
+            @Nonnull TokenConfiguration tokenConfiguration, @Nonnull ConfigurationParameters tokenParams) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.authenticationParams = authenticationParams;
@@ -185,31 +183,46 @@ public final class SecurityProviderBuilder {
 
         // authorization
         if (authorizationConfiguration == null) {
-            authorizationConfiguration = new CompositeAuthorizationConfiguration();
-            ((CompositeAuthorizationConfiguration) authorizationConfiguration).withCompositionType(configuration.getConfigValue("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
-            authorizationConfiguration.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
+            CompositeAuthorizationConfiguration ac = new CompositeAuthorizationConfiguration();
+            ac.withCompositionType(configuration.getConfigValue("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
+            ac.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
                     securityProvider, rootProvider, treeProvider));
+            authorizationConfiguration = ac;
         }
-        initializeConfigurations(authorizationConfiguration, securityProvider, authorizationParams, rootProvider,
-                treeProvider);
+
+        if (authorizationConfiguration instanceof CompositeAuthorizationConfiguration) {
+            initializeConfigurations((CompositeAuthorizationConfiguration) authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+        }
         securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
 
         // principal
         if (principalConfiguration == null) {
-            principalConfiguration = new CompositePrincipalConfiguration();
-            principalConfiguration.setDefaultConfig(initializeConfiguration(new PrincipalConfigurationImpl(),
-                    securityProvider, rootProvider, treeProvider));
+            CompositePrincipalConfiguration pc = new CompositePrincipalConfiguration();
+            pc.setDefaultConfig(initializeConfiguration(new PrincipalConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            principalConfiguration = pc;
         }
-        initializeConfigurations(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+
+        if (principalConfiguration instanceof CompositePrincipalConfiguration) {
+            initializeConfigurations((CompositePrincipalConfiguration) principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+        }
         securityProvider.setPrincipalConfiguration(principalConfiguration);
 
         // token
         if (tokenConfiguration == null) {
-            tokenConfiguration = new CompositeTokenConfiguration();
-            tokenConfiguration.setDefaultConfig(initializeConfiguration(new TokenConfigurationImpl(), securityProvider,
-                    rootProvider, treeProvider));
+            CompositeTokenConfiguration tc = new CompositeTokenConfiguration();
+            tc.setDefaultConfig(initializeConfiguration(new TokenConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            tokenConfiguration = tc;
         }
-        initializeConfigurations(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+
+        if (tokenConfiguration instanceof CompositeTokenConfiguration) {
+            initializeConfigurations((CompositeTokenConfiguration) tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+        }
         securityProvider.setTokenConfiguration(tokenConfiguration);
 
         // whiteboard
