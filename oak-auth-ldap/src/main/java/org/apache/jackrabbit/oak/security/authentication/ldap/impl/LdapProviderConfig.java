@@ -406,6 +406,21 @@ public class LdapProviderConfig {
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
 
     /**
+     * @see #getExtIdAttribute()
+     */
+    public static final String PARAM_EXT_ID_ATTRIBUTE_DEFAULT = "";
+
+    /**
+     * @see #getExtIdAttribute()
+     */
+    @Property(
+            label = "External identifier attribute",
+            description = "The attribute that is used to create external identifiers. Leave empty to use the DN.",
+            value = PARAM_EXT_ID_ATTRIBUTE_DEFAULT
+    )
+    public static final String PARAM_EXT_ID_ATTRIBUTE = "extIdAttribute";
+
+    /**
      * @see Identity#getCustomAttributes()
      */
     public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
@@ -689,7 +704,8 @@ public class LdapProviderConfig {
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT))
-                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT));
+                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT))
+                .setExtIdAttribute(params.getConfigValue(PARAM_EXT_ID_ATTRIBUTE, PARAM_EXT_ID_ATTRIBUTE_DEFAULT));
 
         ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
         if (ms != null) {
@@ -740,6 +756,8 @@ public class LdapProviderConfig {
     private long searchTimeout = ConfigurationParameters.Milliseconds.of(PARAM_SEARCH_TIMEOUT_DEFAULT).value;
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
+
+    private String extIdAttribute = PARAM_EXT_ID_ATTRIBUTE_DEFAULT;
 
     private String memberOfFilterTemplate;
 
@@ -988,6 +1006,28 @@ public class LdapProviderConfig {
     }
 
     /**
+     * Configures the attribute that is used to create external identifiers.
+     * Leave empty to use the DN, which is default.
+     *
+     * @return the attribute used to create external identifiers
+     */
+    @Nonnull
+    public String getExtIdAttribute() {
+        return extIdAttribute;
+    }
+
+    /**
+     * Sets the attribute that is used to create external identifiers.
+     * @param extIdAttribute the attribute name
+     * @return {@code this}
+     */
+    @Nonnull
+    public LdapProviderConfig setExtIdAttribute(String extIdAttribute) {
+        this.extIdAttribute = extIdAttribute;
+        return this;
+    }
+
+    /**
      * Optionally configures an array of attribute names that will be retrieved when looking up LDAP entries.
      * Defaults to the empty array indicating that all attributes will be retrieved.
      *
@@ -1158,6 +1198,7 @@ public class LdapProviderConfig {
         sb.append(", bindPassword='***'");
         sb.append(", searchTimeout=").append(searchTimeout);
         sb.append(", groupMemberAttribute='").append(groupMemberAttribute).append('\'');
+        sb.append(", extIdAttribute='").append(extIdAttribute).append('\'');
         sb.append(", memberOfFilterTemplate='").append(memberOfFilterTemplate).append('\'');
         sb.append(", adminPoolConfig=").append(adminPoolConfig);
         sb.append(", userPoolConfig=").append(userPoolConfig);

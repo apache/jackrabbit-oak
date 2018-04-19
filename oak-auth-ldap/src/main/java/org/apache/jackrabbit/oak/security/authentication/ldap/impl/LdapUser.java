@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 
 public class LdapUser extends LdapIdentity implements ExternalUser {
 
-    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
-        super(provider, ref, id, path);
+    public LdapUser(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
+        super(provider, ref, id, path, entry);
     }
 
 }
