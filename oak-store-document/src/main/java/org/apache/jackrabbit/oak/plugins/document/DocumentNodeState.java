@@ -170,8 +170,19 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new DocumentNodeState(store, path, lastRevision, rootRevision, true, bundlingContext);
     }
 
+    /**
+     * Returns this state as a branch root state connected to the given
+     * {@code branch}.
+     *
+     * @param branch the branch instance.
+     * @return a {@link DocumentBranchRootNodeState} connected to the given
+     *      {@code branch}.
+     * @throws IllegalStateException if this is not a root node state or does
+     *      not represent a branch state.
+     */
     @Nonnull
-    public DocumentNodeState asBranchRootState(@Nonnull  DocumentNodeStoreBranch branch) {
+    DocumentNodeState asBranchRootState(@Nonnull DocumentNodeStoreBranch branch) {
+        checkState(PathUtils.denotesRoot(path));
         checkState(getRootRevision().isBranch());
         return new DocumentBranchRootNodeState(store, branch, path, rootRevision, lastRevision, bundlingContext);
     }

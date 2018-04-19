@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -86,6 +87,7 @@ public class TestUtils {
         return nb;
     }
 
+    @Nonnull
     public static DocumentNodeState asDocumentState(NodeState state){
         if (state instanceof DocumentNodeState){
             return (DocumentNodeState) state;

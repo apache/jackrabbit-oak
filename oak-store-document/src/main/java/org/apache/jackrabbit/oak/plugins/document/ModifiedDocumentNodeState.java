@@ -29,10 +29,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
- * <code>ModifiedDocumentNodeState</code>...
+ * A node state based on a {@link DocumentNodeState} with some modifications
+ * applied on top of it represented by {@link #modified}. This node state is
+ * a thin wrapper around {@link #modified} and creates a new {@link NodeBuilder}
+ * connected to the {@link #branch} on {@link #builder()}.
  */
 class ModifiedDocumentNodeState extends AbstractNodeState {
 
@@ -44,14 +48,14 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
 
     private final NodeState modified;
 
-    ModifiedDocumentNodeState(DocumentNodeStore store,
-                              DocumentNodeStoreBranch branch,
-                              DocumentNodeState base,
-                              NodeState modified) {
-        this.store = store;
-        this.branch = branch;
-        this.base = base;
-        this.modified = modified;
+    ModifiedDocumentNodeState(@Nonnull DocumentNodeStore store,
+                              @Nonnull DocumentNodeStoreBranch branch,
+                              @Nonnull DocumentNodeState base,
+                              @Nonnull NodeState modified) {
+        this.store = checkNotNull(store);
+        this.branch = checkNotNull(branch);
+        this.base = checkNotNull(base);
+        this.modified = checkNotNull(modified);
     }
 
     @Override
@@ -109,7 +113,6 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
             }
             // revision does not match: might still be equals
         } else if (that instanceof ModifiedNodeState) {
-            // TODO: remove this case. same as fallback.
             ModifiedNodeState modified = (ModifiedNodeState) that;
             if (modified.getBaseState() == base) {
                 // base states are the same, compare the modified
