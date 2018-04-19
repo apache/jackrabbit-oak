@@ -24,6 +24,57 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+#
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt()
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt(.)
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt(@jcr:title)
+select [jcr:path], [jcr:score], [rep:excerpt(jcr:title)]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/rep:excerpt(par1/@title)
+select [jcr:path], [jcr:score], [rep:excerpt(par1/title)]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/(rep:excerpt())
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/(rep:excerpt(.))
+select [jcr:path], [jcr:score], [rep:excerpt]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
+xpath2sql /jcr:root//element(*, nt:base)[jcr:contains(., 'hello')]/(rep:excerpt(jcr:content/@jcr:description) | | rep:excerpt(@jcr:title) | rep:excerpt(.))
+select [jcr:path], [jcr:score], [rep:excerpt(jcr:content/jcr:description)], [rep:excerpt(jcr:title)], [rep:excerpt]
+  from [nt:base] as a
+  where contains(*, 'hello')
+  and isdescendantnode(a, '/')
+  /* xpath ... */
+
 # OAK-7131
 
 xpath2sql /jcr:root/content[@a=1 or @b=2] order by @foo option(traversal ok)
