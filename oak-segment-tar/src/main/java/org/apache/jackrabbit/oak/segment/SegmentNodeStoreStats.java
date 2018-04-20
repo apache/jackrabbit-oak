@@ -44,8 +44,9 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, SegmentNodeStoreMonitor {
-    private static final boolean DEFAULT_COLLECT_STACK_TRACES = true;
-    private static final int DEFAULT_OTHER_WRITERS_LIMIT = 20;
+    private static final boolean COLLECT_STACK_TRACES = Boolean
+            .parseBoolean(System.getProperty("oak.commitsTracker.collectStackTraces", "true"));
+    private static final int OTHER_WRITERS_LIMIT = Integer.getInteger("oak.commitsTracker.otherWritersLimit", 20);
 
     public static final String COMMITS_COUNT = "COMMITS_COUNT";
     public static final String COMMIT_QUEUE_SIZE = "COMMIT_QUEUE_SIZE";
@@ -59,8 +60,8 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private final TimerStats queueingTime;
     
     private volatile CommitsTracker commitsTracker;
-    private boolean collectStackTraces = DEFAULT_COLLECT_STACK_TRACES;
-    private int otherWritersLimit = DEFAULT_OTHER_WRITERS_LIMIT;
+    private boolean collectStackTraces = COLLECT_STACK_TRACES;
+    private int otherWritersLimit = OTHER_WRITERS_LIMIT;
     private String[] writerGroups;
     
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
