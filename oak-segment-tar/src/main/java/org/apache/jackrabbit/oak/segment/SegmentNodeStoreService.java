@@ -350,7 +350,7 @@ public class SegmentNodeStoreService {
 
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
-
+    
     private Closer closer;
 
     /**
@@ -713,7 +713,7 @@ public class SegmentNodeStoreService {
         ));
 
         // Expose statistics about the SegmentNodeStore
-
+        
         closeables.add(registrations.registerMBean(
                 SegmentNodeStoreStatsMBean.class,
                 segmentNodeStore.getStats(),
