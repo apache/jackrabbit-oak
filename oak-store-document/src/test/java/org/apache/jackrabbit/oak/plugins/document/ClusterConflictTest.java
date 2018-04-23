@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -100,7 +101,7 @@ public class ClusterConflictTest {
         final NodeBuilder b2 = ns2.getRoot().builder();
         b2.child("bar");
         if (withBranch) {
-            purge(b2);
+            persistToBranch(b2);
         }
         b2.child("baz");
 
@@ -245,9 +246,5 @@ public class ClusterConflictTest {
     private static NodeState merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
         return store.merge(root, EmptyHook.INSTANCE, EMPTY);
-    }
-
-    private static void purge(NodeBuilder builder) {
-        ((DocumentRootBuilder) builder).purge();
     }
 }

@@ -39,7 +39,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package></Export-Package>
+                        <Import-Package>
+                          <!-- OAK-7182 -->${guava.osgi.import},
+                          *
+                        </Import-Package>
+                        <Export-Package />
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core

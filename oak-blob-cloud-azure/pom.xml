@@ -37,6 +37,10 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
+                        <Import-Package>
+                          <!-- OAK-7182 -->${guava.osgi.import},
+                          *
+                        </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
                         </Export-Package>

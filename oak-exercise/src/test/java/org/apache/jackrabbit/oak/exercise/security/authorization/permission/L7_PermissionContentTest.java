@@ -16,8 +16,16 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
+import javax.jcr.GuestCredentials;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * <pre>
@@ -62,20 +70,41 @@ import org.junit.Test;
  *   Question: Can you explain why the permission store is read-only?
  *   Question: Can you identify the class(es) responsible for enforcing the read-only nature?
  *
- * - {@link #TODO}
- *
  * </pre>
  */
 public class L7_PermissionContentTest extends AbstractSecurityTest {
 
-    @Test
-    public void testReadOnly() {
-        // TODO
-    }
+    String permissionStorePath = null; // EXERCISE: specify the path to the permission store root node
 
     @Test
     public void testAdministrativeAccessOnly() {
-        // TODO
+        Root root = adminSession.getLatestRoot();
+        Tree permissionStoreTree = root.getTree(permissionStorePath);
+        assertTrue(permissionStoreTree.exists());
+
+        // EXERCISE : explain the content structure of the permission store
+        Tree wspTree = permissionStoreTree.getChild(adminSession.getWorkspaceName());
+        for (Tree t : wspTree.getChildren()) {
+            System.out.println(t.getName());
+        }
+
+        // EXERCISE : pick one child tree above and inspect the subtree
+        //            - what does the name of the child stand for?
+        //            - explain the structure
+        String name = null; // EXERCISE
+        Tree child = wspTree.getChild(name);
+
+        // EXERCISE: walk through the tree structure and look at the properties
     }
 
+    @Test
+    public void testReadOnly() throws Exception {
+        ContentSession guestSession = login(new GuestCredentials());
+
+        Root root = guestSession.getLatestRoot();
+        Tree permissionStoreTree = root.getTree(permissionStorePath);
+
+        // EXERCISE: explain the fact that the tree does not exist
+        assertFalse(permissionStoreTree.exists());
+    }
 }

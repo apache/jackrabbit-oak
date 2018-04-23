@@ -40,6 +40,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.lucene.*;resolution:=optional,
                             com.googlecode.*;resolution:=optional,
                             com.vividsolutions.jts.*;resolution:=optional,
@@ -251,13 +252,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.9.4</version>
+            <version>2.9.5</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-smile</artifactId>
-            <version>2.9.4</version>
+            <version>2.9.5</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

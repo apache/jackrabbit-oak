@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the {@code PrincipalConfiguration} interface that provides
- * principal management for {@link Group principals} associated with
+ * principal management for {@code Group principals} associated with
  * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity external identities}
  * managed outside of the scope of the repository by an
  * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider}.

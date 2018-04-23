@@ -53,7 +53,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentNodeStoreBuilder.class);
 
     private String mongoUri;
-    private boolean socketKeepAlive;
+    private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
 
@@ -149,15 +149,22 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Enables the socket keep-alive option for MongoDB. The default is
-     * disabled.
+     * Enables or disables the socket keep-alive option for MongoDB. The default
+     * is enabled.
      *
-     * @param enable whether to enable it.
+     * @param enable whether to enable or disable it.
      * @return this
      */
     public T setSocketKeepAlive(boolean enable) {
         this.socketKeepAlive = enable;
         return thisBuilder();
+    }
+
+    /**
+     * @return whether socket keep-alive is enabled.
+     */
+    public boolean isSocketKeepAlive() {
+        return socketKeepAlive;
     }
 
     public T setMaxReplicationLag(long duration, TimeUnit unit){

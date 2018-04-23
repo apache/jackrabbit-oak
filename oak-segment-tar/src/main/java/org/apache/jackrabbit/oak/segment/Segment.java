@@ -381,7 +381,7 @@ public class Segment {
      * @return the segment meta data
      */
     @CheckForNull
-    String getSegmentInfo() {
+    public String getSegmentInfo() {
         if (info == null && id.isDataSegmentId()) {
             info = readString(recordNumbers.iterator().next().getRecordNumber());
         }
@@ -563,9 +563,8 @@ public class Segment {
                 }
                 for (Entry entry : recordNumbers) {
                     int offset = entry.getOffset();
-                    int address = data.size() - (MAX_SEGMENT_SIZE - offset);
                     writer.format("%10s record %08x: %08x @ %08x%n",
-                                  entry.getType(), entry.getRecordNumber(), offset, address);
+                                  entry.getType(), entry.getRecordNumber(), offset, getAddress(offset));
                 }
             }
             writer.println("--------------------------------------------------------------------------");
@@ -581,6 +580,15 @@ public class Segment {
 
     public void writeTo(OutputStream stream) throws IOException {
         data.binDump(stream);
+    }
+
+    /**
+     * Convert an offset into an address.
+     * @param offset
+     * @return  the address corresponding the {@code offset}
+     */
+    public int getAddress(int offset) {
+        return data.size() - (MAX_SEGMENT_SIZE - offset);
     }
 
     /**

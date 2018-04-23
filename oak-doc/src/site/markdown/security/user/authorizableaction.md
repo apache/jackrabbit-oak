@@ -183,7 +183,7 @@ that will later be used to store various target-specific profile information:
     Map<String, Object> userParams = new HashMap<String, Object>();
     userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, new MyAuthorizableActionProvider());
     ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 

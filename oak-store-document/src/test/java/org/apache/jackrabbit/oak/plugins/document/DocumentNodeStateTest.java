@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
 import static org.junit.Assert.assertEquals;
 
 public class DocumentNodeStateTest {
@@ -48,6 +49,34 @@ public class DocumentNodeStateTest {
 
         NodeState ns = store.getRoot().getChildNode("a");
         assertEquals(2, ns.getPropertyCount());
+    }
 
+    @Test
+    public void asBranchRootState() {
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
+        DocumentNodeStoreBranch branch = store.createBranch(store.getRoot());
+        NodeBuilder builder = branch.getBase().builder();
+        builder.child("a");
+        branch.setRoot(builder.getNodeState());
+        branch.persist();
+        asDocumentState(branch.getHead()).asBranchRootState(branch);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void asBranchRootStateNonBranch() {
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
+        DocumentNodeStoreBranch branch = store.createBranch(store.getRoot());
+        store.getRoot().asBranchRootState(branch);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void asBranchRootStateNonRootState() throws Exception {
+        DocumentNodeStore store = builderProvider.newBuilder().getNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("a");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        DocumentNodeStoreBranch branch = store.createBranch(store.getRoot());
+        asDocumentState(store.getRoot().getChildNode("a")).asBranchRootState(branch);
     }
 }

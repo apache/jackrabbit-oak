@@ -21,7 +21,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -47,31 +46,23 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
 
     private final IOMonitor ioMonitor;
 
-    private final FileStoreMonitor monitor;
-
     private final long length;
 
     private final Map<UUID, AzureSegmentArchiveEntry> index = new LinkedHashMap<>();
 
     private Boolean hasGraph;
 
-    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor) throws IOException {
+    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
         this.archiveDirectory = archiveDirectory;
         this.ioMonitor = ioMonitor;
-        this.monitor = monitor;
         long length = 0;
-        try {
-            for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory).collect(Collectors.toList())) {
-                blob.downloadAttributes();
-                Map<String, String> metadata = blob.getMetadata();
-                if (AzureBlobMetadata.isSegment(metadata)) {
-                    AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
-                    index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
-                }
-                length += blob.getProperties().getLength();
+        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory).collect(Collectors.toList())) {
+            Map<String, String> metadata = blob.getMetadata();
+            if (AzureBlobMetadata.isSegment(metadata)) {
+                AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
+                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
             }
-        } catch (StorageException e) {
-            throw new IOException(e);
+            length += blob.getProperties().getLength();
         }
         this.length = length;
     }
@@ -131,7 +122,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         // do nothing
     }
 

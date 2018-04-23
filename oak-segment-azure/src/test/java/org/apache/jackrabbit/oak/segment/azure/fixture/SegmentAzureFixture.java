@@ -37,6 +37,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class SegmentAzureFixture extends NodeStoreFixture {
 
@@ -57,20 +58,13 @@ public class SegmentAzureFixture extends NodeStoreFixture {
         try {
             CloudStorageAccount cloud = CloudStorageAccount.parse(AZURE_CONNECTION_STRING);
 
-            int i = 1;
             while (true) {
-                String containerName;
-                if (i == 1) {
-                    containerName = AZURE_CONTAINER;
-                } else {
-                    containerName = AZURE_CONTAINER + "_" + i;
-                }
+                String containerName = AZURE_CONTAINER + "-" + UUID.randomUUID().toString();
                 container = cloud.createCloudBlobClient().getContainerReference(containerName);
                 if (!container.exists()) {
                     container.create();
                     break;
                 }
-                i++;
             }
             CloudBlobDirectory directory = container.getDirectoryReference(AZURE_ROOT_PATH);
             persistence = new AzurePersistence(directory);

@@ -16,7 +16,7 @@ Benchmark mode
 The benchmark mode is used for executing various micro-benchmarks. It can
 be invoked like this:
 
-    $ java -jar oak-run-*.jar benchmark [options] [testcases] [fixtures]
+    $ java -jar oak-benchmarks-*.jar benchmark [options] [testcases] [fixtures]
 
 The following benchmark options (with default values) are currently supported:
 
@@ -216,7 +216,7 @@ Scalability mode
 The scalability mode is used for executing various scalability suites to test the 
 performance of various associated tests. It can be invoked like this:
 
-    $ java -jar oak-run-*.jar scalability [options] [suites] [fixtures]
+    $ java -jar oak-benchmarks-*.jar scalability [options] [suites] [fixtures]
 
 The following scalability options (with default values) are currently supported:
 

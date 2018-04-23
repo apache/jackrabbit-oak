@@ -53,6 +53,7 @@
                             concurrentlinkedhashmap-lru
                         </Embed-Dependency>
                         <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
                             com.codahale.metrics*;version="[3.1,4)",
                             com.google.protobuf;version="[2.6,3)";resolution:=optional,
                             com.google.protobuf.nano;resolution:=optional,

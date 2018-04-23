@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import javax.jcr.GuestCredentials;
 
+import org.apache.jackrabbit.oak.security.authentication.ldap.LdapProviderTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -70,13 +71,13 @@ public class LdapIdentityProviderOsgiTest {
     @Test
     public void testGetDeclaredGroupRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredGroupRefs(ref).isEmpty());
+        assertTrue(provider.getDeclaredGroupRefs(ref, LdapProviderTest.TEST_USER1_DN).isEmpty());
     }
 
     @Test
     public void testGetDeclaredMemberRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredMemberRefs(ref).isEmpty());
+        assertTrue(provider.getDeclaredMemberRefs(ref, LdapProviderTest.TEST_GROUP1_DN).isEmpty());
     }
 
     @Test(expected = ExternalIdentityException.class)

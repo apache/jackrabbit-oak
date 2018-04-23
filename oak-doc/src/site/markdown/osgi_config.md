@@ -244,7 +244,7 @@ db
 : Name of the database in Mongo
 
 socketKeepAlive
-: Default - false
+: Default - true (was 'false' before 1.10)
 : Enables socket keep-alive for MongoDB connections
 : Since 1.8.0, 1.6.2, 1.4.16
 

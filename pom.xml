@@ -55,6 +55,7 @@
 
     <module>oak-upgrade</module>
     <module>oak-http</module>
+    <module>oak-search</module>
     <module>oak-lucene</module>
     <module>oak-solr-core</module>
     <module>oak-solr-osgi</module>
@@ -248,10 +249,12 @@ Apache Jackrabbit Oak ${project.version}. The release is available for download 
 
      http://jackrabbit.apache.org/downloads.html
 
-See the full release notes below for details about this release:&#10;&#10;
+See the full release notes below for details about this release:
+
+
                     </echo>
                     <concat destfile="${basedir}/target/announcement.txt" append="true">
-                      <filelist files="RELEASE-NOTES.txt"/>
+                      <filelist files="RELEASE-NOTES.txt" />
                     </concat>
                     <echo />
                     <echo>

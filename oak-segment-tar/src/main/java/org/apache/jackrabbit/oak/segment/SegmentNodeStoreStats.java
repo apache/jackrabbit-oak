@@ -44,8 +44,9 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, SegmentNodeStoreMonitor {
-    private static final boolean DEFAULT_COLLECT_STACK_TRACES = true;
-    private static final int DEFAULT_COMMITS_COUNT_MAP_SIZE = 20;
+    private static final boolean COLLECT_STACK_TRACES = Boolean
+            .parseBoolean(System.getProperty("oak.commitsTracker.collectStackTraces", "true"));
+    private static final int OTHER_WRITERS_LIMIT = Integer.getInteger("oak.commitsTracker.otherWritersLimit", 20);
 
     public static final String COMMITS_COUNT = "COMMITS_COUNT";
     public static final String COMMIT_QUEUE_SIZE = "COMMIT_QUEUE_SIZE";
@@ -59,13 +60,14 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private final TimerStats queueingTime;
     
     private volatile CommitsTracker commitsTracker;
-    private boolean collectStackTraces = DEFAULT_COLLECT_STACK_TRACES;
-    private int commitsCountMapMaxSize = DEFAULT_COMMITS_COUNT_MAP_SIZE;
+    private boolean collectStackTraces = COLLECT_STACK_TRACES;
+    private int otherWritersLimit = OTHER_WRITERS_LIMIT;
+    private String[] writerGroups;
     
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         
-        this.commitsTracker = new CommitsTracker(commitsCountMapMaxSize, collectStackTraces);
+        this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
         this.commitTime = statisticsProvider.getTimer(COMMIT_TIME, StatsOptions.DEFAULT);
@@ -117,24 +119,35 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     }
 
     @Override
-    public TabularData getCommitsCountPerWriter() throws OpenDataException {
-        CompositeType commitsPerWriterRowType = new CompositeType("commitsPerWriter", "commitsPerWriter",
-                new String[] { "count", "writerName" }, new String[] { "count", "writerName" },
+    public TabularData getCommitsCountPerWriterGroupLastMinute() throws OpenDataException {
+        return createTabularDataFromCountMap(commitsTracker.getCommitsCountPerGroupLastMinute(), "commitsPerWriterGroup",
+                "writerGroup");
+    }
+    
+    @Override
+    public TabularData getCommitsCountForOtherWriters() throws OpenDataException {
+        return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthers(), "commitsPerWriter",
+                "writerName");
+    }
+    
+    private TabularData createTabularDataFromCountMap(Map<String, Long> commitsCountMap, String typeName,
+            String writerDescription) throws OpenDataException {
+        CompositeType commitsPerWriterRowType = new CompositeType(typeName, typeName,
+                new String[] { "count", writerDescription }, new String[] { "count", writerDescription },
                 new OpenType[] { SimpleType.LONG, SimpleType.STRING });
 
-        TabularDataSupport tabularData = new TabularDataSupport(new TabularType("commitsPerWriter",
-                "Most active writers", commitsPerWriterRowType, new String[] { "writerName" }));
+        TabularDataSupport tabularData = new TabularDataSupport(new TabularType(typeName, "Most active writers",
+                commitsPerWriterRowType, new String[] { writerDescription }));
 
-        Map<String, Long> commitsCountMap = commitsTracker.getCommitsCountMap();
         if (commitsCountMap.isEmpty()) {
             commitsCountMap.put("N/A", 0L);
         }
-        
+
         commitsCountMap.entrySet().stream()
                 .sorted(Comparator.<Entry<String, Long>> comparingLong(Entry::getValue).reversed()).map(e -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("count", e.getValue());
-                    m.put("writerName", e.getKey());
+                    m.put(writerDescription, e.getKey());
                     return m;
                 }).map(d -> mapToCompositeData(commitsPerWriterRowType, d)).forEach(tabularData::put);
 
@@ -168,7 +181,8 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setCollectStackTraces(boolean flag) {
         this.collectStackTraces = flag;
-        commitsTracker.setCollectStackTraces(flag);
+        commitsTracker.close();
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
     }
     
     @Override
@@ -176,13 +190,28 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         return collectStackTraces;
     }
     
-    public int getCommitsCountMapMaxSize() {
-        return commitsCountMapMaxSize;
+    @Override
+    public int getNumberOfOtherWritersToDetail() {
+        return otherWritersLimit;
     }
 
-    public void setCommitsCountMapMaxSize(int commitsCountMapMaxSize) {
-        this.commitsCountMapMaxSize = commitsCountMapMaxSize;
-        commitsTracker = new CommitsTracker(commitsCountMapMaxSize, collectStackTraces);
+    @Override
+    public void setNumberOfOtherWritersToDetail(int otherWritersLimit) {
+        this.otherWritersLimit = otherWritersLimit;
+        commitsTracker.close();
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+    }
+    
+    @Override
+    public String[] getWriterGroupsForLastMinuteCounts() {
+        return writerGroups;
+    }
+
+    @Override
+    public void setWriterGroupsForLastMinuteCounts(String[] writerGroups) {
+        this.writerGroups = writerGroups;
+        commitsTracker.close();
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
     }
 
     private TimeSeries getTimeSeries(String name) {

@@ -1261,7 +1261,7 @@ public class QueryImpl implements Query {
             // "order by" was used, so we know the size
             return size;
         }
-        return Math.min(limit, source.getSize(precision, max));
+        return Math.min(limit, source.getSize(context.getBaseState(), precision, max));
     }
 
     @Override

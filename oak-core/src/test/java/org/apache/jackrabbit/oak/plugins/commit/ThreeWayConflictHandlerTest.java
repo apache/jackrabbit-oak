@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,8 +30,11 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
@@ -281,6 +285,41 @@ public class ThreeWayConflictHandlerTest {
         ourRoot.commit();
 
         assertTrue(called.get());
+    }
+
+    @Test
+    public void deletedNodesShouldNotBeRecreated() throws Exception {
+        NodeState root = EmptyNodeState.EMPTY_NODE;
+
+        NodeState withProperty;
+        {
+            NodeBuilder builder = root.builder();
+            builder.child("c").setProperty("foo", "bar");
+            withProperty = builder.getNodeState();
+        }
+
+        NodeState withUpdatedProperty;
+        {
+            NodeBuilder builder = withProperty.builder();
+            builder.child("c").setProperty("foo", "baz");
+            withUpdatedProperty = builder.getNodeState();
+        }
+
+        NodeState withRemovedChild;
+        {
+            NodeBuilder builder = withProperty.builder();
+            builder.child("c").remove();
+            withRemovedChild = builder.getNodeState();
+        }
+
+        NodeBuilder mergedBuilder = withUpdatedProperty.builder();
+        withRemovedChild.compareAgainstBaseState(withProperty, new ConflictAnnotatingRebaseDiff(mergedBuilder));
+        NodeState merged = ConflictHook.of(DefaultThreeWayConflictHandler.OURS).processCommit(
+            mergedBuilder.getBaseState(),
+            mergedBuilder.getNodeState(),
+            CommitInfo.EMPTY
+        );
+        assertFalse(merged.hasChildNode("c"));
     }
 
     private static ContentRepository newRepo(ThreeWayConflictHandler handler) {

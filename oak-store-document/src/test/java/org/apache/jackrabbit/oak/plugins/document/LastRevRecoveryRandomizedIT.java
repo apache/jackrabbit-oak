@@ -150,7 +150,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private void purge() {
         ops.add("purge()");
-        builder.purge();
+        builder.persist();
     }
 
     private void merge() throws CommitFailedException {

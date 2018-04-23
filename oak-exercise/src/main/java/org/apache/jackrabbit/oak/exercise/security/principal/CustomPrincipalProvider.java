@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 
 /**
@@ -44,7 +43,11 @@ class CustomPrincipalProvider implements PrincipalProvider {
     @Override
     public Principal getPrincipal(@Nonnull String principalName) {
         // EXERCISE: complete
-        return null;
+        if (knownPrincipalNames.contains(principalName)) {
+            return () -> principalName;
+        } else {
+            return null;
+        }
     }
 
     @Nonnull

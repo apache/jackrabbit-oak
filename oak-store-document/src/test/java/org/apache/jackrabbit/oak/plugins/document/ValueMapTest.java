@@ -33,6 +33,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -157,6 +158,7 @@ public class ValueMapTest {
                 int p = 0;
                 while (numRevs == docStore.find(NODES, id).getLocalRevisions().size()) {
                     child.setProperty("prop", p++);
+                    persistToBranch(builder);
                 }
                 branches.add(builder);
             } else {
