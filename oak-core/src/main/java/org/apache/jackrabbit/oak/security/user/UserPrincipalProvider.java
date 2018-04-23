@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Date;
@@ -118,7 +117,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @Nonnull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
         Tree tree = getAuthorizableTree(principal);
         if (tree == null) {
             return Collections.emptySet();
@@ -217,12 +216,12 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     @CheckForNull
-    private Group createGroupPrincipal(@Nonnull Tree groupTree) {
+    private Principal createGroupPrincipal(@Nonnull Tree groupTree) {
         String principalName = getPrincipalName(groupTree);
         if (principalName == null) {
             return null;
         }
-        return new GroupPrincipal(principalName, groupTree);
+        return new GroupPrincipalImpl(principalName, groupTree);
     }
 
     @CheckForNull
@@ -238,8 +237,8 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     @Nonnull
-    private Set<Group> getGroupMembership(@Nonnull Tree authorizableTree) {
-        Set<Group> groupPrincipals = null;
+    private Set<Principal> getGroupMembership(@Nonnull Tree authorizableTree) {
+        Set<Principal> groupPrincipals = null;
         boolean doCache = cacheEnabled && UserUtil.isType(authorizableTree, AuthorizableType.USER);
         if (doCache) {
             groupPrincipals = readGroupsFromCache(authorizableTree);
@@ -247,12 +246,12 @@ class UserPrincipalProvider implements PrincipalProvider {
 
         // caching not configured or cache expired: use the membershipProvider to calculate
         if (groupPrincipals == null) {
-            groupPrincipals = new HashSet<Group>();
+            groupPrincipals = new HashSet<>();
             Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
             while (groupPaths.hasNext()) {
                 Tree groupTree = userProvider.getAuthorizableByPath(groupPaths.next());
                 if (groupTree != null && UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
-                    Group gr = createGroupPrincipal(groupTree);
+                    Principal gr = createGroupPrincipal(groupTree);
                     if (gr != null) {
                         groupPrincipals.add(gr);
                     }
@@ -271,7 +270,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private void cacheGroups(@Nonnull Tree authorizableNode, @Nonnull Set<Group> groupPrincipals) {
+    private void cacheGroups(@Nonnull Tree authorizableNode, @Nonnull Set<Principal> groupPrincipals) {
         try {
             root.refresh();
             Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
@@ -286,9 +285,9 @@ class UserPrincipalProvider implements PrincipalProvider {
             }
 
             cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, new Function<Group, String>() {
+            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, new Function<Principal, String>() {
                 @Override
-                public String apply(Group input) {
+                public String apply(Principal input) {
                     return Text.escape(input.getName());
                 }
             }));
@@ -307,7 +306,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     @CheckForNull
-    private Set<Group> readGroupsFromCache(@Nonnull Tree authorizableNode) {
+    private Set<Principal> readGroupsFromCache(@Nonnull Tree authorizableNode) {
         Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
         if (!principalCache.exists()) {
             log.debug("No group cache at " + authorizableNode.getPath());
@@ -319,10 +318,10 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
             if (str == null || str.isEmpty()) {
-                return new HashSet<Group>(1);
+                return Collections.emptySet();
             }
 
-            Set<Group> groups = new HashSet<Group>();
+            Set<Principal> groups = new HashSet<>();
             for (String s : Text.explode(str, ',')) {
                 final String name = Text.unescape(s);
                 groups.add(new CachedGroupPrincipal(name));
@@ -441,11 +440,11 @@ class UserPrincipalProvider implements PrincipalProvider {
      * Implementation of {@link AbstractGroupPrincipal} that reads the underlying
      * authorizable group lazily in case the group membership must be retrieved.
      */
-    private final class GroupPrincipal extends BaseGroupPrincipal {
+    private final class GroupPrincipalImpl extends BaseGroupPrincipal {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
-        GroupPrincipal(@Nonnull String principalName, @Nonnull Tree groupTree) {
+        GroupPrincipalImpl(@Nonnull String principalName, @Nonnull Tree groupTree) {
             super(principalName, groupTree);
         }
 

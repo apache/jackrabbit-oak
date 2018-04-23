@@ -97,7 +97,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -952,7 +952,7 @@ public class Oak {
         private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
                 .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
 
-        private  final SecurityProvider securityProvider = new SecurityProviderImpl();
+        private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();
 
         private OakDefaultComponents() {
         }

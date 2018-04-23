@@ -16,32 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.segment.spi.persistence;
 
-package org.apache.jackrabbit.oak.segment.file.tar;
+import java.io.IOException;
+import java.util.List;
 
 /**
- * FileStoreMonitor are notified for any writes or deletes
- * performed by FileStore
+ * This type abstracts the {@code gc.log} file, used to save information about
+ * the segment garbage collection. Each record is represented by a single string.
+ * <br><br>
+ * The implementation <b>doesn't need to be</b> thread-safe.
  */
-public interface FileStoreMonitor {
+public interface GCJournalFile {
 
     /**
-     * Notifies the monitor when data is written
+     * Write the new line to the GC journal file.
      *
-     * @param bytes number of bytes written
+     * @param line the line to write. It should contain neither special characters
+     *             nor the newline {@code \n}.
+     * @throws IOException
      */
-    void written(long bytes);
+    void writeLine(String line) throws IOException;
 
     /**
-     * Notifies the monitor when memory is reclaimed
+     * Return the list of all written records in the same order as they were
+     * written.
      *
-     * @param bytes number of bytes reclaimed
+     * @return the list of all written lines
+     * @throws IOException
      */
-    void reclaimed(long bytes);
-    
-    /**
-     * Notifies the monitor when journal data is flushed to disk.
-     */
-    void flushed();
+    List<String> readLines() throws IOException;
 
 }

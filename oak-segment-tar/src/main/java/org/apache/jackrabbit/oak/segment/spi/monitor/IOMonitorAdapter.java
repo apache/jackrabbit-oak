@@ -14,21 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+package org.apache.jackrabbit.oak.segment.spi.monitor;
 
-import com.google.common.io.Closer;
+import java.io.File;
 
-public class MissingBlobStoreFactory implements BlobStoreFactory {
+/**
+ * A void implementation of the {@link IOMonitor}. Can be used for the
+ * testing purposes or for the extension.
+ */
+public class IOMonitorAdapter implements IOMonitor {
 
     @Override
-    public BlobStore create(Closer closer) {
-        return new MissingBlobStore();
+    public void beforeSegmentRead(File file, long msb, long lsb, int length) {
+        // Intentionally left blank
     }
 
     @Override
-    public String toString() {
-        return "MissingBlobStore";
+    public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
+        // Intentionally left blank
     }
+
+    @Override
+    public void beforeSegmentWrite(File file, long msb, long lsb, int length) {
+        // Intentionally left blank
+    }
+
+    @Override
+    public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {
+        // Intentionally left blank
+    }
+
 }

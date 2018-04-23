@@ -20,6 +20,7 @@ import java.security.Principal;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -41,10 +42,10 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  *
  * - {@link #testEveryoneExists()}
  *   Test to illustrate the that everyone principal always exists and always is
- *   an instanceof {@link java.security.acl.Group} even if there is no corresponding
- *   authorizable.
+ *   an instanceof {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} even if
+ *   there is no corresponding authorizable.
  *   Discuss the meaning of the everyone principal and why having a corresponding authorizable is optional.
- *   Note the difference between java.security.acl.Group and org.apache.jackrabbit.api.security.user.Group.
+ *   Note the difference between GroupPrincipal and org.apache.jackrabbit.api.security.user.Group.
  *
  * - {@link #testEveryoneName()}
  *   Test to illustrate that the name of the everyone principal is constant.
@@ -104,7 +105,7 @@ public class L3_EveryoneTest extends AbstractJCRTest {
         Principal everyone = principalManager.getEveryone();
 
         assertNotNull(everyone);
-        assertTrue(everyone instanceof java.security.acl.Group);
+        assertTrue(everyone instanceof GroupPrincipal);
 
         Authorizable everyoneAuthorizable = ((JackrabbitSession) superuser).getUserManager().getAuthorizable(everyone);
         assertNull(everyoneAuthorizable);
@@ -127,7 +128,7 @@ public class L3_EveryoneTest extends AbstractJCRTest {
     }
 
     public void testEveryoneIsMemberofEveryone() throws RepositoryException {
-        java.security.acl.Group everyone = (java.security.acl.Group) principalManager.getEveryone();
+        GroupPrincipal everyone = (GroupPrincipal) principalManager.getEveryone();
         PrincipalIterator it = principalManager.getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
 
         // EXERCISE: discuss the dynamic nature of the everyone group principal
@@ -147,7 +148,7 @@ public class L3_EveryoneTest extends AbstractJCRTest {
         superuser.save();
 
         try {
-            java.security.acl.Group everyone = (java.security.acl.Group) principalManager.getEveryone();
+            GroupPrincipal everyone = (GroupPrincipal) principalManager.getEveryone();
 
             assertEquals(everyone, everyoneAuthorizable.getPrincipal());
 

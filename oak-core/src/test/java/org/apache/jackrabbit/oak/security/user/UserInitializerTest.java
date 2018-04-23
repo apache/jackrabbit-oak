@@ -150,7 +150,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
         ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
-        SecurityProvider sp = new SecurityProviderBuilder().with(params).build();
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
@@ -201,7 +201,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
         ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
-        SecurityProvider sp = new SecurityProviderBuilder().with(params).build();
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(params).build();
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())

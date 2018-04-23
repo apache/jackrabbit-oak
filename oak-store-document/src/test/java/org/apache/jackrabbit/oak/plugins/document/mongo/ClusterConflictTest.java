@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import javax.annotation.Nonnull;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -43,12 +44,14 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
     @Override
     public void setUpConnection() throws Exception {
         super.setUpConnection();
-        ns2 = newBuilder(connectionFactory.getConnection().getDB()).setClusterId(2).getNodeStore();
+        MongoConnection connection = connectionFactory.getConnection();
+        ns2 = newBuilder(connection.getMongoClient(), connection.getDBName())
+                .setClusterId(2).getNodeStore();
     }
 
     @Override
-    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
-        return super.newBuilder(db).setAsyncDelay(0).setLeaseCheck(false);
+    protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
+        return super.newBuilder(client, dbName).setAsyncDelay(0).setLeaseCheck(false);
     }
 
     @Override

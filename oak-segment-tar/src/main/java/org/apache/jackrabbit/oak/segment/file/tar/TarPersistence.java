@@ -19,9 +19,14 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.GCJournal;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
 

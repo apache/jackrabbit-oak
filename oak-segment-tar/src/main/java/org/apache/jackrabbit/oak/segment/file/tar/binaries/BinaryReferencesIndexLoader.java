@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
@@ -40,7 +41,7 @@ public class BinaryReferencesIndexLoader {
      * @throws InvalidBinaryReferencesIndexException if the index is invalid or
      *                                               malformed.
      */
-    public static BinaryReferencesIndex loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
+    public static ByteBuffer loadBinaryReferencesIndex(ReaderAtEnd reader) throws IOException, InvalidBinaryReferencesIndexException {
         switch (readMagic(reader)) {
             case BinaryReferencesIndexLoaderV1.MAGIC:
                 return BinaryReferencesIndexLoaderV1.loadBinaryReferencesIndex(reader);
@@ -51,8 +52,25 @@ public class BinaryReferencesIndexLoader {
         }
     }
 
+    public static BinaryReferencesIndex parseBinaryReferencesIndex(ByteBuffer buffer) throws InvalidBinaryReferencesIndexException {
+        switch (readMagic(buffer)) {
+            case BinaryReferencesIndexLoaderV1.MAGIC:
+                return BinaryReferencesIndexLoaderV1.parseBinaryReferencesIndex(buffer);
+            case BinaryReferencesIndexLoaderV2.MAGIC:
+                return BinaryReferencesIndexLoaderV2.parseBinaryReferencesIndex(buffer);
+            default:
+                throw new InvalidBinaryReferencesIndexException("Unrecognized magic number");
+        }
+    }
+
     private static int readMagic(ReaderAtEnd reader) throws IOException {
         return reader.readAtEnd(Integer.BYTES, Integer.BYTES).getInt();
     }
 
+    private static int readMagic(ByteBuffer buffer) {
+        buffer.position(buffer.limit() - Integer.BYTES);
+        int magic = buffer.getInt();
+        buffer.rewind();
+        return magic;
+    }
 }

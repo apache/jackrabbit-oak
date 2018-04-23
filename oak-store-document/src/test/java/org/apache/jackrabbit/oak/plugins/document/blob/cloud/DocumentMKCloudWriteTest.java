@@ -43,8 +43,9 @@ public class DocumentMKCloudWriteTest extends DocumentMKWriteTest {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
-        mk = new DocumentMK.Builder().setMongoDB(mongoConnection.getDB())
+        MongoUtils.dropCollections(mongoConnection.getDBName());
+        mk = new DocumentMK.Builder()
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
                 .setBlobStore(CloudStoreUtils.getBlobStore()).open();
     }
 

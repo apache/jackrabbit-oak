@@ -70,4 +70,17 @@ public interface SegmentNodeStoreStatsMBean {
      * @return collectStackTraces status flag
      */
     boolean isCollectStackTraces();
+    
+    /**
+     * Modifies the maximum number of writing threads to be recorded.
+     * Changing the default value will reset the overall collection process.
+     * 
+     * @param commitsCountMapSize the new size
+     */
+    void setCommitsCountMapMaxSize(int commitsCountMapMaxSize);
+    
+    /**
+     * @return maximum number of writing threads to be recorded
+     */
+    int getCommitsCountMapMaxSize();
 }

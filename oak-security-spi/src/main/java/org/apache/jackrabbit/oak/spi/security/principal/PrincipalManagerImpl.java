@@ -68,7 +68,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
     @Override
     @Nonnull
     public PrincipalIterator getGroupMembership(@Nonnull Principal principal) {
-        return new PrincipalIteratorAdapter(principalProvider.getGroupMembership(principal));
+        return new PrincipalIteratorAdapter(principalProvider.getMembershipPrincipals(principal));
     }
 
     @Override

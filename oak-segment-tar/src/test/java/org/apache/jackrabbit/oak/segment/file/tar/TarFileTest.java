@@ -36,7 +36,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.segment.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -93,8 +96,8 @@ public class TarFileTest {
         }
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            TarEntry[] entries = reader.getEntries();
-            assertEquals(newGCGeneration(1, 2, false), entries[0].generation());
+            SegmentArchiveEntry[] entries = reader.getEntries();
+            assertEquals(newGCGeneration(1, 2, false), newGCGeneration(entries[0]));
         }
     }
 
@@ -111,8 +114,8 @@ public class TarFileTest {
         }
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            TarEntry[] entries = reader.getEntries();
-            assertEquals(newGCGeneration(1, 2, true), entries[0].generation());
+            SegmentArchiveEntry[] entries = reader.getEntries();
+            assertEquals(newGCGeneration(1, 2, true), newGCGeneration(entries[0]));
         }
     }
 

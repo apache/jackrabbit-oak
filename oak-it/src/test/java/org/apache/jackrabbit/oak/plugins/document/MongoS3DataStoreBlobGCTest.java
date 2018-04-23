@@ -62,7 +62,7 @@ public class MongoS3DataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
         Properties props = S3DataStoreUtils.getS3Config();
         startDate = new Date();
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         File root = folder.newFolder();
         bucket = root.getName();
         props.setProperty(S3Constants.S3_BUCKET, bucket);
@@ -70,8 +70,9 @@ public class MongoS3DataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
 
         blobStore = new DataStoreBlobStore(
             S3DataStoreUtils.getS3DataStore(s3Class, props, root.getAbsolutePath()));
-        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
-            .setBlobStore(blobStore).open();
+        mk = new DocumentMK.Builder().clock(getTestClock())
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+                .setBlobStore(blobStore).open();
     }
 
     @After

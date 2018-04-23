@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
-import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,14 +26,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 public class DocumentMongoFixture extends NodeStoreFixture {
@@ -70,7 +68,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
                 builder.setBlobStore(blobStore);
             }
             builder.setPersistentCache("target/persistentCache,time");
-            builder.setMongoDB(getDb(suffix));
+            builder.setMongoDB(createClient(), getDBName(suffix));
             DocumentNodeStore ns = builder.getNodeStore();
             suffixes.put(ns, suffix);
             return ns;
@@ -79,10 +77,13 @@ public class DocumentMongoFixture extends NodeStoreFixture {
         }
     }
 
-    protected DB getDb(String suffix) throws UnknownHostException {
+    protected MongoClient createClient() {
+        return new MongoClient(new MongoClientURI(uri));
+    }
+
+    protected String getDBName(String suffix) {
         String dbName = new MongoClientURI(uri).getDatabase();
-        MongoConnection connection = new MongoConnection(uri);
-        return connection.getDB(dbName + "-" + suffix);
+        return dbName + "-" + suffix;
     }
 
     @Override
@@ -103,10 +104,8 @@ public class DocumentMongoFixture extends NodeStoreFixture {
         }
         String suffix = suffixes.remove(nodeStore);
         if (suffix != null) {
-            try {
-                DB db = getDb(suffix);
-                db.dropDatabase();
-                db.getMongo().close();
+            try (MongoClient client = createClient()) {
+                client.dropDatabase(getDBName(suffix));
             } catch (Exception e) {
                 log.error("Can't close Mongo", e);
             }

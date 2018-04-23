@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -103,7 +103,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         Set<String> userNames = new HashSet<String>(principals.size());
         Set<String> groupNames = new HashSet<String>(principals.size());
         for (Principal principal : principals) {
-            if (principal instanceof Group) {
+            if (GroupPrincipals.isGroup(principal)) {
                 groupNames.add(principal.getName());
             } else {
                 userNames.add(principal.getName());

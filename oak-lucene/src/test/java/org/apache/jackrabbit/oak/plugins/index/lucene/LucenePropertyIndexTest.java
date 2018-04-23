@@ -751,6 +751,74 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa is not null order by [jcr:score]", asList("/test/a"));
     }
 
+    // OAK-7370
+    @Ignore("OAK-7370")
+    @Test
+    public void orderByScoreAcrossUnion() throws Exception {
+        Tree idx = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("test-index");
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        builder.indexRule("nt:base")
+                .property("foo").analyzed().propertyIndex().nodeScopeIndex()
+                .property("p1").propertyIndex()
+                .property("p2").propertyIndex();
+        builder.build(idx);
+        idx.removeProperty("async");
+        root.commit();
+
+        Tree testRoot = root.getTree("/").addChild("test");
+        Tree path1 = testRoot.addChild("path1");
+        Tree path2 = testRoot.addChild("path2");
+
+        Tree c1 = path1.addChild("c1");
+        c1.setProperty("foo", "bar. some extra stuff");
+        c1.setProperty("p1", "d");
+
+        Tree c2 = path2.addChild("c2");
+        c2.setProperty("foo", "bar");
+        c2.setProperty("p2", "d");
+
+        Tree c3 = path2.addChild("c3");
+        c3.setProperty("foo", "bar. some extra stuff... and then some to make it worse than c1");
+        c3.setProperty("p2", "d");
+
+        // create more stuff to get num_docs in index large and hence force union optimization
+        for (int i = 0; i < 10; i++) {
+            testRoot.addChild("extra" + i).setProperty("foo", "stuff");
+        }
+
+        root.commit();
+
+        List<String> expected = asList(c2.getPath(), c1.getPath(), c3.getPath());
+
+        String query;
+
+        // manual union
+        query =
+                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path1.getPath() + "')" +
+                " union " +
+                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path2.getPath() + "')" +
+                " order by [jcr:score] desc";
+
+        assertEquals(expected, executeQuery(query, SQL2));
+
+        // no union (estiimated fulltext without union would be same as sub-queries and it won't be optimized
+        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
+                " and (isdescendantnode('" + path1.getPath() + "') or" +
+                " isdescendantnode('" + path2.getPath() + "'))" +
+                " order by [jcr:score] desc";
+
+        assertEquals(expected, executeQuery(query, SQL2));
+
+        // optimization UNION as we're adding constraints to sub-queries that would improve cost of optimized union
+        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
+                " and ( (p1 = 'd' and isdescendantnode('" + path1.getPath() + "')) or" +
+                " (p2 = 'd' and isdescendantnode('" + path2.getPath() + "')))" +
+                " order by [jcr:score] desc";
+
+        assertEquals(expected, executeQuery(query, SQL2));
+    }
+
     @Test
     public void rangeQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));

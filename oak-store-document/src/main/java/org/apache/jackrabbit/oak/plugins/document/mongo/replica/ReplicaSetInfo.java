@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 import com.mongodb.ReadPreference;
 
@@ -85,13 +86,13 @@ public class ReplicaSetInfo implements Runnable {
 
     private volatile boolean stop;
 
-    public ReplicaSetInfo(Clock clock, DB db, String originalMongoUri, long pullFrequencyMillis, long maxReplicationLagMillis, Executor executor) {
+    public ReplicaSetInfo(Clock clock, MongoClient client, String dbName, String originalMongoUri, long pullFrequencyMillis, long maxReplicationLagMillis, Executor executor) {
         this.executor = executor;
         this.clock = clock;
-        this.adminDb = db.getSisterDB("admin");
+        this.adminDb = client.getDB("admin");
         this.pullFrequencyMillis = pullFrequencyMillis;
         this.maxReplicationLagMillis = maxReplicationLagMillis;
-        this.nodeCollections = new NodeCollectionProvider(originalMongoUri, db.getName());
+        this.nodeCollections = new NodeCollectionProvider(originalMongoUri, dbName);
     }
 
     public void addListener(ReplicaSetInfoListener listener) {

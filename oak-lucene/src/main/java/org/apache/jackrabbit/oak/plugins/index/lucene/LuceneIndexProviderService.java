@@ -755,10 +755,11 @@ public class LuceneIndexProviderService {
                 PROP_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED);
         if (activeDeletionEnabled && blobStore!= null) {
             File blobCollectorWorkingDir = new File(indexDir, "deleted-blobs");
-            activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir, executorService);
+            activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir,
+                    getExecutorService());
             ActiveDeletedBlobCollectorMBean bean =
                     new ActiveDeletedBlobCollectorMBeanImpl(activeDeletedBlobCollector, whiteboard, nodeStore,
-                            indexPathService, asyncIndexInfoService, blobStore, executorService);
+                            indexPathService, asyncIndexInfoService, blobStore, getExecutorService());
 
             oakRegs.add(registerMBean(whiteboard, ActiveDeletedBlobCollectorMBean.class, bean,
                     ActiveDeletedBlobCollectorMBean.TYPE, "Active lucene files collection"));

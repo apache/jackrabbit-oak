@@ -50,12 +50,13 @@ public class BinaryReferencesIndexLoaderTest {
     }
 
     private static BinaryReferencesIndex loadIndex(ByteBuffer buffer) throws Exception {
-        return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, length) -> {
+        ByteBuffer data = BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, length) -> {
             ByteBuffer slice = buffer.duplicate();
             slice.position(slice.limit() - whence);
             slice.limit(slice.position() + length);
             return slice.slice();
         });
+        return BinaryReferencesIndexLoader.parseBinaryReferencesIndex(data);
     }
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)

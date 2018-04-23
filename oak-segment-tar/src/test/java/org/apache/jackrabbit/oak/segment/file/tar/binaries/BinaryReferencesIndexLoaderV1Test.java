@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoaderV1.FOOTER_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoaderV1.MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoaderV1.loadBinaryReferencesIndex;
+import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoaderV1.parseBinaryReferencesIndex;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -40,12 +41,13 @@ public class BinaryReferencesIndexLoaderV1Test {
     }
 
     private static BinaryReferencesIndex loadIndex(ByteBuffer buffer) throws Exception {
-        return loadBinaryReferencesIndex((whence, length) -> {
+        ByteBuffer data = loadBinaryReferencesIndex((whence, length) -> {
             ByteBuffer slice = buffer.duplicate();
             slice.position(slice.limit() - whence);
             slice.limit(slice.position() + length);
             return slice.slice();
         });
+        return parseBinaryReferencesIndex(data);
     }
 
     private static void assertInvalidBinaryReferencesIndexException(ByteBuffer buffer, String message) throws Exception {

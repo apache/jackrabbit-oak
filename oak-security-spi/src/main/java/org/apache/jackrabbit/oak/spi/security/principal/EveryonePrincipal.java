@@ -20,12 +20,13 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Enumeration;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 
 /**
  * Built-in principal group that has every other principal as member.
  */
-public final class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl.Group {
+public final class EveryonePrincipal implements JackrabbitPrincipal, Group, GroupPrincipal {
 
     public static final String NAME = "everyone";
 
@@ -54,6 +55,7 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, java.securi
         throw new UnsupportedOperationException("Cannot remove a member from the everyone group.");
     }
 
+    //------------------------------------------------------< GroupPrincipal >---
     @Override
     public boolean isMember(Principal member) {
         return !member.equals(this);
@@ -75,7 +77,7 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, java.securi
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;
-        } else if (obj instanceof JackrabbitPrincipal && obj instanceof Group) {
+        } else if (obj instanceof JackrabbitPrincipal && GroupPrincipals.isGroup((Principal) obj)) {
             JackrabbitPrincipal other = (JackrabbitPrincipal) obj;
             return NAME.equals(other.getName());
         }

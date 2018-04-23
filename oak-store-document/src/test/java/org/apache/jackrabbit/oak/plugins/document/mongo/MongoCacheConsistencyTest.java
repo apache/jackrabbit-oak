@@ -91,7 +91,7 @@ public class MongoCacheConsistencyTest extends CacheConsistencyTestBase {
             }
         };
         DocumentMK.Builder builder = provider.newBuilder().setAsyncDelay(0);
-        final DocumentStore store = new MongoDocumentStore(fongo.getDB("oak"), builder);
+        final DocumentStore store = new MongoDocumentStore(fongo.getMongo(), "oak", builder);
         return new DocumentStoreFixture() {
             @Override
             public String getName() {

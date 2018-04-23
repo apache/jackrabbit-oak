@@ -23,32 +23,41 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.io.Closer;
+
 public class CloseableIterable<T> implements Iterable<T>, Closeable {
     private final Iterable<T> iterable;
-    private final Closeable closeable;
+    private final Closer closer = Closer.create();
 
-    public static <T> CloseableIterable<T> wrap(Iterable<T> iterable, Closeable closeable){
+    public static <T> CloseableIterable<T> wrap(Iterable<T> iterable, Closeable closeable) {
         return new CloseableIterable<T>(iterable, closeable);
     }
 
-    public static <T> CloseableIterable<T> wrap(Iterable<T> iterable){
+    public static <T> CloseableIterable<T> wrap(Iterable<T> iterable) {
         return new CloseableIterable<T>(iterable, null);
     }
 
     public CloseableIterable(Iterable<T> iterable, Closeable closeable) {
         this.iterable = iterable;
-        this.closeable = closeable;
-    }
-
-    @Override
-    public void close() throws IOException {
-        if(closeable != null){
-            closeable.close();
+        if (closeable != null) {
+            this.closer.register(closeable);
         }
     }
 
     @Override
+    public void close() throws IOException {
+        closer.close();
+    }
+
+    @Nonnull
+    @Override
     public Iterator<T> iterator() {
-        return iterable.iterator();
+        Iterator<T> it = iterable.iterator();
+        if (it instanceof Closeable) {
+            closer.register((Closeable) it);
+        }
+        return it;
     }
 }

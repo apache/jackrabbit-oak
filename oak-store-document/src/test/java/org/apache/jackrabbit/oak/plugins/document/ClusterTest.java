@@ -26,15 +26,15 @@ import java.util.HashSet;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -395,7 +395,7 @@ public class ClusterTest {
         }
         mks.clear();
         if (MONGO_DB) {
-            DB db = connectionFactory.getConnection().getDB();
+            MongoDatabase db = connectionFactory.getConnection().getDatabase();
             MongoUtils.dropCollections(db);
         }
     }
@@ -411,8 +411,9 @@ public class ClusterTest {
 
     private DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
-            DB db = connectionFactory.getConnection().getDB();
-            return register(new DocumentMK.Builder().setMongoDB(db)
+            MongoConnection connection = connectionFactory.getConnection();
+            return register(new DocumentMK.Builder()
+                    .setMongoDB(connection.getMongoClient(), connection.getDBName())
                     .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {

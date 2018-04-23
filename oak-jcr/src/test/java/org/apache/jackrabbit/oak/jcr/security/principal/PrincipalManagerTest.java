@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,6 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -42,7 +42,7 @@ import org.junit.Test;
 public class PrincipalManagerTest extends AbstractJCRTest {
 
     private PrincipalManager principalMgr;
-    private Group everyone;
+    private GroupPrincipal everyone;
 
     private Principal[] adminPrincipals;
 
@@ -55,7 +55,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
             throw new NotExecutableException();
         }
         principalMgr = ((JackrabbitSession) superuser).getPrincipalManager();
-        everyone = (Group) principalMgr.getEveryone();
+        everyone = (GroupPrincipal) principalMgr.getEveryone();
 
         adminPrincipals = getPrincipals(getHelper().getSuperuserCredentials());
     }
@@ -76,7 +76,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     }
 
     private static boolean isGroup(Principal p) {
-        return p instanceof java.security.acl.Group;
+        return p instanceof GroupPrincipal;
     }
 
     @Test
@@ -187,7 +187,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                 continue;
             }
             if (isGroup(p)) {
-                Enumeration<? extends Principal> en = ((java.security.acl.Group) p).members();
+                Enumeration<? extends Principal> en = ((GroupPrincipal) p).members();
                 while (en.hasMoreElements()) {
                     Principal memb = en.nextElement();
                     assertTrue(principalMgr.hasPrincipal(memb.getName()));
@@ -209,7 +209,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                     continue;
                 }
                 if (isGroup(p)) {
-                    Enumeration<? extends Principal> en = ((java.security.acl.Group) p).members();
+                    Enumeration<? extends Principal> en = ((GroupPrincipal) p).members();
                     while (en.hasMoreElements()) {
                         Principal memb = en.nextElement();
                         assertTrue(principalMgr.hasPrincipal(memb.getName()));
@@ -274,7 +274,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
 
             assertTrue(isGroup(p));
 
-            Enumeration<? extends Principal> members = ((java.security.acl.Group) p).members();
+            Enumeration<? extends Principal> members = ((GroupPrincipal) p).members();
             while (members.hasMoreElements()) {
                 Principal memb = members.nextElement();
 

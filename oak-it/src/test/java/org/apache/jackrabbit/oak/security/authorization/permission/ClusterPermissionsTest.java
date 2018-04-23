@@ -102,7 +102,7 @@ public class ClusterPermissionsTest {
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
                 .with(new TypeEditorProvider())
-                .with(securityProvider1 = new SecurityProviderBuilder().with(getSecurityConfigParameters()).build());
+                .with(securityProvider1 = SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters()).build());
         contentRepository1 = oak.createContentRepository();
         adminSession1 = login1(getAdminCredentials());
         root1 = adminSession1.getLatestRoot();
@@ -119,7 +119,7 @@ public class ClusterPermissionsTest {
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
                 .with(new TypeEditorProvider())
-                .with(securityProvider2 = new SecurityProviderBuilder().with(getSecurityConfigParameters()).build());
+                .with(securityProvider2 = SecurityProviderBuilder.newBuilder().with(getSecurityConfigParameters()).build());
 
         contentRepository2 = oak.createContentRepository();
         adminSession2 = login2(getAdminCredentials());

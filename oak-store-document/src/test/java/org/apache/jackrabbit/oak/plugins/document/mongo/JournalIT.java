@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.List;
 import java.util.Set;
 
-import com.mongodb.DB;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.AbstractJournalTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -210,9 +208,9 @@ public class JournalIT extends AbstractJournalTest {
     }
 
     protected DocumentMK createMK(int clusterId, int asyncDelay) {
-        DB db = connectionFactory.getConnection().getDB();
+        MongoConnection c = connectionFactory.getConnection();
         builder = newDocumentMKBuilder();
-        return register(builder.setMongoDB(db)
+        return register(builder.setMongoDB(c.getMongoClient(), c.getDBName())
                 .setClusterId(clusterId).setAsyncDelay(asyncDelay).setBundlingDisabled(true).open());
     }
 

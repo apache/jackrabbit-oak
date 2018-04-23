@@ -30,6 +30,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.StandardSystemProperty;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
@@ -38,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -68,6 +72,9 @@ public class SegmentTarFixture extends OakFixture {
         private boolean memoryMapping;
         private boolean useBlobStore;
         private int dsCacheSize;
+        private String azureConnectionString;
+        private String azureContainerName;
+        private String azureRootPath;
         
         public static SegmentTarFixtureBuilder segmentTarFixtureBuilder(String name, File directory) {
             return new SegmentTarFixtureBuilder(name, directory);
@@ -102,6 +109,13 @@ public class SegmentTarFixture extends OakFixture {
             this.dsCacheSize = dsCacheSize;
             return this;
         }
+
+        public SegmentTarFixtureBuilder withAzure(String azureConnectionString, String azureContainerName, String azureRootPath) {
+            this.azureConnectionString = azureConnectionString;
+            this.azureContainerName = azureContainerName;
+            this.azureRootPath = azureRootPath;
+            return this;
+        }
         
         public SegmentTarFixture build() {
             return new SegmentTarFixture(this);
@@ -120,7 +134,11 @@ public class SegmentTarFixture extends OakFixture {
     private final boolean shareBlobStore;
     private final boolean oneShotRun;
     private final boolean secure;
-    
+
+    private final String azureConnectionString;
+    private final String azureContainerName;
+    private final String azureRootPath;
+
     private final File parentPath;
 
     private FileStore[] stores;
@@ -149,6 +167,9 @@ public class SegmentTarFixture extends OakFixture {
         this.memoryMapping = builder.memoryMapping;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
+        this.azureConnectionString = builder.azureConnectionString;
+        this.azureContainerName = builder.azureContainerName;
+        this.azureRootPath = builder.azureRootPath;
 
         this.withColdStandby = withColdStandby;
         this.syncInterval = syncInterval;
@@ -163,7 +184,14 @@ public class SegmentTarFixture extends OakFixture {
                 .withMaxFileSize(maxFileSize)
                 .withSegmentCacheSize(segmentCacheSize)
                 .withMemoryMapping(memoryMapping);
-        
+
+        if (azureConnectionString != null) {
+            CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
+            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
+            container.createIfNotExists();
+            CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
+            fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
+        }
         
         if (useBlobStore) {
             FileDataStore fds = new FileDataStore();
@@ -192,6 +220,15 @@ public class SegmentTarFixture extends OakFixture {
             }
 
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
+
+            if (azureConnectionString != null) {
+                CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
+                CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
+                container.createIfNotExists();
+                CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
+                builder.withCustomPersistence(new AzurePersistence(directory));
+            }
+
             if (blobStore != null) {
                 builder.withBlobStore(blobStore);
             }

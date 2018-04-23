@@ -50,15 +50,16 @@ public class MongoAzureDataStoreBlobGCTest extends MongoDataStoreBlobGCTest {
         Properties props = AzureDataStoreUtils.getAzureConfig();
         startDate = new Date();
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         File root = folder.newFolder();
         bucket = root.getName();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, bucket);
         props.setProperty("cacheSize", "0");
         blobStore = new DataStoreBlobStore(
             AzureDataStoreUtils.getAzureDataStore(props, root.getAbsolutePath()));
-        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB())
-            .setBlobStore(blobStore).open();
+        mk = new DocumentMK.Builder().clock(getTestClock())
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
+                .setBlobStore(blobStore).open();
     }
 
     @After

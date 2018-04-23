@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -50,7 +49,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
 
     @Nonnull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
         // EXERCISE : expose the group membership of your known Principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
         return Collections.EMPTY_SET;

@@ -394,7 +394,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
                     UserConfiguration.NAME,
                     ConfigurationParameters.of(
                             UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, authenticationFactory));
-            this.sp = new SecurityProviderBuilder().with(params).build();
+            this.sp = SecurityProviderBuilder.newBuilder().with(params).build();
         }
 
         @Override

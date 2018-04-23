@@ -162,7 +162,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //Count should be sum of both readers
-        assertEquals(2, plan.getEstimatedEntryCount());
+        assertEquals(IndexPlannerTest.documentsPerValue(2), plan.getEstimatedEntryCount());
     }
 
     @Test

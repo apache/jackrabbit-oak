@@ -106,7 +106,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -118,6 +118,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -414,8 +415,8 @@ public class RepositoryUpgrade {
 
             String workspaceName =
                     source.getRepositoryConfig().getDefaultWorkspaceName();
-            SecurityProviderImpl security = new SecurityProviderImpl(
-                    mapSecurityConfig(config.getSecurityConfig()));
+            SecurityProvider security = SecurityProviderBuilder.newBuilder()
+                    .with(mapSecurityConfig(config.getSecurityConfig())).build();
 
             if (skipInitialization) {
                 logger.info("Skipping the repository initialization");

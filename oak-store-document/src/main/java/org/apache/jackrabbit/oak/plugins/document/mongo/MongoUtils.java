@@ -20,16 +20,17 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNotPrimaryException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
 import com.mongodb.WriteConcernException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
+import org.bson.Document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -49,7 +50,7 @@ class MongoUtils {
      * @param sparse whether the index should be sparse.
      * @throws MongoException if the operation fails.
      */
-    static void createIndex(DBCollection collection,
+    static void createIndex(MongoCollection<?> collection,
                             String field,
                             boolean ascending,
                             boolean unique,
@@ -73,20 +74,18 @@ class MongoUtils {
      *          arrays have different lengths.
      * @throws MongoException if the operation fails.
      */
-    static void createIndex(DBCollection collection,
+    static void createIndex(MongoCollection<?> collection,
                             String[] fields,
                             boolean[] ascending,
                             boolean unique,
                             boolean sparse)
             throws MongoException {
         checkArgument(fields.length == ascending.length);
-        DBObject index = new BasicDBObject();
+        BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
             index.put(fields[i], ascending[i] ? 1 : -1);
         }
-        DBObject options = new BasicDBObject();
-        options.put("unique", unique);
-        options.put("sparse", sparse);
+        IndexOptions options = new IndexOptions().unique(unique).sparse(sparse);
         collection.createIndex(index, options);
     }
 
@@ -101,17 +100,16 @@ class MongoUtils {
      * @param filter the filter expression for the partial index.
      * @throws MongoException if the operation fails.
      */
-    static void createPartialIndex(DBCollection collection,
+    static void createPartialIndex(MongoCollection<?> collection,
                                    String[] fields,
                                    boolean[] ascending,
                                    String filter) throws MongoException {
         checkArgument(fields.length == ascending.length);
-        DBObject index = new BasicDBObject();
+        BasicDBObject index = new BasicDBObject();
         for (int i = 0; i < fields.length; i++) {
             index.put(fields[i], ascending[i] ? 1 : -1);
         }
-        DBObject options = new BasicDBObject();
-        options.put("partialFilterExpression", BasicDBObject.parse(filter));
+        IndexOptions options = new IndexOptions().partialFilterExpression(BasicDBObject.parse(filter));
         collection.createIndex(index, options);
     }
 
@@ -128,11 +126,11 @@ class MongoUtils {
      * @return {@code true} if the index exists, {@code false} otherwise.
      * @throws MongoException if the operation fails.
      */
-    static boolean hasIndex(DBCollection collection, String... fields)
+    static boolean hasIndex(MongoCollection<?> collection, String... fields)
             throws MongoException {
         Set<String> uniqueFields = Sets.newHashSet(fields);
-        for (DBObject info : collection.getIndexInfo()) {
-            DBObject key = (DBObject) info.get("key");
+        for (Document info : collection.listIndexes()) {
+            Document key = (Document) info.get("key");
             Set<String> indexFields = Sets.newHashSet(key.keySet());
             if (uniqueFields.equals(indexFields)) {
                 return true;

@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The {@code PrincipalProvider} defines methods to provide access to sources
@@ -37,6 +40,7 @@ import javax.annotation.Nullable;
  * different sources. See also {@link CompositePrincipalProvider} for a
  * mechanism to combine principals of different providers.
  */
+@ProviderType
 public interface PrincipalProvider {
 
     /**
@@ -59,12 +63,34 @@ public interface PrincipalProvider {
      * If Principal is member of Group A, and Group A is member of
      * Group B, this method will return Group A and Group B.
      *
+     * @deprecated use {@link #getMembershipPrincipals(Principal)}
      * @param principal the principal to return it's membership from.
      * @return an iterator returning all groups the given principal is member of.
      * @see java.security.acl.Group#isMember(java.security.Principal)
      */
     @Nonnull
-    Set<Group> getGroupMembership(@Nonnull Principal principal);
+    default Set<Group> getGroupMembership(@Nonnull Principal principal) {
+        return Collections.emptySet();
+    }
+
+    /**
+     * Returns an iterator over all group principals for which the given
+     * principal is either direct or indirect member of. Thus for any principal
+     * returned in the iterator {@link GroupPrincipal#isMember(Principal)}
+     * must return {@code true}.
+     * <p>
+     * Example:<br>
+     * If Principal is member of Group A, and Group A is member of
+     * Group B, this method will return Group A and Group B.
+     *
+     * @param principal the principal to return it's membership from.
+     * @return an iterator returning all groups the given principal is member of.
+     * @see GroupPrincipal#isMember(java.security.Principal)
+     */
+    @Nonnull
+    default Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+        return GroupPrincipals.transform(getGroupMembership(principal));
+    }
 
     /**
      * Tries to resolve the specified {@code userID} to a valid principal and

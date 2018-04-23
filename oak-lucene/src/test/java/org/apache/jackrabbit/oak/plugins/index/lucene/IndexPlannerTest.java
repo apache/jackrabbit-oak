@@ -355,7 +355,7 @@ public class IndexPlannerTest {
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numofDocs, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
         assertEquals(3.0, plan.getCostPerExecution(), 0);
         assertEquals(2.0, plan.getCostPerEntry(), 0);
         assertNotNull(plan);
@@ -390,7 +390,7 @@ public class IndexPlannerTest {
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numofDocs, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
     }
 
     @Test
@@ -1046,8 +1046,7 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
-        //For non unique count is actual
-        assertEquals(100, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(100), plan.getEstimatedEntryCount());
         PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
 
         assertNotNull(hr);
@@ -1100,7 +1099,7 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
-        assertEquals(100, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(100), plan.getEstimatedEntryCount());
         PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
 
         assertNull(hr);
@@ -1124,7 +1123,7 @@ public class IndexPlannerTest {
         QueryIndex.IndexPlan plan = planner.getPlan();
         assertNotNull(plan);
 
-        assertEquals(100, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(100), plan.getEstimatedEntryCount());
         PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
 
         assertNull(hr);
@@ -1306,9 +1305,32 @@ public class IndexPlannerTest {
         IndexPlanner planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
         assertEquals(1.0, plan.getCostPerExecution(), 0);
         assertEquals(1.0, plan.getCostPerEntry(), 0);
+
+        // Query on "foo" is not null
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+
+        // Query on "foo" like x
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("bar%"));
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // weight of 3
+        assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
+
+        // Query on "foo" > x
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, "/test", filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // weight of 3
+        assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
 
         // Query on "foo1"
         filter = createFilter("nt:base");
@@ -1633,7 +1655,7 @@ public class IndexPlannerTest {
             IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
             QueryIndex.IndexPlan plan = planner.getPlan();
 
-            assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+            assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
 
             filter = createFilter("nt:base");
             filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
@@ -1688,7 +1710,7 @@ public class IndexPlannerTest {
         IndexPlanner planner = new IndexPlanner(node, indexPath, filter, Collections.emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
-        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
 
         filter = createFilter("nt:base");
         filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -1706,7 +1728,7 @@ public class IndexPlannerTest {
         plan = planner.getPlan();
 
         //Because path transormation comes into play only when direct prop defs don't match
-        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
 
         filter = createFilter("nt:base");
         filter.restrictProperty("a/foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -1795,6 +1817,17 @@ public class IndexPlannerTest {
             readers.add(new DefaultIndexReader(directory, null, definition.getAnalyzer()));
             return readers;
         }
+    }
+
+    /**
+     * The estimated number of documents per unique value.
+     *
+     * @param numofDocs the total number of documents
+     * @return the estimated number of documents
+     */
+    public static long documentsPerValue(long numofDocs) {
+        // OAK-7379: divide the number of documents by the number of unique entries
+        return Math.max(1, numofDocs / IndexPlanner.DEFAULT_PROPERTY_WEIGHT);
     }
 
 

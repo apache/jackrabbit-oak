@@ -13,25 +13,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 
-package org.apache.jackrabbit.oak.segment.file.tar;
+package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-public class FileStoreMonitorAdapter implements FileStoreMonitor {
+import javax.annotation.Nonnull;
 
-    @Override
-    public void written(long bytes) {
-        // Intentionally left blank
-    }
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-    @Override
-    public void reclaimed(long bytes) {
-        // Intentionally left blank
-    }
+/**
+ * An instance of a {@code Trace} specifies a read pattern for tracing
+ * IO reads of segments with an {@link IOTracer} instance.
+ */
+interface Trace {
 
-    @Override
-    public void flushed() {
-        // Intentionally left blank
-    }
-
+    /**
+     * Run this trace on the passed {@code node}.
+     * @param node
+     */
+    void run(@Nonnull NodeState node);
 }

@@ -34,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.mongodb.DB;
 
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_MEM;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.DOCUMENT_NS;
@@ -214,8 +213,8 @@ public abstract class DocumentStoreFixture {
             try {
                 MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
-                DB db = connection.getDB();
-                return new MongoDocumentStore(db, builder);
+                return new MongoDocumentStore(connection.getMongoClient(),
+                        connection.getDBName(), builder);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
