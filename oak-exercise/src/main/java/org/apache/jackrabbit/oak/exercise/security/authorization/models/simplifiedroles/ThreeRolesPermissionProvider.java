@@ -142,7 +142,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
-        // TODO : currently this implementation ignores TreeType
+        // EXERCISE : currently this implementation ignores TreeType -> complete implementation
         return getTreePermission(tree, parentPermission);
     }
 

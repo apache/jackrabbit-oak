@@ -44,7 +44,7 @@ class ThreeRolesTreePermission implements TreePermission, ThreeRolesConstants {
         if (isAcContent) {
             return this;
         } else {
-            // TODO: respect access controlled content defined by other modules
+            // EXERCISE: respect access controlled content defined by other modules
             return new ThreeRolesTreePermission(role, REP_3_ROLES_POLICY.equals(childName));
         }
     }
