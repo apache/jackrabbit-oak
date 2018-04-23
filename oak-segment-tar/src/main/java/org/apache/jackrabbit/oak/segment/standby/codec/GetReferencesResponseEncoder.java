@@ -36,13 +36,13 @@ public class GetReferencesResponseEncoder extends MessageToByteEncoder<GetRefere
     }
 
     private static void encode(String segmentId, Iterable<String> references, ByteBuf out) {
-        byte[] data = serialize(segmentId, references).getBytes(Charsets.UTF_8);
+        byte[] data = format(segmentId, references).getBytes(Charsets.UTF_8);
         out.writeInt(data.length + 1);
         out.writeByte(Messages.HEADER_REFERENCES);
         out.writeBytes(data);
     }
 
-    private static String serialize(String segmentId, Iterable<String> references) {
+    private static String format(String segmentId, Iterable<String> references) {
         return segmentId + ":" + Joiner.on(",").join(references);
     }
 
