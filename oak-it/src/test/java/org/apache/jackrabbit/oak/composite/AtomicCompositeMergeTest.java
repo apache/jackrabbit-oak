@@ -94,6 +94,7 @@ public class AtomicCompositeMergeTest {
             DocumentNodeStore docNodeStore = new DocumentMK.Builder()
                     .setDocumentStore(sharedDocStore)
                     .setClusterId(clusterId)
+                    .setUpdateLimit(10000)
                     .getNodeStore();
             closer.register(() -> docNodeStore.dispose());
             NodeStore compositeNodeStore = getCompositeNodeStore(docNodeStore);
