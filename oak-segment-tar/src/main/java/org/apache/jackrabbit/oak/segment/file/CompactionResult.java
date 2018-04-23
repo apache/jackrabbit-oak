@@ -138,9 +138,29 @@ abstract class CompactionResult {
         };
     }
 
+    static CompactionResult notApplicable(int count) {
+        return new CompactionResult(GCGeneration.NULL, count) {
+
+            @Override
+            Predicate<GCGeneration> reclaimer() {
+                return generation -> false;
+            }
+
+            @Override
+            boolean isSuccess() {
+                return false;
+            }
+
+            @Override
+            boolean isNotApplicable() {
+                return true;
+            }
+
+        };
+    }
+
     /**
-     * @return a predicate determining which segments to {@link
-     * FileStore.GarbageCollector#cleanup(CompactionResult) clean up} for the
+     * @return a predicate determining which segments to {clean up} for the
      * given compaction result.
      */
     abstract Predicate<GCGeneration> reclaimer();
@@ -156,6 +176,10 @@ abstract class CompactionResult {
      */
     RecordId getCompactedRootId() {
         return RecordId.NULL;
+    }
+
+    boolean isNotApplicable() {
+        return false;
     }
 
     /**

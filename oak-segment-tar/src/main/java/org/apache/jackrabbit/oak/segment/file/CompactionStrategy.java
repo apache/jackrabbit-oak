@@ -19,84 +19,47 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.jackrabbit.oak.segment.Revisions;
-import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-interface GarbageCollectionStrategy {
-
-    interface SuccessfulGarbageCollectionListener {
-
-        void onSuccessfulGarbageCollection();
-
-    }
+interface CompactionStrategy {
 
     interface Context {
 
-        SegmentGCOptions getGCOptions();
-
         GCListener getGCListener();
-
-        Revisions getRevisions();
 
         GCJournal getGCJournal();
 
-        SegmentTracker getSegmentTracker();
+        SegmentGCOptions getGCOptions();
+
+        GCNodeWriteMonitor getCompactionMonitor();
+
+        SegmentReader getSegmentReader();
 
         SegmentWriterFactory getSegmentWriterFactory();
 
-        GCNodeWriteMonitor getCompactionMonitor();
+        Revisions getRevisions();
+
+        TarFiles getTarFiles();
 
         BlobStore getBlobStore();
 
         CancelCompactionSupplier getCanceller();
 
-        long getLastSuccessfulGC();
-
-        TarFiles getTarFiles();
-
-        AtomicBoolean getSufficientMemory();
-
-        FileReaper getFileReaper();
-
-        SuccessfulGarbageCollectionListener getSuccessfulGarbageCollectionListener();
+        int getGCCount();
 
         SuccessfulCompactionListener getSuccessfulCompactionListener();
 
         Flusher getFlusher();
 
-        long getGCBackOff();
-
-        SegmentGCOptions.GCType getLastCompactionType();
-
-        int getGCCount();
-
-        SegmentCache getSegmentCache();
-
-        FileStoreStats getFileStoreStats();
-
-        SegmentReader getSegmentReader();
+        SegmentTracker getSegmentTracker();
 
     }
 
-    void collectGarbage(Context context) throws IOException;
-
-    void collectFullGarbage(Context context) throws IOException;
-
-    void collectTailGarbage(Context context) throws IOException;
-
-    CompactionResult compactFull(Context context) throws IOException;
-
-    CompactionResult compactTail(Context context) throws IOException;
-
-    List<String> cleanup(Context context) throws IOException;
+    CompactionResult compact(Context context);
 
 }

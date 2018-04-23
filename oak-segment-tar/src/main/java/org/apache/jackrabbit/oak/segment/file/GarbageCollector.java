@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.GarbageCollectionStrategy.SuccessfulCompactionListener;
 import org.apache.jackrabbit.oak.segment.file.GarbageCollectionStrategy.SuccessfulGarbageCollectionListener;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -95,7 +94,7 @@ class GarbageCollector {
 
     private final Flusher flusher;
 
-    private final GarbageCollectionStrategy.SegmentWriterFactory segmentWriterFactory;
+    private final SegmentWriterFactory segmentWriterFactory;
 
     private final GCNodeWriteMonitor compactionMonitor;
 
@@ -129,7 +128,7 @@ class GarbageCollector {
         FileStoreStats stats,
         CancelCompactionSupplier cancel,
         Flusher flusher,
-        GarbageCollectionStrategy.SegmentWriterFactory segmentWriterFactory
+        SegmentWriterFactory segmentWriterFactory
     ) {
         this.gcOptions = gcOptions;
         this.gcListener = new PrefixedGCListener(gcListener, GC_COUNT);
@@ -187,7 +186,7 @@ class GarbageCollector {
             }
 
             @Override
-            public GarbageCollectionStrategy.SegmentWriterFactory getSegmentWriterFactory() {
+            public SegmentWriterFactory getSegmentWriterFactory() {
                 return segmentWriterFactory;
             }
 
