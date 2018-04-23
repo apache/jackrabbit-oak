@@ -23,7 +23,10 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
-public class SecurityProviderHelper {
+public final class SecurityProviderHelper {
+
+    private SecurityProviderHelper() {
+    }
 
     public static SecurityProvider updateConfig(@Nonnull SecurityProvider securityProvider,
             @Nonnull SecurityConfiguration sc, @Nonnull Class<? extends SecurityConfiguration> cls) {
