@@ -61,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
@@ -121,7 +122,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren));
     }
 
-    private DocumentNodeState(@Nonnull DocumentNodeStore store,
+    protected DocumentNodeState(@Nonnull DocumentNodeStore store,
                               @Nonnull String path,
                               @Nullable RevisionVector lastRevision,
                               @Nullable RevisionVector rootRevision,
@@ -167,6 +168,23 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Nonnull
     public DocumentNodeState fromExternalChange() {
         return new DocumentNodeState(store, path, lastRevision, rootRevision, true, bundlingContext);
+    }
+
+    /**
+     * Returns this state as a branch root state connected to the given
+     * {@code branch}.
+     *
+     * @param branch the branch instance.
+     * @return a {@link DocumentBranchRootNodeState} connected to the given
+     *      {@code branch}.
+     * @throws IllegalStateException if this is not a root node state or does
+     *      not represent a branch state.
+     */
+    @Nonnull
+    DocumentNodeState asBranchRootState(@Nonnull DocumentNodeStoreBranch branch) {
+        checkState(PathUtils.denotesRoot(path));
+        checkState(getRootRevision().isBranch());
+        return new DocumentBranchRootNodeState(store, branch, path, rootRevision, lastRevision, bundlingContext);
     }
 
     /**
@@ -333,27 +351,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     public NodeBuilder builder() {
         if ("/".equals(getPath())) {
             if (getRootRevision().isBranch()) {
-                // check if this node state is head of a branch
-                Branch b = store.getBranches().getBranch(getRootRevision());
-                if (b == null) {
-                    if (store.isDisableBranches()) {
-                        if (DocumentNodeStoreBranch.getCurrentBranch() != null) {
-                            return new DocumentRootBuilder(this, store);
-                        } else {
-                            return new MemoryNodeBuilder(this);
-                        }
-                    } else {
-                        throw new IllegalStateException("No branch for revision: " + getRootRevision());
-                    }
-                }
-                if (b.isHead(getRootRevision().getBranchRevision())
-                        && DocumentNodeStoreBranch.getCurrentBranch() != null) {
-                    return new DocumentRootBuilder(this, store);
-                } else {
-                    return new MemoryNodeBuilder(this);
-                }
+                throw new IllegalStateException("Cannot create builder from branched DocumentNodeState");
             } else {
-                return new DocumentRootBuilder(this, store);
+                return new DocumentRootBuilder(this, store, store.createBranch(this));
             }
         } else {
             return new MemoryNodeBuilder(this);
@@ -816,7 +816,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return props.containsKey(key);
     }
 
-    private static class BundlingContext {
+    protected static class BundlingContext {
         final Matcher matcher;
         final Map<String, PropertyState> rootProperties;
         final boolean hasBundledChildren;

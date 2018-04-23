@@ -697,7 +697,7 @@ public class DocumentNodeStoreTest {
         int i = 0;
         // force creation of a branch
         while (docStore.find(NODES, id) == null) {
-            node.setProperty("foo", i++);
+            node.child("foo-" + i++);
         }
 
         NodeDocument doc = docStore.find(NODES, id);
@@ -738,7 +738,7 @@ public class DocumentNodeStoreTest {
         int i = 0;
         // force creation of a branch
         while (docStore.find(NODES, id) == null) {
-            node.setProperty("foo", i++);
+            node.child("foo-"+ i++);
         }
         merge(store1, builder);
 
@@ -776,10 +776,10 @@ public class DocumentNodeStoreTest {
         String testId = Utils.getIdFromPath("/test");
         NodeBuilder test = builder.child("test");
         test.setProperty("p", "value");
+        test.setProperty("q", 0);
         // force creation of branch
-        int q = 0;
-        while (store.find(NODES, testId) == null) {
-            test.setProperty("q", q++);
+        for (int i = 0; store.find(NODES, testId) == null; i++) {
+            test.child("foo-" + i++);
         }
         merge(ns, builder);
 

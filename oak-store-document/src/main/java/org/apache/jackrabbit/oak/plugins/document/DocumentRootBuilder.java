@@ -71,11 +71,12 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     private int updates;
 
     DocumentRootBuilder(@Nonnull DocumentNodeState base,
-                        @Nonnull DocumentNodeStore store) {
+                        @Nonnull DocumentNodeStore store,
+                        @Nonnull DocumentNodeStoreBranch branch) {
         super(checkNotNull(base));
         this.store = checkNotNull(store);
         this.base = base;
-        this.branch = store.createBranch(base);
+        this.branch = checkNotNull(branch);
         this.updateLimit = store.getUpdateLimit();
     }
 
@@ -108,12 +109,10 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     @Nonnull
     @Override
     public NodeState getNodeState() {
-        if (DocumentNodeStoreBranch.getCurrentBranch() != null) {
+        if (updates > 0) {
             purge();
-            return branch.getHead();
-        } else {
-            return super.getNodeState();
         }
+        return branch.getHead();
     }
 
     @Override
@@ -181,4 +180,11 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         updates = 0;
     }
 
+    /**
+     * For test purposes only!
+     */
+    void persist() {
+        purge();
+        branch.persist();
+    }
 }

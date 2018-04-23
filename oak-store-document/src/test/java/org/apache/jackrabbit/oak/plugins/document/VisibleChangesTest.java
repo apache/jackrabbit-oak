@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -61,6 +62,7 @@ public class VisibleChangesTest {
         while (numRevs == getRevisionsSize(store, "/")) {
             foo.setProperty("p", "v");
             foo.removeProperty("p");
+            persistToBranch(builder);
         }
 
         store.paths.clear();
