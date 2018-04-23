@@ -170,7 +170,7 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
         return ImmutableList.of(new ValidatorProvider() {
             @Override
             protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
-                // TODO: write a validator that meets the following requirements:
+                // EXERCISE: write a validator that meets the following requirements:
                 // 1. check that the item names defined with the node types are only used within the scope of the 2 node types
                 // 2. check that the policies are never nested.
 
@@ -186,7 +186,7 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        // TODO
+        // EXERCISE
         return ImmutableList.of();
     }
 

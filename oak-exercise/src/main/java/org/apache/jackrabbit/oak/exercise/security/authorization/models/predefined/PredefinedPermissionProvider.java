@@ -21,12 +21,16 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
+/**
+ * EXERCISE: complete PermissionProvider implementation
+ */
 class PredefinedPermissionProvider implements PermissionProvider {
 
     private final Set<Principal> principals;
@@ -37,46 +41,46 @@ class PredefinedPermissionProvider implements PermissionProvider {
 
     @Override
     public void refresh() {
-        // TODO
+        // EXERCISE: complete PermissionProvider implementation
 
     }
 
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        // TODO
-        return null;
+        // EXERCISE: complete PermissionProvider implementation
+        return ImmutableSet.of();
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
-        // TODO
+        // EXERCISE: complete PermissionProvider implementation
         return false;
     }
 
     @Nonnull
     @Override
     public RepositoryPermission getRepositoryPermission() {
-        // TODO
-        return null;
+        // EXERCISE: complete PermissionProvider implementation
+        return RepositoryPermission.EMPTY;
     }
 
     @Nonnull
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        // TODO
-        return null;
+        // EXERCISE: complete PermissionProvider implementation
+        return TreePermission.EMPTY;
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        // TODO
+        // EXERCISE: complete PermissionProvider implementation
         return false;
     }
 
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        // TODO
+        // EXERCISE: complete PermissionProvider implementation
         return false;
     }
 }

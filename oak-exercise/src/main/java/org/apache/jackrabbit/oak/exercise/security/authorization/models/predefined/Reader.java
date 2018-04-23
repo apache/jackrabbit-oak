@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
+package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined;
+
+import java.security.Principal;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-final class Utils {
+public class Reader implements Principal {
 
-    private Utils() {}
+    private final String name;
 
-    static boolean isSupportedPath(@Nonnull String configuredPath, @Nonnull String path) {
-        return Text.isDescendantOrEqual(configuredPath, path);
+    public Reader(@Nonnull String name) {
+        this.name = name;
     }
 
+    @Override
+    public String getName() {
+        return name;
+    }
 }

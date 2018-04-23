@@ -14,18 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
+package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.util.Text;
+public class Editor extends Reader {
 
-final class Utils {
-
-    private Utils() {}
-
-    static boolean isSupportedPath(@Nonnull String configuredPath, @Nonnull String path) {
-        return Text.isDescendantOrEqual(configuredPath, path);
+    public Editor(@Nonnull String name) {
+        super(name);
     }
-
 }
