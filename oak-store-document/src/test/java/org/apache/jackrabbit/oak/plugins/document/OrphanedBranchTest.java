@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -98,6 +99,7 @@ public class OrphanedBranchTest {
             // perform changes until a branch is created
             while (store.getBranches().size() == numBranches) {
                 child.setProperty("prop", count++);
+                persistToBranch(builder);
             }
             // but do not merge!
             numCreated++;
@@ -177,6 +179,7 @@ public class OrphanedBranchTest {
         // perform changes until a branch is created
         while (store.getBranches().size() == numBranches) {
             child.setProperty("prop", count++);
+            persistToBranch(builder);
         }
         // perform some other change to update head revision
         builder = store.getRoot().builder();
