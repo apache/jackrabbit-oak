@@ -193,7 +193,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     }
 
     @Override
-    public void setParameters(ConfigurationParameters config) {
+    public void setParameters(@Nonnull ConfigurationParameters config) {
         super.setParameters(config);
         supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
     }
