@@ -19,29 +19,19 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.ESTIMATION;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.IDLE;
-import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.Revisions;
-import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
+import org.apache.jackrabbit.oak.segment.file.CleanupStrategy.Context;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -51,6 +41,8 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
     private final CompactionStrategy fullCompactionStrategy = new FullCompactionStrategy();
 
     private final CompactionStrategy tailCompactionStrategy = new FallbackCompactionStrategy(new TailCompactionStrategy(), fullCompactionStrategy);
+
+    private final CleanupStrategy cleanupStrategy = new DefaultCleanupStrategy();
 
     private GCGeneration getGcGeneration(Context context) {
         return context.getRevisions().getHead().getSegmentId().getGcGeneration();
@@ -235,10 +227,6 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
         ).estimate();
     }
 
-    private long size(Context context) {
-        return context.getTarFiles().size();
-    }
-
     @Override
     public synchronized List<String> cleanup(Context context) throws IOException {
         return cleanup(context, CompactionResult.skipped(
@@ -250,86 +238,65 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
         ));
     }
 
-    private List<String> cleanup(Context context, CompactionResult compactionResult)
-        throws IOException {
-        PrintableStopwatch watch = PrintableStopwatch.createStarted();
+    private List<String> cleanup(Context context, CompactionResult compactionResult) throws IOException {
+        return cleanupStrategy.cleanup(new CleanupStrategy.Context() {
 
-        context.getGCListener().info("cleanup started using reclaimer {}", compactionResult.reclaimer());
-        context.getGCListener().updateStatus(CLEANUP.message());
-        context.getSegmentCache().clear();
-
-        // Suggest to the JVM that now would be a good time
-        // to clear stale weak references in the SegmentTracker
-        System.gc();
-
-        TarFiles.CleanupResult cleanupResult = context.getTarFiles().cleanup(newCleanupContext(context, compactionResult.reclaimer()));
-        if (cleanupResult.isInterrupted()) {
-            context.getGCListener().info("cleanup interrupted");
-        }
-        context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(), compactionResult.gcInfo());
-        context.getGCListener().info("cleanup marking files for deletion: {}", toFileNames(cleanupResult.getRemovableFiles()));
-
-        long finalSize = size(context);
-        long reclaimedSize = cleanupResult.getReclaimedSize();
-        context.getFileStoreStats().reclaimed(reclaimedSize);
-        context.getGCJournal().persist(
-            reclaimedSize,
-            finalSize,
-            getGcGeneration(context),
-            context.getCompactionMonitor().getCompactedNodes(),
-            compactionResult.getCompactedRootId().toString10()
-        );
-        context.getGCListener().cleaned(reclaimedSize, finalSize);
-        context.getGCListener().info(
-            "cleanup completed in {}. Post cleanup size is {} and space reclaimed {}.",
-            watch,
-            newPrintableBytes(finalSize),
-            newPrintableBytes(reclaimedSize)
-        );
-        return cleanupResult.getRemovableFiles();
-    }
-
-    private CleanupContext newCleanupContext(Context context, Predicate<GCGeneration> old) {
-        return new CleanupContext() {
-
-            private boolean isUnreferencedBulkSegment(UUID id, boolean referenced) {
-                return !isDataSegmentId(id.getLeastSignificantBits()) && !referenced;
-            }
-
-            private boolean isOldDataSegment(UUID id, GCGeneration generation) {
-                return isDataSegmentId(id.getLeastSignificantBits()) && old.apply(generation);
+            @Override
+            public GCListener getGCListener() {
+                return context.getGCListener();
             }
 
             @Override
-            public Collection<UUID> initialReferences() {
-                Set<UUID> references = newHashSet();
-                for (SegmentId id : context.getSegmentTracker().getReferencedSegmentIds()) {
-                    if (id.isBulkSegmentId()) {
-                        references.add(id.asUUID());
-                    }
-                }
-                return references;
+            public SegmentCache getSegmentCache() {
+                return context.getSegmentCache();
             }
 
             @Override
-            public boolean shouldReclaim(UUID id, GCGeneration generation, boolean referenced) {
-                return isUnreferencedBulkSegment(id, referenced) || isOldDataSegment(id, generation);
+            public SegmentTracker getSegmentTracker() {
+                return context.getSegmentTracker();
             }
 
             @Override
-            public boolean shouldFollow(UUID from, UUID to) {
-                return !isDataSegmentId(to.getLeastSignificantBits());
+            public FileStoreStats getFileStoreStats() {
+                return context.getFileStoreStats();
             }
 
-        };
-    }
+            @Override
+            public GCNodeWriteMonitor getCompactionMonitor() {
+                return context.getCompactionMonitor();
+            }
 
-    private String toFileNames(@Nonnull List<String> files) {
-        if (files.isEmpty()) {
-            return "none";
-        } else {
-            return Joiner.on(",").join(files);
-        }
+            @Override
+            public GCJournal getGCJournal() {
+                return context.getGCJournal();
+            }
+
+            @Override
+            public Predicate<GCGeneration> getReclaimer() {
+                return compactionResult.reclaimer();
+            }
+
+            @Override
+            public TarFiles getTarFiles() {
+                return context.getTarFiles();
+            }
+
+            @Override
+            public Revisions getRevisions() {
+                return context.getRevisions();
+            }
+
+            @Override
+            public String getCompactedRootId() {
+                return compactionResult.getCompactedRootId().toString10();
+            }
+
+            @Override
+            public String getSegmentEvictionReason() {
+                return compactionResult.gcInfo();
+            }
+
+        });
     }
 
 }
