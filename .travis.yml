@@ -53,7 +53,5 @@ addons:
       - python
       - python-pip
       - python-virtualenv
-services:
-  - mongodb
 notifications:
   email: false
