@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import java.io.IOException;
+
 class FallbackCompactionStrategy implements CompactionStrategy {
 
     private final CompactionStrategy primary;
@@ -31,7 +33,7 @@ class FallbackCompactionStrategy implements CompactionStrategy {
     }
 
     @Override
-    public CompactionResult compact(Context context) {
+    public CompactionResult compact(Context context) throws IOException {
         CompactionResult result = primary.compact(context);
 
         if (result.isNotApplicable()) {

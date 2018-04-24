@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -60,6 +62,6 @@ interface CompactionStrategy {
 
     }
 
-    CompactionResult compact(Context context);
+    CompactionResult compact(Context context) throws IOException;
 
 }

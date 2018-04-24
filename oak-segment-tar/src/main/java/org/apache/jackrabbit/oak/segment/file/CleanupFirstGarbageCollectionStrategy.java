@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-class DefaultGarbageCollectionStrategy extends AbstractGarbageCollectionStrategy {
+import java.io.IOException;
+
+class CleanupFirstGarbageCollectionStrategy extends AbstractGarbageCollectionStrategy {
 
     @Override
     EstimationStrategy getFullEstimationStrategy() {
@@ -44,6 +46,11 @@ class DefaultGarbageCollectionStrategy extends AbstractGarbageCollectionStrategy
     @Override
     CleanupStrategy getCleanupStrategy() {
         return new DefaultCleanupStrategy();
+    }
+
+    @Override
+    void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
+        super.run(context, estimationStrategy, new CleanupFirstCompactionStrategy(context, compactionStrategy));
     }
 
 }
