@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-class GCEstimationResult {
+class EstimationResult {
 
     private final boolean gcNeeded;
 
     private final String gcLog;
 
-    GCEstimationResult(boolean gcNeeded, String gcLog) {
+    EstimationResult(boolean gcNeeded, String gcLog) {
         this.gcNeeded = gcNeeded;
         this.gcLog = gcLog;
     }
