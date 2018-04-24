@@ -37,6 +37,10 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
 
+    private final EstimationStrategy fullEstimationStrategy = new FullSizeDeltaEstimationStrategy();
+
+    private final EstimationStrategy tailEstimationStrategy = new TailSizeDeltaEstimationStrategy();
+
     private final CompactionStrategy fullCompactionStrategy = new FullCompactionStrategy();
 
     private final CompactionStrategy tailCompactionStrategy = new FallbackCompactionStrategy(new TailCompactionStrategy(), fullCompactionStrategy);
@@ -218,12 +222,36 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
     }
 
     private EstimationResult estimateCompactionGain(Context context, boolean full) {
-        return new SizeDeltaGcEstimation(
-            context.getGCOptions().getGcSizeDeltaEstimation(),
-            context.getGCJournal(),
-            context.getTarFiles().size(),
-            full
-        ).estimate();
+        EstimationStrategy strategy;
+
+        if (full) {
+            strategy = fullEstimationStrategy;
+        } else {
+            strategy = tailEstimationStrategy;
+        }
+
+        return estimateCompactionGain(context, strategy);
+    }
+
+    private EstimationResult estimateCompactionGain(Context context, EstimationStrategy strategy) {
+        return strategy.estimate(new EstimationStrategy.Context() {
+
+            @Override
+            public long getSizeDelta() {
+                return context.getGCOptions().getGcSizeDeltaEstimation();
+            }
+
+            @Override
+            public long getCurrentSize() {
+                return context.getTarFiles().size();
+            }
+
+            @Override
+            public GCJournal getGCJournal() {
+                return context.getGCJournal();
+            }
+
+        });
     }
 
     @Override
