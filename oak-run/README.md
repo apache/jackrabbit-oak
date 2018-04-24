@@ -27,6 +27,7 @@ The following runmodes are currently available:
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
     * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
     * export          : Export repository content as json
+    * iotrace         : Collect a trace of segment store read accesses 
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -77,6 +78,12 @@ Debug
 -----
 
 See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#debug).
+
+IOTrace
+-----
+
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#iotrace).
+
 
 Console
 -------

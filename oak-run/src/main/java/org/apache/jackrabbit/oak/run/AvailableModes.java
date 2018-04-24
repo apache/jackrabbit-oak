@@ -56,6 +56,7 @@ public final class AvailableModes {
             .put("unlockupgrade", new UnlockUpgradeCommand())
             .put(IndexCommand.NAME, new IndexCommand())
             .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
+            .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put("server", new ServerCommand())
             .build());
 }

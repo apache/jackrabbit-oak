@@ -30,6 +30,7 @@
     * [Check](#check)
     * [Compact](#compact)
     * [Debug](#debug)
+    * [IOTrace](#iotrace)
     * [Diff](#diff)
     * [History](#history)
 
@@ -818,6 +819,38 @@ Both record IDs must point to valid node records.
 The pair of record IDs can be followed by a path, like `333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890/path/to/child`.
 When a node record ID range is specified, the tool will perform a diff between the two nodes pointed by the record IDs, optionally following the provided path.
 The result of the diff will be printed in JSOP format.
+
+### <a name="iotrace"/> IOTrace
+
+````
+java -jar oak-run.jar iotrace PATH --trace DEPTH|BREADTH [--depth DEPTH] [--mmap MMAP] [--output OUTPUT] [--path PATH] [--segment-cache SEGMENT_CACHE] 
+
+usage: iotrace path/to/segmentstore <options>
+Option (* = required)      Description
+---------------------      -----------
+--depth <Integer>          Maximal depth of the traversal (default: 5)
+--mmap <Boolean>           use memory mapping for the file store (default: true)
+--output <File>            output file where the IO trace is written to (default: iotrace.csv)
+--path <String>            starting path for the traversal (default: /root)
+--segment-cache <Integer>  size of the segment cache in MB (default: 256)
+--trace <Traces> (*)       type of the traversal. Either of [DEPTH, BREADTH]
+````
+
+The `iotrace` command collects IO traces of read accesses to the segment store's back-end 
+(e.g. disk). Traffic patterns can be specified via the `--trace` option. Permissible values 
+are `DEPTH` for depth first traversal and `BREADTH` for breadth first traversal. The `--depth`
+option limits the maximum number of levels traversed. The `--path` option specifies the node 
+where traversal starts (from the super root). The `--mmap` and `--segment-cache` options 
+configure memory mapping and segment cache size of the segment store, respectively. The 
+`--output` options specifies the file where the IO trace is stored. IO traces are stored in
+CSV format of the following form:
+
+```
+timestamp,file,segmentId,length,elapsed
+1522147945084,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,171849
+1522147945096,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,131272
+1522147945097,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,142766
+``` 
 
 ### <a name="diff"/> Diff
 
