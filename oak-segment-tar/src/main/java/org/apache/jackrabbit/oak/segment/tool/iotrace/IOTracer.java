@@ -19,29 +19,16 @@
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
-import static java.lang.String.join;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.Flushable;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 
 /**
  * This utility class allows collecting IO traces of read accesses to segments
@@ -70,9 +57,9 @@ public class IOTracer {
     private IOTracer(
             @Nonnull Function<IOMonitor, FileStore> fileStoreFactory,
             @Nonnull Writer output,
-            @Nonnull String contextSpec) {
+            @CheckForNull String contextSpec) {
         this.fileStoreFactory = checkNotNull(fileStoreFactory);
-        ioMonitor = new IOTraceMonitor(checkNotNull(output), checkNotNull(contextSpec));
+        ioMonitor = new IOTraceMonitor(new DefaultIOTraceWriter(output), contextSpec);
     }
 
     /**
@@ -90,7 +77,7 @@ public class IOTracer {
     public static IOTracer newIOTracer(
             @Nonnull Function<IOMonitor, FileStore> fileStoreFactory,
             @Nonnull Writer output,
-            @Nonnull String contextSpec) {
+            @CheckForNull String contextSpec) {
         return new IOTracer(fileStoreFactory, output, contextSpec);
     }
 
@@ -117,89 +104,4 @@ public class IOTracer {
         ioMonitor.setContext(context);
     }
 
-    private static class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
-        @Nonnull
-        private final AtomicReference<List<String>> context =
-                new AtomicReference<>(ImmutableList.of());
-
-        @Nonnull
-        private final PrintWriter out;
-
-        @Nonnull
-        private final Lock ioLock = new ReentrantLock();
-
-        @Nonnull
-        private final ConcurrentLinkedQueue<IOEvent> ioEvents = newConcurrentLinkedQueue();
-
-        public IOTraceMonitor(@Nonnull Writer writer, @Nonnull String contextSpec) {
-            out = new PrintWriter(new BufferedWriter(writer));
-            out.println(IOEvent.getFields(contextSpec));
-        }
-
-        public void setContext(@Nonnull List<String> context) {
-            this.context.set(context);
-        }
-
-        @Override
-        public void afterSegmentRead(@Nonnull File file, long msb, long lsb, int length, long elapsed) {
-            ioEvents.add(new IOEvent(
-                    file.getName(), msb, lsb, length, elapsed, context.get()));
-            if (ioLock.tryLock()) {
-                try {
-                    flush();
-                } finally {
-                    ioLock.unlock();
-                }
-            }
-        }
-
-        @Override
-        public void flush() {
-            ioLock.lock();
-            try {
-                while (!ioEvents.isEmpty()) {
-                    out.println(Objects.toString(ioEvents.poll()));
-                }
-                out.flush();
-            } finally {
-                ioLock.unlock();
-            }
-        }
-
-        private static class IOEvent {
-            @Nonnull private final String fileName;
-            private final long msb;
-            private final long lsb;
-            private final int length;
-            private final long elapsed;
-            @Nonnull private final List<String> context;
-
-            private IOEvent(
-                    @Nonnull String fileName,
-                    long msb,
-                    long lsb,
-                    int length,
-                    long elapsed,
-                    @Nonnull List<String> context)
-            {
-                this.fileName = fileName;
-                this.msb = msb;
-                this.lsb = lsb;
-                this.length = length;
-                this.elapsed = elapsed;
-                this.context = context;
-            }
-
-            public static String getFields(@Nonnull String contextSpec) {
-                return "timestamp,file,segmentId,length,elapsed," + contextSpec;
-            }
-
-            @Override
-            public String toString() {
-                return System.currentTimeMillis() + "," +  fileName + "," +
-                        new UUID(msb, lsb) + "," + length + "," + elapsed + "," +
-                        join(",", context);
-            }
-        }
-    }
 }
