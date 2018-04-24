@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -85,7 +86,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
 
         ds.invalidateCache();
         ds.find(Collection.NODES, id);
-        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(true), eq(false));
+        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(true), anyBoolean());
     }
 
     @Test
@@ -93,7 +94,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         String id = testName.getMethodName();
 
         ds.find(Collection.NODES, id);
-        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(false));
+        verify(stats).doneFindUncached(anyLong(), eq(Collection.NODES), eq(id), eq(false), anyBoolean());
     }
 
     @Test
@@ -113,7 +114,7 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
                 eq(false),  //indexedProperty
                 eq(5) , // resultSize
                 anyLong(),   //lockTime
-                eq(false) //isSlaveOk
+                anyBoolean() //isSlaveOk
         );
     }
 

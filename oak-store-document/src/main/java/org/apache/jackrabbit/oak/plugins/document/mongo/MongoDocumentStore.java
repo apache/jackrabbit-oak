@@ -243,8 +243,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     /**
      * Feature flag for use of MongoDB client sessions.
      */
-    private final boolean useClientSessions = Boolean.parseBoolean(
-            System.getProperty("oak.mongo.clientSessions", "true"));
+    private final boolean useClientSession;
 
     private String lastReadWriteMode;
 
@@ -292,6 +291,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             replicaInfoThread.setDaemon(true);
             replicaInfoThread.start();
         }
+        useClientSession = !builder.isClientSessionDisabled()
+                && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -358,11 +359,11 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
-                "withClientSession {}, {}, serverStatus {}",
+                "clientSessionSupported {}, clientSessionInUse {}, serverStatus {}",
                 mongoStatus.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
-                status.isClientSessionSupported(), db.getWriteConcern(),
-                mongoStatus.getServerDetails());
+                status.isClientSessionSupported(), useClientSession,
+                db.getWriteConcern(), mongoStatus.getServerDetails());
     }
 
     public boolean isReadOnly() {
@@ -459,8 +460,11 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                                        boolean preferCached,
                                        final int maxCacheAge) {
         if (collection != Collection.NODES) {
-            return findUncachedWithRetry(collection, key,
-                    DocumentReadPreference.PRIMARY);
+            DocumentReadPreference readPref = DocumentReadPreference.PRIMARY;
+            if (withClientSession()) {
+                readPref = getDefaultReadPreference(collection);
+            }
+            return findUncachedWithRetry(collection, key, readPref);
         }
         NodeDocument doc;
         if (maxCacheAge > 0 || preferCached) {
@@ -1407,7 +1411,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     DocumentReadPreference getReadPreference(int maxCacheAge){
         long lag = fallbackSecondaryStrategy ? maxReplicationLagMillis : replicaInfo.getLag();
-        if(maxCacheAge >= 0 && maxCacheAge < lag) {
+        if (withClientSession()) {
+            return DocumentReadPreference.PREFER_SECONDARY;
+        } else if(maxCacheAge >= 0 && maxCacheAge < lag) {
             return DocumentReadPreference.PRIMARY;
         } else if(maxCacheAge == Integer.MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
@@ -1418,7 +1424,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     DocumentReadPreference getDefaultReadPreference(Collection col) {
         DocumentReadPreference preference = DocumentReadPreference.PRIMARY;
-        if (status.isClientSessionSupported()) {
+        if (withClientSession()) {
             preference = DocumentReadPreference.PREFER_SECONDARY;
         } else if (col == Collection.NODES) {
             preference = DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH;
@@ -1443,7 +1449,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 }
 
                 boolean secondarySafe;
-                if (fallbackSecondaryStrategy) {
+                if (withClientSession()) {
+                    secondarySafe = true;
+                } else if (fallbackSecondaryStrategy) {
                    // This is not quite accurate, because ancestors
                     // are updated in a background thread (_lastRev). We
                     // will need to revise this for low maxReplicationLagMillis
@@ -1894,6 +1902,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         });
     }
 
+    private boolean withClientSession() {
+        return status.isClientSessionSupported() && useClientSession;
+    }
+
     /**
      * Execute a callable with an optional {@link ClientSession}. A client
      * session is passed to {@link DocumentStoreCallable#call(ClientSession)} if
@@ -1909,7 +1921,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     private <T> T execute(DocumentStoreCallable<T> callable)
             throws DocumentStoreException {
         T result;
-        if (status.isClientSessionSupported() && useClientSessions) {
+        if (withClientSession()) {
             try (ClientSession session = sessionFactory.createClientSession()) {
                 result = callable.call(session);
             }

@@ -21,6 +21,7 @@ env:
     - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
     - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
     - MODULE=oak-store-document PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-store-document PROFILE="-PintegrationTesting -Preplicaset" UT="" MONGODB_MODE="--replicaset"
     - MODULE=oak-it PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-lucene PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-run PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
