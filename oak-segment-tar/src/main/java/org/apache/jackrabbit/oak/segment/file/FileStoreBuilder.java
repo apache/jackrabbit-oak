@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -32,6 +33,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -47,9 +49,12 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.spi.monitor.CompositeIOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceLogWriter;
+import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceMonitor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -125,7 +130,8 @@ public class FileStoreBuilder {
     @Nonnull
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
-    private IOMonitor ioMonitor = new IOMonitorAdapter();
+    @Nonnull
+    private final Set<IOMonitor> ioMonitors = newHashSet();
 
     private boolean strictVersionCheck;
     
@@ -301,8 +307,21 @@ public class FileStoreBuilder {
     }
 
     @Nonnull
-    public FileStoreBuilder withIOMonitor(IOMonitor ioMonitor) {
-        this.ioMonitor = checkNotNull(ioMonitor);
+    public FileStoreBuilder withIOMonitor(@Nonnull IOMonitor ioMonitor) {
+        ioMonitors.add(checkNotNull(ioMonitor));
+        return this;
+    }
+
+    /**
+     * Log IO reads at debug level to the passed logger
+     * @param logger  logger for logging IO reads
+     * @return this.
+     */
+    @Nonnull
+    public FileStoreBuilder withIOLogging(@Nonnull Logger logger) {
+        if (logger.isDebugEnabled()) {
+            ioMonitors.add(new IOTraceMonitor(new IOTraceLogWriter(logger)));
+        }
         return this;
     }
 
@@ -480,7 +499,9 @@ public class FileStoreBuilder {
     }
 
     IOMonitor getIOMonitor() {
-        return ioMonitor;
+        return ioMonitors.isEmpty()
+            ? new IOMonitorAdapter()
+            : new CompositeIOMonitor(ioMonitors);
     }
 
     boolean getStrictVersionCheck() {
