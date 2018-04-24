@@ -1918,7 +1918,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @return the result of the callable.
      * @throws DocumentStoreException if the callable throws an exception.
      */
-    private <T> T execute(DocumentStoreCallable<T> callable)
+    <T> T execute(DocumentStoreCallable<T> callable)
             throws DocumentStoreException {
         T result;
         if (withClientSession()) {

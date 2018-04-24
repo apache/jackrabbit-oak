@@ -184,8 +184,12 @@ public class MongoBlobStore extends CachingBlobStore {
                 .noneMatch(COLLECTION_BLOBS::equals)) {
             db.createCollection(COLLECTION_BLOBS);
         }
+        // override the read preference configured with the MongoDB URI
+        // and use the primary as default. Reading a blob will still
+        // try a secondary first and then fallback to the primary.
         return db.getCollection(COLLECTION_BLOBS, MongoBlob.class)
-                .withCodecRegistry(CODEC_REGISTRY);
+                .withCodecRegistry(CODEC_REGISTRY)
+                .withReadPreference(primary());
     }
 
     private MongoCollection<MongoBlob> getBlobCollection() {
