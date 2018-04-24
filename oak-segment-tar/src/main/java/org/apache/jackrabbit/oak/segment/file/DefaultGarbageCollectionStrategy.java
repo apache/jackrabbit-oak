@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.CleanupStrategy.Context;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -99,7 +98,7 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
                 context.getGCListener().updateStatus(ESTIMATION.message());
 
                 PrintableStopwatch watch = PrintableStopwatch.createStarted();
-                GCEstimationResult estimation = estimateCompactionGain(context, full);
+                EstimationResult estimation = estimateCompactionGain(context, full);
                 sufficientEstimatedGain = estimation.isGcNeeded();
                 String gcLog = estimation.getGcLog();
                 if (sufficientEstimatedGain) {
@@ -218,7 +217,7 @@ class DefaultGarbageCollectionStrategy implements GarbageCollectionStrategy {
         return tailCompactionStrategy.compact(newCompactionStrategyContext(context));
     }
 
-    private GCEstimationResult estimateCompactionGain(Context context, boolean full) {
+    private EstimationResult estimateCompactionGain(Context context, boolean full) {
         return new SizeDeltaGcEstimation(
             context.getGCOptions().getGcSizeDeltaEstimation(),
             context.getGCJournal(),

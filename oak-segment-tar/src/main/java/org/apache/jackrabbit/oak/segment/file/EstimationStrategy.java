@@ -19,8 +19,18 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-interface GCEstimation {
+interface EstimationStrategy {
 
-    GCEstimationResult estimate();
+    interface Context {
+
+        long getSizeDelta();
+
+        long getCurrentSize();
+
+        GCJournal getGCJournal();
+
+    }
+
+    EstimationResult estimate(Context context);
 
 }
