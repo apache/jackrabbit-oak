@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
 import org.bson.conversions.Bson;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 
@@ -47,7 +48,7 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
     @Override
     public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
         Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
-        // TODO It currently prefers secondary. Would that be Ok?
+        // TODO It currently uses the configured read preference. Would that be Ok?
         MongoCursor<BasicDBObject> cursor = documentStore.getDBCollection(NODES)
                 .find(query).iterator();
 

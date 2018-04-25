@@ -25,6 +25,8 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.mongodb.ReadPreference;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -67,11 +69,12 @@ public class BlobReferenceIteratorTest {
     }
 
     @Before
-    public void setUp() throws InterruptedException {
+    public void setUp() {
         store = new DocumentMK.Builder()
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
+        setReadPreference(store.getDocumentStore());
     }
 
     @After
@@ -95,6 +98,12 @@ public class BlobReferenceIteratorTest {
 
         List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
-        assertEquals(new HashSet<ReferencedBlob>(blobs), new HashSet<ReferencedBlob>(collectedBlobs));
+        assertEquals(new HashSet<>(blobs), new HashSet<>(collectedBlobs));
+    }
+
+    private void setReadPreference(DocumentStore store) {
+        // enforce primary read preference, otherwise test fails on a replica
+        // set with a read preference configured to secondary.
+        store.setReadWriteMode("readPreference=" + ReadPreference.primary());
     }
 }
