@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import com.mongodb.ReadPreference;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
@@ -195,7 +197,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     private DocumentNodeStore createNS(int clusterId) throws Exception {
         MongoConnection mc = connectionFactory.getConnection();
-        return new DocumentMK.Builder()
+        DocumentNodeStore ns = new DocumentMK.Builder()
                           .setMongoDB(mc.getMongoClient(), mc.getDBName())
                           .setClusterId(clusterId)
                           //Set delay to 0 so that effect of changes are immediately reflected
@@ -203,6 +205,10 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
                           .setBundlingDisabled(true)
                           .setLeaseCheck(false)
                           .getNodeStore();
+        // enforce primary read preference, otherwise test fails on a replica
+        // set with a read preference configured to secondary.
+        MongoTestUtils.setReadPreference(ns, ReadPreference.primary());
+        return ns;
     }
 
 }
