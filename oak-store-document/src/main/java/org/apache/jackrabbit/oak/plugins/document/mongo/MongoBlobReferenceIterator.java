@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
 import org.bson.conversions.Bson;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 
@@ -48,15 +47,9 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
     @Override
     public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
         Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
-        MongoCollection<BasicDBObject> nodes = documentStore.getDBCollection(NODES)
-                .withReadPreference(documentStore.getConfiguredReadPreference(NODES));
-        MongoCursor<BasicDBObject> cursor = documentStore.execute(session -> {
-            if (session != null) {
-                return nodes.find(session, query).iterator();
-            } else {
-                return nodes.find(query).iterator();
-            }
-        });
+        // TODO It currently prefers secondary. Would that be Ok?
+        MongoCursor<BasicDBObject> cursor = documentStore.getDBCollection(NODES)
+                .find(query).iterator();
 
         return CloseableIterator.wrap(transform(cursor,
                 input -> documentStore.convertFromDBObject(NODES, input)),
