@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -75,7 +74,6 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUt
     .SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for MongoMK GC
@@ -95,7 +93,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
         // Disable client session because this test modifies
         // data directly in MongoDB.
-        // Disable lease check wrapper to get access to the MongoDocumentStore
         return super.addToBuilder(mk)
                 .setClientSessionDisabled(true)
                 .setLeaseCheck(false);
@@ -164,11 +161,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private void setReadPreference(DocumentNodeStore s, ReadPreference pref) {
-        if (!(s.getDocumentStore() instanceof MongoDocumentStore)) {
-            fail("Not a MongoDocumentStore " + s.getDocumentStore());
-        }
-        MongoDocumentStore store = (MongoDocumentStore) s.getDocumentStore();
-        store.setReadWriteMode("readPreference=" + pref);
+        s.getDocumentStore().setReadWriteMode("readPreference=" + pref);
     }
 
     private class DataStoreState {
