@@ -50,7 +50,11 @@ public class MongoConnectionFactory extends ExternalResource {
     @Override
     protected void after() {
         for (MongoConnection c : connections) {
-            c.close();
+            try {
+                c.close();
+            } catch (IllegalStateException e) {
+                // may happen when connection is already closed (OAK-7447)
+            }
         }
     }
 }
