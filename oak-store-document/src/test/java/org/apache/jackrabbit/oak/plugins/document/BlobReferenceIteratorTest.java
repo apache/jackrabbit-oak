@@ -29,6 +29,7 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -52,7 +53,7 @@ public class BlobReferenceIteratorTest {
     }
 
     @Parameterized.Parameters(name="{0}")
-    public static java.util.Collection<Object[]> fixtures() throws IOException {
+    public static java.util.Collection<Object[]> fixtures() {
         List<Object[]> fixtures = Lists.newArrayList();
         fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
@@ -74,7 +75,9 @@ public class BlobReferenceIteratorTest {
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
-        setReadPreference(store.getDocumentStore());
+        // enforce primary read preference, otherwise test fails on a replica
+        // set with a read preference configured to secondary.
+        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
     }
 
     @After
@@ -99,11 +102,5 @@ public class BlobReferenceIteratorTest {
         List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
         assertEquals(new HashSet<>(blobs), new HashSet<>(collectedBlobs));
-    }
-
-    private void setReadPreference(DocumentStore store) {
-        // enforce primary read preference, otherwise test fails on a replica
-        // set with a read preference configured to secondary.
-        store.setReadWriteMode("readPreference=" + ReadPreference.primary());
     }
 }

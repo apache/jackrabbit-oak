@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -102,7 +103,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DocumentNodeStore s = mk.getNodeStore();
         // ensure primary read preference for this test because we modify data
         // directly in MongoDB without going through the MongoDocumentStore
-        setReadPreference(s, ReadPreference.primary());
+        MongoTestUtils.setReadPreference(s, ReadPreference.primary());
         NodeBuilder a = s.getRoot().builder();
 
         int number = count;
@@ -158,10 +159,6 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         }
 
         return state;
-    }
-
-    private void setReadPreference(DocumentNodeStore s, ReadPreference pref) {
-        s.getDocumentStore().setReadWriteMode("readPreference=" + pref);
     }
 
     private class DataStoreState {

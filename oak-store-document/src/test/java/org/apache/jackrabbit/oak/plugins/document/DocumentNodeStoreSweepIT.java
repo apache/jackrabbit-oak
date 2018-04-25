@@ -18,7 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.SortedMap;
 
+import com.mongodb.ReadPreference;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -49,6 +52,11 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
     @Override
     protected DocumentStore customize(DocumentStore store) {
+        // Enforce primary read preference because this test assumes causal
+        // consistent reads across multiple document stores. Otherwise this
+        // test fails on a replica set with secondary read preference
+        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
+
         DocumentStore s;
         if (store1 == null) {
             store1 = new FailingDocumentStore(store, 42);
