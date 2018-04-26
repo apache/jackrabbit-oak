@@ -813,16 +813,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             }
             id = attr.getString();
         }
-        String extId = entry.getDn().getName();
-        String extIdAttribute = config.getExtIdAttribute();
-        if (extIdAttribute != null && extIdAttribute.length() > 0) {
-            Attribute attr = entry.get(extIdAttribute);
-            if (attr == null) {
-                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
-                        "no value found for attribute '" + extIdAttribute + "' for entry " + entry);
-            }
-            extId = attr.getString();
-        }
+        String extId = config.getUseUidForExtId() ? id : entry.getDn().getName();
         ExternalIdentityRef ref = new ExternalIdentityRef(extId, this.getName());
         String path = cfg.makeDnPath()
                 ? createDNPath(entry.getDn())
