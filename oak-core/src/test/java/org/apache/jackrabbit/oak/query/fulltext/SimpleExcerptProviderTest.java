@@ -32,6 +32,18 @@ import org.junit.Test;
 public class SimpleExcerptProviderTest {
 
     @Test
+    public void caseInsensitiveTest() throws Exception {
+        // This will make the test fail:
+        // static {
+        //     System.setProperty("oak.query.caseSensitiveHighlight", "true");
+        // }
+        assertEquals("<div><span><strong>fox</strong> is jumping and dancing foxtrot</span></div>",
+                highlight(sb("fox is jumping and dancing foxtrot"), of("Fox")));
+        assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
+                highlight(sb("fox is jumping"), of("jUmP*")));
+    }
+
+    @Test
     public void simpleTest() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
                 highlight(sb("fox is jumping"), of("fox")));
