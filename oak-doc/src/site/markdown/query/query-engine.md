@@ -338,25 +338,46 @@ New applications should not rely on this feature.
 
 ### Excerpts and Highlighting
 
-If excerpts and highlighting is needed, then queries should contains the "excerpt" property, as follows:
+The Lucene index can be configured to provide excerpts and highlighting.
+See <a href="lucene.html#Property_Definitions">useInExcerpt</a> for details
+on how to configure excerpt generation.
 
-    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt())
+For queries to use those excerpts, the query needs to use the Lucene index where 
+this is configured. The queries also needs to contain the "excerpt" property, as follows:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(.))
     
-If the excerpt is read using `row.getValue("rep:excerpt(.)")`, 
-then excerpt and highlighting features of Lucene are used.
-That is, if a Lucene index is configured for the query, and excerpts are generated
-(see <a href="lucene.html#Property_Definitions">useInExcerpt</a>).
+The excerpt is then read using the JCR API call `row.getValue("rep:excerpt(.)")`.
 
-On the other hand, if the excerpt is requested for properties
-that are not specified in the query, as in `row.getValue("rep:excerpt(@title)")`, 
-or if the query doesn't contain the excerpt property, for example
+Since Oak version 1.10 (OAK-7151), optionally a property name can be specified in the query:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(@jcr:title) | rep:excerpt())
+
+The excerpt for the title is then read using `row.getValue("rep:excerpt(@title)")`,
+and the excerpt for the node using (as before) `row.getValue("rep:excerpt(.)")`.
+
+#### SimpleExcerptProvider
+
+The SimpleExcerptProvider is a fallback mechanism for excerpts and highlighting. 
+This mechanism has many limitations, and is generally is not recommended.
+The SimpleExcerptProvider ignores the index configuration,
+and specially highlighting is very limited 
+(stopwords are ignored, and highlighting is case sensitive).
+
+The SimpleExcerptProvider is used when reading an excerpt 
+if the query doesn't contain an excerpt property, as in:
 
     /jcr:root/content//*[jcr:contains(., 'test')]
 
-then the SimpleExcerptProvider utility is used, 
-which generates excerpt from the content, and does highlighting.
-Using the SimpleExcerptProvider is not recommended; specially highlighting is limited 
-(eg. the index configuration is ignored, stopwords are ignored, and highlighting is case sensitive).
+The SimpleExcerptProvider is also used if an excerpt is requested
+for a property that is not specified in the query. For example,
+when using `row.getValue("rep:excerpt(@title)")`, but the query does not contain
+this property as an excerpt property, as in:
+
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(.))
+    
+The SimpleExcerptProvider is also used for queries that don't use
+a Lucene index, or if the query uses a Lucene index, but excerpts are not configured there.
 
 ### Native Queries
 
