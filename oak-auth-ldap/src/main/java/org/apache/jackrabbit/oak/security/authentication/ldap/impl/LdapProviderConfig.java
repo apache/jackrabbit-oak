@@ -408,17 +408,17 @@ public class LdapProviderConfig {
     /**
      * @see #getExtIdAttribute()
      */
-    public static final String PARAM_EXT_ID_ATTRIBUTE_DEFAULT = "";
+    public static final boolean PARAM_USE_UID_FOR_EXT_ID_DEFAULT = false;
 
     /**
      * @see #getExtIdAttribute()
      */
     @Property(
-            label = "External identifier attribute",
-            description = "The attribute that is used to create external identifiers. Leave empty to use the DN.",
-            value = PARAM_EXT_ID_ATTRIBUTE_DEFAULT
+            label = "Use user id for external ids",
+            description = "If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead.",
+            boolValue = PARAM_USE_UID_FOR_EXT_ID_DEFAULT
     )
-    public static final String PARAM_EXT_ID_ATTRIBUTE = "extIdAttribute";
+    public static final String PARAM_USE_UID_FOR_EXT_ID = "useUidForExtId";
 
     /**
      * @see Identity#getCustomAttributes()
@@ -705,7 +705,7 @@ public class LdapProviderConfig {
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT))
                 .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT))
-                .setExtIdAttribute(params.getConfigValue(PARAM_EXT_ID_ATTRIBUTE, PARAM_EXT_ID_ATTRIBUTE_DEFAULT));
+                .setUseUidForExtId(params.getConfigValue(PARAM_USE_UID_FOR_EXT_ID, PARAM_USE_UID_FOR_EXT_ID_DEFAULT));
 
         ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
         if (ms != null) {
@@ -757,7 +757,7 @@ public class LdapProviderConfig {
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
-    private String extIdAttribute = PARAM_EXT_ID_ATTRIBUTE_DEFAULT;
+    private boolean useUidForExtId = PARAM_USE_UID_FOR_EXT_ID_DEFAULT;
 
     private String memberOfFilterTemplate;
 
@@ -1006,24 +1006,25 @@ public class LdapProviderConfig {
     }
 
     /**
-     * Configures the attribute that is used to create external identifiers.
-     * Leave empty to use the DN, which is default.
+     * If true, the value of the user id (resp. group name) attribute will be used to create external identifiers. Otherwise the DN will be used, which is the default.
      *
-     * @return the attribute used to create external identifiers
+     * @return true iff the value of the user id (resp. group name) attribute will be used to create external identifiers
      */
     @Nonnull
-    public String getExtIdAttribute() {
-        return extIdAttribute;
+    public boolean getUseUidForExtId() {
+        return useUidForExtId;
     }
 
     /**
-     * Sets the attribute that is used to create external identifiers.
-     * @param extIdAttribute the attribute name
+     * Sets the flag that controls if the user id (resp. gruop name) will be used instead of the DN to create external ids.
+     *
+     * @see #getUseUidForExtId()
+     * @param useUidForExtId the new value of #useUidForExtId
      * @return {@code this}
      */
     @Nonnull
-    public LdapProviderConfig setExtIdAttribute(String extIdAttribute) {
-        this.extIdAttribute = extIdAttribute;
+    public LdapProviderConfig setUseUidForExtId(boolean useUidForExtId) {
+        this.useUidForExtId = useUidForExtId;
         return this;
     }
 
@@ -1198,7 +1199,7 @@ public class LdapProviderConfig {
         sb.append(", bindPassword='***'");
         sb.append(", searchTimeout=").append(searchTimeout);
         sb.append(", groupMemberAttribute='").append(groupMemberAttribute).append('\'');
-        sb.append(", extIdAttribute='").append(extIdAttribute).append('\'');
+        sb.append(", useUidForExtId='").append(useUidForExtId).append('\'');
         sb.append(", memberOfFilterTemplate='").append(memberOfFilterTemplate).append('\'');
         sb.append(", adminPoolConfig=").append(adminPoolConfig);
         sb.append(", userPoolConfig=").append(userPoolConfig);

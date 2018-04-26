@@ -96,7 +96,7 @@ which is populated either via OSGi or during manual [Repository Construction](..
 | Group member attribute        | `group.memberAttribute` | Group attribute that contains the member(s) of a group. |
 | Group name attribute          | `group.nameAttribute`   | Name of the attribute that contains the group name. |
 | Group object classes          | `group.objectclass`     | The list of object classes a group entry must contain. |
-| External identifier attribute | `extIdAttribute`        | The attribute that is used to create external identifiers. Leave empty to use the DN. |
+| Use user id for external ids  | `useUidForExtId`        | If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead. |
 | Custom Attributes             | `customattributes`      | Attributes retrieved when looking up LDAP entries. Leave empty to retrieve all attributes. |
 | | | |
 
