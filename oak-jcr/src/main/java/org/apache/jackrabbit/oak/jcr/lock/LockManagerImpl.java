@@ -70,6 +70,7 @@ public class LockManagerImpl implements LockManager {
     @Override
     public void addLockToken(final String lockToken)
             throws RepositoryException {
+        LockDeprecation.logCall("addLockToken");
         try {
             delegate.performVoid(new LockOperation<Void>(sessionContext, lockToken, "addLockToken") {
                 @Override
@@ -89,6 +90,7 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public void removeLockToken(final String lockToken) throws RepositoryException {
+        LockDeprecation.logCall("removeLockToken");
         if (!delegate.perform(new SessionOperation<Boolean>("removeLockToken") {
             @Nonnull
             @Override
@@ -146,6 +148,7 @@ public class LockManagerImpl implements LockManager {
     @Override
     public Lock lock(String absPath, final boolean isDeep, final boolean isSessionScoped,
                      long timeoutHint, String ownerInfo) throws RepositoryException {
+        LockDeprecation.logCall("lock");
         return new LockImpl(sessionContext, delegate.perform(new LockOperation<NodeDelegate>(sessionContext, absPath, "lock") {
             @Nonnull
             @Override
@@ -169,6 +172,7 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public void unlock(String absPath) throws RepositoryException {
+        LockDeprecation.logCall("unlock");
         delegate.performVoid(new LockOperation<Void>(sessionContext, absPath, "unlock") {
             @Override
             protected void performVoid(@Nonnull NodeDelegate node)
