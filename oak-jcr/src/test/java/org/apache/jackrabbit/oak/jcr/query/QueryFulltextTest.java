@@ -42,7 +42,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
     public QueryFulltextTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
     @Test
     public void excerpt() throws Exception {
         Session session = getAdminSession();
@@ -60,9 +60,9 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         RowIterator it;
         Row row;
         String s;
-        
+
         String xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by @jcr:path";
-        
+
         q = qm.createQuery(xpath, "xpath");
         it = q.execute().getRows();
         row = it.nextRow();
@@ -73,10 +73,9 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         row = it.nextRow();
         path = row.getPath();
         s = row.getValue("rep:excerpt(.)").getString();
-        // TODO is this expected?
-        assertTrue(path + ":" + s + " (3)", s.indexOf("Hello World") >= 0);
+        assertTrue(path + ":" + s + " (3)", s.indexOf("<strong>Hello</strong> World") >= 0);
         assertTrue(path + ":" + s + " (4)", s.indexOf("Description") >= 0);
-        
+
         xpath = "//*[jcr:contains(., 'hello')]/rep:excerpt(.) order by @jcr:path";
 
         q = qm.createQuery(xpath, "xpath");
@@ -89,11 +88,10 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         row = it.nextRow();
         path = row.getPath();
         s = row.getValue("rep:excerpt(text)").getString();
-        // TODO is this expected?
-        assertTrue(path + ":" + s + " (7)", s.indexOf("Hello World") >= 0);
+        assertTrue(path + ":" + s + " (7)", s.indexOf("<strong>Hello</strong> World") >= 0);
         assertTrue(path + ":" + s + " (8)", s.indexOf("Description") < 0);
     }
-    
+
     @Test
     public void fulltextOrWithinText() throws Exception {
         Session session = getAdminSession();
@@ -106,18 +104,18 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         Node n3 = testRootNode.addNode("node3");
         n3.setProperty("text", "hello hallo");
         session.save();
-       
-        String sql2 = "select [jcr:path] as [path] from [nt:base] " + 
+
+        String sql2 = "select [jcr:path] as [path] from [nt:base] " +
                 "where contains([text], 'hello OR hallo') order by [jcr:path]";
-        
+
         Query q;
-        
+
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
 
-        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
+        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " +
                 "where contains([nt:base].[text], 'hello OR hallo') */",
                 getResult(q.execute(), "plan"));
-        
+
         // verify the result
         // uppercase "OR" mean logical "or"
         q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -125,14 +123,14 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
                 getResult(q.execute(), "path"));
 
         // lowercase "or" mean search for the term "or"
-        sql2 = "select [jcr:path] as [path] from [nt:base] " + 
+        sql2 = "select [jcr:path] as [path] from [nt:base] " +
                 "where contains([text], 'hello or hallo') order by [jcr:path]";
         q = qm.createQuery(sql2, Query.JCR_SQL2);
-        assertEquals("", 
+        assertEquals("",
                 getResult(q.execute(), "path"));
 
     }
-    
+
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();
@@ -144,5 +142,5 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         }
         return buff.toString();
     }
-    
+
 }

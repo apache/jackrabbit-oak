@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -49,6 +51,8 @@ public class SimpleExcerptProvider {
     public static final String REP_EXCERPT_FN = "rep:excerpt(.)";
     public static final String EXCERPT_END = "</span></div>";
     public static final String EXCERPT_BEGIN = "<div><span>";
+    
+    private static final boolean CASE_SENSITIVE_HIGHLIGHT = Boolean.getBoolean("oak.query.caseSensitiveHighlight");
 
     private static int maxFragmentSize = 150;
 
@@ -235,7 +239,7 @@ public class SimpleExcerptProvider {
         }
         int index = 0;
         while (index < text.length()) {
-            index = text.indexOf(token, index);
+            index = indexOfSearchText(text, token, index);
             if (index < 0) {
                 break;
             }
@@ -267,6 +271,26 @@ public class SimpleExcerptProvider {
                 index = endIndex;
             }
         }
+    }
+    
+    private static int indexOfSearchText(String text, String searchStr, int fromIndex) {
+        if (CASE_SENSITIVE_HIGHLIGHT) {
+            return text.indexOf(searchStr, fromIndex);
+        }
+        return indexOfIgnoreCase(text, searchStr, fromIndex);
+    }
+    
+    public static int indexOfIgnoreCase(String str, String searchStr, int startPos) {
+        // This is not very efficient, specially as we create the pattern each time.
+        // An alternative is to use apache commons lang StringUtils.indexOfIgnoreCase,
+        // but that would require a new dependency
+        String quotedSearchStr = Pattern.quote(searchStr);
+        Pattern pattern = Pattern.compile(quotedSearchStr, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(str);
+        if(matcher.find(startPos)) {
+            return matcher.start();
+        }
+        return -1;
     }
 
     static boolean isDelimeter(int codePoint) {
