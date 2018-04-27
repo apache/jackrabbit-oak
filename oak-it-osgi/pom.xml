@@ -156,14 +156,14 @@
     </dependency>
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>
-      <artifactId>pax-exam-container-native</artifactId>
+      <artifactId>pax-exam-container-forked</artifactId>
       <version>${pax.exam.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.framework</artifactId>
-      <version>5.6.8</version>
+      <version>5.6.10</version>
       <scope>test</scope>
     </dependency>
     <dependency>
