@@ -351,7 +351,7 @@ The excerpt is then read using the JCR API call `row.getValue("rep:excerpt(.)")`
 
 Since Oak version 1.10 (OAK-7151), optionally a property name can be specified in the query:
 
-    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(@jcr:title) | rep:excerpt())
+    /jcr:root/content//*[jcr:contains(., 'test')]/(rep:excerpt(@jcr:title) | rep:excerpt(.))
 
 The excerpt for the title is then read using `row.getValue("rep:excerpt(@title)")`,
 and the excerpt for the node using (as before) `row.getValue("rep:excerpt(.)")`.
@@ -359,10 +359,10 @@ and the excerpt for the node using (as before) `row.getValue("rep:excerpt(.)")`.
 #### SimpleExcerptProvider
 
 The SimpleExcerptProvider is a fallback mechanism for excerpts and highlighting. 
-This mechanism has many limitations, and is generally is not recommended.
-The SimpleExcerptProvider ignores the index configuration,
-and specially highlighting is very limited 
-(stopwords are ignored, and highlighting is case sensitive).
+This mechanism has limitations, and should only be used if really needed.
+The SimpleExcerptProvider is independent of the index configuration.
+Highlighting is limited, for example stopwords are ignored.
+Highlighting is case insensitive since Oak versions 1.2.30, 1.4.22, 1.6.12, 1.8.3, and 1.10 (OAK-7437).
 
 The SimpleExcerptProvider is used when reading an excerpt 
 if the query doesn't contain an excerpt property, as in:
