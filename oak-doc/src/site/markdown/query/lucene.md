@@ -1096,7 +1096,7 @@ index content e.g. size of index, number of documents present in index etc
 
 ### <a name="active-blob-collection"></a>Active Index Files Collection
 
-`@since Oak 1.7.1`
+`@since Oak 1.7.12`
 
 Lucene indexing for moderately active repository creates a lot of deleted files.
 This creates excessive load for usual mark-sweep garbage collection. Since, blobs
@@ -1109,8 +1109,9 @@ can be controlled by `deletedBlobsCollectionInterval` property in
 [Lucene Index provider service configuration](#osgi-config).
 
 The feature would only delete blobs which have been deleted before a certain time.
-This is 24 hours by default and can be controlled by defining `oak.active.deletion.minAge`
-as number of hours to not purge a blob after it's deleted from the repository.
+The task to actually purge blobs from datastore is performed by jmx operation. Jmx bean
+for the operation is `org.apache.jackrabbit.oak:name=Active lucene files collection,type=ActiveDeletedBlobCollector`
+and the operation is `startActiveCollection()`.
 
 ### <a name="luke"></a>Analyzing created Lucene Index
 
