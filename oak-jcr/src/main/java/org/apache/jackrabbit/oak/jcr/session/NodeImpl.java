@@ -85,6 +85,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
@@ -954,6 +955,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(checkNotNull(mixinName));
+        if (JcrConstants.MIX_LOCKABLE.equals(oakTypeName)) {
+            LockDeprecation.logCall("addMixin " + JcrConstants.MIX_LOCKABLE);
+        }
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("addMixin") {
             @Override
             public void checkPreconditions() throws RepositoryException {
