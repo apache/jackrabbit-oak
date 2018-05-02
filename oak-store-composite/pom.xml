@@ -94,6 +94,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-document</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-store-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -147,6 +152,20 @@
     <dependency>
       <groupId>org.apache.sling</groupId>
       <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-document</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
+      <optional>true</optional>
       <scope>test</scope>
     </dependency>
   </dependencies>
