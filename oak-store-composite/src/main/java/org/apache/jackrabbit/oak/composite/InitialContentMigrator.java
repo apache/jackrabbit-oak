@@ -21,7 +21,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfo;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -47,7 +47,7 @@ public class InitialContentMigrator {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
-    private static final int CLUSTER_ID = Integer.getInteger("oak.composite.seed.clusterId", 1);
+    private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
@@ -102,11 +102,11 @@ public class InitialContentMigrator {
     public void migrate() throws IOException, CommitFailedException {
         if (isTargetInitialized()) {
             LOG.info("The target is already initialized, no need to copy the seed mount");
-        } else if (targetNodeStore instanceof DocumentNodeStore) {
-            DocumentNodeStore dns = (DocumentNodeStore) targetNodeStore;
-            int clusterId = dns.getClusterId();
+        } else if (targetNodeStore instanceof Clusterable) {
+            Clusterable dns = (Clusterable) targetNodeStore;
+            String clusterId = dns.getInstanceId();
             LOG.info("The target isn't initialized and the cluster id = {}.", clusterId);
-            if (clusterId == CLUSTER_ID) {
+            if (CLUSTER_ID.equals(clusterId)) {
                 LOG.info("This cluster id {} is configured to initialized the repository.", CLUSTER_ID);
                 doMigrate();
             } else {
