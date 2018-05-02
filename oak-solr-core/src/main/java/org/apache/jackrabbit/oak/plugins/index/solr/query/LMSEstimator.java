@@ -70,6 +70,11 @@ class LMSEstimator {
         for (int i = 0; i < 5; i++) {
             estimatedEntryCount += weights[i] * getInput(filter, i);
         }
+        if (Double.isInfinite(estimatedEntryCount) || Double.isNaN(estimatedEntryCount)) {
+            // prevent over / under flow
+            estimatedEntryCount = 1;
+            weights = new double[5];
+        }
         return Math.max(0, estimatedEntryCount);
     }
 
