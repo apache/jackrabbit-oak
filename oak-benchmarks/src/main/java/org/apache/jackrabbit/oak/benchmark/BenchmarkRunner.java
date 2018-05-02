@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLogin
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExternalUsersTest;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
@@ -480,6 +481,7 @@ public class BenchmarkRunner {
             // benchmarks for oak-auth-external
             new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
+            new SyncAllUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
             new PrincipalNameResolutionTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), roundtripDelay.value(options)),
             new ListIdentitiesTest(numberOfUsers.value(options)),

@@ -214,12 +214,12 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
                         // now register the sync-handler with the dynamic membership config
                         // in order to enable dynamic membership with the external principal configuration
-                        Map props = ImmutableMap.of(
+                        Map<String, Object> props = ImmutableMap.of(
                                 DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership(),
                                 DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, syncConfig.user().getAutoMembership());
                         context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
 
-                        Map shMappingProps = ImmutableMap.of(
+                        Map<String, Object> shMappingProps = ImmutableMap.of(
                                 SyncHandlerMapping.PARAM_IDP_NAME, idp.getName(),
                                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncConfig.getName());
                         context.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, shMappingProps);
