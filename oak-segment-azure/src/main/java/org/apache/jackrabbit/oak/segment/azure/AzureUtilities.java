@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,25 +56,12 @@ public final class AzureUtilities {
 
     public static Stream<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {
         try {
-            return StreamSupport.stream(directory.listBlobs().spliterator(), false)
+            return StreamSupport.stream(directory.listBlobs(null, false, EnumSet.of(BlobListingDetails.METADATA), null, null).spliterator(), false)
                     .filter(i -> i instanceof CloudBlob)
                     .map(i -> (CloudBlob) i);
         } catch (StorageException | URISyntaxException e) {
             throw new IOException(e);
         }
-    }
-
-    public static long getDirectorySize(CloudBlobDirectory directory) throws IOException {
-        long size = 0;
-        for (CloudBlob b : getBlobs(directory).collect(Collectors.toList())) {
-            try {
-                b.downloadAttributes();
-            } catch (StorageException e) {
-                throw new IOException(e);
-            }
-            size += b.getProperties().getLength();
-        }
-        return size;
     }
 
     public static void readBufferFully(CloudBlob blob, ByteBuffer buffer) throws IOException {

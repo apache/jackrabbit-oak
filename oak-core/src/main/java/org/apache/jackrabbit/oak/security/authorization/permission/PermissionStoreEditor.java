@@ -92,7 +92,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                         new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
                 List<AcEntry> list = entries.get(entry.principalName);
                 if (list == null) {
-                    list = new ArrayList<AcEntry>();
+                    list = new ArrayList<>();
                     entries.put(entry.principalName, list);
                 }
                 list.add(entry);
@@ -117,6 +117,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         for (String principalName : entries.keySet()) {
             if (permissionRoot.hasChildNode(principalName)) {
                 NodeBuilder principalRoot = permissionRoot.getChildNode(principalName);
+                boolean removed = false;
 
                 // find the ACL node that for this path and principal
                 NodeBuilder parent = principalRoot.getChildNode(nodeName);
@@ -139,11 +140,13 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                             newParent.setChildNode(childName, child.getNodeState());
                         }
                     }
+
                     if (newParent != null) {
-                        // replace the 'parent', which needs to be removed
+                        // replace the 'parent', which got removed
                         principalRoot.setChildNode(nodeName, newParent.getNodeState());
+                        removed = true;
                     } else {
-                        parent.remove();
+                        removed = parent.remove();
                     }
                 } else {
                     // check if any of the child nodes match
@@ -153,9 +156,12 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                         }
                         NodeBuilder child = parent.getChildNode(childName);
                         if (PermissionUtil.checkACLPath(child, accessControlledPath)) {
-                            child.remove();
+                            removed = child.remove();
                         }
                     }
+                }
+                if (removed) {
+                    updateNumEntries(principalName, principalRoot, -1);
                 }
             } else {
                 log.error("Unable to remove permission entry {}: Principal root missing.", this);
@@ -210,6 +216,10 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 parent.setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath);
             }
             updateEntries(parent, entry.getValue());
+
+            if (parent.isNew()) {
+                updateNumEntries(principalName, principalRoot, +1);
+            }
         }
     }
 
@@ -222,6 +232,21 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
         for (AcEntry ace: list) {
             ace.writeToPermissionStore(parent);
+        }
+    }
+
+    private static void updateNumEntries(@Nonnull String principalName, @Nonnull NodeBuilder principalRoot, int cnt) {
+        PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
+        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
+        if (ps == null && !principalRoot.isNew()) {
+            // existing principal root that doesn't have the rep:numEntries set
+            return;
+        } else if  (numEntries < 0) {
+            // numEntries unexpectedly turned negative
+            log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
+            principalRoot.removeProperty(REP_NUM_PERMISSIONS);
+        } else {
+            principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
         }
     }
 
@@ -251,7 +276,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         private final int index;
         private int hashCode = -1;
 
-        private AcEntry(@Nonnull NodeState node, @Nonnull String accessControlledPath, int index,
+        AcEntry(@Nonnull NodeState node, @Nonnull String accessControlledPath, int index,
                         boolean isAllow, @Nonnull PrivilegeBits privilegeBits,
                         @Nonnull Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;

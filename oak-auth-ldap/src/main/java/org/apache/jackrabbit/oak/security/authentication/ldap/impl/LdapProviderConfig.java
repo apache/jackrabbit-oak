@@ -406,6 +406,21 @@ public class LdapProviderConfig {
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
 
     /**
+     * @see #getExtIdAttribute()
+     */
+    public static final boolean PARAM_USE_UID_FOR_EXT_ID_DEFAULT = false;
+
+    /**
+     * @see #getExtIdAttribute()
+     */
+    @Property(
+            label = "Use user id for external ids",
+            description = "If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead.",
+            boolValue = PARAM_USE_UID_FOR_EXT_ID_DEFAULT
+    )
+    public static final String PARAM_USE_UID_FOR_EXT_ID = "useUidForExtId";
+
+    /**
      * @see Identity#getCustomAttributes()
      */
     public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
@@ -689,7 +704,8 @@ public class LdapProviderConfig {
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT))
-                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT));
+                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT))
+                .setUseUidForExtId(params.getConfigValue(PARAM_USE_UID_FOR_EXT_ID, PARAM_USE_UID_FOR_EXT_ID_DEFAULT));
 
         ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
         if (ms != null) {
@@ -740,6 +756,8 @@ public class LdapProviderConfig {
     private long searchTimeout = ConfigurationParameters.Milliseconds.of(PARAM_SEARCH_TIMEOUT_DEFAULT).value;
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
+
+    private boolean useUidForExtId = PARAM_USE_UID_FOR_EXT_ID_DEFAULT;
 
     private String memberOfFilterTemplate;
 
@@ -988,6 +1006,29 @@ public class LdapProviderConfig {
     }
 
     /**
+     * If true, the value of the user id (resp. group name) attribute will be used to create external identifiers. Otherwise the DN will be used, which is the default.
+     *
+     * @return true iff the value of the user id (resp. group name) attribute will be used to create external identifiers
+     */
+    @Nonnull
+    public boolean getUseUidForExtId() {
+        return useUidForExtId;
+    }
+
+    /**
+     * Sets the flag that controls if the user id (resp. gruop name) will be used instead of the DN to create external ids.
+     *
+     * @see #getUseUidForExtId()
+     * @param useUidForExtId the new value of #useUidForExtId
+     * @return {@code this}
+     */
+    @Nonnull
+    public LdapProviderConfig setUseUidForExtId(boolean useUidForExtId) {
+        this.useUidForExtId = useUidForExtId;
+        return this;
+    }
+
+    /**
      * Optionally configures an array of attribute names that will be retrieved when looking up LDAP entries.
      * Defaults to the empty array indicating that all attributes will be retrieved.
      *
@@ -1158,6 +1199,7 @@ public class LdapProviderConfig {
         sb.append(", bindPassword='***'");
         sb.append(", searchTimeout=").append(searchTimeout);
         sb.append(", groupMemberAttribute='").append(groupMemberAttribute).append('\'');
+        sb.append(", useUidForExtId='").append(useUidForExtId).append('\'');
         sb.append(", memberOfFilterTemplate='").append(memberOfFilterTemplate).append('\'');
         sb.append(", adminPoolConfig=").append(adminPoolConfig);
         sb.append(", userPoolConfig=").append(userPoolConfig);

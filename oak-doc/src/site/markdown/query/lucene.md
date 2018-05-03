@@ -437,17 +437,14 @@ excludeFromAggregation
 
 <a name="weight"></a>
 weight
-: Since 1.6.3
-: At times, we have property definitions which are added to support for dense results right out of 
-  the index (e.g. `contains(*, 'foo') AND [bar]='baz'`). In such cases, the added property definition "might" 
-  not be the best one to answer queries which only have the property restriction (eg only `[bar]='baz'`). This 
-  can happen when that index specifies some exclude paths and hence does not index all `bar` properties.
-  
-  For such cases set `weight` to `0` for such properties. In such a case IndexPlanner would not use those property
-  definitions to determine if that index can answer the query but it would still use them if some other index entry
-  causes that index to be selected for evaluating such a query.
-  
-  Refer [OAK-5899][OAK-5899] for more details
+: Allows to override the estimated number of entries per value, 
+  which affects the cost of the index.
+: Since 1.6.3: if `weight` is set to `0`, then this property is assumed not to reduce the cost. 
+  Queries that contain _only_ this condition should not use that index. 
+  See [OAK-5899][OAK-5899] for details.
+: Since 1.7.11: if `weight` is set to `10`, then the estimated number of unique entries is 10.
+  This means, the cost is reduced by a factor of about 10, for queries that contain this condition.
+  See [OAK-6735][OAK-6735] for details.
 
 <a name="property-names"></a>**Property Names**
 
@@ -1099,7 +1096,7 @@ index content e.g. size of index, number of documents present in index etc
 
 ### <a name="active-blob-collection"></a>Active Index Files Collection
 
-`@since Oak 1.7.1`
+`@since Oak 1.7.12`
 
 Lucene indexing for moderately active repository creates a lot of deleted files.
 This creates excessive load for usual mark-sweep garbage collection. Since, blobs
@@ -1112,8 +1109,9 @@ can be controlled by `deletedBlobsCollectionInterval` property in
 [Lucene Index provider service configuration](#osgi-config).
 
 The feature would only delete blobs which have been deleted before a certain time.
-This is 24 hours by default and can be controlled by defining `oak.active.deletion.minAge`
-as number of hours to not purge a blob after it's deleted from the repository.
+The task to actually purge blobs from datastore is performed by jmx operation. Jmx bean
+for the operation is `org.apache.jackrabbit.oak:name=Active lucene files collection,type=ActiveDeletedBlobCollector`
+and the operation is `startActiveCollection()`.
 
 ### <a name="luke"></a>Analyzing created Lucene Index
 
@@ -1767,30 +1765,31 @@ such fields
 ```
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
-[OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
-[OAK-2196]: https://issues.apache.org/jira/browse/OAK-2196
-[OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737 
-[OAK-2306]: https://issues.apache.org/jira/browse/OAK-2306
+[OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
+[OAK-2196]: https://issues.apache.org/jira/browse/OAK-2196
+[OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
 [OAK-2234]: https://issues.apache.org/jira/browse/OAK-2234
+[OAK-2247]: https://issues.apache.org/jira/browse/OAK-2247
 [OAK-2268]: https://issues.apache.org/jira/browse/OAK-2268
-[OAK-2517]: https://issues.apache.org/jira/browse/OAK-2517
+[OAK-2306]: https://issues.apache.org/jira/browse/OAK-2306
+[OAK-2463]: https://issues.apache.org/jira/browse/OAK-2463
 [OAK-2469]: https://issues.apache.org/jira/browse/OAK-2469
 [OAK-2470]: https://issues.apache.org/jira/browse/OAK-2470
-[OAK-2463]: https://issues.apache.org/jira/browse/OAK-2463
-[OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
+[OAK-2517]: https://issues.apache.org/jira/browse/OAK-2517
 [OAK-2599]: https://issues.apache.org/jira/browse/OAK-2599
-[OAK-2247]: https://issues.apache.org/jira/browse/OAK-2247
+[OAK-2808]: https://issues.apache.org/jira/browse/OAK-2808
 [OAK-2853]: https://issues.apache.org/jira/browse/OAK-2853
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
+[OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
-[OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
-[OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
+[OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
+[OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
-[OAK-2808]: https://issues.apache.org/jira/browse/OAK-2808
+[OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console

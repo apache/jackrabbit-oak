@@ -21,15 +21,49 @@ import java.util.List;
 import java.util.Map;
 
 import com.github.fakemongo.Fongo;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.ReturnDocument;
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.WriteModel;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.connection.ServerVersion;
+import com.mongodb.session.ClientSession;
+
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
+
+import static java.util.stream.Collectors.toList;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class OakFongo extends Fongo {
 
+    private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
+            MongoClient.getDefaultCodecRegistry()
+    );
+
     private final Map<String, FongoDB> dbMap;
+
+    private final MongoClient client;
 
     public OakFongo(String name) throws Exception {
         super(name);
         this.dbMap = getDBMap();
+        this.client = createClientProxy();
+    }
+
+    @Override
+    public MongoClient getMongo() {
+        return client;
     }
 
     @Override
@@ -48,11 +82,24 @@ public class OakFongo extends Fongo {
         }
     }
 
+    @Override
+    public FongoMongoDatabase getDatabase(String databaseName) {
+        return new OakFongoMongoDatabase(databaseName, this);
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, FongoDB> getDBMap() throws Exception {
         Field f = Fongo.class.getDeclaredField("dbMap");
         f.setAccessible(true);
         return (Map<String, FongoDB>) f.get(this);
+    }
+
+    private MongoClient createClientProxy() {
+        MongoClient c = spy(super.getMongo());
+        for (String dbName : new String[]{MongoUtils.DB, "oak"}) {
+            when(c.getDatabase(dbName)).thenReturn(new OakFongoMongoDatabase(dbName, this));
+        }
+        return c;
     }
 
     protected void beforeInsert(List<? extends DBObject> documents,
@@ -93,6 +140,7 @@ public class OakFongo extends Fongo {
     protected void afterFind(DBCursor cursor) {}
 
     protected void afterExecuteBulkWriteOperation(BulkWriteResult result) {}
+
     private class OakFongoDB extends FongoDB {
 
         private final Map<String, FongoDBCollection> collMap;
@@ -124,36 +172,39 @@ public class OakFongo extends Fongo {
 
         @Override
         public synchronized FongoDBCollection doGetCollection(String name,
-                                                              boolean idIsNotUniq) {
+                                                              boolean idIsNotUniq,
+                                                              boolean validateOnInsert) {
             if (name.startsWith("system.")) {
-                return super.doGetCollection(name, idIsNotUniq);
+                return super.doGetCollection(name, idIsNotUniq, validateOnInsert);
             }
             FongoDBCollection coll = collMap.get(name);
             if (coll == null) {
-                coll = new OakFongoDBCollection(this, name, idIsNotUniq);
+                coll = new OakFongoDBCollection(this, name, idIsNotUniq, validateOnInsert);
                 collMap.put(name, coll);
             }
             return coll;
         }
 
-        private String asString(ServerVersion serverVersion) {
-            StringBuilder sb = new StringBuilder();
-            for (int i : serverVersion.getVersionList()) {
-                if (sb.length() != 0) {
-                    sb.append('.');
-                }
-                sb.append(String.valueOf(i));
+    }
+
+    private static String asString(ServerVersion serverVersion) {
+        StringBuilder sb = new StringBuilder();
+        for (int i : serverVersion.getVersionList()) {
+            if (sb.length() != 0) {
+                sb.append('.');
             }
-            return sb.toString();
+            sb.append(String.valueOf(i));
         }
+        return sb.toString();
     }
 
     private class OakFongoDBCollection extends FongoDBCollection {
 
         public OakFongoDBCollection(FongoDB db,
                                     String name,
-                                    boolean idIsNotUniq) {
-            super(db, name, idIsNotUniq);
+                                    boolean idIsNotUniq,
+                                    boolean validateOnInsert) {
+            super(db, name, idIsNotUniq, validateOnInsert);
         }
 
         @Override
@@ -217,6 +268,142 @@ public class OakFongo extends Fongo {
             DBCursor result = super.find(query, projection);
             afterFind(result);
             return result;
+        }
+    }
+
+    private class OakFongoMongoDatabase extends FongoMongoDatabase {
+
+        private final Fongo fongo;
+
+        public OakFongoMongoDatabase(String databaseName, Fongo fongo) {
+            super(databaseName, fongo);
+            this.fongo = fongo;
+        }
+
+        @Override
+        public MongoCollection<Document> getCollection(String collectionName) {
+            return new OakFongoMongoCollection(this.fongo, new MongoNamespace(super.getName(), collectionName), super.getCodecRegistry(), super.getReadPreference(), super.getWriteConcern(), super.getReadConcern());
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public <TResult> TResult runCommand(Bson command,
+                                            ReadPreference readPreference,
+                                            Class<TResult> tResultClass) {
+            if (BasicDBObject.class.equals(tResultClass)) {
+                BasicDBObject result = new BasicDBObject();
+                result.append("version", asString(getServerVersion()));
+                return (TResult) result;
+            }
+            return super.runCommand(command, readPreference, tResultClass);
+        }
+    }
+
+    private class OakFongoMongoCollection extends FongoMongoCollection<Document> {
+
+        private final Fongo fongo;
+
+        OakFongoMongoCollection(Fongo fongo,
+                                MongoNamespace namespace,
+                                CodecRegistry codecRegistry,
+                                ReadPreference readPreference,
+                                WriteConcern writeConcern,
+                                ReadConcern readConcern) {
+            super(fongo, namespace, Document.class, codecRegistry, readPreference, writeConcern, readConcern);
+            this.fongo = fongo;
+        }
+
+        @Override
+        public void insertMany(ClientSession clientSession,
+                               List<? extends Document> documents,
+                               InsertManyOptions options) {
+            beforeInsert(asDBObjects(documents), new InsertOptions());
+            super.insertMany(clientSession, documents, options);
+            WriteResult result = new WriteResult(documents.size(), false, null);
+            afterInsert(result);
+        }
+
+        @Override
+        public DeleteResult deleteMany(ClientSession clientSession,
+                                       Bson filter,
+                                       DeleteOptions options) {
+            beforeRemove(asDBObject(filter), getWriteConcern());
+            DeleteResult result = super.deleteMany(clientSession, filter, options);
+            afterRemove(new WriteResult((int) result.getDeletedCount(), false, null));
+            return result;
+        }
+
+        @Override
+        public UpdateResult updateMany(ClientSession clientSession,
+                                       Bson filter,
+                                       Bson update,
+                                       UpdateOptions updateOptions) {
+            beforeUpdate(asDBObject(filter), asDBObject(update), updateOptions.isUpsert(), true, getWriteConcern(), new DefaultDBEncoder());
+            UpdateResult result = super.updateMany(clientSession, filter, update, updateOptions);
+            afterUpdate(new WriteResult((int) result.getModifiedCount(), true, result.getUpsertedId().asString().getValue()));
+            return result;
+        }
+
+        @Override
+        public Document findOneAndUpdate(ClientSession clientSession,
+                                         Bson filter,
+                                         Bson update,
+                                         FindOneAndUpdateOptions options) {
+            beforeFindAndModify(asDBObject(filter), null, null, false, asDBObject(update), options.getReturnDocument() == ReturnDocument.AFTER, options.isUpsert());
+            Document result = super.findOneAndUpdate(clientSession, filter, update, options);
+            afterFindAndModify(asDBObject(result));
+            return result;
+        }
+
+        @Override
+        public FindIterable<Document> find(ClientSession clientSession,
+                                           Bson filter) {
+            beforeFind(asDBObject(filter), null);
+            FindIterable<Document> result = super.find(clientSession, filter);
+            afterFind(new FongoDBCursor(fongo.getDB(getNamespace().getDatabaseName()).getCollection(getNamespace().getCollectionName()), asDBObject(filter), null));
+            return result;
+        }
+
+        @Override
+        public com.mongodb.bulk.BulkWriteResult bulkWrite(ClientSession clientSession,
+                                                          List<? extends WriteModel<? extends Document>> requests,
+                                                          BulkWriteOptions options) {
+            beforeExecuteBulkWriteOperation(options.isOrdered(), options.getBypassDocumentValidation(), requests, getWriteConcern());
+            com.mongodb.bulk.BulkWriteResult result = super.bulkWrite(clientSession, requests, options);
+            afterExecuteBulkWriteOperation(new AcknowledgedBulkWriteResult(result.getInsertedCount(), result.getMatchedCount(), result.getDeletedCount(), result.getModifiedCount(), this.transform(result.getUpserts())));
+            return result;
+        }
+
+        private List<BulkWriteUpsert> transform(List<com.mongodb.bulk.BulkWriteUpsert> upserts) {
+            return upserts.stream().map(bulkWriteUpsert -> new BulkWriteUpsert(bulkWriteUpsert.getIndex(), bulkWriteUpsert.getId().asString().getValue())).collect(toList());
+        }
+
+        @Override
+        public MongoCollection<Document> withCodecRegistry(CodecRegistry codecRegistry) {
+            return new OakFongoMongoCollection(fongo, super.getNamespace(), codecRegistry, super.getReadPreference(), super.getWriteConcern(), super.getReadConcern());
+        }
+
+        @Override
+        public MongoCollection<Document> withReadPreference(ReadPreference readPreference) {
+            return new OakFongoMongoCollection(fongo, super.getNamespace(), super.getCodecRegistry(), readPreference, super.getWriteConcern(), super.getReadConcern());
+        }
+
+        @Override
+        public MongoCollection<Document> withWriteConcern(WriteConcern writeConcern) {
+            return new OakFongoMongoCollection(fongo, super.getNamespace(), super.getCodecRegistry(), super.getReadPreference(), writeConcern, super.getReadConcern());
+        }
+
+        @Override
+        public MongoCollection<Document> withReadConcern(ReadConcern readConcern) {
+            return new OakFongoMongoCollection(fongo, super.getNamespace(), super.getCodecRegistry(), super.getReadPreference(), super.getWriteConcern(), readConcern);
+        }
+
+        private List<DBObject> asDBObjects(List<? extends Document> docs) {
+            return docs.stream().map(this::asDBObject).collect(toList());
+        }
+
+        private DBObject asDBObject(Bson bson) {
+            return new BasicDBObject(bson.toBsonDocument(Document.class, CODEC_REGISTRY));
         }
     }
 }

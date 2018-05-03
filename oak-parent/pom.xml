@@ -43,21 +43,23 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.17.1</jackrabbit.version>
+    <jackrabbit.version>2.17.2</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
+    <mongo.url/>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
     <solr.version>5.5.5</solr.version>
-    <mongo.driver.version>3.4.0</mongo.driver.version>
+    <mongo.driver.version>3.6.3</mongo.driver.version>
     <slf4j.api.version>1.7.25</slf4j.api.version>
     <slf4j.version>1.7.25</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.17</tika.version>
+    <tika.version>1.18</tika.version>
     <guava.version>15.0</guava.version>
+    <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <findbugs.version>3.0.4</findbugs.version>
     <derby.version>10.14.1.0</derby.version>
     <java.version>1.8</java.version>
@@ -128,6 +130,7 @@
             <links>
               <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
               <link>http://jackrabbit.apache.org/api/trunk/</link>
+              <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
             </links>
           </configuration>
         </plugin>
@@ -289,6 +292,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
+              <mongo.url>${mongo.url}</mongo.url>
               <segment.db>${segment.db}</segment.db>
               <nsfixtures>${fixtures}</nsfixtures>
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
@@ -307,6 +311,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
+              <mongo.url>${mongo.url}</mongo.url>
               <nsfixtures>${fixtures}</nsfixtures>
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
             </systemPropertyVariables>
@@ -390,7 +395,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.7.9</version>
+          <version>0.8.1</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -597,12 +602,12 @@
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.5</version>
+        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.5</version>
+        <version>1.11</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -612,7 +617,7 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.28</version>
+        <version>8.5.30</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -878,6 +883,16 @@
       </build>
     </profile>
     <profile>
+      <id>guava-latest</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+          <version>20.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>rdb-derby</id>
       <dependencies>
         <dependency>
@@ -893,7 +908,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>5.1.45</version>
+          <version>5.1.46</version>
         </dependency>
       </dependencies>
     </profile>
@@ -903,7 +918,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.1</version>
+          <version>42.2.2</version>
         </dependency>
       </dependencies>
     </profile>
@@ -918,17 +933,12 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of MS SqlServer JDBC driver deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=sqljdbc41.jar -Dpackaging=jar\
-          -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.1
-       -->
       <id>rdb-mssql</id>
       <dependencies>
         <dependency>
           <groupId>com.microsoft.sqlserver</groupId>
-          <artifactId>sqljdbc4</artifactId>
-          <version>4.1</version>
+          <artifactId>mssql-jdbc</artifactId>
+          <version>6.4.0.jre8</version>
         </dependency>
       </dependencies>
     </profile>
@@ -952,14 +962,14 @@
       <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
       <!-- for instance:
         mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.66
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.72
        -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
           <artifactId>db2</artifactId>
-          <version>4.19.66</version>
+          <version>4.19.72</version>
         </dependency>
       </dependencies>
     </profile>
@@ -967,16 +977,6 @@
       <id>coverage</id>
       <properties>
         <skip.coverage>false</skip.coverage>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>findbugs-jdk6</id>
-      <activation>
-        <jdk>1.6</jdk>
-      </activation>
-      <properties>
-        <findbugs.version>2.5.5</findbugs.version>
       </properties>
     </profile>
 

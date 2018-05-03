@@ -89,12 +89,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AzureRepositoryLock(getBlockBlob("repo.lock"), new Runnable() {
-            @Override
-            public void run() {
-                log.warn("Lost connection to the Azure. The client will be closed.");
-                // TODO close the connection
-            }
+        return new AzureRepositoryLock(getBlockBlob("repo.lock"), () -> {
+            log.warn("Lost connection to the Azure. The client will be closed.");
+            // TODO close the connection
         }).lock();
     }
 

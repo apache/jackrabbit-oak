@@ -100,7 +100,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     private CugExclude exclude;
 
     /**
@@ -192,13 +192,17 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         return CugContext.INSTANCE;
     }
 
+    @Override
+    public void setParameters(@Nonnull ConfigurationParameters config) {
+        super.setParameters(config);
+        supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
+    }
+
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     protected void activate(Map<String, Object> properties) {
-        ConfigurationParameters params = ConfigurationParameters.of(properties);
-        setParameters(params);
-        supportedPaths = CugUtil.getSupportedPaths(params, mountInfoProvider);
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -215,6 +219,14 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         // set to null (and not default) to comply with OSGi lifecycle,
         // if the reference is unset it means the service is being deactivated
         this.mountInfoProvider = null;
+    }
+
+    public void bindExclude(CugExclude exclude) {
+        this.exclude = exclude;
+    }
+
+    public void unbindExclude(CugExclude exclude) {
+        this.exclude = null;
     }
 
     //--------------------------------------------------------------------------

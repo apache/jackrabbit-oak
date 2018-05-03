@@ -39,7 +39,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package></Export-Package>
+                        <Import-Package>
+                          <!-- OAK-7182 -->${guava.osgi.import},
+                          *
+                        </Import-Package>
+                        <Export-Package />
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core
@@ -62,6 +66,15 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>start-azurite.sh</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -20,6 +20,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -37,15 +38,22 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     protected final String path;
 
+    protected final Entry entry;
+
     private Map<String, ExternalIdentityRef> groups;
 
     private final LdapIdentityProperties properties = new LdapIdentityProperties();
 
-    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
+    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
         this.provider = provider;
         this.ref = ref;
         this.id = id;
         this.path = path;
+        this.entry = entry;
+    }
+
+    public Entry getEntry() {
+        return entry;
     }
 
     /**
@@ -91,7 +99,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     @Override
     public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
         if (groups == null) {
-            groups = provider.getDeclaredGroupRefs(ref);
+            groups = provider.getDeclaredGroupRefs(ref, entry.getDn().getName());
         }
         return groups.values();
     }

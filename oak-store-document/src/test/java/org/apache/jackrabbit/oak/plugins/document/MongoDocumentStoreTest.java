@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.After;
 import org.junit.Before;
@@ -62,7 +63,9 @@ public class MongoDocumentStoreTest {
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
-            return new MongoDocumentStore(connectionFactory.getConnection().getDB(), new DocumentMK.Builder());
+            MongoConnection c = connectionFactory.getConnection();
+            assertNotNull(c);
+            return new MongoDocumentStore(c.getMongoClient(), c.getDBName(), new DocumentMK.Builder());
         }
         return new MemoryDocumentStore();
     }

@@ -74,28 +74,34 @@ Oak repository:
 The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig]
 which is populated either via OSGi or during manual [Repository Construction](../../construct.html).
 
-| Name                         | Property                | Description                              |
-|------------------------------|-------------------------|------------------------------------------|
-| LDAP Provider Name           | `provider.name`         | Name of this LDAP provider configuration. This is used to reference this provider by the login modules. |
-| Bind DN                      | `bind.dn`               | DN of the user for authentication. Leave empty for anonymous bind. |
-| Bind Password                | `bind.password`         | Password of the user for authentication. |
-| LDAP Server Hostname         | `host.name`             | Hostname of the LDAP server              |
-| Disable certificate checking | `host.noCertCheck`      | Indicates if server certificate validation should be disabled. |
-| LDAP Server Port             | `host.port`             | Port of the LDAP server                  |
-| Use SSL                      | `host.ssl`              | Indicates if an SSL (LDAPs) connection should be used. |
-| Use TLS                      | `host.tls`              | Indicates if TLS should be started on connections. |
-| Search Timeout               | `searchTimeout`         | Time in until a search times out (eg: '1s' or '1m 30s'). |
-| User base DN                 | `user.baseDN`           | The base DN for user searches.           |
-| User extra filter            | `user.extraFilter`      | Extra LDAP filter to use when searching for users. The final filter is formatted like: `(&(<idAttr>=<userId>)(objectclass=<objectclass>)<extraFilter>)` |
-| User id attribute            | `user.idAttribute`      | Name of the attribute that contains the user id. |
-| User DN paths                | `user.makeDnPath`       | Controls if the DN should be used for calculating a portion of the intermediate path. |
-| User object classes          | `user.objectclass`      | The list of object classes an user entry must contain. |
-| Group base DN                | `group.baseDN`          | The base DN for group searches.          |
-| Group extra filter           | `group.extraFilter`     | Extra LDAP filter to use when searching for groups. The final filter is formatted like: `(&(<nameAttr>=<groupName>)(objectclass=<objectclass>)<extraFilter>)` |
-| Group DN paths               | `group.makeDnPath`      | Controls if the DN should be used for calculating a portion of the intermediate path. |
-| Group member attribute       | `group.memberAttribute` | Group attribute that contains the member(s) of a group. |
-| Group name attribute         | `group.nameAttribute`   | Name of the attribute that contains the group name. |
-| Group object classes         | `group.objectclass`     | The list of object classes a group entry must contain. |
+| Name                          | Property                | Description                              |
+|-------------------------------|-------------------------|------------------------------------------|
+| LDAP Provider Name            | `provider.name`              | Name of this LDAP provider configuration. This is used to reference this provider by the login modules. |
+| Bind DN                       | `bind.dn`                    | DN of the user for authentication. Leave empty for anonymous bind. |
+| Bind Password                 | `bind.password`              | Password of the user for authentication. |
+| LDAP Server Hostname          | `host.name`                  | Hostname of the LDAP server              |
+| Disable certificate checking  | `host.noCertCheck`           | Indicates if server certificate validation should be disabled. |
+| LDAP Server Port              | `host.port`                  | Port of the LDAP server                  |
+| Use SSL                       | `host.ssl`                   | Indicates if an SSL (LDAPs) connection should be used. |
+| Use TLS                       | `host.tls`                   | Indicates if TLS should be started on connections. |
+| Search Timeout                | `searchTimeout`              | Time in until a search times out (eg: '1s' or '1m 30s'). |
+| Admin pool max active         | `adminPool.maxActive`        | The max active size of the admin connection pool. When non-positive, there is no limit to the number of objects that can be managed by the pool at one time. A value of 0 disables this pool. |
+| Admin pool lookup on validate | `adminPool.lookupOnValidate` | Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the admin pool. |
+| User pool max active          | `userPool.maxActive`         | The max active size of the user connection pool. When non-positive, there is no limit to the number of objects that can be managed by the pool at one time. A value of 0 disables this pool. |
+| User pool lookup on validate  | `userPool.lookupOnValidate`  | Indicates an ROOT DSE lookup is performed to test if the connection is still valid when taking it out of the user pool. |
+| User base DN                  | `user.baseDN`                | The base DN for user searches. |
+| User extra filter             | `user.extraFilter`           | Extra LDAP filter to use when searching for users. The final filter is formatted like: `(&(<idAttr>=<userId>)(objectclass=<objectclass>)<extraFilter>)` |
+| User id attribute             | `user.idAttribute`           | Name of the attribute that contains the user id. |
+| User DN paths                 | `user.makeDnPath`            | Controls if the DN should be used for calculating a portion of the intermediate path. |
+| User object classes           | `user.objectclass`           | The list of object classes an user entry must contain. |
+| Group base DN                 | `group.baseDN`               | The base DN for group searches.          |
+| Group extra filter            | `group.extraFilter`          | Extra LDAP filter to use when searching for groups. The final filter is formatted like: `(&(<nameAttr>=<groupName>)(objectclass=<objectclass>)<extraFilter>)` |
+| Group DN paths                | `group.makeDnPath`           | Controls if the DN should be used for calculating a portion of the intermediate path. |
+| Group member attribute        | `group.memberAttribute`      | Group attribute that contains the member(s) of a group. |
+| Group name attribute          | `group.nameAttribute`        | Name of the attribute that contains the group name. |
+| Group object classes          | `group.objectclass`          | The list of object classes a group entry must contain. |
+| Use user id for external ids  | `useUidForExtId`             | If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead. |
+| Custom Attributes             | `customattributes`           | Attributes retrieved when looking up LDAP entries. Leave empty to retrieve all attributes. |
 | | | |
 
 #### SyncHandler and External Login Module

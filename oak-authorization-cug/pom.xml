@@ -41,6 +41,10 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
+              *
+            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.spi.security.authorization.cug
             </Export-Package>
@@ -155,6 +159,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-composite</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
@@ -164,6 +174,11 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <version>1.10.19</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sling</groupId>
+      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

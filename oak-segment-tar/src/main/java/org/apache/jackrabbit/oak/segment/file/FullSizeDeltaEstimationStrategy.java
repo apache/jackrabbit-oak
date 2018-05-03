@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
@@ -27,77 +26,51 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
 
-class SizeDeltaGcEstimation implements GCEstimation {
-
-    private final long delta;
-
-    private final GCJournal gcJournal;
-
-    private final long currentSize;
-
-    private final boolean full;
-
-    SizeDeltaGcEstimation(long delta, @Nonnull GCJournal gcJournal, long currentSize, boolean full) {
-        this.delta = delta;
-        this.gcJournal = checkNotNull(gcJournal);
-        this.currentSize = currentSize;
-        this.full = full;
-    }
+class FullSizeDeltaEstimationStrategy implements EstimationStrategy {
 
     @Override
-    public GCEstimationResult estimate() {
-        if (delta == 0) {
-            return new GCEstimationResult(true, "Estimation skipped because the size delta value equals 0");
+    public EstimationResult estimate(Context context) {
+        if (context.getSizeDelta() == 0) {
+            return new EstimationResult(true, "Estimation skipped because the size delta value equals 0");
         }
 
-        long previousSize = readPreviousSize();
+        long previousSize = readPreviousSize(context);
 
         if (previousSize < 0) {
-            return new GCEstimationResult(true, "Estimation skipped because of missing gc journal data (expected on first run)");
+            return new EstimationResult(true, "Estimation skipped because of missing gc journal data (expected on first run)");
         }
 
-        if (full && previousIsTail()) {
-            return new GCEstimationResult(true,
-                    "Detected previous garbage collection of type tail so running full garbage collection now.");
+        if (previousIsTail(context)) {
+            return new EstimationResult(true, "Detected previous garbage collection of type tail so running full garbage collection now.");
         }
 
-        long gain = currentSize - previousSize;
-        boolean gcNeeded = gain > delta;
+        long gain = context.getCurrentSize() - previousSize;
+        boolean gcNeeded = gain > context.getSizeDelta();
         String gcInfo = format(
-            "Segmentstore size has increased since the last %s garbage collection from %s to %s, an increase of %s or %s%%. ",
-            full ? "full" : "tail",
+            "Segmentstore size has increased since the last full garbage collection from %s to %s, an increase of %s or %s%%. ",
             newPrintableBytes(previousSize),
-            newPrintableBytes(currentSize),
+            newPrintableBytes(context.getCurrentSize()),
             newPrintableBytes(gain),
             100 * gain / previousSize
         );
         if (gcNeeded) {
             gcInfo = gcInfo + format(
                 "This is greater than sizeDeltaEstimation=%s, so running garbage collection",
-                newPrintableBytes(delta)
+                newPrintableBytes(context.getSizeDelta())
             );
         } else {
             gcInfo = gcInfo + format(
                 "This is less than sizeDeltaEstimation=%s, so skipping garbage collection",
-                newPrintableBytes(delta)
+                newPrintableBytes(context.getSizeDelta())
             );
         }
-        return new GCEstimationResult(gcNeeded, gcInfo);
+        return new EstimationResult(gcNeeded, gcInfo);
     }
 
-    private long readPreviousSize() {
-        if (full) {
-            return readPreviousFullCleanupSize();
-        }
-        return readPreviousTailCleanupSize();
-    }
-
-    private long readPreviousFullCleanupSize() {
-        List<GCJournalEntry> entries = new ArrayList<>(gcJournal.readAll());
+    private long readPreviousSize(Context context) {
+        List<GCJournalEntry> entries = new ArrayList<>(context.getGCJournal().readAll());
 
         if (entries.isEmpty()) {
             return -1;
@@ -116,12 +89,8 @@ class SizeDeltaGcEstimation implements GCEstimation {
         return entries.iterator().next().getRepoSize();
     }
 
-    private long readPreviousTailCleanupSize() {
-        return gcJournal.read().getRepoSize();
-    }
-
-    private boolean previousIsTail() {
-        List<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
+    private boolean previousIsTail(Context context) {
+        List<GCJournalEntry> entries = newArrayList(context.getGCJournal().readAll());
         if (entries.isEmpty()) {
             // We should not get here but if we do the condition is vacuously true
             return true;

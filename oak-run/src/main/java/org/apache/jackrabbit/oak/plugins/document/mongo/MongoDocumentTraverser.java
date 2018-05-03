@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.function.Predicate;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.io.Closer;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
+
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -46,19 +46,19 @@ public class MongoDocumentTraverser {
             checkState(mongoStore.isReadOnly(), "Traverser can only be used with readOnly store");
         }
 
-        DBCollection dbCollection = mongoStore.getDBCollection(collection);
-        Closer closer = Closer.create();
-
-
-        DBCursor cursor = dbCollection.find();
+        MongoCollection<BasicDBObject> dbCollection = mongoStore.getDBCollection(collection);
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
-        cursor.setReadPreference(mongoStore.getConfiguredReadPreference(collection));
-        closer.register(cursor);
+        Iterable<BasicDBObject> cursor = dbCollection
+                .withReadPreference(mongoStore.getConfiguredReadPreference(collection))
+                .find();
+
+        CloseableIterable<BasicDBObject> closeableCursor = CloseableIterable.wrap(cursor);
+        cursor = closeableCursor;
 
         @SuppressWarnings("Guava")
         Iterable<T> result = FluentIterable.from(cursor)
-                .filter(o -> filter.test((String) o.get("_id")))
+                .filter(o -> filter.test((String) o.get(Document.ID)))
                 .transform(o -> {
                     T doc = mongoStore.convertFromDBObject(collection, o);
                     //TODO Review the cache update approach where tracker has to track *all* docs
@@ -68,7 +68,7 @@ public class MongoDocumentTraverser {
                     }
                     return doc;
                 });
-        return CloseableIterable.wrap(result, closer);
+        return CloseableIterable.wrap(result, closeableCursor);
     }
 
     /**

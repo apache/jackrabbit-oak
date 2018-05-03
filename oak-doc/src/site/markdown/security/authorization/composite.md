@@ -164,15 +164,15 @@ the Oak repository:
       `requiredServicePids` property of the `SecurityProviderRegistration` _("Apache Jackrabbit Oak SecurityProvider")_ 
       i.e. forcing the recreation of the `SecurityProvider`.
     - in a non-OSGi setup this requires adding the configuration 
-      to the `SecurityProvider` (e.g. _SecurityProviderImpl.bindAuthorizationConfiguration_) 
+      to the `SecurityProvider` (e.g. _SecurityProviderBuilder.newBuilder().with(params).build()_)
       and subsequently creating the JCR/Oak repository object.
-         
+
 **Important Note**  
 Despite the fact that Oak supports the aggregation of multiple authorization 
 models, this extension is only recommended for experts that have in-depth
 knowledge and understanding of Jackrabbit/Oak authorization concepts. Doing so 
 might otherwise result in severe security issues and heavily impact overall performance.
-          
+
 <!-- hidden references -->
 [PolicyOwner]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/accesscontrol/PolicyOwner.html
 [AggregatedPermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregatedPermissionProvider.html

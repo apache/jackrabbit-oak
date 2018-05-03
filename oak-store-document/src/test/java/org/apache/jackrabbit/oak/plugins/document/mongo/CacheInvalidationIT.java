@@ -196,7 +196,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     private DocumentNodeStore createNS(int clusterId) throws Exception {
         MongoConnection mc = connectionFactory.getConnection();
         return new DocumentMK.Builder()
-                          .setMongoDB(mc.getDB())
+                          .setMongoDB(mc.getMongoClient(), mc.getDBName())
                           .setClusterId(clusterId)
                           //Set delay to 0 so that effect of changes are immediately reflected
                           .setAsyncDelay(0)

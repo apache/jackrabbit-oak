@@ -17,30 +17,39 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
-import com.mongodb.Bytes;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.DuplicateKeyException;
-import com.mongodb.QueryBuilder;
-import com.mongodb.ReadPreference;
-import com.mongodb.WriteResult;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+
+import static com.mongodb.ReadPreference.primary;
+import static com.mongodb.ReadPreference.secondaryPreferred;
+import static java.util.stream.StreamSupport.stream;
+import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 /**
  * Implementation of blob store for the MongoDB extending from
- * {@link org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore}. It saves blobs into a separate collection in
+ * {@link CachingBlobStore}. It saves blobs into a separate collection in
  * MongoDB (not using GridFS) and it supports basic garbage collection.
  *
  * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is
@@ -52,7 +61,14 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoBlobStore.class);
 
-    private final DB db;
+    private static final int DUPLICATE_KEY_ERROR_CODE = 11000;
+
+    private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
+            MongoClient.getDefaultCodecRegistry(),
+            fromCodecs(new MongoBlobCodec())
+    );
+
+    private final MongoCollection<MongoBlob> blobCollection;
     private long minLastModified;
 
     /**
@@ -60,36 +76,47 @@ public class MongoBlobStore extends CachingBlobStore {
      *
      * @param db The DB.
      */
-    public MongoBlobStore(DB db) {
+    public MongoBlobStore(MongoDatabase db) {
         this(db, DEFAULT_CACHE_SIZE);
     }
 
-    public MongoBlobStore(DB db, long cacheSize) {
+    public MongoBlobStore(MongoDatabase db, long cacheSize) {
         super(cacheSize);
-        this.db = db;
         // use a block size of 2 MB - 1 KB, because MongoDB rounds up the
         // space allocated for a record to the next power of two
         // (there is an overhead per record, let's assume it is 1 KB at most)
         setBlockSize(2 * 1024 * 1024 - 1024);
-        initBlobCollection();
+        blobCollection = initBlobCollection(db);
     }
 
     @Override
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        // Check if it already exists?
-        MongoBlob mongoBlob = new MongoBlob();
-        mongoBlob.setId(id);
-        mongoBlob.setData(data);
-        mongoBlob.setLevel(level);
-        mongoBlob.setLastMod(System.currentTimeMillis());
-        // TODO check the return value
-        // TODO verify insert is fast if the entry already exists
+
+        // Create the mongo blob object
+        BasicDBObject mongoBlob = new BasicDBObject(MongoBlob.KEY_ID, id);
+        mongoBlob.append(MongoBlob.KEY_DATA, data);
+        mongoBlob.append(MongoBlob.KEY_LEVEL, level);
+
+        // If update only the lastMod needs to be modified
+        BasicDBObject updateBlob =new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis());
+
+        BasicDBObject upsert = new BasicDBObject();
+        upsert.append("$setOnInsert", mongoBlob)
+            .append("$set", updateBlob);
+
         try {
-            getBlobCollection().insert(mongoBlob);
-        } catch (DuplicateKeyException e) {
-            // the same block was already stored before: ignore
+            Bson query = getBlobQuery(id, -1);
+            UpdateOptions options = new UpdateOptions().upsert(true);
+            UpdateResult result = getBlobCollection().updateOne(query, upsert, options);
+            if (result != null && result.getUpsertedId() == null) {
+                LOG.trace("Block with id [{}] updated", id);
+            } else {
+                LOG.trace("Block with id [{}] created", id);
+            }
+        } catch (MongoException e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -138,101 +165,101 @@ public class MongoBlobStore extends CachingBlobStore {
             return;
         }
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        DBObject query = getBlobQuery(id, minLastModified);
-        DBObject update = new BasicDBObject("$set",
+        Bson query = getBlobQuery(id, minLastModified);
+        Bson update = new BasicDBObject("$set",
                 new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
-        getBlobCollection().update(query, update);
+        getBlobCollection().updateOne(query, update);
     }
 
     @Override
     public int sweep() throws IOException {
-        DBObject query = getBlobQuery(null, minLastModified);
-        long countBefore = getBlobCollection().count(query);
-        getBlobCollection().remove(query);
-
-        long countAfter = getBlobCollection().count(query);
+        Bson query = getBlobQuery(null, minLastModified);
+        long num = getBlobCollection().deleteMany(query).getDeletedCount();
         minLastModified = 0;
-        return (int) (countBefore - countAfter);
+        return (int) num;
     }
 
-    private DBCollection getBlobCollection() {
-        DBCollection collection = db.getCollection(COLLECTION_BLOBS);
-        collection.setObjectClass(MongoBlob.class);
-        return collection;
-    }
-
-    private void initBlobCollection() {
-        if (!db.collectionExists(COLLECTION_BLOBS)) {
-            db.createCollection(COLLECTION_BLOBS, new BasicDBObject());
+    private MongoCollection<MongoBlob> initBlobCollection(MongoDatabase db) {
+        if (stream(db.listCollectionNames().spliterator(), false)
+                .noneMatch(COLLECTION_BLOBS::equals)) {
+            db.createCollection(COLLECTION_BLOBS);
         }
+        return db.getCollection(COLLECTION_BLOBS, MongoBlob.class)
+                .withCodecRegistry(CODEC_REGISTRY);
+    }
+
+    private MongoCollection<MongoBlob> getBlobCollection() {
+        return this.blobCollection;
     }
 
     private MongoBlob getBlob(String id, long lastMod) {
-        DBObject query = getBlobQuery(id, lastMod);
+        Bson query = getBlobQuery(id, lastMod);
+        Bson fields = new BasicDBObject(MongoBlob.KEY_DATA, 1);
 
         // try the secondary first
         // TODO add a configuration option for whether to try reading from secondary
-        ReadPreference pref = ReadPreference.secondaryPreferred();
-        DBObject fields = new BasicDBObject();
-        fields.put(MongoBlob.KEY_DATA, 1);
-        MongoBlob blob = (MongoBlob) getBlobCollection().findOne(query, fields, pref);
-        if (blob == null) {
+        List<MongoBlob> result = new ArrayList<>(1);
+        getBlobCollection().withReadPreference(secondaryPreferred()).find(query)
+                .projection(fields).into(result);
+        if (result.isEmpty()) {
             // not found in the secondary: try the primary
-            pref = ReadPreference.primary();
-            blob = (MongoBlob) getBlobCollection().findOne(query, fields, pref);
+            getBlobCollection().withReadPreference(primary()).find(query)
+                    .projection(fields).into(result);
         }
-        return blob;
+        return result.isEmpty() ? null : result.get(0);
     }
 
-    private static DBObject getBlobQuery(String id, long lastMod) {
-        QueryBuilder queryBuilder = new QueryBuilder();
+    private static Bson getBlobQuery(String id, long lastMod) {
+        List<Bson> clauses = new ArrayList<>(2);
         if (id != null) {
-            queryBuilder = queryBuilder.and(MongoBlob.KEY_ID).is(id);
+            clauses.add(Filters.eq(MongoBlob.KEY_ID, id));
         }
         if (lastMod > 0) {
-            queryBuilder = queryBuilder.and(MongoBlob.KEY_LAST_MOD).lessThan(lastMod);
+            clauses.add(Filters.lt(MongoBlob.KEY_LAST_MOD, lastMod));
         }
-        return queryBuilder.get();
+
+        if (clauses.size() == 1) {
+            return clauses.get(0);
+        } else {
+            return Filters.and(clauses);
+        }
     }
 
     @Override
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-        DBCollection collection = getBlobCollection();
-        QueryBuilder queryBuilder = new QueryBuilder();
+        Bson query = new Document();
         if (chunkIds != null) {
-            queryBuilder = queryBuilder.and(MongoBlob.KEY_ID).in(chunkIds.toArray(new String[0]));
+            query = Filters.in(MongoBlob.KEY_ID, chunkIds);
             if (maxLastModifiedTime > 0) {
-                queryBuilder = queryBuilder.and(MongoBlob.KEY_LAST_MOD)
-                                    .lessThan(maxLastModifiedTime);
+                query = Filters.and(
+                        query,
+                        Filters.lt(MongoBlob.KEY_LAST_MOD, maxLastModifiedTime)
+                );
             }
         }
 
-        WriteResult result = collection.remove(queryBuilder.get());
-        return result.getN();
+        return getBlobCollection().deleteMany(query).getDeletedCount();
     }
 
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-        DBCollection collection = getBlobCollection();
+        Bson fields = new BasicDBObject(MongoBlob.KEY_ID, 1);
+        Bson hint = new BasicDBObject("$hint", fields);
 
-        DBObject fields = new BasicDBObject();
-        fields.put(MongoBlob.KEY_ID, 1);
-
-        QueryBuilder builder = new QueryBuilder();
+        Bson query = new Document();
         if (maxLastModifiedTime != 0 && maxLastModifiedTime != -1) {
-            builder.and(MongoBlob.KEY_LAST_MOD).lessThanEquals(maxLastModifiedTime);
+            query = Filters.lte(MongoBlob.KEY_LAST_MOD, maxLastModifiedTime);
         }
 
-        final DBCursor cur =
-                collection.find(builder.get(), fields).hint(fields)
-                        .addOption(Bytes.QUERYOPTION_SLAVEOK);
+        final MongoCursor<MongoBlob> cur = getBlobCollection().find(query)
+                .projection(fields).modifiers(hint).iterator();
 
         //TODO The cursor needs to be closed
         return new AbstractIterator<String>() {
             @Override
             protected String computeNext() {
                 if (cur.hasNext()) {
-                    MongoBlob blob = (MongoBlob) cur.next();
+                    MongoBlob blob = cur.next();
                     if (blob != null) {
                         return blob.getId();
                     }

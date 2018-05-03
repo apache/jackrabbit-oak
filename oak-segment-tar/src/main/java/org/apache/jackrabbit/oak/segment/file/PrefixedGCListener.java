@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
@@ -33,9 +33,9 @@ class PrefixedGCListener implements GCListener {
 
     private final GCListener listener;
 
-    private final AtomicLong counter;
+    private final AtomicInteger counter;
 
-    PrefixedGCListener(GCListener listener, AtomicLong counter) {
+    PrefixedGCListener(GCListener listener, AtomicInteger counter) {
         this.listener = listener;
         this.counter = counter;
     }

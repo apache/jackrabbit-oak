@@ -111,10 +111,10 @@ public class PropertyDefinition {
      * For function-based indexes: the function name, in Polish notation.
      */
     final String function;
-    
+
     /**
      * For function-based indexes: the function code, as tokens.
-     */    
+     */
     final String[] functionCode;
 
     public final ValuePattern valuePattern;
@@ -128,7 +128,7 @@ public class PropertyDefinition {
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
-        this.weight = getOptionalValue(defn, PROP_WEIGHT, -1);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, IndexPlanner.DEFAULT_PROPERTY_WEIGHT);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);

@@ -195,7 +195,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
             if (blobInputStream == null) {
                 position = pos;
             } else if (pos < position) {
-                LOG.warn("Seeking back on streaming index file {}. Current position {}, requested position {}." +
+                LOG.warn("Seeking back on streaming index file {}. Current position {}, requested position {}. " +
                                 "Please make sure that CopyOnRead and prefetch of index files are enabled.",
                         getName(), position(), pos);
 

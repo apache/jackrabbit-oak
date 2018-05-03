@@ -23,16 +23,18 @@ import java.util.SortedMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
-import com.mongodb.WriteResult;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.UpdateResult;
+
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.bson.conversions.Bson;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
@@ -45,7 +47,7 @@ public class MongoDocumentStoreHelper {
     }
 
     public static void repair(MongoDocumentStore store, String path) {
-        DBCollection col = store.getDBCollection(NODES);
+        MongoCollection<BasicDBObject> col = store.getDBCollection(NODES);
         String id = Utils.getIdFromPath(path);
 
         NodeDocument doc = store.find(NODES, id);
@@ -73,19 +75,21 @@ public class MongoDocumentStoreHelper {
             System.err.println("Document does not have a modCount " + path);
             return;
         }
-        DBObject query = QueryBuilder.start(Document.ID).is(id)
-                .and(Document.MOD_COUNT).is(modCount).get();
+        Bson query = Filters.and(
+                Filters.eq(Document.ID, id),
+                Filters.eq(Document.MOD_COUNT, modCount)
+        );
         DBObject cr = new BasicDBObject();
         for (Map.Entry<Revision, String> entry : commitRoot.entrySet()) {
             cr.put(entry.getKey().toString(), entry.getValue());
         }
         
-        DBObject update = new BasicDBObject();
+        BasicDBObject update = new BasicDBObject();
         update.put("$set", new BasicDBObject(NodeDocumentHelper.commitRoot(), cr));
         update.put("$inc", new BasicDBObject(Document.MOD_COUNT, 1L));
                 
-        WriteResult result = col.update(query, update);
-        if (result.getN() == 1) {
+        UpdateResult result = col.updateOne(query, update);
+        if (result.getModifiedCount() == 1) {
             int num = NodeDocumentHelper.getLocalCommitRoot(doc).size() - commitRoot.size();
             System.out.println("Removed " + num + " _commitRoot entries on " + path);
         } else {
@@ -94,7 +98,7 @@ public class MongoDocumentStoreHelper {
         
     }
 
-    public static <T extends Document> DBCollection getDBCollection(
+    public static <T extends Document> MongoCollection<BasicDBObject> getDBCollection(
             MongoDocumentStore store, Collection<T> c) {
         return store.getDBCollection(c);
     }

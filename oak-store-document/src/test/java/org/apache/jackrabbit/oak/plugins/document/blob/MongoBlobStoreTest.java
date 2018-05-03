@@ -46,9 +46,9 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
     @Override
     public void setUp() throws Exception {
         mongoConnection = MongoUtils.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
 
-        MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDB());
+        MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDatabase());
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
@@ -57,7 +57,7 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
     @After
     @Override
     public void tearDown() throws Exception {
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         mongoConnection.close();
         super.tearDown();
     }

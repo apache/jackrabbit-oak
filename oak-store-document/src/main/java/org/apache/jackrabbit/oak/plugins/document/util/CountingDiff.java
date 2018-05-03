@@ -65,7 +65,6 @@ public class CountingDiff implements NodeStateDiff {
     public boolean childNodeChanged(String name,
                                     NodeState before,
                                     NodeState after) {
-        inc();
         return after.compareAgainstBaseState(before, this);
     }
 

@@ -63,6 +63,7 @@
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
               *;resolution:=optional
             </Import-Package>
             <Export-Package>
@@ -106,6 +107,11 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-auth-external</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-authorization-cug</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

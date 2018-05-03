@@ -20,7 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface TreeProvider {
 
     Tree createReadOnlyTree(@Nonnull NodeState rootState);

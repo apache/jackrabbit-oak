@@ -47,13 +47,21 @@ public interface SegmentNodeStoreStatsMBean {
     CompositeData getQueuingTimes();
     
     /**
-     * @return tabular data of the form <commits,writer>
+     * @return tabular data of the form &lt;commits,writerGroup&gt; collected 
+     *         <b>in the last minute</b>
      * @throws OpenDataException if data is not available
      */
-    TabularData getCommitsCountPerWriter() throws OpenDataException;
+    TabularData getCommitsCountPerWriterGroupLastMinute() throws OpenDataException;
     
     /**
-     * @return tabular data of the form <writer,writerDetails> for each writer
+     * @return tabular data of the form &lt;commits,writer&gt; for writers 
+     *         not included in groups
+     * @throws OpenDataException if data is not available
+     */
+    TabularData getCommitsCountForOtherWriters() throws OpenDataException;
+    
+    /**
+     * @return tabular data of the form &lt;writer,writerDetails&gt; for each writer
      *         currently in the queue
      * @throws OpenDataException if data is not available
      */
@@ -61,7 +69,7 @@ public interface SegmentNodeStoreStatsMBean {
     
     /**
      * Turns on/off, depending on the value of {@code flag}, the collection of 
-     * stack traces for each writer thread.
+     * stack traces for each writer.
      * @param flag {@code boolean} indicating whether to collect or not
      */
     void setCollectStackTraces(boolean flag);
@@ -72,15 +80,29 @@ public interface SegmentNodeStoreStatsMBean {
     boolean isCollectStackTraces();
     
     /**
-     * Modifies the maximum number of writing threads to be recorded.
+     * Modifies the maximum number of writers outside already defined
+     * groups to be recorded.
      * Changing the default value will reset the overall collection process.
      * 
-     * @param commitsCountMapSize the new size
+     * @param otherWritersLimit the new size
      */
-    void setCommitsCountMapMaxSize(int commitsCountMapMaxSize);
+    void setNumberOfOtherWritersToDetail(int otherWritersLimit);
     
     /**
-     * @return maximum number of writing threads to be recorded
+     * @return maximum number of writers outside already defined
+     * groups to be recorded
      */
-    int getCommitsCountMapMaxSize();
+    int getNumberOfOtherWritersToDetail();
+    
+    /**
+     * @return current groups used for grouping writers.
+     */
+    String[] getWriterGroupsForLastMinuteCounts();
+
+    /**
+     * Modifies the groups used for grouping writers.
+     * Changing the default value will reset the overall collection process.
+     * @param writerGroups groups defined by regexps
+     */
+    void setWriterGroupsForLastMinuteCounts(String[] writerGroups);
 }

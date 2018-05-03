@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.plugins.document.BlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
+import org.bson.conversions.Bson;
 
-import com.google.common.base.Function;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Filters;
 
 public class MongoBlobReferenceIterator extends BlobReferenceIterator {
 
@@ -45,17 +45,14 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
 
     @Override
     public Iterator<NodeDocument> getIteratorOverDocsWithBinaries() {
-        DBObject query = QueryBuilder.start(NodeDocument.HAS_BINARY_FLAG).is(NodeDocument.HAS_BINARY_VAL).get();
+        Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
         // TODO It currently prefers secondary. Would that be Ok?
-        DBCursor cursor = documentStore.getDBCollection(Collection.NODES).find(query)
-                .setReadPreference(documentStore.getConfiguredReadPreference(Collection.NODES));
+        MongoCursor<BasicDBObject> cursor = documentStore.getDBCollection(NODES)
+                .withReadPreference(documentStore.getConfiguredReadPreference(NODES))
+                .find(query).iterator();
 
-        return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
-            @Override
-            public NodeDocument apply(DBObject input) {
-                return documentStore.convertFromDBObject(Collection.NODES, input);
-            }
-        }), cursor).iterator();
-
+        return CloseableIterator.wrap(transform(cursor,
+                input -> documentStore.convertFromDBObject(NODES, input)),
+                cursor);
     }
 }

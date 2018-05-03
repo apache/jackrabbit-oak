@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.common.collect.ImmutableList;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -43,13 +44,13 @@ public final class MongoDocumentStoreMetrics implements Runnable {
             Collection.NODES, Collection.JOURNAL, Collection.CLUSTER_NODES, Collection.SETTINGS, Collection.BLOBS
     );
 
-    private final DB db;
+    private final MongoDatabase db;
 
     private final StatisticsProvider statsProvider;
 
     public MongoDocumentStoreMetrics(MongoDocumentStore store,
                                      StatisticsProvider statsProvider) {
-        this.db = store.getDBCollection(Collection.NODES).getDB();
+        this.db = store.getDatabase();
         this.statsProvider = statsProvider;
     }
 
@@ -65,7 +66,8 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     private void updateCounters() {
         LOG.debug("Updating counters");
         try {
-            Set<String> collectionNames = db.getCollectionNames();
+            Set<String> collectionNames = new TreeSet<>();
+            db.listCollectionNames().into(collectionNames);
             for (Collection<? extends Document> c : COLLECTIONS) {
                 if (!collectionNames.contains(c.toString())) {
                     LOG.debug("Collection {} does not exist", c);
@@ -89,7 +91,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     private CollectionStats getStats(Collection<? extends Document> c)
             throws MongoException {
         CollectionStats stats = new CollectionStats();
-        BasicDBObject result = db.getCollection(c.toString()).getStats();
+        BasicDBObject result = new BasicDBObject(db.runCommand(new org.bson.Document("collStats", c.toString())));
         stats.count = result.getLong("count", 0);
         stats.size = result.getLong("size", 0);
         stats.storageSize = result.getLong("storageSize", 0);

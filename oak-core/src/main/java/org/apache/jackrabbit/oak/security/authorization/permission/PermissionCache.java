@@ -14,26 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
-package org.apache.jackrabbit.oak.segment.file;
+import java.util.Collection;
+import javax.annotation.Nonnull;
 
-class GCEstimationResult {
+import org.apache.jackrabbit.oak.api.Tree;
 
-    private final boolean gcNeeded;
+interface PermissionCache {
 
-    private final String gcLog;
+    Collection<PermissionEntry> getEntries(@Nonnull String path);
 
-    GCEstimationResult(boolean gcNeeded, String gcLog) {
-        this.gcNeeded = gcNeeded;
-        this.gcLog = gcLog;
-    }
-
-    boolean isGcNeeded() {
-        return gcNeeded;
-    }
-
-    String getGcLog() {
-        return gcLog;
-    }
-
+    Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree);
 }

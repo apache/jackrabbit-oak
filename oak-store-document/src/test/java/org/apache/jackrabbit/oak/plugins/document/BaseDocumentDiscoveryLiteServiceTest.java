@@ -67,7 +67,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 
 import junitx.util.PrivateAccessor;
 
@@ -687,7 +687,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         if (MONGO_DB) {
             MongoConnection connection = connectionFactory.getConnection();
             if (connection != null) {
-                DB db = connection.getDB();
+                MongoDatabase db = connection.getDatabase();
                 if (db != null) {
                     MongoUtils.dropCollections(db);
                 }
@@ -697,8 +697,10 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     DocumentMK createMK(int clusterId, int asyncDelay) {
         if (MONGO_DB) {
-            DB db = connectionFactory.getConnection().getDB();
-            return register(new DocumentMK.Builder().setMongoDB(db).setLeaseCheck(false).setClusterId(clusterId)
+            MongoConnection connection = connectionFactory.getConnection();
+            return register(new DocumentMK.Builder()
+                    .setMongoDB(connection.getMongoClient(), connection.getDBName())
+                    .setLeaseCheck(false).setClusterId(clusterId)
                     .setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {

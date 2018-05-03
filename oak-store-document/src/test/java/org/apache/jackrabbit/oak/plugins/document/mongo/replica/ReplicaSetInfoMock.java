@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.plugins.document.mongo.replica;
 
 import com.google.common.base.Function;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
+
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -46,14 +48,17 @@ public class ReplicaSetInfoMock extends ReplicaSetInfo {
     private ReplicaSetMock replicationSet;
 
     public static ReplicaSetInfoMock create(Clock clock) {
-        DB db = mock(DB.class);
+        MongoDatabase db = mock(MongoDatabase.class);
         when(db.getName()).thenReturn("oak-db");
-        when(db.getSisterDB(Mockito.anyString())).thenReturn(db);
-        return new ReplicaSetInfoMock(clock, db);
+
+        MongoClient client = mock(MongoClient.class);
+        when(client.getDatabase(Mockito.anyString())).thenReturn(db);
+
+        return new ReplicaSetInfoMock(clock, client, db.getName());
     }
 
-    private ReplicaSetInfoMock(Clock clock, DB db) {
-        super(clock, db, null, 0, Long.MAX_VALUE, null);
+    private ReplicaSetInfoMock(Clock clock, MongoClient client, String dbName) {
+        super(clock, client, dbName, null, 0, Long.MAX_VALUE, null);
 
         this.clock = clock;
         this.mongoClock = clock;

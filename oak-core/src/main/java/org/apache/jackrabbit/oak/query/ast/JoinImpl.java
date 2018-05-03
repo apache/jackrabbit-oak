@@ -281,7 +281,7 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public long getSize(SizePrecision precision, long max) {
+    public long getSize(NodeState rootState, SizePrecision precision, long max) {
         // we don't know
         return -1;
     }

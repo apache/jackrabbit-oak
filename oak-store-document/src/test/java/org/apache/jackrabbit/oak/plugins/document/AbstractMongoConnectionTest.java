@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.mongodb.DB;
+import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -50,7 +50,8 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
         MongoUtils.dropCollections(mongoConnection.getDB());
         setRevisionClock(getTestClock());
         setClusterNodeInfoClock(getTestClock());
-        mk = newBuilder(mongoConnection.getDB()).open();
+        mk = newBuilder(mongoConnection.getMongoClient(),
+                mongoConnection.getDBName()).open();
     }
 
     protected void setRevisionClock(Clock c) {
@@ -61,8 +62,8 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
         ClusterNodeInfo.setClock(c);
     }
 
-    protected DocumentMK.Builder newBuilder(DB db) throws Exception {
-        return addToBuilder(new DocumentMK.Builder()).clock(getTestClock()).setMongoDB(db);
+    protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
+        return addToBuilder(new DocumentMK.Builder()).clock(getTestClock()).setMongoDB(client, dbName);
     }
 
     protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
@@ -75,10 +76,9 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
 
     @After
     public void tearDownConnection() throws Exception {
+        String dbName = mongoConnection.getDBName();
         mk.dispose();
-        DB db = connectionFactory.getConnection().getDB();
-        MongoUtils.dropCollections(db);
-        db.getMongo().close();
+        MongoUtils.dropCollections(dbName);
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
     }

@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
@@ -94,6 +95,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarReader;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -110,6 +112,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,6 +188,11 @@ public class SegmentCompactionIT {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
+    @Rule
+    public TestRule logLevelModifier = new LogLevelModifier()
+            .setLoggerLevel(SegmentTarReader.class.getName(), "debug");
+
+
     public synchronized void stop() {
         stopping = true;
         notifyAll();
@@ -251,6 +259,7 @@ public class SegmentCompactionIT {
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
                 .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
+                .withIOLogging(LoggerFactory.getLogger(SegmentTarReader.class))
                 .withStatisticsProvider(statisticsProvider)
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore)

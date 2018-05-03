@@ -80,7 +80,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
  * -----------------------------------------------------------------------------
  *
  * While the restriction API provided by Jackrabbit API is rather limited the
- * Oak internal way to handle, store and read these restictions is a bit
+ * Oak internal way to handle, store and read these restrictions is a bit
  * more elaborate.
  *
  * Use the Oak code base and the documentation at

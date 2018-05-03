@@ -21,12 +21,32 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * Manifest is a properties files, providing the information about the segment
+ * store (eg. the schema version number).
+ * <p>
+ * The implementation <b>doesn't need to be</b> thread-safe.
+ */
 public interface ManifestFile {
 
+    /**
+     * Check if the manifest already exists.
+     * @return {@code true} if the manifest exists
+     */
     boolean exists();
 
+    /**
+     * Load the properties from the manifest file.
+     * @return properties describing the segmentstore
+     * @throws IOException
+     */
     Properties load() throws IOException;
 
+    /**
+     * Store the properties to the manifest file.
+     * @param properties describing the segmentstore
+     * @throws IOException
+     */
     void save(Properties properties) throws IOException;
 
 }

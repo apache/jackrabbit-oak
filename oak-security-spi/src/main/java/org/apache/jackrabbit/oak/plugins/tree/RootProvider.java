@@ -23,7 +23,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface RootProvider {
 
     @Nonnull

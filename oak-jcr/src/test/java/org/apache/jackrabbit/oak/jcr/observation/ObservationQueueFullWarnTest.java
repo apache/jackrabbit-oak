@@ -266,11 +266,12 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
                             + counter.get());
                     hasReceivedTestMessage.set(true);
                     semaphore.acquire();
-                    long numEvents = events.getSize();
+                    long numEvents = 0;
                     counter.addAndGet(numEvents);
-                    LOG.info("GOT: " + numEvents + " - COUNTER: " + counter.get());
                     while (events.hasNext()) {
                         Event e = events.nextEvent();
+                        counter.incrementAndGet();
+                        numEvents++;
                         LOG.info(" - " + e);
                         if (PathUtils.getName(e.getPath()).startsWith("local")) {
                             if (e instanceof JackrabbitEvent && !((JackrabbitEvent) e).isExternal()) {
@@ -278,6 +279,7 @@ public class ObservationQueueFullWarnTest extends AbstractRepositoryTest {
                             }
                         }
                     }
+                    LOG.info("GOT: " + numEvents + " - COUNTER: " + counter.get());
                 } else {
                     // we should get only "init" as the relevant message we're waiting for
                     // as other would be dispatched once we've got init

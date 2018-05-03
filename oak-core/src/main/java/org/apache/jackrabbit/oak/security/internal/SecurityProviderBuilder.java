@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAutho
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
-import org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -54,7 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProv
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-public class SecurityProviderBuilder {
+public final class SecurityProviderBuilder {
 
     private Whiteboard whiteboard;
     private RootProvider rootProvider;
@@ -70,13 +69,15 @@ public class SecurityProviderBuilder {
     private UserConfiguration userConfiguration;
 
     private ConfigurationParameters authorizationParams = EMPTY;
-    private CompositeAuthorizationConfiguration authorizationConfiguration;
+    private AuthorizationConfiguration authorizationConfiguration;
 
     private ConfigurationParameters principalParams = EMPTY;
-    private CompositePrincipalConfiguration principalConfiguration;
+    private PrincipalConfiguration principalConfiguration;
 
     private ConfigurationParameters tokenParams = EMPTY;
-    private CompositeTokenConfiguration tokenConfiguration;
+    private TokenConfiguration tokenConfiguration;
+
+    private ConfigurationParameters configuration;
 
     @Nonnull
     public static SecurityProviderBuilder newBuilder() {
@@ -84,9 +85,12 @@ public class SecurityProviderBuilder {
     }
 
     private SecurityProviderBuilder() {
+        this.configuration = ConfigurationParameters.EMPTY;
     }
 
     public SecurityProviderBuilder with(@Nonnull ConfigurationParameters configuration) {
+        this.configuration = configuration;
+
         authenticationParams = configuration.getConfigValue(AuthenticationConfiguration.NAME, EMPTY);
         privilegeParams = configuration.getConfigValue(PrivilegeConfiguration.NAME, EMPTY);
 
@@ -94,7 +98,7 @@ public class SecurityProviderBuilder {
             userParams = configuration.getConfigValue(UserConfiguration.NAME, EMPTY);
         } else {
             AuthorizableActionProvider authorizableActionProvider = new DefaultAuthorizableActionProvider();
-            AuthorizableNodeName authorizableNodeName = new RandomAuthorizableNodeName();
+            AuthorizableNodeName authorizableNodeName = AuthorizableNodeName.DEFAULT;
             UserAuthenticationFactory userAuthenticationFactory = UserConfigurationImpl
                     .getDefaultAuthenticationFactory();
 
@@ -121,11 +125,9 @@ public class SecurityProviderBuilder {
             @Nonnull ConfigurationParameters authenticationParams,
             @Nonnull PrivilegeConfiguration privilegeConfiguration, @Nonnull ConfigurationParameters privilegeParams,
             @Nonnull UserConfiguration userConfiguration, @Nonnull ConfigurationParameters userParams,
-            @Nonnull CompositeAuthorizationConfiguration authorizationConfiguration,
-            @Nonnull ConfigurationParameters authorizationParams,
-            @Nonnull CompositePrincipalConfiguration principalConfiguration,
-            @Nonnull ConfigurationParameters principalParams, @Nonnull CompositeTokenConfiguration tokenConfiguration,
-            @Nonnull ConfigurationParameters tokenParams) {
+            @Nonnull AuthorizationConfiguration authorizationConfiguration, @Nonnull ConfigurationParameters authorizationParams,
+            @Nonnull PrincipalConfiguration principalConfiguration, @Nonnull ConfigurationParameters principalParams,
+            @Nonnull TokenConfiguration tokenConfiguration, @Nonnull ConfigurationParameters tokenParams) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.authenticationParams = authenticationParams;
@@ -181,30 +183,49 @@ public class SecurityProviderBuilder {
 
         // authorization
         if (authorizationConfiguration == null) {
-            authorizationConfiguration = new CompositeAuthorizationConfiguration();
-            authorizationConfiguration.setDefaultConfig(new AuthorizationConfigurationImpl());
+            CompositeAuthorizationConfiguration ac = new CompositeAuthorizationConfiguration();
+            ac.withCompositionType(configuration.getConfigValue("authorizationCompositionType", CompositeAuthorizationConfiguration.CompositionType.AND.toString()));
+            ac.setDefaultConfig(initializeConfiguration(new AuthorizationConfigurationImpl(),
+                    securityProvider, rootProvider, treeProvider));
+            authorizationConfiguration = ac;
         }
-        initializeConfigurations(authorizationConfiguration, securityProvider, authorizationParams, rootProvider,
-                treeProvider);
+
+        if (authorizationConfiguration instanceof CompositeAuthorizationConfiguration) {
+            initializeConfigurations((CompositeAuthorizationConfiguration) authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(authorizationConfiguration, securityProvider, authorizationParams, rootProvider, treeProvider);
+        }
         securityProvider.setAuthorizationConfiguration(authorizationConfiguration);
 
         // principal
         if (principalConfiguration == null) {
-            principalConfiguration = new CompositePrincipalConfiguration();
-            principalConfiguration.setDefaultConfig(new PrincipalConfigurationImpl());
+            CompositePrincipalConfiguration pc = new CompositePrincipalConfiguration();
+            pc.setDefaultConfig(initializeConfiguration(new PrincipalConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            principalConfiguration = pc;
         }
-        initializeConfigurations(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+
+        if (principalConfiguration instanceof CompositePrincipalConfiguration) {
+            initializeConfigurations((CompositePrincipalConfiguration) principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(principalConfiguration, securityProvider, principalParams, rootProvider, treeProvider);
+        }
         securityProvider.setPrincipalConfiguration(principalConfiguration);
 
         // token
         if (tokenConfiguration == null) {
-            tokenConfiguration = new CompositeTokenConfiguration();
-            tokenConfiguration.setDefaultConfig(new TokenConfigurationImpl());
+            CompositeTokenConfiguration tc = new CompositeTokenConfiguration();
+            tc.setDefaultConfig(initializeConfiguration(new TokenConfigurationImpl(), securityProvider, rootProvider, treeProvider));
+            tokenConfiguration = tc;
         }
 
-        initializeConfigurations(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+        if (tokenConfiguration instanceof CompositeTokenConfiguration) {
+            initializeConfigurations((CompositeTokenConfiguration) tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+        } else {
+            initializeConfiguration(tokenConfiguration, securityProvider, tokenParams, rootProvider, treeProvider);
+        }
         securityProvider.setTokenConfiguration(tokenConfiguration);
 
+        // whiteboard
         if (whiteboard != null) {
             securityProvider.setWhiteboard(whiteboard);
         }

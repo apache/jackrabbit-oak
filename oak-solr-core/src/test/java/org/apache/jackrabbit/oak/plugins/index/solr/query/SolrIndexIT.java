@@ -245,6 +245,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
         assumeTrue(!System.getProperty("java.version").startsWith("9"));
+        assumeTrue(!System.getProperty("java.version").startsWith("10"));
 
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=text:World&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
@@ -268,6 +269,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
         assumeTrue(!System.getProperty("java.version").startsWith("9"));
+        assumeTrue(!System.getProperty("java.version").startsWith("10"));
 
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
@@ -407,6 +409,30 @@ public class SolrIndexIT extends AbstractQueryTest {
                 "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
                 "xpath", ImmutableList.of("/test/a"));
 
+    }
+
+    @Test
+    public void testFulltextOperators() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", "the lazy fox jumped over the brown dog");
+        test.addChild("b").setProperty("text", "the lazy bones raised to eat a dog");
+        root.commit();
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy AND brown')]",
+            "xpath", ImmutableList.of("/test/a"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy OR eat')]",
+            "xpath", ImmutableList.of("/test/a", "/test/b"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy AND bones')]",
+            "xpath", ImmutableList.of("/test/b"));
+
+        assertQuery(
+            "/jcr:root//*[jcr:contains(., 'lazy OR dog')]",
+            "xpath", ImmutableList.of("/test/a", "/test/b"));
     }
 
     @Test

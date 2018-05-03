@@ -48,7 +48,7 @@ final class ConfigurationInitializer {
         return configuration;
     }
 
-    static void initializeConfigurations(@Nonnull CompositeConfiguration configuration, @Nonnull SecurityProvider securityProvider,
+    static <T extends SecurityConfiguration> void initializeConfigurations(@Nonnull CompositeConfiguration<T> configuration, @Nonnull SecurityProvider securityProvider,
                                          @Nonnull ConfigurationParameters parameters,
                                          @Nonnull RootProvider rootProvider,
                                          @Nonnull TreeProvider treeProvider) {
@@ -56,8 +56,8 @@ final class ConfigurationInitializer {
         configuration.setRootProvider(rootProvider);
         configuration.setTreeProvider(treeProvider);
 
-        List<? extends SecurityConfiguration> configs = configuration.getConfigurations();
-        for (SecurityConfiguration config : configs) {
+        List<T> configs = configuration.getConfigurations();
+        for (T config : configs) {
             initializeConfiguration(config, securityProvider, parameters, rootProvider, treeProvider);
         }
     }

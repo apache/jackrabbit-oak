@@ -806,9 +806,9 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public long getSize(SizePrecision precision, long max) {
+    public long getSize(NodeState rootState, SizePrecision precision, long max) {
         if (cursor == null) {
-            return -1;
+            execute(rootState);
         }
         return cursor.getSize(precision, max);
     }

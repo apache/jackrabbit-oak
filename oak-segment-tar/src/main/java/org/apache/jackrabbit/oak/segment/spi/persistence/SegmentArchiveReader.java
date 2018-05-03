@@ -18,20 +18,26 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public interface SegmentArchiveReader {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+/**
+ * This interface represents a read-only segment archive. Since the underlying
+ * data structure is immutable, the implementation <b>should be</b> thread safe.
+ */
+public interface SegmentArchiveReader extends Closeable {
 
     /**
      * Read the segment.
      *
-     * @param msb
-     * @param lsb
-     * @return byte buffer containing the segment data or null if segment doesn't exist
+     * @param msb the most significant bits of the identifier of the segment
+     * @param lsb the least significant bits of the identifier of the segment
+     * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
     @Nullable
     ByteBuffer readSegment(long msb, long lsb) throws IOException;
@@ -39,9 +45,9 @@ public interface SegmentArchiveReader {
     /**
      * Check if the segment exists.
      *
-     * @param msb
-     * @param lsb
-     * @return true if the segment exists
+     * @param msb the most significant bits of the identifier of the segment
+     * @param lsb the least significant bits of the identifier of the segment
+     * @return {@code true} if the segment exists
      */
     boolean containsSegment(long msb, long lsb);
 
@@ -53,24 +59,25 @@ public interface SegmentArchiveReader {
     List<SegmentArchiveEntry> listSegments();
 
     /**
-     * Loads and returns the graph.
+     * Load the segment graph.
      *
-     * @return the segment graph or null if the persisted graph doesn't exist.
+     * @return byte buffer representing the graph or null if the graph hasn't been
+     * persisted.
      */
     @Nullable
     ByteBuffer getGraph() throws IOException;
 
     /**
-     * Check if the persisted graph exists.
+     * Check if the segment graph has been persisted for this archive.
      *
-     * @return true if the graph exists, false otherwise
+     * @return {@code true} if the graph exists, false otherwise
      */
     boolean hasGraph();
 
     /**
-     * Loads and returns the binary references.
+     * Load binary references.
      *
-     * @return binary references
+     * @return byte buffer representing the binary references structure.
      */
     @Nonnull
     ByteBuffer getBinaryReferences() throws IOException;
@@ -93,12 +100,16 @@ public interface SegmentArchiveReader {
     /**
      * Close the archive.
      */
+    @Override
     void close() throws IOException;
 
     /**
-     * Returns the size of the entry
-     * @param size
-     * @return
+     * Transforms the segment size in bytes into the effective size on disk for
+     * the given entry (eg. by adding the number of padding bytes, header, etc.)
+     *
+     * @param size the segment size in bytes
+     * @return the number of bytes effectively used on the storage to save the
+     * segment
      */
     int getEntrySize(int size);
 }

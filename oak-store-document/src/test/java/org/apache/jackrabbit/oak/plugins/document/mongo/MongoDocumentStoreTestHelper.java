@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.DB;
-
-import org.apache.jackrabbit.oak.plugins.document.Collection;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 
 public final class MongoDocumentStoreTestHelper {
 
-    public static DB getDB(MongoDocumentStore store) {
-        return store.getDBCollection(Collection.NODES).getDB();
+    public static MongoDatabase getDB(MongoDocumentStore store) {
+        return store.getDatabase();
+    }
+
+    public static MongoClient getClient(MongoDocumentStore store) {
+        return store.getClient();
     }
 }

@@ -31,10 +31,12 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -44,6 +46,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.bson.conversions.Bson;
 
 /**
  * Helper class to access package private method of DocumentNodeStore and other
@@ -143,12 +146,10 @@ public class DocumentNodeStoreHelper {
         if (store instanceof MongoDocumentStore) {
             // optimized implementation for MongoDocumentStore
             final MongoDocumentStore mds = (MongoDocumentStore) store;
-            DBCollection dbCol = MongoDocumentStoreHelper.getDBCollection(
+            MongoCollection<BasicDBObject> dbCol = MongoDocumentStoreHelper.getDBCollection(
                     mds, Collection.NODES);
-            DBObject query = QueryBuilder.start(NodeDocument.HAS_BINARY_FLAG)
-                    .is(NodeDocument.HAS_BINARY_VAL)
-                    .get();
-            DBCursor cursor = dbCol.find(query);
+            Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
+            FindIterable<BasicDBObject> cursor = dbCol.find(query);
             return Iterables.transform(cursor, new Function<DBObject, NodeDocument>() {
                 @Nullable
                 @Override

@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.StandardSystemProperty;
 import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.io.FileUtils;
@@ -50,8 +51,13 @@ import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentTarFixture extends OakFixture {
+
+    private static final Logger log = LoggerFactory.getLogger(SegmentTarFixture.class);
+
     /**
      * Listener instance doing nothing on a {@code SegmentNotFoundException}
      */
@@ -147,6 +153,8 @@ public class SegmentTarFixture extends OakFixture {
     private StandbyServerSync[] serverSyncs;
     private StandbyClientSync[] clientSyncs;
     private ScheduledExecutorService[] executors;
+
+    private CloudBlobContainer[] containers;
     
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
         this(builder, false, -1);
@@ -225,6 +233,7 @@ public class SegmentTarFixture extends OakFixture {
                 CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
                 CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
                 container.createIfNotExists();
+                containers[i] = container;
                 CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
                 builder.withCustomPersistence(new AzurePersistence(directory));
             }
@@ -346,6 +355,10 @@ public class SegmentTarFixture extends OakFixture {
         
         stores = new FileStore[fileStoresLength];
         blobStoreFixtures = new BlobStoreFixture[blobStoresLength];
+
+        if (azureConnectionString != null) {
+            containers = new CloudBlobContainer[n];
+        }
     }
 
     @Override
@@ -373,6 +386,18 @@ public class SegmentTarFixture extends OakFixture {
         if (blobStoreFixtures != null) {
             for (BlobStoreFixture bsf : blobStoreFixtures) {
                 bsf.tearDown();
+            }
+        }
+
+        if (containers != null) {
+            for (CloudBlobContainer container : containers) {
+                if (container != null) {
+                    try {
+                        container.deleteIfExists();
+                    } catch (StorageException e) {
+                        log.error("Can't remove container", e);
+                    }
+                }
             }
         }
         

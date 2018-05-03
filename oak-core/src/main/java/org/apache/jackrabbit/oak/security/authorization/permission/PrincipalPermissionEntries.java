@@ -19,12 +19,15 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
  * {@code PermissionEntries} holds the permission entries of one principal
  */
 class PrincipalPermissionEntries {
+
+    private final long expectedSize;
 
     /**
      * indicating if all entries were loaded.
@@ -34,9 +37,14 @@ class PrincipalPermissionEntries {
     /**
      * map of permission entries, accessed by path
      */
-    private Map<String, Collection<PermissionEntry>> entries = new HashMap<String, Collection<PermissionEntry>>();
+    private Map<String, Collection<PermissionEntry>> entries = new HashMap<>();
 
     PrincipalPermissionEntries() {
+        this(Long.MAX_VALUE);
+    }
+
+    PrincipalPermissionEntries(long expectedSize) {
+        this.expectedSize = expectedSize;
     }
 
     long getSize() {
@@ -54,5 +62,22 @@ class PrincipalPermissionEntries {
     @Nonnull
     Map<String, Collection<PermissionEntry>> getEntries() {
         return entries;
+    }
+
+    @CheckForNull
+    Collection<PermissionEntry> getEntriesByPath(@Nonnull String path) {
+        return entries.get(path);
+    }
+
+    void putEntriesByPath(@Nonnull String path, @Nonnull Collection<PermissionEntry> pathEntries) {
+        entries.put(path, pathEntries);
+        if (entries.size() >= expectedSize) {
+            setFullyLoaded(true);
+        }
+    }
+
+    void putAllEntries(@Nonnull Map<String, Collection<PermissionEntry>> allEntries) {
+        entries.putAll(allEntries);
+        setFullyLoaded(true);
     }
 }

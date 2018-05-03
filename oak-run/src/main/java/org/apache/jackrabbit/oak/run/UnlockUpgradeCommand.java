@@ -80,7 +80,9 @@ class UnlockUpgradeCommand implements Command {
                     System.err.println("Database missing in MongoDB URI: " + clientURI.getURI());
                 } else {
                     MongoConnection mongo = new MongoConnection(clientURI.getURI());
-                    store = new MongoDocumentStore(mongo.getDB(), new MongoDocumentNodeStoreBuilder());
+                    store = new MongoDocumentStore(
+                            mongo.getMongoClient(), mongo.getDBName(),
+                            new MongoDocumentNodeStoreBuilder());
                 }
             } else if (uri.startsWith("jdbc")) {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(uri,
