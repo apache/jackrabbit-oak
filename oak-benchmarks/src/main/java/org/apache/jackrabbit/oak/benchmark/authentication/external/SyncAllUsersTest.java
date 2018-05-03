@@ -33,15 +33,17 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.S
  */
 public class SyncAllUsersTest extends AbstractExternalTest {
 
-    private final int numberOfUsers;
-    private final int numberOfGroups;
+    private final int expectedUpdates;
     private SynchronizationMBean bean;
 
     public SyncAllUsersTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
             @Nonnull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
-        this.numberOfUsers = numberOfUsers;
-        this.numberOfGroups = numberOfGroups;
+        if (dynamicMembership) {
+            expectedUpdates = numberOfUsers;
+        } else {
+            expectedUpdates = numberOfUsers + numberOfGroups;
+        }
     }
 
     @Override
@@ -60,6 +62,6 @@ public class SyncAllUsersTest extends AbstractExternalTest {
     @Override
     protected void runTest() throws Exception {
         String[] ops = bean.syncAllUsers(true);
-        assertEquals(numberOfUsers + numberOfGroups, ops.length);
+        assertEquals(expectedUpdates, ops.length);
     }
 }
