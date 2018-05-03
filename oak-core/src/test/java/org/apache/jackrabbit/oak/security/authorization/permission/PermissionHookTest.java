@@ -21,13 +21,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
@@ -72,7 +72,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
     protected Principal testPrincipal;
     protected PrivilegeBitsProvider bitsProvider;
-    protected List<Principal> principals = new ArrayList<Principal>();
+    protected List<Principal> principals = new ArrayList<>();
 
     @Override
     @Before
@@ -418,8 +418,55 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
     }
 
     @Test
+    public void testNumPermissionsProperty() throws Exception {
+        Tree everyoneRoot = getPrincipalRoot(EveryonePrincipal.getInstance());
+        Tree testRoot = getPrincipalRoot(testPrincipal);
+
+        // initial state after setup
+        assertNumPermissionsProperty(1, everyoneRoot);
+        assertNumPermissionsProperty(1, testRoot);
+
+        // add another acl with an entry for everyone
+        addACE(childPath, EveryonePrincipal.getInstance(), JCR_READ);
+        root.commit();
+
+        assertNumPermissionsProperty(2, everyoneRoot);
+        assertNumPermissionsProperty(1, testRoot);
+
+        // adding another ACE at an existing ACL must not change num-permissions
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
+        acMgr.setPolicy(childPath, acl);
+        root.commit();
+
+        assertNumPermissionsProperty(2, everyoneRoot);
+        assertNumPermissionsProperty(1, testRoot);
+
+        // remove policy at 'testPath'
+        acMgr.removePolicy(testPath, AccessControlUtils.getAccessControlList(acMgr, testPath));
+        root.commit();
+
+        assertNumPermissionsProperty(1, everyoneRoot);
+        assertNumPermissionsProperty(0, testRoot);
+
+        // remove all ACEs on the childPath policy -> same effect as policy removal on permission store
+        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        for (AccessControlEntry entry : acl.getAccessControlEntries()) {
+            acl.removeAccessControlEntry(entry);
+        }
+        acMgr.setPolicy(childPath, acl);
+        root.commit();
+
+        assertNumPermissionsProperty(0, everyoneRoot);
+        assertNumPermissionsProperty(0, testRoot);
+    }
+
+    @Test
     public void testCollisions() throws Exception {
         Tree testRoot = getPrincipalRoot(testPrincipal);
+        assertNumPermissionsProperty(1, testRoot);
 
         String aaPath = testPath + "/Aa";
         String bbPath = testPath + "/BB";
@@ -435,6 +482,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
                 root.commit();
 
                 assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+                assertNumPermissionsProperty(3, testRoot);
 
                 Set<String> accessControlledPaths = Sets.newHashSet(testPath, aa.getPath(), bb.getPath());
                 assertEquals(accessControlledPaths, getAccessControlledPaths(testRoot));
@@ -443,12 +491,16 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
                 root.getTree(bbPath).remove();
                 root.commit();
             }
+        } else {
+            fail();
         }
+
     }
 
     @Test
     public void testCollisionRemoval() throws Exception {
         Tree testRoot = getPrincipalRoot(testPrincipal);
+        assertNumPermissionsProperty(1, testRoot);
 
         String aaPath = testPath + "/Aa";
         String bbPath = testPath + "/BB";
@@ -469,12 +521,14 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertTrue(testRoot.hasChild(bbPath.hashCode() + ""));
 
             assertEquals(Sets.newHashSet(testPath, bb.getPath()), getAccessControlledPaths(testRoot));
+            assertNumPermissionsProperty(2, testRoot);
         }
     }
 
     @Test
     public void testCollisionRemoval2() throws Exception {
         Tree testRoot = getPrincipalRoot(testPrincipal);
+        assertNumPermissionsProperty(1, testRoot);
 
         String aaPath = testPath + "/Aa";
         String bbPath = testPath + "/BB";
@@ -495,12 +549,14 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertTrue(testRoot.hasChild(aaPath.hashCode() + ""));
 
             assertEquals(Sets.newHashSet(testPath, aa.getPath()), getAccessControlledPaths(testRoot));
+            assertNumPermissionsProperty(2, testRoot);
         }
     }
 
     @Test
     public void testCollisionRemoval3() throws Exception {
         Tree testRoot = getPrincipalRoot(testPrincipal);
+        assertNumPermissionsProperty(1, testRoot);
 
         String aaPath = testPath + "/Aa";
         String bbPath = testPath + "/BB";
@@ -523,6 +579,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertFalse(testRoot.hasChild(bbPath.hashCode() + ""));
 
             assertEquals(Sets.newHashSet(testPath), getAccessControlledPaths(testRoot));
+            assertNumPermissionsProperty(1, testRoot);
         }
     }
 
@@ -553,6 +610,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
             assertEquals(paths, getAccessControlledPaths(testRoot));
+            assertNumPermissionsProperty(paths.size(), testRoot);
 
             String toRemove = null;
             for (String path : paths) {
@@ -573,6 +631,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             assertNotEquals(toRemove, getAccessControlledPath(testRoot.getChild(name)));
 
             assertEquals(paths, getAccessControlledPaths(testRoot));
+            assertNumPermissionsProperty(paths.size(), testRoot);
         }
     }
 
@@ -654,5 +713,11 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         PropertyState pathProp = t.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return (pathProp == null) ? null : pathProp.getValue(Type.STRING);
 
+    }
+
+    private static void assertNumPermissionsProperty(long expectedValue, @Nonnull Tree parent) {
+        PropertyState p = parent.getProperty(REP_NUM_PERMISSIONS);
+        assertNotNull(p);
+        assertEquals(expectedValue, p.getValue(Type.LONG).longValue());
     }
 }

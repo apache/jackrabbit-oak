@@ -20,21 +20,19 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +50,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
 
     private final RestrictionProvider restrictionProvider;
 
-    private final Map<String, Tree> principalTreeMap = new HashMap<String, Tree>();
+    private final Map<String, Tree> principalTreeMap = new HashMap<>();
 
     private Tree permissionsTree;
     private PrivilegeBits allBits;
@@ -75,21 +73,24 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     }
 
     //----------------------------------------------------< PermissionStore >---
-    @Override
     @CheckForNull
-    public Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path) {
+    @Override
+    public Collection<PermissionEntry> load(@Nonnull String principalName, @Nonnull String path) {
         Tree principalRoot = getPrincipalRoot(principalName);
+        Collection<PermissionEntry> entries = null;
         if (principalRoot != null) {
             String name = PermissionUtil.getEntryName(path);
             if (principalRoot.hasChild(name)) {
                 Tree child = principalRoot.getChild(name);
                 if (PermissionUtil.checkACLPath(child, path)) {
-                    entries = loadPermissionEntries(path, entries, child);
+                    entries = loadPermissionEntries(path, child);
                 } else {
-                    // check for child node
+                    // check for child node : there may at most be one child for
+                    // the given path.
                     for (Tree node : child.getChildren()) {
                         if (PermissionUtil.checkACLPath(node, path)) {
-                            entries = loadPermissionEntries(path, entries, node);
+                            entries = loadPermissionEntries(path, node);
+                            break;
                         }
                     }
                 }
@@ -98,11 +99,21 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         return entries == null || entries.isEmpty() ? null : entries;
     }
 
+    @Nonnull
     @Override
-    public long getNumEntries(@Nonnull String principalName, long max) {
-        // we ignore the hash-collisions here
+    public NumEntries getNumEntries(@Nonnull String principalName, long max) {
         Tree tree = getPrincipalRoot(principalName);
-        return tree == null ? 0 : tree.getChildrenCount(max);
+        if (tree == null) {
+            return NumEntries.ZERO;
+        } else {
+            // if rep:numPermissions is present it contains the exact number of
+            // access controlled nodes for the given principal name.
+            // if this property is missing (backward compat) we use the old
+            // mechanism and use child-cnt with a max value to get a rough idea
+            // about the magnitude (note: this approximation ignores the hash-collisions)
+            long l = TreeUtil.getLong(tree, REP_NUM_PERMISSIONS, -1);
+            return (l >= 0) ? NumEntries.valueOf(l, true) : NumEntries.valueOf(tree.getChildrenCount(max), false);
+        }
     }
 
     @Override
@@ -113,7 +124,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         Tree principalRoot = getPrincipalRoot(principalName);
         if (principalRoot != null) {
             for (Tree entryTree : principalRoot.getChildren()) {
-                loadPermissionEntries(entryTree, ret.getEntries());
+                loadPermissionEntries(entryTree, ret);
             }
         }
         ret.setFullyLoaded(true);
@@ -140,17 +151,17 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     }
 
     private void loadPermissionEntries(@Nonnull Tree tree,
-                                       @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap) {
+                                       @Nonnull PrincipalPermissionEntries principalPermissionEntries) {
         String path = TreeUtil.getString(tree, PermissionConstants.REP_ACCESS_CONTROLLED_PATH);
         if (path != null) {
-            Collection<PermissionEntry> entries = pathEntryMap.get(path);
+            Collection<PermissionEntry> entries = principalPermissionEntries.getEntriesByPath(path);
             if (entries == null) {
-                entries = new TreeSet<PermissionEntry>();
-                pathEntryMap.put(path, entries);
+                entries = new TreeSet<>();
+                principalPermissionEntries.putEntriesByPath(path, entries);
             }
             for (Tree child : tree.getChildren()) {
                 if (child.getName().charAt(0) == 'c') {
-                    loadPermissionEntries(child, pathEntryMap);
+                    loadPermissionEntries(child, principalPermissionEntries);
                 } else {
                     entries.add(createPermissionEntry(path, child));
                 }
@@ -160,15 +171,11 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         }
     }
 
-    @CheckForNull
     private Collection<PermissionEntry> loadPermissionEntries(@Nonnull String path,
-                                                              @Nullable Collection<PermissionEntry> ret,
-                                                              @Nonnull Tree tree) {
+                                       @Nonnull Tree tree) {
+        Collection<PermissionEntry> ret = new TreeSet<>();
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
-                if (ret == null) {
-                    ret = new TreeSet<PermissionEntry>();
-                }
                 ret.add(createPermissionEntry(path, ace));
             }
         }
