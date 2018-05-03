@@ -549,27 +549,31 @@ public class DefaultSyncContext implements SyncContext {
             }
             log.debug("- idp returned '{}'", extGroup.getId());
 
-            Group grp;
-            Authorizable a = userManager.getAuthorizable(extGroup.getId());
-            if (a == null) {
-                grp = createGroup(extGroup);
-                log.debug("- created new group");
-            } else if (a.isGroup() && isSameIDP(a)) {
-                grp = (Group) a;
-            } else {
-                log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
-                continue;
+            // mark group as processed
+            Group grp = declaredExternalGroups.remove(extGroup.getId());
+            boolean exists = grp != null;
+
+            if (!exists) {
+                Authorizable a = userManager.getAuthorizable(extGroup.getId());
+                if (a == null) {
+                    grp = createGroup(extGroup);
+                    log.debug("- created new group");
+                } else if (a.isGroup() && isSameIDP(a)) {
+                    grp = (Group) a;
+                } else {
+                    log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
+                    continue;
+                }
+                log.debug("- user manager returned '{}'", grp);
             }
-            log.debug("- user manager returned '{}'", grp);
 
             syncGroup(extGroup, grp);
 
-            // ensure membership
-            grp.addMember(auth);
-            log.debug("- added '{}' as member to '{}'", auth, grp);
-
-            // remember the declared group
-            declaredExternalGroups.remove(grp.getID());
+            if (!exists) {
+                // ensure membership
+                grp.addMember(auth);
+                log.debug("- added '{}' as member to '{}'", auth, grp);
+            }
 
             // recursively apply further membership
             if (depth > 1) {
