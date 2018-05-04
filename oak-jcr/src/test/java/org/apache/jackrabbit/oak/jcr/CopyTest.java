@@ -20,12 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
@@ -194,9 +192,6 @@ public class CopyTest extends AbstractRepositoryTest {
 
     @Test
     public void testCopyLockedNode() throws Exception {
-
-        assumeTrue(getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean());
-
         Session session = getAdminSession();
         Node toCopy = session.getNode(TEST_PATH + "/source/node");
         toCopy.addMixin(JcrConstants.MIX_LOCKABLE);
