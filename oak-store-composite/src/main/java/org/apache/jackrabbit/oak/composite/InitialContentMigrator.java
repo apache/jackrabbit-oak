@@ -194,17 +194,19 @@ public class InitialContentMigrator {
 
     private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot) throws CommitFailedException {
         NodeBuilder targetBuilder = targetRoot.builder();
-        NodeState currentRoot = wrapNodeState(after);
-        NodeState baseRoot = wrapNodeState(before);
+        NodeState currentRoot = wrapNodeState(after, true);
+        NodeState baseRoot = wrapNodeState(before, false);
         currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
         return targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 
-    private NodeState wrapNodeState(NodeState nodeState) {
+    private NodeState wrapNodeState(NodeState nodeState, boolean logPaths) {
         NodeState wrapped = nodeState;
         wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments);
-        wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+        if (logPaths) {
+            wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+        }
         return wrapped;
     }
 
