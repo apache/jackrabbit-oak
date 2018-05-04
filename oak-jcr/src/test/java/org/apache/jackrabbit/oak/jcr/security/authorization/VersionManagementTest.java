@@ -404,10 +404,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Property versionablePath = vh.getProperty(superuser.getWorkspace().getName());
         assertEquals(testNode.getPath(), versionablePath.getString());
     }
-    
+
     @Test
     public void testCheckInCheckoutLocked() throws Exception {
-        
+
+        ensureLockingSupported();
+
         LockManager lockManager = superuser.getWorkspace().getLockManager();
         VersionManager versionManager = superuser.getWorkspace().getVersionManager();
 
@@ -415,14 +417,14 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Node n = createVersionableNode(superuser.getNode(path));
         n.addMixin(mixLockable);
         superuser.save();
-        
+
         String nodePath = n.getPath();
-        
+
         // lock
         lockManager.lock(nodePath, true, false, 0, superuser.getUserID());
 
         // create version
         versionManager.checkin(nodePath);
         versionManager.checkout(nodePath);
-    }    
+    }
 }
