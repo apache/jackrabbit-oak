@@ -25,7 +25,9 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface TreeProvider {
 
+    @Nonnull
     Tree createReadOnlyTree(@Nonnull NodeState rootState);
 
+    @Nonnull
     Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState);
 }
