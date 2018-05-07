@@ -248,7 +248,6 @@ public class MongoBlobStore extends CachingBlobStore {
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
         Bson fields = new BasicDBObject(MongoBlob.KEY_ID, 1);
-        Bson hint = new BasicDBObject("$hint", fields);
 
         Bson query = new Document();
         if (maxLastModifiedTime != 0 && maxLastModifiedTime != -1) {
@@ -256,7 +255,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         final MongoCursor<MongoBlob> cur = getBlobCollection().find(query)
-                .projection(fields).modifiers(hint).iterator();
+                .projection(fields).hint(fields).iterator();
 
         //TODO The cursor needs to be closed
         return new AbstractIterator<String>() {

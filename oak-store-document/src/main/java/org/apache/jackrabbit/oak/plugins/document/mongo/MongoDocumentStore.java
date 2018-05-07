@@ -727,7 +727,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     result.limit(limit);
                 }
                 if (!disableIndexHint && !hasModifiedIdCompoundIndex) {
-                    result.modifiers(new BasicDBObject("$hint", hint));
+                    result.hint(hint);
                 }
                 if (maxQueryTime > 0) {
                     // OAK-2614: set maxTime if maxQueryTimeMS > 0
