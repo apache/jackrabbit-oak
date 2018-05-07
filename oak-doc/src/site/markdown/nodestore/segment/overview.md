@@ -828,21 +828,27 @@ java -jar oak-run.jar iotrace PATH --trace DEPTH|BREADTH [--depth DEPTH] [--mmap
 usage: iotrace path/to/segmentstore <options>
 Option (* = required)      Description
 ---------------------      -----------
---depth <Integer>          Maximal depth of the traversal (default: 5)
+--count <Integer>          Number of paths to access Applies to RANDOM (default: 1000)
+--depth <Integer>          Maximal depth of the traversal. Applies to BREADTH, DEPTH (default: 5)
 --mmap <Boolean>           use memory mapping for the file store (default: true)
 --output <File>            output file where the IO trace is written to (default: iotrace.csv)
---path <String>            starting path for the traversal (default: /root)
+--path <String>            starting path for the traversal. Applies to BREADTH, DEPTH (default: /root)
+--paths <File>             file containing list of paths to traverse. Applies to RANDOM (default: paths.txt)
+--seed <Long>              Seed for generating random numbers. Applies to RANDOM (default: 0)
 --segment-cache <Integer>  size of the segment cache in MB (default: 256)
---trace <Traces> (*)       type of the traversal. Either of [DEPTH, BREADTH]
-````
+* --trace <Traces>         type of the traversal. Either of [DEPTH, BREADTH, RANDOM]````
 
 The `iotrace` command collects IO traces of read accesses to the segment store's back-end 
 (e.g. disk). Traffic patterns can be specified via the `--trace` option. Permissible values 
-are `DEPTH` for depth first traversal and `BREADTH` for breadth first traversal. The `--depth`
-option limits the maximum number of levels traversed. The `--path` option specifies the node 
-where traversal starts (from the super root). The `--mmap` and `--segment-cache` options 
-configure memory mapping and segment cache size of the segment store, respectively. The 
-`--output` options specifies the file where the IO trace is stored. IO traces are stored in
+are `DEPTH` for depth first traversal, `BREADTH` for breadth first traversal and `RANDOM` for
+random access. The `--depth` option limits the maximum number of levels traversed. 
+The `--path` option specifies the node where traversal starts (from the super root). 
+The `--mmap` and `--segment-cache` options configure memory mapping and segment cache size 
+of the segment store, respectively.
+The `--paths` option specifies the list of paths to access. The file must contain a single path 
+per line. 
+The `--seed` option specifies the seed to used when randomly choosing a paths.  
+The `--output` options specifies the file where the IO trace is stored. IO traces are stored in
 CSV format of the following form:
 
 ```

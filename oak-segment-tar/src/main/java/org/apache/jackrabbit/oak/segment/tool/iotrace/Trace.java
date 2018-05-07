@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * An instance of a {@code Trace} specifies a read pattern for tracing
  * IO reads of segments with an {@link IOTracer} instance.
  */
-interface Trace {
+public interface Trace {
 
     /**
      * Run this trace on the passed {@code node}.
