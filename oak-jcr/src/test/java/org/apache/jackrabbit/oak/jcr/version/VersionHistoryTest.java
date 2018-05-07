@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.VersionHistory;
@@ -122,5 +123,25 @@ public class VersionHistoryTest extends AbstractJCRTest {
         String uuid = vMgr.getVersionHistory(n.getPath()).getUUID();
         assertTrue("Session.getNodeByUUID() did not return VersionHistory object for a nt:versionHistory node.",
                 superuser.getNodeByUUID(uuid) instanceof VersionHistory);
+    }
+    
+    public void testGetNodeByTraversal() throws RepositoryException {
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+        VersionHistory history = versionManager.getVersionHistory(n.getPath());
+
+        NodeIterator siblings = history.getParent().getNodes();
+        boolean found = false;
+        while (siblings.hasNext()) {
+            Node sibling = siblings.nextNode();
+            if (history.getIdentifier().equals(sibling.getIdentifier())) {
+                found = true;
+                assertTrue("Child iterator did not return VersionHistory object for a nt:versionHistory node.",
+                        sibling instanceof VersionHistory);
+                break;
+            }
+        }
+        assertTrue("Version history node could not be found by traversing from its parent.", found);
     }
 }

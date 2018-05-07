@@ -1314,7 +1314,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 new Function<NodeDelegate, Node>() {
                     @Override
                     public Node apply(NodeDelegate nodeDelegate) {
-                        return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
+                        try {
+                            return createNode(nodeDelegate, sessionContext);
+                        } catch (RepositoryException e) {
+                            throw new IllegalStateException("Cannot create node object for path " + nodeDelegate.getPath(), e);
+                        }
                     }
                 }));
     }
