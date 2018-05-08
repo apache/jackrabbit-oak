@@ -24,7 +24,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNodeManager;
+import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.joshua.decoder.Decoder;
 import org.apache.joshua.decoder.StructuredTranslation;
@@ -34,10 +38,14 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.simple.SimpleQueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,15 +60,18 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
     private final Decoder decoder;
     private final Set<String> nodeTypes;
     private final float minScore;
+    private final SimpleQueryParser qp;
 
     public MTFulltextQueryTermsProvider(Decoder decoder, Set<String> nodeTypes, float minScore) {
         this.decoder = decoder;
         this.nodeTypes = nodeTypes;
         this.minScore = minScore;
+        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LUCENE_47), FieldNames.FULLTEXT);
     }
 
     @Override
     public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+
         BooleanQuery query = new BooleanQuery();
         try {
             Sentence sentence = new Sentence(text, text.hashCode(), decoder.getJoshuaConfiguration());
@@ -105,7 +116,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
             log.debug("translation {} has score {}", translationString, translationScore);
             if (translationScore > minScore) {
                 log.debug("translation score for {} is {}", translationString, translationScore);
-                query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translationString)),
+                query.add(new BooleanClause(qp.createPhraseQuery(FieldNames.FULLTEXT, translationString),
                         BooleanClause.Occur.SHOULD));
                 log.debug("added query for translated phrase {}", translationString);
                 List<String> translationTokens = st.getTranslationTokens();
@@ -114,8 +125,8 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
                 for (List<Integer> wa : st.getTranslationWordAlignments()) {
                     if (!wa.isEmpty()) {
                         String translatedTerm = translationTokens.get(i);
-                        query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translatedTerm)),
-                                BooleanClause.Occur.SHOULD));
+                        Query termQuery = qp.parse(translatedTerm);
+                        query.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD));
                         log.debug("added query for translated token {}", translatedTerm);
                     }
                     i++;
