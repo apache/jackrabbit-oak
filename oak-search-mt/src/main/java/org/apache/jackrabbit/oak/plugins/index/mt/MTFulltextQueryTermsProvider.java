@@ -18,17 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.mt;
 
-import javax.annotation.Nonnull;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.joshua.decoder.Decoder;
 import org.apache.joshua.decoder.StructuredTranslation;
@@ -38,8 +36,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.simple.SimpleQueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
