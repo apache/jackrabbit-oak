@@ -834,7 +834,6 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
             <executions>
               <execution>
@@ -844,6 +843,14 @@
                 </goals>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- run a test to prevent Jenkins from failing because no test ran -->
+              <test>PathUtilsTest</test>
+              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+            </configuration>
           </plugin>
         </plugins>
       </build>
