@@ -25,6 +25,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -64,8 +65,17 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         return privTree;
     }
 
+    private void register(@Nonnull String privName, @Nonnull String... aggr) throws Exception {
+        getPrivilegeManager(root).registerPrivilege(privName, false, aggr);
+    }
+
     private static void setPrivilegeBits(Tree tree, String name, long value) {
         tree.setProperty(PropertyStates.createProperty(name, Collections.singleton(value), Type.LONGS));
+    }
+
+    private PrivilegeValidator createPrivilegeValidator() {
+        Root immutable = getRootProvider().createReadOnlyRoot(root);
+        return new PrivilegeValidator(immutable, immutable, getTreeProvider());
     }
 
     @Test
@@ -180,7 +190,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         NodeState privilegeDefinition = nb.getNodeState();
         assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
 
-        PrivilegeValidator pv = new PrivilegeValidator(root, root);
+        PrivilegeValidator pv = new PrivilegeValidator(root, root, getTreeProvider());
         try {
             pv.childNodeChanged("test", privilegeDefinition, EmptyNodeState.EMPTY_NODE);
         } catch (CommitFailedException e) {
@@ -199,7 +209,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         NodeState privilegeDefinition = nb.getNodeState();
         assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
 
-        PrivilegeValidator pv = new PrivilegeValidator(root, root);
+        PrivilegeValidator pv = new PrivilegeValidator(root, root, getTreeProvider());
         assertNull(pv.childNodeChanged("test", privilegeDefinition, privilegeDefinition));
     }
 
@@ -227,7 +237,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
             PropertyState after = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES), Type.NAMES);
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyChanged(before, after);
             fail("modifying property in privilege store must fail.");
         } catch (CommitFailedException e) {
@@ -242,7 +252,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         try {
             PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyDeleted(before);
             fail("removing property from privilege store must fail.");
         } catch (CommitFailedException e) {
@@ -272,7 +282,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
                     .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .getNodeState();
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
             fail("missing priv bits must be detected.");
         } catch (CommitFailedException e) {
@@ -290,7 +300,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
                     .setProperty(REP_AGGREGATES, ImmutableList.of("unknown", JCR_READ), Type.NAMES)
                     .getNodeState();
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
             fail("unknown aggregate must be detected.");
         } catch (CommitFailedException e) {
@@ -300,9 +310,9 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     }
 
     @Test
-    public void testCircularAggregate() {
+    public void testCircularAggregate() throws Exception {
         try {
-            createPrivilegeTree("test");
+            register("test");
 
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
                     .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
@@ -310,9 +320,9 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
                     .setProperty(REP_AGGREGATES, ImmutableList.of("test", JCR_READ), Type.NAMES)
                     .getNodeState();
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("unknown aggregate must be detected.");
+            fail("circular aggregate must be detected.");
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
             assertEquals(52, e.getCode());
@@ -320,9 +330,10 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     }
 
     @Test
-    public void testCircularAggregate2() {
+    public void testCircularAggregate2() throws Exception {
         try {
-            createPrivilegeTree("test2", "test");
+            register("test");
+            register("test2", "test", PrivilegeConstants.JCR_READ);
 
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
                     .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
@@ -330,9 +341,9 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
                     .setProperty(REP_AGGREGATES, ImmutableList.of("test2", JCR_READ), Type.NAMES)
                     .getNodeState();
 
-            PrivilegeValidator validator = new PrivilegeValidator(root, root);
+            PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("unknown aggregate must be detected.");
+            fail("circular aggregate must be detected.");
         } catch (CommitFailedException e) {
             assertTrue(e.isConstraintViolation());
             assertEquals(52, e.getCode());

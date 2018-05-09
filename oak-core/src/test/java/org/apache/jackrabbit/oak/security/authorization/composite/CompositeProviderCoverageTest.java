@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -116,7 +115,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
 
         for (String cName : childNames) {
@@ -132,7 +131,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree, TreePermission.EMPTY);
 
         for (String cName : childNames) {

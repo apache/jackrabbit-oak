@@ -38,10 +38,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -254,7 +253,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.AND, getRootProvider());
+                config.getContext(), CompositionType.AND, getRootProvider(), getTreeProvider());
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
@@ -265,7 +264,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.OR, getRootProvider());
+                config.getContext(), CompositionType.OR, getRootProvider(), getTreeProvider());
     }
 
     @Test
@@ -573,7 +572,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
 
         for (String cName : childNames) {
@@ -588,7 +587,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree, TreePermission.EMPTY);
 
         for (String cName : childNames) {

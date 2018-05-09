@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -108,11 +108,11 @@ public final class PermissionUtil implements PermissionConstants {
         return path;
     }
 
-    public static Tree getImmutableTree(@Nullable Tree tree, @Nonnull Root immutableRoot) {
-        if (tree instanceof ImmutableTree) {
+    public static Tree getReadOnlyTree(@Nullable Tree tree, @Nonnull Root readOnlyRoot) {
+        if (tree instanceof ReadOnly) {
             return tree;
         } else {
-            return (tree == null) ? null : immutableRoot.getTree(tree.getPath());
+            return (tree == null) ? null : readOnlyRoot.getTree(tree.getPath());
         }
     }
 }

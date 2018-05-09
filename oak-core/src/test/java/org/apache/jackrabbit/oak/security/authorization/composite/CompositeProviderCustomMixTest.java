@@ -16,19 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
-import static org.junit.Assert.assertEquals;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -48,10 +45,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
+import static org.junit.Assert.assertEquals;
 
 public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
@@ -232,7 +230,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         List<AggregatedPermissionProvider> composite = ImmutableList.of(a1, a2);
-        return new CompositePermissionProvider(root, composite, config.getContext(), type, getRootProvider());
+        return new CompositePermissionProvider(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
     }
 
     private static class CustomProvider implements AggregatedPermissionProvider {
@@ -351,7 +349,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
     }
 
-    private static class CustomTreePermission implements TreePermission {
+    private static final class CustomTreePermission implements TreePermission {
 
         private final Set<String> granted;
         private final Map<String, Long> grantMap;
