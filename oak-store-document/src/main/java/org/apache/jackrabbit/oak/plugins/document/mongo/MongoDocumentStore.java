@@ -294,17 +294,19 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         useClientSession = !builder.isClientSessionDisabled()
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
-        // indexes:
-        // the _id field is the primary key, so we don't need to define it
+        // counting the number of documents in the nodes collection and
+        // checking existing indexes is performed against the MongoDB primary
+        // this ensure the information is up-to-date and accurate
+        long initialDocsCount = getNodesCount();
 
-        long initialDocsCount = nodes.count();
         // compound index on _modified and _id
         if (initialDocsCount == 0) {
             // this is an empty store, create a compound index
             // on _modified and _id (OAK-3071)
             createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
                     new boolean[]{true, true}, false, false);
-        } else if (!hasIndex(nodes, NodeDocument.MODIFIED_IN_SECS, Document.ID)) {
+        } else if (!hasIndex(nodes.withReadPreference(ReadPreference.primary()),
+                NodeDocument.MODIFIED_IN_SECS, Document.ID)) {
             hasModifiedIdCompoundIndex = false;
             if (!builder.getReadOnlyMode()) {
                 LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
@@ -325,7 +327,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             } else {
                 createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
             }
-        } else if (!hasIndex(nodes, DELETED_ONCE, MODIFIED_IN_SECS)) {
+        } else if (!hasIndex(nodes.withReadPreference(ReadPreference.primary()),
+                DELETED_ONCE, MODIFIED_IN_SECS)) {
             if (!builder.getReadOnlyMode()) {
                 LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
                         "Revision GC performance it is recommended to create a " +
@@ -342,7 +345,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             // on _sdType and _sdMaxRevTime (OAK-6129)
             createIndex(nodes, new String[]{SD_TYPE, SD_MAX_REV_TIME_IN_SECS},
                     new boolean[]{true, true}, false, true);
-        } else if (!hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
+        } else if (!hasIndex(nodes.withReadPreference(ReadPreference.primary()),
+                SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
             if (!builder.getReadOnlyMode()) {
                 LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
                         "Revision GC performance it is recommended to create a " +
@@ -676,7 +680,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         Bson hint;
         if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
                 && canUseModifiedTimeIdx(startValue)) {
-            hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+            hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
         } else {
             hint = new BasicDBObject(NodeDocument.ID, 1);
         }
@@ -1899,6 +1903,25 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     builder.put(key, String.valueOf(v));
                 }
             }
+        });
+    }
+
+    /**
+     * Returns the number of documents in the {@link #nodes} collection. The read
+     * always happens on the MongoDB primary.
+     *
+     * @return the number of documents in the {@link #nodes} collection.
+     */
+    private long getNodesCount() {
+        return execute(session -> {
+            MongoCollection<?> c = nodes.withReadPreference(ReadPreference.primary());
+            long count;
+            if (session != null) {
+                count = c.count(session);
+            } else {
+                count = c.count();
+            }
+            return count;
         });
     }
 
