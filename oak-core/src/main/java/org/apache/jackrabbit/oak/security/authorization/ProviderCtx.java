@@ -14,23 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.tree;
+package org.apache.jackrabbit.oak.security.authorization;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.osgi.annotation.versioning.ProviderType;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
-@ProviderType
-public interface TreeProvider {
-
-    @Nonnull
-    Tree createReadOnlyTree(@Nonnull NodeState rootState);
+public interface ProviderCtx {
 
     @Nonnull
-    Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState);
+    SecurityProvider getSecurityProvider();
 
     @Nonnull
-    NodeState asNodeState(@Nonnull Tree readOnlyTree);
+    TreeProvider getTreeProvider();
+
+    @Nonnull
+    RootProvider getRootProvider();
+
+    @Nonnull
+    MountInfoProvider getMountInfoProvider();
 }

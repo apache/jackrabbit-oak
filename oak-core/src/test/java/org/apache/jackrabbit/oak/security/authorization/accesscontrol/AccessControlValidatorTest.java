@@ -32,9 +32,12 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -90,7 +93,8 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     }
 
     private AccessControlValidatorProvider createValidatorProvider() {
-        return new AccessControlValidatorProvider(getSecurityProvider(), getRootProvider(), getTreeProvider());
+        CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) getConfig(AuthorizationConfiguration.class);
+        return new AccessControlValidatorProvider((AuthorizationConfigurationImpl) cac.getDefaultConfig());
     }
 
     private NodeUtil createAcl() throws AccessDeniedException {

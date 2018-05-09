@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -73,8 +74,8 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
         service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
         property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl")
 @Designate(ocd = AuthorizationConfigurationImpl.Configuration.class)
-public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
-    
+public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration, ProviderCtx {
+
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthorizationConfiguration")
     @interface Configuration {
         @AttributeDefinition(
@@ -116,7 +117,6 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         int configurationRanking() default 100;
     }
 
-    @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     public AuthorizationConfigurationImpl() {
@@ -166,8 +166,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public List<ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(getSecurityProvider(), workspaceName, principals, moveTracker, getRootProvider(), getTreeProvider()),
-                new AccessControlValidatorProvider(getSecurityProvider(), getRootProvider(), getTreeProvider()));
+                new PermissionValidatorProvider(workspaceName, principals, moveTracker, this),
+                new AccessControlValidatorProvider(this));
     }
 
     @Nonnull
@@ -202,13 +202,23 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
             return new MountPermissionProvider(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx, mountInfoProvider, getRootProvider());
+                    getParameters(), ctx, this);
         } else {
             return new PermissionProviderImpl(root, workspaceName, principals, getRestrictionProvider(),
-                    getParameters(), ctx, getRootProvider());
+                    getParameters(), ctx, this);
         }
     }
 
+    //--------------------------------------------------------< ProviderCtx >---
+
+    @Nonnull
+    @Override
+    public MountInfoProvider getMountInfoProvider() {
+        return mountInfoProvider;
+    }
+
+    //--------------------------------------------------------------------------
+    @Reference(name = "mountInfoProvider", cardinality = ReferenceCardinality.MANDATORY)
     public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }

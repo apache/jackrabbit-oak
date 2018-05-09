@@ -25,11 +25,11 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -190,6 +190,11 @@ class PermissionValidator extends DefaultValidator {
         return permissionProvider;
     }
 
+    @Nonnull
+    TreeProvider getTreeProvider() {
+        return provider.getTreeProvider();
+    }
+
     @CheckForNull
     Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                long defaultPermission) throws CommitFailedException {
@@ -200,7 +205,7 @@ class PermissionValidator extends DefaultValidator {
             }
             return null; // no need for further validation down the subtree
         } else {
-            NodeState ns = getNodeState(tree);
+            NodeState ns = provider.getTreeProvider().asNodeState(tree);
             if (ns == null) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
@@ -317,7 +322,7 @@ class PermissionValidator extends DefaultValidator {
         // NOTE: we cannot rely on autocreated/protected definition as this
         // doesn't reveal if a given property is expected to be never modified
         // after creation.
-        NodeState parentNs = getNodeState(parent);
+        NodeState parentNs = provider.getTreeProvider().asNodeState(parent);
         if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentNs)) {
             return true;
         } else {
@@ -356,14 +361,5 @@ class PermissionValidator extends DefaultValidator {
 
     private boolean isIndexDefinition(@Nonnull Tree tree) {
         return tree.getPath().contains(IndexConstants.INDEX_DEFINITIONS_NAME);
-    }
-
-    @CheckForNull
-    private static NodeState getNodeState(@Nonnull Tree tree) {
-        if (tree instanceof ImmutableTree) {
-            return ((ImmutableTree) tree).getNodeState();
-        } else {
-            return null;
-        }
     }
 }

@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -165,17 +164,17 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     public void testGetChild() throws Exception {
         Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
 
-        ImmutableTree t = (ImmutableTree) getRootProvider().createReadOnlyRoot(root).getTree("/");
+        Tree t = getRootProvider().createReadOnlyRoot(root).getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String name : PathUtils.elements(versionHistory.getPath())) {
             t = t.getChild(name);
-            tp = tp.getChildPermission(name, t.getNodeState());
+            tp = tp.getChildPermission(name, getTreeProvider().asNodeState(t));
         }
 
         String expectedPath = "/test";
         assertVersionPermission(tp, "/test", true);
 
-        NodeState ns = t.getChild("1.0").getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(t.getChild("1.0"));
         tp = tp.getChildPermission("1.0", ns);
         assertVersionPermission(tp, "/test", true);
 

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -65,14 +66,15 @@ public class CugTreePermissionTest extends AbstractCugTest {
 
     @Test
     public void testGetChildPermission() throws Exception {
-        NodeState ns = ((AbstractTree) root.getTree(SUPPORTED_PATH + "/subtree")).getNodeState();
+        TreeProvider treeProvider = getTreeProvider();
+        NodeState ns = treeProvider.asNodeState(root.getTree(SUPPORTED_PATH + "/subtree"));
         TreePermission child = allowedTp.getChildPermission("subtree", ns);
         assertTrue(child instanceof CugTreePermission);
 
         child = deniedTp.getChildPermission("subtree", ns);
         assertTrue(child instanceof CugTreePermission);
 
-        NodeState cugNs = ((AbstractTree) root.getTree(PathUtils.concat(SUPPORTED_PATH, REP_CUG_POLICY))).getNodeState();
+        NodeState cugNs = treeProvider.asNodeState(root.getTree(PathUtils.concat(SUPPORTED_PATH, REP_CUG_POLICY)));
         TreePermission cugChild = allowedTp.getChildPermission(REP_CUG_POLICY, cugNs);
         assertSame(TreePermission.NO_RECOURSE, cugChild);
     }

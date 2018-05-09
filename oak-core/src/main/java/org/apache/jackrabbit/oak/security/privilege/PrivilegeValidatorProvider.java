@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -37,20 +38,23 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
     private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
-    PrivilegeValidatorProvider(@Nonnull RootProvider rootProvider) {
+    PrivilegeValidatorProvider(@Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
         this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     @Nonnull
     @Override
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after)),
+        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider),
                 JCR_SYSTEM, REP_PRIVILEGES);
     }
 
     private Root createRoot(NodeState nodeState) {
         return rootProvider.createReadOnlyRoot(nodeState);
     }
+
 }

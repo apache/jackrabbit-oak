@@ -56,7 +56,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
         Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         Tree t = readOnlyRoot.getTree("/");
         tp = new EmptyCugTreePermission(t, TreeType.DEFAULT, pp);
-        rootState = ((AbstractTree) t).getNodeState();
+        rootState = getTreeProvider().asNodeState(t);
     }
 
     @Test

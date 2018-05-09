@@ -36,11 +36,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -48,13 +48,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +75,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
     private final PermissionStore store;
     private final PermissionEntryProvider userStore;
     private final PermissionEntryProvider groupStore;
+
     private final TreeTypeProvider typeProvider;
+    private final ProviderCtx providerCtx;
 
     private Root root;
     private ReadOnlyVersionManager versionManager;
@@ -87,11 +87,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                                    @Nonnull Root root,
                                    @Nonnull String workspaceName,
                                    @Nonnull PermissionStore store,
-                                   @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull ConfigurationParameters options,
-                                   @Nonnull Context ctx) {
+                                   @Nonnull Context ctx,
+                                   @Nonnull ProviderCtx providerCtx) {
         this.root = root;
         this.workspaceName = workspaceName;
+        this.providerCtx = providerCtx;
 
         bitsProvider = new PrivilegeBitsProvider(root);
 
@@ -120,14 +121,14 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                                       @Nonnull String workspaceName,
                                       @Nonnull PermissionStore store,
                                       @Nonnull Set<Principal> principals,
-                                      @Nonnull RestrictionProvider restrictionProvider,
                                       @Nonnull ConfigurationParameters options,
-                                      @Nonnull Context ctx) {
+                                      @Nonnull Context ctx,
+                                      @Nonnull ProviderCtx providerCtx) {
         Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            return new CompiledPermissionImpl(principals, root, workspaceName, store, restrictionProvider, options, ctx);
+            return new CompiledPermissionImpl(principals, root, workspaceName, store, options, ctx, providerCtx);
         }
     }
 
@@ -193,7 +194,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         while (!versionableTree.exists()) {
                             versionableTree = versionableTree.getParent();
                         }
-                        return new VersionTreePermission(tree, buildVersionDelegatee(versionableTree));
+                        return new VersionTreePermission(tree, buildVersionDelegatee(versionableTree), providerCtx.getTreeProvider());
                     }
                 }
             case ACCESS_CONTROL:
@@ -484,7 +485,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Nonnull
         @Override
         public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
-            Tree childTree = new ImmutableTree((ImmutableTree) tree, childName, childState);
+            Tree childTree = providerCtx.getTreeProvider().createReadOnlyTree(tree, childName, childState);
             return getTreePermission(childTree, typeProvider.getType(childTree, type), this);
         }
 

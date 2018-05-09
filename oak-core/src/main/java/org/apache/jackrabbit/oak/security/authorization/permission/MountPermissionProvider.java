@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.LongUtils;
-import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -49,10 +49,9 @@ public class MountPermissionProvider extends PermissionProviderImpl {
     public MountPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
                                    @Nonnull Set<Principal> principals, @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull ConfigurationParameters options, @Nonnull Context ctx,
-                                   @Nonnull MountInfoProvider mountInfoProvider,
-                                   @Nonnull RootProvider rootProvider) {
-        super(root, workspaceName, principals, restrictionProvider, options, ctx, rootProvider);
-        this.mountInfoProvider = mountInfoProvider;
+                                   @Nonnull ProviderCtx providerCtx) {
+        super(root, workspaceName, principals, restrictionProvider, options, ctx, providerCtx);
+        this.mountInfoProvider = providerCtx.getMountInfoProvider();
     }
 
     @Override
