@@ -97,7 +97,12 @@ class LuceneCommand extends ComplexCommandSupport {
     }
 
     def do_rmdata = {args ->
-        String idxPath = args && args.size() == 2 ? args[1] : '/oak:index/lucene'
+        if (!args || args.size() != 1) {
+            io.out.println("Please provide a single argument (index-path). Current arg list: ${args}")
+            return
+        }
+
+        String idxPath = args[0]
 
         NodeStore ns = getSession().getStore();
         OakNodeBuilder nb = ns.root.builder()
