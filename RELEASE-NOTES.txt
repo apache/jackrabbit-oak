@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.3
 
 Introduction
 ------------
@@ -7,37 +7,84 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.2 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.3 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.2
+Changes in Oak 1.8.3
 ---------------------
+
+Technical task
+
+    [OAK-7204] - RDB*Store: update postgresql JDBC driver reference to
+    42.2.0
+    [OAK-7289] - RDBDocumentStore: potential NPE in error handling
+    code
+    [OAK-7292] - RDB*Store: update tomcat jdbc dependency to 8.5.28
+    [OAK-7299] - RDB*Store: update postgresql JDBC driver reference to
+    42.2.1
+    [OAK-7313] - RDB*Store: add DEBUG level logging for filters in
+    RDBVersionGCSupport
+    [OAK-7441] - RDB*Store: update DB2 JDBC dependency to 4.19.72
+    [OAK-7446] - RDB*Store: update SQLServer JDBC dependency to
+    6.4.0.jre*
+    [OAK-7453] - oal-core/oak-store-document: fix broken line ends in
+    repo
+    [OAK-7454] - oak-lucene: fix broken line ends in repo
 
 Bug
 
-    [OAK-7162] - Race condition on revisions head between compaction
-    and scheduler could result in skipped commit
-    [OAK-7174] - The check command returns a zero exit code on error
-    [OAK-7223] - Files could be kept partially in case of
-    disconnection from backends
-    [OAK-7227] - MountPermissionProvider getNumEntries prone to
-    overflow
-    [OAK-7241] - oak-run documentation typo for "checkpoints" command
-    [OAK-7244] - RDBDocumentStore: fix typo in metadata
+    [OAK-7198] - Index rule with REGEX_ALL_PROPS includes relative
+    node
+    [OAK-7209] - Race condition can resurrect blobs during blob GC
+    [OAK-7265] - Standalone example application fails to start
+    [OAK-7266] - Standalone example system console fails to render
+    [OAK-7284] - Reindexing using --doc-traversal-mode can hit
+    ConcurrentModificationException during aggregation
+    [OAK-7285] - Reindexing using --doc-traversal-mode can OOM while
+    aggregation in some cases
+    [OAK-7291] - MongoStatusTest.testReadConcern fails on MongoDB 3.6
+    [OAK-7309] - MongoDocumentStoreMetricsTest fails sporadically
+    [OAK-7356] - CugConfiguration may not pick up CugExclude
+    [OAK-7375] - Wrong full text parsing in Oak Solr index with
+    boolean operators
+    [OAK-7466] - Prevent LMSEstimator over/under flow in weights
+    [OAK-7490] - oak-run console lc rmdata command uses second
+    parameter for index path (and defaults to /oak:index/lucene)
 
 Improvement
 
-    [OAK-6373] - oak-run check should also check checkpoints
-    [OAK-7222] - Log a warn when CoW opens input from remote due to
-    size mismatch
+    [OAK-6031] - Add TarFiles to the architecture diagram
+    [OAK-7262] - LockBasedScheduler#getHeadNodeState poor performance
+    due to lock contention in commitTimeHistogram implementation
+    [OAK-7290] - Reindexing using --doc-traversal-mode should have
+    configurable upper bound for mem usage
+    [OAK-7437] - SimpleExcerptProvider highlighting should be case
+    insensitive
 
 Task
 
-    [OAK-7189] - Improve code coverage for InitialContentMigrator
+    [OAK-7173] - Update documentation for oak-run check
+    [OAK-7247] - Update Oak 1.8 to Jackrabbit 2.16.1
+    [OAK-7304] - Deploy oak-pojosr as part of standard deployment
+    [OAK-7314] - RDB*Store: use SDMAXREV column in RevisionGC query
+    [OAK-7322] - Mention SHA512 checksums in release notes
+    [OAK-7325] - restore line wrapping in release notes
+    [OAK-7335] - oak-upgrade long name filter should consider the path
+    length
+    [OAK-7336] - stop advertising MD5 checksums
+    [OAK-7347] - Incorrect link to KEYS in release notes
+    [OAK-7350] - stop creating MD5 checksums for releases
+    [OAK-7426] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.30
+    [OAK-7452] - fix broken line ends in repo
+
+Documentation
+
+    [OAK-7112] - Update documentation for cold standby
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
