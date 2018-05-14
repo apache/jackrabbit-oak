@@ -61,7 +61,7 @@
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <findbugs.version>3.0.4</findbugs.version>
-    <derby.version>10.14.1.0</derby.version>
+    <derby.version>10.14.2.0</derby.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
