@@ -176,6 +176,12 @@
       <version>${h2.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>pl.pragmatists</groupId>
+      <artifactId>JUnitParams</artifactId>
+      <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <!-- Workaround for http://bugs.java.com/view_bug.do?bug_id=6550655 -->

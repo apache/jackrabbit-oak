@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.ConstantBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.DummyBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
-import org.apache.jackrabbit.oak.upgrade.cli.blob.MissingBlobStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.LoopbackBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +110,7 @@ public class DatastoreArguments {
         if (options.isSrcBlobStoreDefined()) {
             result = definedSrcBlob;
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
-            result = new MissingBlobStoreFactory();
+            result = new LoopbackBlobStoreFactory();
         } else {
             result = new DummyBlobStoreFactory(); // embedded
         }
@@ -125,7 +125,7 @@ public class DatastoreArguments {
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES && (options.isSrcBlobStoreDefined() || storeArguments.getSrcType() == JCR2_DIR_XML)) {
             result = new ConstantBlobStoreFactory(srcBlobStore);
         } else if (blobMigrationCase == BlobMigrationCase.COPY_REFERENCES) {
-            result = new MissingBlobStoreFactory();
+            result = new LoopbackBlobStoreFactory();
         } else {
             result = new DummyBlobStoreFactory(); // embedded
         }

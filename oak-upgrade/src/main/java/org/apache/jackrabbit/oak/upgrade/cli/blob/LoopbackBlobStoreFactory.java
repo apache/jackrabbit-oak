@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import com.google.common.io.Closer;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-public class MissingBlobStoreFactory implements BlobStoreFactory {
+public class LoopbackBlobStoreFactory implements BlobStoreFactory {
 
     @Override
     public BlobStore create(Closer closer) {
-        return new MissingBlobStore();
+        checkNotNull(closer, "Closer object cannot be null");
+        return new LoopbackBlobStore();
     }
 
     @Override
     public String toString() {
-        return "MissingBlobStore";
+        return "LoopbackBlobStore";
     }
 }
