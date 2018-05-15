@@ -39,6 +39,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Dictionary;
@@ -59,7 +60,7 @@ public abstract class AbstractDataStoreFactory {
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     @Activate
-    public void activate(ComponentContext context) throws IOException {
+    public void activate(ComponentContext context) throws IOException, RepositoryException {
         final String role = lookupConfigurationThenFramework(context, ROLE);
 
         // Data stores being created via the factory MUST have a role configured
@@ -73,6 +74,9 @@ public abstract class AbstractDataStoreFactory {
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
             final DataStore dataStore = createDataStore(context, config);
+            String[] descArray = new String[desc.size()];
+            descArray = desc.toArray(descArray);
+            AbstractDataStoreService.registerDataStore(context, config, dataStore, statisticsProvider, descArray, closer);
             if (null != dataStore) {
                 if (dataStore instanceof CompositeDataStoreAware) {
                     ((CompositeDataStoreAware)dataStore).setIsDelegate(true);
