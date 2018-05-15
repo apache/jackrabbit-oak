@@ -24,16 +24,27 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.annotations.Component;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 @Component(service = {TreeProvider.class})
 public class TreeProviderService implements TreeProvider {
 
+    @Nonnull
     @Override
     public Tree createReadOnlyTree(@Nonnull NodeState rootState) {
         return TreeFactory.createReadOnlyTree(rootState);
     }
 
+    @Nonnull
     @Override
     public Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState) {
         return TreeFactory.createReadOnlyTree(readOnlyParent, childName, childState);
+    }
+
+    @Nonnull
+    @Override
+    public NodeState asNodeState(@Nonnull Tree readOnlyTree) {
+        checkArgument(readOnlyTree instanceof AbstractTree);
+        return ((AbstractTree) readOnlyTree).getNodeState();
     }
 }

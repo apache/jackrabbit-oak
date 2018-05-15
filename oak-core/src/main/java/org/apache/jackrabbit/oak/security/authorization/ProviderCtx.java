@@ -13,24 +13,27 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
-
-package org.apache.jackrabbit.oak.segment.tool.iotrace;
+package org.apache.jackrabbit.oak.security.authorization;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
-/**
- * An instance of a {@code Trace} specifies a read pattern for tracing
- * IO reads of segments with an {@link IOTracer} instance.
- */
-public interface Trace {
+public interface ProviderCtx {
 
-    /**
-     * Run this trace on the passed {@code node}.
-     * @param node
-     */
-    void run(@Nonnull NodeState node);
+    @Nonnull
+    SecurityProvider getSecurityProvider();
+
+    @Nonnull
+    TreeProvider getTreeProvider();
+
+    @Nonnull
+    RootProvider getRootProvider();
+
+    @Nonnull
+    MountInfoProvider getMountInfoProvider();
 }

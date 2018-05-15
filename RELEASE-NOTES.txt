@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.1
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.0 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.1 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,319 +15,84 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.0
+Changes in Oak 1.9.1
 ---------------------
 
 Sub-task
 
-    [OAK-7177] - Utility method to detect local change
-    [OAK-7179] - Derive CountingTieredDiffCache from MemoryDiffCache
-    [OAK-7225] - Replace AtomicCounter Supplier
-    [OAK-7344] - Additional benchmark(s) to cover areas of
-    improvements
-    [OAK-7345] - Benchmark Results for Oak 1.8 (status quo)
-    [OAK-7346] - Benchmark Results for Initial Patch
+    [OAK-7438] - Expose mongo.url as build property
 
 Technical task
 
-    [OAK-6812] - UpdateOp Condition: be consistent about the support
-    for non-revision properties
-    [OAK-7060] - RDBDocumentStore.getStats() for SQLServer
-    [OAK-7137] - Upgrade to scr bnd plugin that places the metatype
-    files in the correct location
-    [OAK-7138] - Move metatype files in source control to correct
-    location
-    [OAK-7141] - Remove unused metatype.properties
-    [OAK-7142] - RDBDocumentStoreDB: use try-with-resources in new
-    code introduced for getStats()
-    [OAK-7149] - RDBDocumentStore.getStats() for Derby
-    [OAK-7159] - RDBDocumentStore: use try-with-resources for nodes
-    cache locks
-    [OAK-7181] - RDBDocumentStore: use try-with-resources for
-    ChangesTracker
-    [OAK-7184] - LengthCachingDataStoreTest: Remove unused import of
-    Guava InputSupplier
-    [OAK-7185] - Upgrade jclouds dependency to 2.0.3
-    [OAK-7186] - avoid use of guava Iterators.emptyIterator()
-    [OAK-7188] - guava: ListenableFuture.transform() changes to
-    transformAsync in version 20
-    [OAK-7201] - make Guava version configurable at build time
-    [OAK-7204] - RDB*Store: update postgresql JDBC driver reference to
-    42.2.0
-    [OAK-7269] - DocumentStore: add test coverage for various types of
-    IDs
-    [OAK-7270] - RDBDocumentStore: guard against invalid strings in
-    IDs
-    [OAK-7289] - RDBDocumentStore: potential NPE in error handling
-    code
-    [OAK-7292] - RDB*Store: update tomcat jdbc dependency to 8.5.28
-    [OAK-7299] - RDB*Store: update postgresql JDBC driver reference to
-    42.2.1
-    [OAK-7305] - Introduce DocumentStoreException type
-    [OAK-7306] - MongoDocumentStore: use transient
-    DocumentStoreException type where appropriate
-    [OAK-7307] - RDBDocumentStore: use transient
-    DocumentStoreException type where appropriate
-    [OAK-7308] - Retry commit on transient DocumentStoreException
-    [OAK-7313] - RDB*Store: add DEBUG level logging for filters in
-    RDBVersionGCSupport
-    [OAK-7329] - RDB*Store for SQLServer: name the PK index for better
-    readability
-    [OAK-7330] - RDBDocumentStore: make indices on SD* sparse where
-    possible
-    [OAK-7331] - RDBDocumentStore: add index on _MODIFIED to improve
-    VersionGC performance
-    [OAK-7333] - RDBDocumentStore: refactor index report
-    [OAK-7342] - RDBDocumentStore: missing rollback after delete
-    failures
-    [OAK-7359] - Update to MongoDB Java driver 3.6
-    [OAK-7360] - Migrate to the MongoDB Java driver API 3.0
-    [OAK-7399] - add build profile "guava-latest" to build with latest
-    supported Guava version
-    [OAK-7406] - relax guava version range in Import-Package
-    declarations
-    [OAK-7430] - RDB*Store: update postgresql JDBC driver reference to
-    42.2.2
+    [OAK-5122] - Exercise for Custom Authorization Models
+    [OAK-7409] - Move Lucene agnostic utilities out of oak-lucene into
+    oak-search
+    [OAK-7432] - RDB*Store: update mysql driver reference to 5.1.46
+    [OAK-7441] - RDB*Store: update DB2 JDBC dependency to 4.19.72
+    [OAK-7446] - RDB*Store: update SQLServer JDBC dependency to
+    6.4.0.jre*
+    [OAK-7453] - oal-core/oak-store-document: fix broken line ends in
+    repo
+    [OAK-7454] - oak-lucene: fix broken line ends in repo
+    [OAK-7458] - JCR locking: add logging to determine callers
 
 Bug
 
-    [OAK-4401] - Excerpt Highlighting for a property is not correct
-    [OAK-6707] - TarWriter.close() must not throw an exception on
-    subsequent invocations
-    [OAK-6891] - Executions of background threads might pile up
-    [OAK-6956] - RepositoryUpgrade hardcodes SecurityProvider
-    [OAK-7058] - oak-run compact reports success even when it was
-    cancelled
-    [OAK-7131] - xpath to sql2 conversion drops order by clause for
-    some cases
-    [OAK-7132] - SNFE after full compaction
-    [OAK-7136] - Stop storing metatype.properties files under
-    OSGI-INF/metatype
-    [OAK-7147] - Oak run LuceneIndexer indexes excluded parent nodes
-    [OAK-7155] - Executor in S3DataStoreFactory is not shut down
-    [OAK-7162] - Race condition on revisions head between compaction
-    and scheduler could result in skipped commit
-    [OAK-7168] - The debug command returns a zero exit code on error
-    [OAK-7169] - The datastorecheck returns a zero exit code on error
-    [OAK-7171] - The history command returns a zero exit code on error
-    [OAK-7174] - The check command returns a zero exit code on error
-    [OAK-7176] - RevisionVector from empty string throws
-    StringIndexOutOfBoundsException
-    [OAK-7178] - RemoteSolrServerProvider should release connections
-    on ping failures
-    [OAK-7198] - Index rule with REGEX_ALL_PROPS includes relative
-    node
-    [OAK-7200] - Sync propery indexes don't get planned if /:async
-    exists but indexing lane hasn't completed its first cycle
-    [OAK-7208] - Various disallowed control characters are accepted in
-    item names
-    [OAK-7209] - Race condition can resurrect blobs during blob GC
-    [OAK-7223] - Files could be kept partially in case of
-    disconnection from backends
-    [OAK-7227] - MountPermissionProvider getNumEntries prone to
-    overflow
-    [OAK-7236] - The diff command returns a zero exit code on error
-    [OAK-7237] - The backup and restore comands return a zero exit
-    code on error
-    [OAK-7241] - oak-run documentation typo for "checkpoints" command
-    [OAK-7244] - RDBDocumentStore: fix typo in metadata
-    [OAK-7252] - Function index for name() and localname() don't allow
-    sorting
-    [OAK-7265] - Standalone example application fails to start
-    [OAK-7266] - Standalone example system console fails to render
-    [OAK-7274] - Test failure: various upgrade tests
-    [OAK-7284] - Reindexing using --doc-traversal-mode can hit
-    ConcurrentModificationException during aggregation
-    [OAK-7285] - Reindexing using --doc-traversal-mode can OOM while
-    aggregation in some cases
-    [OAK-7291] - MongoStatusTest.testReadConcern fails on MongoDB 3.6
-    [OAK-7294] - FlatFileBufferLinkedList#add doesn't throw
-    IllegalArgumentException on null
-    [OAK-7309] - MongoDocumentStoreMetricsTest fails sporadically
-    [OAK-7317] - SegmentParser#parseBlob does not long ids of external
-    blobs
-    [OAK-7337] - CommitsTracker data is always empty when exposed via
-    JMX
-    [OAK-7339] - Fix all sidegrades breaking with
-    UnsupportedOperationException on MissingBlobStore by introducing
-    LoopbackBlobStore
-    [OAK-7341] - PermissionStoreEditor fails to reconnect collision
-    entries if main entry is removed
-    [OAK-7354] - Test failure
-    ExternalIdentityImporterTest.importExternalUserWithPrincipalNames
-    [OAK-7356] - CugConfiguration may not pick up CugExclude
-    [OAK-7357] - NPE on activation of LuceneIndexProviderService with
-    disabled CoR and CoR
-    [OAK-7375] - Wrong full text parsing in Oak Solr index with
-    boolean operators
-    [OAK-7378] - Continuous Revision GC counts _deletedOnce with every
-    run
-    [OAK-7389] - Mongo/FileBlobStore does not update timestamp for
-    already existing blobs
-    [OAK-7393] - A single StatisticsProvider is shared between all
-    SegmentNodeStoreFactory instances
-    [OAK-7394] - ConsolidatedCacheStats broken on the Composite Node
-    Store
-    [OAK-7396] - ReadOnlyFileStore.readSegment does not correctly
-    throw SegmentNotFoundException
-    [OAK-7398] - SegmentArchiveManager#listArchives should only return
-    tar files
-    [OAK-7401] - Changes kept in memory when update limit is hit in
-    commit hook
-    [OAK-7404] - ReadOnlyFileStore doesn't use custom persistence
-    [OAK-7408] - LuceneIndexProviderService uses default tracker
-    constructor with disabled CoR
+    [OAK-7365] - Multi words translated terms should not always use
+    TermQuery
+    [OAK-7414] - oak-it-osgi fails on Java 10
+    [OAK-7428] - LdapIdentityProvider doesn't support creating
+    external ids from custom attributes
+    [OAK-7447] - Sporadic test failures when connection is closed
+    twice
+    [OAK-7449] -
+    ObservationQueueFullWarnTest#testQueueFullThenFlushing requires to
+    know the number of events upfront
+    [OAK-7466] - Prevent LMSEstimator over/under flow in weights
+    [OAK-7473] - [BlobGC] MarkSweepGarbageCollector does not always
+    use the blobGcMaxAgeInSecs config
+    [OAK-7475] - InitialContentMigrator logs the progress incorrectly
+    [OAK-7476] - The Azure readSegment should return null if no
+    segment is found
 
 New Feature
 
-    [OAK-6921] - Support pluggable segment storage
-    [OAK-6922] - Azure support for the segment-tar
+    [OAK-7444] - Allow collection of IOTraces during normal operation
 
 Improvement
 
-    [OAK-2907] - Move DocumentMK to test
-    [OAK-4857] - Support space chars common in CJK inside item names
-    [OAK-6031] - Add TarFiles to the architecture diagram
-    [OAK-6373] - oak-run check should also check checkpoints
-    [OAK-7057] - Segment.toString: Record table should include an
-    index into the hexdump
-    [OAK-7134] - DocumentNodeStore.newMergeCommit() base parameter is
-    always non-null
-    [OAK-7139] - Wrap MongoException when query fails
-    [OAK-7140] - Retry query on MongoException
-    [OAK-7153] - Avoid persistent cache read access when key is not
-    cached
-    [OAK-7157] - Minimize the amount of generations retained by the
-    Cold Standby
-    [OAK-7158] - Users shouldn't be able to change the number of
-    retained generations
-    [OAK-7175] - Reduce cache misses on local diff-cache
-    [OAK-7195] - Node.getMixinNodeTypes() may check for child node
-    named jcr:mixinTypes
-    [OAK-7196] - ValidNamesTest improvements
-    [OAK-7213] - Avoid call for child node when bundle contains all
-    children
-    [OAK-7215] - Add configurable repository size cap to
-    SegmentOverflowExceptionIT
-    [OAK-7222] - Log a warn when CoW opens input from remote due to
-    size mismatch
-    [OAK-7231] - Remove PermissionEntryCache.getNumEntries
-    [OAK-7232] - MountPermissionProvider.load can return null
-    [OAK-7235] - Remove unused code from SegmentTarUtils
-    [OAK-7248] - Remove deprecated deep option from check command
-    [OAK-7251] - BinaryTextExtractor should not ignore parse exception
-    - they should at least be logged at DEBUG in all cases
-    [OAK-7253] - Benchmarks: cleanup duplications in AC setup
-    [OAK-7259] - Improve SegmentNodeStoreStats to include number of
-    commits per thread and threads currently waiting on the semaphore
-    [OAK-7262] - LockBasedScheduler#getHeadNodeState poor performance
-    due to lock contention in commitTimeHistogram implementation
-    [OAK-7280] - Remove superfluous methods from SegmentWriter
-    [OAK-7290] - Reindexing using --doc-traversal-mode should have
-    configurable upper bound for mem usage
-    [OAK-7298] - Remove debug logging to the console during tests
-    [OAK-7310] - Empty package-info.java causes unnecessary rebuild
-    [OAK-7326] - Add a way to disable the SegmentCache
-    [OAK-7340] - Remove SecurityProviderImpl usage from tests
-    [OAK-7384] - SegmentNodeStoreStats should expose stats for
-    previous minute per thread group
-    [OAK-7388] - MergingNodeStateDiff may recreate nodes that were
-    previously removed to resolve conflicts
-    [OAK-7403] - AzureSegmentArchiveReader should get the metadata
-    from listBlobs() operation
-    [OAK-7416] - Contribute a 'proc' subtree for the Segment Node
-    Store
-    [OAK-7418] - SecurityProviderBuilder ignores configuration option
-    authorizationCompositionType
-    [OAK-7420] - Introduce SegmentNodeStoreMonitorService for exposing
-    writerGroups as an OSGi config property
-    [OAK-7424] - SecurityProviderBuilder expects
-    CompositeConfiguration
-
-Test
-
-    [OAK-7107] - Ability to run AbstractJCRTest derived tests with
-    different fixtures
-    [OAK-7133] - DocumentNodeStore resilience test on MongoDB
-    [OAK-7145] - Share initialized NodeStore for read-only repository
-    tests
-    [OAK-7238] - Benchmark : random read for different sets of
-    principals
+    [OAK-7343] - Improvements to PermissionEntryProviderImpl
+    [OAK-7377] - FileStore should allow multiple implementations of
+    GarbageCollector
+    [OAK-7402] - Expose UI for collecting IO traces
+    [OAK-7433] - SecurityProviderHelper should be final and have
+    private constructor
+    [OAK-7434] - Refactor compactor implementations in independent
+    components
+    [OAK-7436] - Refactor cleanup implementation in its own component
+    [OAK-7440] - Refactor the estimation code to its own components
+    [OAK-7442] - Remove dependency to commons-codec
+    [OAK-7445] - Introduce a cleanup-first compaction strategy
+    [OAK-7464] - Allow to choose which instance should initialize the
+    default mount
+    [OAK-7465] - It should be possible for an Azure Segment Store to
+    wait until the lease if released
+    [OAK-7468] - RootProvider and TreeProvider should be marked as
+    provider type
+    [OAK-7469] - User membership synchronization could skip updating
+    groups the user is already part of
+    [OAK-7470] - Remove Usage of ImmutableTree and AbstractTree in
+    Security Code
 
 Task
 
-    [OAK-5922] - Utils.abortingIterable should implement Closeable
-    [OAK-7024] - java.security.acl deprecated in Java 10, marked for
-    removal in Java 12
-    [OAK-7075] - Document oak-run compact arguments and system
-    properties
-    [OAK-7126] - make RDBCacheConsistency2Test store-agnostic
-    [OAK-7128] - Update Oak trunk to Jackrabbit 2.17.0
-    [OAK-7130] - Update README.md with Java 8 requirement
-    [OAK-7143] - Run oak-jcr tests and ITs in parallel on travis-ci
-    [OAK-7156] - CacheChangesTracker should implement Closeable
-    [OAK-7160] - Update commons-codec dependency to 1.11
-    [OAK-7161] - LengthCachingDataStore's use of LineIterator.close()
-    [OAK-7163] - Upgrade commons-io dependency to 2.6
-    [OAK-7165] - Update baseline comparison version to latest stable
-    1.8.0
-    [OAK-7172] - Document TarMK specific MBeans
-    [OAK-7173] - Update documentation for oak-run check
-    [OAK-7183] - Update Oak trunk to Jackrabbit 2.17.1
-    [OAK-7189] - Improve code coverage for InitialContentMigrator
-    [OAK-7216] - Remove support for binaries and documents in
-    persistent cache
-    [OAK-7219] - Update Logback version to >= 1.2.0, SLF4J accordingly
-    [OAK-7220] - add benchmark focused on string write performance
-    [OAK-7249] - segment store: create charset encoding utility that
-    detects malformed input
-    [OAK-7255] - Upgrade jackson dependencies to version 2.9.4
-    [OAK-7257] - oak-examples: update Tomcat dependency
-    [OAK-7268] - document store: create charset encoding utility that
-    detects malformed input
-    [OAK-7272] - improve BackgroundLeaseUpdate warning messages
-    [OAK-7273] - ValidNamesTest for unpaired surrogates and NUL fails
-    for PostgreSQL
-    [OAK-7275] - Update easymock test dependency to 3.4
-    [OAK-7282] - RDB: enable default continuous revision GC
-    [OAK-7295] - Print path of files with unapproved licences
-    [OAK-7297] - New fixture for the Azure Segment Store
-    [OAK-7304] - Deploy oak-pojosr as part of standard deployment
-    [OAK-7314] - RDB*Store: use SDMAXREV column in RevisionGC query
-    [OAK-7315] - Remove redundant JavaDoc link to Java 7 API
-    [OAK-7320] - Upgrade surefire and failsafe plugins to 2.21.0
-    [OAK-7322] - Mention SHA512 checksums in release notes
-    [OAK-7324] - RDBDocumentStore: Refactor exception handling
-    [OAK-7325] - restore line wrapping in release notes
-    [OAK-7332] - Benchmarks failure on Oak-Segment-* fixtures due to
-    concurrentlinkedhashmap version conflict
-    [OAK-7335] - oak-upgrade long name filter should consider the path
-    length
-    [OAK-7336] - stop advertising MD5 checksums
-    [OAK-7338] - Javadocs for the
-    org.apache.jackrabbit.oak.segment.spi
-    [OAK-7347] - Incorrect link to KEYS in release notes
-    [OAK-7350] - stop creating MD5 checksums for releases
-    [OAK-7355] - Move the pluggable storage interfaces to the SPI
-    package
-    [OAK-7364] - code coverage checks fail on Java 10
-    [OAK-7366] - update to mockito version compatible with jdk 10
-    [OAK-7387] - Update Oak trunk to Jackrabbit 2.17.2
-    [OAK-7407] - oak-solr-core test failures with java 10
-    [OAK-7421] - link Guava javadoc
-    [OAK-7422] - Update jackson dependencies to 2.9.5
-    [OAK-7426] - RDB*Store: update Tomcat JDBC pool dependency to
-    8.5.30
-
-Documentation
-
-    [OAK-5089] - Document illegal item names in Oak
-    [OAK-6964] - Document tail compaction
-    [OAK-7112] - Update documentation for cold standby
-    [OAK-7148] - Document excerpt support (specially excerpts for
-    properties)
-    [OAK-7242] - OAK API overview documentation links NodeState from
-    spi
+    [OAK-7435] - Run travis build on MongoDB 3.6
+    [OAK-7443] - remove jdk 1.6 specific findbugs profile from pom
+    [OAK-7451] - Upgrade tika-parsers dependency to 2.18
+    [OAK-7452] - fix broken line ends in repo
+    [OAK-7462] - Benchmark for SynchronizationMBean#syncAllUsers
+    [OAK-7482] - update maven-javadoc-plugin to 3.0.0
+    [OAK-7483] - add "javadoc" profile for Jenkins matrix builds
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.

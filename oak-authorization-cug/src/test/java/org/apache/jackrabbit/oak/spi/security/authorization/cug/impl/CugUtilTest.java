@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -61,8 +62,8 @@ public class CugUtilTest extends AbstractCugTest {
     }
 
     @Nonnull
-    private static NodeState getNodeState(@Nonnull Tree tree) {
-        return ((AbstractTree) tree).getNodeState();
+    private NodeState getNodeState(@Nonnull Tree tree) {
+        return getTreeProvider().asNodeState(tree);
     }
 
     @Test

@@ -70,6 +70,9 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     @Override
     public ByteBuffer readSegment(long msb, long lsb) throws IOException {
         AzureSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
+        if (indexEntry == null) {
+            return null;
+        }
         ByteBuffer buffer = ByteBuffer.allocate(indexEntry.getLength());
         ioMonitor.beforeSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();

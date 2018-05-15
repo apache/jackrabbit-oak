@@ -19,6 +19,13 @@
 package org.apache.jackrabbit.oak.run;
 
 import static java.lang.String.format;
+import static org.apache.jackrabbit.oak.run.Traces.BREADTH;
+import static org.apache.jackrabbit.oak.run.Traces.DEFAULT_COUNT;
+import static org.apache.jackrabbit.oak.run.Traces.DEFAULT_DEPTH;
+import static org.apache.jackrabbit.oak.run.Traces.DEFAULT_PATH;
+import static org.apache.jackrabbit.oak.run.Traces.DEFAULT_SEED;
+import static org.apache.jackrabbit.oak.run.Traces.DEPTH;
+import static org.apache.jackrabbit.oak.run.Traces.RANDOM;
 import static org.apache.jackrabbit.oak.segment.FileStoreHelper.isValidFileStoreOrFail;
 
 import java.io.File;
@@ -34,7 +41,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTracer;
-import org.apache.jackrabbit.oak.segment.tool.iotrace.Traces;
 
 /**
  *  Command line utility for collection {@link IOTracer io traces}
@@ -82,16 +88,39 @@ class IOTraceCommand implements Command {
                 .defaultsTo(256);
 
         ArgumentAcceptingOptionSpec<Integer> depthOption = optionParser
-                .accepts("depth", "Maximal depth of the traversal")
+                .accepts("depth", "Maximal depth of the traversal." +
+                                        " Applies to " + BREADTH + ", " + DEPTH)
                 .withRequiredArg()
                 .ofType(Integer.class)
-                .defaultsTo(5);
+                .defaultsTo(DEFAULT_DEPTH);
 
         ArgumentAcceptingOptionSpec<String> pathOption = optionParser
-                .accepts("path", "starting path for the traversal")
+                .accepts("path", "starting path for the traversal." +
+                                       " Applies to " + BREADTH + ", " + DEPTH)
                 .withRequiredArg()
                 .ofType(String.class)
-                .defaultsTo("/root");
+                .defaultsTo(DEFAULT_PATH);
+
+        ArgumentAcceptingOptionSpec<File> pathsOption = optionParser
+                .accepts("paths", "file containing list of paths to traverse." +
+                                        " Applies to " + RANDOM)
+                .withRequiredArg()
+                .ofType(File.class)
+                .defaultsTo(new File("paths.txt"));
+
+        ArgumentAcceptingOptionSpec<Long> seedOption = optionParser
+                .accepts("seed", "Seed for generating random numbers." +
+                                        " Applies to " + RANDOM)
+                .withRequiredArg()
+                .ofType(Long.class)
+                .defaultsTo(DEFAULT_SEED);
+
+        ArgumentAcceptingOptionSpec<Integer> countOption = optionParser
+                .accepts("count", "Number of paths to access" +
+                                        " Applies to " + RANDOM)
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(DEFAULT_COUNT);
 
         try {
             OptionSet options = optionParser.parse(args);
@@ -102,21 +131,25 @@ class IOTraceCommand implements Command {
             }
 
             File segmentStore = isValidFileStoreOrFail(new File(options.nonOptionArguments().get(0).toString()));
-            Traces trace = traceOption.value(options);
-            File output = outputOption.value(options);
             Boolean mmap = mmapOption.value(options);
             Integer segmentCache = segmentCacheOption.value(options);
-            Integer depth = depthOption.value(options);
-            String path = pathOption.value(options);
+            File output = outputOption.value(options);
+
+            Traces trace = traceOption.value(options);
+            trace.setPath(pathOption.value(options));
+            trace.setDepth(depthOption.value(options));
+            trace.setPaths(pathsOption.value(options));
+            trace.setSeed(seedOption.value(options));
+            trace.setCount(countOption.value(options));
 
             System.out.println(
-                    format("%s first traversing %d levels of %s starting at %s", trace, depth, segmentStore, path));
+                    format("tracing %s with %s", segmentStore, trace.getDescription()));
             System.out.println(
                     format("mmap=%b, segment cache=%d", mmap, segmentCache));
             System.out.println(
                     format("Writing trace to %s", output));
 
-            trace.collectIOTrace(segmentStore, mmap, segmentCache, path, depth, output);
+            trace.collectIOTrace(segmentStore, mmap, segmentCache, output);
         } catch (OptionException e) {
             printUsage(optionParser, System.err, e.getMessage());
             System.exit(1);
