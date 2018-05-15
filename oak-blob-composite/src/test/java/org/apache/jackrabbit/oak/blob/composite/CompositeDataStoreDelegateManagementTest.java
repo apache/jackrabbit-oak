@@ -24,8 +24,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import javax.jcr.RepositoryException;
+import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +49,9 @@ import static org.junit.Assert.assertNotNull;
 // Test the delegate management capabilities of the CompositeDataStore.
 public class CompositeDataStoreDelegateManagementTest {
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     private Set<DataStore> delegatesToDataStores(List<DelegateDataStore> delegates) {
         Set<DataStore> result = Sets.newHashSet();
         for (DelegateDataStore delegate : delegates) {
@@ -52,8 +60,8 @@ public class CompositeDataStoreDelegateManagementTest {
         return result;
     }
 
-    private void testAddDelegates(List<String> roles) {
-        List<DelegateDataStore> delegates = createDelegates(roles);
+    private void testAddDelegates(List<String> roles) throws IOException, RepositoryException {
+        List<DelegateDataStore> delegates = createDelegates(folder.newFolder(), roles);
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
 
         for (DelegateDataStore delegate : delegates) {
@@ -77,34 +85,34 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testAddZeroDelegates() {
+    public void testAddZeroDelegates() throws IOException, RepositoryException {
         testAddDelegates(Lists.newArrayList());
     }
 
     @Test
-    public void testAddOneDelegate() {
+    public void testAddOneDelegate() throws IOException, RepositoryException {
         testAddDelegates(Lists.newArrayList("local1"));
     }
 
     @Test
-    public void testAddTwoDelegates() {
+    public void testAddTwoDelegates() throws IOException, RepositoryException {
         testAddDelegates(Lists.newArrayList("local1", "local2"));
     }
 
     @Test
-    public void testAddThreeDelegates() {
+    public void testAddThreeDelegates() throws IOException, RepositoryException {
         testAddDelegates(Lists.newArrayList("local1", "local2", "local3"));
     }
 
     @Test
-    public void testAddDelegateWithMissingRole() {
+    public void testAddDelegateWithMissingRole() throws IOException, RepositoryException {
         List<DelegateDataStore> delegates = Lists.newArrayList(
                 new MissingRoleCompositeDataStoreDelegate(
-                        createDataStoreProvider("local1"),
+                        createDataStoreProvider(folder.newFolder(), "local1"),
                         Maps.newHashMap()
                 ),
                 new EmptyRoleCompositeDataStoreDelegate(
-                        createDataStoreProvider("local2"),
+                        createDataStoreProvider(folder.newFolder(), "local2"),
                         Maps.newHashMap()
                 )
         );
@@ -126,9 +134,9 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testAddDelegateWithNonMatchingRole() {
+    public void testAddDelegateWithNonMatchingRole() throws IOException, RepositoryException {
         DelegateDataStore delegate =
-                DelegateDataStore.builder(createDataStoreProvider("otherRole"))
+                DelegateDataStore.builder(createDataStoreProvider(folder.newFolder(), "otherRole"))
                 .withConfig(Maps.newHashMap())
                 .build();
 
@@ -145,9 +153,9 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testRemoveDelegate() {
+    public void testRemoveDelegate() throws IOException, RepositoryException {
         List<String> roles = Lists.newArrayList("local1");
-        DelegateDataStore delegate = createDelegate(roles.get(0));
+        DelegateDataStore delegate = createDelegate(folder.newFolder(), roles.get(0));
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         assertTrue(cds.addDelegate(delegate));
 
@@ -160,9 +168,9 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testRemoveOneOfManyDelegates() {
+    public void testRemoveOneOfManyDelegates() throws IOException, RepositoryException {
         List<String> roles = Lists.newArrayList("local1", "local2", "remote1");
-        List<DelegateDataStore> delegates = createDelegates(roles);
+        List<DelegateDataStore> delegates = createDelegates(folder.newFolder(), roles);
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         for (DelegateDataStore delegate : delegates) {
             assertTrue(cds.addDelegate(delegate));
@@ -187,9 +195,9 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testRemoveAllDelegates() {
+    public void testRemoveAllDelegates() throws IOException, RepositoryException {
         List<String> roles = Lists.newArrayList("local1", "local2", "remote1");
-        List<DelegateDataStore> delegates = createDelegates(roles);
+        List<DelegateDataStore> delegates = createDelegates(folder.newFolder(), roles);
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         for (DelegateDataStore delegate : delegates) {
             assertTrue(cds.addDelegate(delegate));
@@ -206,15 +214,15 @@ public class CompositeDataStoreDelegateManagementTest {
     }
 
     @Test
-    public void testRemoveNonMatchingDelegate() {
+    public void testRemoveNonMatchingDelegate() throws IOException, RepositoryException {
         List<String> roles = Lists.newArrayList("local1");
-        DelegateDataStore delegate = createDelegate(roles.get(0));
+        DelegateDataStore delegate = createDelegate(folder.newFolder(), roles.get(0));
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
         assertTrue(cds.addDelegate(delegate));
 
         verifyDelegatesInCompositeDataStore(Lists.newArrayList(delegate), cds);
 
-        DataStoreProvider otherDsp = createDataStoreProvider("local1");
+        DataStoreProvider otherDsp = createDataStoreProvider(folder.newFolder(), "local1");
         assertFalse(cds.removeDelegate(otherDsp));
 
         Iterator<DataStore> iter = cds.delegateHandler.getAllDelegatesIterator();

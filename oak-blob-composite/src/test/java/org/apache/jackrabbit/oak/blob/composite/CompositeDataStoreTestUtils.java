@@ -54,8 +54,8 @@ public class CompositeDataStoreTestUtils {
     static List<String> twoRoles = Lists.newArrayList("role1", "role2");
     static List<String> threeRoles = Lists.newArrayList("role1", "role2", "role3");
 
-    static DataStoreProvider createDataStoreProvider(final String role) {
-        return createDataStoreProvider(new OakFileDataStore(), role);
+    static DataStoreProvider createDataStoreProvider(final File path, final String role) throws RepositoryException {
+        return createDataStoreProvider(getFileDataStore(path), role);
     }
 
     static DataStoreProvider createDataStoreProvider(final DataStore ds, final String role) {
@@ -85,17 +85,17 @@ public class CompositeDataStoreTestUtils {
         return record;
     }
 
-    static List<DelegateDataStore> createDelegates(List<String> roles) {
+    static List<DelegateDataStore> createDelegates(File basePath, List<String> roles) throws RepositoryException {
         List<DelegateDataStore> delegates = Lists.newArrayList();
         for (String role : roles) {
-            delegates.add(createDelegate(role));
+            delegates.add(createDelegate(new File(Joiner.on("/").join(basePath, role)), role));
         }
         return delegates;
     }
 
-    static DelegateDataStore createDelegate(String role) {
+    static DelegateDataStore createDelegate(File path, String role) throws RepositoryException {
         return createDelegate(
-                createDataStoreProvider(role),
+                createDataStoreProvider(path, role),
                 Maps.newHashMap()
         );
     }
@@ -117,8 +117,8 @@ public class CompositeDataStoreTestUtils {
                 .build();
     }
 
-    static DelegateDataStore createReadOnlyDelegate(String role) {
-        return createReadOnlyDelegate(role, new OakFileDataStore());
+    static DelegateDataStore createReadOnlyDelegate(File path, String role) throws RepositoryException {
+        return createReadOnlyDelegate(role, getFileDataStore(path));
     }
 
     static DelegateDataStore createReadOnlyDelegate(String role, DataStore ds) {
@@ -141,11 +141,11 @@ public class CompositeDataStoreTestUtils {
         return cds;
     }
 
-    static CompositeDataStore createCompositeDataStore(List<String> roles, String homedir) {
+    static CompositeDataStore createCompositeDataStore(List<String> roles, String homedir) throws RepositoryException {
         List<DelegateDataStore> delegates = Lists.newArrayList();
 
         for (String role : roles) {
-            delegates.add(createDelegate(role));
+            delegates.add(createDelegate(new File(Joiner.on("/").join(homedir, role)), role));
         }
 
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);

@@ -117,22 +117,6 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testInit() throws RepositoryException, IOException {
-        List<DataStore> dataStores = Lists.newArrayList();
-        CompositeDataStore cds = createEmptyCompositeDataStore(twoRoles);
-
-        for (String role : twoRoles) {
-            dataStores.add(CompositeDataStoreTestUtils.createSpyDelegate(folder.newFolder(), role, cds));
-        }
-
-        cds.init(folder.newFolder().getAbsolutePath());
-
-        for (DataStore ds : dataStores) {
-            verify(ds, times(1)).init(anyString());
-        }
-    }
-
-    @Test
     public void testInitNullHomeDir() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
@@ -206,7 +190,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testAddRecordNullInputStream() throws DataStoreException {
+    public void testAddRecordNullInputStream() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
 
         try {
@@ -217,7 +201,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetRecord() throws DataStoreException, IOException {
+    public void testGetRecord() throws RepositoryException, IOException{
         CompositeDataStore cds = createCompositeDataStore(twoRoles,
                 folder.newFolder().getAbsolutePath());
         String recordData = "recordData";
@@ -227,7 +211,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetNonexistentRecordThrowsDataStoreException() throws DataStoreException, IOException {
+    public void testGetNonexistentRecordThrowsDataStoreException() throws RepositoryException, IOException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles,
                 folder.newFolder().getAbsolutePath());
         cds.addRecord(randomDataRecordStream());
@@ -289,7 +273,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetRecordNullId() throws DataStoreException {
+    public void testGetRecordNullId() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
 
         try {
@@ -321,7 +305,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetRecordFromInvalidReference() throws DataStoreException {
+    public void testGetRecordFromInvalidReference() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
 
         for (String ref : Lists.newArrayList("", "invalid", null)) {
@@ -372,7 +356,7 @@ public class CompositeDataStoreDSTest {
 
     @Test
     public void testGetAllIdentifiersWithNoRecordsReturnsEmptyIterator()
-            throws DataStoreException {
+            throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(threeRoles, homedir);
         Iterator<DataIdentifier> iter = cds.getAllIdentifiers();
         assertNotNull(iter);
@@ -515,7 +499,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testDeleteNullId() throws DataStoreException {
+    public void testDeleteNullId() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
 
         try {
@@ -562,7 +546,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetMetadataRecordWithNullName() {
+    public void testGetMetadataRecordWithNullName() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.getMetadataRecord(null);
@@ -611,7 +595,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testAddMetadataRecordWithNullRecord() throws DataStoreException {
+    public void testAddMetadataRecordWithNullRecord() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.addMetadataRecord((InputStream) null, "recordName");
@@ -621,7 +605,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testAddMetadataRecordWithNullName() throws DataStoreException {
+    public void testAddMetadataRecordWithNullName() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.addMetadataRecord(randomDataRecordStream(), null);
@@ -631,7 +615,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testAddMetadataRecordWithEmptyName() throws DataStoreException {
+    public void testAddMetadataRecordWithEmptyName() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.addMetadataRecord(randomDataRecordStream(), "");
@@ -720,7 +704,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetAllRecordsNoRecordsReturnsEmptyIterator() throws DataStoreException {
+    public void testGetAllRecordsNoRecordsReturnsEmptyIterator() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         Iterator<DataRecord> iter = cds.getAllRecords();
         assertNotNull(iter);
@@ -741,7 +725,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetRecordForIdWithNullId() throws DataStoreException {
+    public void testGetRecordForIdWithNullId() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.getRecordForId(null);
@@ -751,7 +735,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetRecordForIdWithInvalidId() {
+    public void testGetRecordForIdWithInvalidId() throws RepositoryException {
         CompositeDataStore cds = createCompositeDataStore(twoRoles, homedir);
         try {
             cds.getRecordForId(new DataIdentifier("invalid"));
@@ -761,7 +745,7 @@ public class CompositeDataStoreDSTest {
     }
 
     @Test
-    public void testGetType() {
+    public void testGetType() throws RepositoryException {
         assertEquals(
                 SharedDataStore.Type.SHARED,
                 createCompositeDataStore(twoRoles, homedir).getType()
