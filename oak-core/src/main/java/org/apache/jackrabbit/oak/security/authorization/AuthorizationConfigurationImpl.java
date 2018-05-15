@@ -26,7 +26,7 @@ import javax.jcr.security.AccessControlManager;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
@@ -157,7 +157,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Override
     public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
         return ImmutableList.of(
-                new VersionablePathHook(workspaceName),
+                new VersionablePathHook(workspaceName, this),
                 new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider, getRootProvider(), getTreeProvider()));
     }
 
@@ -197,7 +197,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-            @Nonnull Set<Principal> principals) {
+                                                    @Nonnull Set<Principal> principals) {
         Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
