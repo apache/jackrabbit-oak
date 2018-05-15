@@ -148,17 +148,6 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
                     LOG.warn("Unable to create temporary directory");
                 }
             }
-
-            Iterator<DataStore> iter = delegateHandler.getAllDelegatesIterator();
-            while (iter.hasNext()) {
-                DataStore ds = iter.next();
-                if (!initialiedDataStores.contains(ds)) {
-                    initialiedDataStores.add(ds);
-                    String role = rolesForDelegates.get(ds);
-                    String delegateHome = FilenameUtils.concat(path, role);
-                    ds.init(delegateHome);
-                }
-            }
         }
     }
 
