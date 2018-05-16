@@ -72,7 +72,9 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
             Heartbeat beat = new Heartbeat(event);
             heartbeats.put(address, beat);
             members.addAll(beat.getHosts());
-            updateLag();
+            if (!members.isEmpty()) {
+                updateLag();
+            }
         }
     }
 
