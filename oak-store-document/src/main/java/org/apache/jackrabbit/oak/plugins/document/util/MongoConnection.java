@@ -42,6 +42,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class MongoConnection {
 
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
+    private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
     private static final Set<ReadConcernLevel> REPLICA_RC = ImmutableSet.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final MongoClientURI mongoURI;
@@ -154,6 +155,7 @@ public class MongoConnection {
         return new MongoClientOptions.Builder()
                 .description("MongoConnection for Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
+                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
                 .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 
@@ -164,6 +166,7 @@ public class MongoConnection {
                 .add("socketTimeout", opts.getSocketTimeout())
                 .add("socketKeepAlive", opts.isSocketKeepAlive())
                 .add("maxWaitTime", opts.getMaxWaitTime())
+                .add("heartbeatFrequency", opts.getHeartbeatFrequency())
                 .add("threadsAllowedToBlockForConnectionMultiplier",
                         opts.getThreadsAllowedToBlockForConnectionMultiplier())
                 .add("readPreference", opts.getReadPreference().getName())

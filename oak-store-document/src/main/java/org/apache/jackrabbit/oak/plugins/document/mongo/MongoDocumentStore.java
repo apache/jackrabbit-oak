@@ -241,6 +241,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             Integer.getInteger("oak.mongo.queryRetries", 2);
 
     /**
+     * Acceptable replication lag of secondaries in milliseconds. Reads are
+     * directed to the primary if the estimated replication lag is higher than
+     * this value.
+     */
+    private final int acceptableLagMillis =
+            Integer.getInteger("oak.mongo.acceptableLagMillis", 5000);
+
+    /**
      * Feature flag for use of MongoDB client sessions.
      */
     private final boolean useClientSession;
@@ -1224,7 +1232,13 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             for (String key : keys) {
                 conditions.add(getByKeyQuery(key));
             }
-            MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
+            MongoCollection<BasicDBObject> dbCollection;
+            if (secondariesWithinAcceptableLag()) {
+                dbCollection = getDBCollection(collection);
+            } else {
+                lagTooHigh();
+                dbCollection = getDBCollection(collection).withReadPreference(ReadPreference.primary());
+            }
             execute(session -> {
                 FindIterable<BasicDBObject> cursor;
                 if (session != null) {
@@ -1446,14 +1460,19 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             case PREFER_PRIMARY :
                 return ReadPreference.primaryPreferred();
             case PREFER_SECONDARY :
-                return getConfiguredReadPreference(collection);
+                if (secondariesWithinAcceptableLag()) {
+                    return getConfiguredReadPreference(collection);
+                } else {
+                    lagTooHigh();
+                    return ReadPreference.primary();
+                }
             case PREFER_SECONDARY_IF_OLD_ENOUGH:
                 if(collection != Collection.NODES){
                     return ReadPreference.primary();
                 }
 
                 boolean secondarySafe;
-                if (withClientSession()) {
+                if (withClientSession() && secondariesWithinAcceptableLag()) {
                     secondarySafe = true;
                 } else if (fallbackSecondaryStrategy) {
                    // This is not quite accurate, because ancestors
@@ -1927,6 +1946,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private boolean withClientSession() {
         return status.isClientSessionSupported() && useClientSession;
+    }
+
+    private boolean secondariesWithinAcceptableLag() {
+        return status.getReplicaSetLagEstimate() < acceptableLagMillis;
+    }
+
+    private void lagTooHigh() {
+        LOG.debug("Read from secondary is preferred but replication lag is too high. Directing read to primary.");
     }
 
     /**

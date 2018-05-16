@@ -26,17 +26,23 @@ import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.event.ServerHeartbeatFailedEvent;
+import com.mongodb.event.ServerHeartbeatStartedEvent;
+import com.mongodb.event.ServerHeartbeatSucceededEvent;
+import com.mongodb.event.ServerMonitorListener;
 import com.mongodb.session.ClientSession;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MongoStatus {
+public class MongoStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
 
@@ -60,6 +66,8 @@ public class MongoStatus {
     private Boolean majorityReadConcernEnabled;
 
     private Boolean clientSessionSupported;
+
+    private final ReplicaSetStatus replicaSetStatus = new ReplicaSetStatus();
 
     public MongoStatus(@Nonnull MongoClient client,
                        @Nonnull String dbName) {
@@ -188,6 +196,45 @@ public class MongoStatus {
         }
         return clientSessionSupported;
     }
+
+    /**
+     * Returns an estimate of the replica-set lag in milliseconds. The returned
+     * value is not an accurate measurement of the replication lag and should
+     * only be used as a rough estimate to decide whether secondaries can be
+     * used for queries in general. 
+     * <p>
+     * This method may return {@link ReplicaSetStatus#UNKNOWN_LAG} if the value
+     * is currently unknown.
+     *
+     * @return an estimate of the
+     */
+    long getReplicaSetLagEstimate() {
+        return replicaSetStatus.getLagEstimate();
+    }
+
+    //------------------------< ServerMonitorListener >-------------------------
+
+    @Override
+    public void serverHearbeatStarted(ServerHeartbeatStartedEvent event) {
+        LOG.debug("serverHeartbeatStarted {}", event.getConnectionId());
+        replicaSetStatus.serverHearbeatStarted(event);
+    }
+
+    @Override
+    public void serverHeartbeatSucceeded(ServerHeartbeatSucceededEvent event) {
+        LOG.debug("serverHeartbeatSucceeded {}, {}", event.getConnectionId(), event.getReply());
+        replicaSetStatus.serverHeartbeatSucceeded(event);
+    }
+
+    @Override
+    public void serverHeartbeatFailed(ServerHeartbeatFailedEvent event) {
+        LOG.debug("serverHeartbeatFailed {} ({} ms)", event.getConnectionId(),
+                event.getElapsedTime(TimeUnit.MILLISECONDS),
+                event.getThrowable());
+        replicaSetStatus.serverHeartbeatFailed(event);
+    }
+
+    //-------------------------------< internal >-------------------------------
 
     private BasicDBObject getServerStatus() {
         if (serverStatus == null) {

@@ -76,10 +76,13 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
                         int blobCacheSizeMB) {
         this.mongoUri = uri;
 
+        CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
+        options.addServerMonitorListener(serverMonitorListener);
         options.socketKeepAlive(socketKeepAlive);
         MongoClient client = new MongoClient(new MongoClientURI(uri, options));
         MongoStatus status = new MongoStatus(client, name);
+        serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
