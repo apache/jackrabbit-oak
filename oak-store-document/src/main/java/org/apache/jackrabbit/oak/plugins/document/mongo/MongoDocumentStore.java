@@ -1949,7 +1949,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return status.getReplicaSetLagEstimate() < acceptableLagMillis;
+        return client.getReplicaSetStatus() == null
+                || status.getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
     private void lagTooHigh() {
