@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,19 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.lock;
+@Version("1.0.0")
+package org.apache.jackrabbit.oak.spi.lock;
 
-import java.util.Set;
-
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
-
-/**
- * @deprecated Use {@link org.apache.jackrabbit.oak.spi.lock.LockConstants} instead
- */
-public interface LockConstants extends JcrConstants {
-
-    Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(
-            JCR_LOCKISDEEP,
-            JCR_LOCKOWNER);
-}
+import org.osgi.annotation.versioning.Version;
