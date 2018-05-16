@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.lock;
+package org.apache.jackrabbit.oak.spi.lock;
 
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
-/**
- * @deprecated Use {@link org.apache.jackrabbit.oak.spi.lock.LockConstants} instead
- */
 public interface LockConstants extends JcrConstants {
 
     Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(

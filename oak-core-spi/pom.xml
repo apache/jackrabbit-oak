@@ -46,6 +46,7 @@
               org.apache.jackrabbit.oak.osgi,
               org.apache.jackrabbit.oak.spi.descriptors,
               org.apache.jackrabbit.oak.spi.gc,
+              org.apache.jackrabbit.oak.spi.lock,
               org.apache.jackrabbit.oak.spi.mount,
               org.apache.jackrabbit.oak.spi.namespace,
               org.apache.jackrabbit.oak.spi.nodetype,
