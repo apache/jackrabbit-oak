@@ -125,20 +125,21 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
             }
         }
         lagEstimate = estimate / members.size();
-        LOG.debug("lagEstimate: {} ms", lagEstimate);
+        LOG.debug("lagEstimate: {} ms ({})", lagEstimate, estimatesPerMember);
     }
 
     private static class Heartbeat {
-
-        private final long createdTimeMillis = System.currentTimeMillis();
 
         private final List<ServerAddress> hosts;
 
         private final Date lastWrite;
 
+        private final long localTime;
+
         Heartbeat(ServerHeartbeatSucceededEvent event) {
             this.hosts = hostsFrom(event);
             this.lastWrite = lastWriteFrom(event);
+            this.localTime = localTimeFrom(event).getTime();
         }
 
         Collection<ServerAddress> getHosts() {
@@ -146,7 +147,7 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
         }
 
         long getTime() {
-            return createdTimeMillis;
+            return localTime;
         }
 
         @CheckForNull
@@ -160,6 +161,11 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
         return event.getReply().getArray("hosts", new BsonArray()).stream()
                 .map(bsonValue -> new ServerAddress(bsonValue.asString().getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private static Date localTimeFrom(ServerHeartbeatSucceededEvent event) {
+        BsonDocument reply = event.getReply();
+        return new Date(reply.getDateTime("localTime").getValue());
     }
 
     private static Date lastWriteFrom(ServerHeartbeatSucceededEvent event) {
