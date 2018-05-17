@@ -836,7 +836,8 @@ Option (* = required)      Description
 --paths <File>             file containing list of paths to traverse. Applies to RANDOM (default: paths.txt)
 --seed <Long>              Seed for generating random numbers. Applies to RANDOM (default: 0)
 --segment-cache <Integer>  size of the segment cache in MB (default: 256)
-* --trace <Traces>         type of the traversal. Either of [DEPTH, BREADTH, RANDOM]````
+* --trace <Traces>         type of the traversal. Either of [DEPTH, BREADTH, RANDOM]
+````
 
 The `iotrace` command collects IO traces of read accesses to the segment store's back-end 
 (e.g. disk). Traffic patterns can be specified via the `--trace` option. Permissible values 
