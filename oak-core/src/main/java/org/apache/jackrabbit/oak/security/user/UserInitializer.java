@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Strings;
@@ -31,8 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -88,7 +88,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
     private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(new PropertyIndexProvider(),
             new NodeTypeIndexProvider());
 
-    UserInitializer(SecurityProvider securityProvider) {
+    UserInitializer(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
