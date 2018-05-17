@@ -59,10 +59,11 @@ public class VersionGCSupportTest {
         }
         if (MONGO.isAvailable()) {
             MongoDocumentStore store = (MongoDocumentStore) MONGO.createDocumentStore();
-            // Enforce primary read preference, otherwise test fails on a
+            // Enforce primary read preference, otherwise tests may fail on a
             // replica set with a read preference configured to secondary.
             // Revision GC usually runs with a modified range way in the past,
-            // which means changes made it to the secondary
+            // which means changes made it to the secondary, but not in this
+            // test using a virtual clock
             MongoTestUtils.setReadPreference(store, ReadPreference.primary());
             fixtures.add(new Object[]{MONGO, store, new MongoVersionGCSupport(store)});
         }

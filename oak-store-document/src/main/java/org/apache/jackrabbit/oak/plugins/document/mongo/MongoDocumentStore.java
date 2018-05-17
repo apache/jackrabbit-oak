@@ -1460,7 +1460,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             case PREFER_PRIMARY :
                 return ReadPreference.primaryPreferred();
             case PREFER_SECONDARY :
-                if (secondariesWithinAcceptableLag()) {
+                if (!withClientSession() || secondariesWithinAcceptableLag()) {
                     return getConfiguredReadPreference(collection);
                 } else {
                     lagTooHigh();

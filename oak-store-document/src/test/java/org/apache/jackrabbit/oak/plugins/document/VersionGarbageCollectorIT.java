@@ -67,9 +67,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Atomics;
+import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -129,6 +131,12 @@ public class VersionGarbageCollectorIT {
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setLeaseCheck(false)
                 .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
         store = documentMKBuilder.getNodeStore();
+        // Enforce primary read preference, otherwise tests may fail on a
+        // replica set with a read preference configured to secondary.
+        // Revision GC usually runs with a modified range way in the past,
+        // which means changes made it to the secondary, but not in this
+        // test using a virtual clock
+        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         gc = store.getVersionGarbageCollector();
     }
 
