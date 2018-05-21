@@ -151,7 +151,7 @@ public class IndexHelper {
             @Nonnull NodeBuilder index, @Nonnull String name, String type,
             @Nonnull Set<String> includes,
             @Nonnull String async) {
-        checkArgument(!includes.isEmpty(), "Lucene property index " +
+        checkArgument(!includes.isEmpty(), "Fulltext property index " +
                 "requires explicit list of property names to be indexed");
 
         index = index.child(name);

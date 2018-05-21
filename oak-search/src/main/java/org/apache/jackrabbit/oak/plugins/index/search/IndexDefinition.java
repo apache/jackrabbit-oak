@@ -79,7 +79,6 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.BLOB_SIZE;
@@ -154,7 +153,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * This may not be the same time as when index was closed but the time of checkpoint
      * upto which index is upto date (OAK-6194)
      */
-    static final String STATUS_LAST_UPDATED = "lastUpdated";
+    public static final String STATUS_LAST_UPDATED = "lastUpdated";
 
     /**
      * Meta property which provides the unique id
@@ -188,6 +187,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private final NodeState definition;
 
     private final NodeState root;
+
+    private final IndexFormatVersion version;
 
     private final String funcName;
 
@@ -276,6 +277,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final String indexPath;
         private String uid;
         private boolean reindexMode;
+        private IndexFormatVersion version;
 
         public Builder(NodeState root, NodeState defn, String indexPath) {
             this.root = checkNotNull(root);
@@ -288,12 +290,21 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return this;
         }
 
+        public Builder version(IndexFormatVersion version){
+            this.version = version;
+            return this;
+        }
+
+
         public Builder reindex(){
             this.reindexMode = true;
             return this;
         }
 
         public IndexDefinition build(){
+            if (version == null){
+                version = determineIndexFormatVersion(defn);
+            }
             if (uid == null){
                 uid = determineUniqueId(defn);
                 if (uid == null && !IndexDefinition.hasPersistedIndex(defn)){
@@ -305,16 +316,17 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             if (!reindexMode){
                 indexDefnStateToUse = getIndexDefinitionState(defn);
             }
-            return new IndexDefinition(root, indexDefnStateToUse, uid, indexPath);
+            return new IndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
     }
 
     public IndexDefinition(NodeState root, NodeState defn, String indexPath) {
-        this(root, getIndexDefinitionState(defn), determineUniqueId(defn), indexPath);
+        this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
     }
 
-    private IndexDefinition(NodeState root, NodeState defn, String uid, String indexPath) {
+    private IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
         this.root = root;
+        this.version = checkNotNull(version);
         this.uid = uid;
         this.definition = defn;
         this.indexPath = checkNotNull(indexPath);
@@ -340,7 +352,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
         if (fullTextEnabled && functionName == null){
-            functionName = "lucene";
+            functionName = "fulltext";
         }
         this.funcName = functionName != null ? "native*" + functionName : null;
 
@@ -444,6 +456,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
         return numOfDocs;
     }
+
+    public IndexFormatVersion getVersion() {
+        return version;
+    }
+
 
     public boolean isOfOldFormat(){
         return !hasIndexingRules(definition);
