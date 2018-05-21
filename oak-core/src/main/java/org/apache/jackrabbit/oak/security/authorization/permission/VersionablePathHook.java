@@ -14,26 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.version;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -51,9 +52,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 public class VersionablePathHook implements CommitHook {
 
     private final String workspaceName;
+    private final ProviderCtx providerCtx;
 
-    public VersionablePathHook(String workspaceName) {
+    public VersionablePathHook(@Nonnull String workspaceName, @Nonnull ProviderCtx providerCtx) {
         this.workspaceName = workspaceName;
+        this.providerCtx = providerCtx;
     }
 
     @Nonnull
@@ -63,10 +66,13 @@ public class VersionablePathHook implements CommitHook {
             throws CommitFailedException {
         NodeBuilder rootBuilder = after.builder();
         NodeBuilder vsRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(NodeTypeConstants.JCR_VERSIONSTORAGE);
+
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(providerCtx.getRootProvider().createReadOnlyRoot(rootBuilder.getNodeState()), NamePathMapper.DEFAULT);
+
         List<CommitFailedException> exceptions = new ArrayList<CommitFailedException>();
         after.compareAgainstBaseState(before,
-                new Diff(vMgr, new Node(rootBuilder), exceptions));
+                new Diff(vMgr, ntMgr, new Node(rootBuilder), exceptions));
         if (!exceptions.isEmpty()) {
             throw exceptions.get(0);
         }
@@ -81,13 +87,16 @@ public class VersionablePathHook implements CommitHook {
     private final class Diff extends DefaultNodeStateDiff implements VersionConstants {
 
         private final ReadWriteVersionManager versionManager;
+        private final ReadOnlyNodeTypeManager ntMgr;
         private final Node nodeAfter;
         private final List<CommitFailedException> exceptions;
 
         private Diff(@Nonnull ReadWriteVersionManager versionManager,
+                     @Nonnull ReadOnlyNodeTypeManager ntMgr,
                      @Nonnull Node node,
                      @Nonnull List<CommitFailedException> exceptions) {
             this.versionManager = versionManager;
+            this.ntMgr = ntMgr;
             this.nodeAfter = node;
             this.exceptions = exceptions;
         }
@@ -116,11 +125,11 @@ public class VersionablePathHook implements CommitHook {
             }
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
-                    before, new Diff(versionManager, node, exceptions));
+                    before, new Diff(versionManager, ntMgr, node, exceptions));
         }
 
         private boolean setVersionablePath(PropertyState after) {
-            if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(versionManager)) {
+            if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(ntMgr)) {
                 NodeBuilder vhBuilder;
                 try {
                     vhBuilder = versionManager.getOrCreateVersionHistory(
@@ -145,7 +154,7 @@ public class VersionablePathHook implements CommitHook {
         }
     }
 
-    private static final class Node {
+    private final class Node {
 
         private final String path;
         private final NodeBuilder builder;
@@ -160,9 +169,12 @@ public class VersionablePathHook implements CommitHook {
             this.path = PathUtils.concat(parent.path, name);
         }
 
-        private boolean isVersionable(ReadWriteVersionManager versionManager) {
-            Tree tree = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, PathUtils.getName(path), builder.getNodeState());
-            return versionManager.isVersionable(tree);
+        private boolean isVersionable(ReadOnlyNodeTypeManager ntMgr) {
+            // this is not 100% correct, because t.getPath() will
+            // not return the correct path for node after, but is
+            // sufficient to check if it is versionable
+            Tree tree = providerCtx.getTreeProvider().createReadOnlyTree(builder.getNodeState());
+            return ntMgr.isNodeType(tree, VersionConstants.MIX_VERSIONABLE);
         }
     }
 }

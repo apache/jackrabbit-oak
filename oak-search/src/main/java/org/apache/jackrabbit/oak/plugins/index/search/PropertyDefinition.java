@@ -68,17 +68,17 @@ public class PropertyDefinition {
 
     final boolean isRegexp;
 
-    final boolean index;
+    public final boolean index;
 
     final boolean stored;
 
-    final boolean nodeScopeIndex;
+    public final boolean nodeScopeIndex;
 
-    final boolean propertyIndex;
+    public final boolean propertyIndex;
 
-    final boolean analyzed;
+    public final boolean analyzed;
 
-    final boolean ordered;
+    public final boolean ordered;
 
     final boolean nullCheckEnabled;
 
@@ -86,17 +86,17 @@ public class PropertyDefinition {
 
     final int includedPropertyTypes;
 
-    final boolean relative;
+    public final boolean relative;
 
-    final boolean useInSuggest;
+    public final boolean useInSuggest;
 
-    final boolean useInSpellcheck;
+    public final boolean useInSpellcheck;
 
-    final boolean facet;
+    public final boolean facet;
 
-    final String[] ancestors;
+    public final String[] ancestors;
 
-    final boolean excludeFromAggregate;
+    public final boolean excludeFromAggregate;
 
     final int weight;
 
@@ -105,17 +105,17 @@ public class PropertyDefinition {
      * its set to null
      */
     @CheckForNull
-    final String nonRelativeName;
+    public final String nonRelativeName;
 
     /**
      * For function-based indexes: the function name, in Polish notation.
      */
-    final String function;
+    public final String function;
 
     /**
      * For function-based indexes: the function code, as tokens.
      */
-    final String[] functionCode;
+    public final String[] functionCode;
 
     public final ValuePattern valuePattern;
 

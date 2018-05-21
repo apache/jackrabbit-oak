@@ -18,16 +18,21 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
+import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePathHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
@@ -66,7 +71,31 @@ public class VisibleChangesTest {
         }
 
         store.paths.clear();
-        VersionablePathHook hook = new VersionablePathHook("default");
+        VersionablePathHook hook = new VersionablePathHook("default", new ProviderCtx() {
+            @Nonnull
+            @Override
+            public SecurityProvider getSecurityProvider() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Nonnull
+            @Override
+            public TreeProvider getTreeProvider() {
+                return new TreeProviderService();
+            }
+
+            @Nonnull
+            @Override
+            public RootProvider getRootProvider() {
+                return new RootProviderService();
+            }
+
+            @Nonnull
+            @Override
+            public MountInfoProvider getMountInfoProvider() {
+                throw new UnsupportedOperationException();
+            }
+        });
         hook.processCommit(ns.getRoot(), builder.getNodeState(), CommitInfo.EMPTY);
         assertEquals("Must not query for hidden paths: " + store.paths.toString(),
                 0, store.paths.size());

@@ -282,7 +282,7 @@ public interface FulltextIndexConstants {
     String SUGGEST_ANALYZED = "suggestAnalyzed";
 
     /**
-     * Integer property indicating that LuceneIndex should be
+     * Integer property indicating that the index should be
      * used in compat mode to specific version
      */
     String COMPAT_MODE = "compatVersion";
@@ -311,7 +311,7 @@ public interface FulltextIndexConstants {
     String PROP_FUNCTION = "function";
 
     /**
-     * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
+     * Boolean property which signal FulltextIndexEditor to refresh the stored index definition
      */
     String PROP_REFRESH_DEFN = "refresh";
 

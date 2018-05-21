@@ -253,7 +253,6 @@ public abstract class ReadOnlyVersionManager {
      * versionable path property for the specified workspace is missing or if
      * the given tree is not located within the tree structure defined by a version history.
      *
-     * @see VersionablePathHook
      * @see VersionConstants#MIX_REP_VERSIONABLE_PATHS
      */
     @CheckForNull

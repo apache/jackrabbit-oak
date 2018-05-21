@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-class NodeStateCloner {
+public class NodeStateCloner {
 
     public static NodeState cloneVisibleState(NodeState state){
         NodeBuilder builder = EMPTY_NODE.builder();

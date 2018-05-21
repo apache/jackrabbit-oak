@@ -248,7 +248,6 @@ public class TestUtil {
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
         switch(indexingMode) {
-            case NRT  :
             case SYNC :
                 return createAsyncProperty(indexingMode.asyncValueName());
             case ASYNC:

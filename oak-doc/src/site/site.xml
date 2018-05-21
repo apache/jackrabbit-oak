@@ -41,6 +41,7 @@ under the License.
     <menu name="Features and Plugins">
       <item href="nodestore/overview.html" name="Node Storage" collapse="false">
         <item href="nodestore/documentmk.html" name="Document NodeStore" collapse="false">
+          <item href="nodestore/document/mongo-document-store.html" name="MongoDB DocumentStore" />
           <item href="nodestore/document/node-bundling.html" name="Node Bundling" />
           <item href="nodestore/document/secondary-store.html" name="Secondary Store" />
           <item href="nodestore/persistent-cache.html" name="Persistent Cache" />

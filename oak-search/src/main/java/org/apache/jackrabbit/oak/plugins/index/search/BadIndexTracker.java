@@ -81,10 +81,10 @@ class BadIndexTracker {
         BadIndexInfo badIndex = badPersistedIndexes.get(path);
         if (badIndex == null) {
             badPersistedIndexes.put(path, new BadIndexInfo(path, e, true));
-            log.error("Could not open the Lucene index at [{}]", path, e);
+            log.error("Could not open the Fulltext index at [{}]", path, e);
         } else {
             badIndex.failedAccess(e);
-            log.error("Could not open the Lucene index at [{}] . {}",
+            log.error("Could not open the Fulltext index at [{}] . {}",
                     path, badIndex.getStats(), e);
         }
     }
@@ -97,10 +97,10 @@ class BadIndexTracker {
         BadIndexInfo badIndex = badIndexesForRead.get(path);
         if (badIndex == null) {
             badIndexesForRead.put(path, new BadIndexInfo(path, e, false));
-            log.error("Could not access the Lucene index at [{}]", path, e);
+            log.error("Could not access the Fulltext index at [{}]", path, e);
         } else {
             badIndex.failedAccess(e);
-            log.error("Could not access the Lucene index at [{}] . {}",
+            log.error("Could not access the Fulltext index at [{}] . {}",
                     path, badIndex.getStats(), e);
         }
     }

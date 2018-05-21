@@ -17,6 +17,7 @@
 # Oak Document Storage
 
 * [Oak Document Storage](#oak-document-storage)
+    * [New in 1.8](#new-1.8)
     * [New in 1.6](#new-1.6)
     * [Backend implementations](#backend-implementations)
     * [Content Model](#content-model)
@@ -47,7 +48,14 @@
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
 
-The document storage optionally uses the [persistent cache](persistent-cache.html) to reduce read operations on the backend storage.
+The document storage optionally uses the [persistent cache](persistent-cache.html)
+to reduce read operations on the backend storage.
+
+## <a name="new-1.8"></a> New in 1.8
+
+* [Sweep Revision](#sweep-revision)
+* [Unlock upgrade](#unlockUpgrade)
+* [Continuous and oak-run triggered Revision GC](#revision-gc)
 
 ## <a name="new-1.6"></a> New in 1.6
 
@@ -60,21 +68,9 @@ The document storage optionally uses the [persistent cache](persistent-cache.htm
 The DocumentNodeStore supports a number of backends, with a storage abstraction
 called `DocumentStore`:
 
-* `MongoDocumentStore`: stores documents in a MongoDB.
+* [`MongoDocumentStore`](document/mongo-document-store.html): stores documents in a MongoDB.
 * `RDBDocumentStore`: stores documents in a relational data base.
 * `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
-
-The recommended MongoDB version depends on the Oak release. Below table lists
-the recommended MongoDB version for each Oak release. More recent MongoDB
-versions may also work, but are untested.
-
-Oak Release | MongoDB version
-------------|----------------
-1.0.x | 2.6.x
-1.2.x | 3.2.x
-1.4.x | 3.2.x
-1.6.x | 3.2.x
-1.8.x | 3.4.x
 
 The remaining part of the document will focus on the `MongoDocumentStore` to
 explain and illustrate concepts of the DocumentNodeStore.

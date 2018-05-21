@@ -103,14 +103,15 @@ can be used
 
 #### DocumentNodeStore
 
-By default DocumentNodeStore when running on Mongo uses `MongoBlobStore`. Depending on requirements 
-one of the following can be used  
+By default DocumentNodeStore when running on Mongo uses `MongoBlobStore`.
+Depending on requirements one of the following can be used
                   
-* MongoBlobStore - Used by default
+* MongoBlobStore - Used by default and recommended only for development and testing.
 * FileDataStore - This should be used if the binaries have to be stored on the file system. This 
   would also be used when a JR2 repository is migrated to Oak
 * S3DataStore - This should be used when binaries are stored in Amazon S3. Typically used when running
   in Amazon AWS
+* AzureDataStore - This should be used when binaries are stored in Microsoft Azure Blob storage
 
 #### Caching DataStore
 
