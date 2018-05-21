@@ -86,7 +86,9 @@ public class CompositeDataStoreServiceTest {
         Map<String, Object> config = Maps.newHashMap();
         config.put(CompositeDataStore.ROLES, Joiner.on(",").join(roles));
         try {
-            config.put("path", folder.newFolder().getAbsolutePath());
+            String homeDir = folder.newFolder().getAbsolutePath();
+            config.put("path", homeDir);
+            config.put("repository.home", homeDir);
         }
         catch (IOException e) { }
         return config;
