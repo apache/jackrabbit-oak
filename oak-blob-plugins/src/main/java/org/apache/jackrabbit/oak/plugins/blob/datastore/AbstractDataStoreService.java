@@ -120,7 +120,6 @@ public abstract class AbstractDataStoreService {
         String homeDir = lookup(context, PROP_HOME);
         if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
             log.info("Initializing the DataStore with path [{}]", config.get(PATH));
-            homeDir = (String) config.get(PATH);
         }
         else if (homeDir != null) {
             log.info("Initializing the DataStore with homeDir [{}]", homeDir);
