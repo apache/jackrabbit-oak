@@ -47,7 +47,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
-class Aggregate {
+public class Aggregate {
 
     public static final String MATCH_ALL = "*";
 
@@ -425,9 +425,9 @@ class Aggregate {
     }
 
     public static class NodeIncludeResult {
-        final NodeState nodeState;
-        final String nodePath;
-        final String rootIncludePath;
+        public final NodeState nodeState;
+        public final String nodePath;
+        public final String rootIncludePath;
 
         public NodeIncludeResult(String nodePath, NodeState nodeState) {
             this(nodePath, null, nodeState);
@@ -453,9 +453,9 @@ class Aggregate {
     }
 
     public static class PropertyIncludeResult {
-        final PropertyState propertyState;
-        final PropertyDefinition pd;
-        final String propertyPath;
+        public final PropertyState propertyState;
+        public final PropertyDefinition pd;
+        public final String propertyPath;
         final String nodePath;
 
         public PropertyIncludeResult(PropertyState propertyState, PropertyDefinition pd,
