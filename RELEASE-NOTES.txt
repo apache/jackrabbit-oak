@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.2
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.1 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.2 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,84 +15,22 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.1
+Changes in Oak 1.9.2
 ---------------------
-
-Sub-task
-
-    [OAK-7438] - Expose mongo.url as build property
 
 Technical task
 
-    [OAK-5122] - Exercise for Custom Authorization Models
-    [OAK-7409] - Move Lucene agnostic utilities out of oak-lucene into
-    oak-search
-    [OAK-7432] - RDB*Store: update mysql driver reference to 5.1.46
-    [OAK-7441] - RDB*Store: update DB2 JDBC dependency to 4.19.72
-    [OAK-7446] - RDB*Store: update SQLServer JDBC dependency to
-    6.4.0.jre*
-    [OAK-7453] - oal-core/oak-store-document: fix broken line ends in
-    repo
-    [OAK-7454] - oak-lucene: fix broken line ends in repo
-    [OAK-7458] - JCR locking: add logging to determine callers
-
-Bug
-
-    [OAK-7365] - Multi words translated terms should not always use
-    TermQuery
-    [OAK-7414] - oak-it-osgi fails on Java 10
-    [OAK-7428] - LdapIdentityProvider doesn't support creating
-    external ids from custom attributes
-    [OAK-7447] - Sporadic test failures when connection is closed
-    twice
-    [OAK-7449] -
-    ObservationQueueFullWarnTest#testQueueFullThenFlushing requires to
-    know the number of events upfront
-    [OAK-7466] - Prevent LMSEstimator over/under flow in weights
-    [OAK-7473] - [BlobGC] MarkSweepGarbageCollector does not always
-    use the blobGcMaxAgeInSecs config
-    [OAK-7475] - InitialContentMigrator logs the progress incorrectly
-    [OAK-7476] - The Azure readSegment should return null if no
-    segment is found
-
-New Feature
-
-    [OAK-7444] - Allow collection of IOTraces during normal operation
+    [OAK-7472] - tests should pass with locking disabled
 
 Improvement
 
-    [OAK-7343] - Improvements to PermissionEntryProviderImpl
-    [OAK-7377] - FileStore should allow multiple implementations of
-    GarbageCollector
-    [OAK-7402] - Expose UI for collecting IO traces
-    [OAK-7433] - SecurityProviderHelper should be final and have
-    private constructor
-    [OAK-7434] - Refactor compactor implementations in independent
-    components
-    [OAK-7436] - Refactor cleanup implementation in its own component
-    [OAK-7440] - Refactor the estimation code to its own components
-    [OAK-7442] - Remove dependency to commons-codec
-    [OAK-7445] - Introduce a cleanup-first compaction strategy
-    [OAK-7464] - Allow to choose which instance should initialize the
-    default mount
-    [OAK-7465] - It should be possible for an Azure Segment Store to
-    wait until the lease if released
-    [OAK-7468] - RootProvider and TreeProvider should be marked as
-    provider type
-    [OAK-7469] - User membership synchronization could skip updating
-    groups the user is already part of
-    [OAK-7470] - Remove Usage of ImmutableTree and AbstractTree in
-    Security Code
+    [OAK-7488] - VersionablePathHook should be located with
+    authorization code
 
 Task
 
-    [OAK-7435] - Run travis build on MongoDB 3.6
-    [OAK-7443] - remove jdk 1.6 specific findbugs profile from pom
-    [OAK-7451] - Upgrade tika-parsers dependency to 2.18
-    [OAK-7452] - fix broken line ends in repo
-    [OAK-7462] - Benchmark for SynchronizationMBean#syncAllUsers
-    [OAK-7482] - update maven-javadoc-plugin to 3.0.0
-    [OAK-7483] - add "javadoc" profile for Jenkins matrix builds
+    [OAK-7240] - create announcement mail template for releases
+    [OAK-7493] - RDB*Store: update Derby dependency to 10.14.2.0
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
