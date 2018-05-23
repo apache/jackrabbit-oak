@@ -23,9 +23,10 @@ import com.google.common.hash.PrimitiveSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.util.List;
 
-public class CacheChangesTracker {
+public class CacheChangesTracker implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(CacheChangesTracker.class);
 
@@ -62,6 +63,7 @@ public class CacheChangesTracker {
         return keyFilter.apply(key) && lazyBloomFilter.mightContain(key);
     }
 
+    @Override
     public void close() {
         changeTrackers.remove(this);
 
@@ -113,6 +115,5 @@ public class CacheChangesTracker {
             }
             return filter;
         }
-
     }
 }
