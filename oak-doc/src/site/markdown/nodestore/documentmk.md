@@ -545,41 +545,7 @@ and the uuid.
 
 ### <a name="rw-preference"></a> Specifying the Read Preference and Write Concern
 
-With `MongoDocumentStore` you can specify the the [read preference][1] and [write concern][2]. 
-This can be enabled in Oak via two modes. 
-
-Note that `MongoDocumentStore` might still use a pre defined read preference like primary 
-where ever required. So if for some code path like reading latest `_lastRev` of root node 
-its required that read is performed from primary (for consistency) then code would explicitly 
-use the readPreference primary for that operation. For all other operation Mongo Java Driver would
-use default settings where read preference is set to `Primary` and write concern is set to `Acknowledged`. 
-Via using one of the two modes below a user can tune the default settings as per its need
-
-#### <a name="via-configuration"></a> Via Configuration
-
-In this mode the config is specified as part of the Mongo URI (See [configuration](../osgi_config.html#document-node-store)). 
-So if a user wants that reads from secondaries should prefer secondary with tag _dc:ny,rack:1_ 
-otherwise they go to other secondary then he can specify that via following mongouri
-
-    mongodb://example1.com,example2.com,example3.com/?readPreference=secondary&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags= 
-
-Refer to [Read Preference Options][3] and [Write Concern Options][4] for more details.  
- 
-#### <a name="changing-at-runtime"></a> Changing at Runtime
-
-The read preference and write concern of all cluster nodes can be changed at runtime
-without having to restart the instances, by setting the property `readWriteMode` of
-this collection. All cluster nodes will pick up the change within one minute 
-(when they renew the lease of the cluster node id). This is a string property with the
-format `'readPreference=<preference>&w=<writeConcern>'` similar to the way it is used in mongouri. 
-Just that it does not include other option details. The following shell command will
-set the read preference to `primary` and the write concern to `majority` for all
-cluster nodes:
-
-    > db.clusterNodes.update({}, 
-      {$set: {readWriteMode:'readPreference=primary&w=majority'}}, 
-      {multi: true})    
-
+See [configuration](document/mongo-document-store.html#configuration) of a `MongoDocumentStore`.
 
 ## <a name="cache"></a> Caching
 
@@ -777,10 +743,6 @@ mode, the RGC will not log every run but only write an INFO message every hour
 summarizing the GC cycles for the past hour.
 For more details, see also the [OSGi configuration][osgi-config] page. 
 
-[1]: http://docs.mongodb.org/manual/core/read-preference/
-[2]: http://docs.mongodb.org/manual/core/write-concern/
-[3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
-[4]: http://docs.mongodb.org/manual/reference/connection-string/#write-concern-options
 [OAK-1156]: https://issues.apache.org/jira/browse/OAK-1156
 [OAK-2646]: https://issues.apache.org/jira/browse/OAK-2646
 [OAK-2546]: https://issues.apache.org/jira/browse/OAK-2546

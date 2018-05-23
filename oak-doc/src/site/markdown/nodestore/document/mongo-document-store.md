@@ -44,7 +44,7 @@ instances and an arbiter) may lead to data loss when the primary fails.
 
 When using MongoDB 3.4 or newer, set the [maxStalenessSeconds](https://docs.mongodb.com/manual/core/read-preference/#maxstalenessseconds)
 option in the MongoDB URI to `90`. This is an additional safeguard and will
-prevent reads from a secondary that are too far behind.
+prevent reads from a secondary that is too far behind.
 
 Initializing a DocumentNodeStore on MongoDB with default values will also use
 MongoDB to store blobs. While this is convenient for development and tests, the
@@ -74,6 +74,32 @@ a `MongoDocumentNodeStoreBuilder`.
 Please note, even though the default is to store blobs in MongoDB, this is not
 a recommended setup. See also [recommendations](#recommendations).
 
+## <a name="read-preference"></a> Read preference
+
+Without any read preference specified in the MongoDB URI, most read operations
+will be directed to the MongoDB primary to ensure consistent reads.
+Functionality like Revision Garbage Collection does not have such a strict
+requirement and will therefore scan (read) for garbage with a read preference
+of `secondaryPreferred`. This takes pressure off the primary.
+
+When the `MongoDocumentStore` is configured with an explicit read preference via
+the MongoDB URI, the read preference is considered a hit. The implementation
+may still read from the primary when it cannot guarantee a consistent read from
+a secondary. This may be the case when a secondary lags behind and a read
+happens for a document that was recently modified.
+
+A common use case is setting a read preference for a nearby secondary. This can
+be achieved with `readPreferenceTags` in the MongoDB URI.
+
+The below example will prefer a secondary with tag _dc:ny,rack:1_. If no such
+secondary is available, the read operation will target to a secondary with tag
+_dc:ny_ and if no such secondary is available either, any available secondary is
+chosen. As a final fallback the read will be served from the primary.
+
+    mongodb://example1.com,example2.com,example3.com/?readPreference=secondaryPreferred&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=
+
+Refer to [Read Preference Options][3] and [Write Concern Options][4] for more details.
+
 ## <a name="configuration"></a> Configuration
 
 Independent of whether the DocumentNodeStore is initialized via the OSGi service
@@ -81,7 +107,7 @@ or the builder, the implementation will automatically take care of some
 appropriate default MongoDB client parameters. This includes the write concern,
 which controls how many MongoDB replica-set members must acknowledge a write
 operation. Without an explicit write concern specified in the MongoDB URI, the
-implementation will set write concern based on the MongoDB topology. If MongoDB
+implementation will set a write concern based on the MongoDB topology. If MongoDB
 is setup as a replica-set, then Oak will use a `majority` write concern. When
 running on a single standalone MongoDB instance, the write concern is set to
 'acknowledged'.
@@ -94,3 +120,22 @@ concern is set to `local`.
 Oak will log WARN messages if it deems the read and write concerns given via the
 MongoDB URI insufficient.
 
+In addition to specifying the [read preference][1] and [write concern][2] in the
+MongoDB URI, those two parameters can also be set and changed at runtime by
+setting the property `readWriteMode` in the cluster node metadata. A cluster
+node will pick up the change within ten seconds (when it renews the lease of the
+cluster node id). This is a string property with the format
+`'readPreference=<preference>&w=<writeConcern>'` similar to the way it is used
+in MongoDB URI. Just that it does not include other option details.
+
+The following MongoDB shell command will set the read preference to `primary`
+and the write concern to `majority` for all cluster nodes:
+
+    > db.clusterNodes.update({},
+      {$set: {readWriteMode:'readPreference=primary&w=majority'}},
+      {multi: true})
+
+[1]: http://docs.mongodb.org/manual/core/read-preference/
+[2]: http://docs.mongodb.org/manual/core/write-concern/
+[3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
+[4]: http://docs.mongodb.org/manual/reference/connection-string/#write-concern-options
