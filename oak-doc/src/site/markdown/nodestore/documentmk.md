@@ -511,8 +511,8 @@ ran. Old entries are kept so that if a cluster node is started again, it gets th
 cluster node id as before (which is not strictly needed for consistency, but nice for
 support, if one would want to find out which change originated from which cluster node).
 
-Each running cluster node updates the lease time of the cluster node id once every minute,
-to ensure each cluster node uses a different cluster node id.
+Each running cluster node updates the lease end time of the cluster node id every
+ten seconds, to ensure each cluster node uses a different cluster node id.
 
     > db.clusterNodes.find().pretty()
     
@@ -534,7 +534,7 @@ to ensure each cluster node uses a different cluster node id.
 	}
 
 The `_id` is the cluster node id of the node, which is the last part of the revision id.
-The `leaseEnd` is updated once per minute by running cluster nodes. It is the number
+The `leaseEnd` is updated every ten seconds by running cluster nodes. It is the number
 of milliseconds since 1970.
 The `instance` is the current working directory.
 The `machine` is the lowest number of the network addresses, 
