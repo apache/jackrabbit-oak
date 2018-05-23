@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.blob.composite;
 
-import org.apache.felix.scr.annotations.Component;
 import org.apache.jackrabbit.core.data.DataStore;
 
 import javax.annotation.Nonnull;
 import java.util.Iterator;
 
-@Component
 public class GuaranteedMinRecordLengthSelector implements DelegateMinRecordLengthSelector {
     @Override
     public int getMinRecordLength(@Nonnull DelegateHandler delegateHandler) {

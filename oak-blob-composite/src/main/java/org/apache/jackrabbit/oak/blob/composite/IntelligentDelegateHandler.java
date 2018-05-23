@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -33,7 +32,6 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
-@Component
 public class IntelligentDelegateHandler implements DelegateHandler {
     private static Logger LOG = LoggerFactory.getLogger(IntelligentDelegateHandler.class);
 
@@ -41,7 +39,7 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
     @Reference
-    private DelegateMinRecordLengthSelector minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
+    private final DelegateMinRecordLengthSelector minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
 
     @Override
     public String toString() {
