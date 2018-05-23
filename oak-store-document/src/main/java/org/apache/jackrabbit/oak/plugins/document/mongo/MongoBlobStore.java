@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.ReadPreference;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -42,7 +43,6 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 
 import static com.mongodb.ReadPreference.primary;
-import static com.mongodb.ReadPreference.secondaryPreferred;
 import static java.util.stream.StreamSupport.stream;
 import static org.bson.codecs.configuration.CodecRegistries.fromCodecs;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
@@ -68,6 +68,7 @@ public class MongoBlobStore extends CachingBlobStore {
             fromCodecs(new MongoBlobCodec())
     );
 
+    private final ReadPreference defaultReadPreference;
     private final MongoCollection<MongoBlob> blobCollection;
     private long minLastModified;
 
@@ -86,6 +87,7 @@ public class MongoBlobStore extends CachingBlobStore {
         // space allocated for a record to the next power of two
         // (there is an overhead per record, let's assume it is 1 KB at most)
         setBlockSize(2 * 1024 * 1024 - 1024);
+        defaultReadPreference = db.getReadPreference();
         blobCollection = initBlobCollection(db);
     }
 
@@ -184,8 +186,12 @@ public class MongoBlobStore extends CachingBlobStore {
                 .noneMatch(COLLECTION_BLOBS::equals)) {
             db.createCollection(COLLECTION_BLOBS);
         }
+        // override the read preference configured with the MongoDB URI
+        // and use the primary as default. Reading a blob will still
+        // try a secondary first and then fallback to the primary.
         return db.getCollection(COLLECTION_BLOBS, MongoBlob.class)
-                .withCodecRegistry(CODEC_REGISTRY);
+                .withCodecRegistry(CODEC_REGISTRY)
+                .withReadPreference(primary());
     }
 
     private MongoCollection<MongoBlob> getBlobCollection() {
@@ -196,10 +202,9 @@ public class MongoBlobStore extends CachingBlobStore {
         Bson query = getBlobQuery(id, lastMod);
         Bson fields = new BasicDBObject(MongoBlob.KEY_DATA, 1);
 
-        // try the secondary first
-        // TODO add a configuration option for whether to try reading from secondary
+        // try with default read preference first, may be from secondary
         List<MongoBlob> result = new ArrayList<>(1);
-        getBlobCollection().withReadPreference(secondaryPreferred()).find(query)
+        getBlobCollection().withReadPreference(defaultReadPreference).find(query)
                 .projection(fields).into(result);
         if (result.isEmpty()) {
             // not found in the secondary: try the primary
@@ -244,7 +249,6 @@ public class MongoBlobStore extends CachingBlobStore {
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
         Bson fields = new BasicDBObject(MongoBlob.KEY_ID, 1);
-        Bson hint = new BasicDBObject("$hint", fields);
 
         Bson query = new Document();
         if (maxLastModifiedTime != 0 && maxLastModifiedTime != -1) {
@@ -252,7 +256,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
 
         final MongoCursor<MongoBlob> cur = getBlobCollection().find(query)
-                .projection(fields).modifiers(hint).iterator();
+                .projection(fields).hint(fields).iterator();
 
         //TODO The cursor needs to be closed
         return new AbstractIterator<String>() {

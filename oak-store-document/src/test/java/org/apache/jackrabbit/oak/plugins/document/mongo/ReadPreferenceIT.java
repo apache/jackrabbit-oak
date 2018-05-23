@@ -70,6 +70,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mk = new DocumentMK.Builder()
                 .clock(clock)
                 .setClusterId(1)
+                .setClientSessionDisabled(true)
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
                 .setLeaseCheck(false)
                 .open();
@@ -80,6 +81,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         mk2 = new DocumentMK.Builder()
                 .clock(clock)
                 .setClusterId(2)
+                .setClientSessionDisabled(true)
                 .setMongoDB(mongoConnection2.getMongoClient(), mongoConnection2.getDBName())
                 .setLeaseCheck(false)
                 .open();
@@ -127,6 +129,9 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
     @Test
     public void testMongoReadPreferencesDefault() throws Exception{
+        // start with read preference set to primary
+        mongoDS.setReadWriteMode(rwMode(ReadPreference.primary()));
+
         assertEquals(ReadPreference.primary(),
                 mongoDS.getMongoReadPreference(NODES,"foo", null, DocumentReadPreference.PRIMARY));
 
@@ -224,6 +229,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
     @Test
     public void testReadWriteMode() throws Exception{
+        mongoDS.setReadWriteMode(rwMode(ReadPreference.primary()));
         assertEquals(ReadPreference.primary(), mongoDS.getConfiguredReadPreference(NODES));
 
         mongoDS.setReadWriteMode("readPreference=secondary&w=2&safe=true&j=true");

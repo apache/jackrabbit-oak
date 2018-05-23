@@ -17,6 +17,7 @@
 package com.mongodb;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,10 @@ import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import com.mongodb.connection.Cluster;
+import com.mongodb.connection.ClusterConnectionMode;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ClusterType;
 import com.mongodb.connection.ServerVersion;
 import com.mongodb.session.ClientSession;
 
@@ -42,6 +47,7 @@ import org.bson.conversions.Bson;
 
 import static java.util.stream.Collectors.toList;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -98,6 +104,22 @@ public class OakFongo extends Fongo {
         MongoClient c = spy(super.getMongo());
         for (String dbName : new String[]{MongoUtils.DB, "oak"}) {
             when(c.getDatabase(dbName)).thenReturn(new OakFongoMongoDatabase(dbName, this));
+        }
+        try {
+            Field credentialsList = Mongo.class.getDeclaredField("credentialsList");
+            credentialsList.setAccessible(true);
+            credentialsList.set(c, Collections.emptyList());
+
+            ClusterDescription cd = new ClusterDescription(ClusterConnectionMode.SINGLE,
+                    ClusterType.STANDALONE, Collections.emptyList());
+            Cluster cl = mock(Cluster.class);
+            when(cl.getDescription()).thenReturn(cd);
+
+            Field cluster = Mongo.class.getDeclaredField("cluster");
+            cluster.setAccessible(true);
+            cluster.set(c, cl);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return c;
     }

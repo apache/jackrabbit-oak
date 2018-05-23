@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -56,6 +55,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
+    private boolean clientSessionDisabled = false;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -70,21 +70,19 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      *             any database name given in the {@code uri}.
      * @param blobCacheSizeMB the blob cache size in MB.
      * @return this
-     * @throws UnknownHostException if one of the hosts given in the URI
-     *          is unknown.
      */
     public T setMongoDB(@Nonnull String uri,
                         @Nonnull String name,
-                        int blobCacheSizeMB)
-            throws UnknownHostException {
+                        int blobCacheSizeMB) {
         this.mongoUri = uri;
 
-        MongoClusterListener listener = new MongoClusterListener();
+        CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addClusterListener(listener);
+        options.addServerMonitorListener(serverMonitorListener);
         options.socketKeepAlive(socketKeepAlive);
         MongoClient client = new MongoClient(new MongoClientURI(uri, options));
-        MongoStatus status = new MongoStatus(client, name, listener);
+        MongoStatus status = new MongoStatus(client, name);
+        serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
@@ -165,6 +163,26 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      */
     public boolean isSocketKeepAlive() {
         return socketKeepAlive;
+    }
+
+    /**
+     * Disables the use of a client session available with MongoDB 3.6 and
+     * newer. By default the MongoDocumentStore will use a client session if
+     * available. That is, when connected to MongoDB 3.6 and newer.
+     *
+     * @param b whether to disable the use of a client session.
+     * @return this
+     */
+    public T setClientSessionDisabled(boolean b) {
+        this.clientSessionDisabled = b;
+        return thisBuilder();
+    }
+
+    /**
+     * @return whether the use of a client session is disabled.
+     */
+    boolean isClientSessionDisabled() {
+        return clientSessionDisabled;
     }
 
     public T setMaxReplicationLag(long duration, TimeUnit unit){

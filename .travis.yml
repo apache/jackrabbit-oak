@@ -21,12 +21,13 @@ env:
     - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
     - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
     - MODULE=oak-store-document PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
-    - MODULE=oak-it PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-store-document PROFILE="-PintegrationTesting,replicaset" UT="" MONGODB_MODE="--replicaset"
     - MODULE=oak-lucene PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-it PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-run PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
-    - MODULE=oak-it-osgi PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
-    - MODULE=oak-pojosr PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-upgrade PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-pojosr PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-it-osgi PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
 install:
   - wget -N http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz -P $HOME/.mongodb
   - tar --skip-old-files -C $HOME/.mongodb -xf $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}.tgz
