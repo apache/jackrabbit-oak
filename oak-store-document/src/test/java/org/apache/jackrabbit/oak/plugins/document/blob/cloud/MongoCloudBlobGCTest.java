@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.blob.cloud;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -30,8 +30,11 @@ import org.junit.BeforeClass;
  *
  */
 public class MongoCloudBlobGCTest extends MongoBlobGCTest {
+
+    private BlobStore blobStore;
+
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
+    public static void setUpBeforeClass() {
         try {
             Assume.assumeNotNull(CloudStoreUtils.getBlobStore());
         } catch (Exception e) {
@@ -40,20 +43,17 @@ public class MongoCloudBlobGCTest extends MongoBlobGCTest {
     }
 
     @Before
-    @Override
-    public void setUpConnection() throws Exception {
-        mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDBName());
-        mk = new DocumentMK.Builder()
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(CloudStoreUtils.getBlobStore()).open();
+    public void setUpBlobStore() throws Exception {
+        blobStore = CloudStoreUtils.getBlobStore();
     }
 
     @After
-    @Override
-    public void tearDownConnection() throws Exception {
+    public void deleteBucket() {
         ((CloudBlobStore) mk.getNodeStore().getBlobStore()).deleteBucket();
-        mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+    }
+
+    @Override
+    protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
+        return super.addToBuilder(mk).setBlobStore(blobStore);
     }
 }

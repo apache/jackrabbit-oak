@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collection;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
 
 public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentStoreTest {
@@ -28,6 +30,20 @@ public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentSto
         super(dsf);
         this.ds1 = super.ds;
         this.ds2 = dsf.createDocumentStore(2);
+    }
+
+    @BeforeClass
+    public static void disableClientSession() {
+        // Disable the use of client session for this kind of tests.
+        // Most of these tests assume causal consistency across multiple
+        // DocumentStore instances, which is not the case when the test
+        // runs on a replica set and a client session is used.
+        System.setProperty("oak.mongo.clientSession", "false");
+    }
+
+    @AfterClass
+    public static void resetSystemProperty() {
+        System.clearProperty("oak.mongo.clientSession");
     }
 
     @Override

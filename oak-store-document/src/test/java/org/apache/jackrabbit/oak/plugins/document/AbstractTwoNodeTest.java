@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import com.mongodb.ReadPreference;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -127,6 +129,10 @@ public class AbstractTwoNodeTest {
     }
 
     private static DocumentStore wrap(DocumentStore ds) {
+        // Enforce primary read preference because this test assumes causal
+        // consistent reads across multiple document stores. Otherwise this
+        // test fails on a replica set with secondary read preference
+        MongoTestUtils.setReadPreference(ds, ReadPreference.primary());
         return new DocumentStoreTestWrapper(ds);
     }
 
