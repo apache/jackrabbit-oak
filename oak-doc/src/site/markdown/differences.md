@@ -270,6 +270,17 @@ Manually adding a property with the name `jcr:uuid` to a non referenceable node 
 unexpected effects as Oak maintains an unique index on `jcr:uuid` properties. As the namespace
 `jcr` is reserved, doing so is strongly discouraged.
 
+Namespaces
+----------
+
+JCR namespace support is mostly compatible with Jackrabbit 2.x. However, Oak
+does not support remapping an existing namespace URI to a different prefix in
+the namespace registry. Once registered, such a repository wide namespace prefix
+to namespace URI mapping cannot be changed through the namespace registry
+anymore. The mapping *can* be changed on a per session level, but this remapping
+is only visible to the current session and bound to the session lifetime. See
+[`Session.setNamespacePrefix(String, String)`][0].
+
 Versioning
 ----------
 
@@ -306,3 +317,5 @@ Node Name Length Limit
 With the document storage backend (MongoDB, RDBMS), there is currently 
 a limit of 150 UTF-8 bytes on the length of the node names.
 See also OAK-2644.
+
+[0]: https://docs.adobe.com/content/docs/en/spec/jsr170/javadocs/jcr-2.0/javax/jcr/Session.html#setNamespacePrefix(java.lang.String,%20java.lang.String)
