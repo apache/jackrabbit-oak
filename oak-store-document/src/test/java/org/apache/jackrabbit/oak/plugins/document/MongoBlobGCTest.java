@@ -43,6 +43,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.ReadPreference;
+
 import junit.framework.Assert;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -56,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -87,8 +90,20 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         return setUp(deleteDirect, 10);
     }
 
+    @Override
+    protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
+        // Disable client session because this test modifies
+        // data directly in MongoDB.
+        return super.addToBuilder(mk)
+                .setClientSessionDisabled(true)
+                .setLeaseCheck(false);
+    }
+
     public DataStoreState setUp(boolean deleteDirect, int count) throws Exception {
         DocumentNodeStore s = mk.getNodeStore();
+        // ensure primary read preference for this test because we modify data
+        // directly in MongoDB without going through the MongoDocumentStore
+        MongoTestUtils.setReadPreference(s, ReadPreference.primary());
         NodeBuilder a = s.getRoot().builder();
 
         int number = count;
@@ -145,7 +160,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
         return state;
     }
-    
+
     private class DataStoreState {
         Set<String> blobsAdded = Sets.newHashSet();
         Set<String> blobsPresent = Sets.newHashSet();
@@ -284,7 +299,10 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void consistencyCheckWithGc() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue("blobsAdded: " + state.blobsAdded +
+                        ", blobsPresent: " + state.blobsPresent +
+                        ", existingAfterGC: " + existingAfterGC,
+                Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);

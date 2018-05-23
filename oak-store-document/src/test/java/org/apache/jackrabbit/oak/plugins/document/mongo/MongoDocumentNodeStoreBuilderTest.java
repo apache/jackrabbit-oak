@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MongoDocumentNodeStoreBuilderTest {
@@ -26,5 +27,11 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void socketKeepAlive() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertTrue(builder.isSocketKeepAlive());
+    }
+
+    @Test
+    public void clientSessionDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isClientSessionDisabled());
     }
 }

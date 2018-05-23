@@ -22,9 +22,11 @@ import java.util.List;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
@@ -57,6 +59,12 @@ public class VersionGCSupportTest {
         }
         if (MONGO.isAvailable()) {
             MongoDocumentStore store = (MongoDocumentStore) MONGO.createDocumentStore();
+            // Enforce primary read preference, otherwise tests may fail on a
+            // replica set with a read preference configured to secondary.
+            // Revision GC usually runs with a modified range way in the past,
+            // which means changes made it to the secondary, but not in this
+            // test using a virtual clock
+            MongoTestUtils.setReadPreference(store, ReadPreference.primary());
             fixtures.add(new Object[]{MONGO, store, new MongoVersionGCSupport(store)});
         }
         if (MEMORY.isAvailable()) {

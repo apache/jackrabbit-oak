@@ -34,7 +34,6 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
-import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -100,7 +99,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .withReadPreference(ReadPreference.secondaryPreferred())
                 .find(query).batchSize(batchSize);
 
         return CloseableIterable.wrap(transform(cursor,
@@ -110,9 +108,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public long getDeletedOnceCount() {
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-        return getNodeCollection()
-                .withReadPreference(ReadPreference.secondaryPreferred())
-                .count(query);
+        return getNodeCollection().count(query);
     }
 
     @Override

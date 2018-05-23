@@ -16,15 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import javax.annotation.CheckForNull;
+import com.mongodb.ReadPreference;
 
-import com.mongodb.connection.ClusterDescription;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 
-/**
- * Provider of the current {@link ClusterDescription}.
- */
-interface ClusterDescriptionProvider {
+public final class MongoTestUtils {
 
-    @CheckForNull
-    ClusterDescription getClusterDescription();
+    public static void setReadPreference(DocumentNodeStore ns,
+                                         ReadPreference preference) {
+        setReadPreference(ns.getDocumentStore(), preference);
+    }
+
+    public static void setReadPreference(DocumentStore store,
+                                         ReadPreference preference) {
+        store.setReadWriteMode("readPreference=" + preference.getName());
+    }
 }
