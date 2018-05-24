@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IND
  *
  */
 public abstract class FulltextIndexEditorContext<D> {
+
   private static final Logger log = LoggerFactory
       .getLogger(FulltextIndexEditorContext.class);
 

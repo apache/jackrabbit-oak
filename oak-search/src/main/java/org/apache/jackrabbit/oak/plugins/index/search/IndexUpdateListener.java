@@ -17,36 +17,9 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search;
 
-import java.io.IOException;
-import java.io.InputStream;
+interface IndexUpdateListener extends ReaderRefreshPolicy {
 
-import com.google.common.io.ByteSource;
-import org.apache.jackrabbit.oak.api.Blob;
-
-/**
- * {@link ByteSource} extension to work with Oak {@link Blob}s
- */
-public final class BlobByteSource extends ByteSource {
-    private final Blob blob;
-
-    public BlobByteSource(Blob blob) {
-        this.blob = blob;
-    }
-
-    @Override
-    public InputStream openStream() throws IOException {
-        return blob.getNewStream();
-    }
-
-    @Override
-    public long size() throws IOException {
-        return blob.length();
-    }
-
-    @Override
-    public boolean isEmpty() throws IOException {
-        return blob.length() == 0;
-    }
+    void updated();
 }
