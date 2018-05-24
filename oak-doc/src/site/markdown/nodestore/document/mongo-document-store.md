@@ -100,6 +100,25 @@ chosen. As a final fallback the read will be served from the primary.
 
 Refer to [Read Preference Options][3] and [Write Concern Options][4] for more details.
 
+Starting with Oak 1.9.3 the `MongoDocumentStore` automatically uses client
+sessions with causal consistency when running on MongoDB 3.6 or newer. This
+feature can be disabled by setting a system property: `-Doak.mongo.clientSession=false`.
+
+Causal consistent client sessions allows `MongoDocumentStore` to always read
+from a secondary when configured with the relevant read preference and at the
+same time guarantee the required consistency. This is most useful in a
+distributed deployment with multiple Oak processes connected to a MongoDB
+replica-set. Putting a MongoDB secondary close to an Oak process ensures low
+read latency when Oak is configured to always read from the nearby MongoDB
+secondary.
+
+The `MongoDocumentStore` periodically estimates the replication lag of the
+secondaries in the replica-set and may decide to read from the primary even when
+the read preference is configured otherwise. This is to prevent high query times
+when the secondary must wait for the replication to catch up with the state
+required by the client session. The estimate is rather rough and will switch
+over to the primary when the lag is estimated to be more than five seconds.
+
 ## <a name="configuration"></a> Configuration
 
 Independent of whether the DocumentNodeStore is initialized via the OSGi service
