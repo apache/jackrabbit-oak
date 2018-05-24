@@ -179,7 +179,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * native sort order
      */
-    static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
+    public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
         OrderEntry.Order.DESCENDING);
 
     private final boolean fullTextEnabled;
@@ -260,10 +260,16 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean syncPropertyIndexes;
 
+    private final boolean testMode;
+
     //~--------------------------------------------------------< Builder >
 
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
         return new Builder(root, defn, indexPath);
+    }
+
+    public boolean isTestMode() {
+        return false;
     }
 
     public static class Builder {
@@ -343,6 +349,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             rulesState = createIndexRules(defn).getNodeState();
         }
 
+        this.testMode = getOptionalValue(defn, FulltextIndexConstants.TEST_MODE, false);
         List<IndexingRule> definedIndexRules = newArrayList();
         this.indexRules = collectIndexRules(rulesState, definedIndexRules);
         this.definedRules = ImmutableList.copyOf(definedIndexRules);
@@ -828,7 +835,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         final boolean inherited;
         final int propertyTypes;
         final boolean fulltextEnabled;
-        final boolean propertyIndexEnabled;
+        public final boolean propertyIndexEnabled;
         final boolean nodeFullTextIndexed;
 
         final Aggregate aggregate;

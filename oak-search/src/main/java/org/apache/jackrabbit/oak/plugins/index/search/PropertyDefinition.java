@@ -80,7 +80,7 @@ public class PropertyDefinition {
 
     public final boolean ordered;
 
-    final boolean nullCheckEnabled;
+    public final boolean nullCheckEnabled;
 
     final boolean notNullCheckEnabled;
 
@@ -98,7 +98,7 @@ public class PropertyDefinition {
 
     public final boolean excludeFromAggregate;
 
-    final int weight;
+    public final int weight;
 
     /**
      * Property name excluding the relativePath. For regular expression based definition

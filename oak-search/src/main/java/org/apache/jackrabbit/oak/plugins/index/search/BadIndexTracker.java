@@ -30,7 +30,7 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BadIndexTracker {
+public class BadIndexTracker {
     /**
      * Time interval in millis after which a bad index would be accessed again
      * to check if it has been fixed

@@ -36,6 +36,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class TikaParserConfig {
+
     private static final String EMPTY_PARSER = "org.apache.tika.parser.EmptyParser";
 
     /**

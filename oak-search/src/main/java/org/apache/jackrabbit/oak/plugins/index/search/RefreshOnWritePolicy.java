@@ -17,36 +17,34 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import com.google.common.io.ByteSource;
-import org.apache.jackrabbit.oak.api.Blob;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * {@link ByteSource} extension to work with Oak {@link Blob}s
+ * Policy which performs immediate refresh upon completion of writes
  */
-public final class BlobByteSource extends ByteSource {
-    private final Blob blob;
+public class RefreshOnWritePolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+    private final AtomicBoolean dirty = new AtomicBoolean();
 
-    public BlobByteSource(Blob blob) {
-        this.blob = blob;
+    @Override
+    public void refreshOnReadIfRequired(Runnable refreshCallback) {
+        //As writer itself refreshes the index. No refresh done
+        //on read
     }
 
     @Override
-    public InputStream openStream() throws IOException {
-        return blob.getNewStream();
+    public void refreshOnWriteIfRequired(Runnable refreshCallback) {
+        //For sync indexing mode we refresh the reader immediately
+        //on the writer thread. So that any read call later sees upto date index
+        if (dirty.get()) {
+            refreshCallback.run();
+            dirty.set(false);
+        }
     }
 
     @Override
-    public long size() throws IOException {
-        return blob.length();
-    }
-
-    @Override
-    public boolean isEmpty() throws IOException {
-        return blob.length() == 0;
+    public void updated() {
+        dirty.set(true);
     }
 }

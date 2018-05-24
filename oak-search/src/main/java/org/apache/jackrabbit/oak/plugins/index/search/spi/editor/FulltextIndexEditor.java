@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
- * Abstract implementation of an {@link IndexEditor} which supports index time aggregation.
+ * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
  */
 public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateRoot {
 
@@ -195,7 +195,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   public Editor childNodeAdded(String name, NodeState after) {
     PathFilter.Result filterResult = getPathFilterResult(name);
     if (filterResult != PathFilter.Result.EXCLUDE) {
-      return new FulltextIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+      return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
     }
     return null;
   }
@@ -205,7 +205,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
       String name, NodeState before, NodeState after) {
     PathFilter.Result filterResult = getPathFilterResult(name);
     if (filterResult != PathFilter.Result.EXCLUDE) {
-      return new FulltextIndexEditor(this, name, getMatcherState(name, after), filterResult, false);
+      return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
     }
     return null;
   }
@@ -236,7 +236,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     MatcherState ms = getMatcherState(name, before);
     if (!ms.isEmpty()){
-      return new FulltextIndexEditor(this, name, ms, filterResult, true);
+      return new FulltextIndexEditor<>(this, name, ms, filterResult, true);
     }
     return null; // no need to recurse down the removed subtree
   }

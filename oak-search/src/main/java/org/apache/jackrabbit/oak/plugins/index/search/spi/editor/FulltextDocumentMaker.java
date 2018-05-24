@@ -61,15 +61,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private IndexDefinition.IndexingRule indexingRule;
     private String path;
 
-    abstract D initDoc();
+    protected abstract D initDoc();
 
-    abstract D finalizeDoc(D fields, boolean dirty, boolean facet);
+    protected abstract D finalizeDoc(D fields, boolean dirty, boolean facet);
 
-    abstract StringPropertyState createNodeNamePS();
+    protected abstract StringPropertyState createNodeNamePS();
 
-    abstract boolean isFacetingEnabled();
+    protected abstract boolean isFacetingEnabled();
 
-    abstract boolean isNodeName(String pname);
+    protected abstract boolean isNodeName(String pname);
 
     protected abstract boolean indexTypeOrderedFields(String pname, int tag, PropertyState property, PropertyDefinition pd);
 

@@ -27,6 +27,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
  */
 public interface FulltextIndexWriterFactory {
 
+    /**
+     * create a new index writer instance
+     * @param definition the index definition
+     * @param definitionBuilder the node builder associated with the index definition
+     * @param reindex whether or not reindex should be performed
+     * @return an index writer
+     */
     FulltextIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
 
 }

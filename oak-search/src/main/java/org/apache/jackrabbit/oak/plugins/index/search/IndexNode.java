@@ -27,5 +27,6 @@ public interface IndexNode {
 
     int getIndexNodeId();
 
-    void refreshReadersOnWriteIfRequired();
+    IndexStatistics getIndexStatistics();
+
 }

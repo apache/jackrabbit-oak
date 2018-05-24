@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 public interface FulltextIndexConstants {
 
-    enum IndexingMode {
+  enum IndexingMode {
         SYNC,
         NRT,
         ASYNC;
@@ -48,6 +48,8 @@ public interface FulltextIndexConstants {
     String PERSISTENCE_NAME = "persistence";
 
     String PERSISTENCE_OAK = "repository";
+
+  String TEST_MODE = "testMode";
 
     String PERSISTENCE_FILE = "file";
 
