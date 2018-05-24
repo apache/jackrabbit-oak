@@ -155,12 +155,14 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
         return ImmutableSet.copyOf(roles);
     }
 
-    boolean addDelegate(final DelegateDataStore delegate) {
-        String delegateRole = delegate.getRole();
-        if (null != delegateRole && roles.contains(delegate.getRole())) {
-            LOG.info("Adding delegate with role \"{}\"", delegate.getRole());
-            delegateHandler.addDelegateDataStore(delegate);
-            rolesForDelegates.put(delegate.getDataStore().getDataStore(), delegateRole);
+    //boolean addDelegate(final DelegateDataStore delegate) {
+    //    String delegateRole = delegate.getRole();
+    boolean addDelegate(final DataStoreProvider ds) {
+        String delegateRole = ds.getRole();
+        if (null != delegateRole && roles.contains(delegateRole)) {
+            LOG.info("Adding delegate with role \"{}\"", delegateRole);
+            delegateHandler.addDataStore(ds);
+            rolesForDelegates.put(ds.getDataStore(), delegateRole);
             return true;
         }
         return false;
@@ -169,7 +171,7 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
     boolean removeDelegate(final DataStoreProvider ds) {
         LOG.info("Removing delegate with role \"{}\"", ds.getRole());
         rolesForDelegates.remove(ds.getDataStore());
-        return delegateHandler.removeDelegateDataStore(ds);
+        return delegateHandler.removeDataStore(ds);
     }
 
     void mapIdToDelegate(final DataIdentifier identifier, final DataStore delegate) {

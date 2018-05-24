@@ -55,10 +55,22 @@ public class CompositeDataStoreTestUtils {
     static List<String> threeRoles = Lists.newArrayList("role1", "role2", "role3");
 
     static DataStoreProvider createDataStoreProvider(final File path, final String role) throws RepositoryException {
-        return createDataStoreProvider(getFileDataStore(path), role);
+        return createDataStoreProvider(path, role, Maps.newHashMap());
     }
 
     static DataStoreProvider createDataStoreProvider(final DataStore ds, final String role) {
+        return createDataStoreProvider(ds, role, Maps.newHashMap());
+    }
+
+    static DataStoreProvider createDataStoreProvider(final File path,
+                                                     final String role,
+                                                     final Map<String, Object> config) throws RepositoryException {
+        return createDataStoreProvider(getFileDataStore(path), role, config);
+    }
+
+    static DataStoreProvider createDataStoreProvider(final DataStore ds,
+                                                     final String role,
+                                                     final Map<String, Object> config) {
         return new DataStoreProvider() {
             @Override
             public DataStore getDataStore() {
@@ -69,6 +81,9 @@ public class CompositeDataStoreTestUtils {
             public String getRole() {
                 return role;
             }
+
+            @Override
+            public Map<String, Object> getConfig() { return config; }
         };
     }
 
@@ -85,49 +100,46 @@ public class CompositeDataStoreTestUtils {
         return record;
     }
 
-    static List<DelegateDataStore> createDelegates(File basePath, List<String> roles) throws RepositoryException {
-        List<DelegateDataStore> delegates = Lists.newArrayList();
+    static List<DataStoreProvider> createDelegates(File basePath, List<String> roles) throws RepositoryException {
+        List<DataStoreProvider> delegates = Lists.newArrayList();
         for (String role : roles) {
-            delegates.add(createDelegate(new File(Joiner.on("/").join(basePath, role)), role));
+            delegates.add(createDataStoreProvider(new File(Joiner.on("/").join(basePath, role)), role));
         }
         return delegates;
     }
 
-    static DelegateDataStore createDelegate(File path, String role) throws RepositoryException {
-        return createDelegate(
-                createDataStoreProvider(path, role),
-                Maps.newHashMap()
-        );
-    }
+//    static DelegateDataStore createDelegate(File path, String role) throws RepositoryException {
+//        return createDelegate(
+//                createDataStoreProvider(path, role),
+//                Maps.newHashMap()
+//        );
+//    }
 
-    static DelegateDataStore createDelegate(String role, DataStore ds) {
-        return createDelegate(
-                createDataStoreProvider(ds, role),
-                Maps.newHashMap()
-        );
-    }
+//    static DelegateDataStore createDelegate(String role, DataStore ds) {
+//        return createDelegate(
+//                createDataStoreProvider(ds, role),
+//                Maps.newHashMap()
+//        );
+//    }
 
-    static DelegateDataStore createDelegate(DataStoreProvider dsp) {
-        return createDelegate(dsp, Maps.newHashMap());
-    }
+//    static DelegateDataStore createDelegate(DataStoreProvider dsp) {
+//        return createDelegate(dsp, Maps.newHashMap());
+//    }
 
-    static DelegateDataStore createDelegate(DataStoreProvider dsp, Map<String, Object> cfg) {
-        return DelegateDataStore.builder(dsp)
-                .withConfig(cfg)
-                .build();
-    }
+//    static DelegateDataStore createDelegate(DataStoreProvider dsp, Map<String, Object> cfg) {
+//        return DelegateDataStore.builder(dsp)
+//                .withConfig(cfg)
+//                .build();
+//    }
 
-    static DelegateDataStore createReadOnlyDelegate(File path, String role) throws RepositoryException {
+    static DataStoreProvider createReadOnlyDelegate(File path, String role) throws RepositoryException {
         return createReadOnlyDelegate(role, getFileDataStore(path));
     }
 
-    static DelegateDataStore createReadOnlyDelegate(String role, DataStore ds) {
+    static DataStoreProvider createReadOnlyDelegate(String role, DataStore ds) {
         Map<String, Object> cfg = Maps.newHashMap();
         cfg.put("readOnly", true);
-        return createDelegate(
-                createDataStoreProvider(ds, role),
-                cfg
-        );
+        return createDataStoreProvider(ds, role, cfg);
     }
 
     static CompositeDataStore createEmptyCompositeDataStore(List<String> roles) {
@@ -142,14 +154,14 @@ public class CompositeDataStoreTestUtils {
     }
 
     static CompositeDataStore createCompositeDataStore(List<String> roles, String homedir) throws RepositoryException {
-        List<DelegateDataStore> delegates = Lists.newArrayList();
+        List<DataStoreProvider> delegates = Lists.newArrayList();
 
         for (String role : roles) {
-            delegates.add(createDelegate(new File(Joiner.on("/").join(homedir, role)), role));
+            delegates.add(createDataStoreProvider(new File(Joiner.on("/").join(homedir, role)), role));
         }
 
         CompositeDataStore cds = createEmptyCompositeDataStore(roles);
-        for (DelegateDataStore ds : delegates) {
+        for (DataStoreProvider ds : delegates) {
             cds.addDelegate(ds);
         }
 
@@ -174,7 +186,7 @@ public class CompositeDataStoreTestUtils {
     static DataStore createSpyDelegate(File homedir, String role, CompositeDataStore cds)
             throws RepositoryException {
         DataStore ds = spy(getFileDataStore(homedir));
-        cds.addDelegate(createDelegate(role, ds));
+        cds.addDelegate(createDataStoreProvider(ds, role));
         return ds;
     }
 
@@ -189,7 +201,7 @@ public class CompositeDataStoreTestUtils {
             throws RepositoryException {
         DataStore ds = spy(new CompositeDataStoreTestUtils.TestableFileDataStore());
         ds.init(homedir.getAbsolutePath());
-        cds.addDelegate(createDelegate(role, ds));
+        cds.addDelegate(createDataStoreProvider(ds, role));
         return ds;
     }
 
@@ -306,88 +318,8 @@ public class CompositeDataStoreTestUtils {
             return r;
         }
 
-//        @Override
-//        public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
-//            StringWriter writer = new StringWriter();
-//            try {
-//                IOUtils.copy(stream, writer, "utf-8");
-//                metastore.put(name, recordFromString(writer.toString()));
-//            }
-//            catch (IOException e) {
-//                throw new DataStoreException(e);
-//            }
-//        }
-//
-//        @Override
-//        public void addMetadataRecord(File f, String name) throws DataStoreException {
-//            try {
-//                addMetadataRecord(new FileInputStream(f), name);
-//            }
-//            catch (FileNotFoundException e) {
-//                throw new DataStoreException(e);
-//            }
-//        }
-//
-//        @Override
-//        public DataRecord getMetadataRecord(String name) {
-//            return metastore.get(name);
-//        }
-//
-//        @Override
-//        public List<DataRecord> getAllMetadataRecords(String prefix) {
-//            List<DataRecord> records = Lists.newArrayList();
-//            for (String key : metastore.keySet()) {
-//                if (key.startsWith(prefix)) {
-//                    records.add(getMetadataRecord(key));
-//                }
-//            }
-//            return records;
-//        }
-//
-//        @Override
-//        public boolean deleteMetadataRecord(String name) {
-//            return null != metastore.remove(name);
-//        }
-//
-//        @Override
-//        public void deleteAllMetadataRecords(String prefix) {
-//            for (String key : metastore.keySet()) {
-//                if (key.startsWith(prefix)) {
-//                    deleteMetadataRecord(key);
-//                }
-//            }
-//        }
-//
-//        @Override
-//        public Iterator<DataRecord> getAllRecords() throws DataStoreException {
-//            Iterator<DataIdentifier> iter = getAllIdentifiers();
-//            List<DataRecord> records = Lists.newArrayList();
-//            while (iter.hasNext()) {
-//                DataRecord record = getRecord(iter.next());
-//                if (null != record) {
-//                    records.add(record);
-//                }
-//            }
-//            return records.iterator();
-//        }
-//
-//        @Override
-//        public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {
-//            try {
-//                return getRecord(id);
-//            }
-//            catch (DataStoreException e) {
-//                return null;
-//            }
-//        }
-
         public String getReferenceFromIdentifier(DataIdentifier id) {
             return super.getReferenceFromIdentifier(id);
         }
-//
-//        @Override
-//        public Type getType() {
-//            return Type.SHARED;
-//        }
     }
 }

@@ -42,22 +42,22 @@ public class GuaranteedMinRecordLengthSelectorTest {
         minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
     }
 
-    private DelegateDataStore createDelegateDataStore(final String role, int minRecordLength) {
-        return createDelegateDataStore(role, minRecordLength, false);
+    private DataStoreProvider createDataStoreProvider(final String role, int minRecordLength) {
+        return createDataStoreProvider(role, minRecordLength, false);
     }
 
-    private DelegateDataStore createDelegateDataStore(final String role, int minRecordLength, boolean readOnly) {
+    private DataStoreProvider createDataStoreProvider(final String role, int minRecordLength, boolean readOnly) {
         Map<String, Object> config = Maps.newHashMap();
         config.put(DataStoreProvider.ROLE, role);
         config.put(MRL_KEY, minRecordLength);
         if (readOnly) {
             config.put("readOnly", true);
         }
-        return createDelegateDataStore(role, config);
+        return createDataStoreProvider(role, config);
     }
 
-    private DelegateDataStore createDelegateDataStore(final String role, final Map<String, Object> config) {
-        return new DelegateDataStore(new DataStoreProvider() {
+    private DataStoreProvider createDataStoreProvider(final String role, final Map<String, Object> config) {
+        return new DataStoreProvider() {
             private TestableFileDataStore ds = new TestableFileDataStore(config);
             @Override
             public DataStore getDataStore() {
@@ -68,14 +68,17 @@ public class GuaranteedMinRecordLengthSelectorTest {
             public String getRole() {
                 return role;
             }
-        }, config);
+
+            @Override
+            public Map<String, Object> getConfig() { return config; }
+        };
     }
 
     @Test
     public void testSingleDelegateReturnsDelegateMinRecLen() {
         String role = "role1";
         int len = 4096;
-        delegateHandler.addDelegateDataStore(createDelegateDataStore(role, len));
+        delegateHandler.addDataStore(createDataStoreProvider(role, len));
         assertEquals(len, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
@@ -85,8 +88,8 @@ public class GuaranteedMinRecordLengthSelectorTest {
         String role2 = "role2";
         int len1 = 4096;
         int len2 = 8192;
-        delegateHandler.addDelegateDataStore(createDelegateDataStore(role1, len1));
-        delegateHandler.addDelegateDataStore(createDelegateDataStore(role2, len2));
+        delegateHandler.addDataStore(createDataStoreProvider(role1, len1));
+        delegateHandler.addDataStore(createDataStoreProvider(role2, len2));
         assertEquals(len1, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 
@@ -96,8 +99,8 @@ public class GuaranteedMinRecordLengthSelectorTest {
         String role2 = "role2";
         int len1 = 4096;
         int len2 = 8192;
-        delegateHandler.addDelegateDataStore(createDelegateDataStore(role1, len1, true));
-        delegateHandler.addDelegateDataStore(createDelegateDataStore(role2, len2));
+        delegateHandler.addDataStore(createDataStoreProvider(role1, len1, true));
+        delegateHandler.addDataStore(createDataStoreProvider(role2, len2));
         assertEquals(len2, minRecordLengthSelector.getMinRecordLength(delegateHandler));
     }
 

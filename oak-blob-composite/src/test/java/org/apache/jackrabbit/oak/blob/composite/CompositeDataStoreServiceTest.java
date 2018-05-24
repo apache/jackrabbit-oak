@@ -69,6 +69,8 @@ public class CompositeDataStoreServiceTest {
             public DataStore getDataStore() {
                 return ds;
             }
+            @Override
+            public Map<String, Object> getConfig() { return Maps.newHashMap(); }
         };
     }
 
@@ -178,7 +180,7 @@ public class CompositeDataStoreServiceTest {
 
         verifyServiceRegistrationState(context, true);
 
-        service.removeDelegateDataStore(dsp);
+        service.removeDataStoreProvider(dsp);
 
         verifyServiceRegistrationState(context, false);
     }

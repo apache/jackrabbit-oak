@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.spi.blob;
 
 import org.apache.jackrabbit.core.data.DataStore;
 
+import java.util.Map;
+
 /**
  * Provides a DataStore instance for specific role. A role indicates what type
  * of data store it is.
@@ -30,7 +32,9 @@ public interface DataStoreProvider {
      * Service property name which determine what role this DataStore is playing.
      */
     String ROLE = "role";
+    String READ_ONLY = "readOnly";
 
     DataStore getDataStore();
     String getRole();
+    Map<String, Object> getConfig();
 }

@@ -27,23 +27,23 @@ import java.util.Iterator;
 
 public interface DelegateHandler {
     /**
-     * Add a {@link DelegateDataStore} to this handler.  This means the
+     * Add a {@link DataStoreProvider} to this handler.  This means the
      * specified delegate will be considered a delegate by this delegate handler.
      *
-     * @param dataStore A {@link DelegateDataStore} to be handled by this handler
+     * @param dataStore A {@link DataStoreProvider} to be handled by this handler
      */
-    void addDelegateDataStore(final DelegateDataStore dataStore);
+    void addDataStore(final DataStoreProvider dataStore);
 
     /**
-     * Remove a {@link DelegateDataStore} from this handler.  This means the
+     * Remove a {@link DataStoreProvider} from this handler.  This means the
      * specified delegate will no longer be considered a delegate by this delegate
      * handler.
      *
-     * @param provider
+     * @param dataStore The {@link DataStoreProvider} to be removed
      * @return True if this action caused a {@link DataStoreProvider} to be removed,
      * False if no matching {@link DataStoreProvider} was found.
      */
-    boolean removeDelegateDataStore(final DataStoreProvider provider);
+    boolean removeDataStore(final DataStoreProvider dataStore);
 
     /**
      * Determine whether this handler has at least one delegate.

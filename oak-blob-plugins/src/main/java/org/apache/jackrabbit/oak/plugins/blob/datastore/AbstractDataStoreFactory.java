@@ -90,6 +90,7 @@ public abstract class AbstractDataStoreFactory {
                         new DataStoreProvider() {
                             @Override public String getRole() { return role; }
                             @Override public DataStore getDataStore() { return dataStore; }
+                            @Override public Map<String, Object> getConfig() { return props; }
                         },
                         props
                 )));

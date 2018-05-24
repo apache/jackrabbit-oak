@@ -46,7 +46,6 @@ import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.addTestRecord;
 import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createDataStoreProvider;
-import static org.apache.jackrabbit.oak.blob.composite.CompositeDataStoreTestUtils.createDelegate;
 import static org.junit.Assert.assertNotNull;
 
 public class IntelligentDelegateHandlerTest {
@@ -98,84 +97,83 @@ public class IntelligentDelegateHandlerTest {
 
     @Test
     public void testAddWritableDelegate() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(createDelegate(folder.newFolder(), "role1"));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role1"));
         verifyDelegates(sut, OakFileDataStore.class);
     }
 
     @Test
     public void testAddReadonlyDelegate() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(createDelegate(createDataStoreProvider(folder.newFolder(), "role1"), readOnlyDelegateConfig));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role1", readOnlyDelegateConfig));
         verifyDelegates(sut, OakFileDataStore.class);
     }
 
     @Test
     public void testAddTwoDelegatesOfSameType() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(createDelegate(folder.newFolder(), "role1"));
-        sut.addDelegateDataStore(createDelegate(folder.newFolder(), "role2"));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role1"));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role2"));
         verifyDelegates(sut, 2, Sets.newHashSet(OakFileDataStore.class));
     }
 
     @Test
     public void testAddTwoDelegatesOfDifferentTypes() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(createDelegate(folder.newFolder(), "role1"));
-        sut.addDelegateDataStore(createDelegate(createDataStoreProvider(new OtherFileDataStore(), "role2")));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role1"));
+        sut.addDataStore(createDataStoreProvider(new OtherFileDataStore(), "role2"));
         verifyDelegates(sut, 2, Sets.newHashSet(OakFileDataStore.class, OtherFileDataStore.class));
     }
 
     @Test
     public void testAddSameDelegateInstanceTwice() throws IOException, RepositoryException {
-        DelegateDataStore delegate = createDelegate(folder.newFolder(), "role1");
-        sut.addDelegateDataStore(delegate);
+        DataStoreProvider delegate = createDataStoreProvider(folder.newFolder(), "role1");
+        sut.addDataStore(delegate);
         verifyDelegates(sut, 1, Sets.newHashSet(OakFileDataStore.class));
 
-        sut.addDelegateDataStore(delegate);
+        sut.addDataStore(delegate);
         verifyDelegates(sut, 1, Sets.newHashSet(OakFileDataStore.class));
     }
 
     @Test
     public void testRemoveDelegate() throws IOException, RepositoryException {
         DataStoreProvider dsp = createDataStoreProvider(folder.newFolder(), "role1");
-        sut.addDelegateDataStore(createDelegate(dsp));
+        sut.addDataStore(dsp);
         verifyDelegates(sut, OakFileDataStore.class);
 
-        assertTrue(sut.removeDelegateDataStore(dsp));
+        assertTrue(sut.removeDataStore(dsp));
         verifyDelegates(sut);
     }
 
     @Test
     public void testRemoveDelegateRemovesMatchingDelegatesOnly() throws IOException, RepositoryException {
         DataStoreProvider dsp1 = createDataStoreProvider(folder.newFolder(), "role1");
-        DelegateDataStore delegate = createDelegate(dsp1);
-        sut.addDelegateDataStore(delegate);
+        sut.addDataStore(dsp1);
         DataStoreProvider dsp2 = createDataStoreProvider(new OtherFileDataStore(), "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
 
         verifyDelegates(sut, 2, Sets.newHashSet(OakFileDataStore.class, OtherFileDataStore.class));
 
-        assertTrue(sut.removeDelegateDataStore(dsp1));
+        assertTrue(sut.removeDataStore(dsp1));
         verifyDelegates(sut, OtherFileDataStore.class);
 
-        sut.addDelegateDataStore(delegate);
-        assertTrue(sut.removeDelegateDataStore(dsp2));
+        sut.addDataStore(dsp1);
+        assertTrue(sut.removeDataStore(dsp2));
         verifyDelegates(sut, OakFileDataStore.class);
 
-        assertTrue(sut.removeDelegateDataStore(dsp1));
+        assertTrue(sut.removeDataStore(dsp1));
         verifyDelegates(sut);
     }
 
     @Test
     public void testRemoveDelegateRemovesOnlyMatchingDelegateOfSameClass() throws IOException, RepositoryException {
         DataStoreProvider dsp1 = createDataStoreProvider(folder.newFolder(), "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1));
+        sut.addDataStore(dsp1);
         DataStoreProvider dsp2 = createDataStoreProvider(folder.newFolder(), "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
 
         verifyDelegates(sut, 2, Sets.newHashSet(OakFileDataStore.class));
 
-        assertTrue(sut.removeDelegateDataStore(dsp1));
+        assertTrue(sut.removeDataStore(dsp1));
         verifyDelegates(sut, OakFileDataStore.class);
 
-        assertTrue(sut.removeDelegateDataStore(dsp2));
+        assertTrue(sut.removeDataStore(dsp2));
         verifyDelegates(sut);
     }
 
@@ -186,7 +184,7 @@ public class IntelligentDelegateHandlerTest {
     public void testSelectWritableDelegateSingleDelegateWithMatchingId() throws RepositoryException, IOException {
         DataStore ds = getFileDataStore();
         DataStoreProvider dsp = createDataStoreProvider(ds, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp));
+        sut.addDataStore(dsp);
         DataRecord record = addTestRecord(ds, sut);
         DataIdentifier id = record.getIdentifier();
 
@@ -202,7 +200,7 @@ public class IntelligentDelegateHandlerTest {
         DataRecord record = addTestRecord(ds, sut);
         DataIdentifier id = new DataIdentifier("otherIdentifier");
         DataStoreProvider dsp = createDataStoreProvider(ds, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp));
+        sut.addDataStore(dsp);
 
         assertFalse(sut.getAllDelegatesIterator(id).hasNext());
         assertEquals(ds, sut.getWritableDelegatesIterator().next());
@@ -215,13 +213,13 @@ public class IntelligentDelegateHandlerTest {
     public void testSelectWritableDelegateTwoDelegatesFirstDelegateMatches() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
         DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1));
+        sut.addDataStore(dsp1);
         DataRecord record = addTestRecord(ds1, sut);
         DataIdentifier id = record.getIdentifier();
 
         DataStore ds2 = new OakFileDataStore();
         DataStoreProvider dsp2 = createDataStoreProvider(ds2, "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
 
         assertEquals(ds1, sut.getWritableDelegatesIterator(id).next());
     }
@@ -233,11 +231,11 @@ public class IntelligentDelegateHandlerTest {
     public void testSelectWritableDelegateTwoDelegatesSecondDelegateMatches() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
         DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1));
+        sut.addDataStore(dsp1);
 
         DataStore ds2 = getFileDataStore();
         DataStoreProvider dsp2 = createDataStoreProvider(ds2, "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
         DataRecord record = addTestRecord(ds2, sut);
         DataIdentifier id = record.getIdentifier();
 
@@ -251,13 +249,13 @@ public class IntelligentDelegateHandlerTest {
     public void testSelectWritableDelegateTwoDelegatesWithoutMatchingId() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
         DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1));
+        sut.addDataStore(dsp1);
         DataRecord record1 = addTestRecord(ds1, sut, "record1");
         DataIdentifier id1 = record1.getIdentifier();
 
         DataStore ds2 = getFileDataStore();
         DataStoreProvider dsp2 = createDataStoreProvider(ds2, "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
         DataRecord record2 = addTestRecord(ds2, sut, "record2");
         DataIdentifier id2 = record2.getIdentifier();
 
@@ -275,18 +273,18 @@ public class IntelligentDelegateHandlerTest {
         DataStore ds1 = getFileDataStore();
         addTestRecord(ds1, sut);
         DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1));
+        sut.addDataStore(dsp1);
 
         String recordContent = "record2 same as record3";
         DataStore ds2 = getFileDataStore();
         DataStoreProvider dsp2 = createDataStoreProvider(ds2, "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
         DataRecord record2 = addTestRecord(ds2, sut, recordContent);
         DataIdentifier id2 = record2.getIdentifier();
 
         DataStore ds3 = getFileDataStore();
         DataStoreProvider dsp3 = createDataStoreProvider(ds3, "role3");
-        sut.addDelegateDataStore(createDelegate(dsp3));
+        sut.addDataStore(dsp3);
         DataRecord record3 = addTestRecord(ds3, sut, recordContent);
         DataIdentifier id3 = record3.getIdentifier();
 
@@ -306,12 +304,12 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testSelectWritableDelegateWithReadonlyDelegateReturnsEmptyIterator() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp1, readOnlyDelegateConfig));
+        DataStoreProvider dsp1 = createDataStoreProvider(ds1, "role1", readOnlyDelegateConfig);
+        sut.addDataStore(dsp1);
 
         DataStore ds2 = getFileDataStore();
         DataStoreProvider dsp2 = createDataStoreProvider(ds2, "role2");
-        sut.addDelegateDataStore(createDelegate(dsp2));
+        sut.addDataStore(dsp2);
 
         assertFalse(sut.getWritableDelegatesIterator(new DataIdentifier("otherIdentifier")).hasNext());
         assertEquals(ds2, sut.getWritableDelegatesIterator().next());
@@ -321,15 +319,15 @@ public class IntelligentDelegateHandlerTest {
     public void testSelectWritableDelegateWithOnlyReadonlyDelegateReturnsEmptyIterator() throws RepositoryException, IOException {
         DataStore ds = getFileDataStore();
         DataIdentifier id = addTestRecord(ds, sut).getIdentifier();
-        DataStoreProvider dsp = createDataStoreProvider(ds, "role1");
-        sut.addDelegateDataStore(createDelegate(dsp, readOnlyDelegateConfig));
+        DataStoreProvider dsp = createDataStoreProvider(ds, "role1", readOnlyDelegateConfig);
+        sut.addDataStore(dsp);
 
         assertFalse(sut.getWritableDelegatesIterator(id).hasNext());
     }
 
     @Test
     public void testGetDelegateIteratorSingleDelegateReturnsOneDelegate() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(createDelegate(folder.newFolder(), "role1"));
+        sut.addDataStore(createDataStoreProvider(folder.newFolder(), "role1"));
 
         Iterator<DataStore> i = sut.getAllDelegatesIterator();
         assertNotNull(i);
@@ -343,7 +341,7 @@ public class IntelligentDelegateHandlerTest {
         List<DataStore> dataStores = Lists.newArrayList();
         for (int i=0; i<5; ++i) {
             DataStore ds = getFileDataStore();
-            sut.addDelegateDataStore(createDelegate(createDataStoreProvider(ds, String.format("role%d", i+1))));
+            sut.addDataStore(createDataStoreProvider(ds, String.format("role%d", i+1)));
             dataStores.add(ds);
         }
 
@@ -363,14 +361,14 @@ public class IntelligentDelegateHandlerTest {
         List<DataStore> readOnlyDataStores = Lists.newArrayList();
         for (int i=0; i<roCount; ++i) {
             DataStore ds = getFileDataStore();
-            sut.addDelegateDataStore(createDelegate(createDataStoreProvider(ds, String.format("role%d", i+1)), readOnlyDelegateConfig));
+            sut.addDataStore(createDataStoreProvider(ds, String.format("role%d", i+1), readOnlyDelegateConfig));
             readOnlyDataStores.add(ds);
         }
 
         List<DataStore> readWriteDataStores = Lists.newArrayList();
         for (int i=0; i<rwCount; ++i) {
             DataStore ds = getFileDataStore();
-            sut.addDelegateDataStore(createDelegate(createDataStoreProvider(ds, String.format("role%d", i+1))));
+            sut.addDataStore(createDataStoreProvider(ds, String.format("role%d", i+1)));
             readWriteDataStores.add(ds);
         }
 
@@ -391,13 +389,11 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetWritableDelegateIteratorReturnsOnlyWritableDelegates() throws RepositoryException, IOException {
         DataStore rods = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(rods,"rwRole"), readOnlyDelegateConfig));
+        sut.addDataStore(
+                        createDataStoreProvider(rods,"rwRole", readOnlyDelegateConfig));
         DataStore rwds = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(rwds,"roRole")));
+        sut.addDataStore(
+                        createDataStoreProvider(rwds,"roRole"));
 
         Iterator<DataStore> iter = sut.getWritableDelegatesIterator();
         assertTrue(iter.hasNext());
@@ -407,9 +403,8 @@ public class IntelligentDelegateHandlerTest {
 
     @Test
     public void testGetWritableDelegateIteratorWithNoWritableDelegatesReturnsEmptyIterator() throws IOException, RepositoryException {
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(folder.newFolder(), "roRole"), readOnlyDelegateConfig));
+        sut.addDataStore(
+                        createDataStoreProvider(folder.newFolder(), "roRole", readOnlyDelegateConfig));
 
         Iterator<DataStore> iter = sut.getWritableDelegatesIterator();
         assertFalse(iter.hasNext());
@@ -421,13 +416,11 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsMatchingDataStoreOnly() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds1, "role1"));
         DataStore ds2 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds2, "role2")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds2, "role2"));
         DataIdentifier id2 = addTestRecord(ds2, sut).getIdentifier();
 
         Iterator<DataStore> iter = sut.getAllDelegatesIterator(id2);
@@ -442,18 +435,15 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsAllMatchingDataStores() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds1, "role1"));
         DataStore ds2 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds2, "role2")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds2, "role2"));
         DataIdentifier id2 = addTestRecord(ds2, sut).getIdentifier();
         DataStore ds3 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds3, "role3")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds3, "role3"));
         DataIdentifier id3 = addTestRecord(ds3, sut).getIdentifier();
 
         assertEquals(id2, id3);
@@ -484,9 +474,8 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetDelegateIteratorWithIdentifierReturnsEmptyIteratorIfNoMatches() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds1, "role1"));
 
         Iterator<DataStore> iter = sut.getAllDelegatesIterator(new DataIdentifier("otherIdentifier"));
         assertFalse(iter.hasNext());
@@ -498,13 +487,11 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetWriteableDelegateIteratorWithIdentifier() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds1, "role1"));
         DataStore ds2 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds2, "role2")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds2, "role2"));
         DataIdentifier id2 = addTestRecord(ds2, sut).getIdentifier();
 
         Iterator<DataStore> iter = sut.getWritableDelegatesIterator(id2);
@@ -519,13 +506,11 @@ public class IntelligentDelegateHandlerTest {
     @Test
     public void testGetWritableDelegateIteratorWithIdentifierFiltersReadonly() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")));
+        sut.addDataStore(
+                        createDataStoreProvider(ds1, "role1"));
         DataStore ds2 = getFileDataStore();
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds2, "role2"), readOnlyDelegateConfig));
+        sut.addDataStore(
+                        createDataStoreProvider(ds2, "role2", readOnlyDelegateConfig));
         DataIdentifier id2 = addTestRecord(ds2, sut).getIdentifier();
 
         Iterator<DataStore> iter = sut.getWritableDelegatesIterator(id2);
@@ -536,19 +521,11 @@ public class IntelligentDelegateHandlerTest {
     public void testGetMinRecordLengthReturnsLowest() throws RepositoryException, IOException {
         DataStore ds1 = getFileDataStore();
         ((OakFileDataStore)ds1).setMinRecordLength(1024*8);
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds1, "role1")
-                )
-        );
+        sut.addDataStore(createDataStoreProvider(ds1, "role1"));
 
         DataStore ds2 = getFileDataStore();
         ((OakFileDataStore)ds2).setMinRecordLength(1024*4);
-        sut.addDelegateDataStore(
-                createDelegate(
-                        createDataStoreProvider(ds2, "role2")
-                )
-        );
+        sut.addDataStore(createDataStoreProvider(ds2, "role2"));
 
         assertEquals(1024*4, sut.getMinRecordLength());
     }

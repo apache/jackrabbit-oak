@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class IntelligentDelegateHandler implements DelegateHandler {
     private static Logger LOG = LoggerFactory.getLogger(IntelligentDelegateHandler.class);
@@ -50,12 +51,33 @@ public class IntelligentDelegateHandler implements DelegateHandler {
                 minRecordLengthSelector.getClass().getSimpleName());
     }
 
+    private boolean isReadOnlyDataStore(final DataStoreProvider ds) {
+        Map<String, Object> config = ds.getConfig();
+        Object o = config.get(DataStoreProvider.READ_ONLY);
+        if (null == o) {
+            return false;
+        }
+        if (o instanceof Boolean) {
+            return (Boolean) o;
+        }
+        if (o instanceof String) {
+            return Boolean.valueOf((String) o);
+        }
+        if (o instanceof Integer) {
+            return 0 != (int) o;
+        }
+        if (o instanceof Long) {
+            return 0L != (long) o;
+        }
+        return false;
+    }
+
     @Override
-    public void addDelegateDataStore(final DelegateDataStore ds) {
+    public void addDataStore(final DataStoreProvider ds) {
         // TODO:  Add this data store to the blob ID mapper if not already there -MR
         // TODO:  See https://issues.apache.org/jira/browse/OAK-7090
-        DataStore delegate = ds.getDataStore().getDataStore();
-        if (ds.isReadOnly()) {
+        DataStore delegate = ds.getDataStore();
+        if (isReadOnlyDataStore(ds)) {
             if (! nonFilteredReadOnlyDataStores.contains(delegate)) {
                 nonFilteredReadOnlyDataStores.add(delegate);
             }
@@ -67,7 +89,7 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     }
 
     @Override
-    public boolean removeDelegateDataStore(final DataStoreProvider provider) {
+    public boolean removeDataStore(final DataStoreProvider provider) {
         boolean wasProviderRemoved = false;
         for (List<DataStore> l : Lists.newArrayList(nonFilteredWritableDataStores,
                 nonFilteredReadOnlyDataStores)) {

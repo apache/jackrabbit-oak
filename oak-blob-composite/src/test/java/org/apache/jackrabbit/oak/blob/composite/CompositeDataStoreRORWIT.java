@@ -1208,7 +1208,7 @@ public class CompositeDataStoreRORWIT {
             stgConfig.put("path", stgFolder.getAbsolutePath());
             stgConfig.put("role", stgRole);
 
-            cds.addDelegate(new DelegateDataStore(new DataStoreProvider() {
+            cds.addDelegate(new DataStoreProvider() {
                 @Override
                 public DataStore getDataStore() {
                     return prodDelegate;
@@ -1217,10 +1217,15 @@ public class CompositeDataStoreRORWIT {
                 @Override
                 public String getRole() {
                     return prodRole;
-                }}, prodConfig)
-            );
+                }
 
-            cds.addDelegate(new DelegateDataStore(new DataStoreProvider() {
+                @Override
+                public Map<String, Object> getConfig() {
+                    return prodConfig;
+                }
+            });
+
+            cds.addDelegate(new DataStoreProvider() {
                 @Override
                 public DataStore getDataStore() {
                     return stgDelegate;
@@ -1229,8 +1234,13 @@ public class CompositeDataStoreRORWIT {
                 @Override
                 public String getRole() {
                     return stgRole;
-                }}, stgConfig)
-            );
+                }
+
+                @Override
+                public Map<String, Object> getConfig() {
+                    return stgConfig;
+                }
+            });
 
             return cds;
         }
