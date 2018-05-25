@@ -21,6 +21,8 @@
         * [Step 1 - oak-run Setup](#a-setup)
         * [Step 2 - Generate the csv file](#a-generate-csv)
         * [Step 3 - Perform the text extraction](#a-perform-text-extraction)
+            * [1. using tika](#a-tika-text-extraction)
+            * [2. using dumped indexed data](#a-index-text-extraction)
     * [B - PreExtractedTextProvider](#b-pre-extracted-text-provider)
         * [Oak application](#b-oak-app)
         * [Oak Run Indexing](#b-oak-run)
@@ -96,9 +98,26 @@ By default it scans whole repository. If you need to restrict it to look up unde
 
 ### <a name="a-perform-text-extraction"></a>Step 3 - Perform the text extraction
 
-Once the csv file is generated we need to perform the text extraction. To do that we would need to download the 
-[tika-app](https://tika.apache.org/download.html) jar from Tika downloads. You should be able to use 1.15 version
-with Oak 1.7.4 jar.
+Once the csv file is generated we need to perform the text extraction.
+
+Currently extracted text files are stored as files per blob in a format which is same one used with `FileDataStore`
+In addition to that it creates 2 files
+
+* blobs_error.txt - File containing blobIds for which text extraction ended in error
+* blobs_empty.txt - File containing blobIds for which no text was extracted
+
+This phase is incremental i.e. if run multiple times and same `--store-path` is specified then it would avoid
+extracting text from previously processed binaries.
+
+There are 2 ways of doing this:
+
+1. Do text extraction using tika
+2. Use a suitable lucene index to get text extraction data from index itself which would have been generated earlier
+
+#### <a name="a-tika-text-extraction"></a>Step 3.1 - Text extraction using tika
+
+To do that we would need to download the [tika-app](https://tika.apache.org/download.html) jar from Tika downloads.
+You should be able to use 1.15 version with Oak 1.7.4 jar.
 
 To perform the text extraction use the `--extract` action
 
@@ -112,23 +131,105 @@ This command does not require access to NodeStore and only requires access to th
 the BlobStore which is in use like FileDataStore or S3DataStore. Above command would do text extraction
 using multiple threads and store the extracted text in directory specified by `--store-path`. 
 
-Currently extracted text files are stored as files per blob in a format which is same one used with `FileDataStore`
-In addition to that it creates 2 files
-
-* blobs_error.txt - File containing blobIds for which text extraction ended in error
-* blobs_empty.txt - File containing blobIds for which no text was extracted
-
-This phase is incremental i.e. if run multiple times and same `--store-path` is specified then it would avoid
-extracting text from previously processed binaries.
-
-Further the `extract` phase only needs access to `BlobStore` and does not require access to NodeStore. So this 
-can be run from a different machine (possibly more powerful to allow use of multiple cores) to speed up text 
-extraction. One can also split the csv into multiple chunks and process them on different machines and then merge the 
-stores later. Just ensure that at merge time blobs*.txt files are also merged
+Consequently, this can be run from a different machine (possibly more powerful to allow use of multiple cores) to speed
+up text extraction. One can also split the csv into multiple chunks and process them on different machines and then
+merge the stores later. Just ensure that at merge time blobs*.txt files are also merged
 
 Note that we need to launch the command with `-cp` instead of `-jar` as we need to include classes outside of oak-run jar 
 like tika-app. Also ensure that oak-run comes before in classpath. This is required due to some old classes being packaged 
 in tika-app 
+
+#### <a name="a-index-text-extraction"></a> 3.2 - Populate text extraction store using already indexed data
+
+`@since Oak 1.9.3`
+
+This approach has some prerequisites to be consistent and useful:
+
+##### Consistency between indexed data and csv generated in [Step 2](#a-generate-csv) above
+
+**NOTE**: This is **_very_** important and not making sure of this can lead to incorrectly populating text extraction store.
+
+Make sure that no useful binaries are added to the repository between the step that dumped indexed data and the one used
+for [generating binary stats csv](#a-generate-csv)
+
+##### Suitability of index used for populating extracted text store
+
+Indexes which index binaries are obvious candidates to be consumed in this way. But there are few more constraints that
+the definition needs to adhere to:
+
+* it should index binary on the same path where binary exists (binary must not be on a relative path)
+* it should not index multiple binaries on the indexed path
+    * IOW, multiple non-relative property definitions don't match and index binaries
+
+Example of usable index definitions
+
+        + /oak:index/usableIndex1
+          ...
+          + indexRules
+            ...
+            + nt:resource
+              + properties
+                ...
+                + binary
+                  - name="jcr:data"
+                  - nodeScopeIndex=true
+
+        + /oak:index/usableIndex2
+          ...
+          + indexRules
+            ...
+            + nt:resource
+              + properties
+                ...
+                + binary
+                  - name="^[^\/]*$"
+                  - isRegexp=true
+                  - nodeScopeIndex=true
+
+Examples of unusable index definitions
+
+        + /oak:index/unUsableIndex1
+          ...
+          + indexRules
+            ...
+            + nt:file
+              + properties
+                ...
+                + binary
+                  - name="jcr:content/jcr:data"
+                  - nodeScopeIndex=true
+
+        + /oak:index/unUsableIndex2
+          ...
+          + aggregates
+            ...
+            + nt:file
+              ...
+              + include0
+                - path="jcr:content"
+
+With those pre-requisites mentioned, let's dive into how to use this.
+
+We'd first need to dump index data from a suitable index (say `/oak:index/suitableIndexDef`) using
+[dump index][dump-index] method at say `/path/to/index/dump`
+
+Then use `--populate` action to populate extracted text store using a dump of usable indexed data. The command would
+look something like:
+
+        java -jar oak-run.jar tika \
+        --data-file binary-stats.csv \
+        --store-path ./store  \
+        --index-dir /path/to/index/dump/index-dumps/suitableIndexDef/data populate
+
+This command doesn't need to connect to either node store or blob store, so we don't need to configure it in the
+execution.
+
+This command would update `blobs_empty.txt` if indexed data for a given path is empty.
+
+It would also update `blobs_error.txt` if indexed data for a given path has indexed special value `TextExtractionError`.
+
+For other cases (multiple or none stored `:fulltext` fields for a given path) output of the command would report them as
+errors but they won't be recorded in `blobs_error.txt`.
 
 ## <a name="b-pre-extracted-text-provider"></a>B - PreExtractedTextProvider
 
@@ -156,3 +257,4 @@ See [oak run indexing](oak-run-indexing.html)
 
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [1]: https://repo1.maven.org/maven2/org/apache/jackrabbit/oak-run/1.7.4/oak-run-1.7.4.jar
+[dump-index]: oak-run-indexing.html#async-index-data
