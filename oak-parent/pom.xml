@@ -60,7 +60,6 @@
     <tika.version>1.18</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
-    <findbugs.version>3.0.4</findbugs.version>
     <derby.version>10.14.2.0</derby.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
@@ -321,11 +320,11 @@
             <artifactId>maven-checkstyle-plugin</artifactId>
             <version>2.17</version>
           </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <version>${findbugs.version}</version>
-          </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>3.1.3.1</version>
+        </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -745,9 +744,8 @@
                </executions>
             </plugin>
             <plugin>
-               <groupId>org.codehaus.mojo</groupId>
-               <artifactId>findbugs-maven-plugin</artifactId>
-               <version>${findbugs.version}</version>
+               <groupId>com.github.spotbugs</groupId>
+               <artifactId>spotbugs-maven-plugin</artifactId>
                <configuration>
                   <failOnError>false</failOnError>
                </configuration>
@@ -885,9 +883,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <version>${findbugs.version}</version>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
