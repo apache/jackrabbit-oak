@@ -654,10 +654,11 @@ public enum RDBDocumentStoreDB {
         public String getTableCreationStatement(String tableName, int schema) {
             // see https://issues.apache.org/jira/browse/OAK-2395
             return ("create table " + tableName
-                    + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + " (ID varbinary(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
                     + (schema >= 1 ? "VERSION smallint, " : "")
                     + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
-                    + "DATA nvarchar(4000), BDATA varbinary(max))");
+                    + "DATA nvarchar(4000), BDATA varbinary(max), "
+                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))");
         }
 
         @Override
