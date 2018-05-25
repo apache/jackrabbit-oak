@@ -88,6 +88,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -1083,11 +1084,13 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private static String asQualifiedDbName(String one, String two) {
-        if (one == null && two == null) {
+        one = Strings.nullToEmpty(one).trim();
+        two = Strings.nullToEmpty(two).trim();
+
+        if (one.isEmpty() && two.isEmpty()) {
             return null;
-        }
-        else {
-            one = one == null ? "" : one.trim();
+        } else {
+            one = Strings.nullToEmpty(one).trim();
             two = two == null ? "" : two.trim();
             return one.isEmpty() ? two : one + "." + two;
         }
@@ -1112,81 +1115,103 @@ public class RDBDocumentStore implements DocumentStore {
 
         ResultSet rs = null;
         try {
-            // if the result set metadata provides a table name, use that (the other one
+            // if the result set metadata provides a table name, use that (the
+            // other one
             // might be inaccurate due to case insensitivity issues
-            String rmetTableName = rmet.getTableName(1);
-            if (rmetTableName != null && !rmetTableName.trim().isEmpty()) {
-                tableName = rmetTableName.trim();
+            String rmetTableName = Strings.nullToEmpty(rmet.getTableName(1)).trim();
+            if (!rmetTableName.isEmpty()) {
+                tableName = rmetTableName;
             }
 
-            String rmetSchemaName = rmet.getSchemaName(1);
-            rmetSchemaName = rmetSchemaName == null ? "" : rmetSchemaName.trim();
+            String rmetSchemaName = Strings.nullToEmpty(rmet.getSchemaName(1)).trim();
 
-            Map<String, Map<String, Object>> indices = new TreeMap<String, Map<String, Object>>();
-            StringBuilder sb = new StringBuilder();
             rs = met.getIndexInfo(null, null, tableName, false, true);
-            getIndexInformation(rs, rmetSchemaName, indices);
-            if (indices.isEmpty() && ! tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
-                // might have failed due to the DB's handling on ucase/lcase, retry ucase
+
+            Map<String, Map<String, Object>> indices = getIndexInformation(rs, rmetSchemaName);
+            if (indices.isEmpty() && !tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
+                // might have failed due to the DB's handling on ucase/lcase,
+                // retry ucase
                 rs = met.getIndexInfo(null, null, tableName.toUpperCase(Locale.ENGLISH), false, true);
-                getIndexInformation(rs, rmetSchemaName, indices);
+                indices = getIndexInformation(rs, rmetSchemaName);
             }
-            for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
-                boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
-                Map<Integer, String> fields = (Map<Integer, String>) index.getValue().get("fields");
-                if (!fields.isEmpty()) {
-                    if (sb.length() != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("%sindex %s on %s (", nonUnique ? "" : "unique ", index.getKey(),
-                            index.getValue().get("tname")));
-                    String delim = "";
-                    for (String field : fields.values()) {
-                        sb.append(delim);
-                        delim = ", ";
-                        sb.append(field);
-                    }
-                    sb.append(")");
-                    sb.append(" ").append(index.getValue().get("type"));
-                }
-            }
-            return sb.toString();
+            return dumpIndexData(indices);
         } catch (SQLException ex) {
             // well it was best-effort
-            return String.format("/* exception while retrieving index information: %s, code %d, state %s */",
-                    ex.getMessage(), ex.getErrorCode(), ex.getSQLState());
+            return String.format("/* exception while retrieving index information: %s, code %d, state %s */", ex.getMessage(),
+                    ex.getErrorCode(), ex.getSQLState());
         } finally {
             closeResultSet(rs);
         }
     }
 
-    private static void getIndexInformation(ResultSet rs, String rmetSchemaName, Map<String, Map<String, Object>> indices)
-            throws SQLException {
+    private static String dumpIndexData(Map<String, Map<String, Object>> indices) {
+        StringBuilder sb = new StringBuilder();
+        for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
+            String indexName = index.getKey();
+            Map<String, Object> info = index.getValue();
+            boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
+            Map<Integer, String> fields = (Map<Integer, String>) info.get("fields");
+            if (!fields.isEmpty()) {
+                if (sb.length() != 0) {
+                    sb.append(", ");
+                }
+                sb.append(String.format("%sindex %s on %s (", nonUnique ? "" : "unique ", indexName, info.get("tname")));
+                String delim = "";
+                for (String field : fields.values()) {
+                    sb.append(delim);
+                    delim = ", ";
+                    sb.append(field);
+                }
+                sb.append(")");
+                sb.append(" ").append(info.get("type"));
+            }
+            Object filterCondition = info.get("filterCondition");
+            if (filterCondition != null) {
+                sb.append(" where ").append(filterCondition.toString());
+            }
+            sb.append(String.format(" (#%s, p%s)", info.get("cardinality").toString(), info.get("pages").toString()));
+        }
+        return sb.toString();
+    }
+
+    // see https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo(java.lang.String,%20java.lang.String,%20java.lang.String,%20boolean,%20boolean)
+    private static Map<String, Map<String, Object>> getIndexInformation(ResultSet rs, String rmetSchemaName) throws SQLException {
+        Map<String, Map<String, Object>> result = new TreeMap<String, Map<String, Object>>();
         while (rs.next()) {
-            String name = asQualifiedDbName(rs.getString(5), rs.getString(6));
+            String name = asQualifiedDbName(rs.getString("INDEX_QUALIFIER"), rs.getString("INDEX_NAME"));
             if (name != null) {
-                Map<String, Object> info = indices.get(name);
+                Map<String, Object> info = result.get(name);
                 if (info == null) {
                     info = new HashMap<String, Object>();
-                    indices.put(name, info);
+                    result.put(name, info);
                     info.put("fields", new TreeMap<Integer, String>());
                 }
-                info.put("nonunique", rs.getBoolean(4));
-                info.put("type", indexTypeAsString(rs.getInt(7)));
-                String inSchema = rs.getString(2);
-                inSchema = inSchema == null ? "" : inSchema.trim();
+                info.put("nonunique", rs.getBoolean("NON_UNIQUE"));
+                info.put("type", indexTypeAsString(rs.getInt("TYPE")));
+                String inSchema = rs.getString("TABLE_SCHEM");
+                inSchema = Strings.nullToEmpty(inSchema).trim();
+                String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION")).trim();
+                if (!filterCondition.isEmpty()) {
+                    info.put("filterCondition", filterCondition);
+                }
+                info.put("cardinality", rs.getInt("CARDINALITY"));
+                info.put("pages", rs.getInt("PAGES"));
+                Set<String> columns = new HashSet<String>();
+                info.put("columns", columns);
                 // skip indices on tables in other schemas in case we have that information
                 if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
-                    String tname = asQualifiedDbName(inSchema, rs.getString(3));
+                    String tname = asQualifiedDbName(inSchema, rs.getString("TABLE_NAME"));
                     info.put("tname", tname);
-                    String cname = rs.getString(9);
+                    String cname = rs.getString("COLUMN_NAME");
                     if (cname != null) {
-                        String order = "A".equals(rs.getString(10)) ? " ASC" : ("D".equals(rs.getString(10)) ? " DESC" : "");
-                        ((Map<Integer, String>) info.get("fields")).put(rs.getInt(8), cname + order);
+                        columns.add(cname);
+                        String order = "A".equals(rs.getString("ASC_OR_DESC")) ? " ASC" : ("D".equals(rs.getString("ASC_OR_DESC")) ? " DESC" : "");
+                        ((Map<Integer, String>) info.get("fields")).put(rs.getInt("ORDINAL_POSITION"), cname + order);
                     }
                 }
             }
         }
+        return result;
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd, List<String> tablesCreated,
