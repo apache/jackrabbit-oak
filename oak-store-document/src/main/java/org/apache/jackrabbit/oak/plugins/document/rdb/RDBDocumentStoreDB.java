@@ -798,9 +798,6 @@ public enum RDBDocumentStoreDB {
 
     private static final String SYSPROP_PREFIX = "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore";
 
-    // whether to create indices
-    private static final String CREATEINDEX = System.getProperty(SYSPROP_PREFIX + ".CREATEINDEX", "");
-
     public enum FETCHFIRSTSYNTAX {
         FETCHFIRST, LIMIT, TOP
     };
@@ -880,13 +877,7 @@ public enum RDBDocumentStoreDB {
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
         List<String> result = Lists.newArrayList();
-        if (CREATEINDEX.equals("modified-id")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED, ID)");
-        } else if (CREATEINDEX.equals("id-modified")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (ID, MODIFIED)");
-        } else if (CREATEINDEX.equals("modified")) {
-            result.add("create index " + tableName + "_MI on " + tableName + " (MODIFIED)");
-        }
+        result.add("create index " + tableName + "_MOD on " + tableName + " (MODIFIED)");
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");
             result.add("create index " + tableName + "_SDT on " + tableName + " (SDTYPE)");
@@ -977,6 +968,10 @@ public enum RDBDocumentStoreDB {
 
     public String getBigintType() {
         return "bigint";
+    }
+
+    public String getModifiedIndexStatement(String tableName) {
+        return "create index " + tableName + "_MOD on " + tableName + " (MODIFIED)";
     }
 
     /**
