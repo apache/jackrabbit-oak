@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -27,7 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -172,13 +173,13 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
                 @Nonnull
                 @Override
                 public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-                    return Iterators.emptyIterator();
+                    return Collections.emptyIterator();
                 }
 
                 @Nonnull
                 @Override
                 public Iterator<? extends Principal> findPrincipals(int searchType) {
-                    return Iterators.emptyIterator();
+                    return Collections.emptyIterator();
                 }
             };
         }

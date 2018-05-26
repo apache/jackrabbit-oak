@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -26,7 +27,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -287,7 +287,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         @Nonnull
         @Override
         public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     }
 }

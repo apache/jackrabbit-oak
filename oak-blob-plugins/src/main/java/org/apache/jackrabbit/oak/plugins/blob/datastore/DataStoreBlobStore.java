@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -449,7 +450,7 @@ public class DataStoreBlobStore
         if (!InMemoryDataRecord.isInstance(blobId)) {
             return Iterators.singletonIterator(blobId);
         }
-        return Iterators.emptyIterator();
+        return Collections.emptyIterator();
     }
 
     @Override
