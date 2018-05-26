@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -61,7 +62,7 @@ public class ClearMembershipActionTest {
 
     @Test
     public void testOnRemoveUserNoMembership() throws Exception {
-        when(user.declaredMemberOf()).thenReturn(Iterators.emptyIterator());
+        when(user.declaredMemberOf()).thenReturn(Collections.emptyIterator());
         action.onRemove(user, root, NamePathMapper.DEFAULT);
     }
 
@@ -149,7 +150,7 @@ public class ClearMembershipActionTest {
 
         @Override
         public Iterator<Group> declaredMemberOf() throws RepositoryException {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
 
         @Override

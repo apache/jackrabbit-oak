@@ -124,7 +124,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
             }
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     }
 

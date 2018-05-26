@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -270,7 +271,7 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getAllRecords();
             }
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
 
         @Override public DataRecord getRecordForId(DataIdentifier id) throws DataStoreException {

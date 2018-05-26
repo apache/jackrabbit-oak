@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
@@ -347,7 +348,7 @@ final class Delegatee {
             }), Predicates.notNull());
         } catch (RepositoryException e) {
             log.error("Error while listing orphaned users", e);
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         }
     }
 

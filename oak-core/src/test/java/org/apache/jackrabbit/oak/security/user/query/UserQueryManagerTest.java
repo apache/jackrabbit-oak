@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -28,7 +29,6 @@ import javax.jcr.ValueFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -245,7 +245,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
             }
         };
-        assertSame(Iterators.emptyIterator(), queryMgr.findAuthorizables(q));
+        assertSame(Collections.emptyIterator(), queryMgr.findAuthorizables(q));
     }
 
     @Test
