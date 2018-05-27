@@ -17,11 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
+import java.util.Random;
+
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -297,5 +300,18 @@ public class UtilsTest {
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(":"));
+    }
+
+    @Test
+    public void encodeHexString() {
+        Random r = new Random(42);
+        for (int i = 0; i < 1000; i++) {
+            int len = r.nextInt(100);
+            byte[] data = new byte[len];
+            r.nextBytes(data);
+            // compare against commons codec implementation
+            assertEquals(Hex.encodeHexString(data),
+                    Utils.encodeHexString(data, new StringBuilder()).toString());
+        }
     }
 }

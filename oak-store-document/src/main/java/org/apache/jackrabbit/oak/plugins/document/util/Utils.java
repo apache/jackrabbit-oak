@@ -39,7 +39,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -91,6 +90,8 @@ public class Utils {
     public static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
 
     /**
      * A predicate for property and _deleted names.
@@ -243,10 +244,30 @@ public class Utils {
             String parent = PathUtils.getParentPath(path);
             byte[] hash = digest.digest(parent.getBytes(UTF_8));
             String name = PathUtils.getName(path);
-            return depth + ":h" + Hex.encodeHexString(hash) + "/" + name;
+            StringBuilder sb = new StringBuilder(digest.getDigestLength() * 2 + name.length() + 6);
+            sb.append(depth).append(":h");
+            encodeHexString(hash, sb).append("/").append(name);
+            return sb.toString();
         }
         int depth = Utils.pathDepth(path);
         return depth + ":" + path;
+    }
+
+    /**
+     * Encodes the given data as hexadecimal string representation and appends
+     * it to the {@code StringBuilder}. The hex digits are in lower case.
+     *
+     * @param data the bytes to encode.
+     * @param sb the hexadecimal string representation is appended to this
+     *           {@code StringBuilder}.
+     * @return the {@code StringBuilder} passed to this method.
+     */
+    public static StringBuilder encodeHexString(byte[] data, StringBuilder sb) {
+        for (byte b : data) {
+            sb.append(HEX_DIGITS[(b >> 4) & 0xF]);
+            sb.append(HEX_DIGITS[(b & 0xF)]);
+        }
+        return sb;
     }
 
     /**
