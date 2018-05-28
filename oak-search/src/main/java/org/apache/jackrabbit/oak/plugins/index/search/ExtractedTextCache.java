@@ -158,9 +158,12 @@ public class ExtractedTextCache {
         if (EXTRACT_FORGET_TIMEOUT) {
             return;
         }
+
         String id = blob.getContentIdentity();
-        timeoutMap.put(id, getText(extractedText));
-        storeTimeoutMap();
+        if (id != null) {
+            timeoutMap.put(id, getText(extractedText));
+            storeTimeoutMap();
+        }
     }
 
     private static String getText(ExtractedText text) {
