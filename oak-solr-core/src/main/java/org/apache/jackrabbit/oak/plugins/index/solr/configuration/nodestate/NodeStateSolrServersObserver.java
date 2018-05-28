@@ -117,7 +117,6 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         }
 
         private boolean isSolrServerNode(String name, NodeState nodeState) {
-            log.info("checking {} in {}", name, nodeState);
             return "server".equals(name) && nodeState.hasProperty("solrServerType");
         }
 

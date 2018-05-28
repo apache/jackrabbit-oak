@@ -154,7 +154,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 match++;
             }
         }
-
+        log.debug("{} matched restrictions for filter {} and configuration {}", match, filter, configuration);
 
         return match;
     }
@@ -589,12 +589,14 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     private IndexPlan getIndexPlan(Filter filter, OakSolrConfiguration configuration, LMSEstimator estimator,
                                    List<OrderEntry> sortOrder, String path) {
         if (getMatchingFilterRestrictions(filter, configuration) > 0) {
-            return planBuilder(filter)
-                    .setEstimatedEntryCount(estimator.estimate(filter))
-                    .setSortOrder(sortOrder)
-                    .setPlanName(path)
-                    .setPathPrefix(getPathPrefix(path))
-                    .build();
+            IndexPlan indexPlan = planBuilder(filter)
+                .setEstimatedEntryCount(estimator.estimate(filter))
+                .setSortOrder(sortOrder)
+                .setPlanName(path)
+                .setPathPrefix(getPathPrefix(path))
+                .build();
+            log.debug("index plan {}", indexPlan);
+            return indexPlan;
         } else {
             return null;
         }
@@ -794,7 +796,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             switch (precision) {
                 case EXACT:
                     // query solr
-                    SolrQuery countQuery = FilterQueryParser.getQuery(plan.getFilter(), null, this.configuration);
+                    SolrQuery countQuery = FilterQueryParser.getQuery(plan.getFilter(), plan, this.configuration);
                     countQuery.setRows(0);
                     try {
                         estimate = this.solrServer.query(countQuery).getResults().getNumFound();

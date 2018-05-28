@@ -65,8 +65,8 @@ class FilterQueryParser {
             }
         }
 
-        List<QueryIndex.OrderEntry> sortOrder = plan.getSortOrder();
-        if (sortOrder != null) {
+        if (plan != null && plan.getSortOrder() != null) {
+            List<QueryIndex.OrderEntry> sortOrder = plan.getSortOrder();
             for (QueryIndex.OrderEntry orderEntry : sortOrder) {
                 SolrQuery.ORDER order;
                 if (QueryIndex.OrderEntry.Order.ASCENDING.equals(orderEntry.getOrder())) {
