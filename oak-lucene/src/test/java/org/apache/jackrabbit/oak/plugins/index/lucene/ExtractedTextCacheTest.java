@@ -185,6 +185,17 @@ public class ExtractedTextCacheTest {
         assertEquals(1, cache.getStatsMBean().getTimeoutCount());
     }
 
+    @Test
+    public void nullContentIdentityBlob() throws Exception {
+        ExtractedTextCache cache = new ExtractedTextCache(0, 0);
+        Blob b = new IdBlob("hello", null);
+        cache.put(b, ExtractedText.ERROR);
+        assertNull(cache.get("/a", "foo", b, false));
+        cache.putTimeout(b, ExtractedText.ERROR);
+        assertNull("Cache returned non null text for blob with null content identity",
+                cache.get("/a", "foo", b, false));
+    }
+
     private static class IdBlob extends ArrayBasedBlob {
         final String id;
 
