@@ -23,6 +23,7 @@ Bug
     [OAK-7339] - Fix all sidegrades breaking with UnsupportedOperationException on MissingBlobStore by introducing LoopbackBlobStore
     [OAK-7466] - Prevent LMSEstimator over/under flow in weights
     [OAK-7490] - oak-run console lc rmdata command uses second parameter for index path (and defaults to /oak:index/lucene)
+    [OAK-7513] - Possible NPE in exact size calculation for SolrQueryIndex
 
 Improvement
 
