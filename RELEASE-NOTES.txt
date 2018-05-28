@@ -19,9 +19,7 @@ Changes in Oak 1.6.12
 
 Bug
 
-    [OAK-5458] - Test failure: RepositoryBootIT.repositoryLogin
     [OAK-6490] - Pre-Extraction support fails for empty binaries
-    [OAK-7041] - Migration progress not logged for some sidegrade cases
     [OAK-7339] - Fix all sidegrades breaking with UnsupportedOperationException on MissingBlobStore by introducing LoopbackBlobStore
     [OAK-7466] - Prevent LMSEstimator over/under flow in weights
     [OAK-7490] - oak-run console lc rmdata command uses second parameter for index path (and defaults to /oak:index/lucene)
