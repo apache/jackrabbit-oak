@@ -91,7 +91,7 @@ public abstract class FulltextIndexEditorContext<D> {
 
   private PropertyUpdateCallback propertyUpdateCallback;
 
-  FulltextIndexEditorContext(NodeState root, NodeBuilder definition,
+  protected FulltextIndexEditorContext(NodeState root, NodeBuilder definition,
                            @Nullable IndexDefinition indexDefinition,
                            IndexUpdateCallback updateCallback,
                            FulltextIndexWriterFactory indexWriterFactory,
