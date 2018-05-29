@@ -101,6 +101,11 @@ public abstract class TCKBase extends TestSuite {
             this.stubClass = stubClass;
         }
 
+        @Override
+        public String getName() {
+            return super.getName() + " for " + stubClass;
+        }
+
         public void testSetup() throws Exception {
             // replace the existing helper with our parametrized version
             RepositoryHelperPool helperPool = RepositoryHelperPoolImpl.getInstance();
