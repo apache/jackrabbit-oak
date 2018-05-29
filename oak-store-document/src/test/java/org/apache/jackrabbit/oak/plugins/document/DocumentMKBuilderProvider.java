@@ -69,8 +69,14 @@ public class DocumentMKBuilderProvider extends ExternalResource {
         
         @Override
         public DocumentNodeStore getNodeStore() {
-            initialised = true;
-            return super.getNodeStore();
+            boolean success = false;
+            try {
+                DocumentNodeStore ns = super.getNodeStore();
+                success = true;
+                return ns;
+            } finally {
+                initialised = success;
+            }
         }
 
         public void dispose() {
