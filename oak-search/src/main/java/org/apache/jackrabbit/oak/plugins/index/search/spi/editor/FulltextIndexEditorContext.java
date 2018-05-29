@@ -116,9 +116,9 @@ public abstract class FulltextIndexEditorContext<D> {
   }
 
 
-  abstract DocumentMaker<D> newDocumentMaker(IndexDefinition.IndexingRule rule, String path);
+  protected abstract DocumentMaker<D> newDocumentMaker(IndexDefinition.IndexingRule rule, String path);
 
-  abstract FulltextBinaryTextExtractor createBinaryTextExtractor(ExtractedTextCache extractedTextCache, IndexDefinition definition, boolean reindex);
+  protected abstract FulltextBinaryTextExtractor createBinaryTextExtractor(ExtractedTextCache extractedTextCache, IndexDefinition definition, boolean reindex);
 
   FulltextIndexWriter getWriter() throws IOException {
     if (writer == null) {
