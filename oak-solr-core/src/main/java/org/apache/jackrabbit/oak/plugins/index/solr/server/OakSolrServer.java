@@ -87,4 +87,12 @@ public class OakSolrServer extends SolrServer {
             // do nothing
         }
     }
+
+    @Override
+    public String toString() {
+        return "OakSolrServer{" +
+            "solrServerConfiguration=" + solrServerConfiguration +
+            ", solrServerProvider=" + solrServerProvider +
+            '}';
+    }
 }
