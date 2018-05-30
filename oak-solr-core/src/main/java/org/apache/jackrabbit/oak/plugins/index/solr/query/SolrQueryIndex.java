@@ -548,9 +548,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         Collection<String> indexPaths = new SolrIndexLookup(rootState).collectIndexNodePaths(filter);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
 
+        log.debug("looking for plans for paths : {}", indexPaths);
         for (String path : indexPaths) {
             OakSolrConfiguration configuration = getConfiguration(path, rootState);
             SolrClient solrServer = getServer(path, rootState);
+            log.debug("building plan for server {} and configuration {}", solrServer, configuration);
             // only provide the plan if both valid configuration and server exist
             if (configuration != null && solrServer != null) {
                 LMSEstimator estimator = getEstimator(path);
