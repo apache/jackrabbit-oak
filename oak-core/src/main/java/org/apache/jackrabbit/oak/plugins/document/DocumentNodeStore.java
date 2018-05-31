@@ -1307,8 +1307,19 @@ public final class DocumentNodeStore
             int depth = PathUtils.getDepth(path);
             for (int i = 1; i <= depth && beforeState != null; i++) {
                 String p = PathUtils.getAncestorPath(path, depth - i);
-                PathRev key = new PathRev(p, beforeState.getLastRevision());
+                RevisionVector lastRev = beforeState.getLastRevision();
+                PathRev key = new PathRev(p, lastRev);
                 beforeState = nodeCache.getIfPresent(key);
+                if (missing.equals(beforeState)) {
+                    // This is unexpected. The before state should exist.
+                    // Invalidate the relevant cache entries. (OAK-6294)
+                    LOG.warn("Before state is missing {}. Invalidating " +
+                            "affected cache entries.", key.asString());
+                    store.invalidateCache(NODES, Utils.getIdFromPath(p));
+                    nodeCache.invalidate(key);
+                    nodeChildrenCache.invalidate(childNodeCacheKey(path, lastRev, null));
+                    beforeState = null;
+                }
             }
             DocumentNodeState.Children children = null;
             if (beforeState != null) {
