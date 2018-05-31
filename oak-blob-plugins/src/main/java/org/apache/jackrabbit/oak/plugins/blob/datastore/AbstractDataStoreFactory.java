@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import org.apache.commons.io.IOUtils;
@@ -43,7 +42,6 @@ import javax.jcr.RepositoryException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Dictionary;
-import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.osgi.OsgiUtil.lookupConfigurationThenFramework;
@@ -69,14 +67,10 @@ public abstract class AbstractDataStoreFactory {
 
             Map<String, Object> config = getConfigFromContext(context);
 
-            List<String> desc = Lists.newArrayList(getDescription());
-            desc.add(String.format("%s=%s", ROLE, role));
             OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
 
             final DataStore dataStore = createDataStore(context, config);
-            String[] descArray = new String[desc.size()];
-            descArray = desc.toArray(descArray);
-            AbstractDataStoreService.registerDataStore(context, config, dataStore, statisticsProvider, descArray, closer);
+            AbstractDataStoreService.initializeDataStore(context, config, dataStore);
             if (null != dataStore) {
                 if (dataStore instanceof CompositeDataStoreAware) {
                     ((CompositeDataStoreAware)dataStore).setIsDelegate(true);

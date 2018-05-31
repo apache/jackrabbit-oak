@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -154,6 +155,7 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
         }
 
         try {
+            initializeDataStore(context, config, dataStore);
             registerDataStore(context, config, dataStore, getStatisticsProvider(), getDescription(), closer);
         }
         catch (RepositoryException e) {
@@ -161,6 +163,7 @@ public class CompositeDataStoreService extends AbstractDataStoreService {
         }
     }
 
+    @Deactivate
     protected void deactivate() throws DataStoreException {
         unregisterCompositeDataStore();
         super.deactivate();

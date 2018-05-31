@@ -22,7 +22,9 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -74,14 +76,17 @@ public abstract class AbstractDataStoreService {
 
     protected Closer closer = Closer.create();
 
+    @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         // change to mutable map. may be modified in createDS call
         config = Maps.newHashMap(config);
 
         DataStore ds = createDataStore(context, config);
+        initializeDataStore(context, config, ds);
         registerDataStore(context, config, ds, getStatisticsProvider(), getDescription(), closer);
     }
 
+    @Deactivate
     protected void deactivate() throws DataStoreException {
         if (null != closer) {
             synchronized (this) {
@@ -99,6 +104,26 @@ public abstract class AbstractDataStoreService {
         return statisticsProvider;
     }
 
+    public static DataStore initializeDataStore(
+            @Nonnull ComponentContext context,
+            @Nonnull Map<String, Object> config,
+            @Nullable DataStore ds
+    ) throws RepositoryException {
+        if (null == ds) {
+            // Deferred init - child class should call initializeDataStore later
+            return ds;
+        }
+        String homeDir = lookup(context, PROP_HOME);
+        if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
+            log.info("Initializing the DataStore with path [{}]", config.get(PATH));
+        } else if (homeDir != null) {
+            log.info("Initializing the DataStore with homeDir [{}]", homeDir);
+        }
+        PropertiesUtil.populate(ds, config, false);
+        ds.init(homeDir);
+        return ds;
+    }
+
     public static DataStore registerDataStore(
             @Nonnull ComponentContext context,
             @Nonnull Map<String, Object> config,
@@ -106,7 +131,7 @@ public abstract class AbstractDataStoreService {
             @Nonnull StatisticsProvider statisticsProvider,
             @Nonnull String[] description,
             @Nonnull Closer closer
-    ) throws RepositoryException {
+    ) {
         if (null == ds) {
             // Deferred registration - child class should call registerDataStore later
             return ds;
@@ -116,16 +141,6 @@ public abstract class AbstractDataStoreService {
 
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
-
-        String homeDir = lookup(context, PROP_HOME);
-        if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
-            log.info("Initializing the DataStore with path [{}]", config.get(PATH));
-        }
-        else if (homeDir != null) {
-            log.info("Initializing the DataStore with homeDir [{}]", homeDir);
-        }
-        PropertiesUtil.populate(ds, config, false);
-        ds.init(homeDir);
 
         DataStoreBlobStore dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         closeables.add(dataStore);
