@@ -92,13 +92,4 @@ public interface DelegateHandler {
      * @return Iterator to all data stores
      */
     Iterator<DataStore> getAllDelegatesIterator(final DataIdentifier identifier);
-
-    /**
-     * Returns the overall value for the minimum record length for all the managed
-     * delegates, based on whatever strategy is employed by the injected
-     * {@link DelegateMinRecordLengthSelector}.
-     *
-     * @return The value to use for the minimum record length
-     */
-    int getMinRecordLength();
 }

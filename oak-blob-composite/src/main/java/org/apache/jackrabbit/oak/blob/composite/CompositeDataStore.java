@@ -417,7 +417,12 @@ public class CompositeDataStore implements DataStore, SharedDataStore, TypedData
 
     @Override
     public int getMinRecordLength() {
-        return delegateHandler.getMinRecordLength();
+        Iterator<DataStore> iter = delegateHandler.getWritableDelegatesIterator();
+        int minRecordLength = Integer.MAX_VALUE;
+        while (iter.hasNext()) {
+            minRecordLength = Math.min(minRecordLength, iter.next().getMinRecordLength());
+        }
+        return minRecordLength;
     }
 
     @Override

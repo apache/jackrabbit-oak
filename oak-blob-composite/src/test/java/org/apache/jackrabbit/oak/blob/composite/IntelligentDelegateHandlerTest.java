@@ -517,18 +517,5 @@ public class IntelligentDelegateHandlerTest {
         assertFalse(iter.hasNext());
     }
 
-    @Test
-    public void testGetMinRecordLengthReturnsLowest() throws RepositoryException, IOException {
-        DataStore ds1 = getFileDataStore();
-        ((OakFileDataStore)ds1).setMinRecordLength(1024*8);
-        sut.addDataStore(createDataStoreProvider(ds1, "role1"));
-
-        DataStore ds2 = getFileDataStore();
-        ((OakFileDataStore)ds2).setMinRecordLength(1024*4);
-        sut.addDataStore(createDataStoreProvider(ds2, "role2"));
-
-        assertEquals(1024*4, sut.getMinRecordLength());
-    }
-
     private static class OtherFileDataStore extends OakFileDataStore { }
 }

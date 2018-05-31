@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.blob.composite;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.spi.blob.DataStoreProvider;
@@ -39,16 +38,12 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     private List<DataStore> nonFilteredWritableDataStores = Lists.newArrayList();
     private List<DataStore> nonFilteredReadOnlyDataStores = Lists.newArrayList();
 
-    @Reference
-    private final DelegateMinRecordLengthSelector minRecordLengthSelector = new GuaranteedMinRecordLengthSelector();
-
     @Override
     public String toString() {
-        return String.format("Strategy: %s, writable data stores: %s, readonly data stores: %s, rec len chooser: %s",
+        return String.format("Strategy: %s, writable data stores: %s, readonly data stores: %s",
                 this.getClass().getSimpleName(),
                 nonFilteredWritableDataStores,
-                nonFilteredReadOnlyDataStores,
-                minRecordLengthSelector.getClass().getSimpleName());
+                nonFilteredReadOnlyDataStores);
     }
 
     private boolean isReadOnlyDataStore(final DataStoreProvider ds) {
@@ -128,10 +123,5 @@ public class IntelligentDelegateHandler implements DelegateHandler {
     private Iterator<DataStore> getIterator(@Nullable final DataIdentifier identifier, final boolean writableOnly) {
         return writableOnly ? nonFilteredWritableDataStores.iterator() :
                 Iterators.concat(nonFilteredWritableDataStores.iterator(), nonFilteredReadOnlyDataStores.iterator());
-    }
-
-    @Override
-    public int getMinRecordLength() {
-        return minRecordLengthSelector.getMinRecordLength(this);
     }
 }
