@@ -232,8 +232,15 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             String blobName = getName(blob);
             CloudBlockBlob newBlob = newParent.getBlockBlobReference(blobName);
             newBlob.startCopy(blob.getUri());
-            while (newBlob.getCopyState().getStatus() == CopyStatus.PENDING) {
-                Thread.sleep(100);
+
+            boolean isStatusPending = true;
+            while (isStatusPending) {
+                newBlob.downloadAttributes();
+                if (newBlob.getCopyState().getStatus() == CopyStatus.PENDING) {
+                    Thread.sleep(100);
+                } else {
+                    isStatusPending = false;
+                }
             }
 
             CopyStatus finalStatus = newBlob.getCopyState().getStatus();
