@@ -689,7 +689,8 @@ public class SegmentNodeStoreService {
                     executor,
                     TimeUnit.SECONDS.toMillis(configuration.getBlobGcMaxAge()),
                     getOrCreateId(segmentNodeStore),
-                    whiteboard
+                    whiteboard,
+                    statisticsProvider
             );
             closeables.add(registrations.registerMBean(
                     BlobGCMBean.class,

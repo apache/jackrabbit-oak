@@ -72,6 +72,10 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.Sha
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +128,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     private CheckpointMBean checkpointMbean;
 
+    /** Operation stats object **/
+    private final GarbageCollectionOperationStats stats;
+
+    private final OperationStatsCollector statsCollector;
+
     /**
      * Creates an instance of MarkSweepGarbageCollector
      *
@@ -135,7 +144,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param batchCount batch sized used for saving intermediate state
      * @param maxLastModifiedInterval lastModifiedTime in millis. Only files with time
      *                                less than this time would be considered for GC
-     * @param repositoryId - unique repository id for this node
+     * @param repositoryId unique repository id for this node
+     * @param whiteboard whiteboard instance
+     * @param statisticsProvider statistics provider instance
      * @throws IOException
      */
     public MarkSweepGarbageCollector(
@@ -146,7 +157,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             int batchCount,
             long maxLastModifiedInterval,
             @Nullable String repositoryId,
-            @Nullable Whiteboard whiteboard)
+            @Nullable Whiteboard whiteboard,
+            @Nullable StatisticsProvider statisticsProvider)
             throws IOException {
         this.executor = executor;
         this.blobStore = blobStore;
@@ -159,6 +171,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         if (whiteboard != null) {
             this.checkpointMbean = WhiteboardUtils.getService(whiteboard, CheckpointMBean.class);
         }
+
+        // re-initialize the statsProvider if passed as parameter
+        if (statisticsProvider == null) {
+            statisticsProvider = StatisticsProvider.NOOP;
+        }
+        this.stats = new GarbageCollectionOperationStats(statisticsProvider);
+        this.statsCollector = stats.getCollector();
     }
 
     public MarkSweepGarbageCollector(
@@ -170,7 +189,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             long maxLastModifiedInterval,
             @Nullable String repositoryId)
             throws IOException {
-        this(marker, blobStore, executor, root, batchCount, maxLastModifiedInterval, repositoryId, null);
+        this(marker, blobStore, executor, root, batchCount, maxLastModifiedInterval, repositoryId, null, null);
     }
 
     /**
@@ -182,9 +201,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             Executor executor,
             long maxLastModifiedInterval,
             @Nullable String repositoryId,
-            @Nullable Whiteboard whiteboard)
+            @Nullable Whiteboard whiteboard,
+            @Nullable StatisticsProvider statisticsProvider)
             throws IOException {
-        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, repositoryId, whiteboard);
+        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, repositoryId, whiteboard, statisticsProvider);
     }
 
     @Override
@@ -264,6 +284,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         return stats;
     }
 
+    @Override
+    public OperationsStatsMBean getOperationStats() {
+        return stats;
+    }
 
     /**
      * Mark and sweep. Main entry method for GC.
@@ -273,6 +297,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @throws Exception the exception
      */
     protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
+        statsCollector.start();
         boolean threw = true;
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         try {
@@ -290,8 +315,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
                         sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
+            } else {
+                sw.stop();
+                LOG.info("Blob garbage collection Mark completed in {} ({} ms).",
+                    sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS));
             }
+            statsCollector.finishSuccess();
+            statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         } catch (Exception e) {
+            statsCollector.finishFailure();
             LOG.error("Blob garbage collection error", e);
             throw e;
         } finally {
@@ -933,6 +965,75 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         public int filter(GarbageCollectableBlobStore blobStore, FileLineDifferenceIterator iter,
             GarbageCollectorFileState fs) throws IOException {
             return FileIOUtils.writeStrings(iter, fs.getGcCandidates(), true);
+        }
+    }
+
+    class GarbageCollectionOperationStats implements OperationsStatsMBean {
+        private static final String START = "START";
+        private static final String FINISH_SUCCESS = "FINISH_SUCCESS";
+        private static final String FINISH_FAILURE = "FINISH_FAILURE";
+        private static final String DURATION = "DURATION";
+
+        private CounterStats startCounter;
+        private CounterStats finishSuccessCounter;
+        private CounterStats finishFailureCounter;
+        private TimerStats duration;
+        private final OperationStatsCollector collector;
+
+        GarbageCollectionOperationStats(StatisticsProvider sp) {
+            this.startCounter = sp.getCounterStats(getMetricName(START), StatsOptions.METRICS_ONLY);
+            this.finishSuccessCounter = sp.getCounterStats(getMetricName(FINISH_SUCCESS), StatsOptions.METRICS_ONLY);
+            this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
+            this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
+            this.collector = new OperationStatsCollector() {
+                @Override
+                public void start() {
+                    startCounter.inc();
+                }
+
+                @Override
+                public void finishSuccess() {
+                    finishSuccessCounter.inc();
+                }
+
+                @Override
+                public void finishFailure() {
+                    finishFailureCounter.inc();
+                }
+
+                @Override
+                public void updateDuration(long time, TimeUnit timeUnit) {
+                    duration.update(time, timeUnit);
+                }
+            };
+        }
+
+        private String getMetricName(String name) {
+            return getName() + "." + name;
+        }
+
+        protected OperationStatsCollector getCollector() {
+            return collector;
+        }
+
+        @Override public String getName() {
+            return TYPE + "." + GarbageCollectionOperationStats.class.getSimpleName();
+        }
+
+        @Override public long getStartCount() {
+            return startCounter.getCount();
+        }
+
+        @Override public long getFinishSucessCount() {
+            return finishSuccessCounter.getCount();
+        }
+
+        @Override public long getFinishErrorCount() {
+            return finishFailureCounter.getCount();
+        }
+
+        @Override public long duration() {
+            return duration.getCount();
         }
     }
 }
