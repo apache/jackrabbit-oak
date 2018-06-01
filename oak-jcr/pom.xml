@@ -155,7 +155,8 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr,
-              org.apache.jackrabbit.oak.jcr.observation.filter
+              org.apache.jackrabbit.oak.jcr.observation.filter,
+              org.apache.jackrabbit.oak.jcr.api.binary,
             </Export-Package>
           </instructions>
         </configuration>

@@ -40,6 +40,8 @@ import org.apache.jackrabbit.oak.api.binary.URLReadableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
+import org.apache.jackrabbit.oak.jcr.api.binary.BinaryUploadProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,14 +92,52 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // A1 - get put url, change it and try uploading somewhere else in S3
     // A4 - no test, SHOULD requirement only, hard to test
     // A5 - get S3 URL (how?) and try an upload
-    // A7 - only get write access after all AC checks/session.save() => like A6 but test before save
 
     // D1 - immutable after initial upload
     // D2 - unique identifiers
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
-    // D4 - same as A7
-    // D5 - support dangling ref => get binary before upload, catch expected exception etc.
+    // D5 - blob ref not persisted in nodestore until binary uploaded and immutable
     // DX - get existing regular binary and try to overwrite it (doesn't work)
+
+    // F1 - basic test
+    @Test
+    public void testURLWritableBinaryV2() throws Exception {
+        // enable writable URL feature
+        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+
+        final String TEST_BINARY = "hello world";
+        final long size = TEST_BINARY.getBytes("utf-8").length;
+
+        assertTrue(getAdminSession() instanceof BinaryUploadProvider);
+
+        if (getAdminSession() instanceof BinaryUploadProvider) {
+
+            BinaryUploadProvider uploadProvider = (BinaryUploadProvider) getAdminSession();
+
+            BinaryHttpUpload upload = uploadProvider.addFileUsingHttpUpload(FILE_PATH, size);
+
+            assertNotNull(upload);
+
+            if (upload.isMultipartAvailable()) {
+                for (BinaryHttpUpload.Part part : upload.getMultipartUploadRequests()) {
+                    // TODO: multi part
+                    part.getSize();
+                    part.getPutURL();
+                }
+            } else {
+                URL url = upload.getSinglePutURL();
+                assertNotNull(url);
+
+                System.out.println("- uploading binary via PUT to " + url);
+                int code = httpPut(url, getTestInputStream(TEST_BINARY));
+
+                assertEquals("PUT to pre-signed S3 URL failed", 200, code);
+
+                Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
+                binary2.getStream();
+            }
+        }
+    }
 
     // F1 - basic test
     @Test
