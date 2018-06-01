@@ -77,7 +77,14 @@ public interface BlobGCMBean {
      * @return List of available repositories and their status
      */
     TabularData getGlobalMarkStats();
-    
+
+    /**
+     * Show details of the data Store garbage collection invocations.
+     *
+     * @return Data about all the previous gc invocations
+     */
+    TabularData getOperationStats();
+
     /**
      * Data Store consistency check
      * 

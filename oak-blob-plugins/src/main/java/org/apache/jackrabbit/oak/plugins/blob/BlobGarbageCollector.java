@@ -58,4 +58,12 @@ public interface BlobGarbageCollector {
      * @throws Exception
      */
     long checkConsistency() throws Exception;
+
+    /**
+     * Returns operation statistics
+     *
+     * @return stats object
+     * @throws Exception
+     */
+    OperationsStatsMBean getOperationStats() throws Exception;
 }

@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -177,15 +178,40 @@ public class BlobGCTest {
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
+    @Test
+    public void gcMarkOnly() throws Exception {
+        log.info("Staring gcMarkOnly()");
+
+        BlobStoreState state = setUp(10, 5, 100);
+
+        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
+        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
+
+        Set<String> existingAfterGC = gcInternal(0, true);
+        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+    }
+
     protected Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
+        return gcInternal(maxBlobGcInSecs, false);
+    }
+
+    protected Set<String> gcInternal(long maxBlobGcInSecs, boolean markOnly) throws Exception {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = initGC(maxBlobGcInSecs, executor);
-        gc.collectGarbage(false);
+        gc.collectGarbage(markOnly);
 
         assertEquals(0, executor.getTaskCount());
         Set<String> existingAfterGC = iterate();
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
+        assertStats(gc.getOperationStats());
+
         return existingAfterGC;
+    }
+
+    private void assertStats(OperationsStatsMBean operationStats) {
+        assertEquals("Start counter mismatch", 1, operationStats.getStartCount());
+        assertEquals("Finish success mismatch", 1, operationStats.getFinishSucessCount());
+        assertEquals("Finish error mismatch", 0, operationStats.getFinishErrorCount());
     }
 
     private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor)
@@ -195,6 +221,7 @@ public class BlobGCTest {
 
     private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor,
         String root) throws Exception {
+        DefaultStatisticsProvider statsProvider = new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor());
         String repoId = null;
         if (SharedDataStoreUtils.isShared(blobStore)) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
@@ -206,7 +233,7 @@ public class BlobGCTest {
         MarkSweepGarbageCollector gc =
             new MarkSweepGarbageCollector(referenceRetriever,
                 blobStore, executor,
-                root, 2048, blobGcMaxAgeInSecs, repoId, wb);
+                root, 2048, blobGcMaxAgeInSecs, repoId, wb, statsProvider);
         return gc;
     }
 
