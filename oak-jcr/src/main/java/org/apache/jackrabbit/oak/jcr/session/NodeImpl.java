@@ -1208,9 +1208,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean isLocked() throws RepositoryException {
-        if (!LockDeprecation.isLockingSupported()) {
-            return false;
-        }
         return getLockManager().isLocked(getPath());
     }
 

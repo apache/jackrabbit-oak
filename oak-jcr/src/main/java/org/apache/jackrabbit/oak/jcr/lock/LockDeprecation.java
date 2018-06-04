@@ -21,8 +21,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionImpl;
 import org.slf4j.Logger;
@@ -35,9 +33,6 @@ public class LockDeprecation {
 
     private static final Logger LOG = LoggerFactory.getLogger(LockDeprecation.class);
 
-    private static final String LOCKSUPPORT = System.getProperty("oak.locksupport", "deprecated");
-    private static final boolean ISLOCKINGSUPPORTED = !("disabled".equals(LOCKSUPPORT));
-    
     private LockDeprecation() {
     }
 
@@ -49,25 +44,16 @@ public class LockDeprecation {
             new String[] { Thread.class.getName(), java.lang.reflect.Method.class.getName(), LockDeprecation.class.getName(),
                     LockManagerImpl.class.getName(), NodeImpl.class.getName(), SessionImpl.class.getName() }));
 
-    public static void logCall(String operation) throws UnsupportedRepositoryOperationException {
+    public static void logCall(String operation) {
 
-        if (!ISLOCKINGSUPPORTED) {
-            throw new UnsupportedRepositoryOperationException(
-                    "Support for JCR Locking is disabled (see OAK-6421 for further information)");
-        } else {
-            boolean firstInvocation = NOTWARNEDYET.getAndSet(false);
+        boolean firstInvocation = NOTWARNEDYET.getAndSet(false);
 
-            if (firstInvocation) {
-                String explanation = "Support for JCR Locking is deprecated and will be disabled in a future version of Jackrabbit Oak (see OAK-6421 for further information)";
-                LOG.warn(explanation + " - " + createLogMessage(operation));
-            } else if (LOG.isTraceEnabled()) {
-                LOG.trace(createLogMessage(operation));
-            }
+        if (firstInvocation) {
+            String explanation = "Support for JCR Locking is deprecated and will be disabled in a future version of Jackrabbit Oak (see OAK-6421 for further information)";
+            LOG.warn(explanation + " - " + createLogMessage(operation));
+        } else if (LOG.isTraceEnabled()) {
+            LOG.trace(createLogMessage(operation));
         }
-    }
-
-    public final static boolean isLockingSupported() {
-        return ISLOCKINGSUPPORTED;
     }
 
     private static String createLogMessage(String operation) {
