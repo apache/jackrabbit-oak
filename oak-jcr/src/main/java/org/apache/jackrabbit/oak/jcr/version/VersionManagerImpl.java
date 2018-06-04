@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -389,12 +390,15 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     private void checkNotLocked(String absPath) throws RepositoryException {
+        if (!LockDeprecation.isLockingSupported()) {
+            return;
+        }
         // TODO: avoid nested calls
         LockManagerImpl lockManager = sessionContext.getWorkspace().getLockManager();
         if (lockManager.isLocked(absPath)) {
             NodeDelegate node = sessionContext.getSessionDelegate().getNode(absPath);
             if (!lockManager.canUnlock(node)) {
-                throw new LockException("Node at " + absPath + " is locked");    
+                throw new LockException("Node at " + absPath + " is locked");
             }
         }
     }

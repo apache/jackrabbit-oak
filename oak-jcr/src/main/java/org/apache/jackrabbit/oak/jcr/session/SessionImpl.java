@@ -657,7 +657,8 @@ public class SessionImpl implements JackrabbitSession {
             if (!parent.isCheckedOut()) {
                 return false;
             }
-            if (parent.isLocked()) {
+            boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
+            if (hasLocking && parent.isLocked()) {
                 return false;
             }
 
