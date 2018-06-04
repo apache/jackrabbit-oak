@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.WorkspaceDelegate;
-import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -198,8 +197,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public LockManagerImpl getLockManager() throws UnsupportedRepositoryOperationException {
-        LockDeprecation.logCall("get LockManager");
+    public LockManagerImpl getLockManager() {
         return new LockManagerImpl(sessionContext);
     }
 

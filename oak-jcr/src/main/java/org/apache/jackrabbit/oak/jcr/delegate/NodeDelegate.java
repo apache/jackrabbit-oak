@@ -75,8 +75,6 @@ import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -84,7 +82,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -381,9 +378,6 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public boolean canAddMixin(String typeName) throws RepositoryException {
-        if (!LockDeprecation.isLockingSupported() && JcrConstants.MIX_LOCKABLE.equals(typeName)) {
-            return false;
-        }
         Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
         if (type.exists()) {
             return !TreeUtil.getBoolean(type, JCR_IS_ABSTRACT)
