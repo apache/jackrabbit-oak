@@ -31,6 +31,7 @@ import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -147,7 +148,8 @@ public class ImporterImpl implements Importer {
         if (!vMgr.isCheckedOut(absPath)) {
             throw new VersionException("Target node is checked in.");
         }
-        if (importTargetTree.getStatus() != Tree.Status.NEW && wsp.getLockManager().isLocked(absPath)) {
+        boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
+        if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && wsp.getLockManager().isLocked(absPath)) {
             throw new LockException("Target node is locked.");
         }
         effectiveNodeTypeProvider = wsp.getNodeTypeManager();

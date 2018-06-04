@@ -956,7 +956,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public void addMixin(String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(checkNotNull(mixinName));
         if (JcrConstants.MIX_LOCKABLE.equals(oakTypeName)) {
-            LockDeprecation.logCall("addMixin " + JcrConstants.MIX_LOCKABLE);
+            LockDeprecation.handleCall("addMixin " + JcrConstants.MIX_LOCKABLE);
         }
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("addMixin") {
             @Override
@@ -1208,6 +1208,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean isLocked() throws RepositoryException {
+        if (!LockDeprecation.isLockingSupported()) {
+            return false;
+        }
         return getLockManager().isLocked(getPath());
     }
 
