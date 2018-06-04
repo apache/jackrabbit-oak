@@ -300,33 +300,45 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         statsCollector.start();
         boolean threw = true;
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
+        Stopwatch sw = Stopwatch.createStarted();
+
         try {
-            Stopwatch sw = Stopwatch.createStarted();
             LOG.info("Starting Blob garbage collection with markOnly [{}]", markOnly);
-            
+
             long markStart = System.currentTimeMillis();
-            mark(fs);
-            if (!markOnly) {
-                long deleteCount = sweep(fs, markStart, forceBlobRetrieve);
-                threw = false;
-
-                long maxTime = getMaxModifiedTime(markStart) > 0 ? getMaxModifiedTime(markStart) : markStart;
-                sw.stop();
-
-                LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
-                        sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
-            } else {
-                sw.stop();
+            long markFinish;
+            try {
+                mark(fs);
+            } finally {
+                markFinish = sw.elapsed(TimeUnit.MILLISECONDS);
+                statsCollector.updateMarkDuration(markFinish, TimeUnit.MILLISECONDS);
                 LOG.info("Blob garbage collection Mark completed in {} ({} ms).",
                     sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS));
             }
+
+            if (!markOnly) {
+                long deleteCount;
+                try {
+                    deleteCount = sweep(fs, markStart, forceBlobRetrieve);
+                    threw = false;
+                } finally {
+                    sw.stop();
+                    statsCollector.updateSweepDuration(sw.elapsed(TimeUnit.MILLISECONDS) - markFinish, TimeUnit.MILLISECONDS);
+                }
+
+                long maxTime = getMaxModifiedTime(markStart) > 0 ? getMaxModifiedTime(markStart) : markStart;
+
+                LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
+                        sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
+            }
+
             statsCollector.finishSuccess();
-            statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             statsCollector.finishFailure();
             LOG.error("Blob garbage collection error", e);
             throw e;
         } finally {
+            statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             if (!LOG.isTraceEnabled()) {
                 Closeables.close(fs, threw);
             }
@@ -973,11 +985,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         private static final String FINISH_SUCCESS = "FINISH_SUCCESS";
         private static final String FINISH_FAILURE = "FINISH_FAILURE";
         private static final String DURATION = "DURATION";
+        private static final String MARK_DURATION = "MARK_DURATION";
+        private static final String SWEEP_DURATION = "SWEEP_DURATION";
 
         private CounterStats startCounter;
         private CounterStats finishSuccessCounter;
         private CounterStats finishFailureCounter;
         private TimerStats duration;
+        private final TimerStats markDuration;
+        private final TimerStats sweepDuration;
         private final OperationStatsCollector collector;
 
         GarbageCollectionOperationStats(StatisticsProvider sp) {
@@ -985,6 +1001,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             this.finishSuccessCounter = sp.getCounterStats(getMetricName(FINISH_SUCCESS), StatsOptions.METRICS_ONLY);
             this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
             this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
+            this.markDuration = sp.getTimer(getMetricName(MARK_DURATION), StatsOptions.METRICS_ONLY);
+            this.sweepDuration = sp.getTimer(getMetricName(SWEEP_DURATION), StatsOptions.METRICS_ONLY);
+
             this.collector = new OperationStatsCollector() {
                 @Override
                 public void start() {
@@ -1004,6 +1023,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 @Override
                 public void updateDuration(long time, TimeUnit timeUnit) {
                     duration.update(time, timeUnit);
+                }
+
+                @Override public void updateMarkDuration(long time, TimeUnit timeUnit) {
+                    markDuration.update(time, timeUnit);
+                }
+
+                @Override public void updateSweepDuration(long time, TimeUnit timeUnit) {
+                    sweepDuration.update(time, timeUnit);
                 }
             };
         }

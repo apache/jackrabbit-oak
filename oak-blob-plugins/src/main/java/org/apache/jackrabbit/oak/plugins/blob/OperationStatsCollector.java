@@ -26,16 +26,22 @@ import java.util.concurrent.TimeUnit;
  */
 public interface OperationStatsCollector {
     OperationStatsCollector NOOP = new OperationStatsCollector() {
-        public void start() {
+        @Override public void start() {
         }
 
-        public void finishSuccess() {
+        @Override public void finishSuccess() {
         }
 
-        public void finishFailure() {
+        @Override public void finishFailure() {
         }
 
-        public void updateDuration(long time, TimeUnit timeUnit) {
+        @Override public void updateDuration(long time, TimeUnit timeUnit) {
+        }
+
+        @Override public void updateMarkDuration(long time, TimeUnit timeUnit) {
+        }
+
+        @Override public void updateSweepDuration(long time, TimeUnit timeUnit) {
         }
     };
 
@@ -61,4 +67,21 @@ public interface OperationStatsCollector {
      * @param timeUnit unit of time
      */
     void updateDuration(long time, TimeUnit timeUnit);
+
+    /**
+     * Increment the mark phase duration timer
+     *
+     * @param time time recorded for the operation
+     * @param timeUnit unit of time
+     */
+    void updateMarkDuration(long time, TimeUnit timeUnit);
+
+    /**
+     * Increment the sweep phase duration timer
+     *
+     * @param time time recorded for the operation
+     * @param timeUnit unit of time
+     */
+    void updateSweepDuration(long time, TimeUnit timeUnit);
+
 }
