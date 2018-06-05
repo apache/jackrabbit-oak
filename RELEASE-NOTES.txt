@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.3
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.2 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.3 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,22 +15,38 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.2
----------------------
+Changes in Oak 1.9.3
+--------------------
 
 Technical task
 
-    [OAK-7472] - tests should pass with locking disabled
+    [OAK-7471] - add a config switch to disable locking
+
+Bug
+
+    [OAK-7508] - Text extraction timeout can lead to NPE
+    [OAK-7513] - Possible NPE in exact size calculation for SolrQueryIndex
+    [OAK-7514] - Build Jackrabbit Oak #1462 failed
+    [OAK-7520] - AzureArchiveManager#copyBlob() hangs indefinitely
+
+New Feature
+
+    [OAK-7522] - Enable collection of simple operation stats for DataStore garbage collection
 
 Improvement
 
-    [OAK-7488] - VersionablePathHook should be located with
-    authorization code
+    [OAK-6087] - Avoid reads from MongoDB primary
+    [OAK-7353] - oak-run tika extraction should support getting assistance from stored indexed data from a lucene index
+
+Test
+
+    [OAK-7516] - DocumentMKBuilderProvider may try to dispose an uninitialised store
 
 Task
 
-    [OAK-7240] - create announcement mail template for releases
-    [OAK-7493] - RDB*Store: update Derby dependency to 10.14.2.0
+    [OAK-7368] - update to findbugs version compatible with jdk 10
+    [OAK-7518] - TCKBase: make repository fixture more prominent
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
