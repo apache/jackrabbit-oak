@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
 public class BundlingConfigInitializerTest {

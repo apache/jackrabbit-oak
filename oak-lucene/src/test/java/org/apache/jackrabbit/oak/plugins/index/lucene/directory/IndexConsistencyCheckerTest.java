@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
@@ -59,7 +59,7 @@ import static org.junit.Assert.assertTrue;
 
 public class IndexConsistencyCheckerTest {
 
-    private NodeState rootState = InitialContent.INITIAL_CONTENT;
+    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
 
 

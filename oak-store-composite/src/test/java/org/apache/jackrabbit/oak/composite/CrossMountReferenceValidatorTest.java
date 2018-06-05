@@ -35,7 +35,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class CrossMountReferenceValidatorTest {
@@ -59,7 +59,7 @@ public class CrossMountReferenceValidatorTest {
 
     @Test
     public void globalToPrivateReference() throws Exception{
-        NodeState root = INITIAL_CONTENT;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
         NodeState before = builder.getNodeState();
@@ -76,7 +76,7 @@ public class CrossMountReferenceValidatorTest {
 
     @Test
     public void privateToGlobalReference() throws Exception{
-        NodeState root = INITIAL_CONTENT;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
         NodeState before = builder.getNodeState();

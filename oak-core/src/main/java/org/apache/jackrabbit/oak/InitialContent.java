@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
 
@@ -66,14 +65,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * </pre>
  */
 public class InitialContent implements RepositoryInitializer, NodeTypeConstants {
-
-    public static final NodeState INITIAL_CONTENT = createInitialContent();
-
-    private static NodeState createInitialContent() {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        new InitialContent().initialize(builder);
-        return squeeze(builder.getNodeState());
-    }
 
     /**
      * Whether to pre-populate the version store with intermediate nodes.

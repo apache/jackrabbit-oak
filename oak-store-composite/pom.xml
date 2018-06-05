@@ -152,6 +152,13 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-store-document</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

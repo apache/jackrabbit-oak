@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+
 import java.io.IOException;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -102,14 +103,9 @@ public class NodeTypeDefinitionNodeStoreCheckerTest {
     static abstract class Fixture {
         
         public void run() throws CommitFailedException {
-            MemoryNodeStore root = new MemoryNodeStore();
+            MemoryNodeStore root = new MemoryNodeStore(INITIAL_CONTENT);
             MemoryNodeStore mount = new MemoryNodeStore();
-            
-            NodeBuilder rootBuilder = root.getRoot().builder();
-            new InitialContent().initialize(rootBuilder);
-            root.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            
             NodeBuilder mountBuilder = mount.getRoot().builder();
             initMountContent(mountBuilder);
             mount.merge(mountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
