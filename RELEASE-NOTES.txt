@@ -21,6 +21,7 @@ Changes in Oak 1.9.3
 Technical task
 
     [OAK-7471] - add a config switch to disable locking
+    [OAK-7526] - Move InitialContent#INITIAL_CONTENT to test
 
 Bug
 
