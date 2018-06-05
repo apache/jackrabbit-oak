@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.cow;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -31,23 +32,18 @@ import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 
 public class BranchNodeStore implements NodeStore, Observable {
@@ -106,6 +102,11 @@ public class BranchNodeStore implements NodeStore, Observable {
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
         return memoryNodeStore.createBlob(inputStream);
+    }
+
+    @Override
+    public URLWritableBlob createURLWritableBlob() {
+        return memoryNodeStore.createURLWritableBlob();
     }
 
     @Override

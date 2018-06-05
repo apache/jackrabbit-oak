@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
@@ -40,6 +42,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlobRoot;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
@@ -66,7 +70,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class MutableRoot implements Root {
+class MutableRoot implements Root, URLWritableBlobRoot {
 
     /**
      * The underlying store to which this root belongs
@@ -117,6 +121,8 @@ class MutableRoot implements Root {
      * diff is compiled.
      */
     private final MoveTracker moveTracker = new MoveTracker();
+
+    private Set<URLWritableBlob> addedURLWritableBlobs = new HashSet<>();
 
     /**
      * Number of {@link #updated} occurred.
@@ -254,6 +260,11 @@ class MutableRoot implements Root {
             permissionProvider.get().refresh();
         }
         moveTracker.clear();
+
+        for (URLWritableBlob blob : addedURLWritableBlobs) {
+            blob.commit();
+        }
+        addedURLWritableBlobs.clear();
     }
 
     @Override
@@ -329,6 +340,22 @@ class MutableRoot implements Root {
     @Override
     public Blob getBlob(@Nonnull String reference) {
         return store.getBlob(reference);
+    }
+
+    @Override
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        return store.createURLWritableBlob();
+    }
+
+    /**
+     * Called when a property was set with a URLWritableBlob as value. Only when
+     * actually used in a property such a blob will be {@link URLWritableBlob#commit() committed}
+     * upon commit(), thus enabling the blob to provide a URL to the client.
+     * That's why this does not happen in {@link #createURLWritableBlob()}, because
+     * there is no guarantee a client will persist the blob somewhere.
+     */
+    public void onURLWritableBlobPropertySet(URLWritableBlob urlWritableBlob) {
+        addedURLWritableBlobs.add(urlWritableBlob);
     }
 
     //-----------------------------------------------------------< internal >---

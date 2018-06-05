@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -154,6 +155,10 @@ class CompositionContext {
         return globalStore.getNodeStore().createBlob(inputStream);
     }
 
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        return globalStore.getNodeStore().createURLWritableBlob();
+    }
+
     boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath, final String childName) {
         return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
     }
@@ -194,5 +199,4 @@ class CompositionContext {
     CompositeNodeStoreMonitor getNodeBuilderMonitor() {
         return nodeBuilderMonitor;
     }
-
 }

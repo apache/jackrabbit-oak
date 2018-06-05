@@ -196,6 +196,19 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @Override
     @Nonnull
+    public RecordId writeBlobId(@Nonnull final String blobId) throws IOException {
+        return writeOperationHandler.execute(new SegmentWriteOperation() {
+
+            @Nonnull
+            @Override
+            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
+                return with(writer).writeBlobId(blobId);
+            }
+        });
+    }
+
+    @Override
+    @Nonnull
     public RecordId writeBlock(@Nonnull final byte[] bytes, final int offset, final int length)
             throws IOException {
         return writeOperationHandler.execute(new SegmentWriteOperation() {

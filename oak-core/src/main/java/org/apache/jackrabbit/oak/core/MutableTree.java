@@ -27,9 +27,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -224,6 +226,15 @@ final class MutableTree extends AbstractMutableTree {
     public void setProperty(@Nonnull PropertyState property) {
         beforeWrite();
         super.setProperty(property);
+
+        if (property.getType() == Type.BINARY) {
+            // notify root about special URLWritableBlobs to handle them after commit()
+            // TODO: multi-value support for URLWritableBlob
+            Blob blob = property.getValue(Type.BINARY);
+            if (blob instanceof URLWritableBlob) {
+                root.onURLWritableBlobPropertySet((URLWritableBlob) blob);
+            }
+        }
         root.updated();
     }
 

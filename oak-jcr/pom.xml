@@ -155,7 +155,8 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr,
-              org.apache.jackrabbit.oak.jcr.observation.filter
+              org.apache.jackrabbit.oak.jcr.observation.filter,
+              org.apache.jackrabbit.oak.jcr.api.binary,
             </Export-Package>
           </instructions>
         </configuration>
@@ -317,10 +318,17 @@
       <artifactId>jackrabbit-jcr-commons</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
+    
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+      <version>15.0</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

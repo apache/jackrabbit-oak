@@ -16,38 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.AccessControlException;
-import java.util.Collections;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Credentials;
-import javax.jcr.InvalidSerializedDataException;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Property;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.retention.RetentionManager;
-import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -59,6 +27,8 @@ import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
+import org.apache.jackrabbit.oak.jcr.api.binary.BinaryUploadProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -76,10 +46,43 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Binary;
+import javax.jcr.Credentials;
+import javax.jcr.InvalidSerializedDataException;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.retention.RetentionManager;
+import javax.jcr.security.AccessControlManager;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.AccessControlException;
+import java.util.Collections;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 /**
  * TODO document
  */
-public class SessionImpl implements JackrabbitSession {
+public class SessionImpl implements JackrabbitSession, BinaryUploadProvider {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private SessionContext sessionContext;
@@ -770,6 +773,27 @@ public class SessionImpl implements JackrabbitSession {
     @Nonnull
     public UserManager getUserManager() throws RepositoryException {
         return sessionContext.getUserManager();
+    }
+
+    //--------------------------------------------------< BinaryUploadProvider >---
+
+    @Nullable
+    @Override
+    public BinaryHttpUpload addFileUsingHttpUpload(String repositoryPath, long size) throws AccessDeniedException {
+        // TODO needs SessionDelegate operation? is not a transient change, should be multi-thread safe
+        // TODO 1. check permission to create nt:file at repositoryPath
+        // TODO 2. retrieve jcr identifier for repositoryPath (must build if it does not exist based on closest existing ancestor)
+        // TODO 3. retrieve user id this.getUserId()
+        // TODO 4. check if feature is available (indirectly by BlobStore response)
+        // TODO 5. call SessionDelegate -> Root -> URLWriteableBlobRoot (createURLWritableBlob => getBinaryUploadForFile()) -> ... -> Datastore
+
+        return null;
+    }
+
+    @Override
+    public Binary completeUpload(String uploadId) {
+        // TODO: fix
+        return null;
     }
 
     @Override

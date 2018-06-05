@@ -25,6 +25,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
@@ -102,6 +103,8 @@ public interface NodeStore {
      */
     @Nonnull
     Blob createBlob(InputStream inputStream) throws IOException;
+
+    URLWritableBlob createURLWritableBlob() throws IOException;
 
     /**
      * Get a blob by its reference.
@@ -188,5 +191,4 @@ public interface NodeStore {
      * @return {@code true} if the checkpoint was successfully removed, or if it doesn't exist
      */
     boolean release(@Nonnull String checkpoint);
-
 }

@@ -42,6 +42,7 @@ import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -188,6 +189,12 @@ public class MemoryNodeStore implements NodeStore, Observable {
         finally {
             inputStream.close();
         }
+    }
+
+    @Override
+    public URLWritableBlob createURLWritableBlob() {
+        // no external blobs supported with memory storage
+        return null;
     }
 
     @Override

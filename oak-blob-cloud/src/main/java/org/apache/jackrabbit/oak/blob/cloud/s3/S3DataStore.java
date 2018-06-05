@@ -16,21 +16,26 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.net.URL;
 import java.util.Properties;
 
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements URLWritableDataStore, URLReadableDataStore {
 
     protected Properties properties;
+
+    private S3Backend s3Backend;
 
     /**
      * The minimum size of an object that should be stored in this data store.
@@ -39,11 +44,11 @@ public class S3DataStore extends AbstractSharedCachingDataStore {
 
     @Override
     protected AbstractSharedBackend createBackend() {
-        S3Backend backend = new S3Backend();
+        s3Backend = new S3Backend();
         if(properties != null){
-            backend.setProperties(properties);
+            s3Backend.setProperties(properties);
         }
-        return backend;
+        return s3Backend;
     }
 
     /**------------------------------------------- Getters & Setters-----------------------------**/
@@ -66,5 +71,54 @@ public class S3DataStore extends AbstractSharedCachingDataStore {
 
     public void setMinRecordLength(int minRecordLength) {
         this.minRecordLength = minRecordLength;
+    }
+
+    @Override
+    public void setURLWritableBinaryExpirySeconds(int seconds) {
+        if (s3Backend != null) {
+            s3Backend.setURLWritableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    @Override
+    public void setURLBinaryTransferAcceleration(boolean enabled) {
+        if (s3Backend != null) {
+            s3Backend.setURLBinaryTransferAcceleration(enabled);
+        }
+    }
+
+    @Override
+    public DataIdentifier addNewRecord() throws DataStoreException {
+        return s3Backend.addNewRecord();
+    }
+
+    @Override
+    public URL getWriteURL(DataIdentifier identifier) {
+        if (s3Backend == null) {
+            return null;
+        }
+        return s3Backend.createPresignedPutURL(identifier);
+    }
+
+    @Override
+    public void setURLReadableBinaryExpirySeconds(int seconds) {
+        if (s3Backend != null) {
+            s3Backend.setURLReadableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    @Override
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        if (s3Backend != null) {
+            s3Backend.setURLReadableBinaryURLCacheSize(maxSize);
+        }
+    }
+
+    @Override
+    public URL getReadURL(DataIdentifier identifier) {
+        if (s3Backend == null) {
+            return null;
+        }
+        return s3Backend.createPresignedGetURL(identifier);
     }
 }

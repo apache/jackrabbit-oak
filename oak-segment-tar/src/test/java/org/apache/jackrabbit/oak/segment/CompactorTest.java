@@ -226,6 +226,12 @@ public class CompactorTest {
 
         @Nonnull
         @Override
+        public RecordId writeBlobId(@Nonnull String blobId) throws IOException {
+            return delegate.writeBlobId(blobId);
+        }
+
+        @Nonnull
+        @Override
         public RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length)
         throws IOException {
             return delegate.writeBlock(bytes, offset, length);

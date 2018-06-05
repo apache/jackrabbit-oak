@@ -84,6 +84,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -1856,6 +1857,12 @@ public final class DocumentNodeStore
     @Nonnull
     public BlobStoreBlob createBlob(InputStream inputStream) throws IOException {
         return new BlobStoreBlob(blobStore, blobStore.writeBlob(inputStream));
+    }
+
+    @Override
+    public URLWritableBlob createURLWritableBlob() throws IOException {
+        // TODO: implement MongoDB support, take SegmentNodeStore.createURLWritableBlob() as example
+        return null;
     }
 
     /**

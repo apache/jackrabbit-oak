@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 
 import java.io.InputStream;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -34,14 +35,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.URLReadableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableBlobStore;
 
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
-public class SegmentBlob extends Record implements Blob {
+public class SegmentBlob extends Record implements Blob, URLReadableBlob {
 
     @CheckForNull
     private final BlobStore blobStore;
@@ -258,4 +261,18 @@ public class SegmentBlob extends Record implements Blob {
         return length;
     }
 
+    @Nullable
+    @Override
+    public URL getReadURL() {
+        if (blobStore instanceof URLReadableBlobStore) {
+            String blobId = getBlobId();
+            if (blobId != null) {
+                return ((URLReadableBlobStore) blobStore).getReadURL(blobId);
+            } else {
+                // inlined blob, no URL support
+                return null;
+            }
+        }
+        return null;
+    }
 }

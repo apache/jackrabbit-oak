@@ -82,6 +82,9 @@ public interface SegmentWriter {
     @Nonnull
     RecordId writeBlob(@Nonnull Blob blob) throws IOException;
 
+    @Nonnull
+    RecordId writeBlobId(@Nonnull String blobId) throws IOException;
+
     /**
      * Writes a block record containing the given block of bytes.
      *

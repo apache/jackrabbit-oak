@@ -31,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -63,6 +64,10 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -75,7 +80,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLWritableBlobStore, URLReadableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -651,6 +656,39 @@ public class DataStoreBlobStore
             return BlobId.of(encodedBlobId).blobId;
         }
         return encodedBlobId;
+    }
+
+    @Override
+    public String createURLWritableBlobId() throws IOException {
+        if (delegate instanceof URLWritableDataStore) {
+            try {
+                DataIdentifier identifier = ((URLWritableDataStore) delegate).addNewRecord();
+                return identifier.toString();
+            } catch (DataStoreException e) {
+                throw new IOException("Cannot create new unique blob id for URLWritableBinary", e);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public URL getWriteURL(String blobId) {
+        if (delegate instanceof URLWritableDataStore) {
+            return ((URLWritableDataStore) delegate).getWriteURL(new DataIdentifier(blobId));
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getReadURL(String encodedBlobId) {
+        if (delegate instanceof URLReadableDataStore) {
+            final BlobId blobId = BlobId.of(encodedBlobId);
+            final DataIdentifier identifier = new DataIdentifier(blobId.blobId);
+            
+            return ((URLReadableDataStore) delegate).getReadURL(identifier);
+        }
+        return null;
     }
 
     public static class BlobId {
