@@ -43,14 +43,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final String OAK_QUERY_LIMIT_IN_MEMORY = "oak.queryLimitInMemory";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_IN_MEMORY
-    public static final int DEFAULT_QUERY_LIMIT_IN_MEMORY =
-            Integer.getInteger(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
+    public static final long DEFAULT_QUERY_LIMIT_IN_MEMORY =
+            Long.getLong(OAK_QUERY_LIMIT_IN_MEMORY, 500000);
 
     public static final String OAK_QUERY_LIMIT_READS = "oak.queryLimitReads";
 
     // should be the same as QueryEngineSettingsService.DEFAULT_QUERY_LIMIT_READS
-    public static final int DEFAULT_QUERY_LIMIT_READS =
-            Integer.getInteger(OAK_QUERY_LIMIT_READS, 100000);
+    public static final long DEFAULT_QUERY_LIMIT_READS =
+            Long.getLong(OAK_QUERY_LIMIT_READS, 100000);
 
     public static final String OAK_QUERY_FAIL_TRAVERSAL = "oak.queryFailTraversal";
     private static final boolean DEFAULT_FAIL_TRAVERSAL =
