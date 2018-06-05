@@ -30,7 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

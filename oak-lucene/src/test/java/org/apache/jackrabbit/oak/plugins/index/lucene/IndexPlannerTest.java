@@ -41,7 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

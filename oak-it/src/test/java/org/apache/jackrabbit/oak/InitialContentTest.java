@@ -35,7 +35,7 @@ public class InitialContentTest implements VersionConstants {
     public void noVersionStoragePrePopulated() throws Exception {
         // default initial content does not have intermediate nodes
         // pre-populated
-        NodeState system = InitialContent.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
+        NodeState system = InitialContentHelper.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
         assertTrue(system.exists());
         
         NodeState vs = system.getChildNode(JCR_VERSIONSTORAGE);
@@ -64,7 +64,7 @@ public class InitialContentTest implements VersionConstants {
 
     @Test
     public void bundlingConfig() throws Exception{
-        NodeState system = InitialContent.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
+        NodeState system = InitialContentHelper.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
         assertFalse(system.getChildNode(DOCUMENT_NODE_STORE).exists());
     }
 }

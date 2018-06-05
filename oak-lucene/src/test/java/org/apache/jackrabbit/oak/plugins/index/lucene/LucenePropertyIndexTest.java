@@ -59,7 +59,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAgg
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.hamcrest.CoreMatchers.containsString;

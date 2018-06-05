@@ -43,7 +43,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

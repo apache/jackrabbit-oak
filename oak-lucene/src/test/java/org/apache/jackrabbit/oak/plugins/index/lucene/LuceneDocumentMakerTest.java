@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;

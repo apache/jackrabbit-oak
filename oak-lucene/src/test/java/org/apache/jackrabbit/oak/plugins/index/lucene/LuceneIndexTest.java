@@ -53,7 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
 import java.io.File;
 import java.io.IOException;

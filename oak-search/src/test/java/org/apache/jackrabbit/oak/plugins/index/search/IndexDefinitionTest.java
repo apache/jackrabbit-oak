@@ -39,7 +39,7 @@ import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -58,7 +58,6 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

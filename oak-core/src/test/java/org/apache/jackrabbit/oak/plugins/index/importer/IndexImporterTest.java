@@ -68,7 +68,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;

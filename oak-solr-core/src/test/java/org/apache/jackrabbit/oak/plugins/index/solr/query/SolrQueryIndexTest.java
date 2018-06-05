@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -315,7 +315,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testSize() throws Exception {
-        NodeState root = InitialContent.INITIAL_CONTENT;
+        NodeState root = InitialContentHelper.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
@@ -345,7 +345,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testNoMoreThanThreeSolrRequests() throws Exception {
-        NodeState root = InitialContent.INITIAL_CONTENT;
+        NodeState root = InitialContentHelper.INITIAL_CONTENT;
         SelectorImpl selector = newSelector(root, "a");
         String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" +
                 " contains([jcr:content/*], 'founded')";
@@ -385,7 +385,7 @@ public class SolrQueryIndexTest {
 
     @Test
     public void testNoNegativeCost() throws Exception {
-        NodeState root = InitialContent.INITIAL_CONTENT;
+        NodeState root = InitialContentHelper.INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("solr")
                 .setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS)

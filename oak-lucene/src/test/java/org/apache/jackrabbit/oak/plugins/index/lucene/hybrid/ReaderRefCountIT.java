@@ -52,7 +52,7 @@ import org.junit.rules.TemporaryFolder;
 import static com.google.common.collect.ImmutableMap.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.fail;

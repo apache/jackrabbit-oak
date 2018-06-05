@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile
 import static org.junit.Assert.*;
 
 public class LuceneIndexImporterTest {
-    private NodeState rootState = InitialContent.INITIAL_CONTENT;
+    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
 
     @Rule

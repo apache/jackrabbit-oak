@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;

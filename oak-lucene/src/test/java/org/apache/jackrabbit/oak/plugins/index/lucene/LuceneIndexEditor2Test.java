@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexableField;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;

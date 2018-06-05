@@ -23,7 +23,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
