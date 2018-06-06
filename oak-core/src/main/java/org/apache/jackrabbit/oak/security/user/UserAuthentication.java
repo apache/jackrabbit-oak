@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -103,6 +105,13 @@ class UserAuthentication implements Authentication, UserConstants {
             UserManager userManager = config.getUserManager(root, NamePathMapper.DEFAULT);
             Authorizable authorizable = userManager.getAuthorizable(loginId);
             if (authorizable == null) {
+                // best effort prevent user enumeration timing attacks
+                try {
+                    String hash = PasswordUtil.buildPasswordHash("oak");
+                    PasswordUtil.isSame(hash, "oak");
+                } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+                    // ignore
+                }
                 return false;
             }
 
