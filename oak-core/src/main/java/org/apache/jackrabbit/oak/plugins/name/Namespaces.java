@@ -107,6 +107,9 @@ public class Namespaces implements NamespaceConstants {
         namespaces.setProperty(PREFIX_SV, NAMESPACE_SV);
         namespaces.setProperty(PREFIX_REP, NAMESPACE_REP);
 
+        // Oak Namespace
+        namespaces.setProperty(PREFIX_OAK, NAMESPACE_OAK);
+
         return namespaces;
     }
 

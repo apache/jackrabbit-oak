@@ -43,6 +43,10 @@ public interface NamespaceConstants {
     String PREFIX_XMLNS = "xmlns";
     String NAMESPACE_XMLNS = "http://www.w3.org/2000/xmlns/";
 
+    // additional Oak namespace
+    String PREFIX_OAK = "oak";
+    String NAMESPACE_OAK = "http://jackrabbit.apache.org/oak/ns/1.0";
+
     /**
      * Reserved namespace prefixes as defined in jackrabbit 2
      */
@@ -53,7 +57,8 @@ public interface NamespaceConstants {
             NamespaceRegistry.PREFIX_MIX,
             PREFIX_XMLNS,
             PREFIX_REP,
-            PREFIX_SV
+            PREFIX_SV,
+            PREFIX_OAK
     ));
 
     /**
@@ -66,7 +71,8 @@ public interface NamespaceConstants {
             NamespaceRegistry.NAMESPACE_MIX,
             NAMESPACE_XMLNS,
             NAMESPACE_REP,
-            NAMESPACE_SV
+            NAMESPACE_SV,
+            NAMESPACE_OAK
     ));
 
     // index nodes for faster lookup
