@@ -26,15 +26,15 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAM
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
 import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.safeGet;
 
 import java.util.Locale;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -89,8 +89,7 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static boolean containsValue(NodeState namespaces, String value) {
-        return safeGet(TreeFactory.createReadOnlyTree(namespaces.getChildNode(REP_NSDATA)),
-                REP_URIS).contains(value);
+        return Iterables.contains(namespaces.getChildNode(REP_NSDATA).getStrings(REP_URIS), value);
     }
 
     @Override
@@ -130,7 +129,7 @@ class NamespaceEditor extends DefaultEditor {
         if (!modified) {
             return;
         }
-        Namespaces.buildIndexNode(builder.child(JCR_SYSTEM).child(
+        Namespaces.buildIndexNode(builder.getChildNode(JCR_SYSTEM).child(
                 REP_NAMESPACES));
     }
 
