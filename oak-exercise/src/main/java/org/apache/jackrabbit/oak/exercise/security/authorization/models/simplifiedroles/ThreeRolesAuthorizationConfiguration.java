@@ -59,8 +59,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -70,7 +68,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-@Component(metatype = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
+@Component(metatype = true, immediate = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
 @Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
 @Properties({
         @Property(name = "supportedPath",
@@ -120,7 +118,7 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
-        if (supportedPath == null || isAdminOrSystem(principals)) {
+        if (supportedPath == null) {
             return EmptyPermissionProvider.getInstance();
         } else {
             return new ThreeRolesPermissionProvider(root, principals, supportedPath, getContext(), getRootProvider());
@@ -225,19 +223,6 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
                 return false;
             }
         };
-    }
-
-    private static boolean isAdminOrSystem(@Nonnull Set<Principal> principals) {
-        if (principals.contains(SystemPrincipal.INSTANCE)) {
-            return true;
-        } else {
-            for (Principal principal : principals) {
-                if (principal instanceof AdminPrincipal) {
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     @Override
