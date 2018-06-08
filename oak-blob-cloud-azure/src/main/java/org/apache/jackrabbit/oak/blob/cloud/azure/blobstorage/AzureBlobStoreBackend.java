@@ -21,8 +21,11 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.RequestOptions;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
@@ -36,6 +39,8 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.CopyStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -53,12 +58,19 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.security.InvalidKeyException;
+import java.time.Instant;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Thread.currentThread;
 
@@ -79,6 +91,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private int concurrentRequestCount = 1;
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
+    private int presignedGetExpirySeconds = 0; // disabled by default
+
+    private Cache<DataIdentifier, URL> presignedGetURLCache;
 
     private byte[] secret;
 
@@ -665,6 +680,109 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             return name.substring(META_KEY_PREFIX.length());
         }
         return name;
+    }
+
+    public void setURLReadableBinaryExpirySeconds(int seconds) {
+        presignedGetExpirySeconds = seconds;
+    }
+
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        // max size 0 or smaller is used to turn off the cache
+        if (maxSize > 0) {
+            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, presignedGetExpirySeconds / 2);
+            presignedGetURLCache = CacheBuilder.newBuilder()
+                    .maximumSize(maxSize)
+                    .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
+                    .build();
+        } else {
+            LOG.info("presigned GET URL cache disabled");
+            presignedGetURLCache = null;
+        }
+    }
+
+    public URL createPresignedGetURL(DataIdentifier identifier) {
+        URL url = null;
+        if (presignedGetExpirySeconds > 0) {
+            if (null != presignedGetURLCache) {
+                url = presignedGetURLCache.getIfPresent(identifier);
+            }
+            if (null == url) {
+                String key = getKeyName(identifier);
+                url = createPresignedURL(key, EnumSet.of(SharedAccessBlobPermissions.READ), presignedGetExpirySeconds);
+                if (url != null && presignedGetURLCache != null) {
+                    presignedGetURLCache.put(identifier, url);
+                }
+            }
+        }
+        return url;
+    }
+
+    protected URL createPresignedURL(String key,
+                                     EnumSet<SharedAccessBlobPermissions> permissions,
+                                     int expirySeconds) {
+        return createPresignedURL(key, permissions, expirySeconds, Maps.newHashMap());
+    }
+
+    protected URL createPresignedURL(String key,
+                                     EnumSet<SharedAccessBlobPermissions> permissions,
+                                     int expirySeconds,
+                                     Map<String, String> additionalQueryParams) {
+        SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
+        Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
+        policy.setSharedAccessExpiryTime(expiry);
+        policy.setPermissions(permissions);
+
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
+        if (Strings.isNullOrEmpty(accountName)) {
+            LOG.warn("Can't generate presigned URL - Azure account name not found in properties");
+            return null;
+        }
+
+        URL presignedURL = null;
+        String urlString = null;
+        try {
+            CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
+            String sharedAccessSignature = blob.generateSharedAccessSignature(policy, null);
+
+            urlString = String.format("https://%s.blob.core.windows.net/%s/%s?%s",
+                    accountName,
+                    containerName,
+                    key,
+                    sharedAccessSignature);
+
+            if (! additionalQueryParams.isEmpty()) {
+                StringBuilder builder = new StringBuilder();
+                for (Map.Entry<String, String> e : additionalQueryParams.entrySet()) {
+                    builder.append("&");
+                    builder.append(e.getKey());
+                    builder.append("=");
+                    builder.append(e.getValue());
+                }
+                urlString += builder.toString();
+            }
+            presignedURL = new URL(urlString);
+        }
+        catch (DataStoreException e) {
+            LOG.error("No connection to Azure Blob Storage", e);
+        }
+        catch (URISyntaxException | InvalidKeyException e) {
+            LOG.error("Can't generate a presigned URL for key {}", key, e);
+        }
+        catch (StorageException e) {
+            LOG.error("Azure request to create presigned Azure Blob Storage {} URL failed. " +
+                            "Key: {}, Error: {}, HTTP Code: {}, Azure Error Code: {}",
+                    permissions.contains(SharedAccessBlobPermissions.READ) ? "GET" :
+                            (permissions.contains(SharedAccessBlobPermissions.WRITE) ? "PUT" : ""),
+                    key,
+                    e.getMessage(),
+                    e.getHttpStatusCode(),
+                    e.getErrorCode());
+        }
+        catch (MalformedURLException e) {
+            LOG.error("Generated presigned URL is malformed: {}", urlString);
+        }
+
+        return presignedURL;
     }
 
     private static class AzureBlobInfo {

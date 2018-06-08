@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -43,13 +34,22 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
  */
 public class S3DataStoreUtils extends DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(S3DataStoreUtils.class);
 
-    private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
+    static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
 
     protected static Class S3 = S3DataStore.class;
 

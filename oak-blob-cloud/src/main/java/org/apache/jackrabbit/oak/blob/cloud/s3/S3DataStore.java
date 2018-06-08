@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.net.URL;
-import java.util.Properties;
-
+import com.sun.istack.internal.NotNull;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+
+import java.net.URL;
+import java.util.Properties;
 
 
 /**
@@ -115,7 +116,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public URL getReadURL(DataIdentifier identifier) {
+    public URL getReadURL(@NotNull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }

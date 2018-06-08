@@ -19,25 +19,31 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.sun.istack.internal.Nullable;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 
+import java.net.URL;
 import java.util.Properties;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements URLReadableDataStore {
 
     private int minRecordLength = 16*1024;
 
     protected Properties properties;
 
+    private AzureBlobStoreBackend azureBlobStoreBackend;
+
     @Override
     protected AbstractSharedBackend createBackend() {
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        azureBlobStoreBackend = new AzureBlobStoreBackend();
         if (null != properties) {
-            backend.setProperties(properties);
+            azureBlobStoreBackend.setProperties(properties);
         }
-        return backend;
+        return azureBlobStoreBackend;
     }
 
     public void setProperties(final Properties properties) {
@@ -55,5 +61,26 @@ public class AzureDataStore extends AbstractSharedCachingDataStore {
 
     public void setMinRecordLength(int minRecordLength) {
         this.minRecordLength = minRecordLength;
+    }
+
+    @Override
+    public void setURLReadableBinaryExpirySeconds(int seconds) {
+        if (null != azureBlobStoreBackend) {
+            azureBlobStoreBackend.setURLReadableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    @Override
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        azureBlobStoreBackend.setURLReadableBinaryURLCacheSize(maxSize);
+    }
+
+    @Nullable
+    @Override
+    public URL getReadURL(DataIdentifier identifier) {
+        if (null != azureBlobStoreBackend) {
+            return azureBlobStoreBackend.createPresignedGetURL(identifier);
+        }
+        return null;
     }
 }

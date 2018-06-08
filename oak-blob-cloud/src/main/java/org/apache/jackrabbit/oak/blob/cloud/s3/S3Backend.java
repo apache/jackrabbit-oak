@@ -17,24 +17,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Queue;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
@@ -66,6 +48,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.sun.istack.internal.NotNull;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -76,6 +59,24 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Iterables.filter;
 import static java.lang.Thread.currentThread;
@@ -695,17 +696,17 @@ public class S3Backend extends AbstractSharedBackend {
         if (maxSize > 0) {
             LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, presignedGetExpirySeconds / 2);
             presignedGetURLCache = CacheBuilder.newBuilder()
-                .maximumSize(maxSize)
-                // cache for half the expiry time of the urls before giving out new ones
-                .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
-                .build();
+                    .maximumSize(maxSize)
+                    // cache for half the expiry time of the urls before giving out new ones
+                    .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
+                    .build();
         } else {
             LOG.info("presigned GET URL cache disabled");
             presignedGetURLCache = null;
         }
     }
 
-    public URL createPresignedGetURL(DataIdentifier identifier) {
+    public URL createPresignedGetURL(@NotNull DataIdentifier identifier) {
         if (presignedGetExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -744,8 +745,8 @@ public class S3Backend extends AbstractSharedBackend {
 
         } catch (AmazonServiceException e) {
             LOG.error("AWS request to create presigned S3 {} URL failed. " +
-                    "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
-                method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
+                            "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
+                    method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
 
             return null;
         }
