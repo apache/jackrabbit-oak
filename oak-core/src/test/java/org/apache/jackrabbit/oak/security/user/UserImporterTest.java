@@ -74,131 +74,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
-public class UserImporterTest extends AbstractSecurityTest implements UserConstants {
-
-    private static final String TEST_USER_ID = "uid";
-    private static final String TEST_GROUP_ID = "gid";
-
-    private TestAction testAction;
-    AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @Nonnull
-        @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
-            return (testAction == null) ? ImmutableList.<AuthorizableAction>of() : ImmutableList.of(testAction);
-        }
-    };
-
-    private User testUser;
-
-    private ReferenceChangeTracker refTracker = new ReferenceChangeTracker();
-
-    UserImporter importer;
-
-    @Override
-    public void before() throws Exception {
-        super.before();
-
-        testUser = getTestUser();
-        importer = new UserImporter(getImportConfig());
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            refTracker.clear();
-            root.refresh();
-        } finally {
-            super.after();
-        }
-    }
-
-    ConfigurationParameters getImportConfig() {
-        return getSecurityConfigParameters().getConfigValue(UserConfiguration.NAME, ConfigurationParameters.EMPTY);
-    }
-
-    String getImportBehavior() {
-        return ImportBehavior.NAME_IGNORE;
-    }
-
-    @Override
-    protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userParams = ConfigurationParameters.of(
-                UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
-                ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior()
-        );
-        return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
-    }
-
-    Session mockJackrabbitSession() throws Exception {
-        JackrabbitSession s = Mockito.mock(JackrabbitSession.class);
-        when(s.getUserManager()).thenReturn(getUserManager(root));
-        return s;
-    }
-
-    boolean isWorkspaceImport() {
-        return false;
-    }
-
-
-    boolean init() throws Exception {
-        return init(false);
-    }
-
-    boolean init(boolean createAction) throws Exception {
-        if (createAction) {
-            testAction = new TestAction();
-        }
-        return importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, refTracker, getSecurityProvider());
-    }
-
-    private Tree createUserTree() {
-        Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
-        Tree userTree = folder.addChild("userTree");
-        userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-        userTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_USER_ID));
-        return userTree;
-    }
-
-    private Tree createGroupTree() throws Exception {
-        String groupPath = getUserConfiguration().getParameters().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
-
-        NodeUtil node = new NodeUtil(root.getTree(PathUtils.ROOT_PATH));
-        NodeUtil groupRoot = node.getOrAddTree(PathUtils.relativize(PathUtils.ROOT_PATH, groupPath), NT_REP_AUTHORIZABLE_FOLDER);
-
-        Tree groupTree = groupRoot.addChild("testGroup", NT_REP_GROUP).getTree();
-        groupTree.setProperty(JcrConstants.JCR_UUID, new UserProvider(root, ConfigurationParameters.EMPTY).getContentID(TEST_GROUP_ID));
-        return groupTree;
-    }
-
-    private PropInfo createPropInfo(@Nonnull String name, final String... values) {
-        List<TextValue> txtValues = Lists.newArrayList();
-        for (final String v : values) {
-            txtValues.add(new TextValue() {
-                @Override
-                public String getString() {
-                    return v;
-                }
-
-                @Override
-                public Value getValue(int targetType) throws RepositoryException {
-                    return getValueFactory(root).createValue(v, targetType);
-                }
-
-                @Override
-                public void dispose() {
-                    //nop
-                }
-            });
-        }
-        return new PropInfo(name, PropertyType.STRING, txtValues);
-    }
-
-    private PropertyDefinition mockPropertyDefinition(@Nonnull String declaringNt, boolean mv) throws Exception {
-        PropertyDefinition def = Mockito.mock(PropertyDefinition.class);
-        when(def.isMultiple()).thenReturn(mv);
-        when(def.getDeclaringNodeType()).thenReturn(ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper()).getNodeType(declaringNt));
-        return def;
-    }
+public class UserImporterTest extends UserImporterBaseTest implements UserConstants {
 
     //---------------------------------------------------------------< init >---
     @Test
@@ -405,6 +281,38 @@ public class UserImporterTest extends AbstractSecurityTest implements UserConsta
     }
 
     @Test
+    public void testHandleMembers() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1", "member2"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        // writing is postponed though
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
+    public void testHandleMembersOnUser() throws Exception {
+        init();
+        Tree userTree = createUserTree();
+        assertFalse(importer.handlePropInfo(userTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+    }
+
+    @Test
+    public void testHandleMembersSinglePropertyDef() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertFalse(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, false)));
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
+    public void testHandleMembersOtherDeclNtDef() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        assertFalse(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, "member1"), mockPropertyDefinition(NT_REP_AUTHORIZABLE, true)));
+        assertNull(groupTree.getProperty(REP_MEMBERS));
+    }
+
+    @Test
     public void testHandleDisabled() throws Exception {
         init();
         Tree userTree = createUserTree();
@@ -458,32 +366,6 @@ public class UserImporterTest extends AbstractSecurityTest implements UserConsta
     @Test(expected = IllegalStateException.class)
     public void testProcessReferencesNotInitialized() throws Exception {
         importer.processReferences();
-    }
-
-    @Test
-    public void testProcessUnknownImpersonators() throws Exception {
-        init();
-        Tree userTree = createUserTree();
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", "impersonator2"), mockPropertyDefinition(NT_REP_USER, true)));
-
-        importer.processReferences();
-
-        // default importbehavior == IGNORE
-        PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
-        assertNull(impersonators);
-    }
-
-    @Test
-    public void testProcessImpersonators() throws Exception {
-        init();
-        Tree userTree = createUserTree();
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
-
-        importer.processReferences();
-
-        PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
-        assertNotNull(impersonators);
-        assertEquals(ImmutableList.of(testUser.getPrincipal().getName()), impersonators.getValue(Type.STRINGS));
     }
 
     //------------------------------------------------< propertiesCompleted >---
@@ -551,67 +433,83 @@ public class UserImporterTest extends AbstractSecurityTest implements UserConsta
         testAction.checkMethods();
     }
 
-    //--------------------------------------------------------------------------
+    //--------------------------------------------------------------< start >---
+    @Test
+    public void testStartUserTree() throws Exception {
+        init(true);
+        assertFalse(importer.start(createUserTree()));
+    }
 
-    private final class TestAction implements AuthorizableAction, GroupAction {
+    @Test
+    public void testStartGroupTree() throws Exception {
+        init(true);
+        assertFalse(importer.start(createGroupTree()));
+    }
 
-        private List<String> methodCalls = new ArrayList();
+    @Test
+    public void testStartMembersRefListTree() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        private void clear() {
-            methodCalls.clear();
-        }
+        assertTrue(importer.start(memberRefList));
+    }
 
-        private void checkMethods(String... expected) {
-            assertEquals(ImmutableList.copyOf(expected), methodCalls);
-        }
+    @Test
+    public void testStartMembersRefListBelowUserTree() throws Exception {
+        init(true);
+        Tree userTree = createUserTree();
+        Tree memberRefList = userTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        @Override
-        public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
-        }
+        assertFalse(importer.start(memberRefList));
+    }
 
-        @Override
-        public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onCreate-Group");
-        }
+    @Test
+    public void testStartMembersRefBelowAnyTree() throws Exception {
+        init(true);
+        Tree memberRefList = root.getTree(PathUtils.ROOT_PATH).addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
-        @Override
-        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onCreate-User");
-        }
+        assertFalse(importer.start(memberRefList));
+    }
 
-        @Override
-        public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onRemove");
-        }
+    @Test
+    public void testStartRepMembersTree() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree repMembers = groupTree.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
 
-        @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onPasswordChange");
-        }
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
 
-        @Override
-        public void onMemberAdded(Group group, Authorizable member, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onMemberAdded");
-        }
+        assertTrue(importer.start(repMembers));
+    }
 
-        @Override
-        public void onMembersAdded(Group group, Iterable<String> memberIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onMembersAdded");
-        }
+    @Test
+    public void testStartRepMembersBelowUserTree() throws Exception {
+        init(true);
+        Tree userTree = createUserTree();
+        Tree repMembers = userTree.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
 
-        @Override
-        public void onMembersAddedContentId(Group group, Iterable<String> memberContentIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onMembersAddedContentId");
-        }
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
 
-        @Override
-        public void onMemberRemoved(Group group, Authorizable member, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onMemberRemoved");
-        }
+        assertFalse(importer.start(repMembers));
+    }
 
-        @Override
-        public void onMembersRemoved(Group group, Iterable<String> memberIds, Iterable<String> failedIds, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            methodCalls.add("onMembersRemoved");
-        }
+    @Test
+    public void testStartRepMembersBelowAnyTree() throws Exception {
+        init(true);
+        Tree repMembers = root.getTree(PathUtils.ROOT_PATH).addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        repMembers = repMembers.addChild("memberTree");
+        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+
+        assertFalse(importer.start(repMembers));
     }
 }
