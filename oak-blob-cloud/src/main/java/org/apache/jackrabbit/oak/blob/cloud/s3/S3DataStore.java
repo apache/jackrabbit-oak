@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import com.google.common.base.Strings;
 import com.sun.istack.internal.NotNull;
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 
 import java.net.URL;
 import java.util.Properties;
@@ -42,6 +46,11 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
      * The minimum size of an object that should be stored in this data store.
      */
     private int minRecordLength = 16 * 1024;
+
+    /**
+     * The minimum size of a file in order to do multi-part upload.
+     */
+    static final int minPartSize = 10 * 1024;
 
     @Override
     protected AbstractSharedBackend createBackend() {
@@ -89,16 +98,32 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public DataIdentifier addNewRecord() throws DataStoreException {
-        return s3Backend.addNewRecord();
+    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws DirectBinaryAccessException {
+        if (0L >= maxUploadSizeInBytes) {
+            throw new DirectBinaryAccessException("maxUploadSizeInBytes must be > 0");
+        }
+        else if (0L >= maxNumberOfURLs) {
+            throw new DirectBinaryAccessException("maxNumberOfURLs must be > 0");
+        }
+        if (s3Backend != null) {
+            return s3Backend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        }
+        return null;
     }
 
     @Override
-    public URL getWriteURL(DataIdentifier identifier) {
-        if (s3Backend == null) {
-            return null;
+    public DataRecord completeDirectUpload(@NotNull String uploadToken)
+            throws DirectBinaryAccessException, DataStoreException {
+        if (Strings.isNullOrEmpty(uploadToken)) {
+            throw new IllegalArgumentException("uploadToken required");
         }
-        return s3Backend.createPresignedPutURL(identifier);
+
+        if (s3Backend != null) {
+            return s3Backend.completeDirectUpload(uploadToken);
+        }
+
+        return null;
     }
 
     @Override
