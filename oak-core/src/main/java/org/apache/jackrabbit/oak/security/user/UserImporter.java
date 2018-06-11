@@ -72,6 +72,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
@@ -413,7 +414,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     @Override
     public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
-        checkNotNull(currentMembership);
+        checkState(currentMembership != null);
 
         String ntName = childInfo.getPrimaryTypeName();
         //noinspection deprecation
