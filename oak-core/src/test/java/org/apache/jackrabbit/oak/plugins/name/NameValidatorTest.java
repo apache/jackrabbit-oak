@@ -17,18 +17,22 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class NameValidatorTest {
 
-    private final Validator validator =
-            new NameValidator(Collections.singleton("valid"));
+    private final Validator validator = new NameValidator(newNamespaceNode("valid"));
 
     @Test(expected = CommitFailedException.class)
     public void testCurrentPath() throws CommitFailedException {
@@ -110,4 +114,20 @@ public class NameValidatorTest {
         assertEquals("\\t\\r\\n\\b\\f", NameValidator.getPrintableName("\t\r\n\b\f"));
         assertEquals("\\u00e0", NameValidator.getPrintableName("\u00e0"));
     }
+
+    @Test
+    public void testTransientNs() throws CommitFailedException {
+        NodeBuilder builder = newNamespaceNode("valid").builder();
+        builder.setProperty("testNVT", "testuri");
+
+        Validator validator = new NameValidator(builder.getNodeState());
+        validator.childNodeAdded("testNVT:test", EMPTY_NODE);
+    }
+
+    private static NodeState newNamespaceNode(String valid) {
+        NodeBuilder ns = EMPTY_NODE.builder();
+        ns.child(REP_NSDATA).setProperty(REP_PREFIXES, Collections.singleton(valid), Type.STRINGS);
+        return ns.getNodeState();
+    }
+
 }
