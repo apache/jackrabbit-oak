@@ -16,13 +16,9 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -143,24 +139,17 @@ public class Namespaces implements NamespaceConstants {
         // that's not stored along with the other mappings
         Set<String> prefixes = newHashSet("");
         Set<String> uris = newHashSet("");
-        Map<String, String> reverse = new HashMap<String, String>();
-
-        for (PropertyState property : namespaces.getProperties()) {
-            String prefix = property.getName();
-            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
-                prefixes.add(prefix);
-                String uri = property.getValue(STRING);
-                uris.add(uri);
-                reverse.put(uri, prefix);
-            }
-        }
+        Map<String, String> nsmap = collectNamespaces(namespaces.getProperties());
+        prefixes.addAll(nsmap.keySet());
+        uris.addAll(nsmap.values());
 
         NodeBuilder data = namespaces.setChildNode(REP_NSDATA);
         data.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED, Type.NAME);
         data.setProperty(REP_PREFIXES, prefixes, Type.STRINGS);
         data.setProperty(REP_URIS, uris, Type.STRINGS);
-        for (Entry<String, String> e : reverse.entrySet()) {
-            data.setProperty(encodeUri(e.getKey()), e.getValue());
+        for (Entry<String, String> e : nsmap.entrySet()) {
+            // persist as reverse index
+            data.setProperty(encodeUri(e.getValue()), e.getKey());
         }
     }
 
@@ -169,29 +158,20 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = collectNamespaces(getNamespaceTree(root).getProperties());
         map.put("", ""); // default namespace, not included in tree
+        return map;
+    }
 
-        Tree namespaces = getNamespaceTree(root);
-        for (PropertyState property : namespaces.getProperties()) {
+    static Map<String, String> collectNamespaces(Iterable<? extends PropertyState> properties) {
+        Map<String, String> map = newHashMap();
+        for (PropertyState property : properties) {
             String prefix = property.getName();
             if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
                 map.put(prefix, property.getValue(STRING));
             }
         }
-
         return map;
-    }
-
-    static String[] getNamespacePrefixes(Tree root) {
-        Set<String> prefSet = getNamespacePrefixesAsSet(root);
-        String[] prefixes = prefSet.toArray(new String[prefSet.size()]);
-        Arrays.sort(prefixes);
-        return prefixes;
-    }
-
-    static Set<String> getNamespacePrefixesAsSet(Tree root) {
-        return safeGet(getNamespaceTree(root).getChild(REP_NSDATA), REP_PREFIXES);
     }
 
     public static String getNamespacePrefix(Tree root, String uri) {
@@ -206,11 +186,6 @@ public class Namespaces implements NamespaceConstants {
         }
 
         return null;
-    }
-
-    static String[] getNamespaceURIs(Tree root) {
-        Set<String> uris = safeGet(getNamespaceTree(root).getChild(REP_NSDATA), REP_URIS);
-        return uris.toArray(new String[uris.size()]);
     }
 
     public static String getNamespaceURI(Tree root, String prefix) {
@@ -246,14 +221,6 @@ public class Namespaces implements NamespaceConstants {
             ENCODED_URIS.put(uri, encoded);
         }
         return encoded;
-    }
-
-    static Set<String> safeGet(Tree tree, String name) {
-        PropertyState ps = tree.getProperty(name);
-        if (ps == null) {
-            return Sets.newHashSet();
-        }
-        return Sets.newHashSet(ps.getValue(Type.STRINGS));
     }
 
     // validation
