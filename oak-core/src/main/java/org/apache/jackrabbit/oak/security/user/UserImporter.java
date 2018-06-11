@@ -132,7 +132,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private final int importBehavior;
 
-    private JackrabbitSession session;
     private Root root;
     private NamePathMapper namePathMapper;
     private ReferenceChangeTracker referenceTracker;
@@ -179,7 +178,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        this.session = (JackrabbitSession) session;
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.referenceTracker = referenceTracker;
@@ -192,7 +190,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (!initUserManager(isWorkspaceImport, securityProvider)) {
+        if (!initUserManager((JackrabbitSession) session, isWorkspaceImport, securityProvider)) {
             return false;
         }
 
@@ -202,7 +200,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return initialized;
     }
 
-    private boolean initUserManager(boolean isWorkspaceImport, SecurityProvider securityProvider) {
+    private boolean initUserManager(@Nonnull JackrabbitSession session, boolean isWorkspaceImport, @Nonnull SecurityProvider securityProvider) {
         try {
             if (!isWorkspaceImport && session.getUserManager().isAutoSave()) {
                 log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
