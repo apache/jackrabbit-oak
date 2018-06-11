@@ -35,6 +35,7 @@
     <groovy.version>2.4.7</groovy.version>
     <!--
       Size History:
+      + 51 MB AWS java sdk update (OAK-7536)
       + 49 MB MongoDB Java driver 3.6.3 is bigger (OAK-7359)
       + 48 MB Transitive dependencies needed for aws-java-sdk (OAK-6899)
       + 47 MB release profile build slightly bigger jar (OAK-6252)
@@ -42,7 +43,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>49000000</max.jar.size>
+    <max.jar.size>51000000</max.jar.size>
   </properties>
 
   <build>
