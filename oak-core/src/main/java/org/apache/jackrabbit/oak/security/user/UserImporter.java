@@ -250,6 +250,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 } else {
                     throw new AuthorizableExistsException(id);
                 }
+                return true;
+
             } else if (REP_PRINCIPAL_NAME.equals(propName)) {
                 if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                     return false;

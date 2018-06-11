@@ -449,9 +449,7 @@ public class UserManagerImpl implements UserManager {
         if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
             try {
                 pwHash = PasswordUtil.buildPasswordHash(password, config);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RepositoryException(e);
-            } catch (UnsupportedEncodingException e) {
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 throw new RepositoryException(e);
             }
         } else {
