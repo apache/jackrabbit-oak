@@ -19,12 +19,14 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Session;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,9 +47,14 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userConfig = ConfigurationParameters.of(
-                UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE);
-        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
+        ConfigurationParameters userParams = ConfigurationParameters.of(
+                ImmutableMap.of(
+                        UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
+                        ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior(),
+                        UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE
+                )
+        );
+        return ConfigurationParameters.of(UserConfiguration.NAME, userParams);
     }
 
     @Override
@@ -63,9 +70,9 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
     }
 
     @Override
-    boolean init() throws Exception {
+    boolean init(boolean createAction) throws Exception {
         getUserManager(root).autoSave(false);
-        boolean b = super.init();
+        boolean b = super.init(createAction);
         getUserManager(root).autoSave(true);
         return b;
     }
