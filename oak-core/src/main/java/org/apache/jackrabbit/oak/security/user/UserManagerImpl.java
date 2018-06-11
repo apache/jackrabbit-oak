@@ -130,7 +130,7 @@ public class UserManagerImpl implements UserManager {
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
         }
-        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
+        return getAuthorizableByOakPath(oakPath);
     }
 
     @Override
@@ -366,6 +366,11 @@ public class UserManagerImpl implements UserManager {
             return null;
         }
         return getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
+    }
+
+    @CheckForNull
+    Authorizable getAuthorizableByOakPath(@Nonnull String oakPath) throws RepositoryException {
+        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
     }
 
     @Nonnull

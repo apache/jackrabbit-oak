@@ -95,14 +95,13 @@ final class AuthorizableIterator implements Iterator {
 
         @Override
         public Authorizable apply(String oakPath) {
-            String jcrPath = userManager.getNamePathMapper().getJcrPath(oakPath);
             try {
-                Authorizable a = userManager.getAuthorizableByPath(jcrPath);
+                Authorizable a = userManager.getAuthorizableByOakPath(oakPath);
                 if (predicate.apply(a)) {
                     return a;
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + jcrPath);
+                log.debug("Failed to access authorizable " + oakPath);
             }
             return null;
         }
