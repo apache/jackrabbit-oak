@@ -190,7 +190,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (!initUserManager((JackrabbitSession) session, isWorkspaceImport, securityProvider)) {
+        if (!canInitUserManager((JackrabbitSession) session, isWorkspaceImport, securityProvider)) {
             return false;
         }
 
@@ -200,7 +200,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return initialized;
     }
 
-    private boolean initUserManager(@Nonnull JackrabbitSession session, boolean isWorkspaceImport, @Nonnull SecurityProvider securityProvider) {
+    private static boolean canInitUserManager(@Nonnull JackrabbitSession session, boolean isWorkspaceImport, @Nonnull SecurityProvider securityProvider) {
         try {
             if (!isWorkspaceImport && session.getUserManager().isAutoSave()) {
                 log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
@@ -212,8 +212,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             log.error("Failed to initialize UserImporter: ", e);
             return false;
         }
-
-        userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
         return true;
     }
 
