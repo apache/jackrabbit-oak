@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -51,6 +52,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     private final SessionDelegate sessionDelegate;
 
     private final VersionStorage versionStorage;
+
+    private final Clock clock = Clock.ACCURATE;
 
     public ReadWriteVersionManager(@Nonnull SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
@@ -118,12 +121,15 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             Tree baseVersion = getExistingBaseVersion(versionable);
             versionable.setProperty(JCR_ISCHECKEDOUT, Boolean.FALSE, Type.BOOLEAN);
             PropertyState created = baseVersion.getProperty(JCR_CREATED);
-            if (created != null) {
-                long c = ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
-                while (System.currentTimeMillis() == c) {
-                    // busy-wait for System.currentTimeMillis to change
-                    // so that the new version has a distinct timestamp
-                }
+            long c = created == null ? 0 : ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
+            try {
+                long last = Math.max(c,  clock.getTimeIncreasing());
+                // wait for clock to change so that the new version has a distinct
+                // timestamp from the last checkin performed by this VersionManager
+                // see https://issues.apache.org/jira/browse/OAK-7512
+                clock.waitUntil(last);
+            } catch (InterruptedException e) {
+                throw new RepositoryException(e);
             }
             try {
                 sessionDelegate.commit();
