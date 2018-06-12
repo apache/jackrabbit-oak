@@ -83,7 +83,7 @@ requirement and will therefore scan (read) for garbage with a read preference
 of `secondaryPreferred`. This takes pressure off the primary.
 
 When the `MongoDocumentStore` is configured with an explicit read preference via
-the MongoDB URI, the read preference is considered a hit. The implementation
+the MongoDB URI, the read preference is considered a hint. The implementation
 may still read from the primary when it cannot guarantee a consistent read from
 a secondary. This may be the case when a secondary lags behind and a read
 happens for a document that was recently modified.
