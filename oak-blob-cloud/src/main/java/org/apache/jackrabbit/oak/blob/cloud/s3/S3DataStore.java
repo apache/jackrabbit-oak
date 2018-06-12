@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import com.google.common.base.Strings;
-import com.sun.istack.internal.NotNull;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 
+import javax.annotation.Nonnull;
 import java.net.URL;
 import java.util.Properties;
 
@@ -50,7 +50,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     /**
      * The minimum size of a file in order to do multi-part upload.
      */
-    static final int minPartSize = 10 * 1024;
+    static final int minPartSize = ((1024 * 1024 * 1024)/100) + 1; // 10MB
 
     @Override
     protected AbstractSharedBackend createBackend() {
@@ -113,7 +113,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public DataRecord completeDirectUpload(@NotNull String uploadToken)
+    public DataRecord completeDirectUpload(@Nonnull String uploadToken)
             throws DirectBinaryAccessException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
@@ -141,7 +141,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public URL getReadURL(@NotNull DataIdentifier identifier) {
+    public URL getReadURL(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }

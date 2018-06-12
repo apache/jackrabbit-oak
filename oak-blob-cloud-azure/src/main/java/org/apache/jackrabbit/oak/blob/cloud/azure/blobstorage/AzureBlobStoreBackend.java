@@ -26,6 +26,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.RequestOptions;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
@@ -33,6 +34,8 @@ import com.microsoft.azure.storage.RetryPolicy;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.BlockEntry;
+import com.microsoft.azure.storage.blob.BlockListingFilter;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
@@ -48,9 +51,14 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
+import org.apache.jackrabbit.oak.spi.blob.DirectBinaryUploadToken;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
+import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -70,6 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Thread.currentThread;
@@ -84,6 +93,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String REF_KEY = "reference.key";
 
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
+    private static final int MIN_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024)/100) + 1; // 10MB
+    private static final int MAX_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024/10)) + 1; // 100MB
 
     private Properties properties;
     private String containerName;
@@ -92,6 +103,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
     private int presignedGetExpirySeconds = 0; // disabled by default
+    private int presignedPutExpirySeconds = 0; // disabled by default
 
     private Cache<DataIdentifier, URL> presignedGetURLCache;
 
@@ -715,6 +727,112 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
         }
         return url;
+    }
+
+    public void setURLWritableBinaryExpirySeconds(int seconds) { presignedPutExpirySeconds = seconds; }
+
+    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+            throws DirectBinaryAccessException {
+        List<URL> uploadPartURLs = Lists.newArrayList();
+        int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
+        int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
+
+        DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
+        String blobId = getKeyName(newIdentifier);
+        String uploadId = null;
+
+        if (maxNumberOfUrls <= 1 ||
+                maxUploadSizeInBytes <= minPartSize) {
+            // single put
+            uploadPartURLs.add(createPresignedURL(blobId,
+                    EnumSet.of(SharedAccessBlobPermissions.WRITE),
+                    presignedPutExpirySeconds));
+        }
+        else if (presignedPutExpirySeconds > 0) {
+            // multi-part
+
+            // Azure doesn't use upload IDs like AWS does
+            // Generate a fake one for compatibility - we use them to determine whether we are
+            // doing multi-part or single-put upload
+            uploadId = Base64.encode(UUID.randomUUID().toString());
+
+            long numParts = maxNumberOfUrls;
+            long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
+            if (requestedPartSize <= maxPartSize) {
+                numParts = Math.min(
+                        (maxUploadSizeInBytes / minPartSize + (maxUploadSizeInBytes % minPartSize == 0 ? 0 : 1)),
+                        maxNumberOfUrls);
+            }
+            else {
+                throw new DirectBinaryAccessException(
+                        String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                );
+            }
+
+            String key = getKeyName(newIdentifier);
+            EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
+            Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
+            presignedUrlRequestParams.put("comp", "block");
+            for (long blockId = 1; blockId <= numParts; ++blockId) {
+                presignedUrlRequestParams.put("blockId",
+                        Base64.encode(String.format("%06d", blockId)));
+                uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
+            }
+        }
+
+        DirectBinaryUploadToken uploadToken = new DirectBinaryUploadToken(blobId, uploadId);
+
+        return new URLWritableDataStoreUploadContext() {
+            @Override
+            public List<URL> getUploadPartURLs() {
+                return uploadPartURLs;
+            }
+
+            @Override
+            public int getMinPartSize() {
+                return minPartSize;
+            }
+
+            @Override
+            public int getMaxPartSize() {
+                return maxPartSize;
+            }
+
+            @Override
+            public String getUploadToken() {
+                return uploadToken.getEncodedToken();
+            }
+        };
+    }
+
+    public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
+            throws DirectBinaryAccessException, DataStoreException {
+        DirectBinaryUploadToken uploadToken = DirectBinaryUploadToken.fromEncodedToken(uploadTokenStr);
+        String blobId = uploadToken.getBlobId();
+        try {
+            if (uploadToken.getUploadId().isPresent()) {
+                // An existing upload ID means this is a multi-part upload
+                CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(blobId);
+                List<BlockEntry> blocks = blob.downloadBlockList(
+                        BlockListingFilter.UNCOMMITTED,
+                        AccessCondition.generateEmptyCondition(),
+                        null,
+                        null);
+                blob.commitBlockList(blocks);
+            }
+            // else do nothing - single put is already complete
+
+            if (! getAzureContainer().getBlockBlobReference(blobId).exists()) {
+                throw new DirectBinaryAccessException(
+                        String.format("Unable to finalize direct write of binary %s", blobId));
+            }
+        }
+        catch (URISyntaxException | StorageException e) {
+            throw new DirectBinaryAccessException(
+                    String.format("Unable to finalize direct write of binary %s", blobId));
+        }
+
+        return getRecord(new DataIdentifier(getIdentifierName(blobId)));
     }
 
     protected URL createPresignedURL(String key,

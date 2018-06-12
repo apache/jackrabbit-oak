@@ -1,3 +1,21 @@
+/**************************************************************************
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ *************************************************************************/
+
 package org.apache.jackrabbit.oak.spi.blob;
 
 import com.google.common.base.Strings;
@@ -41,19 +59,19 @@ public abstract class AbstractURLWritableBlobStoreTest {
     protected static int expirySeconds = 60*15;
     protected static long ONE_KB = 1024;
     protected static long ONE_MB = ONE_KB * ONE_KB;
-    protected static long TEN_MB = ONE_MB * 10;
-    protected static long TWENTY_MB = ONE_MB * 20;
-    protected static long ONE_HUNDRED_MB = TWENTY_MB * 5;
-    protected static long FIVE_HUNDRED_MB = ONE_HUNDRED_MB * 5;
     protected static long ONE_GB = ONE_MB * ONE_KB;
-    protected static long FIVE_GB = ONE_GB * 5;
+
+    protected static long TEN_MB = ONE_GB / 100 + 1;
+    protected static long TWENTY_MB = ONE_GB / 50 + 1;
+    protected static long ONE_HUNDRED_MB = ONE_GB / 10 + 1;
+    protected static long FIVE_HUNDRED_MB = ONE_GB / 2 + 1;
+    protected static long FIVE_GB = ONE_GB * (1024/200) + 1;
 
     protected abstract URLWritableDataStore getDataStore();
     protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
     protected abstract boolean isSinglePutURL(URL url);
-    protected abstract boolean isValidUploadToken(String uploadToken);
     protected abstract HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException;
 
     protected static Properties getProperties(
@@ -303,9 +321,9 @@ public abstract class AbstractURLWritableBlobStoreTest {
                 URLWritableDataStoreUploadContext context = ds.initDirectUpload(res.getUploadSize(), res.getMaxNumUrls());
 
                 assertEquals(res.getExpectedNumUrls(), context.getUploadPartURLs().size());
-                String input = randomString(res.getUploadSize());
+                String uploaded = randomString(res.getUploadSize());
                 URL uploadUrl = context.getUploadPartURLs().get(0);
-                doHttpsUpload(new ByteArrayInputStream(input.getBytes()), input.length(), uploadUrl);
+                doHttpsUpload(new ByteArrayInputStream(uploaded.getBytes()), uploaded.length(), uploadUrl);
 
                 uploadedRecord = ds.completeDirectUpload(context.getUploadToken());
                 assertNotNull(uploadedRecord);
@@ -315,7 +333,8 @@ public abstract class AbstractURLWritableBlobStoreTest {
                 StringWriter writer = new StringWriter();
                 IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
 
-                assertEquals(input, writer.toString());
+                String retrieved = writer.toString();
+                compareBinaries(uploaded, retrieved);
             }
             finally {
                 if (null != uploadedRecord) {
@@ -349,11 +368,11 @@ public abstract class AbstractURLWritableBlobStoreTest {
                 URLWritableDataStoreUploadContext context = ds.initDirectUpload(res.getUploadSize(), res.getMaxNumUrls());
                 assertEquals(res.getExpectedNumUrls(), context.getUploadPartURLs().size());
 
-                String input = randomString(res.getUploadSize());
+                String uploaded = randomString(res.getUploadSize());
                 long uploadSize = res.getUploadSize();
                 long uploadPartSize = uploadSize / context.getUploadPartURLs().size()
                         + ((uploadSize % context.getUploadPartURLs().size()) == 0 ? 0 : 1);
-                ByteArrayInputStream in = new ByteArrayInputStream(input.getBytes());
+                ByteArrayInputStream in = new ByteArrayInputStream(uploaded.getBytes());
 
                 assertTrue(uploadPartSize <= context.getMaxPartSize());
                 assertTrue(uploadPartSize >= context.getMinPartSize());
@@ -379,19 +398,23 @@ public abstract class AbstractURLWritableBlobStoreTest {
                 IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
 
                 String retrieved = writer.toString();
-                assertEquals(input.length(), retrieved.length());
-                byte[] expectedSha = DigestUtils.sha256(input.getBytes());
-                byte[] actualSha = DigestUtils.sha256(retrieved.getBytes());
-                assertEquals(expectedSha.length, actualSha.length);
-                for (int i=0; i<expectedSha.length; i++) {
-                    assertEquals(expectedSha[i], actualSha[i]);
-                }
+                compareBinaries(uploaded, retrieved);
             }
             finally {
                 if (null != uploadedRecord) {
                     doDeleteRecord(ds, uploadedRecord.getIdentifier());
                 }
             }
+        }
+    }
+
+    private void compareBinaries(String uploaded, String retrieved) {
+        assertEquals(uploaded.length(), retrieved.length());
+        byte[] expectedSha = DigestUtils.sha256(uploaded.getBytes());
+        byte[] actualSha = DigestUtils.sha256(retrieved.getBytes());
+        assertEquals(expectedSha.length, actualSha.length);
+        for (int i=0; i<expectedSha.length; i++) {
+            assertEquals(expectedSha[i], actualSha[i]);
         }
     }
 
@@ -410,6 +433,10 @@ public abstract class AbstractURLWritableBlobStoreTest {
         return parsed;
     }
 
+    protected boolean isValidUploadToken(String uploadToken) {
+        return null != DirectBinaryUploadToken.fromEncodedToken(uploadToken);
+    }
+
     protected String randomString(long size) {
         final String symbols = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
         StringWriter writer = new StringWriter();
@@ -419,6 +446,9 @@ public abstract class AbstractURLWritableBlobStoreTest {
             while (size >= 256) {
                 writer.write(str256);
                 size -= 256;
+            }
+            if (size > 0) {
+                writer.write(str256.substring(0, (int)size));
             }
         }
         else {

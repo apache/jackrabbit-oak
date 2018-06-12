@@ -16,11 +16,13 @@
  *
  *************************************************************************/
 
-package org.apache.jackrabbit.oak.blob.cloud.s3;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.AbstractURLWritableBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
@@ -37,25 +39,33 @@ import java.net.URL;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Properties;
 
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 
-public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest {
+public class AzureDataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
-    private static S3DataStore dataStore;
+    private static AzureDataStore dataStore;
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
-        dataStore = (S3DataStore) S3DataStoreUtils.getS3DataStore(
-                "org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore",
-                getProperties("s3.config",
-                        "aws.properties",
-                        ".aws"),
-                homeDir.newFolder().getAbsolutePath()
+        dataStore = new AzureDataStore();
+        Map<String, String> propsAsMap = Maps.newHashMap();
+        Properties props = getProperties(
+                "azure.blob.config",
+                "azure.properties",
+                ".azure"
         );
+        for (String key : props.stringPropertyNames()) {
+            propsAsMap.put(key, props.getProperty(key));
+        }
+        PropertiesUtil.populate(dataStore, propsAsMap, false);
+        dataStore.setProperties(props);
+        dataStore.init(homeDir.newFolder().getAbsolutePath());
         dataStore.setURLWritableBinaryExpirySeconds(expirySeconds);
     }
 
@@ -66,23 +76,26 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
 
     @Override
     protected void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
-        ((S3DataStore)ds).deleteRecord(identifier);
+        ((AzureDataStore)ds).deleteRecord(identifier);
     }
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, S3DataStore.minPartSize);
+        return Math.max(0L, AzureDataStore.minPartSize);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return ONE_HUNDRED_MB;
+        return ((1024 * 1024 * 1024)/10) + 1;
     }
 
     @Override
     protected boolean isSinglePutURL(URL url) {
         Map<String, String> queryParams = parseQueryString(url);
-        return ! queryParams.containsKey(S3Backend.PART_NUMBER) && ! queryParams.containsKey(S3Backend.UPLOAD_ID);
+        if (queryParams.containsKey("comp") || queryParams.containsKey("blockId")) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -91,10 +104,16 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
-        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+        conn.setRequestProperty("x-ms-date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
                 .withZone(ZoneOffset.UTC)
                 .format(Instant.now()));
-        conn.setRequestProperty("Host", url.getHost());
+        conn.setRequestProperty("x-ms-version", "2017-11-09");
+
+        Map<String, String> queryParams = parseQueryString(url);
+        if (! queryParams.containsKey("comp") && ! queryParams.containsKey("blockId")) {
+            // single put
+            conn.setRequestProperty("x-ms-blob-type", "BlockBlob");
+        }
 
         return conn;
     }
@@ -103,12 +122,14 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
     public void testInitDirectUploadURLHonorsExpiryTime() throws DirectBinaryAccessException {
         URLWritableDataStore ds = getDataStore();
         try {
+            Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setURLWritableBinaryExpirySeconds(60);
             URLWritableDataStoreUploadContext context = ds.initDirectUpload(ONE_MB, 1);
             URL uploadUrl = context.getUploadPartURLs().get(0);
             Map<String, String> params = parseQueryString(uploadUrl);
-            String expiresTime = params.get("X-Amz-Expires");
-            assertTrue(60 >= Integer.parseInt(expiresTime));
+            String expiryDateStr = params.get("se");
+            Instant expiry = Instant.parse(expiryDateStr);
+            assertEquals(now, expiry.minusSeconds(60));
         }
         finally {
             ds.setURLWritableBinaryExpirySeconds(expirySeconds);

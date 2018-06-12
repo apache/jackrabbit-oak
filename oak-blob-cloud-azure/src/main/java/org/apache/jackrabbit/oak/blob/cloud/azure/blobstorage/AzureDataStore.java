@@ -19,19 +19,29 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.google.common.base.Strings;
 import com.sun.istack.internal.Nullable;
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
+import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 
 import java.net.URL;
 import java.util.Properties;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements URLReadableDataStore {
-
+public class AzureDataStore extends AbstractSharedCachingDataStore implements URLReadableDataStore, URLWritableDataStore {
     private int minRecordLength = 16*1024;
+
+    /**
+     * The minimum size of a file in order to do multi-part upload.
+     */
+    static final int minPartSize = ((1024 * 1024 * 1024)/100) + 1; // 10MB
 
     protected Properties properties;
 
@@ -81,6 +91,47 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements UR
         if (null != azureBlobStoreBackend) {
             return azureBlobStoreBackend.createPresignedGetURL(identifier);
         }
+        return null;
+    }
+
+    @Override
+    public void setURLWritableBinaryExpirySeconds(int seconds) {
+        if (null != azureBlobStoreBackend) {
+            azureBlobStoreBackend.setURLWritableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    @Override
+    public void setURLBinaryTransferAcceleration(boolean enabled) {
+        // NOOP - not a feature of Azure Blob Storage
+    }
+
+    @Override
+    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws DirectBinaryAccessException {
+        if (0L >= maxUploadSizeInBytes) {
+            throw new DirectBinaryAccessException("maxUploadSizeInBytes must be > 0");
+        }
+        else if (0L >= maxNumberOfURLs) {
+            throw new DirectBinaryAccessException("maxNumberOfURLs must be > 0");
+        }
+        if (azureBlobStoreBackend != null) {
+            return azureBlobStoreBackend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        }
+
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public DataRecord completeDirectUpload(String uploadToken) throws DirectBinaryAccessException, DataStoreException {
+        if (Strings.isNullOrEmpty(uploadToken)) {
+            throw new IllegalArgumentException("uploadToken required");
+        }
+
+        if (azureBlobStoreBackend != null) {
+            return azureBlobStoreBackend.completeDirectUpload(uploadToken);
+        }
+
         return null;
     }
 }

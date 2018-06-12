@@ -29,7 +29,6 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -37,9 +36,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.sun.istack.internal.NotNull;
-import com.sun.istack.internal.Nullable;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -49,24 +45,23 @@ import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
+import org.apache.jackrabbit.oak.spi.blob.DirectBinaryUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
-import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
@@ -101,8 +96,8 @@ public class S3Backend extends AbstractSharedBackend {
     static final String UPLOAD_ID = "uploadId";
 
     private static final int ONE_MB = 1024*1024;
-    private static final int MIN_MULTIPART_UPLOAD_PART_SIZE = ONE_MB * 10;
-    private static final int MAX_MULTIPART_UPLOAD_PART_SIZE = ONE_MB * 256;
+    private static final int MIN_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024)/100) + 1; // 10MB
+    private static final int MAX_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024/10)) + 1; // 100MB
 
     private AmazonS3Client s3service;
 
@@ -709,7 +704,7 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public URL createPresignedGetURL(@NotNull DataIdentifier identifier) {
+    public URL createPresignedGetURL(@Nonnull DataIdentifier identifier) {
         if (presignedGetExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -774,7 +769,7 @@ public class S3Backend extends AbstractSharedBackend {
             }
         }
 
-        DirectUploadToken uploadToken = new DirectUploadToken(blobId, uploadId);
+        DirectBinaryUploadToken uploadToken = new DirectBinaryUploadToken(blobId, uploadId);
 
         return new URLWritableDataStoreUploadContext() {
             @Override
@@ -799,11 +794,11 @@ public class S3Backend extends AbstractSharedBackend {
         };
     }
 
-    public DataRecord completeDirectUpload(@NotNull String uploadTokenStr)
+    public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
             throws DirectBinaryAccessException, DataStoreException {
-        DirectUploadToken uploadToken = DirectUploadToken.fromEncodedToken(uploadTokenStr);
+        DirectBinaryUploadToken uploadToken = DirectBinaryUploadToken.fromEncodedToken(uploadTokenStr);
         String blobId = uploadToken.getBlobId();
-        if (uploadToken.uploadId.isPresent()) {
+        if (uploadToken.getUploadId().isPresent()) {
             // An existing upload ID means this is a multi-part upload
             String uploadId = uploadToken.getUploadId().get();
             ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
@@ -866,61 +861,6 @@ public class S3Backend extends AbstractSharedBackend {
                     method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
 
             return null;
-        }
-    }
-
-    static class DirectUploadToken {
-        private String blobId;
-        private Optional<String> uploadId;
-
-        public DirectUploadToken(@NotNull String blobId, @Nullable String uploadId) {
-            this.blobId = blobId;
-            this.uploadId = Optional.ofNullable(uploadId);
-        }
-
-        public static DirectUploadToken fromEncodedToken(@NotNull String encoded) {
-            String[] parts = encoded.split("#", 2);
-            if (parts.length < 2) {
-                throw new IllegalArgumentException("Encoded string is missing the signature");
-            }
-
-            String toBeDecoded = parts[0];
-            String expectedSig = Base64.decode(parts[1]);
-            String actualSig = new String(DigestUtils.sha256(toBeDecoded));
-            if (!expectedSig.equals(actualSig)) {
-                throw new IllegalArgumentException("Upload token signature does not match");
-            }
-
-            String decoded = Base64.decode(toBeDecoded);
-            String decodedParts[] = decoded.split("#");
-            if (decodedParts.length < 2) {
-                throw new IllegalArgumentException("Not all upload token parts provided");
-            }
-
-            return new DirectUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
-        }
-
-        public String getEncodedToken() {
-            String now = Instant.now().toString();
-            String toBeEncoded = uploadId.isPresent() ?
-                    Joiner.on("#").join(blobId, now, uploadId.get()) :
-                    Joiner.on("#").join(blobId, now);
-            String toBeSigned = Base64.encode(toBeEncoded);
-            String sig = Base64.encode(new String(DigestUtils.sha256(toBeSigned)));
-            return Joiner.on("#").join(toBeSigned, sig);
-        }
-
-        @Override
-        public String toString() {
-            return getEncodedToken();
-        }
-
-        public String getBlobId() {
-            return blobId;
-        }
-
-        public Optional<String> getUploadId() {
-            return uploadId;
         }
     }
 
