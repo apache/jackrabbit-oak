@@ -50,7 +50,12 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     /**
      * The minimum size of a file in order to do multi-part upload.
      */
-    static final int minPartSize = ((1024 * 1024 * 1024)/100) + 1; // 10MB
+    static final int minPartSize = S3Backend.MIN_MULTIPART_UPLOAD_PART_SIZE;
+
+    /**
+     * The maximum size of a multi-part upload part (AWS limitation).
+     */
+    static final int maxPartSize = S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
 
     @Override
     protected AbstractSharedBackend createBackend() {

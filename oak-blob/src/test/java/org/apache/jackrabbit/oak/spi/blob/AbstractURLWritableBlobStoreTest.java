@@ -59,13 +59,13 @@ public abstract class AbstractURLWritableBlobStoreTest {
     protected static int expirySeconds = 60*15;
     protected static long ONE_KB = 1024;
     protected static long ONE_MB = ONE_KB * ONE_KB;
-    protected static long ONE_GB = ONE_MB * ONE_KB;
 
-    protected static long TEN_MB = ONE_GB / 100 + 1;
-    protected static long TWENTY_MB = ONE_GB / 50 + 1;
-    protected static long ONE_HUNDRED_MB = ONE_GB / 10 + 1;
-    protected static long FIVE_HUNDRED_MB = ONE_GB / 2 + 1;
-    protected static long FIVE_GB = ONE_GB * (1024/200) + 1;
+    protected static long TEN_MB = ONE_MB * 10;
+    protected static long TWENTY_MB = ONE_MB * 20;
+    protected static long ONE_HUNDRED_MB = ONE_MB * 100;
+    protected static long FIVE_HUNDRED_MB = ONE_HUNDRED_MB * 5;
+    protected static long ONE_GB = ONE_HUNDRED_MB * 10;
+    protected static long FIVE_GB = ONE_GB * 5;
 
     protected abstract URLWritableDataStore getDataStore();
     protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
@@ -172,7 +172,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return TWENTY_MB; }
                     @Override public int getMaxNumUrls() { return 10; }
                     @Override public int getExpectedNumUrls() { return 2; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 100MB upload and 10 URLs requested => should result in 10 urls (10MB each)
@@ -180,7 +180,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 10; }
                     @Override public int getExpectedNumUrls() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 100MB upload and 5 URLs requested => should result in 5 urls (20MB each)
@@ -188,7 +188,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 5; }
                     @Override public int getExpectedNumUrls() { return 5; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 500MB upload and 50 URLs requested => should result in 50 urls (10MB each)
@@ -196,7 +196,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 50; }
                     @Override public int getExpectedNumUrls() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 500MB upload and 10 URLs requested => should result in 10 urls (50MB each)
@@ -204,7 +204,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 10; }
                     @Override public int getExpectedNumUrls() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 500MB upload and 60 URLs requested => should result in 50 uls (10MB each)
@@ -212,7 +212,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 60; }
                     @Override public int getExpectedNumUrls() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 500MB upload and 5 URLs requested => should result in 5 urls (100MB each)
@@ -220,7 +220,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return FIVE_HUNDRED_MB; }
                     @Override public int getMaxNumUrls() { return 5; }
                     @Override public int getExpectedNumUrls() { return 5; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 1GB upload and 10 URLs requested => should result in 10 urls (100MB each)
@@ -228,7 +228,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return ONE_GB; }
                     @Override public int getMaxNumUrls() { return 10; }
                     @Override public int getExpectedNumUrls() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 },
                 // 5GB upload and 50 URLs requested => should result in 50 urls (100MB each)
@@ -236,7 +236,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getUploadSize() { return FIVE_GB; }
                     @Override public int getMaxNumUrls() { return 50; }
                     @Override public int getExpectedNumUrls() { return 50; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
+                    @Override public long getExpectedMinPartSize() { return getProviderMinPartSize(); }
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 }
         )) {

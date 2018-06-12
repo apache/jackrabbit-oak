@@ -76,7 +76,7 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
 
     @Override
     protected long getProviderMaxPartSize() {
-        return ONE_HUNDRED_MB;
+        return S3DataStore.maxPartSize;
     }
 
     @Override

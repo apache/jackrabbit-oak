@@ -86,7 +86,7 @@ public class AzureDataStoreWritableURLTest extends AbstractURLWritableBlobStoreT
 
     @Override
     protected long getProviderMaxPartSize() {
-        return ((1024 * 1024 * 1024)/10) + 1;
+        return AzureDataStore.maxPartSize;
     }
 
     @Override

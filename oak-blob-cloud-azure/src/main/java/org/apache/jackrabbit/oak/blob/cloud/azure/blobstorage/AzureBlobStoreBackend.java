@@ -93,8 +93,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String REF_KEY = "reference.key";
 
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
-    private static final int MIN_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024)/100) + 1; // 10MB
-    private static final int MAX_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024/10)) + 1; // 100MB
+    static final int MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
+    static final int MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
+    private static final int MAX_ALLOWABLE_UPLOAD_URLS = 50;
 
     private Properties properties;
     private String containerName;
@@ -760,8 +761,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
             if (requestedPartSize <= maxPartSize) {
                 numParts = Math.min(
-                        (maxUploadSizeInBytes / minPartSize + (maxUploadSizeInBytes % minPartSize == 0 ? 0 : 1)),
-                        maxNumberOfUrls);
+                        maxNumberOfUrls,
+                        Math.min(
+                                (long)Math.ceil(((double)maxUploadSizeInBytes) / ((double)minPartSize)),
+                                MAX_ALLOWABLE_UPLOAD_URLS
+                        )
+                );
             }
             else {
                 throw new DirectBinaryAccessException(

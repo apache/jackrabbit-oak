@@ -96,8 +96,9 @@ public class S3Backend extends AbstractSharedBackend {
     static final String UPLOAD_ID = "uploadId";
 
     private static final int ONE_MB = 1024*1024;
-    private static final int MIN_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024)/100) + 1; // 10MB
-    private static final int MAX_MULTIPART_UPLOAD_PART_SIZE = ((1024 * 1024 * 1024/10)) + 1; // 100MB
+    static final int MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
+    static final int MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256; // 256MB
+    static final int MAX_ALLOWABLE_UPLOAD_URLS = 50;
 
     private AmazonS3Client s3service;
 
@@ -749,8 +750,12 @@ public class S3Backend extends AbstractSharedBackend {
             long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
             if (requestedPartSize <= maxPartSize) {
                 numParts = Math.min(
-                        (maxUploadSizeInBytes / minPartSize + (maxUploadSizeInBytes % minPartSize == 0 ? 0 : 1)),
-                        maxNumberOfUrls);
+                        maxNumberOfUrls,
+                        Math.min(
+                                (long)Math.ceil(((double)maxUploadSizeInBytes) / ((double)minPartSize)),
+                                MAX_ALLOWABLE_UPLOAD_URLS
+                        )
+                );
             }
             else {
                 throw new DirectBinaryAccessException(
