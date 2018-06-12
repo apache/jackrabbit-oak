@@ -74,7 +74,7 @@ class NamespaceEditor extends DefaultEditor {
                 throw new CommitFailedException(
                         CommitFailedException.NAMESPACE, 2,
                         "Invalid namespace mapping: " + prefix);
-            } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
+            } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml") && namespaces.hasProperty("xml")) {
                 throw new CommitFailedException(
                         CommitFailedException.NAMESPACE, 3,
                         "XML prefixes are reserved: " + prefix);
