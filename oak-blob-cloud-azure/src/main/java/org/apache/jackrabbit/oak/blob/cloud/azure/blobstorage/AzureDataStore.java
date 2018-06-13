@@ -25,8 +25,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import java.net.URL;
 import java.util.Properties;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements HttpDataRecordProvider {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableHttpDataRecordProvider {
     private int minRecordLength = 16*1024;
 
     /**

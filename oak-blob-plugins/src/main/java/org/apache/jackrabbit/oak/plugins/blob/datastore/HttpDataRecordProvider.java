@@ -26,15 +26,6 @@ import java.net.URL;
 
 public interface HttpDataRecordProvider {
     /**
-     * Specifies the number of seconds before a signed download URL will expire.
-     * Setting this to 0 is equivalent to turning off the ability to use
-     * direct HTTP download.
-     *
-     * @param expirySeconds Number of seconds before a download URL expires.
-     */
-    void setHttpDownloadURLExpirySeconds(int expirySeconds);
-
-    /**
      * Return a URL for directly reading the binary associated with the provided
      * {@code DataRecord}.
      *
@@ -45,15 +36,6 @@ public interface HttpDataRecordProvider {
      */
     @Nullable
     URL getHttpURL(DataIdentifier identifier);
-
-    /**
-     * Specifies the number of seconds before a signed upload URL will expire.
-     * Setting this to 0 is equivalent to turning off the ability to use
-     * direct HTTP upload.
-     *
-     * @param expirySeconds Number of seconds before an upload URL expires.
-     */
-    void setHttpUploadURLExpirySeconds(int expirySeconds);
 
     /**
      * Begin a transaction to perform a direct binary upload to the cloud storage.
@@ -90,11 +72,4 @@ public interface HttpDataRecordProvider {
      */
     @Nullable
     DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException;
-
-    /**
-     * Enables or disables binary transfer acceleration, if supported by the service provider.
-     *
-     * @param enabled True to enable binary transfer acceleration (if supported); False otherwise.
-     */
-    void setBinaryTransferAccelerationEnabled(boolean enabled);
 }

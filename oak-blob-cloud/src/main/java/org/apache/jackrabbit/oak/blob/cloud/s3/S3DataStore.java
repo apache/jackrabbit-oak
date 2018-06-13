@@ -21,8 +21,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
@@ -35,7 +35,7 @@ import java.util.Properties;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements HttpDataRecordProvider {
+public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableHttpDataRecordProvider {
 
     protected Properties properties;
 
@@ -88,7 +88,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements HttpD
     }
 
     //
-    // HttpDataRecordProvider implementation
+    // ConfigurableHttpDataRecordProvider implementation
     //
     @Override
     public void setHttpUploadURLExpirySeconds(int seconds) {
@@ -140,6 +140,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements HttpD
         }
     }
 
+    @Override
     public void setURLReadableBinaryURLCacheSize(int maxSize) {
         if (s3Backend != null) {
             s3Backend.setURLReadableBinaryURLCacheSize(maxSize);
