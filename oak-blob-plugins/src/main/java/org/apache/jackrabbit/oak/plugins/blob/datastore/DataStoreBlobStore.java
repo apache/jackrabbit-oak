@@ -19,29 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.net.URL;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.LoadingCache;
@@ -57,22 +34,44 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.transform;
+import static org.apache.commons.io.IOUtils.closeQuietly;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -80,7 +79,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, URLWritableBlobStore, URLReadableBlobStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, HttpBlobProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -658,35 +657,62 @@ public class DataStoreBlobStore
         return encodedBlobId;
     }
 
+    @Nullable
     @Override
-    public String createURLWritableBlobId() throws IOException {
-        if (delegate instanceof URLWritableDataStore) {
+    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) {
+        if (delegate instanceof HttpDataRecordProvider) {
             try {
-                DataIdentifier identifier = ((URLWritableDataStore) delegate).addNewRecord();
-                return identifier.toString();
-            } catch (DataStoreException e) {
-                throw new IOException("Cannot create new unique blob id for URLWritableBinary", e);
-            }
-        }
-        return null;
-    }
+                DataRecordHttpUpload upload = ((HttpDataRecordProvider) delegate).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                return new BlobHttpUpload() {
+                    @Override
+                    public String getUploadToken() {
+                        return upload.getUploadToken();
+                    }
 
-    @Override
-    public URL getWriteURL(String blobId) {
-        if (delegate instanceof URLWritableDataStore) {
-            return ((URLWritableDataStore) delegate).getWriteURL(new DataIdentifier(blobId));
+                    @Override
+                    public int getMinPartSize() {
+                        return upload.getMinPartSize();
+                    }
+
+                    @Override
+                    public int getMaxPartSize() {
+                        return upload.getMaxPartSize();
+                    }
+
+                    @Override
+                    public List<URL> getUploadPartURLs() {
+                        return upload.getUploadPartURLs();
+                    }
+                };
+            }
+            catch (HttpUploadException e) {
+                log.warn("Unable to initiate direct HTTP upload", e);
+            }
         }
         return null;
     }
 
     @Nullable
     @Override
-    public URL getReadURL(String encodedBlobId) {
-        if (delegate instanceof URLReadableDataStore) {
-            final BlobId blobId = BlobId.of(encodedBlobId);
-            final DataIdentifier identifier = new DataIdentifier(blobId.blobId);
-            
-            return ((URLReadableDataStore) delegate).getReadURL(identifier);
+    public Blob completeHttpUpload(String uploadToken) {
+        if (delegate instanceof HttpDataRecordProvider) {
+            try {
+                DataRecord record = ((HttpDataRecordProvider) delegate).completeHttpUpload(uploadToken);
+                return new BlobStoreBlob(this, record.getIdentifier().toString());
+            }
+            catch (DataStoreException | HttpUploadException e) {
+                log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpURL(Blob blob) {
+        if (delegate instanceof HttpDataRecordProvider) {
+            return ((HttpDataRecordProvider) delegate).getHttpURL(
+                    new DataIdentifier(blob.getContentIdentity()));
         }
         return null;
     }
