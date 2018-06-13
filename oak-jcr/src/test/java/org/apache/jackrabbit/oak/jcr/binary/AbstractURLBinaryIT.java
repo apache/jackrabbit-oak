@@ -18,7 +18,23 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static org.junit.Assert.assertNotNull;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AfterClass;
+import org.junit.runners.Parameterized;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -29,27 +45,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.AfterClass;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertNotNull;
 
 /** Base class with all the logic to test different data stores that support URL writable or readable binaries */
 public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
@@ -93,30 +94,17 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
 
     // abstraction so we can test different data store implementations using separate fixtures
     // but control common configuration elements such as expiry times
-    private interface URLWritableDataStoreFixture {
-        URLWritableDataStore getURLWritableDataStore();
+    private interface ConfigurableHttpDataRecordProviderFixture {
+        ConfigurableHttpDataRecordProvider getConfigurableHttpDataRecordProvider();
     }
 
-    private interface URLReadableDataStoreFixture {
-        URLReadableDataStore getURLReadableDataStore();
-    }
-
-    protected URLWritableDataStore getURLWritableDataStore() throws RepositoryException {
-        // ensure fixture has created repo
+    protected ConfigurableHttpDataRecordProvider getConfigurableHttpDataRecordProvider()
+        throws RepositoryException {
         getRepository();
-        if (fixture instanceof URLWritableDataStoreFixture) {
-            return ((URLWritableDataStoreFixture) fixture).getURLWritableDataStore();
+        if (fixture instanceof ConfigurableHttpDataRecordProviderFixture) {
+            return ((ConfigurableHttpDataRecordProviderFixture) fixture).getConfigurableHttpDataRecordProvider();
         }
-        throw new AssertionError("issue with test setup, cannot retrieve underlying URLWritableDataStore");
-    }
-
-    protected URLReadableDataStore getURLReadableDataStore() throws RepositoryException {
-        // ensure fixture has created repo
-        getRepository();
-        if (fixture instanceof URLReadableDataStoreFixture) {
-            return ((URLReadableDataStoreFixture) fixture).getURLReadableDataStore();
-        }
-        throw new AssertionError("issue with test setup, cannot retrieve underlying URLWritableDataStore");
+        throw new AssertionError("issue with test setup, cannot retrieve underlying ConfigurableHttpDataRecordProvider");
     }
 
     // for this integration test create a SegmentNodeStore with
@@ -124,7 +112,8 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
     // - S3 data store as blob store
     // - S3 configuration from "aws.properties" file or "-Ds3.config=<filename>" system property
     protected static class S3DataStoreWithMemorySegmentFixture extends NodeStoreFixture
-        implements URLWritableDataStoreFixture, URLReadableDataStoreFixture {
+        implements ConfigurableHttpDataRecordProviderFixture {
+        //implements URLWritableDataStoreFixture, URLReadableDataStoreFixture {
 
         private final Properties s3Props;
 
@@ -144,7 +133,11 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         public static Properties loadS3Properties() {
             Properties s3Props = new Properties();
             try {
-                s3Props.load(new FileReader(System.getProperty("s3.config", "aws.properties")));
+                File awsProps = new File(System.getProperty("s3.config", "aws.properties"));
+                if (! awsProps.exists()) {
+                    awsProps = Paths.get(System.getProperty("user.home"), ".aws", "aws.properties").toFile();
+                }
+                s3Props.load(new FileReader(awsProps));
             } catch (IOException e) {
                 return null;
             }
@@ -225,12 +218,7 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         }
 
         @Override
-        public URLWritableDataStore getURLWritableDataStore() {
-            return s3DataStore;
-        }
-
-        @Override
-        public URLReadableDataStore getURLReadableDataStore() {
+        public ConfigurableHttpDataRecordProvider getConfigurableHttpDataRecordProvider() {
             return s3DataStore;
         }
     }

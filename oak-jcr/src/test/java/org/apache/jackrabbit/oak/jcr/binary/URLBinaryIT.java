@@ -18,21 +18,6 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import javax.annotation.Nonnull;
-import javax.jcr.Binary;
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.ValueFactory;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
@@ -42,10 +27,27 @@ import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import javax.annotation.Nonnull;
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.ValueFactory;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
@@ -103,7 +105,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testUpload() throws Exception {
         // enable writable URL feature
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         final String TEST_BINARY = "hello world";
         final long size = TEST_BINARY.getBytes("utf-8").length;
@@ -126,6 +129,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
         assertEquals("PUT to pre-signed S3 URL failed", 200, code);
 
+        Binary binary1 = uploadProvider.completeHttpUpload(upload.getUploadToken());
+
         Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
         binary2.getStream();
     }
@@ -134,7 +139,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testWriteURLDoesNotChange() throws Exception {
         // enable writable URL feature
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. add binary
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
@@ -151,7 +157,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testStreamBinaryThroughJCRAfterURLWrite() throws Exception {
         // enable writable URL feature
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. add binary and upload
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
@@ -166,8 +173,9 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testURLReadableBinary() throws Exception {
         // enable writable and readable URL feature
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
-        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
         // 1. add binary and upload
         URLWritableBinary newBinary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
@@ -188,7 +196,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testURLReadableBinaryFromInputStream() throws Exception {
         // enable readable URL feature
-        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
         // 1. add binary via input stream (must be larger than 16 KB segmentstore inline binary limit)
         Node resource = getOrCreateNtFile(getAdminSession(), FILE_PATH);
@@ -226,7 +235,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testDisabledURLWritableBinary() throws Exception {
         // disable in data store config by setting expiry to zero
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(0);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(0);
 
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
@@ -249,7 +259,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     @Test
     public void testExpiryOfURLWritableBinary() throws Exception {
         // short timeout
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(1);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(1);
 
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         URL url = binary.getWriteURL();
@@ -266,7 +277,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // to read the length() of the binary which is not available for to be written URLWritableBlobs
     @Test
     public void testMultipleURLWritableBinariesInOneSave() throws Exception {
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         URLWritableBinary binary1 = createFileWithURLWritableBinary(getAdminSession(), FILE_PATH, false);
         URLWritableBinary binary2 = createFileWithURLWritableBinary(getAdminSession(), FILE_PATH + "2", false);
@@ -282,8 +294,9 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
     @Test
     public void testURLReadableBinaryCache() throws Exception {
-        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
-        getURLReadableDataStore().setURLReadableBinaryURLCacheSize(100);
+        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+        provider.setURLReadableBinaryURLCacheSize(100);
 
         // 1. create URL access binary
         saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
@@ -306,7 +319,8 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
         // ------------------------------------------------------
         // turn off cache
-        getURLReadableDataStore().setURLReadableBinaryURLCacheSize(100);
+        provider.setURLReadableBinaryURLCacheSize(100); // TODO - should be 0?
+        // getURLReadableDataStore().setURLReadableBinaryURLCacheSize(100);
 
         binary1 = getBinary(getAdminSession(), FILE_PATH);
         binary2 = getBinary(getAdminSession(), FILE_PATH);
@@ -327,9 +341,10 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
     // TODO: this test is S3 specific for now
     @Test
     public void testTransferAcceleration() throws Exception {
-        getURLReadableDataStore().setURLReadableBinaryExpirySeconds(REGULAR_READ_EXPIRY);
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
-        getURLWritableDataStore().setURLBinaryTransferAcceleration(true);
+        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+        provider.setBinaryTransferAccelerationEnabled(true);
 
         URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         URL url = binary.getWriteURL();
@@ -338,7 +353,7 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         System.out.println("accelerated URL: " + url);
         assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
 
-        getURLWritableDataStore().setURLBinaryTransferAcceleration(false);
+        provider.setBinaryTransferAccelerationEnabled(false);
 
         binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
         url = binary.getWriteURL();
