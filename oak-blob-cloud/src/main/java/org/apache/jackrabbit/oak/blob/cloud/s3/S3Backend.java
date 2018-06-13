@@ -781,9 +781,6 @@ public class S3Backend extends AbstractSharedBackend {
             public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public boolean supportsContentRange() { return false; } // Not supported by S3
-
-            @Override
             public int getMinPartSize() { return minPartSize; }
 
             @Override

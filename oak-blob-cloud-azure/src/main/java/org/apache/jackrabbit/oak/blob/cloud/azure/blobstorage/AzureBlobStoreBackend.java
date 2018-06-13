@@ -792,9 +792,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public boolean supportsContentRange() { return false; } // Not supported by Azure
-
-            @Override
             public int getMinPartSize() { return minPartSize; }
 
             @Override

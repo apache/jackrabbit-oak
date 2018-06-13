@@ -30,26 +30,6 @@ public interface DataRecordHttpUpload {
     String getUploadToken();
 
     /**
-     * Indicates whether the {@code HttpDataRecordProvider} supports content range uploading.
-     *
-     * If the provider supports content range uploading, this means that multi-part uploads
-     * can be performed using the same presigned upload URL for all parts, specifying the
-     * range of data in a particular upload using the Content-Range header.
-     *
-     * Not all service providers support this capability.  For those that do not, multi-part
-     * uploads are performed instead by using a unique upload URL for each part of the
-     * multi-part upload, with each part specified by e.g. a block identifier, and then
-     * a subsequent call to the service provider instructs them to merge all the specified
-     * parts together to a single file.
-     *
-     * It is the responsibility of the client to inspect this capability and support the
-     * type of multi-part uploading that the service provider expects.
-     *
-     * @return True if the service provider supports content range uploads; False otherwise.
-     */
-    boolean supportsContentRange();
-
-    /**
      * The smallest part size the client can send in a multi-part upload (not counting the
      * final part).  There is no guarantee made that splitting the binary into parts of
      * this size can complete the full upload without exhausting the full supply of
