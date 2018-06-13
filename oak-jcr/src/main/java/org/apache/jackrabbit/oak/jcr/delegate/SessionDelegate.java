@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -36,6 +37,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Binary;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -50,6 +53,8 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
+import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -71,7 +76,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO document
  */
-public class SessionDelegate {
+public class SessionDelegate implements HttpBinaryProvider {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
     static final Logger auditLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.audit");
     static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
@@ -668,6 +673,26 @@ public class SessionDelegate {
      */
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
+    }
+
+    //--------------------------------------------------< BinaryUploadProvider >---
+
+    @Nullable
+    @Override
+    public BinaryHttpUpload initializeHttpUpload(long maxSize, int maxParts) throws AccessDeniedException {
+        return null;
+    }
+
+    @Nonnull
+    @Override
+    public Binary completeHttpUpload(String uploadToken) throws RepositoryException {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getDownloadURL(Binary binary) throws RepositoryException {
+        return null;
     }
 
     //------------------------------------------------------------< SynchronizedIterator >---
