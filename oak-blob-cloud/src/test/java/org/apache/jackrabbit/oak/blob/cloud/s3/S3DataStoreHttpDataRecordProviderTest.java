@@ -23,8 +23,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
@@ -42,6 +42,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
+import static java.lang.System.getProperty;
 import static junit.framework.TestCase.assertTrue;
 
 public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
@@ -64,7 +65,7 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     }
 
     @Override
-    protected HttpDataRecordProvider getDataStore() {
+    protected ConfigurableHttpDataRecordProvider getDataStore() {
         return dataStore;
     }
 
@@ -113,9 +114,18 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
         return conn;
     }
 
+    /** Only run if explicitly asked to via -Dtest=S3DataStoreHttpDataRecordProviderTest */
+    /** Run like this:  mvn test -Dtest=S3DataStoreHttpDataRecordProviderTest -Dtest.opts.memory=-Xmx2G */
+    private static final boolean INTEGRATION_TESTS_ENABLED =
+            S3DataStoreHttpDataRecordProviderTest.class.getSimpleName().equals(getProperty("test"));
+    @Override
+    protected boolean integrationTestsEnabled() {
+        return INTEGRATION_TESTS_ENABLED;
+    }
+
     @Test
     public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
-        HttpDataRecordProvider ds = getDataStore();
+        ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(60);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);

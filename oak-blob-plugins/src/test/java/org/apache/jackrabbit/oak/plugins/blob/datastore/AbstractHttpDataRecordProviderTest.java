@@ -46,17 +46,19 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
+import static java.lang.System.getProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 public abstract class AbstractHttpDataRecordProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractHttpDataRecordProviderTest.class);
 
-    protected abstract HttpDataRecordProvider getDataStore();
+    protected abstract ConfigurableHttpDataRecordProvider getDataStore();
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
     protected abstract boolean isSinglePutURL(URL url);
@@ -64,6 +66,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
     protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException;
     protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
+    protected abstract boolean integrationTestsEnabled();
 
     protected static int expirySeconds = 60*15;
 
@@ -81,9 +84,9 @@ public abstract class AbstractHttpDataRecordProviderTest {
             String systemPropertyName,
             String defaultPropertyFileName,
             String userHomePropertyDir) {
-        File propertiesFile = new File(System.getProperty(systemPropertyName, defaultPropertyFileName));
+        File propertiesFile = new File(getProperty(systemPropertyName, defaultPropertyFileName));
         if (! propertiesFile.exists()) {
-            propertiesFile = Paths.get(System.getProperty("user.home"), userHomePropertyDir, defaultPropertyFileName).toFile();
+            propertiesFile = Paths.get(getProperty("user.home"), userHomePropertyDir, defaultPropertyFileName).toFile();
         }
         if (! propertiesFile.exists()) {
             propertiesFile = new File("./src/test/resources/" + defaultPropertyFileName);
@@ -119,7 +122,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testGetReadUrlExpirationOfZeroFails() {
-        HttpDataRecordProvider dataStore = getDataStore();
+        ConfigurableHttpDataRecordProvider dataStore = getDataStore();
         try {
             dataStore.setHttpDownloadURLExpirySeconds(0);
             assertNull(dataStore.getHttpURL(new DataIdentifier("testIdentifier")));
@@ -157,7 +160,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     @Test
     public void testGetExpiredReadUrlFailsIT() throws DataStoreException, IOException {
         DataRecord record = null;
-        HttpDataRecordProvider dataStore = getDataStore();
+        ConfigurableHttpDataRecordProvider dataStore = getDataStore();
         try {
             String testData = randomString(256);
             dataStore.setHttpDownloadURLExpirySeconds(2);
@@ -233,7 +236,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testInititateHttpUploadMultiPartDisabled() throws HttpUploadException {
-        HttpDataRecordProvider ds = getDataStore();
+        ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(0);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
@@ -432,8 +435,13 @@ public abstract class AbstractHttpDataRecordProviderTest {
         }
     }
 
+    //
     @Test
     public void testMultiPartDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+        // Disabled by default - this test uses a lot of memory.
+        // Execute this test from the command line like this:
+        //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
+        assumeTrue(integrationTestsEnabled());
         HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {

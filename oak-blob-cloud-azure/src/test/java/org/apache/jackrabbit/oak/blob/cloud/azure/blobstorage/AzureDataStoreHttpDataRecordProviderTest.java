@@ -25,8 +25,8 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
@@ -46,6 +46,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.lang.System.getProperty;
 import static org.junit.Assert.assertEquals;
 
 public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
@@ -75,7 +76,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Override
-    protected HttpDataRecordProvider getDataStore() {
+    protected ConfigurableHttpDataRecordProvider getDataStore() {
         return dataStore;
     }
 
@@ -133,9 +134,18 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         return conn;
     }
 
+    /** Only run if explicitly asked to via -Dtest=AzureDataStoreHttpDataRecordProviderTest */
+    /** Run like this:  mvn test -Dtest=AzureDataStoreHttpDataRecordProviderTest -Dtest.opts.memory=-Xmx2G */
+    private static final boolean INTEGRATION_TESTS_ENABLED =
+            AzureDataStoreHttpDataRecordProviderTest.class.getSimpleName().equals(getProperty("test"));
+    @Override
+    protected boolean integrationTestsEnabled() {
+        return INTEGRATION_TESTS_ENABLED;
+    }
+
     @Test
     public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
-        HttpDataRecordProvider ds = getDataStore();
+        ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
