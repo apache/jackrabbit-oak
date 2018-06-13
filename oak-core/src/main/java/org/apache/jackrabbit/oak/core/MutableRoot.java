@@ -18,30 +18,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.security.auth.Subject;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.api.blob.URLWritableBlobRoot;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -70,7 +54,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class MutableRoot implements Root, URLWritableBlobRoot {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.security.auth.Subject;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+
+class MutableRoot implements Root, URLWritableBlobRoot, HttpBlobProvider {
 
     /**
      * The underlying store to which this root belongs
@@ -465,6 +468,34 @@ class MutableRoot implements Root, URLWritableBlobRoot {
                     ? "NIL"
                     : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
         }
+    }
+
+    // HttpBlobProvider
+    @Nullable
+    @Override
+    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls) {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Blob completeHttpUpload(String uploadToken) {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).completeHttpUpload(uploadToken);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpURL(Blob blob) {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).getHttpURL(blob);
+        }
+        return null;
     }
 
 }
