@@ -18,25 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.Map;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
@@ -56,13 +42,29 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 /**
  * The top level class for the segment store.
  * <p>
  * The root node of the JCR content tree is actually stored in the node "/root",
  * and checkpoints are stored under "/checkpoints".
  */
-public class SegmentNodeStore implements NodeStore, Observable {
+public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider {
 
     public static class SegmentNodeStoreBuilder {
         private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeStoreBuilder.class);
@@ -322,5 +324,33 @@ public class SegmentNodeStore implements NodeStore, Observable {
     
     public SegmentNodeStoreStats getStats() {
         return stats;
+    }
+
+    // HttpBlobProvider
+    @Nullable
+    @Override
+    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) {
+        if (blobStore instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Blob completeHttpUpload(String uploadToken) {
+        if (blobStore instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) blobStore).completeHttpUpload(uploadToken);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpURL(Blob blob) {
+        if (blobStore instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) blobStore).getHttpURL(blob);
+        }
+        return null;
     }
 }
