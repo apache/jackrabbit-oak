@@ -25,17 +25,16 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 
 import java.net.URL;
 import java.util.Properties;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements URLReadableDataStore, URLWritableDataStore {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements HttpDataRecordProvider {
     private int minRecordLength = 16*1024;
 
     /**
@@ -78,57 +77,38 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements UR
         this.minRecordLength = minRecordLength;
     }
 
+    //
+    // HttpDataRecordProvider Implementation
+    //
     @Override
-    public void setURLReadableBinaryExpirySeconds(int seconds) {
-        if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setURLReadableBinaryExpirySeconds(seconds);
-        }
-    }
-
-    @Override
-    public void setURLReadableBinaryURLCacheSize(int maxSize) {
-        azureBlobStoreBackend.setURLReadableBinaryURLCacheSize(maxSize);
-    }
-
-    @Nullable
-    @Override
-    public URL getReadURL(DataIdentifier identifier) {
-        if (null != azureBlobStoreBackend) {
-            return azureBlobStoreBackend.createPresignedGetURL(identifier);
-        }
-        return null;
-    }
-
-    @Override
-    public void setURLWritableBinaryExpirySeconds(int seconds) {
+    public void setHttpUploadURLExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
             azureBlobStoreBackend.setURLWritableBinaryExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setURLBinaryTransferAcceleration(boolean enabled) {
+    public void setBinaryTransferAccelerationEnabled(boolean enabled) {
         // NOOP - not a feature of Azure Blob Storage
     }
 
     @Override
-    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws DirectBinaryAccessException {
+    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
-            throw new DirectBinaryAccessException("maxUploadSizeInBytes must be > 0");
+            throw new HttpUploadException("maxUploadSizeInBytes must be > 0");
         }
         else if (0L >= maxNumberOfURLs) {
-            throw new DirectBinaryAccessException("maxNumberOfURLs must be > 0");
+            throw new HttpUploadException("maxNumberOfURLs must be > 0");
         }
-        if (azureBlobStoreBackend != null) {
-            return azureBlobStoreBackend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        if (null == azureBlobStoreBackend) {
+            throw new HttpUploadException("Backend not initialized");
         }
-
-        return null;
+        return azureBlobStoreBackend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Nullable
     @Override
-    public DataRecord completeDirectUpload(String uploadToken) throws DirectBinaryAccessException, DataStoreException {
+    public DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
         }
@@ -137,6 +117,26 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements UR
             return azureBlobStoreBackend.completeDirectUpload(uploadToken);
         }
 
+        return null;
+    }
+
+    @Override
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
+        if (null != azureBlobStoreBackend) {
+            azureBlobStoreBackend.setURLReadableBinaryExpirySeconds(seconds);
+        }
+    }
+
+    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+        azureBlobStoreBackend.setURLReadableBinaryURLCacheSize(maxSize);
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpURL(DataIdentifier identifier) {
+        if (null != azureBlobStoreBackend) {
+            return azureBlobStoreBackend.createPresignedGetURL(identifier);
+        }
         return null;
     }
 }

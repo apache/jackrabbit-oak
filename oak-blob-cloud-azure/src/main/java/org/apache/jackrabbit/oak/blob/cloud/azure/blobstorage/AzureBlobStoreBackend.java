@@ -49,11 +49,11 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryUploadToken;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -732,8 +732,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     public void setURLWritableBinaryExpirySeconds(int seconds) { presignedPutExpirySeconds = seconds; }
 
-    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
-            throws DirectBinaryAccessException {
+    public DataRecordHttpUpload initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+            throws HttpUploadException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -769,7 +769,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 );
             }
             else {
-                throw new DirectBinaryAccessException(
+                throw new HttpUploadException(
                         String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
                 );
             }
@@ -785,34 +785,29 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
         }
 
-        DirectBinaryUploadToken uploadToken = new DirectBinaryUploadToken(blobId, uploadId);
+        HttpUploadToken uploadToken = new HttpUploadToken(blobId, uploadId);
 
-        return new URLWritableDataStoreUploadContext() {
+        return new DataRecordHttpUpload() {
             @Override
-            public List<URL> getUploadPartURLs() {
-                return uploadPartURLs;
-            }
+            public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public int getMinPartSize() {
-                return minPartSize;
-            }
+            public boolean supportsContentRange() { return false; } // Not supported by Azure
 
             @Override
-            public int getMaxPartSize() {
-                return maxPartSize;
-            }
+            public int getMinPartSize() { return minPartSize; }
 
             @Override
-            public String getUploadToken() {
-                return uploadToken.getEncodedToken();
-            }
+            public int getMaxPartSize() { return maxPartSize; }
+
+            @Override
+            public List<URL> getUploadPartURLs() { return uploadPartURLs; }
         };
     }
 
     public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
-            throws DirectBinaryAccessException, DataStoreException {
-        DirectBinaryUploadToken uploadToken = DirectBinaryUploadToken.fromEncodedToken(uploadTokenStr);
+            throws HttpUploadException, DataStoreException {
+        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr);
         String blobId = uploadToken.getBlobId();
         try {
             if (uploadToken.getUploadId().isPresent()) {
@@ -828,12 +823,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             // else do nothing - single put is already complete
 
             if (! getAzureContainer().getBlockBlobReference(blobId).exists()) {
-                throw new DirectBinaryAccessException(
+                throw new HttpUploadException(
                         String.format("Unable to finalize direct write of binary %s", blobId));
             }
         }
         catch (URISyntaxException | StorageException e) {
-            throw new DirectBinaryAccessException(
+            throw new HttpUploadException(
                     String.format("Unable to finalize direct write of binary %s", blobId));
         }
 

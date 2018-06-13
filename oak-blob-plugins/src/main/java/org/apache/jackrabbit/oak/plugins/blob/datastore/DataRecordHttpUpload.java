@@ -1,4 +1,4 @@
-/**************************************************************************
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,40 +6,48 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- *************************************************************************/
+ */
 
-package org.apache.jackrabbit.oak.spi.blob;
+package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.net.URL;
 import java.util.List;
 
-public interface URLWritableDataStoreUploadContext {
+public interface DataRecordHttpUpload {
     /**
-     * Returns a list of direct-writable upload URLs for uploading a file, or file part in the case
-     * of multi-part uploading.  This list may contain only a single URL in the following cases:
-     *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
-     *    {@code URLWritableDataStore.initDirectUpload}, OR
-     *  - If the implementing data store does not support multi-part uploading, OR
-     *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@code URLWritableDataStore.initDirectUpload} is less than or equal to the minimum
-     *    size of a multi-part upload part
-     * If the list contains only a single URL the client should treat that URL as a direct
-     * single-put upload and write the entire binary to the single URL.  Otherwise the client
-     * may choose to consume up to the entire list of URLs provided.
+     * Returns a token that uniquely identifies this upload.  This token must be provided in a
+     * subsequent call to {@code HttpDataRecordProvider.completeHttpUpload}.
      *
-     * Note that ordering matters; URLs should be consumed in sequence and not skipped.
-     *
-     * @return ordered list of URLs to be consumed in sequence.
+     * @return The unique upload token for this upload.
      */
-    List<URL> getUploadPartURLs();
+    String getUploadToken();
+
+    /**
+     * Indicates whether the {@code HttpDataRecordProvider} supports content range uploading.
+     *
+     * If the provider supports content range uploading, this means that multi-part uploads
+     * can be performed using the same presigned upload URL for all parts, specifying the
+     * range of data in a particular upload using the Content-Range header.
+     *
+     * Not all service providers support this capability.  For those that do not, multi-part
+     * uploads are performed instead by using a unique upload URL for each part of the
+     * multi-part upload, with each part specified by e.g. a block identifier, and then
+     * a subsequent call to the service provider instructs them to merge all the specified
+     * parts together to a single file.
+     *
+     * It is the responsibility of the client to inspect this capability and support the
+     * type of multi-part uploading that the service provider expects.
+     *
+     * @return True if the service provider supports content range uploads; False otherwise.
+     */
+    boolean supportsContentRange();
 
     /**
      * The smallest part size the client can send in a multi-part upload (not counting the
@@ -69,7 +77,7 @@ public interface URLWritableDataStoreUploadContext {
      * API is that using parts of maxPartSize will work without using more URLs than those
      * available in the list of uploadPartURLs.
      *
-     * If a client calls {@code URLWritableDataStore.initDirectUpload} with a value of
+     * If a client calls {@code HttpDataRecordProvider.initiateHttpUpload} with a value of
      * maxUploadSizeInBytes that ends up being smaller than the actual size of the binary to
      * be uploaded, it may not be possible to complete the upload with the URLs provided.
      * the client should initialize the transaction again with the correct size.
@@ -82,10 +90,21 @@ public interface URLWritableDataStoreUploadContext {
     int getMaxPartSize();
 
     /**
-     * Returns a token that uniquely identifies this pload.  This token must be provided in a
-     * subsequent call to {@code URLWritableDataStore.completeDirectUpload}.
+     * Returns a list of direct-writable upload URLs for uploading a file, or file part in the case
+     * of multi-part uploading.  This list may contain only a single URL in the following cases:
+     *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
+     *    {@code HttpDataRecordProvider.initiateHttpUpload}, OR
+     *  - If the implementing data store does not support multi-part uploading, OR
+     *  - If the client-specified value for maxUploadSizeInBytes in a call to
+     *    {@code HttpDataRecordProvider.initiateHttpUpload} is less than or equal to the minimum
+     *    size of a multi-part upload part
+     * If the list contains only a single URL the client should treat that URL as a direct
+     * single-put upload and write the entire binary to the single URL.  Otherwise the client
+     * may choose to consume up to the entire list of URLs provided.
      *
-     * @return The unique upload token for this upload.
+     * Note that ordering matters; URLs should be consumed in sequence and not skipped.
+     *
+     * @return ordered list of URLs to be consumed in sequence.
      */
-    String getUploadToken();
+    List<URL> getUploadPartURLs();
 }

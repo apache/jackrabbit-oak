@@ -1,4 +1,4 @@
-/**************************************************************************
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -6,17 +6,16 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- *************************************************************************/
+ */
 
-package org.apache.jackrabbit.oak.spi.blob;
+package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -47,16 +46,27 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public abstract class AbstractURLWritableBlobStoreTest {
-    protected static final Logger LOG = LoggerFactory.getLogger(AbstractURLReadableBlobStoreTest.class);
+public abstract class AbstractHttpDataRecordProviderTest {
+    protected static final Logger LOG = LoggerFactory.getLogger(AbstractHttpDataRecordProviderTest.class);
+
+    protected abstract HttpDataRecordProvider getDataStore();
+    protected abstract long getProviderMinPartSize();
+    protected abstract long getProviderMaxPartSize();
+    protected abstract boolean isSinglePutURL(URL url);
+    protected abstract HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException;
+    protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
+    protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException;
+    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
 
     protected static int expirySeconds = 60*15;
+
     protected static long ONE_KB = 1024;
     protected static long ONE_MB = ONE_KB * ONE_KB;
 
@@ -66,13 +76,6 @@ public abstract class AbstractURLWritableBlobStoreTest {
     protected static long FIVE_HUNDRED_MB = ONE_HUNDRED_MB * 5;
     protected static long ONE_GB = ONE_HUNDRED_MB * 10;
     protected static long FIVE_GB = ONE_GB * 5;
-
-    protected abstract URLWritableDataStore getDataStore();
-    protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
-    protected abstract long getProviderMinPartSize();
-    protected abstract long getProviderMaxPartSize();
-    protected abstract boolean isSinglePutURL(URL url);
-    protected abstract HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException;
 
     protected static Properties getProperties(
             String systemPropertyName,
@@ -95,77 +98,162 @@ public abstract class AbstractURLWritableBlobStoreTest {
         return props;
     }
 
+    //
+    // Direct HTTP download tests
+    //
     @Test
-    public void testInitDirectUploadReturnsValidContext() throws DirectBinaryAccessException {
-        URLWritableDataStoreUploadContext context =
-                getDataStore().initDirectUpload(ONE_MB, 10);
-        assertNotNull(context);
-        assertFalse(context.getUploadPartURLs().isEmpty());
-        assertTrue(context.getMinPartSize() > 0);
-        assertTrue(context.getMinPartSize() >= getProviderMinPartSize());
-        assertTrue(context.getMaxPartSize() >= context.getMinPartSize());
-        assertTrue(context.getMaxPartSize() <= getProviderMaxPartSize());
-        assertTrue((context.getMaxPartSize() * context.getUploadPartURLs().size()) >= ONE_MB);
-        assertFalse(Strings.isNullOrEmpty(context.getUploadToken()));
+    public void testGetReadUrlProvidesValidUrl() {
+        DataIdentifier id = new DataIdentifier("testIdentifier");
+        URL url = getDataStore().getHttpURL(id);
+        assertNotNull(url);
     }
 
     @Test
-    public void testInitDirectUploadRequiresNonzeroFileSize() {
+    public void testGetReadUrlRequiresValidIdentifier() {
         try {
-            getDataStore().initDirectUpload(0, 10);
+            getDataStore().getHttpURL(null);
             fail();
         }
-        catch (DirectBinaryAccessException e) { }
+        catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
-    public void testInitDirectUploadRequiresNonzeroNumURLs() {
+    public void testGetReadUrlExpirationOfZeroFails() {
+        HttpDataRecordProvider dataStore = getDataStore();
         try {
-            getDataStore().initDirectUpload(ONE_MB, 0);
-            fail();
-        }
-        catch (DirectBinaryAccessException e) { }
-    }
-
-    @Test
-    public void testInitDirectUploadSingleURLRequested() throws DirectBinaryAccessException {
-        URLWritableDataStoreUploadContext context =
-                getDataStore().initDirectUpload(TWENTY_MB, 1);
-        assertEquals(1, context.getUploadPartURLs().size());
-        assertTrue(isSinglePutURL(context.getUploadPartURLs().get(0)));
-    }
-
-    @Test
-    public void testInitDirectUploadSizeLowerThanMinPartSize() throws DirectBinaryAccessException {
-        URLWritableDataStoreUploadContext context =
-                getDataStore().initDirectUpload(getProviderMinPartSize()-1L, 10);
-        assertEquals(1, context.getUploadPartURLs().size());
-        assertTrue(isSinglePutURL(context.getUploadPartURLs().get(0)));
-    }
-
-    @Test
-    public void testInitDirectUploadMultiPartDisabled() throws DirectBinaryAccessException {
-        URLWritableDataStore ds = getDataStore();
-        try {
-            ds.setURLWritableBinaryExpirySeconds(0);
-            URLWritableDataStoreUploadContext context = ds.initDirectUpload(TWENTY_MB, 10);
-            assertEquals(0, context.getUploadPartURLs().size());
+            dataStore.setHttpDownloadURLExpirySeconds(0);
+            assertNull(dataStore.getHttpURL(new DataIdentifier("testIdentifier")));
         }
         finally {
-            ds.setURLWritableBinaryExpirySeconds(expirySeconds);
+            dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
         }
     }
 
     @Test
-    public void testInitDirectUploadReturnsValidUploadToken() throws DirectBinaryAccessException {
-        URLWritableDataStoreUploadContext context = getDataStore().initDirectUpload(ONE_MB, 1);
-        String token = context.getUploadToken();
+    public void testGetReadUrlIT() throws DataStoreException, IOException {
+        DataRecord record = null;
+        HttpDataRecordProvider dataStore = getDataStore();
+        try {
+            String testData = randomString(256);
+            record = doSynchronousAddRecord((DataStore) dataStore,
+                    new ByteArrayInputStream(testData.getBytes()));
+            URL url = dataStore.getHttpURL(record.getIdentifier());
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(200, conn.getResponseCode());
+
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+
+            assertEquals(testData, writer.toString());
+        }
+        finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
+    }
+
+    @Test
+    public void testGetExpiredReadUrlFailsIT() throws DataStoreException, IOException {
+        DataRecord record = null;
+        HttpDataRecordProvider dataStore = getDataStore();
+        try {
+            String testData = randomString(256);
+            dataStore.setHttpDownloadURLExpirySeconds(2);
+            record = doSynchronousAddRecord((DataStore) dataStore,
+                    new ByteArrayInputStream(testData.getBytes()));
+            URL url = dataStore.getHttpURL(record.getIdentifier());
+            try {
+                Thread.sleep(5 * 1000);
+            } catch (InterruptedException e) {
+            }
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(403, conn.getResponseCode());
+        }
+        finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+            dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
+        }
+    }
+
+    //
+    // Direct HTTP upload tests
+    //
+    @Test
+    public void testInitiateHttpUploadReturnsValidUploadContext() throws HttpUploadException {
+        DataRecordHttpUpload uploadContext =
+                getDataStore().initiateHttpUpload(ONE_MB, 10);
+        assertNotNull(uploadContext);
+        assertFalse(uploadContext.getUploadPartURLs().isEmpty());
+        assertTrue(uploadContext.getMinPartSize() > 0);
+        assertTrue(uploadContext.getMinPartSize() >= getProviderMinPartSize());
+        assertTrue(uploadContext.getMaxPartSize() >= uploadContext.getMinPartSize());
+        assertTrue(uploadContext.getMaxPartSize() <= getProviderMaxPartSize());
+        assertTrue((uploadContext.getMaxPartSize() * uploadContext.getUploadPartURLs().size()) >= ONE_MB);
+        assertFalse(Strings.isNullOrEmpty(uploadContext.getUploadToken()));
+    }
+
+    @Test
+    public void testInitiateHttpUploadRequiresNonzeroFileSize() {
+        try {
+            getDataStore().initiateHttpUpload(0, 10);
+            fail();
+        }
+        catch (HttpUploadException e) { }
+    }
+
+    @Test
+    public void testInititateHttpUploadRequiresNonzeroNumURLs() {
+        try {
+            getDataStore().initiateHttpUpload(ONE_MB, 0);
+            fail();
+        }
+        catch (HttpUploadException e) { }
+    }
+
+    @Test
+    public void testInititateHttpUploadSingleURLRequested() throws HttpUploadException {
+        DataRecordHttpUpload uploadContext =
+                getDataStore().initiateHttpUpload(TWENTY_MB, 1);
+        assertEquals(1, uploadContext.getUploadPartURLs().size());
+        assertTrue(isSinglePutURL(uploadContext.getUploadPartURLs().get(0)));
+    }
+
+    @Test
+    public void testInititateHttpUploadSizeLowerThanMinPartSize() throws HttpUploadException {
+        DataRecordHttpUpload uploadContext =
+                getDataStore().initiateHttpUpload(getProviderMinPartSize()-1L, 10);
+        assertEquals(1, uploadContext.getUploadPartURLs().size());
+        assertTrue(isSinglePutURL(uploadContext.getUploadPartURLs().get(0)));
+    }
+
+    @Test
+    public void testInititateHttpUploadMultiPartDisabled() throws HttpUploadException {
+        HttpDataRecordProvider ds = getDataStore();
+        try {
+            ds.setHttpUploadURLExpirySeconds(0);
+            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
+            assertEquals(0, uploadContext.getUploadPartURLs().size());
+        }
+        finally {
+            ds.setHttpUploadURLExpirySeconds(expirySeconds);
+        }
+    }
+
+    @Test
+    public void testInititateHttpUploadReturnsValidUploadToken() throws HttpUploadException {
+        DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
+        String token = uploadContext.getUploadToken();
         assertTrue(isValidUploadToken(token));
     }
 
     @Test
-    public void testInitDirectUploadURLListSizes() throws DirectBinaryAccessException {
-        URLWritableDataStore ds = getDataStore();
+    public void testInititateHttpUploadURLListSizes() throws HttpUploadException {
+        HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 // 20MB upload and 10 URLs requested => should result in 2 urls (10MB each)
                 new InitUploadResult() {
@@ -240,39 +328,39 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 }
         )) {
-            URLWritableDataStoreUploadContext context = ds.initDirectUpload(res.getUploadSize(), res.getMaxNumUrls());
+            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
-                    res.getExpectedNumUrls(), context.getUploadPartURLs().size());
+                    res.getExpectedNumUrls(), uploadContext.getUploadPartURLs().size());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
-                    res.getExpectedMinPartSize(), context.getMinPartSize());
+                    res.getExpectedMinPartSize(), uploadContext.getMinPartSize());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
-                    res.getExpectedMaxPartSize(), context.getMaxPartSize());
+                    res.getExpectedMaxPartSize(), uploadContext.getMaxPartSize());
         }
     }
 
     @Test
-    public void InitDirectUploadRequestedPartSizesTooBig() {
+    public void testInititateHttpUploadRequestedPartSizesTooBig() {
         try {
-            getDataStore().initDirectUpload(FIVE_GB, 5);
+            getDataStore().initiateHttpUpload(FIVE_GB, 5);
             fail();
         }
-        catch (DirectBinaryAccessException e) { }
+        catch (HttpUploadException e) { }
     }
 
     @Test
-    public void testCompleteDirectUploadRequiresNonNullToken() throws DirectBinaryAccessException, DataStoreException {
+    public void testCompleteHttpUploadRequiresNonNullToken() throws HttpUploadException, DataStoreException {
         try {
-            getDataStore().completeDirectUpload(null);
+            getDataStore().completeHttpUpload(null);
             fail();
         }
         catch (NullPointerException | IllegalArgumentException e) { }
     }
 
     @Test
-    public void testCompleteDirectUploadRequiresValidToken() throws DirectBinaryAccessException, DataStoreException {
+    public void testCompleteHttpUploadRequiresValidToken() throws HttpUploadException, DataStoreException {
         for (String token : Lists.newArrayList("", "abc", "abc#123")) {
             try {
-                getDataStore().completeDirectUpload(token);
+                getDataStore().completeHttpUpload(token);
                 fail();
             }
             catch (IllegalArgumentException e) { }
@@ -280,11 +368,11 @@ public abstract class AbstractURLWritableBlobStoreTest {
     }
 
     @Test
-    public void testCompleteDirectUploadSignatureMustMatch() throws DirectBinaryAccessException, DataStoreException {
-        URLWritableDataStoreUploadContext context = getDataStore().initDirectUpload(ONE_MB, 1);
+    public void testCompleteHttpUploadSignatureMustMatch() throws HttpUploadException, DataStoreException {
+        DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
-        String uploadToken = context.getUploadToken();
+        String uploadToken = uploadContext.getUploadToken();
         String[] parts = uploadToken.split("#");
         String tokenPart = parts[0];
         String sigPart = parts[1];
@@ -298,15 +386,15 @@ public abstract class AbstractURLWritableBlobStoreTest {
         String newToken = Base64.encode(blobId) + "#" + sigPart;
 
         try {
-            getDataStore().completeDirectUpload(newToken);
+            getDataStore().completeHttpUpload(newToken);
             fail();
         }
         catch (IllegalArgumentException e) { }
     }
 
     @Test
-    public void testSinglePutDirectUploadIT() throws DirectBinaryAccessException, DataStoreException, IOException {
-        URLWritableDataStore ds = getDataStore();
+    public void testSinglePutDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+        HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return ONE_MB; }
@@ -318,17 +406,17 @@ public abstract class AbstractURLWritableBlobStoreTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                URLWritableDataStoreUploadContext context = ds.initDirectUpload(res.getUploadSize(), res.getMaxNumUrls());
+                DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
 
-                assertEquals(res.getExpectedNumUrls(), context.getUploadPartURLs().size());
+                assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadPartURLs().size());
                 String uploaded = randomString(res.getUploadSize());
-                URL uploadUrl = context.getUploadPartURLs().get(0);
+                URL uploadUrl = uploadContext.getUploadPartURLs().get(0);
                 doHttpsUpload(new ByteArrayInputStream(uploaded.getBytes()), uploaded.length(), uploadUrl);
 
-                uploadedRecord = ds.completeDirectUpload(context.getUploadToken());
+                uploadedRecord = ds.completeHttpUpload(uploadContext.getUploadToken());
                 assertNotNull(uploadedRecord);
 
-                DataRecord retrievedRecord = ds.getRecord(uploadedRecord.getIdentifier());
+                DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 StringWriter writer = new StringWriter();
                 IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
@@ -338,15 +426,15 @@ public abstract class AbstractURLWritableBlobStoreTest {
             }
             finally {
                 if (null != uploadedRecord) {
-                    doDeleteRecord(ds, uploadedRecord.getIdentifier());
+                    doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 }
             }
         }
     }
 
     @Test
-    public void testMultiPartDirectUploadIT() throws DirectBinaryAccessException, DataStoreException, IOException {
-        URLWritableDataStore ds = getDataStore();
+    public void testMultiPartDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+        HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return TWENTY_MB; }
@@ -365,19 +453,19 @@ public abstract class AbstractURLWritableBlobStoreTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                URLWritableDataStoreUploadContext context = ds.initDirectUpload(res.getUploadSize(), res.getMaxNumUrls());
-                assertEquals(res.getExpectedNumUrls(), context.getUploadPartURLs().size());
+                DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+                assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadPartURLs().size());
 
                 String uploaded = randomString(res.getUploadSize());
                 long uploadSize = res.getUploadSize();
-                long uploadPartSize = uploadSize / context.getUploadPartURLs().size()
-                        + ((uploadSize % context.getUploadPartURLs().size()) == 0 ? 0 : 1);
+                long uploadPartSize = uploadSize / uploadContext.getUploadPartURLs().size()
+                        + ((uploadSize % uploadContext.getUploadPartURLs().size()) == 0 ? 0 : 1);
                 ByteArrayInputStream in = new ByteArrayInputStream(uploaded.getBytes());
 
-                assertTrue(uploadPartSize <= context.getMaxPartSize());
-                assertTrue(uploadPartSize >= context.getMinPartSize());
+                assertTrue(uploadPartSize <= uploadContext.getMaxPartSize());
+                assertTrue(uploadPartSize >= uploadContext.getMinPartSize());
 
-                for (URL url : context.getUploadPartURLs()) {
+                for (URL url : uploadContext.getUploadPartURLs()) {
                     if (0 >= uploadSize) break;
 
                     long partSize = Math.min(uploadSize, uploadPartSize);
@@ -389,10 +477,10 @@ public abstract class AbstractURLWritableBlobStoreTest {
                     doHttpsUpload(new ByteArrayInputStream(buffer), partSize, url);
                 }
 
-                uploadedRecord = ds.completeDirectUpload(context.getUploadToken());
+                uploadedRecord = ds.completeHttpUpload(uploadContext.getUploadToken());
                 assertNotNull(uploadedRecord);
 
-                DataRecord retrievedRecord = ds.getRecord(uploadedRecord.getIdentifier());
+                DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 StringWriter writer = new StringWriter();
                 IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
@@ -402,7 +490,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
             }
             finally {
                 if (null != uploadedRecord) {
-                    doDeleteRecord(ds, uploadedRecord.getIdentifier());
+                    doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 }
             }
         }
@@ -434,7 +522,7 @@ public abstract class AbstractURLWritableBlobStoreTest {
     }
 
     protected boolean isValidUploadToken(String uploadToken) {
-        return null != DirectBinaryUploadToken.fromEncodedToken(uploadToken);
+        return null != HttpUploadToken.fromEncodedToken(uploadToken);
     }
 
     protected String randomString(long size) {

@@ -42,11 +42,11 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryUploadToken;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -212,7 +212,7 @@ public class S3Backend extends AbstractSharedBackend {
             }
 
             String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
-            setURLBinaryTransferAcceleration(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
+            setBinaryTransferAccelerationEnabled(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
 
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
@@ -235,7 +235,7 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public void setURLBinaryTransferAcceleration(boolean enabled) {
+    public void setBinaryTransferAccelerationEnabled(boolean enabled) {
         if (enabled) {
             // verify acceleration is enabled on the bucket
             BucketAccelerateConfiguration accelerateConfig = s3service.getBucketAccelerateConfiguration(new GetBucketAccelerateConfigurationRequest(bucket));
@@ -725,8 +725,8 @@ public class S3Backend extends AbstractSharedBackend {
         return url;
     }
 
-    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
-            throws DirectBinaryAccessException {
+    public DataRecordHttpUpload initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+            throws HttpUploadException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -758,7 +758,7 @@ public class S3Backend extends AbstractSharedBackend {
                 );
             }
             else {
-                throw new DirectBinaryAccessException(
+                throw new HttpUploadException(
                         String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
                 );
             }
@@ -774,34 +774,29 @@ public class S3Backend extends AbstractSharedBackend {
             }
         }
 
-        DirectBinaryUploadToken uploadToken = new DirectBinaryUploadToken(blobId, uploadId);
+        HttpUploadToken uploadToken = new HttpUploadToken(blobId, uploadId);
 
-        return new URLWritableDataStoreUploadContext() {
+        return new DataRecordHttpUpload() {
             @Override
-            public List<URL> getUploadPartURLs() {
-                return uploadPartURLs;
-            }
+            public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public int getMinPartSize() {
-                return minPartSize;
-            }
+            public boolean supportsContentRange() { return false; } // Not supported by S3
 
             @Override
-            public int getMaxPartSize() {
-                return maxPartSize;
-            }
+            public int getMinPartSize() { return minPartSize; }
 
             @Override
-            public String getUploadToken() {
-                return uploadToken.getEncodedToken();
-            }
+            public int getMaxPartSize() { return maxPartSize; }
+
+            @Override
+            public List<URL> getUploadPartURLs() { return uploadPartURLs; }
         };
     }
 
     public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
-            throws DirectBinaryAccessException, DataStoreException {
-        DirectBinaryUploadToken uploadToken = DirectBinaryUploadToken.fromEncodedToken(uploadTokenStr);
+            throws HttpUploadException, DataStoreException {
+        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr);
         String blobId = uploadToken.getBlobId();
         if (uploadToken.getUploadId().isPresent()) {
             // An existing upload ID means this is a multi-part upload
@@ -827,7 +822,7 @@ public class S3Backend extends AbstractSharedBackend {
 
 
         if (! s3service.doesObjectExist(bucket, blobId)) {
-            throw new DirectBinaryAccessException(
+            throw new HttpUploadException(
                     String.format("Unable to finalize direct write of binary %s", blobId)
             );
         }

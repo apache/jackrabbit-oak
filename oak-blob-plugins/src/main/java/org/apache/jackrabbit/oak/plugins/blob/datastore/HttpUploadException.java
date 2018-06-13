@@ -1,4 +1,4 @@
-/**************************************************************************
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -13,23 +13,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- *************************************************************************/
+ */
+package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-package org.apache.jackrabbit.oak.spi.blob;
-
-import java.net.URL;
-import javax.annotation.Nullable;
-
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataStore;
-
-public interface URLReadableDataStore extends DataStore {
-
-    void setURLReadableBinaryExpirySeconds(int seconds);
-
-    void setURLReadableBinaryURLCacheSize(int maxSize);
-
-    @Nullable
-    URL getReadURL(DataIdentifier identifier);
+public class HttpUploadException extends Exception {
+    public HttpUploadException() {}
+    public HttpUploadException(String message) {
+        super(message);
+    }
 }

@@ -19,12 +19,14 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.spi.blob.AbstractURLWritableBlobStoreTest;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 import javax.net.ssl.HttpsURLConnection;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -41,7 +44,7 @@ import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 
-public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest {
+public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -56,12 +59,23 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
                         ".aws"),
                 homeDir.newFolder().getAbsolutePath()
         );
-        dataStore.setURLWritableBinaryExpirySeconds(expirySeconds);
+        dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
+        dataStore.setHttpUploadURLExpirySeconds(expirySeconds);
     }
 
     @Override
-    protected URLWritableDataStore getDataStore() {
+    protected HttpDataRecordProvider getDataStore() {
         return dataStore;
+    }
+
+    @Override
+    protected DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException {
+        return ds.getRecord(identifier);
+    }
+
+    @Override
+    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
+        return ((S3DataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
     }
 
     @Override
@@ -100,18 +114,18 @@ public class S3DataStoreWritableURLTest extends AbstractURLWritableBlobStoreTest
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws DirectBinaryAccessException {
-        URLWritableDataStore ds = getDataStore();
+    public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
+        HttpDataRecordProvider ds = getDataStore();
         try {
-            ds.setURLWritableBinaryExpirySeconds(60);
-            URLWritableDataStoreUploadContext context = ds.initDirectUpload(ONE_MB, 1);
-            URL uploadUrl = context.getUploadPartURLs().get(0);
+            ds.setHttpUploadURLExpirySeconds(60);
+            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
+            URL uploadUrl = uploadContext.getUploadPartURLs().get(0);
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));
         }
         finally {
-            ds.setURLWritableBinaryExpirySeconds(expirySeconds);
+            ds.setHttpUploadURLExpirySeconds(expirySeconds);
         }
     }
 }

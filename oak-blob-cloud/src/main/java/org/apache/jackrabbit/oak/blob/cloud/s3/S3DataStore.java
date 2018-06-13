@@ -21,12 +21,11 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.DirectBinaryAccessException;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableDataStoreUploadContext;
 
 import javax.annotation.Nonnull;
 import java.net.URL;
@@ -36,7 +35,7 @@ import java.util.Properties;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements URLWritableDataStore, URLReadableDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements HttpDataRecordProvider {
 
     protected Properties properties;
 
@@ -88,38 +87,41 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
         this.minRecordLength = minRecordLength;
     }
 
+    //
+    // HttpDataRecordProvider implementation
+    //
     @Override
-    public void setURLWritableBinaryExpirySeconds(int seconds) {
+    public void setHttpUploadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
             s3Backend.setURLWritableBinaryExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setURLBinaryTransferAcceleration(boolean enabled) {
+    public void setBinaryTransferAccelerationEnabled(boolean enabled) {
         if (s3Backend != null) {
-            s3Backend.setURLBinaryTransferAcceleration(enabled);
+            s3Backend.setBinaryTransferAccelerationEnabled(enabled);
         }
     }
 
     @Override
-    public URLWritableDataStoreUploadContext initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws DirectBinaryAccessException {
+    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
-            throw new DirectBinaryAccessException("maxUploadSizeInBytes must be > 0");
+            throw new HttpUploadException("maxUploadSizeInBytes must be > 0");
         }
         else if (0L >= maxNumberOfURLs) {
-            throw new DirectBinaryAccessException("maxNumberOfURLs must be > 0");
+            throw new HttpUploadException("maxNumberOfURLs must be > 0");
         }
-        if (s3Backend != null) {
-            return s3Backend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        if (null == s3Backend) {
+            throw new HttpUploadException("Backend not initialized");
         }
-        return null;
+        return s3Backend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Override
-    public DataRecord completeDirectUpload(@Nonnull String uploadToken)
-            throws DirectBinaryAccessException, DataStoreException {
+    public DataRecord completeHttpUpload(@Nonnull String uploadToken)
+            throws HttpUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
         }
@@ -132,13 +134,12 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public void setURLReadableBinaryExpirySeconds(int seconds) {
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
             s3Backend.setURLReadableBinaryExpirySeconds(seconds);
         }
     }
 
-    @Override
     public void setURLReadableBinaryURLCacheSize(int maxSize) {
         if (s3Backend != null) {
             s3Backend.setURLReadableBinaryURLCacheSize(maxSize);
@@ -146,7 +147,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements URLWr
     }
 
     @Override
-    public URL getReadURL(@Nonnull DataIdentifier identifier) {
+    public URL getHttpURL(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }
