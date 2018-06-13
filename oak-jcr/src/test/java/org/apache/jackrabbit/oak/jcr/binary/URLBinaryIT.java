@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
 import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
-import org.apache.jackrabbit.oak.jcr.api.binary.BinaryUploadProvider;
+import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,76 +101,28 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
     // F1 - basic test
     @Test
-    public void testURLWritableBinaryV2() throws Exception {
+    public void testUpload() throws Exception {
         // enable writable URL feature
         getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         final String TEST_BINARY = "hello world";
         final long size = TEST_BINARY.getBytes("utf-8").length;
 
-        assertTrue(getAdminSession() instanceof BinaryUploadProvider);
+        assertTrue(getAdminSession() instanceof HttpBinaryProvider);
 
-        if (getAdminSession() instanceof BinaryUploadProvider) {
+        HttpBinaryProvider uploadProvider = (HttpBinaryProvider) getAdminSession();
 
-            BinaryUploadProvider uploadProvider = (BinaryUploadProvider) getAdminSession();
+        BinaryHttpUpload upload = uploadProvider.initializeHttpUpload(size, 1);
+        assertNotNull(upload);
 
-            BinaryHttpUpload upload = uploadProvider.addFileUsingHttpUpload(FILE_PATH, size);
+        // very small test binary
+        assertTrue(size < upload.getMaxPartSize());
 
-            assertNotNull(upload);
-
-            if (upload.isMultipartAvailable()) {
-                for (BinaryHttpUpload.Part part : upload.getMultipartUploadRequests()) {
-                    // TODO: multi part
-                    part.getSize();
-                    part.getPutURL();
-                }
-            } else {
-                URL url = upload.getSinglePutURL();
-                assertNotNull(url);
-
-                System.out.println("- uploading binary via PUT to " + url);
-                int code = httpPut(url, getTestInputStream(TEST_BINARY));
-
-                assertEquals("PUT to pre-signed S3 URL failed", 200, code);
-
-                Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
-                binary2.getStream();
-            }
-        }
-    }
-
-    // F1 - basic test
-    @Test
-    public void testURLWritableBinary() throws Exception {
-        // enable writable URL feature
-        getURLWritableDataStore().setURLWritableBinaryExpirySeconds(REGULAR_WRITE_EXPIRY);
-
-        // create JCR nt:file structure for holding binary
-        Node file = getOrCreateNtFile(getAdminSession(), FILE_PATH);
-
-        ValueFactory valueFactory = getAdminSession().getValueFactory();
-        assertTrue(valueFactory instanceof URLWritableBinaryValueFactory);
-
-        // create new binary
-        URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
-        assertNotNull(binary);
-
-        // ensure not accessible before setting a property
-        assertNull(binary.getWriteURL());
-
-        file.setProperty(JcrConstants.JCR_DATA, binary);
-
-        // ensure not accessible before successful save
-        assertNull(binary.getWriteURL());
-
-        getAdminSession().save();
-
-        // validate
-        URL url = binary.getWriteURL();
+        URL url = upload.getURLParts().iterator().next();
         assertNotNull(url);
 
         System.out.println("- uploading binary via PUT to " + url);
-        int code = httpPutTestStream(url);
+        int code = httpPut(url, getTestInputStream(TEST_BINARY));
 
         assertEquals("PUT to pre-signed S3 URL failed", 200, code);
 
