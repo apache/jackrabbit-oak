@@ -35,7 +35,7 @@ public interface HttpDataRecordProvider {
      * cannot be generated.
      */
     @Nullable
-    URL getHttpURL(DataIdentifier identifier);
+    URL getDownloadURL(DataIdentifier identifier);
 
     /**
      * Begin a transaction to perform a direct binary upload to the cloud storage.

@@ -43,5 +43,5 @@ public interface HttpBlobProvider {
 
     Blob completeHttpUpload(String uploadToken);
 
-    URL getHttpURL(Blob blob);
+    URL getDownloadURL(Blob blob);
 }

@@ -148,7 +148,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public URL getHttpURL(@Nonnull DataIdentifier identifier) {
+    public URL getDownloadURL(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }

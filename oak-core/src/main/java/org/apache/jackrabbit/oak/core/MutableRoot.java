@@ -491,9 +491,9 @@ class MutableRoot implements Root, URLWritableBlobRoot, HttpBlobProvider {
 
     @Nullable
     @Override
-    public URL getHttpURL(Blob blob) {
+    public URL getDownloadURL(Blob blob) {
         if (store instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) store).getHttpURL(blob);
+            return ((HttpBlobProvider) store).getDownloadURL(blob);
         }
         return null;
     }
