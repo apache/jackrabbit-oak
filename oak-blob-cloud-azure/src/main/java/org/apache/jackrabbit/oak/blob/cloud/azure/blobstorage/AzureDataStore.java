@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import com.google.common.base.Strings;
-import com.sun.istack.internal.Nullable;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
+import javax.annotation.Nullable;
 import java.net.URL;
 import java.util.Properties;
 
