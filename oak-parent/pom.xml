@@ -800,6 +800,49 @@
       </build>
    </profile>
     
+   <profile>
+      <id>guavabetachecks</id>
+      <build>
+         <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.7.0</version>
+              <configuration>
+                <compilerId>javac-with-errorprone</compilerId>
+                <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                <target>${java.version}</target>
+                <source>${java.version}</source>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava-beta-checker</artifactId>
+                    <version>1.0</version>
+                  </path>
+                </annotationProcessorPaths>
+                <compilerArgs>
+                  <!-- OAK-7310 -->
+                  <arg>-Xpkginfo:always</arg>
+                  <arg>-XepDisableAllChecks</arg>
+                  <arg>-Xep:BetaApi:ERROR</arg>
+                </compilerArgs>
+              </configuration>
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-compiler-javac-errorprone</artifactId>
+                  <version>2.5</version>
+                </dependency>
+                <dependency>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>2.3.1</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+         </plugins>
+      </build>
+   </profile>
+
     <profile>
       <id>rat</id>
       <build>
