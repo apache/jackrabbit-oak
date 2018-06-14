@@ -38,6 +38,7 @@ public abstract class AbstractDocumentStoreTest {
     protected List<String> removeMe = new ArrayList<String>();
     protected List<String> removeMeSettings = new ArrayList<String>();
     protected List<String> removeMeJournal = new ArrayList<String>();
+    protected List<String> removeMeClusterNodes = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
@@ -57,6 +58,7 @@ public abstract class AbstractDocumentStoreTest {
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS, removeMeSettings);
         removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL, removeMeJournal);
+        removeTestNodes(org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES, removeMeClusterNodes);
         ds.dispose();
         dsf.dispose();
     }

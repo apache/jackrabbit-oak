@@ -20,7 +20,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import com.google.common.collect.Iterables;
 
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -33,11 +34,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class MissingLastRevSeekerTest {
+public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     private Clock clock;
     private DocumentStore store;
     private MissingLastRevSeeker seeker;
+
+    public MissingLastRevSeekerTest(DocumentStoreFixture dsf) {
+        super(dsf);
+    }
 
     @Before
     public void before() throws Exception {
@@ -45,12 +50,18 @@ public class MissingLastRevSeekerTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
-        store = new MemoryDocumentStore();
-        seeker = new MissingLastRevSeeker(store, clock);
+        store = ds;
+        if (dsf == DocumentStoreFixture.MONGO) {
+            seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
+        } else {
+            seeker = new MissingLastRevSeeker(store, clock);
+        }
+        removeMeClusterNodes.add("1");
+        removeMeClusterNodes.add("2");
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
     }
