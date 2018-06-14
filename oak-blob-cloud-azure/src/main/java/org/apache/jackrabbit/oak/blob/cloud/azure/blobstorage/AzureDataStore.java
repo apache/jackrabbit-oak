@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.URL;
 import java.util.Properties;
@@ -92,6 +93,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         // NOOP - not a feature of Azure Blob Storage
     }
 
+    @Nullable
     @Override
     public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
@@ -106,7 +108,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         return azureBlobStoreBackend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
-    @Nullable
+    @Nonnull
     @Override
     public DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {

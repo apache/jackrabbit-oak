@@ -662,7 +662,12 @@ public class DataStoreBlobStore
     public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
-                DataRecordHttpUpload upload = ((HttpDataRecordProvider) delegate).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
+
+                DataRecordHttpUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                if (upload == null) {
+                    return null;
+                }
                 return new BlobHttpUpload() {
                     @Override
                     public String getUploadToken() {
@@ -692,7 +697,7 @@ public class DataStoreBlobStore
         return null;
     }
 
-    @Nullable
+    @Nonnull
     @Override
     public Blob completeHttpUpload(String uploadToken) {
         if (delegate instanceof HttpDataRecordProvider) {
@@ -704,14 +709,14 @@ public class DataStoreBlobStore
                 log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
             }
         }
-        return null;
+        throw new UnsupportedOperationException("HTTP upload not supported");
     }
 
     @Nullable
     @Override
-    public URL getHttpURL(Blob blob) {
+    public URL getHttpDownloadURL(Blob blob) {
         if (delegate instanceof HttpDataRecordProvider) {
-            return ((HttpDataRecordProvider) delegate).getHttpURL(
+            return ((HttpDataRecordProvider) delegate).getDownloadURL(
                     new DataIdentifier(blob.getContentIdentity()));
         }
         return null;

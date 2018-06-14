@@ -16,19 +16,40 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.ItemExistsException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
+
 import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
-import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -41,44 +62,16 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Binary;
-import javax.jcr.ItemExistsException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-
 /**
  * TODO document
  */
-public class SessionDelegate implements HttpBinaryProvider {
+public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
     static final Logger auditLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.audit");
     static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
@@ -302,6 +295,14 @@ public class SessionDelegate implements HttpBinaryProvider {
     public <T> T safePerform(SessionOperation<T> sessionOperation) {
         try {
             return perform(sessionOperation);
+        } catch (RepositoryException e) {
+            throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
+        }
+    }
+
+    public <T> T safePerformNullable(SessionOperation<T> sessionOperation) {
+        try {
+            return performNullable(sessionOperation);
         } catch (RepositoryException e) {
             throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
         }
@@ -675,56 +676,6 @@ public class SessionDelegate implements HttpBinaryProvider {
      */
     private static RepositoryException newRepositoryException(CommitFailedException exception) {
         return exception.asRepositoryException();
-    }
-
-    //--------------------------------------------------< BinaryUploadProvider >---
-
-    @Nullable
-    @Override
-    public BinaryHttpUpload initializeHttpUpload(long maxSize, int maxParts) throws AccessDeniedException {
-        if (root instanceof HttpBlobProvider) {
-            BlobHttpUpload upload = ((HttpBlobProvider) root).initiateHttpUpload(maxSize, maxParts);
-            return new BinaryHttpUpload() {
-                @Override
-                public String getUploadToken() {
-                    return upload.getUploadToken();
-                }
-
-                @Override
-                public long getMinPartSize() {
-                    return upload.getMinPartSize();
-                }
-
-                @Override
-                public long getMaxPartSize() {
-                    return upload.getMaxPartSize();
-                }
-
-                @Nonnull
-                @Override
-                public Collection<URL> getURLParts() {
-                    return upload.getUploadPartURLs();
-                }
-            };
-        }
-        return null;
-    }
-
-    @Nonnull
-    @Override
-    public Binary completeHttpUpload(String uploadToken) throws RepositoryException {
-        if (root instanceof HttpBlobProvider) {
-            Blob blob = ((HttpBlobProvider) root).completeHttpUpload(uploadToken);
-            // TODO: How to convert a Blob to a Binary??
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public URL getDownloadURL(Binary binary) throws RepositoryException {
-        // TODO:  How to convert a Binary to a Blob??
-        return null;
     }
 
     //------------------------------------------------------------< SynchronizedIterator >---

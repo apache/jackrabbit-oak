@@ -107,14 +107,14 @@ public abstract class AbstractHttpDataRecordProviderTest {
     @Test
     public void testGetReadUrlProvidesValidUrl() {
         DataIdentifier id = new DataIdentifier("testIdentifier");
-        URL url = getDataStore().getHttpURL(id);
+        URL url = getDataStore().getDownloadURL(id);
         assertNotNull(url);
     }
 
     @Test
     public void testGetReadUrlRequiresValidIdentifier() {
         try {
-            getDataStore().getHttpURL(null);
+            getDataStore().getDownloadURL(null);
             fail();
         }
         catch (NullPointerException | IllegalArgumentException e) { }
@@ -125,7 +125,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         ConfigurableHttpDataRecordProvider dataStore = getDataStore();
         try {
             dataStore.setHttpDownloadURLExpirySeconds(0);
-            assertNull(dataStore.getHttpURL(new DataIdentifier("testIdentifier")));
+            assertNull(dataStore.getDownloadURL(new DataIdentifier("testIdentifier")));
         }
         finally {
             dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
@@ -140,7 +140,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
             String testData = randomString(256);
             record = doSynchronousAddRecord((DataStore) dataStore,
                     new ByteArrayInputStream(testData.getBytes()));
-            URL url = dataStore.getHttpURL(record.getIdentifier());
+            URL url = dataStore.getDownloadURL(record.getIdentifier());
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             assertEquals(200, conn.getResponseCode());
@@ -166,7 +166,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
             dataStore.setHttpDownloadURLExpirySeconds(2);
             record = doSynchronousAddRecord((DataStore) dataStore,
                     new ByteArrayInputStream(testData.getBytes()));
-            URL url = dataStore.getHttpURL(record.getIdentifier());
+            URL url = dataStore.getDownloadURL(record.getIdentifier());
             try {
                 Thread.sleep(5 * 1000);
             } catch (InterruptedException e) {

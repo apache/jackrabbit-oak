@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -25,7 +26,11 @@ import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
@@ -36,6 +41,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -72,6 +78,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.security.AccessControlException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
@@ -776,24 +783,118 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
         return sessionContext.getUserManager();
     }
 
-    //--------------------------------------------------< BinaryUploadProvider >---
+    //--------------------------------------------------< HttpBinaryProvider >---
 
     @Nullable
     @Override
     public BinaryHttpUpload initializeHttpUpload(long maxSize, int maxParts) throws AccessDeniedException {
-        return sd.initializeHttpUpload(maxSize, maxParts);
+        return sd.safePerformNullable(new ReadOperation<BinaryHttpUpload>("initializeHttpUpload") {
+
+            @Nullable
+            @Override
+            public BinaryHttpUpload performNullable() throws RepositoryException {
+                // TODO: some form of access control check
+                //       to avoid that e.g. anonymous can add unlimited binaries to the data store
+                //       and throw AccessDeniedException if this check fails
+
+                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
+                if (httpBlobProvider == null) {
+                    return null;
+                }
+
+                BlobHttpUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+                if (upload != null) {
+                    return new BinaryHttpUpload() {
+                        @Override
+                        public String getUploadToken() {
+                            return upload.getUploadToken();
+                        }
+
+                        @Override
+                        public long getMinPartSize() {
+                            return upload.getMinPartSize();
+                        }
+
+                        @Override
+                        public long getMaxPartSize() {
+                            return upload.getMaxPartSize();
+                        }
+
+                        @Nonnull
+                        @Override
+                        public Collection<URL> getURLParts() {
+                            return upload.getUploadPartURLs();
+                        }
+                    };
+                }
+                return null;
+            }
+        });
     }
 
     @Nonnull
     @Override
     public Binary completeHttpUpload(String uploadToken) throws RepositoryException {
-        return sd.completeHttpUpload(uploadToken);
+        return sd.perform(new ReadOperation<Binary>("completeHttpUpload") {
+
+            @Nonnull
+            @Override
+            public Binary perform() throws RepositoryException {
+
+                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
+                if (httpBlobProvider == null) {
+                    throw new RepositoryException("HTTP binary upload not supported");
+                }
+                Blob blob = httpBlobProvider.completeHttpUpload(uploadToken);
+                if (blob == null) {
+                    throw new RepositoryException("HTTP binary upload could not be completed");
+                }
+
+                ValueFactoryImpl vf = (ValueFactoryImpl) sessionContext.getValueFactory();
+                return vf.createBinary(blob);
+            }
+        });
     }
 
     @Nullable
     @Override
-    public URL getDownloadURL(Binary binary) throws RepositoryException {
-        return sd.getDownloadURL(binary);
+    public URL getHttpDownloadURL(Binary binary) {
+        return sd.safePerform(new ReadOperation<URL>("getHttpDownloadURL") {
+
+            @Nullable
+            @Override
+            public URL performNullable() throws RepositoryException {
+                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
+                if (httpBlobProvider == null) {
+                    return null;
+                }
+                if (binary instanceof ReferenceBinary) {
+                    Blob blob = sd.getRoot().getBlob(((ReferenceBinary) binary).getReference());
+                    if (blob != null) {
+                        // TODO: how to check if this blob is actually a blob from that blob store?
+                        //       and not an inlined SegmentBlob or from another data store?
+                        //       a) DS could check for existence before presigning, but that'll be costly (network request vs. none)
+                        //       b) looking at the blob id will not help as that is not specific per DS
+                        //       c) alternatively we go the route of URLReadableBlob from patch v1 and add this to
+                        //          the blob impls itself, essentially changing the approach from provider to this, but only
+                        //          for HttpBlobProvider and below - for the JCR level API HttpBinaryProvider we should stick
+                        //          to that single simple interface for write + read IMO
+                        //       d) maybe the secure reference already helps?
+                        return httpBlobProvider.getHttpDownloadURL(blob);
+                    }
+                }
+                return null;
+            }
+        });
+    }
+
+    public HttpBlobProvider getHttpBlobProvider() {
+        Root root = sd.getRoot();
+        if (root instanceof HttpBlobProvider) {
+            return (HttpBlobProvider) root;
+        } else {
+            return null;
+        }
     }
 
     @Override

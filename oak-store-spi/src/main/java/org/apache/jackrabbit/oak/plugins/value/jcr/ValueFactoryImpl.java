@@ -307,6 +307,10 @@ public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFac
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 
+    public Binary createBinary(Blob blob) throws RepositoryException {
+        return createBinaryValue(blob).getBinary();
+    }
+
     @Override
     @Nullable
     public URLWritableBinary createURLWritableBinary() throws RepositoryException {

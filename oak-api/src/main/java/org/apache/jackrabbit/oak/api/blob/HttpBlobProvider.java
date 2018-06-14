@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.api.blob;
 import org.apache.jackrabbit.oak.api.Blob;
 
 import java.net.URL;
+import javax.annotation.Nullable;
 
 public interface HttpBlobProvider {
     /**
@@ -39,9 +40,12 @@ public interface HttpBlobProvider {
      * @throws {@code HttpUploadException} if the upload cannot be completed as
      * requested.
      */
+    @Nullable
     BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs);
 
+    @Nullable
     Blob completeHttpUpload(String uploadToken);
 
-    URL getDownloadURL(Blob blob);
+    @Nullable
+    URL getHttpDownloadURL(Blob blob);
 }

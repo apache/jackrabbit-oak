@@ -61,9 +61,11 @@ import javax.jcr.Session;
 public interface HttpBinaryProvider {
 
     /**
-     * Returns HTTP upload instructions for storing a binary. After a remote client has uploaded the
-     * binary, {@link #completeHttpUpload(String)} must be called using the same upload token returned
-     * from this method to retrieve a {@link Binary} that can be added and persisted into the repository.
+     * Returns HTTP upload instructions for storing a binary. This is the initial call in the
+     * {@link HttpBinaryProvider 3 phase process} to upload a binary directly through HTTP.
+     * After a remote client has uploaded the binary in step 2, {@link #completeHttpUpload(String)}
+     * must be called for step 3 using the same upload token returned from this method to retrieve
+     * a {@link Binary} that can be added and persisted into the repository.
      *
      * <p>
      * If this feature is not available, the method will return {@code null}.
@@ -105,17 +107,48 @@ public interface HttpBinaryProvider {
      *
      * @throws AccessDeniedException if the feature is available but the session is not allowed to add binaries
      */
-    // TODO: exceptions
-    // TODO: in which api/package?
+    // TODO: more exceptions?
     @Nullable
     BinaryHttpUpload initializeHttpUpload(long maxSize, int maxParts) throws AccessDeniedException;
 
-    // TODO document
-    // TODO exceptions
+    /**
+     * Complete the HTTP upload of a binary and return a {@link Binary} that can be added to
+     * the repository content. This is the final step of the {@link HttpBinaryProvider 3 phase process}
+     * to upload a binary directly through HTTP.
+     *
+     * <p>
+     * Unlike {@link #initializeHttpUpload(long, int)}, this will throw an exception if the feature is not
+     * supported, as a client must only attempt to call this with a proper value returned from
+     * {@link #initializeHttpUpload(long, int)}.
+     *
+     * @param uploadToken the token returned from {@link #initializeHttpUpload(long, int)}, available in {@link BinaryHttpUpload#getUploadToken()}
+     *
+     * @return a JCR binary to be used as property value
+     *
+     * @throws RepositoryException if binary upload is not supported or the uploadToken is invalid
+     */
+    // TODO more/specific exceptions?
     @Nonnull
     Binary completeHttpUpload(String uploadToken) throws RepositoryException;
 
-    // TODO document
+    /**
+     * Returns a URL for downloading the binary using HTTP GET directly from the underlying binary storage.
+     *
+     * <p>
+     * The URL will usually be time limited and cannot be shared with other users. It must
+     * only be returned to authenticated requests corresponding to this session user
+     * or trusted system components (service users).
+     *
+     * <p>
+     * The URL will only grant access to the particular binary. The client cannot infer any semantics from
+     * the URL structure and path names. It would typically include a cryptographic signature.
+     * Any change to the URL will likely result in a failing request.
+     *
+     * @param binary existing, persisted binary for which to retrieve the HTTP URL
+     *
+     * @return a URL for retrieving the binary using HTTP GET or {@code null} if the feature is not available
+     *         in general or for that particular binary
+     */
     @Nullable
-    URL getDownloadURL(Binary binary) throws RepositoryException;
+    URL getHttpDownloadURL(Binary binary);
 }

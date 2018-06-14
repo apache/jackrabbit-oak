@@ -53,7 +53,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertNotNull;
 
 /** Base class with all the logic to test different data stores that support URL writable or readable binaries */
-public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
+public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
@@ -81,7 +81,7 @@ public abstract class AbstractURLBinaryIT extends AbstractRepositoryTest {
         }
     }
 
-    protected AbstractURLBinaryIT(NodeStoreFixture fixture) {
+    protected AbstractHttpBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
     }
 

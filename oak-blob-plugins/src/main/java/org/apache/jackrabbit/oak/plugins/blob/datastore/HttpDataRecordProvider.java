@@ -54,7 +54,7 @@ public interface HttpDataRecordProvider {
      * @throws {@code HttpUploadException} if the upload cannot be completed as
      * requested.
      */
-    @Nonnull
+    @Nullable
     DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws HttpUploadException;
 
     /**
@@ -70,6 +70,6 @@ public interface HttpDataRecordProvider {
      * @throws {@code HttpUploadException} if the object written can't be found by S3, or
      * {@code DataStoreException} if the object written can't be found by the {@code DataStore}.
      */
-    @Nullable
+    @Nonnull
     DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException;
 }

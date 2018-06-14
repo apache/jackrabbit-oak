@@ -51,7 +51,7 @@ import static org.junit.Assert.assertNull;
 
 /**
  * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
- * (such as S3) for each {@link AbstractURLBinaryIT#dataStoreFixtures() configured fixture}.
+ * (such as S3) for each {@link AbstractHttpBinaryIT#dataStoreFixtures() configured fixture}.
  * 
  * Data store must be configured through aws.properties.
  *
@@ -64,14 +64,14 @@ import static org.junit.Assert.assertNull;
  *     mvn -PintegrationTesting clean install
  */
 @RunWith(Parameterized.class)
-public class URLBinaryIT extends AbstractURLBinaryIT {
+public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     private static final String FILE_PATH = "/file";
     private static final String CONTENT = "hi there, I'm a binary blob!";
     private static final int REGULAR_WRITE_EXPIRY = 60; // seconds
     private static final int REGULAR_READ_EXPIRY = 60; // seconds
 
-    public URLBinaryIT(NodeStoreFixture fixture) {
+    public HttpBinaryIT(NodeStoreFixture fixture) {
         super(fixture);
     }
 
@@ -129,10 +129,11 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
 
         assertEquals("PUT to pre-signed S3 URL failed", 200, code);
 
-        Binary binary1 = uploadProvider.completeHttpUpload(upload.getUploadToken());
+        Binary writeBinary = uploadProvider.completeHttpUpload(upload.getUploadToken());
+        putBinary(getAdminSession(), FILE_PATH, writeBinary);
 
-        Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
-        binary2.getStream();
+        Binary readBinary = getBinary(getAdminSession(), FILE_PATH);
+        readBinary.getStream();
     }
 
     // D1/S2 - test reading getBinary().getInputStream() once uploaded
@@ -391,6 +392,11 @@ public class URLBinaryIT extends AbstractURLBinaryIT {
         }
         Node file = session.getRootNode().addNode(path.substring(1), JcrConstants.NT_FILE);
         return file.addNode(JcrConstants.JCR_CONTENT, JcrConstants.NT_RESOURCE);
+    }
+
+    private void putBinary(Session session, String ntFilePath, Binary binary) throws RepositoryException {
+        Node node = getOrCreateNtFile(session, ntFilePath);
+        node.setProperty(JcrConstants.JCR_DATA, binary);
     }
 
     private Binary getBinary(Session session, String ntFilePath) throws RepositoryException {
