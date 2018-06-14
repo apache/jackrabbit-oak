@@ -19,6 +19,34 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import com.google.common.io.Closeables;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
+import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
@@ -47,35 +75,6 @@ import static org.apache.jackrabbit.oak.segment.MapEntry.newModifiedMapEntry;
 import static org.apache.jackrabbit.oak.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.segment.RecordWriters.newNodeStateWriter;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeState.getStableId;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
-
-import com.google.common.io.Closeables;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
-import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Converts nodes, properties, values, etc. to records and persists them with
@@ -190,19 +189,6 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @Override
             public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
                 return with(writer).writeBlob(blob);
-            }
-        });
-    }
-
-    @Override
-    @Nonnull
-    public RecordId writeBlobId(@Nonnull final String blobId) throws IOException {
-        return writeOperationHandler.execute(new SegmentWriteOperation() {
-
-            @Nonnull
-            @Override
-            public RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException {
-                return with(writer).writeBlobId(blobId);
             }
         });
     }

@@ -302,7 +302,4 @@ public class ValueFactoryImpl implements ValueFactory {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 
-    public Binary createBinary(Blob blob) throws RepositoryException {
-        return createBinaryValue(blob).getBinary();
-    }
 }

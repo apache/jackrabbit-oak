@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.List;
+import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
+import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -39,17 +42,12 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.List;
 
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
-import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
-import org.apache.jackrabbit.oak.plugins.value.jcr.URLWritableBinaryImpl;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
-import org.apache.jackrabbit.value.ValueHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 
 /**
  * TODO document

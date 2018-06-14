@@ -17,18 +17,17 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Converts nodes, properties, values, etc. to records and persists them.
@@ -81,9 +80,6 @@ public interface SegmentWriter {
      */
     @Nonnull
     RecordId writeBlob(@Nonnull Blob blob) throws IOException;
-
-    @Nonnull
-    RecordId writeBlobId(@Nonnull String blobId) throws IOException;
 
     /**
      * Writes a block record containing the given block of bytes.
