@@ -18,33 +18,29 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptySet;
-import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
-import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
-import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-
-import java.io.InputStream;
-import java.net.URL;
-import java.util.List;
-import java.util.Set;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.blob.URLReadableBlob;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLReadableBlobStore;
+import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
+import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
-public class SegmentBlob extends Record implements Blob, URLReadableBlob {
+public class SegmentBlob extends Record implements Blob {
 
     @CheckForNull
     private final BlobStore blobStore;
@@ -261,18 +257,4 @@ public class SegmentBlob extends Record implements Blob, URLReadableBlob {
         return length;
     }
 
-    @Nullable
-    @Override
-    public URL getReadURL() {
-        if (blobStore instanceof URLReadableBlobStore) {
-            String blobId = getBlobId();
-            if (blobId != null) {
-                return ((URLReadableBlobStore) blobStore).getReadURL(blobId);
-            } else {
-                // inlined blob, no URL support
-                return null;
-            }
-        }
-        return null;
-    }
 }

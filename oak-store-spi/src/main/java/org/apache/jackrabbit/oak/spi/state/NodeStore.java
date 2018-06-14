@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 
 /**
  * Storage abstraction for trees. At any given point in time the stored
@@ -103,8 +101,6 @@ public interface NodeStore {
      */
     @Nonnull
     Blob createBlob(InputStream inputStream) throws IOException;
-
-    URLWritableBlob createURLWritableBlob() throws IOException;
 
     /**
      * Get a blob by its reference.

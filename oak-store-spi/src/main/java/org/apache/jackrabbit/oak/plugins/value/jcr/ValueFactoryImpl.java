@@ -16,36 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Calendar;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.Binary;
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
-import javax.jcr.nodetype.NodeType;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
-import org.apache.jackrabbit.oak.api.blob.URLWritableBlobRoot;
-import org.apache.jackrabbit.oak.api.binary.URLWritableBinary;
-import org.apache.jackrabbit.oak.api.binary.URLWritableBinaryValueFactory;
-import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -63,13 +41,30 @@ import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.jcr.Binary;
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.NodeType;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Calendar;
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
 
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFactory {
+public class ValueFactoryImpl implements ValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
@@ -310,26 +305,4 @@ public class ValueFactoryImpl implements ValueFactory, URLWritableBinaryValueFac
     public Binary createBinary(Blob blob) throws RepositoryException {
         return createBinaryValue(blob).getBinary();
     }
-
-    @Override
-    @Nullable
-    public URLWritableBinary createURLWritableBinary() throws RepositoryException {
-        if (!(root instanceof URLWritableBlobRoot)) {
-            // TODO: maybe throw exception instead, since incorrectly called on an ImmutableRoot or the like?
-            return null;
-        }
-        try {
-            URLWritableBlob urlWritableBlob = ((URLWritableBlobRoot) root).createURLWritableBlob();
-            if (urlWritableBlob == null) {
-                // not supported
-                return null;
-            }
-            return new URLWritableBinaryImpl(createBinaryValue(urlWritableBlob), urlWritableBlob);
-        } catch (IOException e) {
-            throw new RepositoryException(e);
-        }
-    }
-
-    //------------------------------------------------------------< ErrorValue >---
-
 }

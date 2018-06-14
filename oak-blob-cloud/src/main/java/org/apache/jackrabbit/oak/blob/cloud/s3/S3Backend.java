@@ -589,16 +589,10 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                if (key.endsWith(NEW_RECORD_SUFFIX)) {
-                    // present as empty
-                    LOG.debug("new URLWritableBlob not uploaded yet", e);
-                    return new EmptyRecord(identifier);
-                } else {
                     LOG.info(
                         "getRecord:Identifier [{}] not found. Took [{}] ms.",
                         identifier, (System.currentTimeMillis() - start));
                 }
-            }
             throw new DataStoreException(e);
         } finally {
             if (contextClassLoader != null) {

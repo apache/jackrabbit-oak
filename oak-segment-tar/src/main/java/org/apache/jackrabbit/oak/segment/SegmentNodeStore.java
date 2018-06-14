@@ -23,13 +23,11 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.URLWritableBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
 import org.apache.jackrabbit.oak.segment.scheduler.Scheduler;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.URLWritableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -233,20 +231,6 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return new SegmentBlob(blobStore, writer.writeStream(stream));
-    }
-
-    @Override
-    public URLWritableBlob createURLWritableBlob() throws IOException {
-        if (blobStore == null || !(blobStore instanceof URLWritableBlobStore)) {
-            // SegmentNodeStore itself cannot provide (true) external binaries
-            return null;
-        }
-        URLWritableBlobStore urlWritableBlobStore = (URLWritableBlobStore) blobStore;
-        String blobId = urlWritableBlobStore.createURLWritableBlobId();
-        if (blobId == null) {
-            return null;
-        }
-        return new SegmentURLWritableBlob(urlWritableBlobStore, writer.writeBlobId(blobId));
     }
 
     @Override
