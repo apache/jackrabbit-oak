@@ -18,6 +18,20 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static java.lang.System.getProperty;
+import static junit.framework.TestCase.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -31,19 +45,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import javax.net.ssl.HttpsURLConnection;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-
-import static java.lang.System.getProperty;
-import static junit.framework.TestCase.assertTrue;
 
 public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
     @ClassRule

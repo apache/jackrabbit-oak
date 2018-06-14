@@ -194,4 +194,5 @@ class CompositionContext {
     CompositeNodeStoreMonitor getNodeBuilderMonitor() {
         return nodeBuilderMonitor;
     }
+
 }

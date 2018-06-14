@@ -18,6 +18,22 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import static java.lang.System.getProperty;
+import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -33,21 +49,6 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import javax.net.ssl.HttpsURLConnection;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.Properties;
-
-import static java.lang.System.getProperty;
-import static org.junit.Assert.assertEquals;
 
 public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
     @ClassRule

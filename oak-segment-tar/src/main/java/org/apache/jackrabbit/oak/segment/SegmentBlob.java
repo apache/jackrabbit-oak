@@ -18,24 +18,25 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
+import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptySet;
-import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
-import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".

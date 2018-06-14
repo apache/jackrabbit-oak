@@ -16,6 +16,42 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.security.AccessControlException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Binary;
+import javax.jcr.Credentials;
+import javax.jcr.InvalidSerializedDataException;
+import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.retention.RetentionManager;
+import javax.jcr.security.AccessControlManager;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -51,41 +87,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.Binary;
-import javax.jcr.Credentials;
-import javax.jcr.InvalidSerializedDataException;
-import javax.jcr.Item;
-import javax.jcr.ItemNotFoundException;
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Property;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.ValueFactory;
-import javax.jcr.Workspace;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.retention.RetentionManager;
-import javax.jcr.security.AccessControlManager;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
-import java.security.AccessControlException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newTreeSet;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * TODO document

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import java.net.URL;
+import java.util.Properties;
+
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -26,10 +31,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-
-import javax.annotation.Nonnull;
-import java.net.URL;
-import java.util.Properties;
 
 
 /**
