@@ -79,7 +79,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     private MongoCollection<BasicDBObject> getClusterNodeCollection() {
-        return store.getDBCollection(CLUSTER_NODES);
+        return store.getDBCollection(CLUSTER_NODES, ReadPreference.primary());
     }
 }
 
