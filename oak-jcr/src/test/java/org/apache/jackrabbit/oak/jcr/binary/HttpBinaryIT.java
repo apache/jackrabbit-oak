@@ -39,6 +39,7 @@ import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -208,28 +209,29 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     // F9 - URLReadableBinary for binary after write using URLWritableBinary
-//    @Test
-//    public void testURLReadableBinary() throws Exception {
-//        // enable writable and readable URL feature
-//        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
-//        provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-//        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
-//
-//        // 1. add binary and upload
-//        URLWritableBinary newBinary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        httpPut(newBinary.getWriteURL(), getTestInputStream(CONTENT));
-//
-//        // 2. read binary, check it's a URLReadableBinary and get the URL
-//        Binary binary = getBinary(getAdminSession(), FILE_PATH);
-//        assertTrue(binary instanceof URLReadableBinary);
-//        URL url = ((URLReadableBinary) binary).getReadURL();
-//        assertNotNull(url);
-//
-//        // 3. GET on URL and verify contents are the same
-//        InputStream stream = httpGet(url);
-//        assertTrue(IOUtils.contentEquals(stream, getTestInputStream(CONTENT)));
-//    }
-//
+    @Test
+    public void testURLReadableBinary() throws Exception {
+        // enable writable and readable URL feature
+        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+
+        // 1. add binary and upload
+        String content = getRandomString(256);
+        HttpBinaryProvider binaryProvider = (HttpBinaryProvider) getAdminSession();
+        BinaryHttpUpload upload = binaryProvider.initializeHttpUpload(content.getBytes().length, 10);
+        httpPut(upload.getURLParts().iterator().next(), new ByteArrayInputStream(content.getBytes()));
+        Binary writeBinary = binaryProvider.completeHttpUpload(upload.getUploadToken());
+
+        // 2. read binary, get the URL
+        URL downloadURL = binaryProvider.getHttpDownloadURL(writeBinary);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(httpGet(downloadURL), writer, "utf-8");
+
+        // 3. GET on URL and verify contents are the same
+        assertEquals(content, writer.toString());
+    }
+
 //    // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
 //    @Test
 //    public void testURLReadableBinaryFromInputStream() throws Exception {

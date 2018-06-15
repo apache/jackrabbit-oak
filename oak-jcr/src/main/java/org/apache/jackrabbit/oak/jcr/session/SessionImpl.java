@@ -860,7 +860,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
     @Nullable
     @Override
     public URL getHttpDownloadURL(Binary binary) {
-        return sd.safePerform(new ReadOperation<URL>("getHttpDownloadURL") {
+        return sd.safePerformNullable(new ReadOperation<URL>("getHttpDownloadURL") {
 
             @Nullable
             @Override

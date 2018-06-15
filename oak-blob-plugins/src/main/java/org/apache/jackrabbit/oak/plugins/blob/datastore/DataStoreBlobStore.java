@@ -718,7 +718,7 @@ public class DataStoreBlobStore
     public URL getHttpDownloadURL(Blob blob) {
         if (delegate instanceof HttpDataRecordProvider) {
             return ((HttpDataRecordProvider) delegate).getDownloadURL(
-                    new DataIdentifier(blob.getContentIdentity()));
+                    new DataIdentifier(extractBlobId(blob.getContentIdentity())));
         }
         return null;
     }
