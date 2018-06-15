@@ -25,7 +25,9 @@ import static org.junit.Assert.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.util.Random;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -43,15 +45,16 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 /**
- * Integration test for URLWritableBinary and URLReadableBinary, that requires a fully working data store
+ * Integration test for direct binary GET/PUT via HTTP, that requires a fully working data store
  * (such as S3) for each {@link AbstractHttpBinaryIT#dataStoreFixtures() configured fixture}.
+ * The data store in question must support direct GET/PUT access via a URL.
  * 
- * Data store must be configured through aws.properties.
+ * Data store must be configured through e.g. aws.properties.
  *
  * Run this IT in maven using either:
  *
  *   single test:
- *     mvn clean test -Dtest=URLBinaryIT
+ *     mvn clean test -Dtest=HttpBinaryIT
  * 
  *   as part of all integration tests:
  *     mvn -PintegrationTesting clean install
@@ -79,7 +82,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     // TODO: one test for each requirement
     // F2 - CDN & transfer accelerators
-    // F3 - chunked upload
     // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
     // F5 - more cloud stores => new fixtures, mock fixture
     // F6/F7 - no additional final request, notification API via SQS
@@ -131,6 +133,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertEquals(TEST_BINARY, writer.toString());
     }
 
+    // F3 - Multi-part upload
     @Test
     public void testMultiPartUpload() throws Exception {
         getConfigurableHttpDataRecordProvider()
@@ -182,21 +185,27 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 //        assertEquals(url, binary.getWriteURL());
 //    }
 //
-//    // F8 - test reading getBinary().getInputStream() once uploaded
-//    @Test
-//    public void testStreamBinaryThroughJCRAfterURLWrite() throws Exception {
-//        // enable writable URL feature
-//        getConfigurableHttpDataRecordProvider()
-//                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-//
-//        // 1. add binary and upload
-//        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        httpPut(binary.getWriteURL(), getTestInputStream(CONTENT));
-//
-//        // 2. stream through JCR and validate it's the same
-//        Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
-//        assertTrue(IOUtils.contentEquals(binaryRead.getStream(), getTestInputStream(CONTENT)));
-//    }
+    // F8 - test reading getBinary().getInputStream() once uploaded
+    @Test
+    public void testStreamBinaryThroughJCRAfterURLWrite() throws Exception {
+        // enable writable URL feature
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+
+        // 1. add binary and upload
+        String content = getRandomString(256);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(
+                content.getBytes().length, 10);
+        httpPut(upload.getURLParts().iterator().next(), new ByteArrayInputStream(content.getBytes()));
+        Binary binaryWrite = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
+        saveFileWithBinary(getAdminSession(), FILE_PATH, binaryWrite);
+
+        // 2. stream through JCR and validate it's the same
+        Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(binaryRead.getStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
 
     // F9 - URLReadableBinary for binary after write using URLWritableBinary
 //    @Test
@@ -434,28 +443,36 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             .getBinary();
     }
 
-    private String getRandomString(long length) {
+    private String getRandomString(long size) {
         String base = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+/";
         StringWriter writer = new StringWriter();
-        int outputSize = 0;
-        while (outputSize < length) {
-            if (length < base.length()) {
-                writer.write(base.substring(0, (int)length));
+        Random random = new Random();
+        if (size > 256) {
+            String str256 = getRandomString(256);
+            while (size >= 256) {
+                writer.write(str256);
+                size -= 256;
             }
-            else {
-                writer.write(base);
+            if (size > 0) {
+                writer.write(str256.substring(0, (int)size));
             }
-            length -= base.length();
+        }
+        else {
+            for (long i = 0; i < size; i++) {
+                writer.append(base.charAt(random.nextInt(base.length())));
+            }
         }
         return writer.toString();
     }
 
-    /** Creates an nt:file with an url access binary at the given path and saves the session. */
-//    @Nonnull
-//    private URLWritableBinary saveFileWithURLWritableBinary(Session session, String path) throws RepositoryException {
-//        return createFileWithURLWritableBinary(session, path, true);
-//    }
-//
+    /** Saves an nt:file with a binary at the given path and saves the session. */
+    @Nonnull
+    private void saveFileWithBinary(Session session, String path, Binary binary) throws RepositoryException {
+        Node node = getOrCreateNtFile(session, path);
+        node.setProperty(JcrConstants.JCR_DATA, binary);
+        session.save();
+    }
+
 //    /** Creates an nt:file with an url access binary at the given path. */
 //    @Nonnull
 //    private URLWritableBinary createFileWithURLWritableBinary(Session session, String path, boolean autoSave) throws RepositoryException {
