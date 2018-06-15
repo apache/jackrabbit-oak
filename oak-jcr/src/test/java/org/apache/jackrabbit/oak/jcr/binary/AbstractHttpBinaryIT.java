@@ -18,23 +18,8 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.AfterClass;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -50,7 +35,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-import static org.junit.Assert.assertNotNull;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.AfterClass;
+import org.junit.runners.Parameterized;
 
 /** Base class with all the logic to test different data stores that support URL writable or readable binaries */
 public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
