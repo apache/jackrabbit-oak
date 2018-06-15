@@ -730,42 +730,43 @@ public class S3Backend extends AbstractSharedBackend {
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 
-        if (maxNumberOfUrls <= 1 ||
-                maxUploadSizeInBytes <= minPartSize) {
-            // single put
-            uploadPartURLs.add(createPresignedPutURL(newIdentifier));
-        }
-        else if (presignedPutExpirySeconds > 0){
-            // multi-part
-            InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-            InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
-            uploadId = res.getUploadId();
-
-            long numParts = maxNumberOfUrls;
-            long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
-            if (requestedPartSize <= maxPartSize) {
-                numParts = Math.min(
-                        maxNumberOfUrls,
-                        Math.min(
-                                (long)Math.ceil(((double)maxUploadSizeInBytes) / ((double)minPartSize)),
-                                MAX_ALLOWABLE_UPLOAD_URLS
-                        )
-                );
+        if (presignedPutExpirySeconds > 0) {
+            if (maxNumberOfUrls <= 1 ||
+                    maxUploadSizeInBytes <= minPartSize) {
+                // single put
+                uploadPartURLs.add(createPresignedPutURL(newIdentifier));
             }
             else {
-                throw new HttpUploadException(
-                        String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
-                );
-            }
+                // multi-part
+                InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                uploadId = res.getUploadId();
 
-            Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
-            for (long blockId = 1; blockId <= numParts; ++blockId) {
-                presignedUrlRequestParams.put("partNumber", String.valueOf(blockId));
-                presignedUrlRequestParams.put("uploadId", uploadId);
-                uploadPartURLs.add(createPresignedURL(newIdentifier,
-                        HttpMethod.PUT,
-                        presignedPutExpirySeconds,
-                        presignedUrlRequestParams));
+                long numParts = maxNumberOfUrls;
+                long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
+                if (requestedPartSize <= maxPartSize) {
+                    numParts = Math.min(
+                            maxNumberOfUrls,
+                            Math.min(
+                                    (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
+                                    MAX_ALLOWABLE_UPLOAD_URLS
+                            )
+                    );
+                } else {
+                    throw new HttpUploadException(
+                            String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                    );
+                }
+
+                Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
+                for (long blockId = 1; blockId <= numParts; ++blockId) {
+                    presignedUrlRequestParams.put("partNumber", String.valueOf(blockId));
+                    presignedUrlRequestParams.put("uploadId", uploadId);
+                    uploadPartURLs.add(createPresignedURL(newIdentifier,
+                            HttpMethod.PUT,
+                            presignedPutExpirySeconds,
+                            presignedUrlRequestParams));
+                }
             }
         }
 

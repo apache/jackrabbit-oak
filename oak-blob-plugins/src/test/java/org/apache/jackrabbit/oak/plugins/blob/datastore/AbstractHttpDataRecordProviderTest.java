@@ -242,6 +242,9 @@ public abstract class AbstractHttpDataRecordProviderTest {
             ds.setHttpUploadURLExpirySeconds(0);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
             assertEquals(0, uploadContext.getUploadPartURLs().size());
+
+            uploadContext = ds.initiateHttpUpload(20, 1);
+            assertEquals(0, uploadContext.getUploadPartURLs().size());
         }
         finally {
             ds.setHttpUploadURLExpirySeconds(expirySeconds);

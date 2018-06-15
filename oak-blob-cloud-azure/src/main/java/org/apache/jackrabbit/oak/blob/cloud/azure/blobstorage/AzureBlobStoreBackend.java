@@ -743,46 +743,47 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 
-        if (maxNumberOfUrls <= 1 ||
-                maxUploadSizeInBytes <= minPartSize) {
-            // single put
-            uploadPartURLs.add(createPresignedURL(blobId,
-                    EnumSet.of(SharedAccessBlobPermissions.WRITE),
-                    presignedPutExpirySeconds));
-        }
-        else if (presignedPutExpirySeconds > 0) {
-            // multi-part
-
-            // Azure doesn't use upload IDs like AWS does
-            // Generate a fake one for compatibility - we use them to determine whether we are
-            // doing multi-part or single-put upload
-            uploadId = Base64.encode(UUID.randomUUID().toString());
-
-            long numParts = maxNumberOfUrls;
-            long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
-            if (requestedPartSize <= maxPartSize) {
-                numParts = Math.min(
-                        maxNumberOfUrls,
-                        Math.min(
-                                (long)Math.ceil(((double)maxUploadSizeInBytes) / ((double)minPartSize)),
-                                MAX_ALLOWABLE_UPLOAD_URLS
-                        )
-                );
+        if (presignedPutExpirySeconds > 0) {
+            if (maxNumberOfUrls <= 1 ||
+                    maxUploadSizeInBytes <= minPartSize) {
+                // single put
+                uploadPartURLs.add(createPresignedURL(blobId,
+                        EnumSet.of(SharedAccessBlobPermissions.WRITE),
+                        presignedPutExpirySeconds));
             }
             else {
-                throw new HttpUploadException(
-                        String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
-                );
-            }
+                // multi-part
 
-            String key = getKeyName(newIdentifier);
-            EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
-            Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
-            presignedUrlRequestParams.put("comp", "block");
-            for (long blockId = 1; blockId <= numParts; ++blockId) {
-                presignedUrlRequestParams.put("blockId",
-                        Base64.encode(String.format("%06d", blockId)));
-                uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
+                // Azure doesn't use upload IDs like AWS does
+                // Generate a fake one for compatibility - we use them to determine whether we are
+                // doing multi-part or single-put upload
+                uploadId = Base64.encode(UUID.randomUUID().toString());
+
+                long numParts = maxNumberOfUrls;
+                long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
+                if (requestedPartSize <= maxPartSize) {
+                    numParts = Math.min(
+                            maxNumberOfUrls,
+                            Math.min(
+                                    (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
+                                    MAX_ALLOWABLE_UPLOAD_URLS
+                            )
+                    );
+                } else {
+                    throw new HttpUploadException(
+                            String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                    );
+                }
+
+                String key = getKeyName(newIdentifier);
+                EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
+                Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
+                presignedUrlRequestParams.put("comp", "block");
+                for (long blockId = 1; blockId <= numParts; ++blockId) {
+                    presignedUrlRequestParams.put("blockId",
+                            Base64.encode(String.format("%06d", blockId)));
+                    uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
+                }
             }
         }
 
