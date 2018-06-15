@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.jcr.binary;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Random;
 
@@ -37,6 +39,7 @@ import javax.jcr.Session;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
@@ -83,10 +86,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     // TODO: one test for each requirement
-    // F2 - CDN & transfer accelerators
     // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
     // F5 - more cloud stores => new fixtures, mock fixture
-    // F6/F7 - no additional final request, notification API via SQS
 
     // A1 - get put url, change it and try uploading somewhere else in S3
     // A4 - no test, SHOULD requirement only, hard to test
@@ -209,7 +210,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertEquals(content, writer.toString());
     }
 
-    // F9 - GET Binary when created via repo
+    // F10 - GET Binary when created via repo
     @Test
     public void testGetBinary() throws Exception {
         getConfigurableHttpDataRecordProvider()
@@ -266,85 +267,64 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertNull(downloadURL);
     }
 
-//    // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
-//    @Test
-//    public void testURLReadableBinaryFromInputStream() throws Exception {
-//        // enable readable URL feature
-//        getConfigurableHttpDataRecordProvider()
-//                .setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
-//
-//        // 1. add binary via input stream (must be larger than 16 KB segmentstore inline binary limit)
-//        Node resource = getOrCreateNtFile(getAdminSession(), FILE_PATH);
-//        Binary streamBinary = getAdminSession().getValueFactory().createBinary(getTestInputStream(MB));
-//        resource.setProperty(JcrConstants.JCR_DATA, streamBinary);
-//
-//        waitForUploads();
-//
-//        // 2. read binary, check it's a URLReadableBinary and get the URL
-//        Binary binary = getBinary(getAdminSession(), FILE_PATH);
-//        assertTrue(binary instanceof URLReadableBinary);
-//        URL url = ((URLReadableBinary) binary).getReadURL();
-//        assertNotNull(url);
-//
-//        // 3. GET on URL and verify contents are the same
-//        InputStream stream = httpGet(url);
-//        assertTrue(IOUtils.contentEquals(stream, getTestInputStream(MB)));
-//    }
-
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
     //      where the user has JCR set_property permission.
+    // TODO: The session requires a path in order to check permissions, which we do not currently provide in initializeHttpUpload().
 //    @Test
-//    public void testReadingBinaryDoesNotReturnURLWritableBinary() throws Exception {
-//        // 1. create URL access binary
-//        saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
+//    public void testUnprivilegedSessionCannotUploadBinary() throws Exception {
+//        // enable writable URL feature
+//        getConfigurableHttpDataRecordProvider()
+//                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 //
-//        // 2. then get existing url access binary using read-only session
-//        Binary binary = getBinary(createAnonymousSession(), FILE_PATH);
+//        // 1. add binary and upload
+//        String content = getRandomString(256);
+//        BinaryHttpUpload upload = ((HttpBinaryProvider) getAnonymousSession()).initializeHttpUpload(
+//                content.getBytes().length, 10);
 //
-//        // 3. ensure we do not get a writable binary
-//        assertFalse(binary instanceof URLWritableBinary);
+//        assertNull(upload);
 //    }
 
     // A2 - disable write URLs entirely
-//    @Test
-//    public void testDisabledURLWritableBinary() throws Exception {
-//        // disable in data store config by setting expiry to zero
-//        getConfigurableHttpDataRecordProvider()
-//                .setHttpUploadURLExpirySeconds(0);
-//
-//        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        // TODO: we might want to not return a URLWritableBinary in the first place if it's disabled
-//        assertNotNull(binary);
-//        assertNull(binary.getWriteURL());
-//
-//        // TODO: extra test, showing alternative input stream code working if disabled
-///*
-//        if (placeholderBinary == null) {
-//            // fallback
-//            System.out.println(">>> NO url binary support");
-//            // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
-//            // generate 2 MB of meaningless bytes
-//            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
-//        }
-//*/
-//    }
+    @Test
+    public void testDisableDirectHttpUpload() throws Exception {
+        // disable in data store config by setting expiry to zero
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(0);
+
+        String content = getRandomString(256);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 10);
+
+        assertNotNull(upload);
+        assertEquals(0, upload.getURLParts().size());
+
+        // TODO: extra test, showing alternative input stream code working if disabled
+/*
+        if (placeholderBinary == null) {
+            // fallback
+            System.out.println(">>> NO url binary support");
+            // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
+            // generate 2 MB of meaningless bytes
+            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
+        }
+*/
+    }
 
     // A2/A3 - configure short expiry time, wait, ensure upload fails after expired
-//    @Test
-//    public void testExpiryOfURLWritableBinary() throws Exception {
-//        // short timeout
-//        getConfigurableHttpDataRecordProvider()
-//                .setHttpUploadURLExpirySeconds(1);
-//
-//        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        URL url = binary.getWriteURL();
-//
-//        // wait to pass timeout
-//        Thread.sleep(2 * SECONDS);
-//
-//        // ensure PUT fails with 403 or anything 400+
-//        assertTrue(httpPutTestStream(url) > HttpURLConnection.HTTP_BAD_REQUEST);
-//    }
+    @Test
+    public void testPutURLExpires() throws Exception {
+        // short timeout
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(1);
+
+        String content = getRandomString(1024*20);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 10);
+
+        // wait to pass timeout
+        Thread.sleep(2 * SECONDS);
+
+        // ensure PUT fails with 403 or anything 400+
+        assertTrue(httpPutTestStream(upload.getURLParts().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
+    }
 
     // this tests an initial unexpected side effect bug where the underlying URLWritableBlob implementation
     // failed to work in a hash set with at least two blobs because of default equals/hashCode methods trying
@@ -412,30 +392,32 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 //        assertEquals(url1, url2);
 //    }
 
-    // TODO: this test is S3 specific for now
-//    @Test
-//    public void testTransferAcceleration() throws Exception {
-//        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
-//        provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-//        provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
-//        provider.setBinaryTransferAccelerationEnabled(true);
-//
-//        URLWritableBinary binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        URL url = binary.getWriteURL();
-//        assertNotNull(url);
-//
-//        System.out.println("accelerated URL: " + url);
-//        assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
-//
-//        provider.setBinaryTransferAccelerationEnabled(false);
-//
-//        binary = saveFileWithURLWritableBinary(getAdminSession(), FILE_PATH);
-//        url = binary.getWriteURL();
-//        assertNotNull(url);
-//
-//        System.out.println("non-accelerated URL: " + url);
-//        assertFalse(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
-//    }
+    // F2 - CDN & transfer accelerators (S3 only for now)
+    @Test
+    public void testTransferAcceleration() throws Exception {
+        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        if (provider instanceof S3DataStore) {
+            // This test is S3 specific for now
+            provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+            provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+            provider.setBinaryTransferAccelerationEnabled(true);
+
+            BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(1024*20, 1);
+            URL url = upload.getURLParts().iterator().next();
+            assertNotNull(url);
+
+            System.out.println("accelerated URL: " + url);
+            assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
+
+            provider.setBinaryTransferAccelerationEnabled(false);
+            upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(1024*20, 1);
+            url = upload.getURLParts().iterator().next();
+            assertNotNull(url);
+
+            System.out.println("non-accelerated URL: " + url);
+            assertFalse(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
+        }
+    }
 
     // disabled, just a comparison playground for current blob behavior
     //@Test
@@ -513,24 +495,5 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         saveFileWithBinary(session, path, binary);
         return binary;
     }
-
-//    /** Creates an nt:file with an url access binary at the given path. */
-//    @Nonnull
-//    private URLWritableBinary createFileWithURLWritableBinary(Session session, String path, boolean autoSave) throws RepositoryException {
-//        Node resource = getOrCreateNtFile(session, path);
-//
-//        ValueFactory valueFactory = session.getValueFactory();
-//        assertTrue(valueFactory instanceof URLWritableBinaryValueFactory);
-//
-//        URLWritableBinary binary = ((URLWritableBinaryValueFactory) valueFactory).createURLWritableBinary();
-//        assertNotNull("URLWritableBinary not supported", binary);
-//        resource.setProperty(JcrConstants.JCR_DATA, binary);
-//
-//        if (autoSave) {
-//            session.save();
-//        }
-//
-//        return binary;
-//    }
 
 }
