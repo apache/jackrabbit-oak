@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -47,7 +46,8 @@ import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AfterClass;
@@ -72,6 +72,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
     }
 
     private static File staticDataStoreFolder;
+    private static File staticFileStoreFolder;
 
     // HACK: delete data store folder at the end of this test class, as we reuse the NodeStore
     // in the NodeStoreFixture and NodeStoreFixture.dispose() would delete between test runs
@@ -79,6 +80,9 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
     public static void cleanupStores() throws IOException {
         if (staticDataStoreFolder != null) {
             FileUtils.deleteDirectory(staticDataStoreFolder);
+        }
+        if (staticFileStoreFolder != null) {
+            FileUtils.deleteDirectory(staticFileStoreFolder);
         }
     }
 
@@ -153,21 +157,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             if (nodeStore == null) {
                 System.out.println("-------------------------- creating S3 backed repo --------------------------");
                 try {
-                    nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore() {
-
-                        private BlobStore blobStore;
-
-                        @CheckForNull
-                        @Override
-                        public BlobStore getBlobStore() {
-                            if (blobStore == null) {
-                                blobStore = createBlobStore();
-                            }
-                            return blobStore;
-                        }
-
-                    }).build();
-                } catch (IOException e) {
+                    staticFileStoreFolder = createTempFolder(new File("target"));
+                    nodeStore = SegmentNodeStoreBuilders.builder(
+                            FileStoreBuilder.fileStoreBuilder(staticFileStoreFolder)
+                            .withNodeDeduplicationCacheSize(16384)
+                            .withBlobStore(createBlobStore())
+                            .withMaxFileSize(256)
+                            .withMemoryMapping(false)
+                            .build()
+                    ).build();
+                } catch (IOException |InvalidFileStoreVersionException e) {
                     throw new AssertionError("Cannot create test repo fixture " + toString(), e);
                 }
             }
