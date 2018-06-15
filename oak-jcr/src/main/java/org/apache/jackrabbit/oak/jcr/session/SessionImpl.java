@@ -870,7 +870,12 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                     return null;
                 }
                 if (binary instanceof ReferenceBinary) {
-                    Blob blob = sd.getRoot().getBlob(((ReferenceBinary) binary).getReference());
+                    String blobReference = ((ReferenceBinary) binary).getReference();
+                    if (null == blobReference) {
+                        // Binary is inlined, we cannot return a URL for it
+                        return null;
+                    }
+                    Blob blob = sd.getRoot().getBlob(blobReference);
                     if (blob != null) {
                         // TODO: how to check if this blob is actually a blob from that blob store?
                         //       and not an inlined SegmentBlob or from another data store?

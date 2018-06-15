@@ -18,6 +18,7 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -214,7 +215,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
-        String content = getRandomString(256);
+        // Must be larger than the minimum file size, to keep it from being inlined in the node store.
+        String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
@@ -247,6 +249,21 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 3. GET on URL and verify contents are the same
         assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetSmallBinaryReturnsNull() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+
+        // Must be smaller than the minimum file size, (inlined binary)
+        String content = getRandomString(256);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        assertNull(downloadURL);
     }
 
 //    // F10 - URLReadableBinary for binary added through InputStream (has to wait for S3 upload)
@@ -493,7 +510,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     private Binary createFileWithBinary(Session session, String path, InputStream stream) throws RepositoryException {
         Binary binary = session.getValueFactory().createBinary(stream);
-        assertNotNull(((ReferenceBinary) binary).getReference());
         saveFileWithBinary(session, path, binary);
         return binary;
     }
