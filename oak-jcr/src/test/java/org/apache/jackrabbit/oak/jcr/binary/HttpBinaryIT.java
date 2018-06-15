@@ -23,11 +23,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -208,9 +208,26 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertEquals(content, writer.toString());
     }
 
-    // F9 - URLReadableBinary for binary after write using URLWritableBinary
+    // F9 - GET Binary when created via repo
     @Test
-    public void testURLReadableBinary() throws Exception {
+    public void testGetBinary() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(256);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(httpGet(downloadURL), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    // F9 - GET Binary for binary after write using direct PUT
+    @Test
+    public void testGetBinaryAfterPut() throws Exception {
         // enable writable and readable URL feature
         ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
         provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
@@ -468,11 +485,17 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     /** Saves an nt:file with a binary at the given path and saves the session. */
-    @Nonnull
     private void saveFileWithBinary(Session session, String path, Binary binary) throws RepositoryException {
         Node node = getOrCreateNtFile(session, path);
         node.setProperty(JcrConstants.JCR_DATA, binary);
         session.save();
+    }
+
+    private Binary createFileWithBinary(Session session, String path, InputStream stream) throws RepositoryException {
+        Binary binary = session.getValueFactory().createBinary(stream);
+        assertNotNull(((ReferenceBinary) binary).getReference());
+        saveFileWithBinary(session, path, binary);
+        return binary;
     }
 
 //    /** Creates an nt:file with an url access binary at the given path. */
