@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.binary;
 
 import static org.junit.Assert.assertNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -30,9 +31,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
+
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
@@ -364,21 +369,77 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return new ByteArrayInputStream(blob);
     }
 
-    protected int httpPut(@Nullable URL url, InputStream in) throws IOException  {
+    protected int httpPut(@Nullable URL url, long contentLength, InputStream in) throws IOException {
+        return httpPut(url, contentLength, in, false);
+    }
+
+    /**
+     * Uploads data via HTTP put to the provided URL.
+     *
+     * @param url The URL to upload to.
+     * @param contentLength Value to set in the Content-Length header.
+     * @param in - The input stream to upload.
+     * @param isMultiPart - True if this upload is part of a multi-part upload.
+     * @return HTTP response code from the upload request.  Note that a successful
+     * response for S3 is 200 - OK whereas for Azure it is 201 - Created.
+     * @throws IOException
+     */
+    protected int httpPut(@Nullable URL url, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
         assertNotNull(url);
 
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
         connection.setRequestMethod("PUT");
+        connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
+
+        try {
+            if (getConfigurableHttpDataRecordProvider() instanceof S3DataStore) {
+                // S3 required headers
+                connection.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now()));
+                connection.setRequestProperty("Host", url.getHost());
+            }
+            else if (getConfigurableHttpDataRecordProvider() instanceof AzureDataStore) {
+                // Azure required headers
+                connection.setRequestProperty("x-ms-date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+                        .withZone(ZoneOffset.UTC)
+                        .format(Instant.now()));
+                connection.setRequestProperty("x-ms-version", "2017-11-09");
+                if (! isMultiPart) {
+                    connection.setRequestProperty("x-ms-blob-type", "BlockBlob");
+                }
+            }
+
+        }
+        catch (RepositoryException e) {
+            throw new RuntimeException("Couldn't determine type of data store in use");
+        }
+
         OutputStream putStream = connection.getOutputStream();
         IOUtils.copy(in, putStream);
         putStream.close();
         return connection.getResponseCode();
     }
 
+    boolean isSuccessfulHttpPut(int code, ConfigurableHttpDataRecordProvider dataStore) {
+        if (dataStore instanceof S3DataStore) {
+            return 200 == code;
+        }
+        else if (dataStore instanceof AzureDataStore) {
+            return 201 == code;
+        }
+        return 200 == code;
+    }
+
+    boolean isFailedHttpPut(int code) {
+        return code >= 400 && code < 500;
+    }
+
     protected int httpPutTestStream(URL url) throws IOException {
-        return httpPut(url, getTestInputStream("hello world"));
+        String content = "hello world";
+        return httpPut(url, content.getBytes().length, getTestInputStream(content));
     }
 
     protected InputStream httpGet(@Nullable URL url) throws IOException  {
