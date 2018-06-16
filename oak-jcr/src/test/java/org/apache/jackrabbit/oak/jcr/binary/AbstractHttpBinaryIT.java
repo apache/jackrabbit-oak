@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.jcr.binary;
 
 import static org.junit.Assert.assertNotNull;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
@@ -34,27 +33,28 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
-
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AfterClass;
 import org.junit.runners.Parameterized;
 
-/** Base class with all the logic to test different data stores that support URL writable or readable binaries */
+/** Base class with all the logic to test different data stores that support binaries with direct HTTP access */
 public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
     @Parameterized.Parameters(name = "{0}")
@@ -62,29 +62,28 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         // could add Azure Blob store as another test case here later
 
         Collection<NodeStoreFixture> fixtures = new ArrayList<>();
-        // only add fixture if configured
-        Properties s3Props = S3DataStoreWithMemorySegmentFixture.loadS3Properties();
+
+        // only add fixtures for DataStore implementations if they are configured
+
+        Properties s3Props = S3DataStoreFixture.loadS3Properties();
         if (s3Props != null) {
-            fixtures.add(new S3DataStoreWithMemorySegmentFixture(s3Props));
+            S3DataStoreFixture s3 = new S3DataStoreFixture(s3Props);
+            fixtures.add(new SegmentMemoryNodeStoreFixture(s3));
+            fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
         } else {
-            System.out.println("Skipping AbstractURLBinaryIT based test for S3 repo fixture as no S3 properties file found given by 's3.config' system property or named 'aws.properties'.");
+            System.out.println("WARN: Skipping AbstractURLBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
         }
+
+        Properties azProps = AzureDataStoreFixture.loadAzureProperties();
+        if (azProps != null) {
+            AzureDataStoreFixture azure = new AzureDataStoreFixture(azProps);
+            fixtures.add(new SegmentMemoryNodeStoreFixture(azure));
+            fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
+        } else {
+            System.out.println("WARN: Skipping AbstractURLBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
+        }
+
         return fixtures;
-    }
-
-    private static File staticDataStoreFolder;
-    private static File staticFileStoreFolder;
-
-    // HACK: delete data store folder at the end of this test class, as we reuse the NodeStore
-    // in the NodeStoreFixture and NodeStoreFixture.dispose() would delete between test runs
-    @AfterClass
-    public static void cleanupStores() throws IOException {
-        if (staticDataStoreFolder != null) {
-            FileUtils.deleteDirectory(staticDataStoreFolder);
-        }
-        if (staticFileStoreFolder != null) {
-            FileUtils.deleteDirectory(staticFileStoreFolder);
-        }
     }
 
     protected AbstractHttpBinaryIT(NodeStoreFixture fixture) {
@@ -94,8 +93,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
     protected ConfigurableHttpDataRecordProvider getConfigurableHttpDataRecordProvider()
         throws RepositoryException {
         getRepository();
-        if (fixture instanceof DataStoreFixture) {
-            DataStore dataStore = ((DataStoreFixture) fixture).getDataStore();
+        if (fixture instanceof DataStoreHolder) {
+            DataStore dataStore = ((DataStoreHolder) fixture).getDataStore();
             if (dataStore instanceof ConfigurableHttpDataRecordProvider) {
                 return (ConfigurableHttpDataRecordProvider) dataStore;
             }
@@ -108,27 +107,76 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
     protected static final int MB = 1024 * 1024;
     protected static final int SECONDS = 1000;
 
-    // -----< fixtures >------------------------------------------------------------------------------------------------
+    // -----< data store fixtures >-------------------------------------------------------------------------------------
 
-    // abstraction so we can test different data store implementations using separate fixtures
-    // but control common configuration elements such as expiry times
     protected interface DataStoreFixture {
+        DataStore createDataStore();
+    }
+
+    protected static class S3DataStoreFixture implements DataStoreFixture {
+
+        private final Properties s3Props;
+
+        public S3DataStoreFixture(Properties s3Props) {
+            this.s3Props = s3Props;
+        }
+
+        @Nullable
+        public static Properties loadS3Properties() {
+            return loadDataStoreProperties("s3.config", "aws.properties", ".aws");
+        }
+
+        @Override
+        public DataStore createDataStore() {
+            S3DataStore dataStore = new S3DataStore();
+            dataStore.setProperties(s3Props);
+            return dataStore;
+        }
+    }
+
+    protected static class AzureDataStoreFixture implements DataStoreFixture {
+
+        private final Properties azProps;
+
+        public AzureDataStoreFixture(Properties azProps) {
+            this.azProps = azProps;
+        }
+
+        @Nullable
+        public static Properties loadAzureProperties() {
+            return loadDataStoreProperties("azure.config", "azure.properties", ".azure");
+        }
+
+        @Override
+        public DataStore createDataStore() {
+            AzureDataStore dataStore = new AzureDataStore();
+            dataStore.setProperties(azProps);
+            return dataStore;
+        }
+    }
+
+    // -----< repository fixtures >-------------------------------------------------------------------------------------
+
+    protected interface DataStoreHolder {
         DataStore getDataStore();
     }
 
-    protected static abstract class MemorySegmentWithDataStoreFixture extends NodeStoreFixture implements DataStoreFixture {
+    /**
+     * Creates a repository with
+     * - SegmentNodeStore, storing data in-memory
+     * - an optional DataStore provided by DataStoreFixture
+     */
+    protected static class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements DataStoreHolder {
 
-        protected final Properties props;
+        private final DataStoreFixture dataStoreFixture;
 
         private NodeStore nodeStore;
 
         private DataStore dataStore;
 
-        public MemorySegmentWithDataStoreFixture(Properties props) {
-            this.props = props;
+        public SegmentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
+            this.dataStoreFixture = dataStoreFixture;
         }
-
-        protected abstract DataStore createDataStore();
 
         @Override
         public NodeStore createNodeStore() {
@@ -136,19 +184,28 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             // this forces tests to properly clean their test content
             if (nodeStore == null) {
                 try {
-                    dataStore = createDataStore();
-                    BlobStore blobStore = new DataStoreBlobStore(dataStore);
+                    System.out.println();
+                    System.out.println("----------------- creating repository using " + toString() + " -----------------");
 
-                    staticFileStoreFolder = createTempFolder(new File("target"));
-                    nodeStore = SegmentNodeStoreBuilders.builder(
-                        FileStoreBuilder.fileStoreBuilder(staticFileStoreFolder)
-                            .withNodeDeduplicationCacheSize(16384)
-                            .withBlobStore(blobStore)
-                            .withMaxFileSize(256)
-                            .withMemoryMapping(false)
-                            .build()
-                    ).build();
-                } catch (IOException | InvalidFileStoreVersionException e) {
+                    FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(createTempFolder())
+                        .withNodeDeduplicationCacheSize(16384)
+                        .withMaxFileSize(256)
+                        .withMemoryMapping(false);
+
+                    if (dataStoreFixture != null) {
+
+                        // create data store (impl specific)
+                        dataStore = dataStoreFixture.createDataStore();
+
+                        // init with a new folder inside a temporary one
+                        dataStore.init(createTempFolder().getAbsolutePath());
+
+                        fileStoreBuilder.withBlobStore(new DataStoreBlobStore(dataStore));
+                    }
+
+                    nodeStore = SegmentNodeStoreBuilders.builder(fileStoreBuilder.build()).build();
+
+                } catch (IOException | InvalidFileStoreVersionException | RepositoryException e) {
                     throw new AssertionError("Cannot create test repo fixture " + toString(), e);
                 }
             }
@@ -163,64 +220,122 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         // for nice Junit parameterized test labels
         @Override
         public String toString() {
-            return getClass().getSimpleName();
+            String nodeStoreName = getClass().getSimpleName();
+            String name = StringUtils.removeEnd(nodeStoreName, "Fixture");
+            if (dataStoreFixture != null) {
+                String dataStoreName = dataStoreFixture.getClass().getSimpleName();
+                return name + "_" + StringUtils.removeEnd(dataStoreName, "Fixture");
+            }
+            return name;
         }
     }
 
-    // for this integration test create a SegmentNodeStore with
-    // - segments in memory
-    // - S3 data store as blob store
-    // - S3 configuration from "aws.properties" file or "-Ds3.config=<filename>" system property
-    protected static class S3DataStoreWithMemorySegmentFixture extends MemorySegmentWithDataStoreFixture {
+    /**
+     * Creates a repository with
+     * - DocumentNodeStore, storing data in-memory
+     * - an optional DataStore provided by DataStoreFixture
+     */
+    protected static class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements DataStoreHolder {
 
-        public S3DataStoreWithMemorySegmentFixture(Properties s3Props) {
-            super(s3Props);
-        }
+        private final DataStoreFixture dataStoreFixture;
 
-        @Nullable
-        public static Properties loadS3Properties() {
-            Properties s3Props = new Properties();
-            try {
-                File awsProps = new File(System.getProperty("s3.config", "aws.properties"));
-                if (!awsProps.exists()) {
-                    awsProps = Paths.get(System.getProperty("user.home"), ".aws", "aws.properties").toFile();
-                }
-                s3Props.load(new FileReader(awsProps));
-            } catch (IOException e) {
-                return null;
-            }
-            return s3Props;
+        private NodeStore nodeStore;
+
+        private DataStore dataStore;
+
+        public DocumentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
+            this.dataStoreFixture = dataStoreFixture;
         }
 
         @Override
-        public DataStore createDataStore() {
-            System.out.println("-------------------------- creating S3 backed repo --------------------------");
+        public NodeStore createNodeStore() {
+            // HACK: reuse repo for multiple tests so they are much faster
+            // this forces tests to properly clean their test content
+            if (nodeStore == null) {
+                try {
+                    System.out.println();
+                    System.out.println("----------------- creating repository using " + toString() + " -----------------");
 
-            try {
-                // create data store disk cache inside maven's "target" folder
-                File dataStoreFolder = createTempFolder(new File("target"));
-                staticDataStoreFolder = dataStoreFolder;
+                    DocumentNodeStoreBuilder<?> documentNodeStoreBuilder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder();
 
-                // create S3 DS
-                S3DataStore dataStore = new S3DataStore();
-                dataStore.setProperties(props);
+                    if (dataStoreFixture != null) {
 
-                // init with a new folder inside a temporary one
-                dataStore.init(dataStoreFolder.getAbsolutePath());
+                        // create data store (impl specific)
+                        dataStore = dataStoreFixture.createDataStore();
 
-                return dataStore;
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                        // init with a new folder inside a temporary one
+                        dataStore.init(createTempFolder().getAbsolutePath());
+
+                        documentNodeStoreBuilder.setBlobStore(new DataStoreBlobStore(dataStore));
+                    }
+
+                    nodeStore = documentNodeStoreBuilder.build();
+
+                } catch (IOException | RepositoryException e) {
+                    throw new AssertionError("Cannot create test repo fixture " + toString(), e);
+                }
             }
+            return nodeStore;
         }
+
+        @Override
+        public DataStore getDataStore() {
+            return dataStore;
+        }
+
+        // for nice Junit parameterized test labels
+        @Override
+        public String toString() {
+            String nodeStoreName = getClass().getSimpleName();
+            String name = StringUtils.removeEnd(nodeStoreName, "Fixture");
+            if (dataStoreFixture != null) {
+                String dataStoreName = dataStoreFixture.getClass().getSimpleName();
+                return name + "_" + StringUtils.removeEnd(dataStoreName, "Fixture");
+            }
+            return name;
+        }
+    }
+
+    @Nullable
+    protected static Properties loadDataStoreProperties(String systemProperty, String defaultFileName, String homeFolderName) {
+        Properties props = new Properties();
+        try {
+            File file = new File(System.getProperty(systemProperty, defaultFileName));
+            if (!file.exists()) {
+                file = Paths.get(System.getProperty("user.home"), homeFolderName, defaultFileName).toFile();
+            }
+            props.load(new FileReader(file));
+        } catch (IOException e) {
+            return null;
+        }
+        return props;
+    }
+
+    // -----< temp folder management >----------------------------------------------------------------------------------
+
+    private static Collection<File> tempFoldersToDelete = new ArrayList<>();
+
+    public static File createTempFolder() throws IOException {
+        // create temp folder inside maven's "target" folder
+        return createTempFolder(new File("target"));
     }
 
     public static File createTempFolder(File parent) throws IOException {
         File tempFolder = File.createTempFile("junit", "", parent);
         tempFolder.delete();
         tempFolder.mkdir();
+        tempFoldersToDelete.add(tempFolder);
         return tempFolder;
+    }
+
+    // HACK: delete data store folder at the end of this test class, as we reuse the NodeStore
+    // in the NodeStoreFixture and NodeStoreFixture.dispose() would delete between test runs
+    @AfterClass
+    public static void cleanupStores() throws IOException {
+        for (File folder : tempFoldersToDelete) {
+            FileUtils.deleteDirectory(folder);
+        }
+        tempFoldersToDelete.clear();
     }
 
     // -----< test helpers >--------------------------------------------------------------------------------------------
