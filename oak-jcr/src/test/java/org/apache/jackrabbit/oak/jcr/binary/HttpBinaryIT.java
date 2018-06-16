@@ -71,7 +71,6 @@ import org.junit.runners.Parameterized;
 public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     private static final String FILE_PATH = "/file";
-    private static final String CONTENT = "hi there, I'm a binary blob!";
     private static final int REGULAR_WRITE_EXPIRY = 60; // seconds
     private static final int REGULAR_READ_EXPIRY = 60; // seconds
 
@@ -95,10 +94,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     // A4 - no test, SHOULD requirement only, hard to test
     // A5 - get S3 URL (how?) and try an upload
 
-    // D1 - immutable after initial upload
-    // D2 - unique identifiers
-    // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
-    // D5 - blob ref not persisted in nodestore until binary uploaded and immutable
     // DX - get existing regular binary and try to overwrite it (doesn't work)
 
     // F1 - basic test
@@ -108,8 +103,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-        final String TEST_BINARY = "hello world";
-        final long size = TEST_BINARY.getBytes("utf-8").length;
+        final String content = getRandomString(256);
+        final long size = content.getBytes("utf-8").length;
 
         assertTrue(getAdminSession() instanceof HttpBinaryProvider);
 
@@ -125,7 +120,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertNotNull(url);
 
         System.out.println("- uploading binary via PUT to " + url);
-        int code = httpPut(url, getTestInputStream(TEST_BINARY));
+        int code = httpPut(url, getTestInputStream(content));
 
         assertEquals("PUT to pre-signed S3 URL failed", 200, code);
 
@@ -135,7 +130,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Binary readBinary = getBinary(getAdminSession(), FILE_PATH);
         StringWriter writer = new StringWriter();
         IOUtils.copy(readBinary.getStream(), writer, "utf-8");
-        assertEquals(TEST_BINARY, writer.toString());
+        assertEquals(content, writer.toString());
     }
 
     // F3 - Multi-part upload
@@ -553,6 +548,29 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
+    @Test
+    public void testBinaryNotDeletedWithNode() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        String content = getRandomString(1024*20);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
+        httpPut(upload.getURLParts().iterator().next(), new ByteArrayInputStream(content.getBytes()));
+        Binary binary = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
+        saveFileWithBinary(getAdminSession(), FILE_PATH+"2", binary);
+
+        saveFileWithBinary(getAdminSession(), FILE_PATH, binary);
+
+        getAdminSession().getNode(FILE_PATH+"2").remove();
+        getAdminSession().save();
+
+        Binary savedBinary = getBinary(getAdminSession(), FILE_PATH);
+        assertNotNull(savedBinary);
+        assertTrue(binary instanceof ReferenceBinary);
+        assertTrue(savedBinary instanceof ReferenceBinary);
+        assertEquals(((ReferenceBinary) binary).getReference(),
+                ((ReferenceBinary) savedBinary).getReference());
+    }
+
     // D5 - blob ref not persisted in nodestore until binary uploaded and immutable
     @Test
     public void testBinaryOnlyPersistedInNodeStoreAfterUploadIsCompleted() throws Exception {
@@ -602,6 +620,67 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertTrue(uploadedBinary instanceof ReferenceBinary);
         assertEquals(((ReferenceBinary) uploadedBinary).getReference(),
                 ((ReferenceBinary) binary).getReference());
+    }
+
+    @Test
+    public void testInitiateHttpUploadWithZeroSizeFails() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        assertNull(((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(0, 1));
+    }
+
+    @Test
+    public void testInitiateHttpUploadWithZeroUrlsFails() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        assertNull(((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(1024*20, 0));
+    }
+
+    @Test
+    public void testInitiateHttpUploadWithUnlimitedUrls() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
+                .initializeHttpUpload(1024 * 1024 * 1024, -1);
+        assertNotNull(upload);
+        assertTrue(upload.getURLParts().size() > 50);
+        // 50 is our default expected client max -
+        // this is to make sure we will give as many as needed
+        // if the client doesn't specify their own limit
+    }
+
+    @Test
+    public void testInitiateHttpUploadLargeSinglePut() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
+                .initializeHttpUpload(1024 * 1024 * 256, 1);
+        assertNotNull(upload);
+        assertEquals(1, upload.getURLParts().size());
+    }
+
+    @Test
+    public void testInitiateHttpUploadTooLargeForSinglePut() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        assertNull(((HttpBinaryProvider) getAdminSession())
+                .initializeHttpUpload(1024L * 1024L * 1024L * 10L, 1));
+    }
+
+    @Test
+    public void testInitiateHttpUploadTooLargeForUpload() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        assertNull(((HttpBinaryProvider) getAdminSession())
+                .initializeHttpUpload(1024L * 1024L * 1024L * 1024L * 10L, -1));
+    }
+
+    @Test
+    public void testInitiateHttpUploadTooLargeForRequestedNumUrls() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        assertNull(((HttpBinaryProvider) getAdminSession())
+                .initializeHttpUpload(1024L * 1024L * 1024L * 10L, 10));
     }
 
 
