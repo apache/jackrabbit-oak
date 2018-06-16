@@ -62,6 +62,8 @@ public abstract class AbstractHttpDataRecordProviderTest {
     protected abstract ConfigurableHttpDataRecordProvider getDataStore();
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
+    protected abstract long getProviderMaxSinglePutSize();
+    protected abstract long getProviderMaxBinaryUploadSize();
     protected abstract boolean isSinglePutURL(URL url);
     protected abstract HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException;
     protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
@@ -343,6 +345,24 @@ public abstract class AbstractHttpDataRecordProviderTest {
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
                     res.getExpectedMaxPartSize(), uploadContext.getMaxPartSize());
         }
+    }
+
+    @Test
+    public void testInitiateHttpUploadSizeTooBigForSinglePut() {
+        try {
+            getDataStore().initiateHttpUpload(getProviderMaxSinglePutSize() + 1, 1);
+            fail();
+        }
+        catch (HttpUploadException e) { }
+    }
+
+    @Test
+    public void testInitiateHttpUploadSizeTooBigForUpload() {
+        try {
+            getDataStore().initiateHttpUpload(getProviderMaxBinaryUploadSize() + 1, -1);
+            fail();
+        }
+        catch (HttpUploadException e) { }
     }
 
     @Test

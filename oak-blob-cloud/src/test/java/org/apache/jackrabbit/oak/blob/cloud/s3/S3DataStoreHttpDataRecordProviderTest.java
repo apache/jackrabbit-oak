@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import static java.lang.System.getProperty;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -96,6 +97,12 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     }
 
     @Override
+    protected long getProviderMaxSinglePutSize() { return S3DataStore.maxSinglePutUploadSize; }
+
+    @Override
+    protected long getProviderMaxBinaryUploadSize() { return S3DataStore.maxBinaryUploadSize; }
+
+    @Override
     protected boolean isSinglePutURL(URL url) {
         Map<String, String> queryParams = parseQueryString(url);
         return ! queryParams.containsKey(S3Backend.PART_NUMBER) && ! queryParams.containsKey(S3Backend.UPLOAD_ID);
@@ -138,5 +145,24 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
         finally {
             ds.setHttpUploadURLExpirySeconds(expirySeconds);
         }
+    }
+
+    @Test
+    public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
+        ConfigurableHttpDataRecordProvider ds = getDataStore();
+        long uploadSize = ONE_GB * 50;
+        int expectedNumUrls = 5000;
+        DataRecordHttpUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+
+        uploadSize = ONE_GB * 100;
+        expectedNumUrls = 10000;
+        upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+
+        uploadSize = ONE_GB * 200;
+        // expectedNumUrls still 10000, AWS limit
+        upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
     }
 }

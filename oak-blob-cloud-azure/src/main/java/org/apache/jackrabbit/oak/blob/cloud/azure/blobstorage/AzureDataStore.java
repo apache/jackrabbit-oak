@@ -49,6 +49,17 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
      */
     static final int maxPartSize = AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
 
+    /**
+     * The maximum allowed size of an upload that can be done via single-put upload.
+     * Beyond this size, multi-part uploading is required.  Azure limitation.
+     */
+    static final long maxSinglePutUploadSize = AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE;
+
+    /**
+     * The maximum allowed size of a binary upload supported by this provider.
+     */
+    static final long maxBinaryUploadSize = AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE;
+
     protected Properties properties;
 
     private AzureBlobStoreBackend azureBlobStoreBackend;
@@ -100,8 +111,19 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         if (0L >= maxUploadSizeInBytes) {
             throw new HttpUploadException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L >= maxNumberOfURLs) {
+        else if (0L == maxNumberOfURLs) {
             throw new HttpUploadException("maxNumberOfURLs must be > 0");
+        }
+        else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
+                maxNumberOfURLs == 1) {
+            throw new HttpUploadException(
+                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
+            );
+        }
+        else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
+            throw new HttpUploadException(
+                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
+            );
         }
         if (null == azureBlobStoreBackend) {
             throw new HttpUploadException("Backend not initialized");

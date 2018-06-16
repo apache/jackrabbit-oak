@@ -107,6 +107,12 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Override
+    protected long getProviderMaxSinglePutSize() { return AzureDataStore.maxSinglePutUploadSize; }
+
+    @Override
+    protected long getProviderMaxBinaryUploadSize() { return AzureDataStore.maxBinaryUploadSize; }
+
+    @Override
     protected boolean isSinglePutURL(URL url) {
         Map<String, String> queryParams = parseQueryString(url);
         if (queryParams.containsKey("comp") || queryParams.containsKey("blockId")) {
@@ -160,5 +166,24 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         finally {
             ds.setHttpUploadURLExpirySeconds(expirySeconds);
         }
+    }
+
+    @Test
+    public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
+        ConfigurableHttpDataRecordProvider ds = getDataStore();
+        long uploadSize = ONE_GB * 100;
+        int expectedNumUrls = 10000;
+        DataRecordHttpUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+
+        uploadSize = ONE_GB * 500;
+        expectedNumUrls = 50000;
+        upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+
+        uploadSize = ONE_GB * 1000;
+        // expectedNumUrls still 50000, Azure limit
+        upload = ds.initiateHttpUpload(uploadSize, -1);
+        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
     }
 }

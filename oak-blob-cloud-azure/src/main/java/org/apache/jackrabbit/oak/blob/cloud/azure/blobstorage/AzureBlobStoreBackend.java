@@ -96,7 +96,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
     static final int MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
     static final int MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
-    private static final int MAX_ALLOWABLE_UPLOAD_URLS = 50;
+    static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024 * 1024 * 256; // 256MB, Azure limit
+    static final long MAX_BINARY_UPLOAD_SIZE = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75); // 4.75TB, Azure limit
+    private static final int MAX_ALLOWABLE_UPLOAD_URLS = 50000; // Azure limit
 
     private Properties properties;
     private String containerName;
@@ -744,7 +746,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String uploadId = null;
 
         if (presignedPutExpirySeconds > 0) {
-            if (maxNumberOfUrls <= 1 ||
+            if (maxNumberOfUrls == 1 ||
                     maxUploadSizeInBytes <= minPartSize) {
                 // single put
                 uploadPartURLs.add(createPresignedURL(blobId,
@@ -759,20 +761,26 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 // doing multi-part or single-put upload
                 uploadId = Base64.encode(UUID.randomUUID().toString());
 
-                long numParts = maxNumberOfUrls;
-                long requestedPartSize = maxUploadSizeInBytes / maxNumberOfUrls + (maxUploadSizeInBytes % maxNumberOfUrls == 0 ? 0 : 1);
-                if (requestedPartSize <= maxPartSize) {
-                    numParts = Math.min(
-                            maxNumberOfUrls,
-                            Math.min(
-                                    (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
-                                    MAX_ALLOWABLE_UPLOAD_URLS
-                            )
-                    );
-                } else {
-                    throw new HttpUploadException(
-                            String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
-                    );
+                long numParts = 0L;
+                if (maxNumberOfUrls > 1) {
+                    long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfUrls));
+                    if (requestedPartSize <= maxPartSize) {
+                        numParts = Math.min(
+                                maxNumberOfUrls,
+                                Math.min(
+                                        (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
+                                        MAX_ALLOWABLE_UPLOAD_URLS
+                                )
+                        );
+                    } else {
+                        throw new HttpUploadException(
+                                String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                        );
+                    }
+                }
+                else {
+                    long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) MIN_MULTIPART_UPLOAD_PART_SIZE));
+                    numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URLS);
                 }
 
                 String key = getKeyName(newIdentifier);

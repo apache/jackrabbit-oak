@@ -57,6 +57,17 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
      */
     static final int maxPartSize = S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
 
+    /**
+     * The maximum allowed size of an upload that can be done via single-put upload.
+     * Beyond this size, multi-part uploading is required.  AWS limitation.
+     */
+    static final long maxSinglePutUploadSize = S3Backend.MAX_SINGLE_PUT_UPLOAD_SIZE;
+
+    /**
+     * The maximum allowed size of a binary upload supported by this provider.
+     */
+    static final long maxBinaryUploadSize = S3Backend.MAX_BINARY_UPLOAD_SIZE;
+
     @Override
     protected AbstractSharedBackend createBackend() {
         s3Backend = new S3Backend();
@@ -111,8 +122,19 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         if (0L >= maxUploadSizeInBytes) {
             throw new HttpUploadException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L >= maxNumberOfURLs) {
+        else if (0L == maxNumberOfURLs) {
             throw new HttpUploadException("maxNumberOfURLs must be > 0");
+        }
+        else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
+                maxNumberOfURLs == 1) {
+            throw new HttpUploadException(
+                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
+            );
+        }
+        else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
+            throw new HttpUploadException(
+                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
+            );
         }
         if (null == s3Backend) {
             throw new HttpUploadException("Backend not initialized");
