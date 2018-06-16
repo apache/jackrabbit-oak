@@ -155,6 +155,21 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         }
     }
 
+    @Nullable
+    protected static Properties loadDataStoreProperties(String systemProperty, String defaultFileName, String homeFolderName) {
+        Properties props = new Properties();
+        try {
+            File file = new File(System.getProperty(systemProperty, defaultFileName));
+            if (!file.exists()) {
+                file = Paths.get(System.getProperty("user.home"), homeFolderName, defaultFileName).toFile();
+            }
+            props.load(new FileReader(file));
+        } catch (IOException e) {
+            return null;
+        }
+        return props;
+    }
+
     // -----< repository fixtures >-------------------------------------------------------------------------------------
 
     protected interface DataStoreHolder {
@@ -294,21 +309,6 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             }
             return name;
         }
-    }
-
-    @Nullable
-    protected static Properties loadDataStoreProperties(String systemProperty, String defaultFileName, String homeFolderName) {
-        Properties props = new Properties();
-        try {
-            File file = new File(System.getProperty(systemProperty, defaultFileName));
-            if (!file.exists()) {
-                file = Paths.get(System.getProperty("user.home"), homeFolderName, defaultFileName).toFile();
-            }
-            props.load(new FileReader(file));
-        } catch (IOException e) {
-            return null;
-        }
-        return props;
     }
 
     // -----< temp folder management >----------------------------------------------------------------------------------
