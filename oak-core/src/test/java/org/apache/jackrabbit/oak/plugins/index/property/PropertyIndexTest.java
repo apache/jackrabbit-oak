@@ -993,6 +993,47 @@ public class PropertyIndexTest {
         assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
     }
 
+    @Test
+    public void mountWithCommitInWritableMountForUniqueIndex() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, true, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("content").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("foo",  "/readOnly")
+                .build();
+
+        CompositeHook hook = new CompositeHook(
+                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+                new EditorHook(new ValidatorProvider(){
+                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+                        return new PrivateStoreValidator("/", mip);
+                    }
+                })
+        );
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        Mount defMount = mip.getDefaultMount();
+        NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
+        assertTrue(indexedState.exists());
+        Iterable<String> values = indexedState.getStrings("entry");
+        assertEquals(1, Iterables.size(values));
+        assertEquals("/content", Iterables.getFirst(values, null));
+
+        Mount roMount = mip.getMountByName("foo");
+        assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());
+    }
+
     @Test(expected = CommitFailedException.class)
     public void mountAndUniqueIndexes() throws Exception {
         NodeState root = INITIAL_CONTENT;
