@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
@@ -118,21 +119,21 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
 
     @Override
     public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws HttpUploadException {
+            throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
-            throw new HttpUploadException("maxUploadSizeInBytes must be > 0");
+            throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");
         }
         else if (0L == maxNumberOfURLs) {
-            throw new HttpUploadException("maxNumberOfURLs must be > 0");
+            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must be > 0");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
                 maxNumberOfURLs == 1) {
-            throw new HttpUploadException(
+            throw new UnsupportedHttpUploadArgumentsException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
         }
         else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
-            throw new HttpUploadException(
+            throw new UnsupportedHttpUploadArgumentsException(
                     String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
             );
         }

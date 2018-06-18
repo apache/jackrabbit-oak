@@ -68,6 +68,7 @@ import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
@@ -723,7 +724,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public DataRecordHttpUpload initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
-            throws HttpUploadException {
+            throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -756,7 +757,7 @@ public class S3Backend extends AbstractSharedBackend {
                                 )
                         );
                     } else {
-                        throw new HttpUploadException(
+                        throw new UnsupportedHttpUploadArgumentsException(
                                 String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
                         );
                     }

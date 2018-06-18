@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
+import java.net.URL;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.net.URL;
+
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 
 public interface HttpDataRecordProvider {
     /**
@@ -51,11 +52,13 @@ public interface HttpDataRecordProvider {
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
      * @return A {@code DataRecordHttpUpoad} referencing this direct upload.
-     * @throws {@code HttpUploadException} if the upload cannot be completed as
-     * requested.
+     * @throws {@code UnsupportedHttpUploadArgumentsException} if the service provider or
+     * implementation cannot support the requested upload, {@code HttpUploadException} if
+     * the upload cannot be completed as requested.
      */
     @Nullable
-    DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) throws HttpUploadException;
+    DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws UnsupportedHttpUploadArgumentsException, HttpUploadException;
 
     /**
      * Completes the transaction to perform a direct binary upload.  This method verifies

@@ -691,7 +691,7 @@ public class DataStoreBlobStore
                     }
                 };
             }
-            catch (HttpUploadException e) {
+            catch (UnsupportedHttpUploadArgumentsException | HttpUploadException e) {
                 log.warn("Unable to initiate direct HTTP upload", e);
             }
         }
