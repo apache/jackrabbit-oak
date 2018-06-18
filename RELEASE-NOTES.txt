@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.4
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.3 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.4 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,39 +15,42 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.3
+Changes in Oak 1.9.4
 --------------------
 
 Technical task
 
-    [OAK-7471] - add a config switch to disable locking
-    [OAK-7526] - Move InitialContent#INITIAL_CONTENT to test
+    [OAK-7527] - Drop mandatory constraint on "rep:system" node for
+    "rep:privileges"
+    [OAK-7529] - Define and register oak namespace
+    [OAK-7533] - NameValidator is not using namespaces defined in the
+    current transaction
+    [OAK-7537] - Allow for initial registration of 'xml' namespace
+    [OAK-7546] - add maven profile to build with Guava beta checks
+    [OAK-7547] - commons: avoid use of Guava beta APIs in StringSort
 
 Bug
 
-    [OAK-7508] - Text extraction timeout can lead to NPE
-    [OAK-7513] - Possible NPE in exact size calculation for SolrQueryIndex
-    [OAK-7514] - Build Jackrabbit Oak #1462 failed
-    [OAK-7520] - AzureArchiveManager#copyBlob() hangs indefinitely
-
-New Feature
-
-    [OAK-7522] - Enable collection of simple operation stats for DataStore garbage collection
+    [OAK-7521] - Command line params to modify query and read limits
+    don't work for large values
+    [OAK-7540] - Unique property index update fails in composite
+    NodeStore setup
+    [OAK-7543] - MissingLastRevSeekerTest fails on MongoDB with
+    secondary preferred
 
 Improvement
 
-    [OAK-6087] - Avoid reads from MongoDB primary
-    [OAK-7353] - oak-run tika extraction should support getting assistance from stored indexed data from a lucene index
-
-Test
-
-    [OAK-7516] - DocumentMKBuilderProvider may try to dispose an uninitialised store
+    [OAK-7506] - Prevent user enumeration by exploiting time delay
+    vulnerability
+    [OAK-7530] - PrivilegeInitializer should not attempt to create
+    jcr:system node
+    [OAK-7550] - Make running cleanup before compaction the default
+    strategy
 
 Task
 
-    [OAK-7368] - update to findbugs version compatible with jdk 10
-    [OAK-7518] - TCKBase: make repository fixture more prominent
-
+    [OAK-7512] - RestoreTest.testRestoreNameJcr2 occasionally failing
+    [OAK-7536] - Update aws java sdk version to 1.11.330
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
