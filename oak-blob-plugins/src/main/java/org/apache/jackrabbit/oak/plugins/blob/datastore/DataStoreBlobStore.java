@@ -686,8 +686,8 @@ public class DataStoreBlobStore
                     }
 
                     @Override
-                    public List<URL> getUploadPartURLs() {
-                        return upload.getUploadPartURLs();
+                    public List<URL> getUploadURLs() {
+                        return upload.getUploadURLs();
                     }
                 };
             }

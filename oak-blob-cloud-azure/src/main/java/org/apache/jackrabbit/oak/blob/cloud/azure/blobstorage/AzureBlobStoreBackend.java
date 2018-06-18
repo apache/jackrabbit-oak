@@ -808,7 +808,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             public int getMaxPartSize() { return maxPartSize; }
 
             @Override
-            public List<URL> getUploadPartURLs() { return uploadPartURLs; }
+            public List<URL> getUploadURLs() { return uploadPartURLs; }
         };
     }
 

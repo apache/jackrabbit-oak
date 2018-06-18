@@ -157,7 +157,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadPartURLs().get(0);
+            URL uploadUrl = uploadContext.getUploadURLs().get(0);
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiryDateStr = params.get("se");
             Instant expiry = Instant.parse(expiryDateStr);
@@ -174,16 +174,16 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         long uploadSize = ONE_GB * 100;
         int expectedNumUrls = 10000;
         DataRecordHttpUpload upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 500;
         expectedNumUrls = 50000;
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 1000;
         // expectedNumUrls still 50000, Azure limit
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
     }
 }

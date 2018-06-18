@@ -823,8 +823,8 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
 
                         @Nonnull
                         @Override
-                        public Collection<URL> getURLParts() {
-                            return upload.getUploadPartURLs();
+                        public Collection<URL> getUploadURLs() {
+                            return upload.getUploadURLs();
                         }
                     };
                 }

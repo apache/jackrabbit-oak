@@ -137,7 +137,7 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
         try {
             ds.setHttpUploadURLExpirySeconds(60);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadPartURLs().get(0);
+            URL uploadUrl = uploadContext.getUploadURLs().get(0);
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));
@@ -153,16 +153,16 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
         long uploadSize = ONE_GB * 50;
         int expectedNumUrls = 5000;
         DataRecordHttpUpload upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 100;
         expectedNumUrls = 10000;
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 200;
         // expectedNumUrls still 10000, AWS limit
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadPartURLs().size());
+        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
     }
 }

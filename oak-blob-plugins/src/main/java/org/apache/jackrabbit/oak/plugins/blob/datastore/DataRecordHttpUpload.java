@@ -86,5 +86,5 @@ public interface DataRecordHttpUpload {
      *
      * @return ordered list of URLs to be consumed in sequence.
      */
-    List<URL> getUploadPartURLs();
+    List<URL> getUploadURLs();
 }

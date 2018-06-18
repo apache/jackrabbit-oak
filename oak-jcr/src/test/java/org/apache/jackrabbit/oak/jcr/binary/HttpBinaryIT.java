@@ -87,15 +87,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         }
     }
 
-    // TODO: one test for each requirement
-    // F4 - S3 and Azure => through parametrization using S3 and Azure fixtures
-    // F5 - more cloud stores => new fixtures, mock fixture
-
-    // A4 - no test, SHOULD requirement only, hard to test
-    // A5 - get S3 URL (how?) and try an upload
-
-    // DX - get existing regular binary and try to overwrite it (doesn't work)
-
     // F1 - basic test
     @Test
     public void testUpload() throws Exception {
@@ -116,7 +107,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         // very small test binary
         assertTrue(size < upload.getMaxPartSize());
 
-        URL url = upload.getURLParts().iterator().next();
+        URL url = upload.getUploadURLs().iterator().next();
         assertNotNull(url);
 
         System.out.println("- uploading binary via PUT to " + url);
@@ -152,7 +143,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String buffer = getRandomString(uploadSize);
         long uploadPartSize = uploadContext.getMaxPartSize();
         long remaining = uploadSize;
-        for (URL url : uploadContext.getURLParts()) {
+        for (URL url : uploadContext.getUploadURLs()) {
             String nextPart = buffer.substring(0, (int) Math.min(uploadPartSize, remaining));
             int code = httpPut(url,
                     nextPart.getBytes().length,
@@ -201,7 +192,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(256);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(
                 content.getBytes().length, 10);
-        int code = httpPut(upload.getURLParts().iterator().next(),
+        int code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -246,7 +237,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(256);
         HttpBinaryProvider binaryProvider = (HttpBinaryProvider) getAdminSession();
         BinaryHttpUpload upload = binaryProvider.initializeHttpUpload(content.getBytes().length, 10);
-        int code = httpPut(upload.getURLParts().iterator().next(),
+        int code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -304,7 +295,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 10);
 
         assertNotNull(upload);
-        assertEquals(0, upload.getURLParts().size());
+        assertEquals(0, upload.getUploadURLs().size());
 
         // TODO: extra test, showing alternative input stream code working if disabled
 /*
@@ -347,7 +338,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Thread.sleep(2 * SECONDS);
 
         // ensure PUT fails with 403 or anything 400+
-        assertTrue(httpPutTestStream(upload.getURLParts().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
+        assertTrue(httpPutTestStream(upload.getUploadURLs().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
     // this tests an initial unexpected side effect bug where the underlying URLWritableBlob implementation
@@ -427,7 +418,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             provider.setBinaryTransferAccelerationEnabled(true);
 
             BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(1024*20, 1);
-            URL url = upload.getURLParts().iterator().next();
+            URL url = upload.getUploadURLs().iterator().next();
             assertNotNull(url);
 
             System.out.println("accelerated URL: " + url);
@@ -435,7 +426,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
             provider.setBinaryTransferAccelerationEnabled(false);
             upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(1024*20, 1);
-            url = upload.getURLParts().iterator().next();
+            url = upload.getUploadURLs().iterator().next();
             assertNotNull(url);
 
             System.out.println("non-accelerated URL: " + url);
@@ -451,7 +442,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
-        URL url = upload.getURLParts().iterator().next();
+        URL url = upload.getUploadURLs().iterator().next();
         URL changedUrl = new URL(
                 String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URL filename
                 url.getProtocol(),
@@ -473,7 +464,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         String content = getRandomString(1024*20);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
-        URL url = upload.getURLParts().iterator().next();
+        URL url = upload.getUploadURLs().iterator().next();
         int code = httpPut(url, content.getBytes().length, new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
@@ -522,7 +513,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
         assertNotNull(upload);
-        int code = httpPut(upload.getURLParts().iterator().next(),
+        int code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -534,7 +525,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String moreContent = getRandomString(1024*21);
         upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(moreContent.getBytes().length, 1);
         assertNotNull(upload);
-        code = httpPut(upload.getURLParts().iterator().next(),
+        code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(moreContent.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -561,8 +552,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryHttpUpload upload2 = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
         assertNotNull(upload2);
 
-        assertNotEquals(upload1.getURLParts().iterator().next().toString(),
-                upload2.getURLParts().iterator().next().toString());
+        assertNotEquals(upload1.getUploadURLs().iterator().next().toString(),
+                upload2.getUploadURLs().iterator().next().toString());
     }
 
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
@@ -572,7 +563,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession()).initializeHttpUpload(content.getBytes().length, 1);
-        int code = httpPut(upload.getURLParts().iterator().next(),
+        int code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -616,7 +607,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         }
         catch (PathNotFoundException e) { }
 
-        int code = httpPut(upload.getURLParts().iterator().next(),
+        int code = httpPut(upload.getUploadURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -667,7 +658,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
                 .initializeHttpUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
-        assertTrue(upload.getURLParts().size() > 50);
+        assertTrue(upload.getUploadURLs().size() > 50);
         // 50 is our default expected client max -
         // this is to make sure we will give as many as needed
         // if the client doesn't specify their own limit
@@ -680,7 +671,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
                 .initializeHttpUpload(1024 * 1024 * 256, 1);
         assertNotNull(upload);
-        assertEquals(1, upload.getURLParts().size());
+        assertEquals(1, upload.getUploadURLs().size());
     }
 
     @Test

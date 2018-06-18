@@ -159,5 +159,5 @@ public interface BinaryHttpUpload {
      * @return one or more URLs for uploading the binary in one or more parts
      */
     @Nonnull
-    Collection<URL> getURLParts();
+    Collection<URL> getUploadURLs();
 }
