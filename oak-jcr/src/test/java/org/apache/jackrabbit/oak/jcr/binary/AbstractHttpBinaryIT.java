@@ -392,21 +392,24 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         connection.setDoOutput(true);
         connection.setRequestMethod("PUT");
         connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
+        connection.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+                .withZone(ZoneOffset.UTC)
+                .format(Instant.now()));
 
         try {
-            if (getConfigurableHttpDataRecordProvider() instanceof S3DataStore) {
-                // S3 required headers
-                connection.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
-                        .withZone(ZoneOffset.UTC)
-                        .format(Instant.now()));
-                connection.setRequestProperty("Host", url.getHost());
-            }
-            else if (getConfigurableHttpDataRecordProvider() instanceof AzureDataStore) {
-                // Azure required headers
-                connection.setRequestProperty("x-ms-date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
-                        .withZone(ZoneOffset.UTC)
-                        .format(Instant.now()));
-                connection.setRequestProperty("x-ms-version", "2017-11-09");
+            if (getConfigurableHttpDataRecordProvider() instanceof AzureDataStore) {
+                // Azure required header.
+                // Strictly speaking, this header is only required for single-put
+                // uploads, but it is definitely required for single-put Azure
+                // uploads, and Azure will return an HTTP 400 - Missing required header
+                // if it is not provided causing test failures.
+                // It can be provided for all Azure uploads without having any apparent
+                // impact.
+                // Additionally, it seems it can be set on S3 uploads and S3
+                // will just ignore it, so it can currently be set on all client
+                // upload requests.
+                // The abstraction is left here as Azure-specific for single-put
+                // only for clarity of purpose.
                 if (! isMultiPart) {
                     connection.setRequestProperty("x-ms-blob-type", "BlockBlob");
                 }
