@@ -652,7 +652,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
-                .initializeHttpUpload(FILE_PATH,1024 * 1024 * 256, 1);
+                .initializeHttpUpload(FILE_PATH,1024 * 1024 * 100, 1);
         assertNotNull(upload);
         assertEquals(1, upload.getUploadURLs().size());
     }

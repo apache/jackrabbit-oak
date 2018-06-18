@@ -746,52 +746,54 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String uploadId = null;
 
         if (presignedPutExpirySeconds > 0) {
-            if (maxNumberOfUrls == 1 ||
-                    maxUploadSizeInBytes <= minPartSize) {
-                // single put
-                uploadPartURLs.add(createPresignedURL(blobId,
-                        EnumSet.of(SharedAccessBlobPermissions.WRITE),
-                        presignedPutExpirySeconds));
+            // Always do multi-part uploads for Azure, even for small binaries.
+            //
+            // This is because Azure requires a unique header, "x-ms-blob-type=BlockBlob", to be
+            // set but only for single-put uploads, not multi-part.
+            // This would require clients to know not only the type of service provider being used
+            // but also the type of upload (single-put vs multi-part), which breaks abstraction.
+            // Instead we can insist that clients always do multi-part uploads to Azure, even
+            // if the multi-part upload consists of only one upload part.  This doesn't require
+            // additional work on the part of the client since the "complete" request must always
+            // be sent regardless, but it helps us avoid the client having to know what type
+            // of provider is being used, or us having to instruct the client to use specific
+            // types of headers, etc.
+
+            // Azure doesn't use upload IDs like AWS does
+            // Generate a fake one for compatibility - we use them to determine whether we are
+            // doing multi-part or single-put upload
+            uploadId = Base64.encode(UUID.randomUUID().toString());
+
+            long numParts = 0L;
+            if (maxNumberOfUrls > 0) {
+                long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfUrls));
+                if (requestedPartSize <= maxPartSize) {
+                    numParts = Math.min(
+                            maxNumberOfUrls,
+                            Math.min(
+                                    (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
+                                    MAX_ALLOWABLE_UPLOAD_URLS
+                            )
+                    );
+                } else {
+                    throw new HttpUploadException(
+                            String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                    );
+                }
             }
             else {
-                // multi-part
+                long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) MIN_MULTIPART_UPLOAD_PART_SIZE));
+                numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URLS);
+            }
 
-                // Azure doesn't use upload IDs like AWS does
-                // Generate a fake one for compatibility - we use them to determine whether we are
-                // doing multi-part or single-put upload
-                uploadId = Base64.encode(UUID.randomUUID().toString());
-
-                long numParts = 0L;
-                if (maxNumberOfUrls > 1) {
-                    long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfUrls));
-                    if (requestedPartSize <= maxPartSize) {
-                        numParts = Math.min(
-                                maxNumberOfUrls,
-                                Math.min(
-                                        (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
-                                        MAX_ALLOWABLE_UPLOAD_URLS
-                                )
-                        );
-                    } else {
-                        throw new HttpUploadException(
-                                String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
-                        );
-                    }
-                }
-                else {
-                    long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) MIN_MULTIPART_UPLOAD_PART_SIZE));
-                    numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URLS);
-                }
-
-                String key = getKeyName(newIdentifier);
-                EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
-                Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
-                presignedUrlRequestParams.put("comp", "block");
-                for (long blockId = 1; blockId <= numParts; ++blockId) {
-                    presignedUrlRequestParams.put("blockId",
-                            Base64.encode(String.format("%06d", blockId)));
-                    uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
-                }
+            String key = getKeyName(newIdentifier);
+            EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
+            Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
+            presignedUrlRequestParams.put("comp", "block");
+            for (long blockId = 1; blockId <= numParts; ++blockId) {
+                presignedUrlRequestParams.put("blockId",
+                        Base64.encode(String.format("%06d", blockId)));
+                uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
             }
         }
 
