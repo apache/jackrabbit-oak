@@ -65,6 +65,13 @@ public class FileStore extends AbstractFileStore {
 
     private static final int MB = 1024 * 1024;
 
+    private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
+        if (Boolean.getBoolean("gc.classic")) {
+            return new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
+        }
+        return new SynchronizedGarbageCollectionStrategy(new CleanupFirstGarbageCollectionStrategy());
+    }
+
     @Nonnull
     private final SegmentWriter segmentWriter;
 
@@ -108,15 +115,7 @@ public class FileStore extends AbstractFileStore {
     @Nonnull
     private final SegmentNotFoundExceptionListener snfeListener;
 
-    private final GarbageCollectionStrategy garbageCollectionStrategy;
-
-    {
-        if (Boolean.getBoolean("gc.cleanup.first")) {
-            garbageCollectionStrategy = new SynchronizedGarbageCollectionStrategy(new CleanupFirstGarbageCollectionStrategy());
-        } else {
-            garbageCollectionStrategy = new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
-        }
-    }
+    private final GarbageCollectionStrategy garbageCollectionStrategy = newGarbageCollectionStrategy();
 
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
