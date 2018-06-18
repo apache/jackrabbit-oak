@@ -81,7 +81,12 @@ public interface HttpBinaryProvider {
      * will be a URL of some length, which typically need to be transported to a remote client,
      * so there might be limitations on the overall number. Specifying a number too small might
      * lead to an error, depending on the underlying provider limitations regarding minimum and
-     * maximum part size.
+     * maximum part size. The upper bound is dependent upon the service provider as well as the
+     * underlying implementation, but should be at least ten thousand.  Specifying a number too
+     * large may exceed implementation or service provider limitations and result in an error.
+     * Specifying -1 as the value of {@code maxParts} is supported, which means the caller can
+     * support any number of URLs being returned. The implementation will then choose the number
+     * of URLs to return, which could be as high as the implementation or service provider limitation.
      *
      * <p>
      * The returned instructions will usually be time limited and cannot be shared with other users.
@@ -89,8 +94,12 @@ public interface HttpBinaryProvider {
      * or trusted system components (service users).
      *
      * <p>
-     * If the current session has not enough permissions to add binaries to the repository,
-     * an {@link AccessDeniedException} will be thrown.
+     * The caller must provide the path to the node where the resulting binary is intended to be
+     * added. While calling this method itself should not result in any modification to the
+     * underlying store (that should happen later, in {@link #completeHttpUpload(String)},
+     * the path must be included in order to verify that the caller has permissions to add
+     * a binary property at the specified path. If the current session has not enough permissions
+     * to add binaries to the repository, an {@link AccessDeniedException} will be thrown.
      *
      * <p>
      * This method does not affect the transient space of the current session.
@@ -99,17 +108,18 @@ public interface HttpBinaryProvider {
      * If the upload fails or never happens before the URLs expire, no change will happen to
      * the repository.
      *
+     * @param path the path of the node to which the binary will be added
      * @param maxSize the exact size of the binary to upload, if known,
      *                or the maximum estimated size (required, must be larger than zero)
-     * @param maxParts maximum number of parts to return (required)
+     * @param maxParts maximum number of parts to return (required, must not be zero)
      *
      * @return HTTP upload instructions or {@code null} if the feature is not available
      *
-     * @throws AccessDeniedException if the feature is available but the session is not allowed to add binaries
+     * @throws AccessDeniedException if the feature is available but the session is not allowed to add binaries,
+     * or RepositoryException if a more general repository error occurs
      */
-    // TODO: more exceptions?
     @Nullable
-    BinaryHttpUpload initializeHttpUpload(long maxSize, int maxParts) throws AccessDeniedException;
+    BinaryHttpUpload initializeHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException;
 
     /**
      * Complete the HTTP upload of a binary and return a {@link Binary} that can be added to
@@ -117,17 +127,17 @@ public interface HttpBinaryProvider {
      * to upload a binary directly through HTTP.
      *
      * <p>
-     * Unlike {@link #initializeHttpUpload(long, int)}, this will throw an exception if the feature is not
+     * Unlike {@link #initializeHttpUpload(String, long, int)}, this will throw an exception if the feature is not
      * supported, as a client must only attempt to call this with a proper value returned from
-     * {@link #initializeHttpUpload(long, int)}.
+     * {@link #initializeHttpUpload(String, long, int)}.
      *
-     * @param uploadToken the token returned from {@link #initializeHttpUpload(long, int)}, available in {@link BinaryHttpUpload#getUploadToken()}
+     * @param uploadToken the token returned from {@link #initializeHttpUpload(String, long, int)},
+     *                    available in {@link BinaryHttpUpload#getUploadToken()}
      *
      * @return a JCR binary to be used as property value
      *
      * @throws RepositoryException if binary upload is not supported or the uploadToken is invalid
      */
-    // TODO more/specific exceptions?
     @Nonnull
     Binary completeHttpUpload(String uploadToken) throws RepositoryException;
 
@@ -147,7 +157,8 @@ public interface HttpBinaryProvider {
      * @param binary existing, persisted binary for which to retrieve the HTTP URL
      *
      * @return a URL for retrieving the binary using HTTP GET or {@code null} if the feature is not available
-     *         in general or for that particular binary
+     *         in general (e.g. the underlying data store doesn't have this capability)
+     *         or for that particular binary (e.g. if the binary is stored in-lined in the node store)
      */
     @Nullable
     URL getHttpDownloadURL(Binary binary);
