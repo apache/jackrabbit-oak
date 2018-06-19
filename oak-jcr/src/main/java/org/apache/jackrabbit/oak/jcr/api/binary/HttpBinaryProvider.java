@@ -42,7 +42,7 @@ import javax.jcr.Session;
  * <ol>
  *     <li>
  *         <b>Initialize</b>: A remote client makes request to the Oak-based application to request an upload,
- *         which calls {@link #initializeHttpUpload(long, int)} and returns the resulting
+ *         which calls {@link #initiateHttpUpload(String, long, int)} and returns the resulting
  *         {@link BinaryHttpUpload information} to the remote client.
  *     </li>
  *     <li>
@@ -119,7 +119,7 @@ public interface HttpBinaryProvider {
      * or RepositoryException if a more general repository error occurs
      */
     @Nullable
-    BinaryHttpUpload initializeHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException;
+    BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException;
 
     /**
      * Complete the HTTP upload of a binary and return a {@link Binary} that can be added to
@@ -127,11 +127,11 @@ public interface HttpBinaryProvider {
      * to upload a binary directly through HTTP.
      *
      * <p>
-     * Unlike {@link #initializeHttpUpload(String, long, int)}, this will throw an exception if the feature is not
+     * Unlike {@link #initiateHttpUpload(String, long, int)}, this will throw an exception if the feature is not
      * supported, as a client must only attempt to call this with a proper value returned from
-     * {@link #initializeHttpUpload(String, long, int)}.
+     * {@link #initiateHttpUpload(String, long, int)}.
      *
-     * @param uploadToken the token returned from {@link #initializeHttpUpload(String, long, int)},
+     * @param uploadToken the token returned from {@link #initiateHttpUpload(String, long, int)},
      *                    available in {@link BinaryHttpUpload#getUploadToken()}
      *
      * @return a JCR binary to be used as property value

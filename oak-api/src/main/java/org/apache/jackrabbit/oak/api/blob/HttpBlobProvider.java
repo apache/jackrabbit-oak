@@ -37,16 +37,37 @@ public interface HttpBlobProvider {
      *                        required to support multi-part uploading so it may return
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
-     * @return A {@code BlobHttpUpoad} referencing this direct upload.
-     * @throws {@code HttpUploadException} if the upload cannot be completed as
-     * requested.
+     * @return A {@link BlobHttpUpload} referencing this direct upload.
+     * @throws {@link org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException}
+     * if the upload cannot be completed as requested, due to a mismatch between the request
+     * parameters and the capabilities of the service provider or the implementation.
      */
     @Nullable
-    BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs);
+    BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+        throws org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException;
 
+    /**
+     * Complete a transaction for uploading a direct binary upload to cloud storage.
+     *
+     * This requires the {@code uploadToken} that can be obtained as the returned
+     * {@link BlobHttpUpload}from a previous call to {@link #initiateHttpUpload(long, int)}.
+     * It is required to complete the transaction for an upload to be valid and complete.
+     *
+     * @param uploadToken the upload token from a {@link BlobHttpUpload} object returned
+     *                    from a previous call to {@link #initiateHttpUpload(long, int)}.
+     * @return The {@link Blob} that was created, or {@code null} if the object could not
+     * be created.
+     */
     @Nullable
     Blob completeHttpUpload(String uploadToken);
 
+    /**
+     * Obtain a download URL for a blob ID.  This is usually a signed URL that can be used to
+     * directly download the blob corresponding to the blob ID.
+     *
+     * @param blobId for the blob to be downloaded.
+     * @return A URL to download the blob directly.
+     */
     @Nullable
     URL getHttpDownloadURL(String blobId);
 }

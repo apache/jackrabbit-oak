@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordPr
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -150,7 +151,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
+    public void testInitDirectUploadURLHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
@@ -168,7 +169,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
+    public void testInitiateHttpUploadUnlimitedURLs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumUrls = 10000;

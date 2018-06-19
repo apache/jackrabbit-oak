@@ -190,7 +190,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     // Direct HTTP upload tests
     //
     @Test
-    public void testInitiateHttpUploadReturnsValidUploadContext() throws HttpUploadException {
+    public void testInitiateHttpUploadReturnsValidUploadContext() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         DataRecordHttpUpload uploadContext =
                 getDataStore().initiateHttpUpload(ONE_MB, 10);
         assertNotNull(uploadContext);
@@ -204,25 +204,25 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInitiateHttpUploadRequiresNonzeroFileSize() {
+    public void testInitiateHttpUploadRequiresNonzeroFileSize() throws HttpUploadException {
         try {
             getDataStore().initiateHttpUpload(0, 10);
             fail();
         }
-        catch (HttpUploadException e) { }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
     }
 
     @Test
-    public void testInititateHttpUploadRequiresNonzeroNumURLs() {
+    public void testInititateHttpUploadRequiresNonzeroNumURLs() throws HttpUploadException {
         try {
             getDataStore().initiateHttpUpload(ONE_MB, 0);
             fail();
         }
-        catch (HttpUploadException e) { }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
     }
 
     @Test
-    public void testInititateHttpUploadSingleURLRequested() throws HttpUploadException {
+    public void testInititateHttpUploadSingleURLRequested() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         DataRecordHttpUpload uploadContext =
                 getDataStore().initiateHttpUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURLs().size());
@@ -230,7 +230,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadSizeLowerThanMinPartSize() throws HttpUploadException {
+    public void testInititateHttpUploadSizeLowerThanMinPartSize() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         DataRecordHttpUpload uploadContext =
                 getDataStore().initiateHttpUpload(getProviderMinPartSize()-1L, 10);
         assertEquals(1, uploadContext.getUploadURLs().size());
@@ -238,7 +238,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadMultiPartDisabled() throws HttpUploadException {
+    public void testInititateHttpUploadMultiPartDisabled() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(0);
@@ -254,14 +254,14 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadReturnsValidUploadToken() throws HttpUploadException {
+    public void testInititateHttpUploadReturnsValidUploadToken() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
         String token = uploadContext.getUploadToken();
         assertTrue(isValidUploadToken(token));
     }
 
     @Test
-    public void testInititateHttpUploadURLListSizes() throws HttpUploadException {
+    public void testInititateHttpUploadURLListSizes() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 // 20MB upload and 10 URLs requested => should result in 2 urls (10MB each)
@@ -348,34 +348,34 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInitiateHttpUploadSizeTooBigForSinglePut() {
+    public void testInitiateHttpUploadSizeTooBigForSinglePut() throws HttpUploadException {
         try {
             getDataStore().initiateHttpUpload(getProviderMaxSinglePutSize() + 1, 1);
             fail();
         }
-        catch (HttpUploadException e) { }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
     }
 
     @Test
-    public void testInitiateHttpUploadSizeTooBigForUpload() {
+    public void testInitiateHttpUploadSizeTooBigForUpload() throws HttpUploadException {
         try {
             getDataStore().initiateHttpUpload(getProviderMaxBinaryUploadSize() + 1, -1);
             fail();
         }
-        catch (HttpUploadException e) { }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
     }
 
     @Test
-    public void testInititateHttpUploadRequestedPartSizesTooBig() {
+    public void testInititateHttpUploadRequestedPartSizesTooBig() throws HttpUploadException {
         try {
             getDataStore().initiateHttpUpload(FIVE_GB, 5);
             fail();
         }
-        catch (HttpUploadException e) { }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
     }
 
     @Test
-    public void testCompleteHttpUploadRequiresNonNullToken() throws HttpUploadException, DataStoreException {
+    public void testCompleteHttpUploadRequiresNonNullToken() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException {
         try {
             getDataStore().completeHttpUpload(null);
             fail();
@@ -384,7 +384,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testCompleteHttpUploadRequiresValidToken() throws HttpUploadException, DataStoreException {
+    public void testCompleteHttpUploadRequiresValidToken() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException {
         for (String token : Lists.newArrayList("", "abc", "abc#123")) {
             try {
                 getDataStore().completeHttpUpload(token);
@@ -395,7 +395,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testCompleteHttpUploadSignatureMustMatch() throws HttpUploadException, DataStoreException {
+    public void testCompleteHttpUploadSignatureMustMatch() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException {
         DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
@@ -420,7 +420,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testSinglePutDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+    public void testSinglePutDirectUploadIT() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException, IOException {
         HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
@@ -461,7 +461,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     //
     @Test
-    public void testMultiPartDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+    public void testMultiPartDirectUploadIT() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException, IOException {
         // Disabled by default - this test uses a lot of memory.
         // Execute this test from the command line like this:
         //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G

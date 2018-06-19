@@ -788,11 +788,11 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
 
     @Nullable
     @Override
-    public BinaryHttpUpload initializeHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException {
+    public BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException {
         if (! hasPermission(path, Session.ACTION_SET_PROPERTY)) {
             throw new AccessDeniedException(String.format("No permission to add binary property at path %s", path));
         }
-        return sd.safePerformNullable(new ReadOperation<BinaryHttpUpload>("initializeHttpUpload") {
+        return sd.safePerformNullable(new ReadOperation<BinaryHttpUpload>("initiateHttpUpload") {
 
             @Nullable
             @Override
