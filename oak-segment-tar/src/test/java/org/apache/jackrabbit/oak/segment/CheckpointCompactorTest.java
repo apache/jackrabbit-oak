@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -91,7 +92,7 @@ public class CheckpointCompactorTest {
         String cp2 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
-        SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE);
+        SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
         assertNotNull(compacted1);
         assertFalse(uncompacted1 == compacted1);
         checkGeneration(compacted1, compactedGeneration);
@@ -108,7 +109,7 @@ public class CheckpointCompactorTest {
         String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted2 = fileStore.getHead();
-        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1);
+        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
         assertNotNull(compacted2);
         assertFalse(uncompacted2 == compacted2);
         checkGeneration(compacted2, compactedGeneration);
@@ -173,7 +174,6 @@ public class CheckpointCompactorTest {
                 fileStore.getReader(),
                 writer,
                 fileStore.getBlobStore(),
-                Suppliers.ofInstance(false),
                 GCNodeWriteMonitor.EMPTY);
     }
 

@@ -27,7 +27,6 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
 import org.slf4j.Logger;
@@ -90,11 +90,10 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getReader(),
                     writer,
                     backup.getBlobStore(),
-                    Suppliers.ofInstance(false),
                     GCNodeWriteMonitor.EMPTY
             );
             SegmentNodeState head = backup.getHead();
-            SegmentNodeState after = compactor.compact(head, current, head);
+            SegmentNodeState after = compactor.compact(head, current, head, Canceller.newCanceller());
             writer.flush();
 
             if (after != null) {
