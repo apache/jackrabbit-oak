@@ -3310,9 +3310,9 @@ public final class DocumentNodeStore
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(Blob blob) {
+    public URL getHttpDownloadURL(String blobId) {
         if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blob);
+            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blobId);
         }
         return null;
     }

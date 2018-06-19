@@ -17,10 +17,11 @@
 
 package org.apache.jackrabbit.oak.api.blob;
 
-import org.apache.jackrabbit.oak.api.Blob;
-
 import java.net.URL;
+
 import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.oak.api.Blob;
 
 public interface HttpBlobProvider {
     /**
@@ -47,5 +48,5 @@ public interface HttpBlobProvider {
     Blob completeHttpUpload(String uploadToken);
 
     @Nullable
-    URL getHttpDownloadURL(Blob blob);
+    URL getHttpDownloadURL(String blobId);
 }

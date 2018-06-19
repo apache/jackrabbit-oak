@@ -28,6 +28,7 @@ import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -305,6 +306,14 @@ public class ValueFactoryImpl implements ValueFactory {
 
     public Binary createBinary(Blob blob) throws RepositoryException {
         return createBinaryValue(blob).getBinary();
+    }
+
+    @Nullable
+    public String getBlobId(Binary binary) throws RepositoryException {
+        if (binary instanceof BinaryImpl) {
+            return ((BinaryImpl) binary).getBinaryValue().getBlob().getContentIdentity();
+        }
+        return null;
     }
 
 }

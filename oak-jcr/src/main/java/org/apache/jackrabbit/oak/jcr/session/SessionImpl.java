@@ -873,23 +873,17 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                     return null;
                 }
                 if (binary instanceof ReferenceBinary) {
-                    String blobReference = ((ReferenceBinary) binary).getReference();
-                    if (null == blobReference) {
+                    if (null == ((ReferenceBinary) binary).getReference()) {
                         // Binary is inlined, we cannot return a URL for it
                         return null;
                     }
-                    Blob blob = sd.getRoot().getBlob(blobReference);
-                    if (blob != null) {
-                        // TODO: how to check if this blob is actually a blob from that blob store?
-                        //       and not an inlined SegmentBlob or from another data store?
-                        //       a) DS could check for existence before presigning, but that'll be costly (network request vs. none)
-                        //       b) looking at the blob id will not help as that is not specific per DS
-                        //       c) alternatively we go the route of URLReadableBlob from patch v1 and add this to
-                        //          the blob impls itself, essentially changing the approach from provider to this, but only
-                        //          for HttpBlobProvider and below - for the JCR level API HttpBinaryProvider we should stick
-                        //          to that single simple interface for write + read IMO
-                        //       d) maybe the secure reference already helps?
-                        return httpBlobProvider.getHttpDownloadURL(blob);
+
+                    // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
+                    // a client cannot spoof, so we know that the id in question is valid and can be
+                    // trusted, so we can safely give out a URL to the binary for downloading.
+                    String blobId = ((ValueFactoryImpl) sessionContext.getValueFactory()).getBlobId(binary);
+                    if (null != blobId) {
+                        return httpBlobProvider.getHttpDownloadURL(blobId);
                     }
                 }
                 return null;
