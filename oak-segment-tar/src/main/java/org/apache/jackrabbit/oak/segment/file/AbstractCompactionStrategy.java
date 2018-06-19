@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
+import org.apache.jackrabbit.oak.segment.file.cancel.Cancellation;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -74,12 +76,13 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         Context context,
         NodeState base,
         NodeState onto,
-        CheckpointCompactor compactor
+        CheckpointCompactor compactor,
+        Canceller canceller
     ) throws InterruptedException {
         RecordId compactedId = setHead(context, headId -> {
             try {
                 PrintableStopwatch t = PrintableStopwatch.createStarted();
-                SegmentNodeState after = compactor.compact(base, context.getSegmentReader().readNode(headId), onto);
+                SegmentNodeState after = compactor.compact(base, context.getSegmentReader().readNode(headId), onto, canceller);
                 if (after != null) {
                     return after.getRecordId();
                 }
@@ -133,19 +136,20 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
             context.getCompactionMonitor().init(gcEntry.getRepoSize(), gcEntry.getNodes(), initialSize);
 
+            Canceller compactionCanceller = context.getCanceller().withShortCircuit();
+
             CheckpointCompactor compactor = new CheckpointCompactor(
                 context.getGCListener(),
                 context.getSegmentReader(),
                 writer,
                 context.getBlobStore(),
-                context.getCanceller(),
                 context.getCompactionMonitor()
             );
 
             SegmentNodeState head = getHead(context);
-            SegmentNodeState compacted = compactor.compact(base, head, base);
+            SegmentNodeState compacted = compactor.compact(base, head, base, compactionCanceller);
             if (compacted == null) {
-                context.getGCListener().warn("compaction cancelled: {}.", context.getCanceller());
+                context.getGCListener().warn("compaction cancelled: {}.", compactionCanceller.check().getReason().orElse("unknown reason"));
                 return compactionAborted(context, nextGeneration);
             }
 
@@ -168,9 +172,9 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
                 PrintableStopwatch cycleWatch = PrintableStopwatch.createStarted();
 
                 head = getHead(context);
-                compacted = compactor.compact(previousHead, head, compacted);
+                compacted = compactor.compact(previousHead, head, compacted, compactionCanceller);
                 if (compacted == null) {
-                    context.getGCListener().warn("compaction cancelled: {}.", context.getCanceller());
+                    context.getGCListener().warn("compaction cancelled: {}.", compactionCanceller.check().getReason().orElse("unknown reason"));
                     return compactionAborted(context, nextGeneration);
                 }
 
@@ -190,16 +194,20 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
                     PrintableStopwatch forceWatch = PrintableStopwatch.createStarted();
 
                     cycles++;
-                    context.getCanceller().timeOutAfter(forceTimeout, SECONDS);
-                    compacted = forceCompact(context, previousHead, compacted, compactor);
+
+                    Canceller forcedCompactionCanceller = compactionCanceller
+                        .withTimeout("forced compaction timeout exceeded", forceTimeout, SECONDS)
+                        .withShortCircuit();
+                    compacted = forceCompact(context, previousHead, compacted, compactor, forcedCompactionCanceller);
                     success = compacted != null;
                     if (success) {
                         context.getGCListener().info("compaction succeeded to force compact remaining commits after {}.", forceWatch);
                     } else {
-                        if (context.getCanceller().get()) {
+                        Cancellation cancellation = forcedCompactionCanceller.check();
+                        if (cancellation.isCancelled()) {
                             context.getGCListener().warn("compaction failed to force compact remaining commits " +
                                     "after {}. Compaction was cancelled: {}.",
-                                forceWatch, context.getCanceller());
+                                forceWatch, cancellation.getReason().orElse("unknown reason"));
                         } else {
                             context.getGCListener().warn("compaction failed to force compact remaining commits. " +
                                     "after {}. Could not acquire exclusive access to the node store.",

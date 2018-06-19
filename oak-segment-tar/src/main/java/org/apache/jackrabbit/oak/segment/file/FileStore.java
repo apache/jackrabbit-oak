@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
@@ -163,11 +164,10 @@ public class FileStore extends AbstractFileStore {
             segmentCache,
             segmentWriter,
             stats,
-            new CancelCompactionSupplier(
-                () -> !sufficientDiskSpace.get(),
-                () -> !sufficientMemory.get(),
-                shutDown::isShutDown
-            ),
+            Canceller.newCanceller()
+                .withCondition("not enough disk space", () -> !sufficientDiskSpace.get())
+                .withCondition("not enough memory", () -> !sufficientMemory.get())
+                .withCondition("FileStore is shutting down", shutDown::isShutDown),
             this::flush,
             generation ->
                 defaultSegmentWriterBuilder("c")

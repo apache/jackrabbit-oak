@@ -38,8 +38,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -80,7 +80,6 @@ public class CheckpointCompactor {
      * @param reader     segment reader used to read from the segments
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
-     * @param cancel     a flag that can be used to cancel the compaction process
      * @param compactionMonitor   notification call back for each compacted nodes,
      *                            properties, and binaries
      */
@@ -89,10 +88,9 @@ public class CheckpointCompactor {
             @Nonnull SegmentReader reader,
             @Nonnull SegmentWriter writer,
             @Nullable BlobStore blobStore,
-            @Nonnull Supplier<Boolean> cancel,
             @Nonnull GCNodeWriteMonitor compactionMonitor) {
         this.gcListener = gcListener;
-        this.compactor = new Compactor(reader, writer, blobStore, cancel, compactionMonitor);
+        this.compactor = new Compactor(reader, writer, blobStore, compactionMonitor);
         this.nodeWriter = (node, stableId) -> {
             RecordId nodeId = writer.writeNode(node, stableId);
             return new SegmentNodeState(reader, writer, blobStore, nodeId);
@@ -110,17 +108,23 @@ public class CheckpointCompactor {
      */
     @CheckForNull
     public SegmentNodeState compact(
-            @Nonnull NodeState base,
-            @Nonnull NodeState uncompacted,
-            @Nonnull NodeState onto)
-    throws IOException {
+        @Nonnull NodeState base,
+        @Nonnull NodeState uncompacted,
+        @Nonnull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
         // Collect a chronologically ordered list of roots for the uncompacted
         // state. This list consists of all checkpoints followed by the root.
         LinkedHashMap<String, NodeState> uncompactedRoots = collectRoots(uncompacted);
 
         // Compact the list of uncompacted roots to a list of compacted roots.
         LinkedHashMap<String, NodeState> compactedRoots = compact(
-                getRoot(base), uncompactedRoots, getRoot(onto));
+            getRoot(base),
+            uncompactedRoots,
+            getRoot(onto),
+            canceller
+        );
+
         if (compactedRoots == null) {
             return null;
         }
@@ -158,15 +162,16 @@ public class CheckpointCompactor {
      */
     @CheckForNull
     private LinkedHashMap<String, NodeState> compact(
-            @Nonnull NodeState base,
-            @Nonnull LinkedHashMap<String, NodeState> uncompactedRoots,
-            @Nonnull NodeState onto)
-    throws IOException {
+        @Nonnull NodeState base,
+        @Nonnull LinkedHashMap<String, NodeState> uncompactedRoots,
+        @Nonnull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
         LinkedHashMap<String, NodeState> compactedRoots = newLinkedHashMap();
         for (Entry<String, NodeState> uncompactedRoot : uncompactedRoots.entrySet()) {
             String path = uncompactedRoot.getKey();
             NodeState uncompacted = uncompactedRoot.getValue();
-            Result result = compactWithCache(base, uncompacted, onto, path);
+            Result result = compactWithCache(base, uncompacted, onto, path, canceller);
             if (result == null) {
                 return null;
             }
@@ -234,15 +239,16 @@ public class CheckpointCompactor {
      */
     @CheckForNull
     private Result compactWithCache(
-            @Nonnull NodeState before,
-            @Nonnull NodeState after,
-            @Nonnull NodeState onto,
-            @Nonnull String path)
-    throws IOException {
+        @Nonnull NodeState before,
+        @Nonnull NodeState after,
+        @Nonnull NodeState onto,
+        @Nonnull String path,
+        Canceller canceller
+    ) throws IOException {
         gcListener.info("compacting {}.", path);
         NodeState compacted = cpCache.get(after);
         if (compacted == null) {
-            compacted = compactor.compact(before, after, onto);
+            compacted = compactor.compact(before, after, onto, canceller);
             if (compacted == null) {
                 return null;
             } else {

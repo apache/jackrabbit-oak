@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -229,7 +230,7 @@ abstract class AbstractGarbageCollectionStrategy implements GarbageCollectionStr
             }
 
             @Override
-            public CancelCompactionSupplier getCanceller() {
+            public Canceller getCanceller() {
                 return context.getCanceller();
             }
 
