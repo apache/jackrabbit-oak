@@ -516,13 +516,8 @@ public final class DocumentNodeStore
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
         this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
-        this.commitValueResolver = new CommitValueResolver(builder.getCommitValueCacheSize(),
-                new Supplier<RevisionVector>() {
-            @Override
-            public RevisionVector get() {
-                return getSweepRevisions();
-            }
-        });
+        this.commitValueResolver = new CachingCommitValueResolver(
+                builder.getCommitValueCacheSize(), this::getSweepRevisions);
         this.blobStore = builder.getBlobStore();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
         if (builder.isUseSimpleRevision()) {
