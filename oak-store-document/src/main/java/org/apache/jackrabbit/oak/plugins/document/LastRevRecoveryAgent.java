@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -199,8 +198,9 @@ public class LastRevRecoveryAgent {
             // only run a sweep for a cluster node that already has a
             // sweep revision. Initial sweep is not the responsibility
             // of the recovery agent.
-            final RevisionContext context = new InactiveRevisionContext(
-                    rootDoc, nodeStore, clusterId);
+            final RevisionContext context = new RecoveryContext(rootDoc,
+                    nodeStore.getClock(), clusterId,
+                    nodeStore::getCommitValue);
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
@@ -544,67 +544,6 @@ public class LastRevRecoveryAgent {
         @Override
         public boolean apply(Revision input) {
             return clusterId == input.getClusterId();
-        }
-    }
-
-    /**
-     * A revision context that represents an inactive cluster node for which
-     * recovery is performed.
-     */
-    private static class InactiveRevisionContext implements RevisionContext {
-
-        private final NodeDocument root;
-        private final RevisionContext context;
-        private final int clusterId;
-
-        InactiveRevisionContext(NodeDocument root,
-                                RevisionContext context,
-                                int clusterId) {
-            this.root = root;
-            this.context = context;
-            this.clusterId = clusterId;
-        }
-
-        @Override
-        public UnmergedBranches getBranches() {
-            // an inactive cluster node does not have active unmerged branches
-            return new UnmergedBranches();
-        }
-
-        @Override
-        public UnsavedModifications getPendingModifications() {
-            // an inactive cluster node does not have
-            // pending in-memory _lastRev updates
-            return new UnsavedModifications();
-        }
-
-        @Override
-        public int getClusterId() {
-            return clusterId;
-        }
-
-        @Nonnull
-        @Override
-        public RevisionVector getHeadRevision() {
-            return new RevisionVector(root.getLastRev().values());
-        }
-
-        @Nonnull
-        @Override
-        public Revision newRevision() {
-            return Revision.newRevision(clusterId);
-        }
-
-        @Nonnull
-        @Override
-        public Clock getClock() {
-            return context.getClock();
-        }
-
-        @Override
-        public String getCommitValue(@Nonnull Revision changeRevision,
-                                     @Nonnull NodeDocument doc) {
-            return context.getCommitValue(changeRevision, doc);
         }
     }
 }
