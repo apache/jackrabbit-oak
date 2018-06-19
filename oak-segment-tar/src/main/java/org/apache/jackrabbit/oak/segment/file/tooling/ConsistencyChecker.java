@@ -186,7 +186,7 @@ public class ConsistencyChecker implements Closeable {
                     revisionCount++;
                     checker.store.setRevision(revision);
                     boolean overallValid = true;
-                    
+
                     SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(checker.store).build();
                     
                     checker.print("\nChecking revision {0}", revision);

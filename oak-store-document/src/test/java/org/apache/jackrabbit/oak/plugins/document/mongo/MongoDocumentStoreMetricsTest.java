@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -30,12 +36,6 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNotNull;
 
 public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
 

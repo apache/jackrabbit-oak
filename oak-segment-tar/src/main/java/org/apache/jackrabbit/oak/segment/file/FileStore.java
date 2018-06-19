@@ -24,21 +24,36 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.CLEANUP;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION_FORCE_COMPACT;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPACTION_RETRY;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.ESTIMATION;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.IDLE;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
+import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
+import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
+import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -46,15 +61,19 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
+import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * The storage implementation for tar files.
@@ -531,5 +550,4 @@ public class FileStore extends AbstractFileStore {
                     humanReadableByteCount(repositoryDiskSpace));
         }
     }
-
 }

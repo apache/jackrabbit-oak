@@ -112,6 +112,14 @@ public final class S3Constants {
      */
     public static final String PROXY_PORT = "proxyPort";
 
+    public static final String PRESIGNED_PUT_EXPIRY_SEC = "presignedPutExpirySeconds";
+
+    public static final String PRESIGNED_GET_EXPIRY_SEC = "presignedGetExpirySeconds";
+
+    public static final String PRESIGNED_GET_URL_CACHE_MAX_SIZE = "presignedGetURLCacheMaxSize";
+
+    public static final String PRESIGNED_URL_ENABLE_ACCELERATION = "presignedURLEnableTransferAcceleration";
+
     /**
      * private constructor so that class cannot initialized from outside.
      */

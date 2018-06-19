@@ -26,12 +26,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +42,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
@@ -66,7 +71,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-class MutableRoot implements Root {
+class MutableRoot implements Root, HttpBlobProvider {
 
     /**
      * The underlying store to which this root belongs
@@ -438,6 +443,35 @@ class MutableRoot implements Root {
                     ? "NIL"
                     : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
         }
+    }
+
+    // HttpBlobProvider
+    @Nullable
+    @Override
+    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+            throws UnsupportedHttpUploadArgumentsException {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Blob completeHttpUpload(String uploadToken) {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).completeHttpUpload(uploadToken);
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpDownloadURL(String blobId) {
+        if (store instanceof HttpBlobProvider) {
+            return ((HttpBlobProvider) store).getHttpDownloadURL(blobId);
+        }
+        return null;
     }
 
 }

@@ -65,7 +65,7 @@ public class LockBasedSchedulerTest {
         SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
         final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
                 .build();
-        
+
         final RecordId initialHead = ms.getRevisions().getHead();
         ExecutorService executorService = newFixedThreadPool(10);
         final AtomicInteger count = new AtomicInteger();
