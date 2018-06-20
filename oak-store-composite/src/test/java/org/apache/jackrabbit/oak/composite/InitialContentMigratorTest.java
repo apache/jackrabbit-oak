@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -24,8 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -48,27 +48,20 @@ import org.junit.Test;
 public class InitialContentMigratorTest {
 
     @Test
-    public void migrateContentWithCheckpoints() throws IOException, CommitFailedException {
-
+    public void migrateContent() throws IOException, CommitFailedException {
         // 1. populate the seed store with
         // .
         // \- first
         // \- second
         // \- third
         //
-        // 2. checkpoint before adding the third node
-        //
-        // 3. the mount only includes the '/first' path, so only the
+        // 2. the mount only includes the '/first' path, so only the
         // 'second' and 'third' nodes should be available
 
         MemoryNodeStore seed = new MemoryNodeStore();
         NodeBuilder root = seed.getRoot().builder();
         root.child("first");
         root.child("second");
-        seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        String checkpoint1 = seed.checkpoint(TimeUnit.MINUTES.toMillis(10));
-        
-        root = seed.getRoot().builder();
         root.child("third");
         seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
@@ -85,13 +78,15 @@ public class InitialContentMigratorTest {
         assertFalse("Node /first should not have been migrated", targetRoot.hasChildNode("first"));
         assertTrue("Node /second should have been migrated", targetRoot.hasChildNode("second"));
         assertTrue("Node /third should have been migrated", targetRoot.hasChildNode("third"));
-        
-        // verify that the 'second' node is visible in the migrated store when retrieving the checkpoint
-        NodeState checkpointTargetRoot = target.retrieve(checkpoint1);
-        assertFalse("Node /first should not have been migrated", checkpointTargetRoot.hasChildNode("first"));
-        assertTrue("Node /second should have been migrated", checkpointTargetRoot.hasChildNode("second"));
-        assertFalse("Node /third should not be visible from the migrated checkpoint", checkpointTargetRoot.hasChildNode("third"));
 
+        // verify that the async and fulltext-async checkpoints are available
+        NodeState mountAsync = target.getRoot().getChildNode(":async");
+        assertNotNull(target.retrieve(mountAsync.getString("async")));
+        assertNotNull(target.retrieve(mountAsync.getString("fulltext-async")));
+
+        // verify the info objects for the checkpoints
+        assertEquals("async", target.checkpointInfo(mountAsync.getString("async")).get("name"));
+        assertEquals("fulltext-async", target.checkpointInfo(mountAsync.getString("fulltext-async")).get("name"));
     }
 
     @Test
