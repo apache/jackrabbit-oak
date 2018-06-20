@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak;
 
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
-
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.junit.Test;
 
 /**
  * Test for OAK-2459.
@@ -35,7 +38,7 @@ public class InitialContentTest implements VersionConstants {
     public void noVersionStoragePrePopulated() throws Exception {
         // default initial content does not have intermediate nodes
         // pre-populated
-        NodeState system = InitialContentHelper.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
+        NodeState system = INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
         assertTrue(system.exists());
         
         NodeState vs = system.getChildNode(JCR_VERSIONSTORAGE);
@@ -63,8 +66,17 @@ public class InitialContentTest implements VersionConstants {
     }
 
     @Test
-    public void bundlingConfig() throws Exception{
-        NodeState system = InitialContentHelper.INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
+    public void bundlingConfig() throws Exception {
+        NodeState system = INITIAL_CONTENT.getChildNode(JCR_SYSTEM);
         assertFalse(system.getChildNode(DOCUMENT_NODE_STORE).exists());
+    }
+
+    @Test
+    public void validatePrePopulated() throws Exception {
+        NodeState before = EMPTY_NODE;
+        NodeBuilder builder = before.builder();
+        new InitialContent().withPrePopulatedVersionStore().initialize(builder);
+        NodeState after = builder.getNodeState();
+        new VersionHook().processCommit(before, after, CommitInfo.EMPTY);
     }
 }
