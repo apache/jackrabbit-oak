@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -31,7 +32,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.relativize;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.comparePropertiesAgainstBaseState;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_NODE_TYPE_NAMES;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_INIT;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_NT_NAMES;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
@@ -46,6 +49,7 @@ class VersionStorageEditor extends DefaultEditor {
     private final NodeBuilder workspaceRoot;
     private final NodeBuilder builder;
     private final String path;
+    private boolean initPhase;
     private ReadWriteVersionManager vMgr;
 
     VersionStorageEditor(@Nonnull NodeBuilder versionStorageNode,
@@ -62,6 +66,13 @@ class VersionStorageEditor extends DefaultEditor {
         this.workspaceRoot = checkNotNull(workspaceRoot);
         this.builder = checkNotNull(builder);
         this.path = checkNotNull(path);
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after) {
+        if (VERSION_STORE_PATH.equals(path)) {
+            initPhase = isInitializationPhase(before, after);
+        }
     }
 
     @Override
@@ -90,6 +101,10 @@ class VersionStorageEditor extends DefaultEditor {
         // is made to create rep:versionStorage nodes manually.
         if (d == getDepth(VERSION_STORE_PATH) &&
                 !isVersionStorageNode(after)) {
+            return null;
+        }
+        // allow node addition during initialization phase
+        if (initPhase) {
             return null;
         }
         return throwProtected(name);
@@ -156,5 +171,14 @@ class VersionStorageEditor extends DefaultEditor {
 
     private Editor throwProtected(String name) throws CommitFailedException {
         return Utils.throwProtected(concat(path, name));
+    }
+
+    private static boolean isInitializationPhase(NodeState before, NodeState after) {
+        return !comparePropertiesAgainstBaseState(after, before, new DefaultNodeStateDiff() {
+            @Override
+            public boolean propertyAdded(PropertyState after) {
+                return !after.getName().equals(VERSION_STORE_INIT);
+            }
+        });
     }
 }
