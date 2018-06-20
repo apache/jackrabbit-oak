@@ -130,12 +130,11 @@ public class InitialContentMigrator {
         String fullTextAsyncId = targetNodeStore.checkpoint(Long.MAX_VALUE, Collections.singletonMap("name", "fulltext-async"));
         String asyncId = targetNodeStore.checkpoint(Long.MAX_VALUE, Collections.singletonMap("name", "async"));
 
-        targetBuilder = targetRoot.builder();
+        targetBuilder = targetNodeStore.getRoot().builder();
         targetBuilder.getChildNode(":async").remove();
         NodeBuilder asyncNode = targetBuilder.child(":async");
         asyncNode.setProperty("fulltext-async", fullTextAsyncId);
         asyncNode.setProperty("async", asyncId);
-
         targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         markMigrationAsDone();
