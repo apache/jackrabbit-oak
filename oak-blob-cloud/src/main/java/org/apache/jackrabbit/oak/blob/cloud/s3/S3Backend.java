@@ -121,11 +121,11 @@ public class S3Backend extends AbstractSharedBackend {
 
     private S3RequestDecorator s3ReqDecorator;
 
-    private Cache<DataIdentifier, URL> presignedGetURLCache;
+    private Cache<DataIdentifier, URL> httpDownloadURLCache;
 
     // 0 = off by default
-    private int presignedPutExpirySeconds = 0;
-    private int presignedGetExpirySeconds = 0;
+    private int httpUploadURLExpirySeconds = 0;
+    private int httpDownloadURLExpirySeconds = 0;
 
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -198,13 +198,13 @@ public class S3Backend extends AbstractSharedBackend {
 
             String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
             if (putExpiry != null) {
-                setURLWritableBinaryExpirySeconds(Integer.parseInt(putExpiry));
+                setHttpUploadURLExpirySeconds(Integer.parseInt(putExpiry));
             }
 
             String getExpiry = properties.getProperty(S3Constants.PRESIGNED_GET_EXPIRY_SEC);
             if (getExpiry != null) {
                 final int getExpirySeconds = Integer.parseInt(getExpiry);
-                setURLReadableBinaryExpirySeconds(getExpirySeconds);
+                setHttpDownloadURLExpirySeconds(getExpirySeconds);
 
                 int cacheMaxSize = 0; // off by default
                 String cacheMaxSizeStr = properties.getProperty(S3Constants.PRESIGNED_GET_URL_CACHE_MAX_SIZE);
@@ -212,7 +212,7 @@ public class S3Backend extends AbstractSharedBackend {
                     cacheMaxSize = Integer.parseInt(cacheMaxSizeStr);
                 }
 
-                setURLReadableBinaryURLCacheSize(cacheMaxSize);
+                setHttpDownloadURLCacheSize(cacheMaxSize);
             }
 
             String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
@@ -653,8 +653,8 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public void setURLWritableBinaryExpirySeconds(int seconds) {
-        this.presignedPutExpirySeconds = seconds;
+    public void setHttpUploadURLExpirySeconds(int seconds) {
+        this.httpUploadURLExpirySeconds = seconds;
     }
 
     public DataIdentifier addNewRecord() throws DataStoreException {
@@ -676,54 +676,54 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public URL createPresignedPutURL(DataIdentifier identifier) {
-        if (presignedPutExpirySeconds <= 0) {
+        if (httpUploadURLExpirySeconds <= 0) {
             // feature disabled
             return null;
         }
 
-        return createPresignedURL(identifier, HttpMethod.PUT, presignedPutExpirySeconds);
+        return createPresignedURL(identifier, HttpMethod.PUT, httpUploadURLExpirySeconds);
     }
 
-    public void setURLReadableBinaryExpirySeconds(int seconds) {
-        this.presignedGetExpirySeconds = seconds;
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
+        this.httpDownloadURLExpirySeconds = seconds;
     }
 
-    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+    public void setHttpDownloadURLCacheSize(int maxSize) {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
-            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, presignedGetExpirySeconds / 2);
-            presignedGetURLCache = CacheBuilder.newBuilder()
+            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURLExpirySeconds / 2);
+            httpDownloadURLCache = CacheBuilder.newBuilder()
                     .maximumSize(maxSize)
                     // cache for half the expiry time of the urls before giving out new ones
-                    .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
+                    .expireAfterWrite(httpDownloadURLExpirySeconds / 2, TimeUnit.SECONDS)
                     .build();
         } else {
             LOG.info("presigned GET URL cache disabled");
-            presignedGetURLCache = null;
+            httpDownloadURLCache = null;
         }
     }
 
-    public URL createPresignedGetURL(@Nonnull DataIdentifier identifier) {
-        if (presignedGetExpirySeconds <= 0) {
+    public URL createHttpDownloadURL(@Nonnull DataIdentifier identifier) {
+        if (httpDownloadURLExpirySeconds <= 0) {
             // feature disabled
             return null;
         }
 
         URL url = null;
         // if cache is enabled, check the cache
-        if (presignedGetURLCache != null) {
-            url = presignedGetURLCache.getIfPresent(identifier);
+        if (httpDownloadURLCache != null) {
+            url = httpDownloadURLCache.getIfPresent(identifier);
         }
         if (url == null) {
-            url = createPresignedURL(identifier, HttpMethod.GET, presignedGetExpirySeconds);
-            if (url != null && presignedGetURLCache != null) {
-                presignedGetURLCache.put(identifier, url);
+            url = createPresignedURL(identifier, HttpMethod.GET, httpDownloadURLExpirySeconds);
+            if (url != null && httpDownloadURLCache != null) {
+                httpDownloadURLCache.put(identifier, url);
             }
         }
         return url;
     }
 
-    public DataRecordHttpUpload initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
@@ -733,7 +733,7 @@ public class S3Backend extends AbstractSharedBackend {
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 
-        if (presignedPutExpirySeconds > 0) {
+        if (httpUploadURLExpirySeconds > 0) {
             if (maxNumberOfUrls == 1 ||
                     maxUploadSizeInBytes <= minPartSize) {
                 // single put
@@ -773,7 +773,7 @@ public class S3Backend extends AbstractSharedBackend {
                     presignedUrlRequestParams.put("uploadId", uploadId);
                     uploadPartURLs.add(createPresignedURL(newIdentifier,
                             HttpMethod.PUT,
-                            presignedPutExpirySeconds,
+                            httpUploadURLExpirySeconds,
                             presignedUrlRequestParams));
                 }
             }
@@ -796,7 +796,7 @@ public class S3Backend extends AbstractSharedBackend {
         };
     }
 
-    public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
+    public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
             throws HttpUploadException, DataStoreException {
         HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr);
         String blobId = uploadToken.getBlobId();

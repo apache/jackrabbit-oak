@@ -97,7 +97,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public void setHttpUploadURLExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setURLWritableBinaryExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpUploadURLExpirySeconds(seconds);
         }
     }
 
@@ -130,7 +130,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         if (null == azureBlobStoreBackend) {
             throw new HttpUploadException("Backend not initialized");
         }
-        return azureBlobStoreBackend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Nonnull
@@ -141,7 +141,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         }
 
         if (azureBlobStoreBackend != null) {
-            return azureBlobStoreBackend.completeDirectUpload(uploadToken);
+            return azureBlobStoreBackend.completeHttpUpload(uploadToken);
         }
 
         return null;
@@ -150,19 +150,19 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public void setHttpDownloadURLExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setURLReadableBinaryExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpDownloadURLExpirySeconds(seconds);
         }
     }
 
-    public void setURLReadableBinaryURLCacheSize(int maxSize) {
-        azureBlobStoreBackend.setURLReadableBinaryURLCacheSize(maxSize);
+    public void setHttpDownloadURLCacheSize(int maxSize) {
+        azureBlobStoreBackend.setHttpDownloadURLCacheSize(maxSize);
     }
 
     @Nullable
     @Override
     public URL getDownloadURL(DataIdentifier identifier) {
         if (null != azureBlobStoreBackend) {
-            return azureBlobStoreBackend.createPresignedGetURL(identifier);
+            return azureBlobStoreBackend.createHttpDownloadURL(identifier);
         }
         return null;
     }

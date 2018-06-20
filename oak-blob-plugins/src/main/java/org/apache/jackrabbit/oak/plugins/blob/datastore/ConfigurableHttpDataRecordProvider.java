@@ -33,7 +33,7 @@ public interface ConfigurableHttpDataRecordProvider extends HttpDataRecordProvid
      *
      * @param maxSize Number of read URLs to cache.
      */
-    void setURLReadableBinaryURLCacheSize(int maxSize);
+    void setHttpDownloadURLCacheSize(int maxSize);
 
     /**
      * Specifies the number of seconds before a signed upload URL will expire.

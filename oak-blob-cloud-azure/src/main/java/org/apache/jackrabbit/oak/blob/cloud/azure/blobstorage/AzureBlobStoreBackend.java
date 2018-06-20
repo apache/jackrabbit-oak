@@ -107,10 +107,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private int concurrentRequestCount = 1;
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
-    private int presignedGetExpirySeconds = 0; // disabled by default
-    private int presignedPutExpirySeconds = 0; // disabled by default
+    private int httpDownloadURLExpirySeconds = 0; // disabled by default
+    private int httpUploadURLExpirySeconds = 0; // disabled by default
 
-    private Cache<DataIdentifier, URL> presignedGetURLCache;
+    private Cache<DataIdentifier, URL> httpDownloadURLCache;
 
     private byte[] secret;
 
@@ -167,6 +167,23 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 }
                 LOG.debug("Backend initialized. duration={}",
                           +(System.currentTimeMillis() - start));
+
+                // settings pertaining to HttpDataRecordProvider functionality
+                String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URL_EXPIRY_SECONDS);
+                if (null != putExpiry) {
+                    this.setHttpUploadURLExpirySeconds(Integer.parseInt(putExpiry));
+                }
+                String getExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URL_EXPIRY_SECONDS);
+                if (null != getExpiry) {
+                    this.setHttpDownloadURLExpirySeconds(Integer.parseInt(getExpiry));
+                    String cacheMaxSize = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URL_CACHE_MAX_SIZE);
+                    if (null != cacheMaxSize) {
+                        this.setHttpDownloadURLCacheSize(Integer.parseInt(cacheMaxSize));
+                    }
+                    else {
+                        this.setHttpDownloadURLCacheSize(0); // default
+                    }
+                }
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);
@@ -699,44 +716,44 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         return name;
     }
 
-    public void setURLReadableBinaryExpirySeconds(int seconds) {
-        presignedGetExpirySeconds = seconds;
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
+        httpDownloadURLExpirySeconds = seconds;
     }
 
-    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+    public void setHttpDownloadURLCacheSize(int maxSize) {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
-            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, presignedGetExpirySeconds / 2);
-            presignedGetURLCache = CacheBuilder.newBuilder()
+            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURLExpirySeconds / 2);
+            httpDownloadURLCache = CacheBuilder.newBuilder()
                     .maximumSize(maxSize)
-                    .expireAfterWrite(presignedGetExpirySeconds / 2, TimeUnit.SECONDS)
+                    .expireAfterWrite(httpDownloadURLExpirySeconds / 2, TimeUnit.SECONDS)
                     .build();
         } else {
             LOG.info("presigned GET URL cache disabled");
-            presignedGetURLCache = null;
+            httpDownloadURLCache = null;
         }
     }
 
-    public URL createPresignedGetURL(DataIdentifier identifier) {
+    public URL createHttpDownloadURL(DataIdentifier identifier) {
         URL url = null;
-        if (presignedGetExpirySeconds > 0) {
-            if (null != presignedGetURLCache) {
-                url = presignedGetURLCache.getIfPresent(identifier);
+        if (httpDownloadURLExpirySeconds > 0) {
+            if (null != httpDownloadURLCache) {
+                url = httpDownloadURLCache.getIfPresent(identifier);
             }
             if (null == url) {
                 String key = getKeyName(identifier);
-                url = createPresignedURL(key, EnumSet.of(SharedAccessBlobPermissions.READ), presignedGetExpirySeconds);
-                if (url != null && presignedGetURLCache != null) {
-                    presignedGetURLCache.put(identifier, url);
+                url = createPresignedURL(key, EnumSet.of(SharedAccessBlobPermissions.READ), httpDownloadURLExpirySeconds);
+                if (url != null && httpDownloadURLCache != null) {
+                    httpDownloadURLCache.put(identifier, url);
                 }
             }
         }
         return url;
     }
 
-    public void setURLWritableBinaryExpirySeconds(int seconds) { presignedPutExpirySeconds = seconds; }
+    public void setHttpUploadURLExpirySeconds(int seconds) { httpUploadURLExpirySeconds = seconds; }
 
-    public DataRecordHttpUpload initDirectUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
@@ -746,7 +763,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 
-        if (presignedPutExpirySeconds > 0) {
+        if (httpUploadURLExpirySeconds > 0) {
             // Always do multi-part uploads for Azure, even for small binaries.
             //
             // This is because Azure requires a unique header, "x-ms-blob-type=BlockBlob", to be
@@ -794,7 +811,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             for (long blockId = 1; blockId <= numParts; ++blockId) {
                 presignedUrlRequestParams.put("blockId",
                         Base64.encode(String.format("%06d", blockId)));
-                uploadPartURLs.add(createPresignedURL(key, perms, presignedPutExpirySeconds, presignedUrlRequestParams));
+                uploadPartURLs.add(createPresignedURL(key, perms, httpUploadURLExpirySeconds, presignedUrlRequestParams));
             }
         }
 
@@ -815,7 +832,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         };
     }
 
-    public DataRecord completeDirectUpload(@Nonnull String uploadTokenStr)
+    public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
             throws HttpUploadException, DataStoreException {
         HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr);
         String blobId = uploadToken.getBlobId();

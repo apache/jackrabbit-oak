@@ -106,7 +106,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     public void setHttpUploadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setURLWritableBinaryExpirySeconds(seconds);
+            s3Backend.setHttpUploadURLExpirySeconds(seconds);
         }
     }
 
@@ -140,7 +140,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         if (null == s3Backend) {
             throw new HttpUploadException("Backend not initialized");
         }
-        return s3Backend.initDirectUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Override
@@ -151,7 +151,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         }
 
         if (s3Backend != null) {
-            return s3Backend.completeDirectUpload(uploadToken);
+            return s3Backend.completeHttpUpload(uploadToken);
         }
 
         return null;
@@ -160,14 +160,14 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     public void setHttpDownloadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setURLReadableBinaryExpirySeconds(seconds);
+            s3Backend.setHttpDownloadURLExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setURLReadableBinaryURLCacheSize(int maxSize) {
+    public void setHttpDownloadURLCacheSize(int maxSize) {
         if (s3Backend != null) {
-            s3Backend.setURLReadableBinaryURLCacheSize(maxSize);
+            s3Backend.setHttpDownloadURLCacheSize(maxSize);
         }
     }
 
@@ -176,6 +176,6 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         if (s3Backend == null) {
             return null;
         }
-        return s3Backend.createPresignedGetURL(identifier);
+        return s3Backend.createHttpDownloadURL(identifier);
     }
 }
