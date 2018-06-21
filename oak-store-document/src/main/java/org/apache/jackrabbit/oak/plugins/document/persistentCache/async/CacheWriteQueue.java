@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 import java.util.Map;
 
-public class CacheWriteQueue<K, V> {
+public class CacheWriteQueue<K extends CacheValue, V extends CacheValue> {
 
     private final CacheActionDispatcher dispatcher;
 
