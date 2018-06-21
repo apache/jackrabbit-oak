@@ -798,10 +798,6 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
             @Nullable
             @Override
             public BinaryHttpUpload performNullable() throws RepositoryException {
-                // TODO: some form of access control check
-                //       to avoid that e.g. anonymous can add unlimited binaries to the data store
-                //       and throw AccessDeniedException if this check fails
-
                 HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
                 if (httpBlobProvider == null) {
                     return null;
