@@ -780,11 +780,19 @@ public class S3Backend extends AbstractSharedBackend {
             }
         }
 
-        HttpUploadToken uploadToken = new HttpUploadToken(blobId, uploadId);
+        byte[] secret = null;
+        try {
+            secret = getOrCreateReferenceKey();
+        }
+        catch (DataStoreException e) {
+            LOG.warn("Unable to obtain data store key");
+        }
+
+        String uploadToken = new HttpUploadToken(blobId, uploadId).getEncodedToken(secret);
 
         return new DataRecordHttpUpload() {
             @Override
-            public String getUploadToken() { return uploadToken.getEncodedToken(); }
+            public String getUploadToken() { return uploadToken; }
 
             @Override
             public long getMinPartSize() { return minPartSize; }
@@ -799,7 +807,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
             throws HttpUploadException, DataStoreException {
-        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr);
+        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
         if (uploadToken.getUploadId().isPresent()) {
             // An existing upload ID means this is a multi-part upload

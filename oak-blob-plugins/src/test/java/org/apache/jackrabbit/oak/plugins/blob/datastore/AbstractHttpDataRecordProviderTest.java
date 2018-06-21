@@ -254,13 +254,6 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadReturnsValidUploadToken() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
-        DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
-        String token = uploadContext.getUploadToken();
-        assertTrue(isValidUploadToken(token));
-    }
-
-    @Test
     public void testInititateHttpUploadURLListSizes() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         HttpDataRecordProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
@@ -551,10 +544,6 @@ public abstract class AbstractHttpDataRecordProviderTest {
             LOG.error("UnsupportedEncodingException caught", e);
         }
         return parsed;
-    }
-
-    protected boolean isValidUploadToken(String uploadToken) {
-        return null != HttpUploadToken.fromEncodedToken(uploadToken);
     }
 
     protected String randomString(long size) {

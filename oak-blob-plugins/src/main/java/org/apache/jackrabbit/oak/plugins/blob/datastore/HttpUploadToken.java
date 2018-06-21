@@ -17,16 +17,24 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import com.google.common.base.Joiner;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jackrabbit.util.Base64;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import com.google.common.base.Joiner;
+import org.apache.jackrabbit.util.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class HttpUploadToken {
+    private static Logger LOG = LoggerFactory.getLogger(HttpUploadToken.class);
+
     private String blobId;
     private Optional<String> uploadId;
 
@@ -35,7 +43,7 @@ public class HttpUploadToken {
         this.uploadId = Optional.ofNullable(uploadId);
     }
 
-    public static HttpUploadToken fromEncodedToken(@Nonnull String encoded) {
+    public static HttpUploadToken fromEncodedToken(@Nonnull String encoded, @Nonnull byte[] secret) {
         String[] parts = encoded.split("#", 2);
         if (parts.length < 2) {
             throw new IllegalArgumentException("Encoded string is missing the signature");
@@ -43,7 +51,7 @@ public class HttpUploadToken {
 
         String toBeDecoded = parts[0];
         String expectedSig = Base64.decode(parts[1]);
-        String actualSig = new String(DigestUtils.sha256(toBeDecoded));
+        String actualSig = getSignedString(toBeDecoded, secret);
         if (!expectedSig.equals(actualSig)) {
             throw new IllegalArgumentException("Upload token signature does not match");
         }
@@ -57,19 +65,29 @@ public class HttpUploadToken {
         return new HttpUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
     }
 
-    public String getEncodedToken() {
+    public String getEncodedToken(@Nonnull byte[] secret) {
         String now = Instant.now().toString();
         String toBeEncoded = uploadId.isPresent() ?
                 Joiner.on("#").join(blobId, now, uploadId.get()) :
                 Joiner.on("#").join(blobId, now);
         String toBeSigned = Base64.encode(toBeEncoded);
-        String sig = Base64.encode(new String(DigestUtils.sha256(toBeSigned)));
-        return Joiner.on("#").join(toBeSigned, sig);
+
+        String sig = getSignedString(toBeSigned, secret);
+        return sig != null ? Joiner.on("#").join(toBeSigned, sig) : toBeSigned;
     }
 
-    @Override
-    public String toString() {
-        return getEncodedToken();
+    private static String getSignedString(String toBeSigned, byte[] secret) {
+        try {
+            final String algorithm = "HmacSHA1";
+            Mac mac = Mac.getInstance(algorithm);
+            mac.init(new SecretKeySpec(secret, algorithm));
+            byte[] hash = mac.doFinal(toBeSigned.getBytes());
+            return new String(hash);
+        }
+        catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            LOG.warn("Could not sign upload token", e);
+        }
+        return null;
     }
 
     public String getBlobId() {
