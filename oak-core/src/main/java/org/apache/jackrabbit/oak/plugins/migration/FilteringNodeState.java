@@ -110,7 +110,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nonnull final Set<String> fragmentPaths,
             @Nonnull final Set<String> excludedFragments
     ) {
-        super(delegate);
+        super(delegate, false);
         this.path = path;
         this.includedPaths = includedPaths;
         this.excludedPaths = excludedPaths;

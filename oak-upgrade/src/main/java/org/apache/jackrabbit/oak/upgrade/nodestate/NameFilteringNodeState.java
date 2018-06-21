@@ -42,7 +42,7 @@ public class NameFilteringNodeState extends AbstractDecoratedNodeState {
     }
 
     private NameFilteringNodeState(final NodeState delegate, NameFilteringNodeState parent, String name) {
-        super(delegate);
+        super(delegate, false);
         this.parent = parent;
         this.name = name;
     }
