@@ -18,15 +18,16 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
 /**
  * Object represents an action on the cache (eg. put or invalidate).
- *
- * @param <K> key type
- * @param <V> value type
  */
-interface CacheAction<K, V> {
+interface CacheAction {
 
     /**
      * Execute the action
      */
     void execute();
 
+    /**
+     * @return the size of the memory in bytes this cache action occupies.
+     */
+    int getMemory();
 }

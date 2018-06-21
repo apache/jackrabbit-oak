@@ -33,20 +33,51 @@ public class CacheActionDispatcher implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(CacheActionDispatcher.class);
 
     /**
-     * What's the length of the queue.
+     * Default maximum memory for the queue: 32 MB.
+     */
+    private static final long DEFAULT_MAX_MEMORY = 32 * 1024 * 1024;
+
+    /**
+     * The maximum length of the queue.
      */
     static final int MAX_SIZE = 16 * 1024;
 
-    final BlockingQueue<CacheAction<?, ?>> queue = new ArrayBlockingQueue<CacheAction<?, ?>>(MAX_SIZE);
+    final BlockingQueue<CacheAction> queue = new ArrayBlockingQueue<>(MAX_SIZE);
+
+    /**
+     * The maximum memory for all cache actions currently in the queue.
+     */
+    private final long maxMemory;
+
+    /**
+     * The current memory usage of the cache actions in the queue.
+     */
+    private long memory = 0;
+
+    /**
+     * Monitor object for synchronization.
+     */
+    private final Object monitor = new Object();
 
     private volatile boolean isRunning = true;
+
+    public CacheActionDispatcher() {
+        this(DEFAULT_MAX_MEMORY);
+    }
+
+    CacheActionDispatcher(long maxMemory) {
+        this.maxMemory = maxMemory;
+    }
 
     @Override
     public void run() {
         while (isRunning) {
             try {
-                CacheAction<?, ?> action = queue.poll(10, TimeUnit.MILLISECONDS);
+                CacheAction action = queue.poll(10, TimeUnit.MILLISECONDS);
                 if (action != null && isRunning) {
+                    synchronized (monitor) {
+                        memory -= action.getMemory();
+                    }
                     action.execute();
                 }
             } catch (InterruptedException e) {
@@ -67,7 +98,24 @@ public class CacheActionDispatcher implements Runnable {
      *
      * @param action to be added
      */
-    boolean add(CacheAction<?, ?> action) {
-        return queue.offer(action);
+    boolean add(CacheAction action) {
+        int m = action.getMemory();
+        synchronized (monitor) {
+            // check if the queue reached memory limit and accepts action
+            if (memory + m <= maxMemory && queue.offer(action)) {
+                memory += m;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Exposed for tests only.
+     *
+     * @return the current memory usage of the pending cache actions.
+     */
+    long getMemory() {
+        return memory;
     }
 }

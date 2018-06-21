@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -54,7 +55,8 @@ import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class NodeCache<K, V> implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
+class NodeCache<K extends CacheValue, V extends  CacheValue>
+        implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(NodeCache.class);
 
