@@ -331,8 +331,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
                         sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
             }
-
-            statsCollector.finishSuccess();
         } catch (Exception e) {
             statsCollector.finishFailure();
             LOG.error("Blob garbage collection error", e);
@@ -981,15 +979,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     class GarbageCollectionOperationStats implements OperationsStatsMBean {
-        private static final String START = "START";
-        private static final String FINISH_SUCCESS = "FINISH_SUCCESS";
-        private static final String FINISH_FAILURE = "FINISH_FAILURE";
-        private static final String DURATION = "DURATION";
-        private static final String MARK_DURATION = "MARK_DURATION";
-        private static final String SWEEP_DURATION = "SWEEP_DURATION";
+        private static final String NAME = "DataStoreGarbageCollection";
+        private static final String START = "COUNTER";
+        private static final String FINISH_FAILURE = "FAILURE";
+        private static final String DURATION = "ACTIVE_TIMER";
+        private static final String MARK_DURATION = "MARK_TIMER";
+        private static final String SWEEP_DURATION = "SWEEP_TIMER";
 
         private CounterStats startCounter;
-        private CounterStats finishSuccessCounter;
         private CounterStats finishFailureCounter;
         private TimerStats duration;
         private final TimerStats markDuration;
@@ -998,7 +995,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         GarbageCollectionOperationStats(StatisticsProvider sp) {
             this.startCounter = sp.getCounterStats(getMetricName(START), StatsOptions.METRICS_ONLY);
-            this.finishSuccessCounter = sp.getCounterStats(getMetricName(FINISH_SUCCESS), StatsOptions.METRICS_ONLY);
             this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
             this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
             this.markDuration = sp.getTimer(getMetricName(MARK_DURATION), StatsOptions.METRICS_ONLY);
@@ -1008,11 +1004,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 @Override
                 public void start() {
                     startCounter.inc();
-                }
-
-                @Override
-                public void finishSuccess() {
-                    finishSuccessCounter.inc();
                 }
 
                 @Override
@@ -1044,18 +1035,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         @Override public String getName() {
-            return TYPE + "." + GarbageCollectionOperationStats.class.getSimpleName();
+            return TYPE + "." + NAME;
         }
 
         @Override public long getStartCount() {
             return startCounter.getCount();
         }
 
-        @Override public long getFinishSucessCount() {
-            return finishSuccessCounter.getCount();
-        }
-
-        @Override public long getFinishErrorCount() {
+        @Override public long getFailureCount() {
             return finishFailureCounter.getCount();
         }
 

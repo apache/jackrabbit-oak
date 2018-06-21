@@ -34,19 +34,13 @@ public interface OperationsStatsMBean {
      */
     long getStartCount();
 
-    /**
-     * Returns the finish success count
-     *
-     * @return
-     */
-    long getFinishSucessCount();
 
     /**
      * Returns the finish error count
      *
      * @return
      */
-    long getFinishErrorCount();
+    long getFailureCount();
 
     /**
      * Returns the duration of the operation

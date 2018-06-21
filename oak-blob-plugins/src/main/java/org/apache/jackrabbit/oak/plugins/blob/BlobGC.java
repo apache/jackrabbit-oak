@@ -229,29 +229,25 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private CompositeData toCompositeData(OperationsStatsMBean statObj) throws OpenDataException {
         Object[] values = new Object[] {
             statObj.getStartCount(),
-            statObj.getFinishSucessCount(),
-            statObj.getFinishErrorCount(),
+            statObj.getFailureCount(),
             statObj.duration()
         };
         return new CompositeDataSupport(OP_STATS_TYPE, OP_STATS_FIELD_NAMES, values);
     }
 
     private static final String[] OP_STATS_FIELD_NAMES = new String[] {
-        "startCount",
-        "finishSuccessCount",
-        "finishErrorCount",
+        "count",
+        "failureCount",
         "duration"
     };
 
     private static final String[] OP_STATS_FIELD_DESCRIPTIONS = new String[] {
-        "Start Count",
-        "Finish Success Count",
-        "Finish Error Count",
+        "Count",
+        "Failure Count",
         "Duration"
     };
 
     private static final OpenType[] OP_STATS_FIELD_TYPES = new OpenType[] {
-        SimpleType.LONG,
         SimpleType.LONG,
         SimpleType.LONG,
         SimpleType.LONG

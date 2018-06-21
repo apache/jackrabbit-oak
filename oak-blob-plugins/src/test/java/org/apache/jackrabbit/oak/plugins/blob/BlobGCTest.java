@@ -210,8 +210,7 @@ public class BlobGCTest {
 
     private void assertStats(OperationsStatsMBean operationStats) {
         assertEquals("Start counter mismatch", 1, operationStats.getStartCount());
-        assertEquals("Finish success mismatch", 1, operationStats.getFinishSucessCount());
-        assertEquals("Finish error mismatch", 0, operationStats.getFinishErrorCount());
+        assertEquals("Finish error mismatch", 0, operationStats.getFailureCount());
     }
 
     private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor)
