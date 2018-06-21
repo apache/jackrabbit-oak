@@ -135,6 +135,8 @@ public class VersionGarbageCollector {
         if (collector.compareAndSet(null, job)) {
             VersionGCStats overall = new VersionGCStats();
             overall.active.start();
+            gcStats.started();
+            boolean success = false;
             try {
                 long averageDurationMs = 0;
                 while (maxRunTime.contains(nodeStore.getClock().getTime() + averageDurationMs)) {
@@ -152,11 +154,13 @@ public class VersionGarbageCollector {
                     averageDurationMs = ((averageDurationMs * (overall.iterationCount - 1))
                             + stats.active.elapsed(TimeUnit.MILLISECONDS)) / overall.iterationCount;
                 }
-                gcStats.finished(overall);
+                success = true;
                 return overall;
             } finally {
                 overall.active.stop();
                 collector.set(null);
+                overall.success = success;
+                gcStats.finished(overall);
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
                             overall.iterationCount, overall);
@@ -243,6 +247,7 @@ public class VersionGarbageCollector {
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
         boolean canceled;
+        boolean success = true;
         boolean limitExceeded;
         boolean needRepeat;
         int iterationCount;
@@ -312,6 +317,7 @@ public class VersionGarbageCollector {
             ++iterationCount;
             this.ignoredGCDueToCheckPoint = run.ignoredGCDueToCheckPoint;
             this.canceled = run.canceled;
+            this.success = run.success;
             this.limitExceeded = run.limitExceeded;
             this.needRepeat = run.needRepeat;
             this.deletedDocGCCount += run.deletedDocGCCount;

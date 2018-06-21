@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
@@ -130,6 +131,24 @@ public class RevisionGCStatsTest {
         assertTimer(13, RevisionGCStats.RESET_DELETED_FLAG_TIMER);
     }
 
+    @Test
+    public void counters() {
+        Counter counter = getCounter(RevisionGCStats.COUNTER);
+        Counter failureCounter = getCounter(RevisionGCStats.FAILURE_COUNTER);
+
+        VersionGCStats vgcs = new VersionGCStats();
+        stats.started();
+        stats.finished(vgcs);
+        assertEquals(1, counter.getCount());
+        assertEquals(0, failureCounter.getCount());
+
+        vgcs.success = false;
+        stats.started();
+        stats.finished(vgcs);
+        assertEquals(2, counter.getCount());
+        assertEquals(1, failureCounter.getCount());
+    }
+
     private void assertTimer(long expected, String name) {
         assertEquals(expected, NANOSECONDS.toMillis(getTimer(name).getSnapshot().getMax()));
     }
@@ -141,4 +160,9 @@ public class RevisionGCStatsTest {
     private Meter getMeter(String name) {
         return statsProvider.getRegistry().getMeters().get(RGC + "." + name);
     }
+
+    private Counter getCounter(String name) {
+        return statsProvider.getRegistry().getCounters().get(RGC + "." + name);
+    }
+
 }

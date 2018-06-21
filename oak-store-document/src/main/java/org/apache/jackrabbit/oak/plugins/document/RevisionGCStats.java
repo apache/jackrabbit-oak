@@ -22,6 +22,7 @@ import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
@@ -52,6 +53,9 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
     static final String DELETE_DOC_TIMER = "DELETE_DOC_TIMER";
     static final String DELETE_SPLIT_DOC_TIMER = "DELETE_SPLIT_DOC_TIMER";
 
+    static final String COUNTER = "COUNTER";
+    static final String FAILURE_COUNTER = "FAILURE";
+
     private final StatisticsProvider provider;
 
     private final MeterStats readDoc;
@@ -68,6 +72,9 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
     private final TimerStats resetDeletedFlagTimer;
     private final TimerStats deletedDocTimer;
     private final TimerStats deletedSplitDocTimer;
+
+    private final CounterStats counter;
+    private final CounterStats failureCounter;
 
     RevisionGCStats(StatisticsProvider provider) {
         this.provider = provider;
@@ -86,6 +93,9 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
         resetDeletedFlagTimer = timer(provider, RESET_DELETED_FLAG_TIMER);
         deletedDocTimer = timer(provider, DELETE_DOC_TIMER);
         deletedSplitDocTimer = timer(provider, DELETE_SPLIT_DOC_TIMER);
+
+        counter = counter(provider, COUNTER);
+        failureCounter = counter(provider, FAILURE_COUNTER);
     }
 
     //---------------------< RevisionGCStatsCollector >-------------------------
@@ -125,6 +135,11 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
     }
 
     @Override
+    public void started() {
+        counter.inc();
+    }
+
+    @Override
     public void finished(VersionGCStats stats) {
         activeTimer.update(stats.active.elapsed(MICROSECONDS), MICROSECONDS);
         readDocTimer.update(stats.collectDeletedDocsElapsed, MICROSECONDS);
@@ -133,6 +148,9 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
         deletedSplitDocTimer.update(stats.collectAndDeleteSplitDocsElapsed, MICROSECONDS);
         sortIdsTimer.update(stats.sortDocIdsElapsed, MICROSECONDS);
         resetDeletedFlagTimer.update(stats.updateResurrectedDocumentsElapsed, MICROSECONDS);
+        if (!stats.success) {
+            failureCounter.inc();
+        }
     }
 
 
@@ -215,6 +233,11 @@ class RevisionGCStats implements RevisionGCStatsCollector, RevisionGCStatsMBean 
     private static TimerStats timer(StatisticsProvider provider,
                                     String name) {
         return provider.getTimer(qualifiedName(name), METRICS_ONLY);
+    }
+
+    private static CounterStats counter(StatisticsProvider provider,
+                                        String name) {
+        return provider.getCounterStats(qualifiedName(name), METRICS_ONLY);
     }
 
     private static String qualifiedName(String metricName) {
