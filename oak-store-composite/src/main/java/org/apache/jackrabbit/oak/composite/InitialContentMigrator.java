@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -35,8 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class InitialContentMigrator {
@@ -121,20 +125,61 @@ public class InitialContentMigrator {
         LOG.info("Exclude: {}", excludePaths);
         LOG.info("Exclude fragments: {} @ {}", excludeFragments, fragmentPaths);
 
-        NodeState targetRoot = targetNodeStore.getRoot();
+        Map<String, String> nameToRevision = new LinkedHashMap<>();
+        Map<String, String> checkpointSegmentToDoc = new LinkedHashMap<>();
+
+        NodeState initialRoot = targetNodeStore.getRoot();
+        NodeState targetRoot = initialRoot;
+        NodeState previousRoot = initialRoot;
+        for (String checkpointName : seedNodeStore.checkpoints()) {
+            NodeState checkpointRoot = seedNodeStore.retrieve(checkpointName);
+            Map<String, String> checkpointInfo = seedNodeStore.checkpointInfo(checkpointName);
+
+            if (previousRoot == initialRoot) {
+                LOG.info("Migrating first checkpoint: {}", checkpointName);
+            } else {
+                LOG.info("Applying diff to {}", checkpointName);
+            }
+            LOG.info("Checkpoint metadata: {}", checkpointInfo);
+
+            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot);
+            previousRoot = checkpointRoot;
+
+            String newCheckpointName = targetNodeStore.checkpoint(Long.MAX_VALUE, checkpointInfo);
+            if (checkpointInfo.containsKey("name")) {
+                nameToRevision.put(checkpointInfo.get("name"), newCheckpointName);
+            }
+            checkpointSegmentToDoc.put(checkpointName, newCheckpointName);
+        }
+
+        NodeState sourceRoot = seedNodeStore.getRoot();
+        if (previousRoot == initialRoot) {
+            LOG.info("No checkpoints found; migrating head");
+        } else {
+            LOG.info("Applying diff to head");
+        }
+
+        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot);
+
+        LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
         NodeBuilder targetBuilder = targetRoot.builder();
-        NodeState seedRoot = wrapNodeState(seedNodeStore.getRoot(), true);
-        seedRoot.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE, new ApplyDiff(targetBuilder));
-        targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        NodeBuilder async = targetBuilder.getChildNode(":async");
+        for (Map.Entry<String, String> e : nameToRevision.entrySet()) {
+            async.setProperty(e.getKey(), e.getValue(), Type.STRING);
 
-        String fullTextAsyncId = targetNodeStore.checkpoint(Long.MAX_VALUE, Collections.singletonMap("name", "fulltext-async"));
-        String asyncId = targetNodeStore.checkpoint(Long.MAX_VALUE, Collections.singletonMap("name", "async"));
+            PropertyState temp = async.getProperty(e.getKey() + "-temp");
+            if (temp == null) {
+                continue;
+            }
+            List<String> tempValues = Lists.newArrayList(temp.getValue(Type.STRINGS));
+            for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
+                if (tempValues.contains(sToD.getKey())) {
+                    tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());
+                }
+            }
+            async.setProperty(e.getKey() + "-temp", tempValues, Type.STRINGS);
+        }
 
-        targetBuilder = targetNodeStore.getRoot().builder();
-        targetBuilder.getChildNode(":async").remove();
-        NodeBuilder asyncNode = targetBuilder.child(":async");
-        asyncNode.setProperty("fulltext-async", fullTextAsyncId);
-        asyncNode.setProperty("async", asyncId);
         targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         markMigrationAsDone();
@@ -146,6 +191,15 @@ public class InitialContentMigrator {
         builder.child(":composite");
         targetNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
+
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot) throws CommitFailedException {
+        NodeBuilder targetBuilder = targetRoot.builder();
+        NodeState currentRoot = wrapNodeState(after, true);
+        NodeState baseRoot = wrapNodeState(before, false);
+        currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
+        return targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
 
     private NodeState wrapNodeState(NodeState nodeState, boolean logPaths) {
         NodeState wrapped = nodeState;
