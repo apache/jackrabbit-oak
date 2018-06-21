@@ -35,7 +35,7 @@ public class MetadataExposingNodeState extends AbstractDecoratedNodeState {
     private final List<PropertyState> metadataProperties;
 
     public MetadataExposingNodeState(AbstractDocumentNodeState documentNodeState) {
-        super(documentNodeState);
+        super(documentNodeState, true);
 
         metadataProperties = new ArrayList<>(2);
         if (PathUtils.denotesRoot(documentNodeState.getPath())) {

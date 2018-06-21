@@ -335,16 +335,18 @@ public class RepositorySidegrade {
             Map<String, String> checkpointInfo = source.checkpointInfo(checkpoint.getName());
 
             boolean tracePaths;
+            boolean showDiff = false;
             if (previousRoot == initialRoot) {
                 LOG.info("Migrating first checkpoint: {}", checkpoint.getName());
                 tracePaths = true;
             } else {
                 LOG.info("Applying diff to {}", checkpoint.getName());
+                showDiff = true;
                 tracePaths = false;
             }
             LOG.info("Checkpoint expiry time: {}, metadata: {}", checkpoint.getExpiryTime(), checkpointInfo);
 
-            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths);
+            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths, showDiff);
             previousRoot = checkpointRoot;
 
             String newCheckpointName = target.checkpoint(checkpoint.getExpiryTime() - System.currentTimeMillis(), checkpointInfo);
@@ -356,15 +358,17 @@ public class RepositorySidegrade {
 
         NodeState sourceRoot = source.getRoot();
         boolean tracePaths;
+        boolean showDiff = false;
         if (previousRoot == initialRoot) {
             LOG.info("No checkpoints found; migrating head");
             tracePaths = true;
         } else {
             LOG.info("Applying diff to head");
             tracePaths = false;
+            showDiff = true;
         }
 
-        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot, tracePaths);
+        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot, tracePaths, showDiff);
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
         NodeBuilder targetBuilder = targetRoot.builder();
@@ -388,8 +392,7 @@ public class RepositorySidegrade {
         return true;
     }
 
-    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths) throws IOException, CommitFailedException {
-
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths, boolean showDiff) throws IOException, CommitFailedException {
         NodeBuilder targetBuilder = targetRoot.builder();
         if (targetFileStore == null) {
             NodeState currentRoot = wrapNodeState(after, tracePaths, true);

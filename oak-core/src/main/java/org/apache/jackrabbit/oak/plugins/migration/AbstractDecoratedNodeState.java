@@ -37,6 +37,8 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.google.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -45,8 +47,11 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 
     protected final NodeState delegate;
 
-    protected AbstractDecoratedNodeState(@Nonnull final NodeState delegate) {
+    private final boolean useNativeEquals;
+
+    protected AbstractDecoratedNodeState(@Nonnull final NodeState delegate, boolean useNativeEquals) {
         this.delegate = delegate;
+        this.useNativeEquals = useNativeEquals;
     }
 
     public NodeState getDelegate() {
@@ -198,21 +203,57 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
      */
     @Override
     public boolean equals(final Object other) {
-        if (other == null) {
+        if (!(other instanceof NodeState)) {
             return false;
         }
 
-        if (this.getClass() == other.getClass()) {
-            final AbstractDecoratedNodeState o = (AbstractDecoratedNodeState) other;
-            return delegate.equals(o.delegate);
+        if (useNativeEquals) {
+            if (this.getClass() == other.getClass()) {
+                final AbstractDecoratedNodeState o = (AbstractDecoratedNodeState) other;
+                return delegate.equals(o.delegate);
+            }
         }
 
-        return delegate.equals(other);
+        return AbstractDecoratedNodeState.equals(this, (NodeState) other);
     }
 
     @Override
     public boolean compareAgainstBaseState(final NodeState base, final NodeStateDiff diff) {
-        return AbstractNodeState.compareAgainstBaseState(this, base, new DecoratingDiff(diff, this));
+        NodeStateDiff decoratingDiff = new DecoratingDiff(diff, this);
+
+        if (!comparePropertiesAgainstBaseState(this, base, decoratingDiff)) {
+            return false;
+        }
+
+        Set<String> baseChildNodes = new HashSet<String>();
+        for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
+            String name = beforeCNE.getName();
+            NodeState beforeChild = beforeCNE.getNodeState();
+            NodeState afterChild = this.getChildNode(name);
+            if (!afterChild.exists()) {
+                if (!decoratingDiff.childNodeDeleted(name, beforeChild)) {
+                    return false;
+                }
+            } else {
+                baseChildNodes.add(name);
+                if (!afterChild.equals(beforeChild)) { // TODO: fastEquals?
+                    if (!decoratingDiff.childNodeChanged(name, beforeChild, afterChild)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        for (ChildNodeEntry afterChild : this.getChildNodeEntries()) {
+            String name = afterChild.getName();
+            if (!baseChildNodes.contains(name)) {
+                if (!decoratingDiff.childNodeAdded(name, afterChild.getNodeState())) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static class DecoratingDiff implements NodeStateDiff {

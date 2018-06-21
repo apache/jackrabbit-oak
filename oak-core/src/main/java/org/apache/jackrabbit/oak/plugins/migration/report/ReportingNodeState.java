@@ -77,7 +77,7 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
     }
 
     private ReportingNodeState(ReportingNodeState parent, String name, NodeState delegate, Reporter reporter) {
-        super(delegate);
+        super(delegate, true);
         this.parent = parent;
         this.name = name;
         this.reporter = reporter;
