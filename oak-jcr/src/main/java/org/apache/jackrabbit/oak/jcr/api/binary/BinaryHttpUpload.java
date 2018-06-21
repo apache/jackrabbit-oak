@@ -156,6 +156,17 @@ public interface BinaryHttpUpload {
      * In case of multiple URLs, the order in which they are returned is important and defines
      * the order of the parts. Each part covers a given range of the binary in bytes.
      *
+     * <p>
+     * The consumer of these URLs must keep the following in mind when issuing requests
+     * for these URLs:
+     *  - Standard HTTP PUT is required as the request method
+     *  - The Content-Length header must be set using the size in bytes of the payload
+     *  - The Date header must be set, using this format:  yyyy-MM-dd'T'HH:mm:ssX
+     *    For example: 1997-08-29T06:14:00Z
+     *  - Content-Type MAY be set if known, for single put uploads only
+     *  - Payload must include the bytes for the binary being uploaded, or for the
+     *    range of bytes for the corresponding part if using multi-part upload
+     *
      * @return one or more URLs for uploading the binary in one or more parts
      */
     @Nonnull
