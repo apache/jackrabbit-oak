@@ -18,7 +18,7 @@
 package org.apache.jackrabbit.oak.api.blob;
 
 import java.net.URL;
-import java.util.List;
+import java.util.Collection;
 
 public interface BlobHttpUpload {
     /**
@@ -43,7 +43,7 @@ public interface BlobHttpUpload {
      *
      * @return The smallest part size acceptable, for multi-part uploads.
      */
-    int getMinPartSize();
+    long getMinPartSize();
 
     /**
      * The largest part size the client can send in a multi-part upload.  The API guarantees
@@ -55,7 +55,7 @@ public interface BlobHttpUpload {
      * getMinPartSize().  Such smaller values may be more desirable for clients who wish to
      * tune uploads to match network conditions; however, the only guarantee offered by the
      * API is that using parts of maxPartSize will work without using more URLs than those
-     * available in the list of uploadPartURLs.
+     * available in the collection of uploadPartURLs.
      *
      * If a client calls {@code HttpBlobProvider.initiateHttpUpload} with a value of
      * maxUploadSizeInBytes that ends up being smaller than the actual size of the binary to
@@ -67,24 +67,24 @@ public interface BlobHttpUpload {
      *
      * @return The largest part size acceptable, for multi-part uploads.
      */
-    int getMaxPartSize();
+    long getMaxPartSize();
 
     /**
-     * Returns a list of direct-writable upload URLs for uploading a file, or file part in the case
-     * of multi-part uploading.  This list may contain only a single URL in the following cases:
+     * Returns a collection of direct-writable upload URLs for uploading a file, or file part in the case
+     * of multi-part uploading.  This collection may contain only a single URL in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
      *    {@code HttpBlobProvider.initiateHttpUpload}, OR
      *  - If the implementing data store does not support multi-part uploading, OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
      *    {@code HttpBlobProvider.initiateHttpUpload} is less than or equal to the minimum
      *    size of a multi-part upload part
-     * If the list contains only a single URL the client should treat that URL as a direct
+     * If the collection contains only a single URL the client should treat that URL as a direct
      * single-put upload and write the entire binary to the single URL.  Otherwise the client
-     * may choose to consume up to the entire list of URLs provided.
+     * may choose to consume up to the entire collection of URLs provided.
      *
      * Note that ordering matters; URLs should be consumed in sequence and not skipped.
      *
-     * @return ordered list of URLs to be consumed in sequence.
+     * @return ordered collection of URLs to be consumed in sequence.
      */
-    List<URL> getUploadURLs();
+    Collection<URL> getUploadURLs();
 }

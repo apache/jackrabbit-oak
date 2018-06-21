@@ -226,7 +226,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         DataRecordHttpUpload uploadContext =
                 getDataStore().initiateHttpUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURLs().size());
-        assertTrue(isSinglePutURL(uploadContext.getUploadURLs().get(0)));
+        assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
     }
 
     @Test
@@ -234,7 +234,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         DataRecordHttpUpload uploadContext =
                 getDataStore().initiateHttpUpload(getProviderMinPartSize()-1L, 10);
         assertEquals(1, uploadContext.getUploadURLs().size());
-        assertTrue(isSinglePutURL(uploadContext.getUploadURLs().get(0)));
+        assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
     }
 
     @Test
@@ -437,7 +437,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
                 assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
                 String uploaded = randomString(res.getUploadSize());
-                URL uploadUrl = uploadContext.getUploadURLs().get(0);
+                URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
                 doHttpsUpload(new ByteArrayInputStream(uploaded.getBytes()), uploaded.length(), uploadUrl);
 
                 uploadedRecord = ds.completeHttpUpload(uploadContext.getUploadToken());

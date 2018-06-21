@@ -43,12 +43,12 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     /**
      * The minimum size of a file in order to do multi-part upload.
      */
-    static final int minPartSize = AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE;
+    static final long minPartSize = AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE;
 
     /**
      * The maximum size of a multi-part upload part (Azure limitation).
      */
-    static final int maxPartSize = AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
+    static final long maxPartSize = AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
 
     /**
      * The maximum allowed size of an upload that can be done via single-put upload.

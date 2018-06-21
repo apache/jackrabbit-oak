@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
@@ -98,8 +99,8 @@ public class S3Backend extends AbstractSharedBackend {
     static final String UPLOAD_ID = "uploadId";
 
     private static final int ONE_MB = 1024*1024;
-    static final int MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
-    static final int MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256; // 256MB
+    static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
+    static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256; // 256MB
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024L * 1024L * 1024L * 5L; // 5GB, AWS limitation
     static final long MAX_BINARY_UPLOAD_SIZE = 1024L * 1024L * 1024L * 1024L * 5L; // 5TB, AWS limitation
     private static final int MAX_ALLOWABLE_UPLOAD_URLS = 10000; // AWS limitation
@@ -726,8 +727,8 @@ public class S3Backend extends AbstractSharedBackend {
     public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
-        int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
-        int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
+        long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
+        long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
         DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
         String blobId = getKeyName(newIdentifier);
@@ -786,13 +787,13 @@ public class S3Backend extends AbstractSharedBackend {
             public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public int getMinPartSize() { return minPartSize; }
+            public long getMinPartSize() { return minPartSize; }
 
             @Override
-            public int getMaxPartSize() { return maxPartSize; }
+            public long getMaxPartSize() { return maxPartSize; }
 
             @Override
-            public List<URL> getUploadURLs() { return uploadPartURLs; }
+            public Collection<URL> getUploadURLs() { return uploadPartURLs; }
         };
     }
 

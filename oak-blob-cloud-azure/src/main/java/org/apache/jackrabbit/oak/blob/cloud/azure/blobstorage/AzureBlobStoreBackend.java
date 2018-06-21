@@ -33,6 +33,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -95,8 +96,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String REF_KEY = "reference.key";
 
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
-    static final int MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
-    static final int MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
+    static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
+    static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024 * 1024 * 256; // 256MB, Azure limit
     static final long MAX_BINARY_UPLOAD_SIZE = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75); // 4.75TB, Azure limit
     private static final int MAX_ALLOWABLE_UPLOAD_URLS = 50000; // Azure limit
@@ -756,8 +757,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
-        int minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
-        int maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
+        long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
+        long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
         DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
         String blobId = getKeyName(newIdentifier);
@@ -822,13 +823,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             public String getUploadToken() { return uploadToken.getEncodedToken(); }
 
             @Override
-            public int getMinPartSize() { return minPartSize; }
+            public long getMinPartSize() { return minPartSize; }
 
             @Override
-            public int getMaxPartSize() { return maxPartSize; }
+            public long getMaxPartSize() { return maxPartSize; }
 
             @Override
-            public List<URL> getUploadURLs() { return uploadPartURLs; }
+            public Collection<URL> getUploadURLs() { return uploadPartURLs; }
         };
     }
 

@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -678,17 +679,17 @@ public class DataStoreBlobStore
                     }
 
                     @Override
-                    public int getMinPartSize() {
+                    public long getMinPartSize() {
                         return upload.getMinPartSize();
                     }
 
                     @Override
-                    public int getMaxPartSize() {
+                    public long getMaxPartSize() {
                         return upload.getMaxPartSize();
                     }
 
                     @Override
-                    public List<URL> getUploadURLs() {
+                    public Collection<URL> getUploadURLs() {
                         return upload.getUploadURLs();
                     }
                 };

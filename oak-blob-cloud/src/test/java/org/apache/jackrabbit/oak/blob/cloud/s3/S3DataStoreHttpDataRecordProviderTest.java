@@ -138,7 +138,7 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
         try {
             ds.setHttpUploadURLExpirySeconds(60);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadURLs().get(0);
+            URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));

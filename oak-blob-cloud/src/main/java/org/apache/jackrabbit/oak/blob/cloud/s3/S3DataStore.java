@@ -51,12 +51,12 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     /**
      * The minimum size of a file in order to do multi-part upload.
      */
-    static final int minPartSize = S3Backend.MIN_MULTIPART_UPLOAD_PART_SIZE;
+    static final long minPartSize = S3Backend.MIN_MULTIPART_UPLOAD_PART_SIZE;
 
     /**
      * The maximum size of a multi-part upload part (AWS limitation).
      */
-    static final int maxPartSize = S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
+    static final long maxPartSize = S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
 
     /**
      * The maximum allowed size of an upload that can be done via single-put upload.

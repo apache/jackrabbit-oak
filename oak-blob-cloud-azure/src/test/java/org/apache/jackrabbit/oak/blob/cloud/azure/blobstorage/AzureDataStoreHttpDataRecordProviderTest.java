@@ -157,7 +157,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
             DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadURLs().get(0);
+            URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiryDateStr = params.get("se");
             Instant expiry = Instant.parse(expiryDateStr);
