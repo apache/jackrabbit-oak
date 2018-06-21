@@ -29,9 +29,6 @@ public interface OperationStatsCollector {
         @Override public void start() {
         }
 
-        @Override public void finishSuccess() {
-        }
-
         @Override public void finishFailure() {
         }
 
@@ -49,11 +46,6 @@ public interface OperationStatsCollector {
      * Increment the start counter
      */
     void start();
-
-    /**
-     * Increment the finishSuccess counter
-     */
-    void finishSuccess();
 
     /**
      * Increment the finishFailure counter
