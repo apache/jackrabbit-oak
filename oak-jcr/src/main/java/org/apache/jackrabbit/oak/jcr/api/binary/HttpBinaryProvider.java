@@ -19,12 +19,16 @@
 package org.apache.jackrabbit.oak.jcr.api.binary;
 
 import java.net.URL;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+
+import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
+import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 
 /**
  * Extension interface for {@link Session} that provides the capability to upload binary files
@@ -115,11 +119,15 @@ public interface HttpBinaryProvider {
      *
      * @return HTTP upload instructions or {@code null} if the feature is not available
      *
-     * @throws AccessDeniedException if the feature is available but the session is not allowed to add binaries,
-     * or RepositoryException if a more general repository error occurs
+     * @throws {@link AccessDeniedException} if the feature is available but the session
+     * is not allowed to add binaries, {@link IllegalHttpUploadArgumentsException} if the
+     * upload size or number of URLs requested will result in an upload that cannot be
+     * supported by the implementation or service provider, or {@link RepositoryException}
+     * if a more general repository error occurs or the feature is not available
      */
     @Nullable
-    BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException;
+    BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts)
+            throws AccessDeniedException, IllegalHttpUploadArgumentsException, RepositoryException;
 
     /**
      * Complete the HTTP upload of a binary and return a {@link Binary} that can be added to
@@ -136,10 +144,11 @@ public interface HttpBinaryProvider {
      *
      * @return a JCR binary to be used as property value
      *
-     * @throws RepositoryException if binary upload is not supported or the uploadToken is invalid
+     * @throws {@link InvalidHttpUploadTokenException} if the upload token is not parseable, signature
+     * doesn't match, or is otherwise invalid; {@link RepositoryException} if binary upload is not supported
      */
     @Nonnull
-    Binary completeHttpUpload(String uploadToken) throws RepositoryException;
+    Binary completeHttpUpload(String uploadToken) throws InvalidHttpUploadTokenException, RepositoryException;
 
     /**
      * Returns a URL for downloading the binary using HTTP GET directly from the underlying binary storage.

@@ -52,7 +52,7 @@ public interface HttpDataRecordProvider {
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
      * @return A {@code DataRecordHttpUpoad} referencing this direct upload.
-     * @throws {@code UnsupportedHttpUploadArgumentsException} if the service provider or
+     * @throws {@code IllegalHttpUploadArgumentsException} if the service provider or
      * implementation cannot support the requested upload, {@code HttpUploadException} if
      * the upload cannot be completed as requested.
      */

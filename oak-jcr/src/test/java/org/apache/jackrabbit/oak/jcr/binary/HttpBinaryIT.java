@@ -44,7 +44,8 @@ import com.google.common.base.Joiner;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException;
+import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
+import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
@@ -571,7 +572,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             fail();
         }
         catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof UnsupportedHttpUploadArgumentsException);
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
         }
     }
 
@@ -584,7 +585,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             fail();
         }
         catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof UnsupportedHttpUploadArgumentsException);
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
         }
     }
 
@@ -621,7 +622,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             fail();
         }
         catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof UnsupportedHttpUploadArgumentsException);
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
         }
     }
 
@@ -635,7 +636,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             fail();
         }
         catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof UnsupportedHttpUploadArgumentsException);
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
         }
     }
 
@@ -649,29 +650,23 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             fail();
         }
         catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof UnsupportedHttpUploadArgumentsException);
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
         }
     }
 
+    @Test
+    public void testCompleteHttpUploadWithInvalidTokenFails() throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-    // disabled, just a comparison playground for current blob behavior
-    //@Test
-    public void testReferenceBinary() throws Exception {
-        Session session = createAdminSession();
-        Node file = session.getRootNode().addNode("file");
-        file.setProperty("binary", session.getValueFactory().createBinary(getTestInputStream(2 * MB)));
-        session.save();
-
-        waitForUploads();
-
-        Binary binary = file.getProperty("binary").getBinary();
-        if (binary instanceof ReferenceBinary) {
-            ReferenceBinary referenceBinary = (ReferenceBinary) binary;
-            String ref = referenceBinary.getReference();
-            System.out.println("Ref: " + ref);
-            String blobId = ref.substring(0, ref.indexOf(':'));
-            System.out.println("blobId: " + blobId);
+        BinaryHttpUpload upload = ((HttpBinaryProvider) getAdminSession())
+                .initiateHttpUpload(BINARY_PATH, 256, 10);
+        assertNotNull(upload);
+        try {
+            ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken()+"X");
+            fail();
         }
+        catch (InvalidHttpUploadTokenException e) { }
     }
 
     // -----------------------------------------------------------------< helpers >--------------

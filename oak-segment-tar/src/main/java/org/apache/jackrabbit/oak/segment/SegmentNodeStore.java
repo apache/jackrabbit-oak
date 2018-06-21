@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException;
+import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
@@ -313,7 +313,7 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
     @Nullable
     @Override
     public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws UnsupportedHttpUploadArgumentsException {
+            throws IllegalHttpUploadArgumentsException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
         }

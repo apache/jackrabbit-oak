@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
@@ -846,7 +847,13 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                 if (httpBlobProvider == null) {
                     throw new RepositoryException("HTTP binary upload not supported");
                 }
-                Blob blob = httpBlobProvider.completeHttpUpload(uploadToken);
+                Blob blob;
+                try {
+                    blob = httpBlobProvider.completeHttpUpload(uploadToken);
+                }
+                catch (IllegalArgumentException e) {
+                    throw new InvalidHttpUploadTokenException(e);
+                }
                 if (blob == null) {
                     throw new RepositoryException("HTTP binary upload could not be completed");
                 }

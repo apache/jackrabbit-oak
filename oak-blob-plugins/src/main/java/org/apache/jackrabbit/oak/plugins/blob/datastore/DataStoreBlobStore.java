@@ -62,6 +62,7 @@ import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -663,7 +664,7 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-    throws org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException {
+    throws IllegalHttpUploadArgumentsException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
@@ -695,7 +696,7 @@ public class DataStoreBlobStore
                 };
             }
             catch (UnsupportedHttpUploadArgumentsException e) {
-                throw new org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException(e);
+                throw new IllegalHttpUploadArgumentsException(e);
             }
             catch (HttpUploadException e) {
                 log.warn("Unable to initiate direct HTTP upload", e);

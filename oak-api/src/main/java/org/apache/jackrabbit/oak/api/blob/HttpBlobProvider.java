@@ -38,13 +38,13 @@ public interface HttpBlobProvider {
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
      * @return A {@link BlobHttpUpload} referencing this direct upload.
-     * @throws {@link org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException}
+     * @throws {@link IllegalHttpUploadArgumentsException}
      * if the upload cannot be completed as requested, due to a mismatch between the request
      * parameters and the capabilities of the service provider or the implementation.
      */
     @Nullable
     BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-        throws org.apache.jackrabbit.oak.api.blob.UnsupportedHttpUploadArgumentsException;
+        throws IllegalHttpUploadArgumentsException;
 
     /**
      * Complete a transaction for uploading a direct binary upload to cloud storage.
