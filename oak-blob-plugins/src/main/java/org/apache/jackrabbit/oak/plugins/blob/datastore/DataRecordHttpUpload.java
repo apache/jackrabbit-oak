@@ -24,7 +24,7 @@ import java.util.Collection;
 public interface DataRecordHttpUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be provided in a
-     * subsequent call to {@code HttpDataRecordProvider.completeHttpUpload}.
+     * subsequent call to {@link HttpDataRecordProvider#completeHttpUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -58,7 +58,7 @@ public interface DataRecordHttpUpload {
      * API is that using parts of maxPartSize will work without using more URLs than those
      * available in the collection of uploadPartURLs.
      *
-     * If a client calls {@code HttpDataRecordProvider.initiateHttpUpload} with a value of
+     * If a client calls {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} with a value of
      * maxUploadSizeInBytes that ends up being smaller than the actual size of the binary to
      * be uploaded, it may not be possible to complete the upload with the URLs provided.
      * the client should initialize the transaction again with the correct size.
@@ -74,10 +74,10 @@ public interface DataRecordHttpUpload {
      * Returns a collection of direct-writable upload URLs for uploading a file, or file part in the case
      * of multi-part uploading.  This collection may contain only a single URL in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
-     *    {@code HttpDataRecordProvider.initiateHttpUpload}, OR
+     *    {@link HttpDataRecordProvider#initiateHttpUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading, OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@code HttpDataRecordProvider.initiateHttpUpload} is less than or equal to the minimum
+     *    {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} is less than or equal to the minimum
      *    size of a multi-part upload part
      * If the collection contains only a single URL the client should treat that URL as a direct
      * single-put upload and write the entire binary to the single URL.  Otherwise the client

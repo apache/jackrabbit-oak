@@ -287,17 +287,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         assertNotNull(upload);
         assertEquals(0, upload.getUploadURLs().size());
-
-        // TODO: extra test, showing alternative input stream code working if disabled
-/*
-        if (placeholderBinary == null) {
-            // fallback
-            System.out.println(">>> NO url binary support");
-            // TODO: normally, a client would set an empty binary here and overwrite with an inputstream in a future, 2nd request
-            // generate 2 MB of meaningless bytes
-            placeholderBinary = valueFactory.createBinary(getTestInputStream(2 * MB));
-        }
-*/
     }
 
     // A2 - disable get URLs entirely

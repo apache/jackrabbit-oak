@@ -30,11 +30,11 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 public interface HttpDataRecordProvider {
     /**
      * Return a URL for directly reading the binary associated with the provided
-     * {@code DataRecord}.
+     * {@link DataRecord}.
      *
-     * @param identifier The {@code DataIdentifier} for the {@DataRecord} containing
+     * @param identifier The {@link DataIdentifier} for the {@link DataRecord} containing
      *                   the binary to be read via direct download.
-     * @return A {@code URL} for directly reading the binary, or null if the URL
+     * @return A {@link URL} for directly reading the binary, or null if the URL
      * cannot be generated.
      */
     @Nullable
@@ -53,9 +53,9 @@ public interface HttpDataRecordProvider {
      *                        required to support multi-part uploading so it may return
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
-     * @return A {@code DataRecordHttpUpoad} referencing this direct upload.
-     * @throws {@code IllegalHttpUploadArgumentsException} if the service provider or
-     * implementation cannot support the requested upload, {@code HttpUploadException} if
+     * @return A {@link DataRecordHttpUpload} referencing this direct upload.
+     * @throws {@link UnsupportedHttpUploadArgumentsException} if the service provider or
+     * implementation cannot support the requested upload, {@link HttpUploadException} if
      * the upload cannot be completed as requested.
      */
     @Nullable
@@ -69,11 +69,11 @@ public interface HttpDataRecordProvider {
      * multi-part upload was performed.
      *
      * @param uploadToken The upload token identifying this direct upload transaction, as
-     *                    returned in the {@code DataRecordHttpUpload} object
+     *                    returned in the {@link DataRecordHttpUpload} object
      *                    resulting from a call to initiateHttpUpload().
-     * @return A DataRecord for the uploaded binary.
-     * @throws {@code HttpUploadException} if the object written can't be found by S3, or
-     * {@code DataStoreException} if the object written can't be found by the {@code DataStore}.
+     * @return A {@link DataRecord} for the uploaded binary.
+     * @throws {@link HttpUploadException} if the object written can't be found by S3, or
+     * {@link DataStoreException} if the object written can't be found by the DataStore.
      */
     @Nonnull
     DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException;

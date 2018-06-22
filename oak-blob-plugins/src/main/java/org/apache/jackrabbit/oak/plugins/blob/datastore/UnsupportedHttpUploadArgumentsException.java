@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+/**
+ * Exception thrown when a request to initiate an upload specifies
+ * parameters that cannot be met by the implementation or service provider.
+ * For example, upload sizes too large, number of URIs too large, or
+ * values that do not make sense or are not supported (e.g. zero
+ * upload URIs requested).
+ */
 public class UnsupportedHttpUploadArgumentsException extends Exception {
     public UnsupportedHttpUploadArgumentsException() {
         super();

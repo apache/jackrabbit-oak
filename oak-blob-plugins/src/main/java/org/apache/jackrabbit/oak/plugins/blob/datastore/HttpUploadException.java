@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+/**
+ * General exception thrown when a binary upload being made via
+ * {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} and
+ * {@link HttpDataRecordProvider#completeHttpUpload(String)}
+ * cannot be completed.
+ */
 public class HttpUploadException extends Exception {
     public HttpUploadException() {}
     public HttpUploadException(String message) {
