@@ -20,6 +20,12 @@ package org.apache.jackrabbit.oak.api.blob;
 
 import javax.jcr.RepositoryException;
 
+/**
+ * This exception is thrown from a call to {@link HttpBlobProvider#completeHttpUpload(String)}
+ * if the provided {@link String} parameter is found to be an invalid upload token.
+ * This occurs if the signature check on the upload token fails or if the token is
+ * otherwise unparseable and therefore determined to not be a valid token.
+ */
 public class InvalidHttpUploadTokenException extends RepositoryException {
     public InvalidHttpUploadTokenException() {
         super();
