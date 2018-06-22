@@ -192,7 +192,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     //
     @Test
     public void testInitiateHttpUploadReturnsValidUploadContext() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
-        DataRecordHttpUpload uploadContext =
+        HttpDataRecordUpload uploadContext =
                 getDataStore().initiateHttpUpload(ONE_MB, 10);
         assertNotNull(uploadContext);
         assertFalse(uploadContext.getUploadURLs().isEmpty());
@@ -224,7 +224,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testInititateHttpUploadSingleURLRequested() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
-        DataRecordHttpUpload uploadContext =
+        HttpDataRecordUpload uploadContext =
                 getDataStore().initiateHttpUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURLs().size());
         assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
@@ -232,7 +232,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testInititateHttpUploadSizeLowerThanMinPartSize() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
-        DataRecordHttpUpload uploadContext =
+        HttpDataRecordUpload uploadContext =
                 getDataStore().initiateHttpUpload(getProviderMinPartSize()-1L, 10);
         assertEquals(1, uploadContext.getUploadURLs().size());
         assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
@@ -243,7 +243,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(0);
-            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
+            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
             assertEquals(0, uploadContext.getUploadURLs().size());
 
             uploadContext = ds.initiateHttpUpload(20, 1);
@@ -331,7 +331,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 }
         )) {
-            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
                     res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
@@ -390,7 +390,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testCompleteHttpUploadSignatureMustMatch() throws UnsupportedHttpUploadArgumentsException, HttpUploadException, DataStoreException {
-        DataRecordHttpUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
+        HttpDataRecordUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
         String uploadToken = uploadContext.getUploadToken();
@@ -427,7 +427,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+                HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
 
                 assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
                 String uploaded = randomString(res.getUploadSize());
@@ -479,7 +479,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+                HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
                 assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
 
                 String uploaded = randomString(res.getUploadSize());

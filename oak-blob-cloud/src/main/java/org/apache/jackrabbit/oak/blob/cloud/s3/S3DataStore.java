@@ -27,7 +27,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -118,7 +118,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");

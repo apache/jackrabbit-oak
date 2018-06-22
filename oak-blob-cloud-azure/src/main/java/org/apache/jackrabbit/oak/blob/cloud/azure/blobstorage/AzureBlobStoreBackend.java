@@ -76,7 +76,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
@@ -754,7 +754,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     public void setHttpUploadURLExpirySeconds(int seconds) { httpUploadURLExpirySeconds = seconds; }
 
-    public DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws UnsupportedHttpUploadArgumentsException {
         List<URL> uploadPartURLs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
@@ -825,7 +825,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
         String uploadToken = new HttpUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-        return new DataRecordHttpUpload() {
+        return new HttpDataRecordUpload() {
             @Override
             public String getUploadToken() { return uploadToken; }
 

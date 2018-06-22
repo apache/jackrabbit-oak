@@ -38,23 +38,23 @@ public interface HttpBlobProvider {
      *                        required to support multi-part uploading so it may return
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
-     * @return A {@link BlobHttpUpload} referencing this direct upload.
+     * @return A {@link HttpBlobUpload} referencing this direct upload.
      * @throws {@link IllegalHttpUploadArgumentsException}
      * if the upload cannot be completed as requested, due to a mismatch between the request
      * parameters and the capabilities of the service provider or the implementation.
      */
     @Nullable
-    BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
         throws IllegalHttpUploadArgumentsException;
 
     /**
      * Complete a transaction for uploading a direct binary upload to cloud storage.
      *
      * This requires the {@code uploadToken} that can be obtained as the returned
-     * {@link BlobHttpUpload}from a previous call to {@link #initiateHttpUpload(long, int)}.
+     * {@link HttpBlobUpload}from a previous call to {@link #initiateHttpUpload(long, int)}.
      * It is required to complete the transaction for an upload to be valid and complete.
      *
-     * @param uploadToken the upload token from a {@link BlobHttpUpload} object returned
+     * @param uploadToken the upload token from a {@link HttpBlobUpload} object returned
      *                    from a previous call to {@link #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object could not
      * be created.

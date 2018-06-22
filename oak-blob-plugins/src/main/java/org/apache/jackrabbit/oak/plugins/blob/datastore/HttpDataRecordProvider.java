@@ -53,13 +53,13 @@ public interface HttpDataRecordProvider {
      *                        required to support multi-part uploading so it may return
      *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
-     * @return A {@link DataRecordHttpUpload} referencing this direct upload.
+     * @return A {@link HttpDataRecordUpload} referencing this direct upload.
      * @throws {@link UnsupportedHttpUploadArgumentsException} if the service provider or
      * implementation cannot support the requested upload, {@link HttpUploadException} if
      * the upload cannot be completed as requested.
      */
     @Nullable
-    DataRecordHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException;
 
     /**
@@ -69,7 +69,7 @@ public interface HttpDataRecordProvider {
      * multi-part upload was performed.
      *
      * @param uploadToken The upload token identifying this direct upload transaction, as
-     *                    returned in the {@link DataRecordHttpUpload} object
+     *                    returned in the {@link HttpDataRecordUpload} object
      *                    resulting from a call to initiateHttpUpload().
      * @return A {@link DataRecord} for the uploaded binary.
      * @throws {@link HttpUploadException} if the object written can't be found by S3, or

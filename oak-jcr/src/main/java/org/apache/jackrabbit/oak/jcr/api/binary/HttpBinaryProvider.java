@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
  *     <li>
  *         <b>Initialize</b>: A remote client makes request to the Oak-based application to request an upload,
  *         which calls {@link #initiateHttpUpload(String, long, int)} and returns the resulting
- *         {@link BinaryHttpUpload information} to the remote client.
+ *         {@link HttpBinaryUpload information} to the remote client.
  *     </li>
  *     <li>
  *         <b>Upload</b>: The remote client performs the actual binary upload using that information,
@@ -126,7 +126,7 @@ public interface HttpBinaryProvider {
      * if a more general repository error occurs or the feature is not available
      */
     @Nullable
-    BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts)
+    HttpBinaryUpload initiateHttpUpload(String path, long maxSize, int maxParts)
             throws AccessDeniedException, IllegalHttpUploadArgumentsException, RepositoryException;
 
     /**
@@ -140,7 +140,7 @@ public interface HttpBinaryProvider {
      * {@link #initiateHttpUpload(String, long, int)}.
      *
      * @param uploadToken the token returned from {@link #initiateHttpUpload(String, long, int)},
-     *                    available in {@link BinaryHttpUpload#getUploadToken()}
+     *                    available in {@link HttpBinaryUpload#getUploadToken()}
      *
      * @return a JCR binary to be used as property value
      *

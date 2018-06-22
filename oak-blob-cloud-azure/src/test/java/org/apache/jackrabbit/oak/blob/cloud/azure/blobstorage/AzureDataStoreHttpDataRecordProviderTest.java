@@ -42,7 +42,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordProviderTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataRecordHttpUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
@@ -156,7 +156,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
-            DataRecordHttpUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
+            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
             URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiryDateStr = params.get("se");
@@ -173,7 +173,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumUrls = 10000;
-        DataRecordHttpUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        HttpDataRecordUpload upload = ds.initiateHttpUpload(uploadSize, -1);
         assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 500;

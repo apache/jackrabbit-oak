@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -448,7 +448,7 @@ class MutableRoot implements Root, HttpBlobProvider {
     // HttpBlobProvider
     @Nullable
     @Override
-    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws IllegalHttpUploadArgumentsException {
         if (store instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);

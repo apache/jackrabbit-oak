@@ -113,7 +113,7 @@ import javax.annotation.Nonnull;
  * </p>
  *
  */
-public interface BinaryHttpUpload {
+public interface HttpBinaryUpload {
 
     /**
      * Returns a token identifying this upload. This is required to finalize the upload

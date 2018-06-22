@@ -86,7 +86,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -3304,7 +3304,7 @@ public final class DocumentNodeStore
     // HttpBlobProvider
     @Nullable
     @Override
-    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
             throws IllegalHttpUploadArgumentsException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);

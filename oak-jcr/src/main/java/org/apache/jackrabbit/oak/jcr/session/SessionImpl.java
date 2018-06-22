@@ -65,11 +65,11 @@ import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.api.binary.BinaryHttpUpload;
+import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -790,23 +790,23 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
 
     @Nullable
     @Override
-    public BinaryHttpUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException {
+    public HttpBinaryUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException {
         if (! hasPermission(path, Session.ACTION_SET_PROPERTY)) {
             throw new AccessDeniedException(String.format("No permission to add binary property at path %s", path));
         }
-        return sd.safePerformNullable(new ReadOperation<BinaryHttpUpload>("initiateHttpUpload") {
+        return sd.safePerformNullable(new ReadOperation<HttpBinaryUpload>("initiateHttpUpload") {
 
             @Nullable
             @Override
-            public BinaryHttpUpload performNullable() throws RepositoryException {
+            public HttpBinaryUpload performNullable() throws RepositoryException {
                 HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
                 if (httpBlobProvider == null) {
                     return null;
                 }
 
-                BlobHttpUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+                HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
                 if (upload != null) {
-                    return new BinaryHttpUpload() {
+                    return new HttpBinaryUpload() {
                         @Override
                         public String getUploadToken() {
                             return upload.getUploadToken();

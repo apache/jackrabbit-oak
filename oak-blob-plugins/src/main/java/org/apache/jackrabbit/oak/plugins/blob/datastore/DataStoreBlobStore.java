@@ -60,7 +60,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.blob.BlobHttpUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
@@ -663,17 +663,17 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public BlobHttpUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
     throws IllegalHttpUploadArgumentsException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
 
-                DataRecordHttpUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
                 if (upload == null) {
                     return null;
                 }
-                return new BlobHttpUpload() {
+                return new HttpBlobUpload() {
                     @Override
                     public String getUploadToken() {
                         return upload.getUploadToken();
