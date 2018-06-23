@@ -37,15 +37,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
+import com.amazonaws.services.s3.model.BucketAccelerateStatus;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -58,9 +71,15 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.AfterClass;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Base class with all the logic to test different data stores that support binaries with direct HTTP access */
 public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
+    private static CloudStorageContainer s3Container = null;
+    private static CloudStorageContainer azureContainer = null;
+
+    protected static Logger LOG = LoggerFactory.getLogger(AbstractHttpBinaryIT.class);
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
@@ -72,23 +91,100 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
         Properties s3Props = S3DataStoreFixture.loadS3Properties();
         if (s3Props != null) {
+            // Create a container with transfer acceleration set
+            // Will be cleaned up at test completion
+            String bucketName = "direct-binary-test-" + UUID.randomUUID().toString();
+            s3Props.setProperty(S3Constants.S3_BUCKET, bucketName);
+            AmazonS3 client = org.apache.jackrabbit.oak.blob.cloud.s3.Utils.openService(s3Props);
+            s3Container = new CloudStorageContainer<AmazonS3>(client, bucketName);
+            CreateBucketRequest req = new CreateBucketRequest(bucketName);
+            client.createBucket(req);
+            SetBucketAccelerateConfigurationRequest accelReq =
+                    new SetBucketAccelerateConfigurationRequest(bucketName,
+                            new BucketAccelerateConfiguration(
+                                    BucketAccelerateStatus.Enabled
+                            )
+                    );
+            client.setBucketAccelerateConfiguration(accelReq);
+
             S3DataStoreFixture s3 = new S3DataStoreFixture(s3Props);
             fixtures.add(new SegmentMemoryNodeStoreFixture(s3));
             fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
         } else {
-            System.out.println("WARN: Skipping AbstractURLBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
+            LOG.warn("WARN: Skipping AbstractURLBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
         }
 
         Properties azProps = AzureDataStoreFixture.loadAzureProperties();
+        if (azProps != null) {
+            // Create container
+            // Will be cleaned up at test completion
+            String containerName = "direct-binary-test-" + UUID.randomUUID().toString();
+            azProps.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+            String connectionString = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionStringFromProperties(azProps);
+            try {
+                CloudBlobContainer container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getBlobContainer(connectionString, containerName);
+                container.createIfNotExists();
+                azureContainer = new CloudStorageContainer<CloudBlobContainer>(container, containerName);
+            }
+            catch (DataStoreException | StorageException e) {
+                // If exception is thrown, container is not created, and we can't do the Azure test
+                // Set azProps to null so the test is not executed
+                azProps = null;
+            }
+        }
         if (azProps != null) {
             AzureDataStoreFixture azure = new AzureDataStoreFixture(azProps);
             fixtures.add(new SegmentMemoryNodeStoreFixture(azure));
             fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
         } else {
-            System.out.println("WARN: Skipping AbstractURLBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
+            LOG.warn("WARN: Skipping AbstractURLBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
         }
 
         return fixtures;
+    }
+
+    private static class CloudStorageContainer<T> {
+        private final T client;
+        private final String containerName;
+
+        public CloudStorageContainer(T client, String containerName) {
+            this.client = client;
+            this.containerName = containerName;
+        }
+
+        public T getClient() { return client; }
+        public String getContainerName() { return containerName; }
+    }
+
+    @AfterClass
+    public static void destroyTestContainers() {
+        if (null != s3Container) {
+            AmazonS3 client = (AmazonS3) s3Container.getClient();
+            String bucketName = s3Container.getContainerName();
+            ObjectListing listing = client.listObjects(bucketName);
+
+            // For S3, you have to empty the bucket before removing the bucket itself
+            while (true) {
+                for (S3ObjectSummary summary : listing.getObjectSummaries()) {
+                    client.deleteObject(bucketName, summary.getKey());
+                }
+                if (! listing.isTruncated()) {
+                    break;
+                }
+                listing = client.listNextBatchOfObjects(listing);
+            }
+            client.deleteBucket(bucketName);
+        }
+        if (null != azureContainer) {
+            try {
+                // For Azure, you can just delete the container and all
+                // blobs it in will also be deleted
+                ((CloudBlobContainer) azureContainer.getClient()).delete();
+            }
+            catch (StorageException e) {
+                LOG.warn("Unable to delete Azure Blob container {}", azureContainer.getContainerName());
+            }
+        }
     }
 
     protected AbstractHttpBinaryIT(NodeStoreFixture fixture) {

@@ -119,7 +119,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         URL url = upload.getUploadURLs().iterator().next();
         assertNotNull(url);
 
-        System.out.println("- uploading binary via PUT to " + url);
+        LOG.info("- uploading binary via PUT to {}", url.toString());
         int code = httpPut(url, content.getBytes().length, getTestInputStream(content));
 
         assertTrue("PUT to pre-signed S3 URL failed",
@@ -335,7 +335,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             URL url = upload.getUploadURLs().iterator().next();
             assertNotNull(url);
 
-            System.out.println("accelerated URL: " + url);
+            LOG.info("accelerated URL: {}", url.toString());
             assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
 
             provider.setBinaryTransferAccelerationEnabled(false);
@@ -343,7 +343,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             url = upload.getUploadURLs().iterator().next();
             assertNotNull(url);
 
-            System.out.println("non-accelerated URL: " + url);
+            LOG.info("non-accelerated URL: {}", url.toString());
             assertFalse(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
         }
     }
