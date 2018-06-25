@@ -68,6 +68,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
@@ -3305,7 +3306,7 @@ public final class DocumentNodeStore
     @Nullable
     @Override
     public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalHttpUploadArgumentsException {
+            throws IllegalHttpUploadArgumentsException, UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
         }
@@ -3314,7 +3315,7 @@ public final class DocumentNodeStore
 
     @Nullable
     @Override
-    public Blob completeHttpUpload(String uploadToken) {
+    public Blob completeHttpUpload(String uploadToken) throws UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).completeHttpUpload(uploadToken);
         }
@@ -3323,7 +3324,7 @@ public final class DocumentNodeStore
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(String blobId) {
+    public URI getHttpDownloadURI(String blobId) throws UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).getHttpDownloadURI(blobId);
         }

@@ -34,6 +34,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableMap;
@@ -42,8 +43,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
@@ -449,7 +450,7 @@ class MutableRoot implements Root, HttpBlobProvider {
     @Nullable
     @Override
     public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalHttpUploadArgumentsException {
+            throws IllegalHttpUploadArgumentsException, UnsupportedRepositoryOperationException {
         if (store instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
         }
@@ -458,7 +459,7 @@ class MutableRoot implements Root, HttpBlobProvider {
 
     @Nullable
     @Override
-    public Blob completeHttpUpload(String uploadToken) {
+    public Blob completeHttpUpload(String uploadToken) throws UnsupportedRepositoryOperationException {
         if (store instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) store).completeHttpUpload(uploadToken);
         }
@@ -467,7 +468,7 @@ class MutableRoot implements Root, HttpBlobProvider {
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(String blobId) {
+    public URI getHttpDownloadURI(String blobId) throws UnsupportedRepositoryOperationException {
         if (store instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) store).getHttpDownloadURI(blobId);
         }

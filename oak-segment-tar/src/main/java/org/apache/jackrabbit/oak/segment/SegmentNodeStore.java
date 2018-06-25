@@ -34,6 +34,7 @@ import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -313,7 +314,7 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
     @Nullable
     @Override
     public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalHttpUploadArgumentsException {
+            throws IllegalHttpUploadArgumentsException, UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
         }
@@ -322,7 +323,7 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
 
     @Nullable
     @Override
-    public Blob completeHttpUpload(String uploadToken) {
+    public Blob completeHttpUpload(String uploadToken) throws UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).completeHttpUpload(uploadToken);
         }
@@ -331,7 +332,7 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(String blobId) {
+    public URI getHttpDownloadURI(String blobId) throws UnsupportedRepositoryOperationException {
         if (blobStore instanceof HttpBlobProvider) {
             return ((HttpBlobProvider) blobStore).getHttpDownloadURI(blobId);
         }
