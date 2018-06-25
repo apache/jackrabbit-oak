@@ -20,12 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.LSHAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
@@ -51,6 +54,15 @@ public class IndexWriterUtils {
             Analyzer definitionAnalyzer = definition.getAnalyzer();
             Map<String, Analyzer> analyzers = new HashMap<String, Analyzer>();
             analyzers.put(FieldNames.SPELLCHECK, new ShingleAnalyzerWrapper(LuceneIndexConstants.ANALYZER, 3));
+            for (IndexDefinition.IndexingRule r : definition.getDefinedRules()) {
+                List<PropertyDefinition> similarityProperties = r.getSimilarityProperties();
+                for (PropertyDefinition pd : similarityProperties) {
+                    if (pd.useInSimilarity) {
+                        analyzers.put(FieldNames.createSimilarityFieldName(pd.name), new LSHAnalyzer());
+                    }
+                }
+            }
+
             if (!definition.isSuggestAnalyzed()) {
                 analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
             }
