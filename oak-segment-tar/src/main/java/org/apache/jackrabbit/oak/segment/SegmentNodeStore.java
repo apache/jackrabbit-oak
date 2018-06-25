@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 
@@ -312,10 +312,10 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
     // HttpBlobProvider
     @Nullable
     @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalHttpUploadArgumentsException {
         if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+            return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
         }
         return null;
     }
@@ -331,9 +331,9 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(String blobId) {
+    public URI getHttpDownloadURI(String blobId) {
         if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blobId);
+            return ((HttpBlobProvider) blobStore).getHttpDownloadURI(blobId);
         }
         return null;
     }

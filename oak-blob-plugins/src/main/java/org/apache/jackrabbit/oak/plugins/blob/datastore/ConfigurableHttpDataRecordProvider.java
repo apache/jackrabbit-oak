@@ -20,30 +20,30 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 public interface ConfigurableHttpDataRecordProvider extends HttpDataRecordProvider {
     /**
-     * Specifies the number of seconds before a signed download URL will expire.
+     * Specifies the number of seconds before a signed download URI will expire.
      * Setting this to 0 is equivalent to turning off the ability to use
      * direct HTTP download.
      *
-     * @param expirySeconds Number of seconds before a download URL expires.
+     * @param expirySeconds Number of seconds before a download URI expires.
      */
-    void setHttpDownloadURLExpirySeconds(int expirySeconds);
+    void setHttpDownloadURIExpirySeconds(int expirySeconds);
 
     /**
-     * Specifies the maximum number of read URLs to be cached in an in-memory
+     * Specifies the maximum number of read URIs to be cached in an in-memory
      * cache.  Setting this to 0 is equivalent to disabling the cache.
      *
-     * @param maxSize Number of read URLs to cache.
+     * @param maxSize Number of read URIs to cache.
      */
-    void setHttpDownloadURLCacheSize(int maxSize);
+    void setHttpDownloadURICacheSize(int maxSize);
 
     /**
-     * Specifies the number of seconds before a signed upload URL will expire.
+     * Specifies the number of seconds before a signed upload URI will expire.
      * Setting this to 0 is equivalent to turning off the ability to use
      * direct HTTP upload.
      *
-     * @param expirySeconds Number of seconds before an upload URL expires.
+     * @param expirySeconds Number of seconds before an upload URI expires.
      */
-    void setHttpUploadURLExpirySeconds(int expirySeconds);
+    void setHttpUploadURIExpirySeconds(int expirySeconds);
 
     /**
      * Enables or disables binary transfer acceleration, if supported by the service provider.

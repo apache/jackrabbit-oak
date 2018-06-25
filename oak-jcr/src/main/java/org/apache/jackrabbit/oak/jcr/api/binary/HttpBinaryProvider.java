@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.api.binary;
 
-import java.net.URL;
+import java.net.URI;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -82,15 +82,15 @@ public interface HttpBinaryProvider {
      *
      * <p>
      * The caller needs to specify how many parts it can handle in {@code maxParts}. Each part
-     * will be a URL of some length, which typically need to be transported to a remote client,
+     * will be a URI of some length, which typically need to be transported to a remote client,
      * so there might be limitations on the overall number. Specifying a number too small might
      * lead to an error, depending on the underlying provider limitations regarding minimum and
      * maximum part size. The upper bound is dependent upon the service provider as well as the
      * underlying implementation, but should be at least ten thousand.  Specifying a number too
      * large may exceed implementation or service provider limitations and result in an error.
      * Specifying -1 as the value of {@code maxParts} is supported, which means the caller can
-     * support any number of URLs being returned. The implementation will then choose the number
-     * of URLs to return, which could be as high as the implementation or service provider limitation.
+     * support any number of URIs being returned. The implementation will then choose the number
+     * of URIs to return, which could be as high as the implementation or service provider limitation.
      *
      * <p>
      * The returned instructions will usually be time limited and cannot be shared with other users.
@@ -109,7 +109,7 @@ public interface HttpBinaryProvider {
      * This method does not affect the transient space of the current session.
      *
      * <p>
-     * If the upload fails or never happens before the URLs expire, no change will happen to
+     * If the upload fails or never happens before the URIs expire, no change will happen to
      * the repository.
      *
      * @param path the path of the node to which the binary will be added
@@ -121,7 +121,7 @@ public interface HttpBinaryProvider {
      *
      * @throws {@link AccessDeniedException} if the feature is available but the session
      * is not allowed to add binaries, {@link IllegalHttpUploadArgumentsException} if the
-     * upload size or number of URLs requested will result in an upload that cannot be
+     * upload size or number of URIs requested will result in an upload that cannot be
      * supported by the implementation or service provider, or {@link RepositoryException}
      * if a more general repository error occurs or the feature is not available
      */
@@ -151,24 +151,24 @@ public interface HttpBinaryProvider {
     Binary completeHttpUpload(String uploadToken) throws InvalidHttpUploadTokenException, RepositoryException;
 
     /**
-     * Returns a URL for downloading the binary using HTTP GET directly from the underlying binary storage.
+     * Returns a URI for downloading the binary using HTTP GET directly from the underlying binary storage.
      *
      * <p>
-     * The URL will usually be time limited and cannot be shared with other users. It must
+     * The URI will usually be time limited and cannot be shared with other users. It must
      * only be returned to authenticated requests corresponding to this session user
      * or trusted system components (service users).
      *
      * <p>
-     * The URL will only grant access to the particular binary. The client cannot infer any semantics from
-     * the URL structure and path names. It would typically include a cryptographic signature.
-     * Any change to the URL will likely result in a failing request.
+     * The URI will only grant access to the particular binary. The client cannot infer any semantics from
+     * the URI structure and path names. It would typically include a cryptographic signature.
+     * Any change to the URI will likely result in a failing request.
      *
-     * @param binary existing, persisted binary for which to retrieve the HTTP URL
+     * @param binary existing, persisted binary for which to retrieve the HTTP URI
      *
-     * @return a URL for retrieving the binary using HTTP GET or {@code null} if the feature is not available
+     * @return a URI for retrieving the binary using HTTP GET or {@code null} if the feature is not available
      *         in general (e.g. the underlying data store doesn't have this capability)
      *         or for that particular binary (e.g. if the binary is stored in-lined in the node store)
      */
     @Nullable
-    URL getHttpDownloadURL(Binary binary);
+    URI getHttpDownloadURI(Binary binary);
 }

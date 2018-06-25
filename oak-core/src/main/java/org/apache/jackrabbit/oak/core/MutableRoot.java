@@ -26,7 +26,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -448,10 +448,10 @@ class MutableRoot implements Root, HttpBlobProvider {
     // HttpBlobProvider
     @Nullable
     @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalHttpUploadArgumentsException {
         if (store instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);
+            return ((HttpBlobProvider) store).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
         }
         return null;
     }
@@ -467,9 +467,9 @@ class MutableRoot implements Root, HttpBlobProvider {
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(String blobId) {
+    public URI getHttpDownloadURI(String blobId) {
         if (store instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) store).getHttpDownloadURL(blobId);
+            return ((HttpBlobProvider) store).getHttpDownloadURI(blobId);
         }
         return null;
     }

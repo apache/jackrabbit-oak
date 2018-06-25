@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -63,8 +63,8 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
                         ".aws"),
                 homeDir.newFolder().getAbsolutePath()
         );
-        dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
-        dataStore.setHttpUploadURLExpirySeconds(expirySeconds);
+        dataStore.setHttpDownloadURIExpirySeconds(expirySeconds);
+        dataStore.setHttpUploadURIExpirySeconds(expirySeconds);
     }
 
     @Override
@@ -104,21 +104,21 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     protected long getProviderMaxBinaryUploadSize() { return S3DataStore.maxBinaryUploadSize; }
 
     @Override
-    protected boolean isSinglePutURL(URL url) {
-        Map<String, String> queryParams = parseQueryString(url);
+    protected boolean isSinglePutURI(URI uri) {
+        Map<String, String> queryParams = parseQueryString(uri);
         return ! queryParams.containsKey(S3Backend.PART_NUMBER) && ! queryParams.containsKey(S3Backend.UPLOAD_ID);
     }
 
     @Override
-    protected HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException {
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+    protected HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
         conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
                 .withZone(ZoneOffset.UTC)
                 .format(Instant.now()));
-        conn.setRequestProperty("Host", url.getHost());
+        conn.setRequestProperty("Host", uri.getHost());
 
         return conn;
     }
@@ -133,37 +133,37 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitDirectUploadURIHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
-            ds.setHttpUploadURLExpirySeconds(60);
+            ds.setHttpUploadURIExpirySeconds(60);
             HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
-            Map<String, String> params = parseQueryString(uploadUrl);
+            URI uploadUri = uploadContext.getUploadURIs().iterator().next();
+            Map<String, String> params = parseQueryString(uploadUri);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));
         }
         finally {
-            ds.setHttpUploadURLExpirySeconds(expirySeconds);
+            ds.setHttpUploadURIExpirySeconds(expirySeconds);
         }
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURLs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitiateHttpUploadUnlimitedURIs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         long uploadSize = ONE_GB * 50;
-        int expectedNumUrls = 5000;
+        int expectedNumURIs = 5000;
         HttpDataRecordUpload upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 100;
-        expectedNumUrls = 10000;
+        expectedNumURIs = 10000;
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 200;
-        // expectedNumUrls still 10000, AWS limit
+        // expectedNumURIs still 10000, AWS limit
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

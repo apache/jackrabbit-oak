@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -73,8 +73,8 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         dataStore.setProperties(props);
         dataStore.init(homeDir.newFolder().getAbsolutePath());
 
-        dataStore.setHttpDownloadURLExpirySeconds(expirySeconds);
-        dataStore.setHttpUploadURLExpirySeconds(expirySeconds);
+        dataStore.setHttpDownloadURIExpirySeconds(expirySeconds);
+        dataStore.setHttpUploadURIExpirySeconds(expirySeconds);
     }
 
     @Override
@@ -114,7 +114,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     protected long getProviderMaxBinaryUploadSize() { return AzureDataStore.maxBinaryUploadSize; }
 
     @Override
-    protected boolean isSinglePutURL(URL url) {
+    protected boolean isSinglePutURI(URI uri) {
         // Since strictly speaking we don't support single-put for Azure due to the odd
         // required header for single-put uploads, we don't care and just always return true
         // here to avoid failing tests for this.
@@ -122,8 +122,8 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Override
-    protected HttpsURLConnection getHttpsConnection(long length, URL url) throws IOException {
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+    protected HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
@@ -132,7 +132,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
                 .format(Instant.now()));
         conn.setRequestProperty("x-ms-version", "2017-11-09");
 
-        Map<String, String> queryParams = parseQueryString(url);
+        Map<String, String> queryParams = parseQueryString(uri);
         if (! queryParams.containsKey("comp") && ! queryParams.containsKey("blockId")) {
             // single put
             conn.setRequestProperty("x-ms-blob-type", "BlockBlob");
@@ -151,39 +151,39 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitDirectUploadURIHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-            ds.setHttpUploadURLExpirySeconds(60);
+            ds.setHttpUploadURIExpirySeconds(60);
             HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
-            URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
-            Map<String, String> params = parseQueryString(uploadUrl);
+            URI uploadUri = uploadContext.getUploadURIs().iterator().next();
+            Map<String, String> params = parseQueryString(uploadUri);
             String expiryDateStr = params.get("se");
             Instant expiry = Instant.parse(expiryDateStr);
             assertEquals(now, expiry.minusSeconds(60));
         }
         finally {
-            ds.setHttpUploadURLExpirySeconds(expirySeconds);
+            ds.setHttpUploadURIExpirySeconds(expirySeconds);
         }
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURLs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitiateHttpUploadUnlimitedURIs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
-        int expectedNumUrls = 10000;
+        int expectedNumURIs = 10000;
         HttpDataRecordUpload upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;
-        expectedNumUrls = 50000;
+        expectedNumURIs = 50000;
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 1000;
-        // expectedNumUrls still 50000, Azure limit
+        // expectedNumURIs still 50000, Azure limit
         upload = ds.initiateHttpUpload(uploadSize, -1);
-        assertEquals(expectedNumUrls, upload.getUploadURLs().size());
+        assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }
