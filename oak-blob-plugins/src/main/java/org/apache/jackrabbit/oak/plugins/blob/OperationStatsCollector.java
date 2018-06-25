@@ -32,6 +32,15 @@ public interface OperationStatsCollector {
         @Override public void finishFailure() {
         }
 
+        @Override public void updateNumDeleted(long num) {
+        }
+
+        @Override public void updateNumCandidates(long num) {
+        }
+
+        @Override public void updateTotalSizeDeleted(long size) {
+        }
+
         @Override public void updateDuration(long time, TimeUnit timeUnit) {
         }
 
@@ -51,6 +60,24 @@ public interface OperationStatsCollector {
      * Increment the finishFailure counter
      */
     void finishFailure();
+
+    /**
+     * Update the number deleted
+     * @param num
+     */
+    void updateNumDeleted(long num);
+
+    /**
+     * Update the number of candidates found
+     * @param num
+     */
+    void updateNumCandidates(long num);
+
+    /**
+     * Update the size deleted
+     * @param size
+     */
+    void updateTotalSizeDeleted(long size);
 
     /**
      * Increment the duration timer
