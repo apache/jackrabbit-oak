@@ -493,6 +493,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(deletedSize), deletedSize);
         }
 
+        statsCollector.updateNumCandidates(count);
+        statsCollector.updateNumDeleted(deleted);
+        statsCollector.updateTotalSizeDeleted(deletedSize);
+
         // Remove all the merged marked references
         GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
         LOG.debug("Ending sweep phase of the garbage collector");
@@ -979,15 +983,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     class GarbageCollectionOperationStats implements OperationsStatsMBean {
-        private static final String NAME = "DataStoreGarbageCollection";
-        private static final String START = "COUNTER";
-        private static final String FINISH_FAILURE = "FAILURE";
-        private static final String DURATION = "ACTIVE_TIMER";
-        private static final String MARK_DURATION = "MARK_TIMER";
-        private static final String SWEEP_DURATION = "SWEEP_TIMER";
+        static final String NAME = "DataStoreGarbageCollection";
+        static final String START = "COUNTER";
+        static final String FINISH_FAILURE = "FAILURE";
+        static final String DURATION = "ACTIVE_TIMER";
+        static final String MARK_DURATION = "MARK_TIMER";
+        static final String SWEEP_DURATION = "SWEEP_TIMER";
+        static final String NUM_BLOBS_DELETED = "NUM_BLOBS_DELETED";
+        static final String TOTAL_SIZE_DELETED = "TOTAL_SIZE_DELETED";
+        static final String NUM_CANDIDATES = "NUM_CANDIDATES";
 
         private CounterStats startCounter;
         private CounterStats finishFailureCounter;
+        private CounterStats numDeletedCounter;
+        private CounterStats totalSizeDeletedCounter;
+        private CounterStats numCandidatesCounter;
         private TimerStats duration;
         private final TimerStats markDuration;
         private final TimerStats sweepDuration;
@@ -996,6 +1006,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         GarbageCollectionOperationStats(StatisticsProvider sp) {
             this.startCounter = sp.getCounterStats(getMetricName(START), StatsOptions.METRICS_ONLY);
             this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
+            this.numDeletedCounter = sp.getCounterStats(getMetricName(NUM_BLOBS_DELETED), StatsOptions.METRICS_ONLY);
+            this.totalSizeDeletedCounter = sp.getCounterStats(getMetricName(TOTAL_SIZE_DELETED), StatsOptions.METRICS_ONLY);
+            this.numCandidatesCounter = sp.getCounterStats(getMetricName(NUM_CANDIDATES), StatsOptions.METRICS_ONLY);
             this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
             this.markDuration = sp.getTimer(getMetricName(MARK_DURATION), StatsOptions.METRICS_ONLY);
             this.sweepDuration = sp.getTimer(getMetricName(SWEEP_DURATION), StatsOptions.METRICS_ONLY);
@@ -1009,6 +1022,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 @Override
                 public void finishFailure() {
                     finishFailureCounter.inc();
+                }
+
+                @Override
+                public void updateNumDeleted(long num) {
+                    numDeletedCounter.inc(num);
+                }
+
+                @Override
+                public void updateNumCandidates(long num) {
+                    numCandidatesCounter.inc(num);
+                }
+
+                @Override
+                public void updateTotalSizeDeleted(long size) {
+                    totalSizeDeletedCounter.inc(size);
                 }
 
                 @Override
