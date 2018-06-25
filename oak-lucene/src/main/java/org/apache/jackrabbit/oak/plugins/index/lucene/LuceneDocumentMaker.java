@@ -62,6 +62,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDep
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newSimilarityFields;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 public class LuceneDocumentMaker {
@@ -253,7 +254,15 @@ public class LuceneDocumentMaker {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
 
         boolean dirty = false;
-        if (Type.BINARY.tag() == property.getType().tag()
+        if (Type.BINARY.tag() == property.getType().tag() && pd.useInSimilarity) {
+            try {
+                log.trace("indexing similarity binaries for {}", pd.name);
+                fields.addAll(newSimilarityFields(pd.name, property.getValue(Type.BINARY)));
+                dirty = true;
+            } catch (Exception e) {
+                log.error("could not index similarity field for property {} and definition {}", property, pd);
+            }
+        } else if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
             fields.addAll(newBinary(property, state, null, path + "@" + pname));
             dirty = true;
@@ -285,10 +294,17 @@ public class LuceneDocumentMaker {
                     if (pd.nodeScopeIndex) {
                         Field field = newFulltextField(value);
                         fields.add(field);
+                        if (pd.useInSimilarity) {
+                            log.trace("indexing similarity strings for {}", pd.name);
+                            fields.addAll(newSimilarityFields(pd.name, value)); // fallback for when feature vectors are written in string typed properties
+                       }
                     }
+
+
                     dirty = true;
                 }
             }
+
             if (pd.facet && isFacetingEnabled()) {
                 dirty |= addFacetFields(fields, property, pname, pd);
             }

@@ -911,6 +911,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final List<PropertyDefinition> nodeScopeAnalyzedProps;
         private final List<PropertyDefinition> syncProps;
+        private final List<PropertyDefinition> similarityProperties;
         private final boolean indexesAllNodesOfMatchingType;
         private final boolean nodeNameIndexed;
 
@@ -923,6 +924,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         final Aggregate aggregate;
         final Aggregate propAggregate;
+
 
 
         IndexingRule(String nodeTypeName, NodeState config) {
@@ -938,9 +940,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             List<PropertyDefinition> existentProperties = newArrayList();
             List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
             List<PropertyDefinition> syncProps = newArrayList();
+            List<PropertyDefinition> similarityProperties = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions, syncProps);
+                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions, syncProps, similarityProperties);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
@@ -949,6 +952,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.functionRestrictions = ImmutableList.copyOf(functionRestrictions);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
+            this.similarityProperties = ImmutableList.copyOf(similarityProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
@@ -985,6 +989,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = original.nodeNameIndexed;
             this.syncProps = original.syncProps;
+            this.similarityProperties = original.similarityProperties;
         }
 
         /**
@@ -1030,6 +1035,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         public List<PropertyDefinition> getNodeScopeAnalyzedProps() {
             return nodeScopeAnalyzedProps;
+        }
+
+        public List<PropertyDefinition> getSimilarityProperties() {
+            return similarityProperties;
         }
 
         @Override
@@ -1153,7 +1162,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                                                                    List<PropertyDefinition> existentProperties,
                                                                    List<PropertyDefinition> nodeScopeAnalyzedProps,
                                                                    List<PropertyDefinition> functionRestrictions,
-                                                                   List<PropertyDefinition> syncProps) {
+                                                                   List<PropertyDefinition> syncProps,
+                                                                   List<PropertyDefinition> similarityProperties) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -1231,6 +1241,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
                     if (pd.sync) {
                         syncProps.add(pd);
+                    }
+                    if (pd.useInSimilarity) {
+                        similarityProperties.add(pd);
                     }
                 }
             }
