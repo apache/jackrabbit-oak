@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.api.blob;
 import java.net.URI;
 
 import javax.annotation.Nullable;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.Blob;
 
@@ -42,13 +41,11 @@ public interface HttpBlobProvider {
      * @return A {@link HttpBlobUpload} referencing this direct upload.
      * @throws {@link IllegalHttpUploadArgumentsException}
      * if the upload cannot be completed as requested, due to a mismatch between the request
-     * parameters and the capabilities of the service provider or the implementation, or
-     * {@link UnsupportedRepositoryOperationException} if the underlying blob store
-     * does not support direct HTTP uploading.
+     * parameters and the capabilities of the service provider or the implementation.
      */
     @Nullable
     HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-        throws IllegalHttpUploadArgumentsException, UnsupportedRepositoryOperationException;
+        throws IllegalHttpUploadArgumentsException;
 
     /**
      * Complete a transaction for uploading a direct binary upload to cloud storage.
@@ -61,11 +58,9 @@ public interface HttpBlobProvider {
      *                    from a previous call to {@link #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object could not
      * be created.
-     * @throws {@link UnsupportedRepositoryOperationException} if the underlying blob store
-     * does not support direct HTTP uploading.
      */
     @Nullable
-    Blob completeHttpUpload(String uploadToken) throws UnsupportedRepositoryOperationException;
+    Blob completeHttpUpload(String uploadToken);
 
     /**
      * Obtain a download URI for a blob ID.  This is usually a signed URI that can be used to
@@ -73,9 +68,7 @@ public interface HttpBlobProvider {
      *
      * @param blobId for the blob to be downloaded.
      * @return A URI to download the blob directly.
-     * @throws {@link UnsupportedRepositoryOperationException} if the underlying blob store
-     * does not support direct HTTP downloading.
      */
     @Nullable
-    URI getHttpDownloadURI(String blobId) throws UnsupportedRepositoryOperationException;
+    URI getHttpDownloadURI(String blobId);
 }

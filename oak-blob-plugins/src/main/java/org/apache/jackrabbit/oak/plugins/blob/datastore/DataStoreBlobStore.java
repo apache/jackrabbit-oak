@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -665,7 +664,7 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-    throws IllegalHttpUploadArgumentsException, UnsupportedRepositoryOperationException {
+    throws IllegalHttpUploadArgumentsException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
@@ -703,15 +702,12 @@ public class DataStoreBlobStore
                 log.warn("Unable to initiate direct HTTP upload", e);
             }
         }
-        else {
-            throw new UnsupportedRepositoryOperationException("Direct HTTP upload not supported");
-        }
         return null;
     }
 
     @Nonnull
     @Override
-    public Blob completeHttpUpload(String uploadToken) throws UnsupportedRepositoryOperationException {
+    public Blob completeHttpUpload(String uploadToken) {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 DataRecord record = ((HttpDataRecordProvider) delegate).completeHttpUpload(uploadToken);
@@ -721,18 +717,16 @@ public class DataStoreBlobStore
                 log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
             }
         }
-        throw new UnsupportedRepositoryOperationException("Direct HTTP upload not supported");
+        throw new UnsupportedOperationException("HTTP upload not supported");
     }
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(String blobId) throws UnsupportedRepositoryOperationException {
+    public URI getHttpDownloadURI(String blobId) {
         if (delegate instanceof HttpDataRecordProvider) {
             return ((HttpDataRecordProvider) delegate).getDownloadURI(new DataIdentifier(extractBlobId(blobId)));
         }
-        else {
-            throw new UnsupportedRepositoryOperationException("Direct HTTP download not supported");
-        }
+        return null;
     }
 
     public static class BlobId {
