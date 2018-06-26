@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.api.blob;
 
-import java.net.URI;
+import java.net.URL;
 
 import javax.annotation.Nullable;
 
@@ -32,11 +32,11 @@ public interface HttpBlobProvider {
      *                             in bytes, based on the caller's best guess.  If
      *                             the actual size of the file to be uploaded is known,
      *                             that value should be used.
-     * @param maxNumberOfURIs - the maximum number of URIs the client is able to accept.
+     * @param maxNumberOfURLs - the maximum number of URLs the client is able to accept.
      *                        If the client does not support multi-part uploading, this
      *                        value should be 1.  Note that the implementing class is not
      *                        required to support multi-part uploading so it may return
-     *                        only a single upload URI regardless of the value passed in
+     *                        only a single upload URL regardless of the value passed in
      *                        for this parameter.
      * @return A {@link HttpBlobUpload} referencing this direct upload.
      * @throws {@link IllegalHttpUploadArgumentsException}
@@ -44,7 +44,7 @@ public interface HttpBlobProvider {
      * parameters and the capabilities of the service provider or the implementation.
      */
     @Nullable
-    HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
         throws IllegalHttpUploadArgumentsException;
 
     /**
@@ -63,12 +63,12 @@ public interface HttpBlobProvider {
     Blob completeHttpUpload(String uploadToken);
 
     /**
-     * Obtain a download URI for a blob ID.  This is usually a signed URI that can be used to
+     * Obtain a download URL for a blob ID.  This is usually a signed URL that can be used to
      * directly download the blob corresponding to the blob ID.
      *
      * @param blobId for the blob to be downloaded.
-     * @return A URI to download the blob directly.
+     * @return A URL to download the blob directly.
      */
     @Nullable
-    URI getHttpDownloadURI(String blobId);
+    URL getHttpDownloadURL(String blobId);
 }

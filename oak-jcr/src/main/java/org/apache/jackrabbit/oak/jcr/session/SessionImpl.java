@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
+import java.net.URL;
 import java.security.AccessControlException;
 import java.util.Collection;
 import java.util.Collections;
@@ -824,8 +824,8 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
 
                         @Nonnull
                         @Override
-                        public Collection<URI> getUploadURIs() {
-                            return upload.getUploadURIs();
+                        public Collection<URL> getUploadURLs() {
+                            return upload.getUploadURLs();
                         }
                     };
                 }
@@ -866,28 +866,28 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(Binary binary) {
-        return sd.safePerformNullable(new ReadOperation<URI>("getHttpDownloadURI") {
+    public URL getHttpDownloadURL(Binary binary) {
+        return sd.safePerformNullable(new ReadOperation<URL>("getHttpDownloadURL") {
 
             @Nullable
             @Override
-            public URI performNullable() throws RepositoryException {
+            public URL performNullable() throws RepositoryException {
                 HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
                 if (httpBlobProvider == null) {
                     return null;
                 }
                 if (binary instanceof ReferenceBinary) {
                     if (null == ((ReferenceBinary) binary).getReference()) {
-                        // Binary is inlined, we cannot return a URI for it
+                        // Binary is inlined, we cannot return a URL for it
                         return null;
                     }
 
                     // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
                     // a client cannot spoof, so we know that the id in question is valid and can be
-                    // trusted, so we can safely give out a URI to the binary for downloading.
+                    // trusted, so we can safely give out a URL to the binary for downloading.
                     String blobId = ((ValueFactoryImpl) sessionContext.getValueFactory()).getBlobId(binary);
                     if (null != blobId) {
-                        return httpBlobProvider.getHttpDownloadURI(blobId);
+                        return httpBlobProvider.getHttpDownloadURL(blobId);
                     }
                 }
                 return null;

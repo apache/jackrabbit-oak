@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
@@ -104,9 +104,9 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     // ConfigurableHttpDataRecordProvider implementation
     //
     @Override
-    public void setHttpUploadURIExpirySeconds(int seconds) {
+    public void setHttpUploadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setHttpUploadURIExpirySeconds(seconds);
+            s3Backend.setHttpUploadURLExpirySeconds(seconds);
         }
     }
 
@@ -118,16 +118,16 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L == maxNumberOfURIs) {
-            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURIs must be > 0");
+        else if (0L == maxNumberOfURLs) {
+            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must be > 0");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURIs == 1) {
+                maxNumberOfURLs == 1) {
             throw new UnsupportedHttpUploadArgumentsException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
@@ -140,7 +140,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         if (null == s3Backend) {
             throw new HttpUploadException("Backend not initialized");
         }
-        return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+        return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Override
@@ -158,24 +158,24 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public void setHttpDownloadURIExpirySeconds(int seconds) {
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setHttpDownloadURIExpirySeconds(seconds);
+            s3Backend.setHttpDownloadURLExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setHttpDownloadURICacheSize(int maxSize) {
+    public void setHttpDownloadURLCacheSize(int maxSize) {
         if (s3Backend != null) {
-            s3Backend.setHttpDownloadURICacheSize(maxSize);
+            s3Backend.setHttpDownloadURLCacheSize(maxSize);
         }
     }
 
     @Override
-    public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
+    public URL getDownloadURL(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }
-        return s3Backend.createHttpDownloadURI(identifier);
+        return s3Backend.createHttpDownloadURL(identifier);
     }
 }

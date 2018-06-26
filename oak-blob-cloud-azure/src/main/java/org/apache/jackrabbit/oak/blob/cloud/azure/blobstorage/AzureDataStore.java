@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import java.net.URI;
+import java.net.URL;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
@@ -95,9 +95,9 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     // HttpDataRecordProvider Implementation
     //
     @Override
-    public void setHttpUploadURIExpirySeconds(int seconds) {
+    public void setHttpUploadURLExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setHttpUploadURIExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpUploadURLExpirySeconds(seconds);
         }
     }
 
@@ -108,16 +108,16 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L == maxNumberOfURIs) {
-            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURIs must be > 0");
+        else if (0L == maxNumberOfURLs) {
+            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must be > 0");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURIs == 1) {
+                maxNumberOfURLs == 1) {
             throw new UnsupportedHttpUploadArgumentsException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
@@ -130,7 +130,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         if (null == azureBlobStoreBackend) {
             throw new HttpUploadException("Backend not initialized");
         }
-        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Nonnull
@@ -148,21 +148,21 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     }
 
     @Override
-    public void setHttpDownloadURIExpirySeconds(int seconds) {
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setHttpDownloadURIExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpDownloadURLExpirySeconds(seconds);
         }
     }
 
-    public void setHttpDownloadURICacheSize(int maxSize) {
-        azureBlobStoreBackend.setHttpDownloadURICacheSize(maxSize);
+    public void setHttpDownloadURLCacheSize(int maxSize) {
+        azureBlobStoreBackend.setHttpDownloadURLCacheSize(maxSize);
     }
 
     @Nullable
     @Override
-    public URI getDownloadURI(DataIdentifier identifier) {
+    public URL getDownloadURL(DataIdentifier identifier) {
         if (null != azureBlobStoreBackend) {
-            return azureBlobStoreBackend.createHttpDownloadURI(identifier);
+            return azureBlobStoreBackend.createHttpDownloadURL(identifier);
         }
         return null;
     }

@@ -31,7 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.net.URI;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -663,13 +663,13 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
     throws IllegalHttpUploadArgumentsException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
 
-                HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
                 if (upload == null) {
                     return null;
                 }
@@ -690,8 +690,8 @@ public class DataStoreBlobStore
                     }
 
                     @Override
-                    public Collection<URI> getUploadURIs() {
-                        return upload.getUploadURIs();
+                    public Collection<URL> getUploadURLs() {
+                        return upload.getUploadURLs();
                     }
                 };
             }
@@ -722,9 +722,9 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(String blobId) {
+    public URL getHttpDownloadURL(String blobId) {
         if (delegate instanceof HttpDataRecordProvider) {
-            return ((HttpDataRecordProvider) delegate).getDownloadURI(new DataIdentifier(extractBlobId(blobId)));
+            return ((HttpDataRecordProvider) delegate).getDownloadURL(new DataIdentifier(extractBlobId(blobId)));
         }
         return null;
     }

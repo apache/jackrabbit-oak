@@ -28,7 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.URI;
+import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -465,14 +465,14 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return new ByteArrayInputStream(blob);
     }
 
-    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in) throws IOException {
-        return httpPut(uri, contentLength, in, false);
+    protected int httpPut(@Nullable URL url, long contentLength, InputStream in) throws IOException {
+        return httpPut(url, contentLength, in, false);
     }
 
     /**
-     * Uploads data via HTTP put to the provided URI.
+     * Uploads data via HTTP put to the provided URL.
      *
-     * @param uri The URI to upload to.
+     * @param url The URL to upload to.
      * @param contentLength Value to set in the Content-Length header.
      * @param in - The input stream to upload.
      * @param isMultiPart - True if this upload is part of a multi-part upload.
@@ -480,11 +480,11 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
      * response for S3 is 200 - OK whereas for Azure it is 201 - Created.
      * @throws IOException
      */
-    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
+    protected int httpPut(@Nullable URL url, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(uri);
+        assertNotNull(url);
 
-        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setDoOutput(true);
         connection.setRequestMethod("PUT");
         connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
@@ -512,16 +512,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return code >= 400 && code < 500;
     }
 
-    protected int httpPutTestStream(URI uri) throws IOException {
+    protected int httpPutTestStream(URL url) throws IOException {
         String content = "hello world";
-        return httpPut(uri, content.getBytes().length, getTestInputStream(content));
+        return httpPut(url, content.getBytes().length, getTestInputStream(content));
     }
 
-    protected InputStream httpGet(@Nullable URI uri) throws IOException  {
+    protected InputStream httpGet(@Nullable URL url) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(uri);
+        assertNotNull(url);
 
-        URLConnection conn = uri.toURL().openConnection();
+        URLConnection conn = url.openConnection();
         return conn.getInputStream();
     }
 }
