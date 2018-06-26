@@ -54,6 +54,8 @@ import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.api.binary.HttpBinaryProvider;
+import org.apache.jackrabbit.api.binary.HttpBinaryUpload;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -65,12 +67,9 @@ import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryUpload;
-import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -804,30 +803,35 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                     return null;
                 }
 
-                HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
-                if (upload != null) {
-                    return new HttpBinaryUpload() {
-                        @Override
-                        public String getUploadToken() {
-                            return upload.getUploadToken();
-                        }
+                try {
+                    HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+                    if (upload != null) {
+                        return new HttpBinaryUpload() {
+                            @Override
+                            public String getUploadToken() {
+                                return upload.getUploadToken();
+                            }
 
-                        @Override
-                        public long getMinPartSize() {
-                            return upload.getMinPartSize();
-                        }
+                            @Override
+                            public long getMinPartSize() {
+                                return upload.getMinPartSize();
+                            }
 
-                        @Override
-                        public long getMaxPartSize() {
-                            return upload.getMaxPartSize();
-                        }
+                            @Override
+                            public long getMaxPartSize() {
+                                return upload.getMaxPartSize();
+                            }
 
-                        @Nonnull
-                        @Override
-                        public Collection<URL> getUploadURLs() {
-                            return upload.getUploadURLs();
-                        }
-                    };
+                            @Nonnull
+                            @Override
+                            public Collection<URL> getUploadURLs() {
+                                return upload.getUploadURLs();
+                            }
+                        };
+                    }
+                }
+                catch (org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException e) {
+                    throw new org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException(e);
                 }
                 return null;
             }
@@ -852,7 +856,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                     blob = httpBlobProvider.completeHttpUpload(uploadToken);
                 }
                 catch (IllegalArgumentException e) {
-                    throw new InvalidHttpUploadTokenException(e);
+                    throw new org.apache.jackrabbit.api.binary.InvalidHttpUploadTokenException(e);
                 }
                 if (blob == null) {
                     throw new RepositoryException("HTTP binary upload could not be completed");
