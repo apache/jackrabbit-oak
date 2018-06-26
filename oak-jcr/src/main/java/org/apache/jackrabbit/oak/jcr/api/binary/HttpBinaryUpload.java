@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.api.binary;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Collection;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -150,15 +151,15 @@ public interface HttpBinaryUpload {
     long getMaxPartSize();
 
     /**
-     * Returns one or more URLs for uploading the binary in one or more parts.
+     * Returns one or more URIs for uploading the binary in one or more parts.
      *
      * <p>
-     * In case of multiple URLs, the order in which they are returned is important and defines
+     * In case of multiple URIs, the order in which they are returned is important and defines
      * the order of the parts. Each part covers a given range of the binary in bytes.
      *
      * <p>
-     * The consumer of these URLs must keep the following in mind when issuing requests
-     * for these URLs:
+     * The consumer of these URIs must keep the following in mind when issuing requests
+     * for these URIs:
      *  - Standard HTTP PUT is required as the request method
      *  - The Content-Length header must be set using the size in bytes of the payload
      *  - The Date header must be set, using this format:  yyyy-MM-dd'T'HH:mm:ssX
@@ -167,8 +168,8 @@ public interface HttpBinaryUpload {
      *  - Payload must include the bytes for the binary being uploaded, or for the
      *    range of bytes for the corresponding part if using multi-part upload
      *
-     * @return one or more URLs for uploading the binary in one or more parts
+     * @return one or more URIs for uploading the binary in one or more parts
      */
     @Nonnull
-    Collection<URL> getUploadURLs();
+    Collection<URI> getUploadURIs();
 }

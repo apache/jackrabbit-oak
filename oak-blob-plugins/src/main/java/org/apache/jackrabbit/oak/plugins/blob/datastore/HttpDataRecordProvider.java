@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.net.URL;
+import java.net.URI;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,16 +29,16 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 
 public interface HttpDataRecordProvider {
     /**
-     * Return a URL for directly reading the binary associated with the provided
+     * Return a URI for directly reading the binary associated with the provided
      * {@link DataRecord}.
      *
      * @param identifier The {@link DataIdentifier} for the {@link DataRecord} containing
      *                   the binary to be read via direct download.
-     * @return A {@link URL} for directly reading the binary, or null if the URL
+     * @return A {@link URI} for directly reading the binary, or null if the URL
      * cannot be generated.
      */
     @Nullable
-    URL getDownloadURL(DataIdentifier identifier);
+    URI getDownloadURI(DataIdentifier identifier);
 
     /**
      * Begin a transaction to perform a direct binary upload to the cloud storage.
@@ -47,11 +47,11 @@ public interface HttpDataRecordProvider {
      *                             in bytes, based on the caller's best guess.  If
      *                             the actual size of the file to be uploaded is known,
      *                             that value should be used.
-     * @param maxNumberOfURLs - the maximum number of URLs the client is able to accept.
+     * @param maxNumberOfURIs - the maximum number of URIs the client is able to accept.
      *                        If the client does not support multi-part uploading, this
      *                        value should be 1.  Note that the implementing class is not
      *                        required to support multi-part uploading so it may return
-     *                        only a single upload URL regardless of the value passed in
+     *                        only a single upload URI regardless of the value passed in
      *                        for this parameter.
      * @return A {@link HttpDataRecordUpload} referencing this direct upload.
      * @throws {@link UnsupportedHttpUploadArgumentsException} if the service provider or
@@ -59,7 +59,7 @@ public interface HttpDataRecordProvider {
      * the upload cannot be completed as requested.
      */
     @Nullable
-    HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException;
 
     /**
