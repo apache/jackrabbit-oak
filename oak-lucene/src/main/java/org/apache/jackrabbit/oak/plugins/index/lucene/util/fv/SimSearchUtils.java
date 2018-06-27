@@ -155,9 +155,8 @@ public class SimSearchUtils {
                         String similarityFieldName = FieldNames.createSimilarityFieldName(pd.name);
                         String fvString = doc.get(similarityFieldName);
                         if (fvString != null && fvString.trim().length() > 0) {
-                            String fieldName = FieldNames.createSimilarityFieldName(pd.name);
-                            log.trace("generating sim query on field {} and text {}", fieldName, fvString);
-                            BooleanQuery simQuery = SimSearchUtils.getSimQuery(analyzer, fieldName, fvString);
+                            log.trace("generating sim query on field {} and text {}", similarityFieldName, fvString);
+                            BooleanQuery simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
                             booleanQuery.add(new BooleanClause(simQuery, SHOULD));
                             log.trace("similarity query generated for {}", pd.name);
                         }
