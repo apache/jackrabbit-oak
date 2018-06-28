@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -861,6 +863,44 @@ public class NodeDocumentTest {
         ns2.dispose();
     }
 
+    // OAK-7593
+    @Ignore("OAK-7593")
+    @Test
+    public void getVisibleChangesWithOverlappingRanges() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = createTestStore(store, 1, 0);
+        addNode(ns, "/test");
+        setProperty(ns, "/test/p", 1);
+        setProperty(ns, "/test/p", 2);
+        setProperty(ns, "/test/p", 3);
+        RevisionVector readRev = ns.getHeadRevision();
+        setProperty(ns, "/test/q", 1);
+        setProperty(ns, "/test/q", 2);
+
+        String id = Utils.getIdFromPath("/test");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        List<UpdateOp> splitOps = SplitOperations.forDocument(
+                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+        assertEquals(2, splitOps.size());
+        store.createOrUpdate(NODES, splitOps);
+
+        setProperty(ns, "/test/p", 4);
+
+        doc = store.find(NODES, id);
+        assertNotNull(doc);
+        splitOps = SplitOperations.forDocument(
+                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+        assertEquals(2, splitOps.size());
+        store.createOrUpdate(NODES, splitOps);
+
+        doc = store.find(NODES, id);
+        assertNotNull(doc);
+        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev)) {
+            assertFalse(readRev.isRevisionNewer(change.getKey()));
+        }
+    }
+
     @Test
     public void getSweepRevisions() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
@@ -1007,5 +1047,30 @@ public class NodeDocumentTest {
     private void merge(NodeStore store, NodeBuilder builder)
             throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private void addNode(NodeStore store, String path)
+            throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder builder = root;
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.child(name);
+        }
+        assertTrue(builder.isNew());
+        merge(store, root);
+    }
+
+    private void setProperty(NodeStore store, String path, int value)
+            throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder builder = root;
+        String nodePath = PathUtils.getParentPath(path);
+        String propertyName = PathUtils.getName(path);
+        for (String name : PathUtils.elements(nodePath)) {
+            builder = builder.child(name);
+        }
+        assertFalse(builder.isNew());
+        builder.setProperty(propertyName, value);
+        merge(store, root);
     }
 }
