@@ -860,11 +860,11 @@ The following options are available:
 Note:
 For using S3DataStore the following additional jars have to be downloaded
     - [commons-logging-1.1.3.jar](http://central.maven.org/maven2/commons-logging/commons-logging/1.1.3/commons-logging-1.1.3.jar)
-    - [aws-java-sdk-osgi-1.11.24.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-osgi/1.11.24/aws-java-sdk-osgi-1.11.24.jar)
+    - [aws-java-sdk-osgi-1.11.330.jar](http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-osgi/1.11.330/aws-java-sdk-osgi-1.11.330.jar)
     
 The command to be executed for S3DataStore
 
-    java -classpath oak-run-*.jar:aws-java-sdk-osgi-1.11.24.jar:commons-logging-1.1.3.jar \
+    java -classpath oak-run-*.jar:aws-java-sdk-osgi-1.11.330.jar:commons-logging-1.1.3.jar \
         org.apache.jackrabbit.oak.run.Main \
         datastorecheck --id --ref --consistency \
         --store <path>|<mongo_uri> \
