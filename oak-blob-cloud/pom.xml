@@ -33,7 +33,6 @@
     <properties>
         <netty.version>4.1.17.Final</netty.version>
         <aws.version>1.11.330</aws.version>
-        <jackson.version>2.9.5</jackson.version>
     </properties>
 
     <build>
@@ -134,7 +133,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <!-- Netty -->
         <dependency>
