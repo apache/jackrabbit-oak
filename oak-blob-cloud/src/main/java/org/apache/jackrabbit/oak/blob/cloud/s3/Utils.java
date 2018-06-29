@@ -115,10 +115,8 @@ public final class Utils {
             }
             if (DEFAULT_AWS_BUCKET_REGION.equals(region)) {
                 endpoint = S3 + DOT + AWSDOTCOM;
-            } else if (Region.EU_Ireland.toString().equals(region)) {
-                endpoint = "s3-eu-west-1" + DOT + AWSDOTCOM;
             } else {
-                endpoint = S3 + DASH + region + DOT + AWSDOTCOM;
+                endpoint = S3 + DOT + region + DOT + AWSDOTCOM;
             }
         }
         /*
