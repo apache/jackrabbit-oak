@@ -31,6 +31,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -754,7 +755,7 @@ public class NodeDocumentTest {
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents ("
                             + prevDocCalls.size() + "): " + prevDocCalls,
-                    prevDocCalls.size() <= 8);
+                    prevDocCalls.size() <= 10);
         }
 
         ns1.dispose();
@@ -779,7 +780,8 @@ public class NodeDocumentTest {
         DocumentNodeStore ns = createTestStore(store, 1, 0);
         List<RevisionVector> headRevisions = Lists.newArrayList();
 
-        for (int i = 0; i < 1000; i++) {
+        long count = 1000;
+        for (int i = 0; i < count; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             NodeBuilder test = builder.child("test");
             test.setProperty("p", i);
@@ -805,17 +807,18 @@ public class NodeDocumentTest {
         ns.runBackgroundOperations();
 
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
         List<Integer> numCalls = Lists.newArrayList();
-        long count = 0;
         // go back in time and check number of find calls
+        Collections.reverse(headRevisions);
         for (RevisionVector rv : headRevisions) {
             prevDocCalls.clear();
             DocumentNodeState s = doc.getNodeAtRevision(ns, rv, null);
             assertNotNull(s);
-            assertEquals(count++, s.getProperty("p").getValue(Type.LONG).longValue());
+            assertEquals(--count, s.getProperty("p").getValue(Type.LONG).longValue());
             numCalls.add(prevDocCalls.size());
         }
-        assertThat(numCalls.toString(), numCalls, everyItem(lessThan(36)));
+        assertThat(numCalls.toString(), numCalls, everyItem(lessThan(43)));
 
         ns.dispose();
     }
@@ -859,6 +862,43 @@ public class NodeDocumentTest {
 
         ns1.dispose();
         ns2.dispose();
+    }
+
+    // OAK-7593
+    @Test
+    public void getVisibleChangesWithOverlappingRanges() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = createTestStore(store, 1, 0);
+        addNode(ns, "/test");
+        setProperty(ns, "/test/p", 1);
+        setProperty(ns, "/test/p", 2);
+        setProperty(ns, "/test/p", 3);
+        RevisionVector readRev = ns.getHeadRevision();
+        setProperty(ns, "/test/q", 1);
+        setProperty(ns, "/test/q", 2);
+
+        String id = Utils.getIdFromPath("/test");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        List<UpdateOp> splitOps = SplitOperations.forDocument(
+                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+        assertEquals(2, splitOps.size());
+        store.createOrUpdate(NODES, splitOps);
+
+        setProperty(ns, "/test/p", 4);
+
+        doc = store.find(NODES, id);
+        assertNotNull(doc);
+        splitOps = SplitOperations.forDocument(
+                doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+        assertEquals(2, splitOps.size());
+        store.createOrUpdate(NODES, splitOps);
+
+        doc = store.find(NODES, id);
+        assertNotNull(doc);
+        for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev)) {
+            assertFalse(readRev.isRevisionNewer(change.getKey()));
+        }
     }
 
     @Test
@@ -1007,5 +1047,30 @@ public class NodeDocumentTest {
     private void merge(NodeStore store, NodeBuilder builder)
             throws CommitFailedException {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private void addNode(NodeStore store, String path)
+            throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder builder = root;
+        for (String name : PathUtils.elements(path)) {
+            builder = builder.child(name);
+        }
+        assertTrue(builder.isNew());
+        merge(store, root);
+    }
+
+    private void setProperty(NodeStore store, String path, int value)
+            throws CommitFailedException {
+        NodeBuilder root = store.getRoot().builder();
+        NodeBuilder builder = root;
+        String nodePath = PathUtils.getParentPath(path);
+        String propertyName = PathUtils.getName(path);
+        for (String name : PathUtils.elements(nodePath)) {
+            builder = builder.child(name);
+        }
+        assertFalse(builder.isNew());
+        builder.setProperty(propertyName, value);
+        merge(store, root);
     }
 }
