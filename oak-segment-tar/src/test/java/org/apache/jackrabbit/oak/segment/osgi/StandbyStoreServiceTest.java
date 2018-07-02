@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.osgi;
 
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.segment.osgi.MetatypeInformation.ObjectClassDefinition;
 import org.junit.Test;
 
 public class StandbyStoreServiceTest {
@@ -72,6 +73,54 @@ public class StandbyStoreServiceTest {
             .withGreedyPolicyOption()
             .withBind("bindStoreProvider")
             .withUnbind("unbindStoreProvider")
+            .check());
+    }
+
+    @Test
+    public void testMetatypeInformation() throws Exception {
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService.xml"));
+        assertTrue(mi.hasDesignate()
+            .withPid("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService")
+            .withReference("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService")
+            .check());
+
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService");
+        assertTrue(ocd.hasAttributeDefinition("org.apache.sling.installer.configuration.persist")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("mode")
+            .withStringType()
+            .withDefaultValue("primary")
+            .withOptions("primary", "standby")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("port")
+            .withIntegerType()
+            .withDefaultValue("8023")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("primary.host")
+            .withStringType()
+            .withDefaultValue("127.0.0.1")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("interval")
+            .withIntegerType()
+            .withDefaultValue("5")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("primary.allowed-client-ip-ranges")
+            .withStringType()
+            .withCardinality("2147483647")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("secure")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("standby.readtimeout")
+            .withIntegerType()
+            .withDefaultValue("60000")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("standby.autoclean")
+            .withBooleanType()
+            .withDefaultValue("true")
             .check());
     }
 

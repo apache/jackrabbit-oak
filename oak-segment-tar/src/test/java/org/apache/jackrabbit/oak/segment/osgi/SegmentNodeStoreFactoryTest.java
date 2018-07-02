@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.osgi;
 
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.segment.osgi.MetatypeInformation.ObjectClassDefinition;
 import org.junit.Test;
 
 public class SegmentNodeStoreFactoryTest {
@@ -69,6 +70,37 @@ public class SegmentNodeStoreFactoryTest {
             .withBind("bindStatisticsProvider")
             .withUnbind("unbindStatisticsProvider")
             .check());
-
     }
+
+    @Test
+    public void testMetatypeInformation() throws Exception {
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory.xml"));
+        assertTrue(mi.hasDesignate()
+            .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
+            .withFactoryPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
+            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
+            .check());
+
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory");
+        assertTrue(ocd.hasAttributeDefinition("role")
+            .withStringType()
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("customBlobStore")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("customBlobStore")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("customSegmentStore")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("registerDescriptors")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+    }
+
 }

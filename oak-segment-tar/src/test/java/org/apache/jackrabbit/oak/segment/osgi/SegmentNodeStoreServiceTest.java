@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.osgi;
 
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.segment.osgi.MetatypeInformation.ObjectClassDefinition;
 import org.junit.Test;
 
 public class SegmentNodeStoreServiceTest {
@@ -141,4 +142,105 @@ public class SegmentNodeStoreServiceTest {
             .withUnbind("unbindStatisticsProvider")
             .check());
     }
+
+    @Test
+    public void testMetatypeInformation() throws Exception {
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.xml"));
+        assertTrue(mi.hasDesignate()
+            .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService")
+            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService")
+            .check());
+
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService");
+        assertTrue(ocd.hasAttributeDefinition("repository.home")
+            .withStringType()
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("tarmk.mode")
+            .withStringType()
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("tarmk.size")
+            .withIntegerType()
+            .withDefaultValue("256")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("segmentCache.size")
+            .withIntegerType()
+            .withDefaultValue("256")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("stringCache.size")
+            .withIntegerType()
+            .withDefaultValue("256")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("templateCache.size")
+            .withIntegerType()
+            .withDefaultValue("64")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("stringDeduplicationCache.size")
+            .withIntegerType()
+            .withDefaultValue("15000")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("templateDeduplicationCache.size")
+            .withIntegerType()
+            .withDefaultValue("3000")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("nodeDeduplicationCache.size")
+            .withIntegerType()
+            .withDefaultValue("1048576")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("pauseCompaction")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.retryCount")
+            .withIntegerType()
+            .withDefaultValue("5")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.force.timeout")
+            .withIntegerType()
+            .withDefaultValue("60")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.sizeDeltaEstimation")
+            .withLongType()
+            .withDefaultValue("1073741824")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.disableEstimation")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.retainedGenerations")
+            .withIntegerType()
+            .withDefaultValue("2")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.memoryThreshold")
+            .withIntegerType()
+            .withDefaultValue("15")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("compaction.progressLog")
+            .withLongType()
+            .withDefaultValue("-1")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("standby")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("customBlobStore")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("customSegmentStore")
+            .withBooleanType()
+            .withDefaultValue("false")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("repository.backup.dir")
+            .withStringType()
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("blobGcMaxAgeInSecs")
+            .withLongType()
+            .withDefaultValue("86400")
+            .check());
+        assertTrue(ocd.hasAttributeDefinition("blobTrackSnapshotIntervalInSecs")
+            .withLongType()
+            .withDefaultValue("43200")
+            .check());
+    }
+
 }

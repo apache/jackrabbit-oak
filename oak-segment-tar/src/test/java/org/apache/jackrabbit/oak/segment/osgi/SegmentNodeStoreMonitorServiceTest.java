@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.osgi;
 
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.segment.osgi.MetatypeInformation.ObjectClassDefinition;
 import org.junit.Test;
 
 public class SegmentNodeStoreMonitorServiceTest {
@@ -40,5 +41,21 @@ public class SegmentNodeStoreMonitorServiceTest {
             .withBind("bindSnsStatsMBean")
             .withUnbind("unbindSnsStatsMBean")
             .check());
+    }
+
+    @Test
+    public void testMetatypeInformation() throws Exception {
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService.xml"));
+        assertTrue(mi.hasDesignate()
+            .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService")
+            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService")
+            .check());
+
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService");
+        assertTrue(ocd.hasAttributeDefinition("commitsTrackerWriterGroups")
+            .withStringType()
+            .withCardinality("2147483647")
+            .check());
+
     }
 }
