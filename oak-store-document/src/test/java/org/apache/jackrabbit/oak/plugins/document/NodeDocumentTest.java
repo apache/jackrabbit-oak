@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -756,7 +755,7 @@ public class NodeDocumentTest {
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents ("
                             + prevDocCalls.size() + "): " + prevDocCalls,
-                    prevDocCalls.size() <= 8);
+                    prevDocCalls.size() <= 10);
         }
 
         ns1.dispose();
@@ -781,7 +780,8 @@ public class NodeDocumentTest {
         DocumentNodeStore ns = createTestStore(store, 1, 0);
         List<RevisionVector> headRevisions = Lists.newArrayList();
 
-        for (int i = 0; i < 1000; i++) {
+        long count = 1000;
+        for (int i = 0; i < count; i++) {
             NodeBuilder builder = ns.getRoot().builder();
             NodeBuilder test = builder.child("test");
             test.setProperty("p", i);
@@ -807,17 +807,18 @@ public class NodeDocumentTest {
         ns.runBackgroundOperations();
 
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
         List<Integer> numCalls = Lists.newArrayList();
-        long count = 0;
         // go back in time and check number of find calls
+        Collections.reverse(headRevisions);
         for (RevisionVector rv : headRevisions) {
             prevDocCalls.clear();
             DocumentNodeState s = doc.getNodeAtRevision(ns, rv, null);
             assertNotNull(s);
-            assertEquals(count++, s.getProperty("p").getValue(Type.LONG).longValue());
+            assertEquals(--count, s.getProperty("p").getValue(Type.LONG).longValue());
             numCalls.add(prevDocCalls.size());
         }
-        assertThat(numCalls.toString(), numCalls, everyItem(lessThan(36)));
+        assertThat(numCalls.toString(), numCalls, everyItem(lessThan(43)));
 
         ns.dispose();
     }
@@ -864,7 +865,6 @@ public class NodeDocumentTest {
     }
 
     // OAK-7593
-    @Ignore("OAK-7593")
     @Test
     public void getVisibleChangesWithOverlappingRanges() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
