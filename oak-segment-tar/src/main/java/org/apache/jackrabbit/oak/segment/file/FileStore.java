@@ -272,6 +272,15 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
+    /**
+     * @return  the number of segments in the segment store
+     */
+    public int getSegmentCount() {
+        try (ShutDownCloser ignored = shutDown.keepAlive()) {
+            return tarFiles.segmentCount();
+        }
+    }
+
     public FileStoreStats getStats() {
         return stats;
     }

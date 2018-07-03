@@ -86,6 +86,11 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
         return store.readerCount() + 1; //1 for the writer
     }
 
+    @Override
+    public int getSegmentCount() {
+        return store.getSegmentCount();
+    }
+
     @Nonnull
     @Override
     public CompositeData getWriteStats() {
