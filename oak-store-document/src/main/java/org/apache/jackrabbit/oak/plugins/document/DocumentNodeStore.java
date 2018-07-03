@@ -29,7 +29,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
@@ -176,14 +175,6 @@ public final class DocumentNodeStore
      */
     private boolean fairBackgroundOperationLock =
             Boolean.parseBoolean(System.getProperty("oak.fairBackgroundOperationLock", "true"));
-
-    /**
-     * The timeout in milliseconds to wait for the recovery performed by
-     * another cluster node.
-     */
-    private long recoveryWaitTimeoutMS =
-            Long.getLong("oak.recoveryWaitTimeoutMS", 60000);
-
 
     public static final String SYS_PROP_DISABLE_JOURNAL = "oak.disableJournalDiff";
     /**
@@ -537,22 +528,24 @@ public final class DocumentNodeStore
             readOnlyMode = false;
         }
         checkVersion(s, readOnlyMode);
+        this.nonLeaseCheckingStore = s;
         this.executor = builder.getExecutor();
+        this.lastRevSeeker = builder.createMissingLastRevSeeker();
         this.clock = builder.getClock();
 
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
         if (readOnlyMode) {
-            clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(s);
+            clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(nonLeaseCheckingStore);
         } else {
-            clusterNodeInfo = ClusterNodeInfo.getInstance(s, cid);
+            clusterNodeInfo = ClusterNodeInfo.getInstance(nonLeaseCheckingStore,
+                    new RecoveryHandlerImpl(nonLeaseCheckingStore, clock, lastRevSeeker),
+                    null, null, cid);
         }
         // TODO we should ensure revisions generated from now on
         // are never "older" than revisions already in the repository for
         // this cluster id
-        cid = clusterNodeInfo.getId();
-
-        this.nonLeaseCheckingStore = s;
+        this.clusterId = clusterNodeInfo.getId();
 
         if (builder.getLeaseCheck()) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
@@ -560,11 +553,21 @@ public final class DocumentNodeStore
         } else {
             clusterNodeInfo.setLeaseCheckDisabled(true);
         }
+        String threadNamePostfix = "(" + clusterId + ")";
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+                "DocumentNodeStore lease update thread " + threadNamePostfix);
+        leaseUpdateThread.setDaemon(true);
+        if (!readOnlyMode) {
+            // OAK-3398 : make lease updating more robust by ensuring it
+            // has higher likelihood of succeeding than other threads
+            // on a very busy machine - so as to prevent lease timeout.
+            leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
+            leaseUpdateThread.start();
+        }
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
         this.store = s;
         this.changes = newJournalEntry();
-        this.clusterId = cid;
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
@@ -575,8 +578,8 @@ public final class DocumentNodeStore
                 this, builder.getJournalGCMaxAge());
         this.referencedBlobs =
                 builder.createReferencedBlobs(this);
-        this.lastRevSeeker = builder.createMissingLastRevSeeker();
-        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this, lastRevSeeker);
+        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(store, this,
+                lastRevSeeker, clusterId -> this.signalClusterStateChange());
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING",
                 new RevisionVector(new Revision(0, 0, 0))) {
@@ -597,7 +600,6 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
         diffCache = builder.getDiffCache(this.clusterId);
-        checkpoints = new Checkpoints(this);
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
@@ -625,9 +627,6 @@ public final class DocumentNodeStore
             }
         } else {
             sweepRevisions = sweepRevisions.pmax(rootDoc.getSweepRevisions());
-            if (!readOnlyMode) {
-                checkLastRevRecovery();
-            }
             initializeRootState(rootDoc);
             // check if _lastRev for our clusterId exists
             if (!rootDoc.getLastRev().containsKey(clusterId)) {
@@ -647,9 +646,7 @@ public final class DocumentNodeStore
             }
         }
 
-        // Renew the lease because it may have been stale
-        renewClusterIdLease();
-
+        checkpoints = new Checkpoints(this);
         // initialize branchCommits
         branches.init(store, this);
 
@@ -657,7 +654,6 @@ public final class DocumentNodeStore
                 new PrefetchDispatcher(getRoot(), executor) :
                 new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
-        String threadNamePostfix = "(" + clusterId + ")";
         batchCommitQueue = new BatchCommitQueue(store);
         // prepare background threads
         backgroundReadThread = new Thread(
@@ -675,19 +671,10 @@ public final class DocumentNodeStore
         clusterUpdateThread = new Thread(new BackgroundClusterUpdate(this, isDisposed),
                 "DocumentNodeStore cluster update thread " + threadNamePostfix);
         clusterUpdateThread.setDaemon(true);
-        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
-                "DocumentNodeStore lease update thread " + threadNamePostfix);
-        leaseUpdateThread.setDaemon(true);
         // now start the background threads
         clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
-            // OAK-3398 : make lease updating more robust by ensuring it
-            // has higher likelihood of succeeding than other threads
-            // on a very busy machine - so as to prevent lease timeout.
-            leaseUpdateThread.setPriority(Thread.MAX_PRIORITY);
-            leaseUpdateThread.start();
-
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
@@ -713,31 +700,6 @@ public final class DocumentNodeStore
 
         if (!builder.isBundlingDisabled()) {
             bundlingConfigHandler.initialize(this, executor);
-        }
-    }
-
-
-    /**
-     * Recover _lastRev recovery if needed.
-     *
-     * @throws DocumentStoreException if recovery did not finish within
-     *          {@link #recoveryWaitTimeoutMS}.
-     */
-    private void checkLastRevRecovery() throws DocumentStoreException {
-        long timeout = clock.getTime() + recoveryWaitTimeoutMS;
-        int numRecovered = lastRevRecoveryAgent.recover(clusterId, timeout);
-        if (numRecovered == -1) {
-            ClusterNodeInfoDocument doc = store.find(CLUSTER_NODES, String.valueOf(clusterId));
-            String otherId = "n/a";
-            if (doc != null) {
-                otherId = String.valueOf(doc.get(ClusterNodeInfo.REV_RECOVERY_BY));
-            }
-            String msg = "This cluster node (" + clusterId + ") requires " +
-                    "_lastRev recovery which is currently performed by " +
-                    "another cluster node (" + otherId + "). Recovery is " +
-                    "still ongoing after " + recoveryWaitTimeoutMS + " ms. " +
-                    "Failing startup of this DocumentNodeStore now!";
-            throw new DocumentStoreException(msg);
         }
     }
 
@@ -2985,7 +2947,7 @@ public final class DocumentNodeStore
         this.clusterStateChangeListener = clusterStateChangeListener;
     }
 
-    void signalClusterStateChange() {
+    private void signalClusterStateChange() {
         if (clusterStateChangeListener != null) {
             clusterStateChangeListener.handleClusterStateChange();
         }

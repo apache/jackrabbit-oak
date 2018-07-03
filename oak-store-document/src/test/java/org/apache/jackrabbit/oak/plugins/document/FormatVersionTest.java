@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.V1_4;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.V1_6;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.V1_8;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.valueOf;
+import static org.apache.jackrabbit.oak.plugins.document.RecoveryHandler.NOOP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -119,8 +120,7 @@ public class FormatVersionTest {
     public void activeClusterNodes() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         V1_0.writeTo(store);
-        ClusterNodeInfo info = ClusterNodeInfo.getInstance(store, 1);
-        info.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         V1_2.writeTo(store);
     }
 

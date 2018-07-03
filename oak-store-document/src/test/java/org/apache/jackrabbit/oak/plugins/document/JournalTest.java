@@ -376,7 +376,7 @@ public class JournalTest extends AbstractJournalTest {
         //lastRev should not be updated for C #2
         assertNull(y1.getLastRev().get(c2Id));
 
-        final LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds1);
+        final LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds, ds1);
 
         // now 1 also has
         final String change1 = "{\"x\":{\"y\":{}}}";

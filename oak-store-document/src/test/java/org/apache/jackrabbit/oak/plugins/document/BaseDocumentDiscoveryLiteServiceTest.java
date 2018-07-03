@@ -442,17 +442,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 writeSimulationThread.join();
             }
         }
-
-        /** OAK-3292 : when on a machine without a mac address, the 'random:' prefix is used and instances
-         * that have timed out are automagially removed by ClusterNodeInfo.createInstance - that poses
-         * a problem to testing - so this method exposes whether the instance has such a 'random:' prefix
-         * and thus allows to take appropriate action
-         */
-        public boolean hasRandomMachineId() {
-            //TODO: this might not be the most stable way - but avoids having to change ClusterNodeInfo
-            return ns.getClusterInfo().toString().contains("random:");
-        }
-
     }
 
     interface Expectation {
@@ -760,19 +749,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         workingDir = reactivatedWorkingDir;
                         logger.info("Case 0: creating instance");
                         final SimplifiedInstance newInstance = createInstance(workingDir);
-                        if (newInstance.hasRandomMachineId()) {
-                            // OAK-3292 : on an instance which has no networkInterface with a mac address,
-                            // the machineId chosen by ClusterNodeInfo will be 'random:'.. and
-                            // ClusterNodeInfo.createInstance will feel free to remove it when the lease
-                            // has timed out
-                            // that really renders it very difficult to continue testing here,
-                            // since this test is all about keeping track who became inactive etc 
-                            // and ClusterNodeInfo.createInstance removing it 'at a certain point' is difficult
-                            // and not very useful to test..
-                            //
-                            // so: stop testing at this point:
-                            return;
-                        }
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 0: created instance: " + newInstance.ns.getClusterId());
@@ -794,19 +770,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                     if (instances.size() < MAX_NUM_INSTANCES) {
                         logger.info("Case 1: creating instance");
                         final SimplifiedInstance newInstance = createInstance(workingDir);
-                        if (newInstance.hasRandomMachineId()) {
-                            // OAK-3292 : on an instance which has no networkInterface with a mac address,
-                            // the machineId chosen by ClusterNodeInfo will be 'random:'.. and
-                            // ClusterNodeInfo.createInstance will feel free to remove it when the lease
-                            // has timed out
-                            // that really renders it very difficult to continue testing here,
-                            // since this test is all about keeping track who became inactive etc 
-                            // and ClusterNodeInfo.createInstance removing it 'at a certain point' is difficult
-                            // and not very useful to test..
-                            //
-                            // so: stop testing at this point:
-                            return;
-                        }
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());

@@ -2073,7 +2073,7 @@ public class DocumentNodeStoreTest {
                 .setDocumentStore(docStore).getNodeStore();
 
         // perform recovery if needed
-        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(store2);
+        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(docStore, store2);
         if (agent.isRecoveryNeeded()) {
             agent.recover(1);
         }
