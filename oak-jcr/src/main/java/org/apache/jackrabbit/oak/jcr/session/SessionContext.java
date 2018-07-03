@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -42,6 +43,9 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -65,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -92,6 +97,7 @@ public class SessionContext implements NamePathMapper {
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
     private MountInfoProvider mountInfoProvider;
+    private final HttpBlobProvider httpBlobProvider;
 
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
@@ -139,6 +145,7 @@ public class SessionContext implements NamePathMapper {
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
+        this.httpBlobProvider = getOrCreateHttpBlobProvider(whiteboard);
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
@@ -326,6 +333,11 @@ public class SessionContext implements NamePathMapper {
         return mountInfoProvider;
     }
 
+    @Nonnull
+    HttpBlobProvider getHttpBlobProvider() {
+        return httpBlobProvider;
+    }
+
     //-----------------------------------------------------< NamePathMapper >---
 
     @Override
@@ -408,6 +420,40 @@ public class SessionContext implements NamePathMapper {
     }
 
     //-----------------------------------------------------------< internal >---
+
+    private static HttpBlobProvider getOrCreateHttpBlobProvider(Whiteboard wb) {
+        HttpBlobProvider provider = WhiteboardUtils.getService(wb, HttpBlobProvider.class);
+        if (provider == null) {
+            provider = new DefaultHttpBlobProvider();
+        }
+        return provider;
+    }
+
+    /**
+     * A {@link HttpBlobProvider} implementation that does not support direct
+     * binary up- or download.
+     */
+    private static class DefaultHttpBlobProvider implements HttpBlobProvider {
+
+        @Nullable
+        @Override
+        public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes,
+                                                 int maxNumberOfURLs) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Blob completeHttpUpload(String uploadToken) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public URL getHttpDownloadURL(String blobId) {
+            return null;
+        }
+    }
 
     void dispose() {
         try {
