@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.5
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.4 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.5 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,42 +15,65 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.4
+Changes in Oak 1.9.5
 --------------------
 
 Technical task
 
-    [OAK-7527] - Drop mandatory constraint on "rep:system" node for
-    "rep:privileges"
-    [OAK-7529] - Define and register oak namespace
-    [OAK-7533] - NameValidator is not using namespaces defined in the
-    current transaction
-    [OAK-7537] - Allow for initial registration of 'xml' namespace
-    [OAK-7546] - add maven profile to build with Guava beta checks
-    [OAK-7547] - commons: avoid use of Guava beta APIs in StringSort
+    [OAK-7532] - VersionStorageEditor should allow bootstraping of
+    initial content
+    [OAK-7553] - Extract interface from CommitValueResolver
+    [OAK-7554] - Extract InactiveRevisionContext from
+    LastRevRecoveryAgent
+    [OAK-7587] - RDB*Store: update mysql driver reference to 8.0.11
+    [OAK-7590] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.32
 
 Bug
 
-    [OAK-7521] - Command line params to modify query and read limits
-    don't work for large values
-    [OAK-7540] - Unique property index update fails in composite
-    NodeStore setup
-    [OAK-7543] - MissingLastRevSeekerTest fails on MongoDB with
-    secondary preferred
+    [OAK-7551] - The compaction deadline should be reset at each
+    execution
+    [OAK-7559] - CacheActionDispatcher not memory bound
+    [OAK-7566] - Rename metrics for DataStore garbage collection
+    [OAK-7567] - Migrating an unmodified checkpoint takes a long time
+    [OAK-7588] - Build failure: unapproved license
+    [OAK-7593] - NodeDocument.getLatestValue() may throw
+    IllegalStateException
+    [OAK-7594] - datastorecheck command in oak-run for S3 needs
+    jackson-annotations dependency
+    [OAK-7598] -
+    CopyOnWriteDirectory.COWRemoteFileReference#checkIfLocalValid logs
+    WARN for segments.gen
+
+New Feature
+
+    [OAK-7555] - Enable collection of simple operation stats for
+    Revision garbage collection
+    [OAK-7575] - Make it possible to index and search over similar
+    feature vectors
 
 Improvement
 
-    [OAK-7506] - Prevent user enumeration by exploiting time delay
-    vulnerability
-    [OAK-7530] - PrivilegeInitializer should not attempt to create
-    jcr:system node
-    [OAK-7550] - Make running cleanup before compaction the default
-    strategy
+    [OAK-7561] - Don't migrate the checkpoints in oak-store-composite
+    seed initialization
+    [OAK-7584] - Add stats for DataStore GC performance
+    [OAK-7601] - Exclude org.apache.jackrabbit.oak.plugins.value.jcr
+    from baseline check
 
 Task
 
-    [OAK-7512] - RestoreTest.testRestoreNameJcr2 occasionally failing
-    [OAK-7536] - Update aws java sdk version to 1.11.330
+    [OAK-7556] - Update failsafe and surefire plugin versions to
+    2.22.0
+    [OAK-7563] - Set baseline plugin comparison for trunk to latest
+    stable version (1.8.4)
+    [OAK-7578] - Update spotbugs plugin to 3.1.5
+    [OAK-7579] - remove obsolete findbugs reference from reactor pom
+    [OAK-7582] - Make the MountInfo constructor public
+    [OAK-7583] - oak-examples/webapp: update jetty-maven-plugin
+    dependency
+    [OAK-7585] - oak-examples/standalone: update spring boot version
+    [OAK-7586] - Update bundle plugin to 3.5.0
+    [OAK-7596] - define jackson version globally
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
