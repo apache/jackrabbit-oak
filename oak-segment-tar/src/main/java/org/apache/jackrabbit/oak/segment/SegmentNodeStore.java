@@ -331,9 +331,9 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(String blobId) {
+    public URL getHttpDownloadURL(Blob blob) {
         if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blobId);
+            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blob);
         }
         return null;
     }

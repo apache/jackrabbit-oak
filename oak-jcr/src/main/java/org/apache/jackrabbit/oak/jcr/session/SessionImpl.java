@@ -67,7 +67,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryUpload;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
@@ -848,12 +847,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                     throw new RepositoryException("HTTP binary upload not supported");
                 }
                 Blob blob;
-                try {
-                    blob = httpBlobProvider.completeHttpUpload(uploadToken);
-                }
-                catch (IllegalArgumentException e) {
-                    throw new InvalidHttpUploadTokenException(e);
-                }
+                blob = httpBlobProvider.completeHttpUpload(uploadToken);
                 if (blob == null) {
                     throw new RepositoryException("HTTP binary upload could not be completed");
                 }
@@ -882,12 +876,12 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                         return null;
                     }
 
-                    // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
+                    // ValueFactoryImpl.getBlob() will only return a blob for a BinaryImpl, which
                     // a client cannot spoof, so we know that the id in question is valid and can be
                     // trusted, so we can safely give out a URL to the binary for downloading.
-                    String blobId = ((ValueFactoryImpl) sessionContext.getValueFactory()).getBlobId(binary);
-                    if (null != blobId) {
-                        return httpBlobProvider.getHttpDownloadURL(blobId);
+                    Blob blob = ((ValueFactoryImpl) sessionContext.getValueFactory()).getBlob(binary);
+                    if (null != blob) {
+                        return httpBlobProvider.getHttpDownloadURL(blob);
                     }
                 }
                 return null;

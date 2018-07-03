@@ -309,9 +309,9 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     @Nullable
-    public String getBlobId(Binary binary) throws RepositoryException {
+    public Blob getBlob(Binary binary) throws RepositoryException {
         if (binary instanceof BinaryImpl) {
-            return ((BinaryImpl) binary).getBinaryValue().getBlob().getContentIdentity();
+            return ((BinaryImpl) binary).getBinaryValue().getBlob();
         }
         return null;
     }
