@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +64,6 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.copyOf;
-import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
 import static com.google.common.collect.Iterables.transform;
@@ -1555,38 +1553,40 @@ public final class NodeDocument extends Document {
                                                @Nonnull final Revision readRevision,
                                                @Nonnull final List<Iterable<Entry<Revision, String>>> changes) {
         List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
-        Revision lowRev = new Revision(Long.MAX_VALUE, 0, readRevision.getClusterId());
 
         RevisionVector readRV = new RevisionVector(readRevision);
-        List<Range> ranges = Lists.newArrayList();
-        for (Map.Entry<Revision, Range> e : getPreviousRanges().entrySet()) {
-            Range range = e.getValue();
-            if (range.low.getClusterId() != readRevision.getClusterId()
-                    || readRevision.compareRevisionTime(range.low) < 0) {
-                // either clusterId does not match
-                // or range is newer than read revision
-                continue;
+        List<Range> ranges = new ArrayList<>();
+        for (Range r : getPreviousRanges().values()) {
+            if (r.low.getClusterId() == readRevision.getClusterId()
+                    && readRevision.compareRevisionTime(r.low) >= 0) {
+                // clusterId matches and range is visible from read revision
+                ranges.add(r);
             }
-            // check if it overlaps with previous ranges
-            if (range.high.compareRevisionTime(lowRev) < 0) {
-                // does not overlap
-                if (!ranges.isEmpty()) {
-                    // there are previous ranges
-                    // get and merge sort overlapping ranges
-                    revs.add(changesFor(ranges, readRV, property));
-                    ranges.clear();
+        }
+        List<Range> batch = new ArrayList<>();
+        while (!ranges.isEmpty()) {
+            // create batches of non-overlapping ranges
+            Range previous = null;
+            Iterator<Range> it = ranges.iterator();
+            while (it.hasNext()) {
+                Range r = it.next();
+                if (previous == null || r.high.compareRevisionTime(previous.low) < 0) {
+                    // first range or does not overlap with previous in batch
+                    batch.add(r);
+                    it.remove();
+                    previous = r;
                 }
             }
-            ranges.add(range);
-            lowRev = Utils.min(lowRev, range.low);
-        }
-        if (!ranges.isEmpty()) {
-            // get remaining changes
-            revs.add(changesFor(ranges, readRV, property));
+            revs.add(changesFor(batch, readRV, property));
+            batch.clear();
         }
 
-        if (!revs.isEmpty()) {
-            changes.add(concat(revs));
+        if (revs.size() == 1) {
+            // optimize single batch case
+            changes.add(revs.get(0));
+        } else if (!revs.isEmpty()) {
+            // merge sort them
+            changes.add(mergeSorted(revs, ValueComparator.REVERSE));
         }
     }
 
@@ -1629,34 +1629,7 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = new Iterable<Entry<Revision, String>>() {
-                private List<Range> rangeList = copyOf(ranges);
-                private Iterable<Iterable<Entry<Revision, String>>> changesPerRange
-                        = transform(rangeList, rangeToChanges);
-                @Override
-                public Iterator<Entry<Revision, String>> iterator() {
-                    final Iterator<Iterable<Entry<Revision, String>>> it
-                            = checkNotNull(changesPerRange.iterator());
-                    return new MergeSortedIterators<Entry<Revision, String>>(ValueComparator.REVERSE) {
-                        @Override
-                        public Iterator<Entry<Revision, String>> nextIterator() {
-                            while (it.hasNext()) {
-                                Iterator<Entry<Revision, String>> next = it.next().iterator();
-                                // check if this even has elements
-                                if (next.hasNext()) {
-                                    return next;
-                                }
-                            }
-                            return null;
-                        }
-
-                        @Override
-                        public String description() {
-                            return "Ranges to merge sort: " + rangeList;
-                        }
-                    };
-                }
-            };
+            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges));
         }
         return filter(changes, new Predicate<Entry<Revision, String>>() {
             @Override
