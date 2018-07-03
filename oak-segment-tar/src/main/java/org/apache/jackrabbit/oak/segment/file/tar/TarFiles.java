@@ -51,12 +51,12 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -445,6 +445,29 @@ public class TarFiles implements Closeable {
         }
 
         return Iterables.size(iterable(head));
+    }
+
+    /**
+     * @return  the number of segments in the segment store
+     */
+    public int segmentCount() {
+        int count = 0;
+        Node head;
+
+        lock.readLock().lock();
+        try {
+            if (writer != null) {
+                count = writer.getEntryCount();
+            }
+            head = readers;
+        } finally {
+            lock.readLock().unlock();
+        }
+
+        for (TarReader reader : iterable(head)) {
+            count += reader.getEntries().length;
+        }
+        return count;
     }
 
     public void flush() throws IOException {

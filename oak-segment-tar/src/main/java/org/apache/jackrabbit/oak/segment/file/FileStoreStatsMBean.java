@@ -27,7 +27,15 @@ public interface FileStoreStatsMBean {
 
     long getApproximateSize();
 
+    /**
+     * @return the number of tar files in the segment store
+     */
     int getTarFileCount();
+
+    /**
+     * @return the number of segments in the segment store
+     */
+    int getSegmentCount();
 
     /**
      * @return  time series of the writes to repository

@@ -103,6 +103,13 @@ class TarWriter implements Closeable {
     }
 
     /**
+     * @return  the number of entries currently in this writer
+     */
+    int getEntryCount() {
+        return archive.getEntryCount();
+    }
+
+    /**
      * If the given segment is in this file, get the byte buffer that allows
      * reading it.
      * 
