@@ -24,17 +24,13 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.security.AccessControlException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
-import javax.jcr.Binary;
 import javax.jcr.Credentials;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.Item;
@@ -53,7 +49,6 @@ import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -62,14 +57,8 @@ import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryUpload;
-import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -77,7 +66,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -91,7 +79,7 @@ import org.xml.sax.SAXException;
 /**
  * TODO document
  */
-public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
+public class SessionImpl implements JackrabbitSession {
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private SessionContext sessionContext;
@@ -783,105 +771,6 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
     @Nonnull
     public UserManager getUserManager() throws RepositoryException {
         return sessionContext.getUserManager();
-    }
-
-    //--------------------------------------------------< HttpBinaryProvider >---
-
-    @Nullable
-    @Override
-    public HttpBinaryUpload initiateHttpUpload(String path, long maxSize, int maxParts) throws RepositoryException {
-        if (! hasPermission(path, Session.ACTION_SET_PROPERTY)) {
-            throw new AccessDeniedException(String.format("No permission to add binary property at path %s", path));
-        }
-        return sd.safePerformNullable(new ReadOperation<HttpBinaryUpload>("initiateHttpUpload") {
-
-            @Nullable
-            @Override
-            public HttpBinaryUpload performNullable() throws RepositoryException {
-                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
-                HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
-                if (upload != null) {
-                    return new HttpBinaryUpload() {
-                        @Override
-                        public String getUploadToken() {
-                            return upload.getUploadToken();
-                        }
-
-                        @Override
-                        public long getMinPartSize() {
-                            return upload.getMinPartSize();
-                        }
-
-                        @Override
-                        public long getMaxPartSize() {
-                            return upload.getMaxPartSize();
-                        }
-
-                        @Nonnull
-                        @Override
-                        public Collection<URL> getUploadURLs() {
-                            return upload.getUploadURLs();
-                        }
-                    };
-                }
-                return null;
-            }
-        });
-    }
-
-    @Nonnull
-    @Override
-    public Binary completeHttpUpload(String uploadToken) throws RepositoryException {
-        return sd.perform(new ReadOperation<Binary>("completeHttpUpload") {
-
-            @Nonnull
-            @Override
-            public Binary perform() throws RepositoryException {
-
-                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
-                Blob blob;
-                try {
-                    blob = httpBlobProvider.completeHttpUpload(uploadToken);
-                }
-                catch (IllegalArgumentException e) {
-                    throw new InvalidHttpUploadTokenException(e);
-                }
-                if (blob == null) {
-                    throw new RepositoryException("HTTP binary upload could not be completed");
-                }
-
-                ValueFactoryImpl vf = (ValueFactoryImpl) sessionContext.getValueFactory();
-                return vf.createBinary(blob);
-            }
-        });
-    }
-
-    @Nullable
-    @Override
-    public URL getHttpDownloadURL(Binary binary) {
-        return sd.safePerformNullable(new ReadOperation<URL>("getHttpDownloadURL") {
-
-            @Nullable
-            @Override
-            public URL performNullable() throws RepositoryException {
-                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
-                if (binary instanceof ReferenceBinary) {
-                    if (null == ((ReferenceBinary) binary).getReference()) {
-                        // Binary is inlined, we cannot return a URL for it
-                        return null;
-                    }
-
-                    // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
-                    // a client cannot spoof, so we know that the id in question is valid and can be
-                    // trusted, so we can safely give out a URL to the binary for downloading.
-                    String blobId = ((ValueFactoryImpl) sessionContext.getValueFactory()).getBlobId(binary);
-                    if (null != blobId) {
-                        return httpBlobProvider.getHttpDownloadURL(blobId);
-                    }
-                }
-                return null;
-            }
-        });
     }
 
     @Override

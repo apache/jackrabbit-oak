@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.List;
 
@@ -40,10 +41,14 @@ import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.oak.api.BinaryUpload;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -66,11 +71,23 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory {
+public class ValueFactoryImpl implements JackrabbitValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
     private final NamePathMapper namePathMapper;
+
+    @Nonnull
+    private final HttpBlobProvider httpBlobProvider;
+
+    public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+                            @Nullable HttpBlobProvider httpBlobProvider) {
+        this.root = checkNotNull(root);
+        this.namePathMapper = checkNotNull(namePathMapper);
+        this.httpBlobProvider = httpBlobProvider == null
+                ? new DefaultHttpBlobProvider()
+                : httpBlobProvider;
+    }
 
     /**
      * Creates a new instance of {@code ValueFactory}.
@@ -80,8 +97,7 @@ public class ValueFactoryImpl implements ValueFactory {
      * the internal representation.
      */
     public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
-        this.root = checkNotNull(root);
-        this.namePathMapper = checkNotNull(namePathMapper);
+        this(root, namePathMapper, null);
     }
 
     /**
@@ -293,6 +309,35 @@ public class ValueFactoryImpl implements ValueFactory {
         }
     }
 
+    @Override
+    @Nullable
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
+        return new BinaryUpload() {
+            HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+
+            @Override
+            public Iterable<URL> getURLs() {
+                return upload.getUploadURLs();
+            }
+
+            @Override
+            public long getMinPartSize() {
+                return upload.getMinPartSize();
+            }
+
+            @Override
+            public long getMaxPartSize() {
+                return upload.getMaxPartSize();
+            }
+
+            @Override
+            public Binary complete() throws RepositoryException {
+                return createBinary(
+                    httpBlobProvider.completeHttpUpload(upload.getUploadToken()));
+            }
+        };
+    }
+
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
         long start = binOpsLogger.start();
         Blob blob = root.createBlob(value);
@@ -301,7 +346,7 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
-        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
+        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, httpBlobProvider);
     }
 
     public Binary createBinary(Blob blob) throws RepositoryException {
@@ -314,6 +359,32 @@ public class ValueFactoryImpl implements ValueFactory {
             return ((BinaryImpl) binary).getBinaryValue().getBlob().getContentIdentity();
         }
         return null;
+    }
+
+    /**
+     * A {@link HttpBlobProvider} implementation that does not support direct
+     * binary up- or download.
+     */
+    private static class DefaultHttpBlobProvider implements HttpBlobProvider {
+
+        @Nullable
+        @Override
+        public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes,
+                                                 int maxNumberOfURLs) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Blob completeHttpUpload(String uploadToken) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public URL getHttpDownloadURL(String blobId) {
+            return null;
+        }
     }
 
 }

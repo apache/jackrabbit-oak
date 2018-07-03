@@ -20,6 +20,7 @@ import static com.google.common.base.Objects.toStringHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
@@ -27,13 +28,14 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.oak.api.BinaryDownload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
-class BinaryImpl implements ReferenceBinary {
+class BinaryImpl implements ReferenceBinary, BinaryDownload {
     private static final Logger LOG = LoggerFactory.getLogger(BinaryImpl.class);
 
     private final ValueImpl value;
@@ -81,6 +83,23 @@ class BinaryImpl implements ReferenceBinary {
     @Override
     public void dispose() {
         // nothing to do
+    }
+
+    @Override
+    public URL getURL() throws RepositoryException {
+        if (null == getReference()) {
+            // Binary is inlined, we cannot return a URL for it
+            return null;
+        }
+
+        // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
+        // a client cannot spoof, so we know that the id in question is valid and can be
+        // trusted, so we can safely give out a URL to the binary for downloading.
+        String blobId = getBinaryValue().getBlob().getContentIdentity();
+        if (null != blobId) {
+            return value.getHttpDownloadURL(blobId);
+        }
+        return null;
     }
 
     //---------------------------------------------------< ReferenceBinary >--
