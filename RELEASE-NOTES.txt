@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.5
 
 Introduction
 ------------
@@ -7,70 +7,32 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.4 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.5 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.4
+Changes in Oak 1.8.5
 ---------------------
-
-Technical task
-
-    [OAK-7149] - RDBDocumentStore.getStats() for Derby
-    [OAK-7159] - RDBDocumentStore: use try-with-resources for nodes
-    cache locks
-    [OAK-7181] - RDBDocumentStore: use try-with-resources for
-    ChangesTracker
-    [OAK-7184] - LengthCachingDataStoreTest: Remove unused import of
-    Guava InputSupplier
-    [OAK-7185] - Upgrade jclouds dependency to 2.0.3
-    [OAK-7186] - avoid use of guava Iterators.emptyIterator()
-    [OAK-7329] - RDB*Store for SQLServer: name the PK index for better
-    readability
-    [OAK-7330] - RDBDocumentStore: make indices on SD* sparse where
-    possible
-    [OAK-7331] - RDBDocumentStore: add index on _MODIFIED to improve
-    VersionGC performance
-    [OAK-7333] - RDBDocumentStore: refactor index report
-    [OAK-7430] - RDB*Store: update postgresql JDBC driver reference to
-    42.2.2
-    [OAK-7432] - RDB*Store: update mysql driver reference to 5.1.46
 
 Bug
 
-    [OAK-7339] - Fix all sidegrades breaking with
-    UnsupportedOperationException on MissingBlobStore by introducing
-    LoopbackBlobStore
-    [OAK-7513] - Possible NPE in exact size calculation for
-    SolrQueryIndex
-
-Improvement
-
-    [OAK-7442] - Remove dependency to commons-codec
+    [OAK-7593] - NodeDocument.getLatestValue() may throw
+    IllegalStateException
+    [OAK-7594] - datastorecheck command in oak-run for S3 needs
+    jackson-annotations dependency
+    [OAK-7598] -
+    CopyOnWriteDirectory.COWRemoteFileReference#checkIfLocalValid logs
+    WARN for segments.gen
 
 Task
 
-    [OAK-7156] - CacheChangesTracker should implement Closeable
-    [OAK-7160] - Update commons-codec dependency to 1.11
-    [OAK-7161] - LengthCachingDataStore's use of LineIterator.close()
-    [OAK-7163] - Upgrade commons-io dependency to 2.6
-    [OAK-7240] - create announcement mail template for releases
-    [OAK-7255] - Upgrade jackson dependencies to version 2.9.4
-    [OAK-7268] - document store: create charset encoding utility that
-    detects malformed input
-    [OAK-7272] - improve BackgroundLeaseUpdate warning messages
-    [OAK-7275] - Update easymock test dependency to 3.4
-    [OAK-7364] - code coverage checks fail on Java 10
-    [OAK-7368] - update to findbugs version compatible with jdk 10
-    [OAK-7422] - Update jackson dependencies to 2.9.5
-    [OAK-7443] - remove jdk 1.6 specific findbugs profile from pom
-    [OAK-7451] - Upgrade tika-parsers dependency to 2.18
-    [OAK-7482] - update maven-javadoc-plugin to 3.0.0
-    [OAK-7483] - add "javadoc" profile for Jenkins matrix builds
-    [OAK-7493] - RDB*Store: update Derby dependency to 10.14.2.0
+    [OAK-7535] - 1.8: remove comparisonVersion for baseline check (let
+    defaults apply)
+    [OAK-7536] - Update aws java sdk version to 1.11.330
+    [OAK-7539] - Update Oak 1.8 to Jackrabbit 2.16.2
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
