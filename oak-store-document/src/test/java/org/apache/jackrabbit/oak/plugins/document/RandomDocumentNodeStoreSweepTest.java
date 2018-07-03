@@ -176,8 +176,7 @@ public class RandomDocumentNodeStoreSweepTest {
         }
     }
 
-    private void guardedFail(Operation op, String message)
-            throws CommitFailedException {
+    private void guardedFail(Operation op, String message) {
         store.fail().after(1).eternally();
         try {
             op.call();

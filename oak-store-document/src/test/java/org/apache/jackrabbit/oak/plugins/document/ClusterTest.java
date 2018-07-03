@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.RecoveryHandler.NOOP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
@@ -65,6 +67,11 @@ public class ClusterTest {
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
+
+    @After
+    public void resetClock() {
+        ClusterNodeInfo.resetClockToDefault();
+    }
 
     @Test
     public void threeNodes() throws Exception {
@@ -121,17 +128,20 @@ public class ClusterTest {
 
     @Test
     public void clusterNodeInfoLease() throws InterruptedException {
+        Clock c = new Clock.Virtual();
+        c.waitUntil(System.currentTimeMillis());
+        ClusterNodeInfo.setClock(c);
+
         MemoryDocumentStore store = new MemoryDocumentStore();
         ClusterNodeInfo c1, c2;
-        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
         assertEquals(1, c1.getId());
-        c1.setLeaseTime(1);
-        c1.setLeaseUpdateInterval(0);
-        // this will quickly expire
-        c1.renewLease();
-        Thread.sleep(10);
-        c2 = ClusterNodeInfo.getInstance(store, "m1", null);
-        assertEquals(1, c2.getId());
+        // expire lease
+        c.waitUntil(c1.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+
+        // using a NOOP RecoveryHandler must prevent use of expired clusterId 1 (OAK-7316)
+        c2 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
+        assertEquals(2, c2.getId());
     }
 
     @Test
@@ -230,36 +240,37 @@ public class ClusterTest {
     @Test
     public void clusterNodeInfo() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        ClusterNodeInfo c1, c2, c3, c4;
+        ClusterNodeInfo c1, c2;
 
-        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
         assertEquals(1, c1.getId());
         c1.dispose();
 
         // get the same id
-        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
         assertEquals(1, c1.getId());
         c1.dispose();
 
-        // now try to add another one:
-        // must get a new id
-        c2 = ClusterNodeInfo.getInstance(store, "m2", null);
+        // a different machine
+        // must get inactive id (OAK-7316)
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m2", null, 0);
+        assertEquals(1, c1.getId());
+
+        // yet another machine
+        c2 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/a", 0);
         assertEquals(2, c2.getId());
 
-        // a different machine
-        c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
-        assertEquals(3, c3.getId());
-
+        c1.dispose();
         c2.dispose();
-        c3.dispose();
 
-        c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
-        assertEquals(3, c3.getId());
+        // must acquire same id as before with matching machineId/instanceId
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/a", 0);
+        assertEquals(2, c1.getId());
 
-        c3.dispose();
+        c1.dispose();
 
-        c4 = ClusterNodeInfo.getInstance(store, "m3", "/b");
-        assertEquals(4, c4.getId());
+        c1 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/b", 0);
+        assertEquals(1, c1.getId());
 
         c1.dispose();
     }

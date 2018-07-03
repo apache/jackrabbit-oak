@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.RecoveryHandler.NOOP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -68,16 +69,14 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void acquireRecoveryLockOnActiveClusterNode() {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
 
         assertFalse(seeker.acquireRecoveryLock(1, 2));
     }
 
     @Test
     public void acquireRecoveryLockOnInactiveClusterNode() {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         nodeInfo1.dispose();
 
         assertFalse(seeker.acquireRecoveryLock(1, 2));
@@ -85,8 +84,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void acquireRecoveryLockOnExpiredLease() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
@@ -95,13 +93,11 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void acquireRecoveryLockOnAlreadyLocked() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
-        ClusterNodeInfo nodeInfo2 = ClusterNodeInfo.getInstance(store, 2);
-        nodeInfo2.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
 
         assertTrue(seeker.acquireRecoveryLock(1, 2));
         assertFalse(seeker.acquireRecoveryLock(1, 3));
@@ -109,8 +105,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void acquireRecoveryLockAgain() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
@@ -120,8 +115,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void releaseRecoveryLockSuccessTrue() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
@@ -132,14 +126,13 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertFalse(getClusterNodeInfo(1).isBeingRecovered());
         assertFalse(getClusterNodeInfo(1).isActive());
         // recovery not needed anymore
-        assertFalse(seeker.isRecoveryNeeded(getClusterNodeInfo(1)));
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
         assertFalse(seeker.acquireRecoveryLock(1, 2));
     }
 
     @Test
     public void releaseRecoveryLockSuccessFalse() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
@@ -150,43 +143,59 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertFalse(getClusterNodeInfo(1).isBeingRecovered());
         assertTrue(getClusterNodeInfo(1).isActive());
         // recovery still needed
-        assertTrue(seeker.isRecoveryNeeded(getClusterNodeInfo(1)));
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
         assertTrue(seeker.acquireRecoveryLock(1, 2));
     }
 
     @Test
     public void isRecoveryNeeded() throws Exception {
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
         // expire the lease
         clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
 
-        ClusterNodeInfo nodeInfo2 = ClusterNodeInfo.getInstance(store, 2);
-        nodeInfo2.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
 
         assertTrue(seeker.isRecoveryNeeded());
-        assertTrue(seeker.isRecoveryNeeded(getClusterNodeInfo(1)));
-        assertFalse(seeker.isRecoveryNeeded(getClusterNodeInfo(2)));
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime()));
 
         assertTrue(seeker.acquireRecoveryLock(1, 2));
         seeker.releaseRecoveryLock(1, true);
 
         assertFalse(seeker.isRecoveryNeeded());
-        assertFalse(seeker.isRecoveryNeeded(getClusterNodeInfo(1)));
-        assertFalse(seeker.isRecoveryNeeded(getClusterNodeInfo(2)));
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime()));
     }
+
+    @Test
+    public void isRecoveryNeededWithRecoveryLock() throws Exception {
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
+        // expire the lease
+        clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
+
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
+
+        assertTrue(seeker.acquireRecoveryLock(1, 2));
+
+        assertTrue(seeker.isRecoveryNeeded());
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+
+        seeker.releaseRecoveryLock(1, true);
+
+        assertFalse(seeker.isRecoveryNeeded());
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+    }
+
 
     @Test
     public void getAllClusterNodes() {
         assertEquals(0, Iterables.size(seeker.getAllClusters()));
 
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
 
         assertEquals(1, Iterables.size(seeker.getAllClusters()));
 
-        ClusterNodeInfo nodeInfo2 = ClusterNodeInfo.getInstance(store, 2);
-        nodeInfo2.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
 
         assertEquals(2, Iterables.size(seeker.getAllClusters()));
     }
@@ -195,8 +204,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     public void getClusterNodeInfo() {
         assertNull(getClusterNodeInfo(1));
 
-        ClusterNodeInfo nodeInfo1 = ClusterNodeInfo.getInstance(store, 1);
-        nodeInfo1.renewLease();
+        ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
 
         assertNotNull(getClusterNodeInfo(1));
     }

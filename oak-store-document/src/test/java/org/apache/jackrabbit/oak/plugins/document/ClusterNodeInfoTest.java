@@ -16,8 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -25,8 +34,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -45,7 +59,7 @@ public class ClusterNodeInfoTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         ClusterNodeInfo.resetClockToDefault();
     }
 
@@ -246,12 +260,250 @@ public class ClusterNodeInfoTest {
         }
     }
 
+    @Test
+    public void readOnlyClusterNodeInfo() {
+        ClusterNodeInfo info = ClusterNodeInfo.getReadOnlyInstance(store);
+        assertEquals(0, info.getId());
+        assertEquals(Long.MAX_VALUE, info.getLeaseEndTime());
+        assertFalse(info.renewLease());
+    }
+
+    @Test
+    public void ignoreEntryWithInvalidID() {
+        String instanceId1 = "node1";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        // shut it down
+        info1.dispose();
+
+        // sneak in an invalid entry
+        UpdateOp op = new UpdateOp("invalid", true);
+        store.create(Collection.CLUSTER_NODES, Collections.singletonList(op));
+
+        // acquire again
+        info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        info1.dispose();
+    }
+
+    @Test
+    public void acquireInactiveClusterId() {
+        // simulate multiple cluster nodes
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        // shut it down
+        info1.dispose();
+
+        // simulate start from different location
+        ClusterNodeInfo info2 = newClusterNodeInfo(0, instanceId2);
+        // must acquire inactive clusterId 1
+        assertEquals(1, info2.getId());
+        assertEquals(instanceId2, info2.getInstanceId());
+        info2.dispose();
+    }
+
+    @Test
+    public void acquireInactiveClusterIdWithMatchingEnvironment() {
+        // simulate multiple cluster nodes
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+
+        // simulate start from different location
+        ClusterNodeInfo info2 = newClusterNodeInfo(0, instanceId2);
+        assertEquals(2, info2.getId());
+        assertEquals(instanceId2, info2.getInstanceId());
+
+        info1.dispose();
+        info2.dispose();
+
+        // restart node2
+        info2 = newClusterNodeInfo(0, instanceId2);
+        // must acquire clusterId 2 again
+        assertEquals(2, info2.getId());
+        assertEquals(instanceId2, info2.getInstanceId());
+    }
+
+    @Test
+    public void acquireInactiveClusterIdConcurrently() throws Exception {
+        ExecutorService executor = Executors.newCachedThreadPool();
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+        String instanceId3 = "node3";
+        List<String> instanceIds = new ArrayList<>();
+        Collections.addAll(instanceIds, instanceId1, instanceId2, instanceId3);
+
+        // create a first clusterNode entry
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        // shut it down
+        info1.dispose();
+
+        // start multiple instances from different locations competing for
+        // the same inactive clusterId
+        List<Callable<ClusterNodeInfo>> tasks = new ArrayList<>();
+        for (String id : instanceIds) {
+            tasks.add(() -> newClusterNodeInfo(0, id));
+        }
+        Map<Integer, ClusterNodeInfo> clusterNodes = executor.invokeAll(tasks)
+                .stream().map(f -> {
+                    try {
+                        return f.get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
+
+        // must have different clusterIds
+        assertEquals(3, clusterNodes.size());
+        assertThat(clusterNodes.keySet(), containsInAnyOrder(1, 2, 3));
+
+        clusterNodes.values().forEach(ClusterNodeInfo::dispose);
+        executor.shutdown();
+    }
+
+    @Test
+    public void acquireExpiredClusterId() throws Exception {
+        String instanceId1 = "node1";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        expireLease(info1);
+
+        // simulate a restart after a crash and expired lease
+        info1 = newClusterNodeInfo(0, instanceId1);
+        // must acquire expired clusterId 1
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        info1.dispose();
+    }
+
+    @Test
+    public void skipExpiredClusterIdWithDifferentInstanceId() throws Exception {
+        // simulate multiple cluster nodes
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        expireLease(info1);
+
+        // simulate start from different location
+        ClusterNodeInfo info2 = newClusterNodeInfo(0, instanceId2);
+        // must not acquire expired clusterId 1
+        assertEquals(2, info2.getId());
+        assertEquals(instanceId2, info2.getInstanceId());
+        info2.dispose();
+    }
+
+    @Test
+    public void acquireExpiredClusterIdStatic() throws Exception {
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        expireLease(info1);
+
+        // simulate start from different location and
+        // acquire with static clusterId
+        try {
+            newClusterNodeInfo(1, instanceId2);
+            fail("Must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("needs recovery"));
+        }
+    }
+
+    @Test
+    public void acquireExpiredClusterIdConcurrently() throws Exception {
+        ExecutorService executor = Executors.newCachedThreadPool();
+        String instanceId1 = "node1";
+        String instanceId2 = "node2";
+        String instanceId3 = "node3";
+        List<String> instanceIds = new ArrayList<>();
+        Collections.addAll(instanceIds, instanceId1, instanceId2, instanceId3);
+
+        ClusterNodeInfo info1 = newClusterNodeInfo(0, instanceId1);
+        assertEquals(1, info1.getId());
+        assertEquals(instanceId1, info1.getInstanceId());
+        expireLease(info1);
+
+        // start multiple instances from different locations competing for
+        // the same clusterId with expired lease
+        List<Callable<ClusterNodeInfo>> tasks = new ArrayList<>();
+        for (String id : instanceIds) {
+            tasks.add(() -> newClusterNodeInfo(0, id));
+        }
+        Map<Integer, ClusterNodeInfo> clusterNodes = executor.invokeAll(tasks)
+                .stream().map(f -> {
+                    try {
+                        return f.get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }).collect(Collectors.toMap(ClusterNodeInfo::getId, Function.identity()));
+
+        // must have different clusterIds
+        assertEquals(3, clusterNodes.size());
+        assertThat(clusterNodes.keySet(), containsInAnyOrder(1, 2, 3));
+
+        clusterNodes.values().forEach(ClusterNodeInfo::dispose);
+        executor.shutdown();
+    }
+
+    @Test
+    public void skipClusterIdWithoutStartTime() {
+        ClusterNodeInfo info = newClusterNodeInfo(0);
+        int id = info.getId();
+        assertEquals(1, id);
+        // shut it down
+        info.dispose();
+
+        // remove startTime field
+        UpdateOp op = new UpdateOp(String.valueOf(id), false);
+        op.remove(ClusterNodeInfo.START_TIME_KEY);
+        assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+
+        // acquire it again
+        info = newClusterNodeInfo(0);
+        // must not use clusterId 1
+        assertNotEquals(1, info.getId());
+    }
+
+    private void expireLease(ClusterNodeInfo info)
+            throws InterruptedException {
+        // let lease expire
+        clock.waitUntil(info.getLeaseEndTime() +
+                ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+        // check if expired -> recovery is needed
+        MissingLastRevSeeker util = new MissingLastRevSeeker(store, clock);
+        String key = String.valueOf(info.getId());
+        ClusterNodeInfoDocument infoDoc = store.find(Collection.CLUSTER_NODES, key);
+        assertNotNull(infoDoc);
+        assertTrue(infoDoc.isRecoveryNeeded(clock.getTime()));
+    }
+
     private void recoverClusterNode(int clusterId) throws Exception {
         DocumentNodeStore ns = new DocumentMK.Builder()
                 .setDocumentStore(store.getStore()) // use unwrapped store
                 .setAsyncDelay(0).setClusterId(42).clock(clock).getNodeStore();
         try {
-            LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ns);
+            LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ns.getDocumentStore(), ns);
             recovery.recover(clusterId);
         } finally {
             ns.dispose();
@@ -262,11 +514,30 @@ public class ClusterNodeInfoTest {
         clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS + 1);
     }
 
-    private ClusterNodeInfo newClusterNodeInfo(int clusterId) {
-        ClusterNodeInfo info = ClusterNodeInfo.getInstance(store, clusterId);
+    private ClusterNodeInfo newClusterNodeInfo(int clusterId,
+                                               String instanceId) {
+        ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
+                new SimpleRecoveryHandler(), null, instanceId, clusterId);
         info.setLeaseFailureHandler(handler);
-        assertTrue(info.renewLease()); // perform initial lease renew
         return info;
+    }
+
+    private class SimpleRecoveryHandler implements RecoveryHandler {
+
+        @Override
+        public boolean recover(int clusterId) {
+            // simulate recovery by acquiring recovery lock
+            RecoveryLock lock = new RecoveryLock(store, clock, clusterId);
+            if (lock.acquireRecoveryLock(clusterId)) {
+                lock.releaseRecoveryLock(true);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private ClusterNodeInfo newClusterNodeInfo(int clusterId) {
+        return newClusterNodeInfo(clusterId, null);
     }
 
     static final class FailureHandler implements LeaseFailureHandler {

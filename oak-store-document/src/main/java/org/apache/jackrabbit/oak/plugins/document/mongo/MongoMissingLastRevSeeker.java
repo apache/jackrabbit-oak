@@ -68,7 +68,10 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     public boolean isRecoveryNeeded() {
         Bson query = Filters.and(
                 Filters.eq(ClusterNodeInfo.STATE, ClusterNodeInfo.ClusterNodeState.ACTIVE.name()),
-                Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime())
+                Filters.or(
+                        Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime()),
+                        Filters.eq(ClusterNodeInfo.REV_RECOVERY_LOCK, ClusterNodeInfo.RecoverLockState.ACQUIRED.name())
+                )
         );
 
         return getClusterNodeCollection().find(query).iterator().hasNext();
