@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.lang.System.getProperty;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
+import static org.junit.Assume.assumeTrue;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
@@ -34,18 +37,20 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test/Utility class to measure size in memory for common segment-tar objects.
  * <p>
  * The test is <b>disabled</b> by default, to run it you need to set the
  * {@code CacheWeightsTest} system property:<br>
- * {@code mv clean test -Dtest=CacheWeightsTest -DCacheWeightsTest=true -Dtest.opts.memory=-Xmx2G}
+ * {@code mvn clean test -Dtest=CacheWeightEstimator -Dtest.opts.memory=-Xmx2G}
  * </p>
  * <p>
  * To collect the results check the
  * {@code org.apache.jackrabbit.oak.segment.CacheWeightsTest-output.txt} file:<br>
- * {@code cat target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightsTest-output.txt}
+ * {@code cat target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightEstimator-output.txt}
  * </p>
  */
 public class CacheWeightEstimator {
@@ -107,32 +112,37 @@ public class CacheWeightEstimator {
     Space losses: 0 bytes internal + 0 bytes external = 0 bytes total
 
      */
+    /** Only run if explicitly asked to via -Dtest=SegmentCompactionIT */
+    private static final boolean ENABLED =
+            CacheWeightEstimator.class.getSimpleName().equals(getProperty("test"));
 
-    private static MemoryStore store;
+    private final MemoryStore store;
+
+    public CacheWeightEstimator() throws IOException {
+        store = new MemoryStore();
+    }
 
     public static void main(String... args) throws Exception {
-        run(CacheWeightEstimator::testObjects);
-        run(CacheWeightEstimator::testSegmentIds);
-        run(CacheWeightEstimator::testSegmentIdsWGc);
-        run(CacheWeightEstimator::testRecordIds);
-        run(CacheWeightEstimator::testRecordIdsWGc);
-        run(CacheWeightEstimator::testStringCache);
-        run(CacheWeightEstimator::testNodeCache);
-        run(CacheWeightEstimator::testSegments);
-        run(CacheWeightEstimator::testSegmentCache);
-        run(CacheWeightEstimator::testStrings);
+        CacheWeightEstimator cwe = new CacheWeightEstimator();
+        cwe.testObjects();
+        cwe.testSegmentIds();
+        cwe.testSegmentIdsWGc();
+        cwe.testRecordIds();
+        cwe.testRecordIdsWGc();
+        cwe.testStringCache();
+        cwe.testNodeCache();
+        cwe.testSegments();
+        cwe.testSegmentCache();
+        cwe.testStrings();
     }
 
-    private static void run(Runnable runnable) throws Exception {
-        store = new MemoryStore();
-        try {
-            runnable.run();
-        } finally {
-            store = null;
-        }
+    @Before
+    public void setup() {
+        assumeTrue(ENABLED);
     }
 
-    private static void testObjects() {
+    @Test
+    public void testObjects() {
         final int count = 1000000;
         Supplier<Entry<Object, Long[]>> factory = () -> {
             Object[] objects = new Object[count];
@@ -146,15 +156,16 @@ public class CacheWeightEstimator {
         runTest(factory, "Object[x" + count + "]");
     }
 
-    private static void testSegmentIds() {
+    private void testSegmentIds() {
         runSegmentIds(1000000, false);
     }
 
-    private static void testSegmentIdsWGc() {
+    @Test
+    public void testSegmentIdsWGc() {
         runSegmentIds(1000000, true);
     }
 
-    private static void runSegmentIds(final int count, final boolean gcInfo) {
+    private void runSegmentIds(final int count, final boolean gcInfo) {
         Supplier<Entry<Object, Long[]>> factory = () -> {
             long weight = 0;
             Object[] objects = new Object[count];
@@ -174,15 +185,17 @@ public class CacheWeightEstimator {
         runTest(factory, name);
     }
 
-    private static void testRecordIds() {
+    @Test
+    public void testRecordIds() {
         runRecordIds(1000000, false);
     }
 
-    private static void testRecordIdsWGc() {
+    @Test
+    public void testRecordIdsWGc() {
         runRecordIds(1000000, true);
     }
 
-    private static void runRecordIds(final int count, final boolean gcInfo) {
+    private void runRecordIds(final int count, final boolean gcInfo) {
         Supplier<Entry<Object, Long[]>> factory = () -> {
             long weight = 0;
             Object[] objects = new Object[count];
@@ -202,7 +215,8 @@ public class CacheWeightEstimator {
         runTest(factory, name);
     }
 
-    private static void testStringCache() {
+    @Test
+    public void testStringCache() {
         final int count = 1000000;
         final int keySize = 96;
         final boolean gcInfo = true;
@@ -220,7 +234,8 @@ public class CacheWeightEstimator {
                 + "|RecordCache<String, RecordId>]");
     }
 
-    private static void testNodeCache() {
+    @Test
+    public void testNodeCache() {
         final int count = 1000000;
         // key usually is a stableid, see SegmentNodeState#getStableId
         // 2fdd370e-423c-43d6-aad7-6e336c551a38:xxxxxx
@@ -241,7 +256,8 @@ public class CacheWeightEstimator {
                 + "|PriorityCache<String, RecordId>]");
     }
 
-    private static void testSegments() {
+    @Test
+    public void testSegments() {
         final int count = 10000;
         final int bufferSize = 5 * 1024;
         Supplier<Entry<Object, Long[]>> factory = () -> {
@@ -257,7 +273,8 @@ public class CacheWeightEstimator {
         runTest(factory, "Segment[x" + count + "|" + bufferSize + "]");
     }
 
-    private static void testSegmentCache() {
+    @Test
+    public void testSegmentCache() {
         final int count = 10000;
         final int cacheSizeMB = 100;
         final int bufferSize = 5 * 1024;
@@ -275,7 +292,8 @@ public class CacheWeightEstimator {
         runTest(factory, "SegmentCache[x" + cacheSizeMB + "MB|" + bufferSize + "|Cache<SegmentId, Segment>]");
     }
 
-    private static void testStrings() {
+    @Test
+    public void testStrings() {
         final int count = 10000;
         final int length = 256;
         Supplier<Entry<Object, Long[]>> factory = () -> {
@@ -291,7 +309,7 @@ public class CacheWeightEstimator {
         runTest(factory, "String[x" + count + "|" + length + "]");
     }
 
-    private static SegmentId randomSegmentId(boolean withGc) {
+    private SegmentId randomSegmentId(boolean withGc) {
         UUID u = UUID.randomUUID();
         SegmentId id = new SegmentId(store, u.getMostSignificantBits(), u.getLeastSignificantBits());
         if (withGc) {
@@ -300,11 +318,11 @@ public class CacheWeightEstimator {
         return id;
     }
 
-    private static RecordId randomRecordId(boolean withGc) {
+    private RecordId randomRecordId(boolean withGc) {
         return new RecordId(randomSegmentId(withGc), 128);
     }
 
-    private static Segment randomSegment(int bufferSize) {
+    private Segment randomSegment(int bufferSize) {
         byte[] buffer = new byte[bufferSize];
         buffer[0] = '0';
         buffer[1] = 'a';
@@ -337,31 +355,30 @@ public class CacheWeightEstimator {
         return segment;
     }
 
-    private static String randomString(int lenght) {
-        return RandomStringUtils.randomAlphanumeric(lenght);
+    private static String randomString(int length) {
+        return RandomStringUtils.randomAlphanumeric(length);
     }
 
-    @SuppressWarnings("unused")
     private static void runTest(Supplier<Entry<Object, Long[]>> factory, String name) {
-        long start = memory();
+        long heapBefore = memory();
         Entry<Object, Long[]> e = factory.get();
         Object object = e.getKey(); // prevent gc
         long count = e.getValue()[0];
-        long weight = e.getValue()[1];
-        long end = memory();
+        long heapEstimate = e.getValue()[1];
+        long heapAfter = memory();
 
-        long delta = end - start;
-        long itemH = delta / count;
-        long itemW = weight / count;
+        long heapDelta = heapAfter - heapBefore;
+        long perItemHeap = heapDelta / count;
+        long perItemHeapEstimate = heapEstimate / count;
 
         System.out.printf(":: %s Test\n", name);
-        System.out.printf("heap delta is       %d, %d bytes per item (%d -> %d)\n", delta, itemH, start, end);
-        System.out.printf("estimated weight is %d, %d bytes per item\n", weight, itemW);
-        if (itemW > itemH * 1.1) {
-            System.out.printf("*warn* estimated weight is over 10%% bigger than heap based weight\n");
-        }
-        if (itemW * 1.1 < itemH) {
-            System.out.printf("*warn* estimated weight is over 10%% smaller than heap based weight\n");
+        System.out.printf("measured heap usage:  %d bytes. %d bytes per item\n", heapDelta, perItemHeap);
+        System.out.printf("estimated heap usage: %d bytes. %d bytes per item\n", heapEstimate, perItemHeapEstimate);
+        double percentageOff = 100 * ((double) heapEstimate / (double) heapDelta - 1);
+        if (percentageOff < 0) {
+            System.out.printf("estimated heap usage is %.2f%% to low", -percentageOff);
+        } else {
+            System.out.printf("estimated heap usage is %.2f%% to high", percentageOff);
         }
     }
 
