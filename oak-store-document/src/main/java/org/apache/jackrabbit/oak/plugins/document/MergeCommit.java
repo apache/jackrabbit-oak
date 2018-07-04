@@ -52,9 +52,14 @@ class MergeCommit extends Commit {
     }
 
     @Override
-    public void applyToCache(RevisionVector before, boolean isBranchCommit) {
+    void applyLastRevUpdates(boolean isBranchCommit) {
         // do nothing for a merge commit, only notify node
         // store about merged revisions
         nodeStore.revisionsMerged(branchCommits);
+    }
+
+    @Override
+    public void applyToCache(RevisionVector before, boolean isBranchCommit) {
+        // do nothing for a merge commit
     }
 }

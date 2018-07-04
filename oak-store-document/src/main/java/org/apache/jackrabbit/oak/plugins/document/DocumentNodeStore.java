@@ -876,23 +876,50 @@ public final class DocumentNodeStore
                     public void headOfQueue(@Nonnull Revision revision) {
                         // remember before revision
                         RevisionVector before = getHeadRevision();
-                        // apply changes to cache based on before revision
-                        c.applyToCache(before, false);
-                        // track modified paths
-                        changes.modified(c.getModifiedPaths());
-                        changes.readFrom(info);
-                        changes.addChangeSet(getChangeSet(info));
+
                         // update head revision
                         Revision r = c.getRevision();
                         newHead[0] = before.update(r);
-                        if (changes.getNumChangedNodes() >= journalPushThreshold) {
-                            LOG.info("Pushing journal entry at {} as number of changes ({}) have reached {}",
-                                    r, changes.getNumChangedNodes(), journalPushThreshold);
-                            pushJournalEntry(r);
+                        boolean success = false;
+                        boolean cacheUpdated = false;
+                        try {
+                            // apply lastRev updates
+                            c.applyLastRevUpdates(false);
+
+                            // track modified paths
+                            changes.modified(c.getModifiedPaths());
+                            changes.readFrom(info);
+                            changes.addChangeSet(getChangeSet(info));
+
+                            // if we get here all required in-memory changes
+                            // have been applied. The following operations in
+                            // the try block may fail and the commit can still
+                            // be considered successful
+                            success = true;
+
+                            // apply changes to cache, based on before revision
+                            c.applyToCache(before, false);
+                            cacheUpdated = true;
+                            if (changes.getNumChangedNodes() >= journalPushThreshold) {
+                                LOG.info("Pushing journal entry at {} as number of changes ({}) have reached threshold of {}",
+                                        r, changes.getNumChangedNodes(), journalPushThreshold);
+                                pushJournalEntry(r);
+                            }
+                        } catch (Throwable e) {
+                            if (success) {
+                                if (cacheUpdated) {
+                                    LOG.warn("Pushing journal entry at {} failed", revision, e);
+                                } else {
+                                    LOG.warn("Updating caches at {} failed", revision, e);
+                                }
+                            } else {
+                                LOG.error("Applying in-memory changes at {} failed", revision, e);
+                            }
+                        } finally {
+                            setRoot(newHead[0]);
+                            commitQueue.headRevisionChanged();
+                            dispatcher.contentChanged(getRoot(), info);
                         }
-                        setRoot(newHead[0]);
-                        commitQueue.headRevisionChanged();
-                        dispatcher.contentChanged(getRoot(), info);
                     }
                 });
                 return newHead[0];
@@ -902,6 +929,7 @@ public final class DocumentNodeStore
         } else {
             // branch commit
             try {
+                c.applyLastRevUpdates(isBranch);
                 c.applyToCache(c.getBaseRevision(), isBranch);
                 return c.getBaseRevision().update(c.getRevision().asBranchRevision());
             } finally {
@@ -2501,7 +2529,7 @@ public final class DocumentNodeStore
         }
     }
 
-    private void pushJournalEntry(Revision r) {
+    private void pushJournalEntry(Revision r) throws DocumentStoreException {
         if (!changes.hasChanges()) {
             LOG.debug("Not pushing journal as there are no changes");
         } else if (store.create(JOURNAL, singletonList(changes.asUpdateOp(r)))) {
