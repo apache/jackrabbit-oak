@@ -2909,6 +2909,65 @@ public class DocumentNodeStoreTest {
         assertTrue("Two added paths should have forced flush", numChangedPaths == 0);
     }
 
+    // OAK-7564
+    @Ignore("OAK-7564")
+    @Test
+    public void forceJournalFlushWithException() throws Exception {
+        AtomicBoolean failJournalOps = new AtomicBoolean();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> boolean create(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+                if (collection == Collection.JOURNAL && failJournalOps.get()) {
+                    throw new DocumentStoreException("failure");
+                }
+                return super.create(collection, updateOps);
+            }
+        };
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        ns.setMaxBackOffMillis(0);
+        ns.setJournalPushThreshold(2);
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        builder.child("bar");
+        // fail operations that want to create journal documents
+        failJournalOps.set(true);
+        // now two possible outcomes are fine.
+        // Either the merge fails with an exception and the changes
+        // didn't make it to the node store
+        // OR
+        // the merge succeeds and the changes must be visible.
+        boolean success = false;
+        try {
+            merge(ns, builder);
+            success = true;
+        } catch (CommitFailedException e) {
+            // permitted as well
+        } finally {
+            // resume proper journal operations
+            failJournalOps.set(false);
+        }
+        if (success) {
+            // check if the changes are there
+            assertTrue(ns.getRoot().hasChildNode("foo"));
+            assertTrue(ns.getRoot().hasChildNode("bar"));
+        } else {
+            // check changes are not visible and didn't corrupt the
+            // repository. that is, we can add the nodes after enabling
+            // operations again
+            assertFalse(ns.getRoot().hasChildNode("foo"));
+            assertFalse(ns.getRoot().hasChildNode("bar"));
+
+            builder = ns.getRoot().builder();
+            builder.child("foo");
+            builder.child("bar");
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+    }
+
     @Test
     public void commitRootSameAsModifiedPath() throws Exception{
         WriteCountingStore ws = new WriteCountingStore(true);
