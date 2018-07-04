@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.j2ee;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import junit.framework.TestCase;
 
@@ -34,6 +37,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.google.common.io.Files;
 
 public class TomcatIT extends TestCase {
 
@@ -58,11 +62,10 @@ public class TomcatIT extends TestCase {
             }
         }
         assertNotNull(war);
+        rewriteWebXml(war);
 
         File bootstrap = new File("target", "bootstrap.properties");
         bootstrap.delete();
-        RepositoryAccessServlet.bootstrapOverride = bootstrap.getPath();
-        RepositoryStartupServlet.bootstrapOverride = bootstrap.getPath();
 
         File baseDir = new File("target", "tomcat");
         FileUtils.deleteQuietly(baseDir);
@@ -121,6 +124,23 @@ public class TomcatIT extends TestCase {
         }
         fail();
         return null;
+    }
+
+    private void rewriteWebXml(File war) throws IOException {
+        File webXml = new File(war, new File("WEB-INF","web.xml").getPath());
+        assertTrue(webXml.exists());
+        List<String> lines = Files.readLines(webXml, StandardCharsets.UTF_8);
+        BufferedWriter writer = Files.newWriter(webXml, StandardCharsets.UTF_8);
+        try {
+            for (String line : lines) {
+                line = line.replace("<param-value>oak/bootstrap.properties</param-value>",
+                        "<param-value>target/bootstrap.properties</param-value>");
+                writer.write(line);
+                writer.write(System.lineSeparator());
+            }
+        } finally {
+            writer.close();
+        }
     }
 
     protected void tearDown() throws Exception {
