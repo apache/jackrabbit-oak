@@ -376,9 +376,9 @@ public class CacheWeightEstimator {
         System.out.printf("estimated heap usage: %d bytes. %d bytes per item\n", heapEstimate, perItemHeapEstimate);
         double percentageOff = 100 * ((double) heapEstimate / (double) heapDelta - 1);
         if (percentageOff < 0) {
-            System.out.printf("estimated heap usage is %.2f%% to low", -percentageOff);
+            System.out.printf("estimated heap usage is %.2f%% to low\n", -percentageOff);
         } else {
-            System.out.printf("estimated heap usage is %.2f%% to high", percentageOff);
+            System.out.printf("estimated heap usage is %.2f%% to high\n", percentageOff);
         }
     }
 
