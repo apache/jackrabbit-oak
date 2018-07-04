@@ -2910,7 +2910,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-7564
-    @Ignore("OAK-7564")
     @Test
     public void forceJournalFlushWithException() throws Exception {
         AtomicBoolean failJournalOps = new AtomicBoolean();

@@ -715,6 +715,25 @@ public class Commit {
     }
 
     /**
+     * Applies the lastRev updates to the {@link LastRevTracker} of the
+     * DocumentNodeStore.
+     *
+     * @param isBranchCommit whether this is a branch commit.
+     */
+    void applyLastRevUpdates(boolean isBranchCommit) {
+        LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
+        for (String path : modifiedNodes) {
+            UpdateOp op = operations.get(path);
+            // track _lastRev only when path is not for a bundled node state
+            if ((op == null || !hasContentChanges(op) || denotesRoot(path))
+                    && !isBundled(path)) {
+                // track intermediate node and root
+                tracker.track(path);
+            }
+        }
+    }
+
+    /**
      * Apply the changes to the DocumentNodeStore (to update the cache).
      *
      * @param before the revision right before this commit.
@@ -738,7 +757,6 @@ public class Commit {
         Revision rev = isBranchCommit ? revision.asBranchRevision() : revision;
         RevisionVector after = before.update(rev);
         DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, after, true);
-        LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();
         List<String> changed = new ArrayList<String>();
@@ -760,14 +778,9 @@ public class Commit {
             }
             UpdateOp op = operations.get(path);
 
-            // track _lastRev and apply to cache only when
-            // path is not for a bundled node state
+            // apply to cache only when path is not for a bundled node state
             if (!isBundled(path)) {
                 boolean isNew = op != null && op.isNew();
-                if (op == null || !hasContentChanges(op) || denotesRoot(path)) {
-                    // track intermediate node and root
-                    tracker.track(path);
-                }
                 nodeStore.applyChanges(before, after, rev, path, isNew,
                         added, removed, changed);
             }
