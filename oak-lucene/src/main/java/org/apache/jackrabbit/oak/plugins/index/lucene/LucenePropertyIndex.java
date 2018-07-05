@@ -735,7 +735,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     }
                 }
             } catch (Exception e) {
-                LOG.error("postings highlighting failed", e);
+                LOG.debug("postings highlighting failed", e);
             }
         }
 
