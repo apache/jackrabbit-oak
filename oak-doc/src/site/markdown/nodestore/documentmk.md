@@ -34,8 +34,7 @@
         * [Background Document Split](#background-document-split)
         * [Background Writes](#background-writes)
         * [Background Reads](#bg-read)
-    * [Pending Topics](#pending-topics)
-        * [Conflict Detection and Handling](#conflict-detection-and-handling)
+    * [Metrics and Monitoring](#metrics)
     * [Cluster Node Metadata](#cluster-node-metadata)
         * [Acquire a Cluster Node ID](#acquire-a-cluster-node-id)
         * [Recovery for a Cluster Node ID](#recovery-for-a-cluster-node-id)
@@ -45,6 +44,8 @@
         * [Cache Configuration](#cache-configuration)
     * [Unlock upgrade](#unlockUpgrade)
     * [Revision Garbage Collection](#revision-gc)
+    * [Pending Topics](#pending-topics)
+        * [Conflict Detection and Handling](#conflict-detection-and-handling)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
@@ -505,9 +506,9 @@ The DocumentNodeStore periodically picks up changes from other DocumentNodeStore
 instances by polling the root node for changes of `_lastRev`. This happens once
 every second.
 
-## <a name="pending-topics"></a> Pending Topics
+## <a name="metrics"></a> Metrics and Monitoring
 
-### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
+See [DocumentNodeStore and DocumentStore metrics](document/metrics.html).
 
 ## <a name="cluster-node-metadata"></a> Cluster Node Metadata
 
@@ -825,10 +826,13 @@ mode, the RGC will not log every run but only write an INFO message every hour
 summarizing the GC cycles for the past hour.
 For more details, see also the [OSGi configuration][osgi-config] page. 
 
+## <a name="pending-topics"></a> Pending Topics
+
+### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
+
 [OAK-1156]: https://issues.apache.org/jira/browse/OAK-1156
 [OAK-2646]: https://issues.apache.org/jira/browse/OAK-2646
 [OAK-2546]: https://issues.apache.org/jira/browse/OAK-2546
 [OAK-7316]: https://issues.apache.org/jira/browse/OAK-7316
 [osgi-config]: ../osgi_config.html#document-node-store
 [cache-allocation]: ../osgi_config.html#cache-allocation
-
