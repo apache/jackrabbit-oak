@@ -45,6 +45,8 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     static final String BGW_NUM_WRITES_RATE = "DOCUMENT_NS_BGW_NUM_WRITE_RATE";
     private static final String BGW_TOTAL = "DOCUMENT_NS_BGW_TOTAL_TIME";
 
+    static final String LEASE_UPDATE = "DOCUMENT_NS_LEASE_UPDATE";
+
     private static final String MERGE_SUCCESS_NUM_RETRY = "DOCUMENT_NS_MERGE_SUCCESS_RETRY";
     static final String MERGE_SUCCESS_COUNT = "DOCUMENT_NS_MERGE_SUCCESS_COUNT";
     private static final String MERGE_SUCCESS_TIME = "DOCUMENT_NS_MERGE_SUCCESS_TIME";
@@ -55,6 +57,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     static final String BRANCH_COMMIT_COUNT = "DOCUMENT_NS_BRANCH_COMMIT_COUNT";
     static final String MERGE_BRANCH_COMMIT_COUNT = "DOCUMENT_NS_MERGE_BRANCH_COMMIT_COUNT";
 
+    // background read
     private final TimerStats readHead;
     private final TimerStats readCacheInvalidate;
     private final TimerStats readDiffCache;
@@ -64,6 +67,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final MeterStats numChangesRate;
     private final HistogramStats numChangesHisto;
 
+    // background update
     private final TimerStats writeClean;
     private final TimerStats writeSplit;
     private final TimerStats writeSweep;
@@ -72,6 +76,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final TimerStats writeTotal;
     private final MeterStats numWritesRate;
 
+    // lease update
+    private final TimerStats leaseUpdate;
+
+    // merge stats
     private final HistogramStats mergeSuccessRetries;
     private final MeterStats mergeSuccessRate;
     private final TimerStats mergeSuccessTime;
@@ -79,6 +87,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final MeterStats mergeSuccessSuspended;
     private final MeterStats mergeFailedExclusive;
 
+    // branch stats
     private final MeterStats branchCommitRate;
     private final MeterStats mergeBranchCommitRate;
 
@@ -100,6 +109,8 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         writeTotal = sp.getTimer(BGW_TOTAL, StatsOptions.METRICS_ONLY);
         writeNum = sp.getHistogram(BGW_NUM, StatsOptions.METRICS_ONLY);
         numWritesRate = sp.getMeter(BGW_NUM_WRITES_RATE, StatsOptions.DEFAULT); //Enable time series
+
+        leaseUpdate = sp.getTimer(LEASE_UPDATE, StatsOptions.METRICS_ONLY);
 
         mergeSuccessRetries = sp.getHistogram(MERGE_SUCCESS_NUM_RETRY, StatsOptions.METRICS_ONLY);
         mergeSuccessRate = sp.getMeter(MERGE_SUCCESS_COUNT, StatsOptions.DEFAULT); //Enable time series
@@ -141,6 +152,11 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
+    public void doneLeaseUpdate(long timeMicros) {
+        leaseUpdate.update(timeMicros, TimeUnit.MICROSECONDS);
+    }
+
+    @Override
     public void doneBranchCommit() {
         branchCommitRate.mark();
     }
@@ -166,7 +182,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
-    public void failedMerge(int numRetries, long time, boolean suspended, boolean exclusive) {
+    public void failedMerge(int numRetries, long timeMillis, boolean suspended, boolean exclusive) {
         if (exclusive){
             mergeFailedExclusive.mark();
         }

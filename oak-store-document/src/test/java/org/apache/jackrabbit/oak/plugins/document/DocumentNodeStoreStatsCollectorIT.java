@@ -26,11 +26,14 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -46,11 +49,18 @@ public class DocumentNodeStoreStatsCollectorIT {
 
     private DocumentNodeStoreStatsCollector statsCollector = mock(DocumentNodeStoreStatsCollector.class);
 
+    private Clock clock;
+
     private DocumentNodeStore nodeStore;
 
     @Before
-    public void setUp(){
+    public void setUp() throws Exception {
+        clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
         nodeStore = builderProvider.newBuilder()
+                .clock(clock)
                 .setAsyncDelay(0)
                 .setNodeStoreStatsCollector(statsCollector)
                 .setUpdateLimit(10)
@@ -59,14 +69,20 @@ public class DocumentNodeStoreStatsCollectorIT {
         nodeStore.setMaxBackOffMillis(0);
     }
 
+    @AfterClass
+    public static void reset() {
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
+    }
+
     @Test
-    public void doneBackgroundRead() throws Exception {
+    public void doneBackgroundRead() {
         nodeStore.runBackgroundReadOperations();
         verify(statsCollector).doneBackgroundRead(any(BackgroundReadStats.class));
     }
 
     @Test
-    public void doneBackgroundUpdate() throws Exception {
+    public void doneBackgroundUpdate() {
         nodeStore.runBackgroundUpdateOperations();
         verify(statsCollector).doneBackgroundUpdate(any(BackgroundWriteStats.class));
     }
@@ -80,7 +96,7 @@ public class DocumentNodeStoreStatsCollectorIT {
     }
 
     @Test
-    public void failedMerge() throws Exception {
+    public void failedMerge() {
         CommitHook failingHook = new CommitHook() {
             @Override
             public NodeState processCommit(NodeState before, NodeState after,
@@ -118,5 +134,12 @@ public class DocumentNodeStoreStatsCollectorIT {
 
         verify(statsCollector, times(2)).doneBranchCommit();
         verify(statsCollector).doneMergeBranch(2);
+    }
+
+    @Test
+    public void leaseUpdate() throws Exception {
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS * 2);
+        assertTrue(nodeStore.renewClusterIdLease());
+        verify(statsCollector).doneLeaseUpdate(anyLong());
     }
 }
