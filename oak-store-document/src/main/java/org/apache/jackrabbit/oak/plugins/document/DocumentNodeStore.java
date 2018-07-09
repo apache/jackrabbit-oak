@@ -24,6 +24,7 @@ import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
@@ -70,6 +71,7 @@ import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
@@ -2113,7 +2115,12 @@ public final class DocumentNodeStore
      * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
     boolean renewClusterIdLease() {
-        return clusterNodeInfo.renewLease();
+        Stopwatch sw = Stopwatch.createStarted();
+        boolean renewed = clusterNodeInfo.renewLease();
+        if (renewed) {
+            nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+        }
+        return renewed;
     }
 
     /**

@@ -24,11 +24,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.codahale.metrics.Meter;
+import com.codahale.metrics.Snapshot;
+import com.codahale.metrics.Timer;
+
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.After;
 import org.junit.Test;
 
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.junit.Assert.assertEquals;
 
 public class DocumentNodeStoreStatsTest {
@@ -44,7 +48,7 @@ public class DocumentNodeStoreStatsTest {
     }
 
     @Test
-    public void backgroundRead() throws Exception{
+    public void backgroundRead() {
         BackgroundReadStats readStats = new BackgroundReadStats();
         readStats.numExternalChanges = 5;
         stats.doneBackgroundRead(readStats);
@@ -52,15 +56,29 @@ public class DocumentNodeStoreStatsTest {
     }
 
     @Test
-    public void backgroundWrite() throws Exception{
+    public void backgroundWrite() {
         BackgroundWriteStats writeStats = new BackgroundWriteStats();
         writeStats.num = 7;
         stats.doneBackgroundUpdate(writeStats);
         assertEquals(7, getMeter(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE).getCount());
+    }
 
+    @Test
+    public void leaseUpdate() {
+        stats.doneLeaseUpdate(47);
+        stats.doneLeaseUpdate(53);
+        Timer t = getTimer(DocumentNodeStoreStats.LEASE_UPDATE);
+        Snapshot s = t.getSnapshot();
+        assertEquals(MICROSECONDS.toNanos(47), s.getMin());
+        assertEquals(MICROSECONDS.toNanos(53), s.getMax());
+        assertEquals(MICROSECONDS.toNanos(50), s.getMean(), 0.01);
     }
 
     private Meter getMeter(String name) {
         return statsProvider.getRegistry().getMeters().get(name);
+    }
+
+    private Timer getTimer(String name) {
+        return statsProvider.getRegistry().getTimers().get(name);
     }
 }
