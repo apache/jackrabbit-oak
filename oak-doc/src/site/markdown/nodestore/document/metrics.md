@@ -114,7 +114,8 @@ DOCUMENT_NS_BGW_LOCK | The time it takes to acquire locks on a background write 
 DOCUMENT_NS_BGW_SPLIT | The time it takes to split documents in a background write operation.
 DOCUMENT_NS_BGW_SWEEP | The time it takes to sweep documents in a background write operation.
 DOCUMENT_NS_BGW_TOTAL_TIME | The total time of a background write operation.
-DOCUMENT_NS_MERGE_SUCCESS_TIME | The time it takes a successful merge to complete. This does not include merge attempts that failed. 
+DOCUMENT_NS_LEASE_UPDATE | The time it takes to update the lease.
+DOCUMENT_NS_MERGE_SUCCESS_TIME | The time it takes a successful merge to complete. This does not include merge attempts that failed.
 
 > Note: Oak tracks the duration for above timers at millisecond accuracy, but
 tools may translate the duration percentiles to different units.
@@ -307,6 +308,14 @@ than ten seconds should be analyzed. Possible reasons for an unusually long
 background operation may be increased load on the system with many changes to
 write to or read from the `DocumentStore`, general slow down of the JVM because
 of increased Java GC activity or an overloaded backend store.
+- Lease update rate and duration. The `DocumentNodeStore` updates the lease
+roughly every 10 seconds. A lease update is a lightweight operation and should
+usually complete quickly. An increased update time may indicate a network
+problem or an overloaded backend store. A system should be analyzed when the
+lease update rate drops below 3 updates per minute and requires immediate
+attention when the rate is at one update per minute or lower. Please note,
+the `DocumentNodeStore` will shut itself down when the lease expires (the
+default lease time is two minutes).
 - Revision GC rate and duration. Starting with Oak 1.8, Revision GC on MongoDB
 runs every five seconds. This is also known as Continuous Revision GC. This rate
 and the duration of a Revision GC cycle should be monitored and analyzed if
