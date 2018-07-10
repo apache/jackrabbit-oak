@@ -74,6 +74,18 @@ public class DocumentNodeStoreStatsTest {
         assertEquals(MICROSECONDS.toNanos(50), s.getMean(), 0.01);
     }
 
+    @Test
+    public void externalChangesLag() {
+        BackgroundReadStats readStats = new BackgroundReadStats();
+        readStats.externalChangesLag = 42;
+        stats.doneBackgroundRead(readStats);
+        Meter m = getMeter(DocumentNodeStoreStats.BGR_LAG);
+        assertEquals(42, m.getCount());
+        readStats.externalChangesLag = 63;
+        stats.doneBackgroundRead(readStats);
+        assertEquals(105, m.getCount());
+    }
+
     private Meter getMeter(String name) {
         return statsProvider.getRegistry().getMeters().get(name);
     }

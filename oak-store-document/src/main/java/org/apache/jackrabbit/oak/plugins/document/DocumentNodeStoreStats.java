@@ -36,6 +36,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String BGR_TOTAL_TIME = "DOCUMENT_NS_BGR_TOTAL_TIME";
     static final String BGR_NUM_CHANGES_RATE = "DOCUMENT_NS_BGR_NUM_CHANGES_RATE";
     private static final String BGR_NUM_CHANGES_HISTO = "DOCUMENT_NS_BGR_NUM_CHANGES_HISTO";
+    static final String BGR_LAG = "DOCUMENT_NS_BGR_LAG";
 
     private static final String BGW_CLEAN = "DOCUMENT_NS_BGW_CLEAN";
     private static final String BGW_SPLIT = "DOCUMENT_NS_BGW_SPLIT";
@@ -66,6 +67,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final TimerStats readTotalTime;
     private final MeterStats numChangesRate;
     private final HistogramStats numChangesHisto;
+    private final MeterStats changesLag;
 
     // background update
     private final TimerStats writeClean;
@@ -101,6 +103,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         readTotalTime = sp.getTimer(BGR_TOTAL_TIME, StatsOptions.METRICS_ONLY);
         numChangesRate = sp.getMeter(BGR_NUM_CHANGES_RATE, StatsOptions.DEFAULT); //Enable time series
         numChangesHisto = sp.getHistogram(BGR_NUM_CHANGES_HISTO, StatsOptions.METRICS_ONLY);
+        changesLag = sp.getMeter(BGR_LAG, StatsOptions.METRICS_ONLY);
 
         writeClean = sp.getTimer(BGW_CLEAN, StatsOptions.METRICS_ONLY);
         writeSplit = sp.getTimer(BGW_SPLIT, StatsOptions.METRICS_ONLY);
@@ -135,6 +138,9 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         //Record rate of num of external changes pulled per second
         numChangesRate.mark(stats.numExternalChanges);
         numChangesHisto.update(stats.numExternalChanges);
+
+        // update lag of external changes
+        changesLag.mark(stats.externalChangesLag);
     }
 
     @Override

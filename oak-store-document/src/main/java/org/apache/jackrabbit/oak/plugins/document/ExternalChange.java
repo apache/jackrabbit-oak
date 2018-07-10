@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -109,6 +111,12 @@ abstract class ExternalChange {
 
         StringSort externalSort = newSorter();
         StringSort invalidate = newSorter();
+        AtomicLong oldestTimestamp = new AtomicLong(Long.MAX_VALUE);
+        Consumer<JournalEntry> journalEntryConsumer = journalEntry -> {
+            // track timestamp of oldest journal entry
+            oldestTimestamp.set(Math.min(oldestTimestamp.get(),
+                    journalEntry.getRevisionTimestamp()));
+        };
 
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
@@ -139,7 +147,7 @@ abstract class ExternalChange {
                         try {
                             fillExternalChanges(externalSort, invalidate,
                                     PathUtils.ROOT_PATH, last, r,
-                                    store.getDocumentStore(),
+                                    store.getDocumentStore(), journalEntryConsumer,
                                     changeSetBuilder, journalPropertyHandler);
                         } catch (Exception e1) {
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
@@ -183,6 +191,9 @@ abstract class ExternalChange {
             closeQuietly(invalidate);
         }
 
+        if (oldestTimestamp.get() != Long.MAX_VALUE) {
+            stats.externalChangesLag = clock.getTime() - oldestTimestamp.get();
+        }
         return stats;
     }
 

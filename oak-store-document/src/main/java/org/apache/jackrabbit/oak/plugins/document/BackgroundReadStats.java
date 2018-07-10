@@ -30,6 +30,7 @@ class BackgroundReadStats {
     long dispatchChanges;
     long totalReadTime;
     long numExternalChanges;
+    long externalChangesLag;
 
     @Override
     public String toString() {
@@ -45,6 +46,7 @@ class BackgroundReadStats {
                 ", lock:" + lock +
                 ", dispatch:" + dispatchChanges +
                 ", numExternalChanges:" + numExternalChanges +
+                ", externalChangesLag:" + externalChangesLag+
                 ", totalReadTime:" + totalReadTime +
                 '}';
     }
