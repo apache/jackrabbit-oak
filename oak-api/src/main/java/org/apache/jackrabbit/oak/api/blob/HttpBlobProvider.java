@@ -56,7 +56,9 @@ public interface HttpBlobProvider {
      *         class is not required to support multi-part uploading so it may
      *         return only a single upload URL regardless of the value passed in
      *         for this parameter.
-     * @return A {@link HttpBlobUpload} referencing this direct upload.
+     * @return A {@link HttpBlobUpload} referencing this direct upload, or
+     *         {@code null} if the underlying data store doesn't support direct
+     *         HTTP uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
      *         or {@code maxNumberOfURLs} is not a positive value.
      * @throws IllegalHttpUploadArgumentsException if the upload cannot
