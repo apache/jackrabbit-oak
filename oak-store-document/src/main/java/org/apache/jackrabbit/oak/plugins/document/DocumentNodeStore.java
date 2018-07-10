@@ -46,7 +46,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -83,18 +82,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
-import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.json.JsopStream;
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -104,12 +93,19 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
+import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
-import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -128,6 +124,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +133,7 @@ import org.slf4j.LoggerFactory;
  * Implementation of a NodeStore on {@link DocumentStore}.
  */
 public final class DocumentNodeStore
-        implements NodeStore, RevisionContext, Observable, Clusterable, NodeStateDiffer, HttpBlobProvider {
+        implements NodeStore, RevisionContext, Observable, Clusterable, NodeStateDiffer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
 
@@ -3299,34 +3296,5 @@ public final class DocumentNodeStore
 
     int getUpdateLimit() {
         return updateLimit;
-    }
-
-    // HttpBlobProvider
-    @Nullable
-    @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
-            throws IllegalHttpUploadArgumentsException {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfUrls);
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Blob completeHttpUpload(String uploadToken) {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).completeHttpUpload(uploadToken);
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public URL getHttpDownloadURL(Blob blob) {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blob);
-        }
-        return null;
     }
 }

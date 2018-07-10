@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
 
@@ -38,9 +37,6 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
-import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.segment.scheduler.Commit;
 import org.apache.jackrabbit.oak.segment.scheduler.LockBasedScheduler;
@@ -64,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * The root node of the JCR content tree is actually stored in the node "/root",
  * and checkpoints are stored under "/checkpoints".
  */
-public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider {
+public class SegmentNodeStore implements NodeStore, Observable {
 
     public static class SegmentNodeStoreBuilder {
         private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeStoreBuilder.class);
@@ -307,34 +303,5 @@ public class SegmentNodeStore implements NodeStore, Observable, HttpBlobProvider
     
     public SegmentNodeStoreStats getStats() {
         return stats;
-    }
-
-    // HttpBlobProvider
-    @Nullable
-    @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws IllegalHttpUploadArgumentsException {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public Blob completeHttpUpload(String uploadToken) {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).completeHttpUpload(uploadToken);
-        }
-        return null;
-    }
-
-    @Nullable
-    @Override
-    public URL getHttpDownloadURL(Blob blob) {
-        if (blobStore instanceof HttpBlobProvider) {
-            return ((HttpBlobProvider) blobStore).getHttpDownloadURL(blob);
-        }
-        return null;
     }
 }
