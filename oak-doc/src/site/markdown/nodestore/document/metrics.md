@@ -27,8 +27,6 @@ There are different types of metrics used by the `DocumentNodeStore` and the
 
 - Counter: a monotonically increasing number. Though, the value will be reset
   to zero when Oak is restarted.
-- Gauge: an instantaneous measurement of a value. E.g. the current length of a
-  queue.
 - Meter: measures the rate of an event or action per second.
 - Timer: measures the rate of an event or action per second and provides
   information on the distribution of the duration (percentiles).
@@ -85,6 +83,7 @@ rates for the event (mean, one minute, five minute, fifteen minute):
 
 Name | Description | Rate unit
 -----|-------------|----------
+DOCUMENT_NS_BGR_LAG | The approximate lag in milliseconds of external changes the async background reader pulls in from other cluster nodes. | average lag in milliseconds
 DOCUMENT_NS_BGR_NUM_CHANGES_RATE | The number of changes the async background reader pulls in from other cluster nodes. This does not necessarily mean a cluster node reads the documents for all those changes, but it must at least invalidate the affected documents in the cache.| changes per second
 DOCUMENT_NS_BGW_NUM_WRITE_RATE | The number of documents the async background writer updates and pushes to the DocumentStore. | updates per second
 DOCUMENT_NS_BRANCH_COMMIT_COUNT | The number of branch commits performed by this DocumentNodeStore. | branch commits per second
@@ -308,6 +307,9 @@ than ten seconds should be analyzed. Possible reasons for an unusually long
 background operation may be increased load on the system with many changes to
 write to or read from the `DocumentStore`, general slow down of the JVM because
 of increased Java GC activity or an overloaded backend store.
+- Background read lag rate. This is similar to the schedule of the background
+read and write operations. The one minute rate is usually below 1000
+milliseconds and should be analyzed when this rate is higher than ten seconds.
 - Lease update rate and duration. The `DocumentNodeStore` updates the lease
 roughly every 10 seconds. A lease update is a lightweight operation and should
 usually complete quickly. An increased update time may indicate a network
