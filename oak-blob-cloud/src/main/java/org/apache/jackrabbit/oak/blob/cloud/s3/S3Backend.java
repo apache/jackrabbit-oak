@@ -1000,6 +1000,8 @@ public class S3Backend extends AbstractSharedBackend {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
             if (LOG.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call
+                // came from
                 LOG.debug("binary downloaded from S3: " + getIdentifier(), new Exception());
             }
             return s3service.getObject(bucket, id).getObjectContent();
