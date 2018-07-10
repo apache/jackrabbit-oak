@@ -45,7 +45,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
-import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.api.binary.HttpBinaryUpload;
@@ -655,7 +654,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken()+"X");
             fail();
         }
-        catch (InvalidHttpUploadTokenException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     // -----------------------------------------------------------------< helpers >--------------

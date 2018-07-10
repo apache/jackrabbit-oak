@@ -28,7 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
-import org.apache.jackrabbit.oak.api.blob.InvalidHttpUploadTokenException;
 
 /**
  * Extension interface for {@link Session} that provides the capability to upload binary files
@@ -144,11 +143,11 @@ public interface HttpBinaryProvider {
      *
      * @return a JCR binary to be used as property value
      *
-     * @throws {@link InvalidHttpUploadTokenException} if the upload token is not parseable, signature
+     * @throws IllegalArgumentException if the upload token is not parseable, signature
      * doesn't match, or is otherwise invalid; {@link RepositoryException} if binary upload is not supported
      */
     @Nonnull
-    Binary completeHttpUpload(String uploadToken) throws InvalidHttpUploadTokenException, RepositoryException;
+    Binary completeHttpUpload(String uploadToken) throws IllegalArgumentException, RepositoryException;
 
     /**
      * Returns a URL for downloading the binary using HTTP GET directly from the underlying binary storage.

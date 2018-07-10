@@ -722,9 +722,13 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(String blobId) {
+    public URL getHttpDownloadURL(Blob blob) {
         if (delegate instanceof HttpDataRecordProvider) {
-            return ((HttpDataRecordProvider) delegate).getDownloadURL(new DataIdentifier(extractBlobId(blobId)));
+            String blobId = blob.getContentIdentity();
+            if (blobId != null) {
+                return ((HttpDataRecordProvider) delegate).getDownloadURL(
+                        new DataIdentifier(extractBlobId(blobId)));
+            }
         }
         return null;
     }
