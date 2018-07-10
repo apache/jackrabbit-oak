@@ -63,7 +63,6 @@ import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
@@ -799,11 +798,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
             @Nullable
             @Override
             public HttpBinaryUpload performNullable() throws RepositoryException {
-                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
-                if (httpBlobProvider == null) {
-                    return null;
-                }
-
+                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
                 HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
                 if (upload != null) {
                     return new HttpBinaryUpload() {
@@ -843,10 +838,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
             @Override
             public Binary perform() throws RepositoryException {
 
-                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
-                if (httpBlobProvider == null) {
-                    throw new RepositoryException("HTTP binary upload not supported");
-                }
+                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
                 Blob blob;
                 try {
                     blob = httpBlobProvider.completeHttpUpload(uploadToken);
@@ -872,10 +864,7 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
             @Nullable
             @Override
             public URL performNullable() throws RepositoryException {
-                HttpBlobProvider httpBlobProvider = getHttpBlobProvider();
-                if (httpBlobProvider == null) {
-                    return null;
-                }
+                HttpBlobProvider httpBlobProvider = sessionContext.getHttpBlobProvider();
                 if (binary instanceof ReferenceBinary) {
                     if (null == ((ReferenceBinary) binary).getReference()) {
                         // Binary is inlined, we cannot return a URL for it
@@ -893,15 +882,6 @@ public class SessionImpl implements JackrabbitSession, HttpBinaryProvider {
                 return null;
             }
         });
-    }
-
-    public HttpBlobProvider getHttpBlobProvider() {
-        Root root = sd.getRoot();
-        if (root instanceof HttpBlobProvider) {
-            return (HttpBlobProvider) root;
-        } else {
-            return null;
-        }
     }
 
     @Override
