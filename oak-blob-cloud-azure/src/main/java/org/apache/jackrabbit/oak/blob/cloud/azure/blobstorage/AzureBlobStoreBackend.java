@@ -1057,6 +1057,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
+            if (LOG.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call
+                // came from
+                LOG.debug("binary downloaded from Azure Blob Storage: " + getIdentifier(),
+                        new Exception());
+            }
             try {
                 return container.getBlockBlobReference(id).openInputStream();
             } catch (StorageException | URISyntaxException e) {
