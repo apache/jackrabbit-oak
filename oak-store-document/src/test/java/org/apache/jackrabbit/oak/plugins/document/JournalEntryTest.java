@@ -286,7 +286,7 @@ public class JournalEntryTest {
 
         StringSort sort = JournalEntry.newSorter();
         StringSort inv = JournalEntry.newSorter();
-        JournalEntry.fillExternalChanges(sort, inv, "/foo", r1, r2, store, null, null);
+        JournalEntry.fillExternalChanges(sort, inv, "/foo", r1, r2, store, e -> {}, null, null);
         assertEquals(4, sort.getSize());
         assertEquals(0, inv.getSize());
         sort.close();

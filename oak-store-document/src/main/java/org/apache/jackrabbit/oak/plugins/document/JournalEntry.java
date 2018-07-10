@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -240,7 +241,7 @@ public final class JournalEntry extends Document {
                                    @Nonnull DocumentStore store)
             throws IOException {
         return fillExternalChanges(externalChanges, invalidate, ROOT_PATH,
-                from, to, store, null, null);
+                from, to, store, entry -> {}, null, null);
     }
 
     /**
@@ -260,6 +261,7 @@ public final class JournalEntry extends Document {
      * @param from   the lower bound of the revision range (exclusive).
      * @param to     the upper bound of the revision range (inclusive).
      * @param store  the document store to query.
+     * @param journalEntryConsumer a consumer for the processed journal entries.
      * @param changeSetBuilder a nullable ChangeSetBuilder to collect changes from
      *                         the JournalEntry between given revisions
      * @param journalPropertyHandler a nullable JournalPropertyHandler to read
@@ -274,6 +276,7 @@ public final class JournalEntry extends Document {
                                    @Nonnull Revision from,
                                    @Nonnull Revision to,
                                    @Nonnull DocumentStore store,
+                                   @Nonnull Consumer<JournalEntry> journalEntryConsumer,
                                    @Nullable ChangeSetBuilder changeSetBuilder,
                                    @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
@@ -314,7 +317,8 @@ public final class JournalEntry extends Document {
 
             for (JournalEntry d : partialResult) {
                 fillFromJournalEntry(externalChanges, invalidate, path,
-                        changeSetBuilder, journalPropertyHandler, d);
+                        changeSetBuilder, journalPropertyHandler, d,
+                        journalEntryConsumer);
             }
             if (partialResult.size() < READ_CHUNK_SIZE) {
                 break;
@@ -332,7 +336,7 @@ public final class JournalEntry extends Document {
             String maxId = asId(new Revision(Long.MAX_VALUE, 0, to.getClusterId()));
             for (JournalEntry d : store.query(JOURNAL, inclusiveToId, maxId, 1)) {
                 fillFromJournalEntry(externalChanges, invalidate, path,
-                        changeSetBuilder, journalPropertyHandler, d);
+                        changeSetBuilder, journalPropertyHandler, d, journalEntryConsumer);
                 numEntries++;
             }
         }
@@ -344,7 +348,9 @@ public final class JournalEntry extends Document {
                                              @Nonnull String path,
                                              @Nullable ChangeSetBuilder changeSetBuilder,
                                              @Nullable JournalPropertyHandler journalPropertyHandler,
-                                             JournalEntry d) throws IOException {
+                                             @Nonnull JournalEntry d,
+                                             @Nonnull Consumer<JournalEntry> journalEntryConsumer)
+            throws IOException {
         d.addTo(externalChanges, path);
         d.addInvalidateOnlyTo(invalidate);
         if (changeSetBuilder != null) {
@@ -353,6 +359,7 @@ public final class JournalEntry extends Document {
         if (journalPropertyHandler != null){
             journalPropertyHandler.readFrom(d);
         }
+        journalEntryConsumer.accept(d);
     }
 
     long getRevisionTimestamp() {

@@ -174,7 +174,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             StringSort invalidateOnly = JournalEntry.newSorter();
             try {
                 stats.numJournalEntries += fillExternalChanges(changes, invalidateOnly,
-                        path, from, to, ns.getDocumentStore(), null, null);
+                        path, from, to, ns.getDocumentStore(), entry -> {}, null, null);
             } finally {
                 invalidateOnly.close();
             }
