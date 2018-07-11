@@ -31,6 +31,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -57,16 +59,21 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +83,7 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, HttpBlobProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -652,6 +659,74 @@ public class DataStoreBlobStore
             return BlobId.of(encodedBlobId).blobId;
         }
         return encodedBlobId;
+    }
+
+    @Nullable
+    @Override
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    throws IllegalHttpUploadArgumentsException {
+        if (delegate instanceof HttpDataRecordProvider) {
+            try {
+                HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
+
+                HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                if (upload == null) {
+                    return null;
+                }
+                return new HttpBlobUpload() {
+                    @Override
+                    public String getUploadToken() {
+                        return upload.getUploadToken();
+                    }
+
+                    @Override
+                    public long getMinPartSize() {
+                        return upload.getMinPartSize();
+                    }
+
+                    @Override
+                    public long getMaxPartSize() {
+                        return upload.getMaxPartSize();
+                    }
+
+                    @Override
+                    public Collection<URL> getUploadURLs() {
+                        return upload.getUploadURLs();
+                    }
+                };
+            }
+            catch (UnsupportedHttpUploadArgumentsException e) {
+                throw new IllegalHttpUploadArgumentsException(e);
+            }
+            catch (HttpUploadException e) {
+                log.warn("Unable to initiate direct HTTP upload", e);
+            }
+        }
+        return null;
+    }
+
+    @Nonnull
+    @Override
+    public Blob completeHttpUpload(String uploadToken) {
+        if (delegate instanceof HttpDataRecordProvider) {
+            try {
+                DataRecord record = ((HttpDataRecordProvider) delegate).completeHttpUpload(uploadToken);
+                return new BlobStoreBlob(this, record.getIdentifier().toString());
+            }
+            catch (DataStoreException | HttpUploadException e) {
+                log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
+            }
+        }
+        throw new UnsupportedOperationException("HTTP upload not supported");
+    }
+
+    @Nullable
+    @Override
+    public URL getHttpDownloadURL(String blobId) {
+        if (delegate instanceof HttpDataRecordProvider) {
+            return ((HttpDataRecordProvider) delegate).getDownloadURL(new DataIdentifier(extractBlobId(blobId)));
+        }
+        return null;
     }
 
     public static class BlobId {
