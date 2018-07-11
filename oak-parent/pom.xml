@@ -229,6 +229,7 @@
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
                   <filter>!org.apache.jackrabbit.oak.jcr</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.document.spi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
