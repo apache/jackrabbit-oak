@@ -55,12 +55,14 @@ public interface HttpBlobProvider {
      *         uploading, this value should be 1. Note that the implementing
      *         class is not required to support multi-part uploading so it may
      *         return only a single upload URL regardless of the value passed in
-     *         for this parameter.
+     *         for this parameter.  If the client is able to accept any number
+     *         of URLs, a value of -1 may be passed in to indicate that the
+     *         implementation is free to return as many URLs as it desires.
      * @return A {@link HttpBlobUpload} referencing this direct upload, or
-     *         {@code null} if the underlying data store doesn't support direct
-     *         HTTP uploading.
+     *         {@code null} if the underlying implementation doesn't support
+     *         direct HTTP uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
-     *         or {@code maxNumberOfURLs} is not a positive value.
+     *         or {@code maxNumberOfURLs} is not either a positive value or -1.
      * @throws IllegalHttpUploadArgumentsException if the upload cannot
      *         be completed as requested, due to a mismatch between the request
      *         parameters and the capabilities of the service provider or the
@@ -78,23 +80,29 @@ public interface HttpBlobProvider {
      * <p>
      * This requires the {@code uploadToken} that can be obtained from the
      * returned {@link HttpBlobUpload} from a previous call to {@link
-     * #initiateHttpUpload(long, int)}. It is required to complete the
-     * transaction for an upload to be valid and complete.
+     * #initiateHttpUpload(long, int)}. This token is required to complete
+     * the transaction for an upload to be valid and complete.  The token
+     * includes encoded data about the transaction along with a signature
+     * that will be verified by the implementation.
      *
      * @param uploadToken the upload token from a {@link HttpBlobUpload}
      *         object returned from a previous call to {@link
      *         #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
+     * @throws IllegalArgumentException if the {@code uploadToken} cannot be
+     *         parsed or is otherwise invalid, e.g. if the included signature
+     *         does not match.
      */
     @Nullable
     Blob completeHttpUpload(String uploadToken);
 
     /**
-     * Obtain a download URL for a blob. This is usually a signed URL that can
-     * be used to directly download the blob corresponding to the blob.
+     * Obtain a download URL for a {@link Blob). This is usually a signed URL
+     * that can be used to directly download the blob corresponding to the
+     * provided {@link Blob}.
      *
-     * @param blob for the blob to be downloaded.
+     * @param blob for the {@link Blob} to be downloaded.
      * @return A URL to download the blob directly or {@code null} if the blob
      *         cannot be downloaded directly.
      */

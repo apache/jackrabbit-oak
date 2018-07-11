@@ -578,6 +578,20 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     @Test
+    public void testInitiateHttpUploadWithUnsupportedNegativeNumberUrlsFails()
+        throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        try {
+            ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, 1024 * 20, -2);
+            fail();
+        }
+        catch (RuntimeException e) {
+            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
+        }
+    }
+
+    @Test
     public void testInitiateHttpUploadWithUnlimitedUrls() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);

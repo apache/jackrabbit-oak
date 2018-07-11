@@ -223,6 +223,24 @@ public abstract class AbstractHttpDataRecordProviderTest {
     }
 
     @Test
+    public void testInitiateHttpUploadRequiresNonNegativeNumURLs()
+            throws HttpUploadException {
+        try {
+            getDataStore().initiateHttpUpload(ONE_MB, -2);
+            fail();
+        }
+        catch (UnsupportedHttpUploadArgumentsException e) { }
+
+        // -1 is allowed which means any number of URLs
+        try {
+            assertNotNull(getDataStore().initiateHttpUpload(ONE_HUNDRED_MB, -1));
+        }
+        catch (UnsupportedHttpUploadArgumentsException e) {
+            fail();
+        }
+    }
+
+    @Test
     public void testInititateHttpUploadSingleURLRequested() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
         HttpDataRecordUpload uploadContext =
                 getDataStore().initiateHttpUpload(TWENTY_MB, 1);

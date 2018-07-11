@@ -32,30 +32,36 @@ public interface HttpDataRecordProvider {
      * Return a URL for directly reading the binary associated with the provided
      * {@link DataRecord}.
      *
-     * @param identifier The {@link DataIdentifier} for the {@link DataRecord} containing
-     *                   the binary to be read via direct download.
-     * @return A {@link URL} for directly reading the binary, or null if the URL
-     * cannot be generated.
+     * @param identifier The {@link DataIdentifier} for the {@link DataRecord}
+     *                   containing the binary to be read via direct download.
+     * @return A URL for directly reading the binary, or null if the URL cannot
+     * be generated, for example if the capability is disabled by configuration
+     * or if a service provider error occurs.
      */
     @Nullable
     URL getDownloadURL(DataIdentifier identifier);
 
     /**
-     * Begin a transaction to perform a direct binary upload to the cloud storage.
+     * Begin a transaction to perform a direct binary upload to the cloud
+     * storage.
      *
-     * @param maxUploadSizeInBytes - the largest size of the binary to be uploaded,
-     *                             in bytes, based on the caller's best guess.  If
-     *                             the actual size of the file to be uploaded is known,
-     *                             that value should be used.
-     * @param maxNumberOfURLs - the maximum number of URLs the client is able to accept.
-     *                        If the client does not support multi-part uploading, this
-     *                        value should be 1.  Note that the implementing class is not
-     *                        required to support multi-part uploading so it may return
-     *                        only a single upload URL regardless of the value passed in
-     *                        for this parameter.
-     * @return A {@link HttpDataRecordUpload} referencing this direct upload.
-     * @throws {@link UnsupportedHttpUploadArgumentsException} if the service provider or
-     * implementation cannot support the requested upload, {@link HttpUploadException} if
+     * @param maxUploadSizeInBytes - the largest size of the binary to be
+     *        uploaded, in bytes, based on the caller's best guess.  If the
+     *        actual size of the file to be uploaded is known, that value should
+     *        be used.
+     * @param maxNumberOfURLs - the maximum number of URLs the client is able to
+     *        accept.  If the caller does not support multi-part uploading, this
+     *        value should be 1.  Note that the implementing class is not
+     *        required to support multi-part uploading so it may return only a
+     *        single upload URL regardless of the value passed in for this
+     *        parameter.  A caller may also pass in -1 to indicate that it is
+     *        able to accept any number of URLs.  Any other negative number or
+     *        0 may result in {@link UnsupportedHttpUploadArgumentsException}.
+     * @return A {@link HttpDataRecordUpload} referencing this direct upload, or
+     * {@code null} if the implementation doees not support direct upload.
+     * @throws {@link UnsupportedHttpUploadArgumentsException} if the service
+     * provider or implementation cannot support the requested upload,
+     * {@link HttpUploadException} if
      * the upload cannot be completed as requested.
      */
     @Nullable
@@ -63,17 +69,20 @@ public interface HttpDataRecordProvider {
             throws UnsupportedHttpUploadArgumentsException, HttpUploadException;
 
     /**
-     * Completes the transaction to perform a direct binary upload.  This method verifies
-     * that the uploaded binary has been created and is now referenceable.  For some providers
-     * doing multi-part upload, this also completes the multi-part upload process if a
-     * multi-part upload was performed.
+     * Completes the transaction to perform a direct binary upload.  This method
+     * verifies that the uploaded binary has been created and is now
+     * referenceable.  For some providers doing multi-part upload, this also
+     * completes the multi-part upload process if a multi-part upload was
+     * performed.
      *
-     * @param uploadToken The upload token identifying this direct upload transaction, as
-     *                    returned in the {@link HttpDataRecordUpload} object
-     *                    resulting from a call to initiateHttpUpload().
+     * @param uploadToken The upload token identifying this direct upload
+     *        transaction, as returned in the {@link HttpDataRecordUpload}
+     *        object resulting from a call to {@link
+     *        #initiateHttpUpload(long, int)}.
      * @return A {@link DataRecord} for the uploaded binary.
-     * @throws {@link HttpUploadException} if the object written can't be found by S3, or
-     * {@link DataStoreException} if the object written can't be found by the DataStore.
+     * @throws {@link HttpUploadException} if the object written can't be found
+     * by the service provider, or {@link DataStoreException} if the object
+     * written can't be found by the DataStore.
      */
     @Nonnull
     DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException;

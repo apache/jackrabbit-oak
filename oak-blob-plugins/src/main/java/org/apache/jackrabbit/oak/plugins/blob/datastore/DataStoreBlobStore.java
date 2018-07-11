@@ -705,7 +705,7 @@ public class DataStoreBlobStore
         return null;
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public Blob completeHttpUpload(String uploadToken) {
         if (delegate instanceof HttpDataRecordProvider) {
@@ -717,7 +717,7 @@ public class DataStoreBlobStore
                 log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
             }
         }
-        throw new UnsupportedOperationException("HTTP upload not supported");
+        return null;
     }
 
     @Nullable

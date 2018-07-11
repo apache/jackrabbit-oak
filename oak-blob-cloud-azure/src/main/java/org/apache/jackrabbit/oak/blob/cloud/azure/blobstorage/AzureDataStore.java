@@ -113,8 +113,11 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         if (0L >= maxUploadSizeInBytes) {
             throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L == maxNumberOfURLs) {
-            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must be > 0");
+        else if (0 == maxNumberOfURLs) {
+            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must either be > 0 or -1");
+        }
+        else if (-1 > maxNumberOfURLs) {
+            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must either be > 0 or -1");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
                 maxNumberOfURLs == 1) {
