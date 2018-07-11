@@ -29,7 +29,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -124,7 +123,6 @@ public class NodeDocumentCache implements Closeable {
      *                  modification stamps.
      * @return number of invalidated entries
      */
-    @Nonnegative
     public int invalidateOutdated(@Nonnull Map<String, ModificationStamp> modStamps) {
         int invalidatedCount = 0;
         for (Entry<String, ModificationStamp> e : modStamps.entrySet()) {
