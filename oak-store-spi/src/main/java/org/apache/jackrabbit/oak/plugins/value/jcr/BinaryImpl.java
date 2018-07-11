@@ -29,6 +29,7 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,9 +96,10 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
         // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
         // a client cannot spoof, so we know that the id in question is valid and can be
         // trusted, so we can safely give out a URL to the binary for downloading.
-        String blobId = getBinaryValue().getBlob().getContentIdentity();
+        Blob blob = getBinaryValue().getBlob();
+        String blobId = blob.getContentIdentity();
         if (null != blobId) {
-            return value.getHttpDownloadURL(blobId);
+            return value.getHttpDownloadURL(blob);
         }
         return null;
     }

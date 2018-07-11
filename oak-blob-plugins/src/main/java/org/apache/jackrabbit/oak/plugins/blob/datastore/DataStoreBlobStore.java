@@ -62,7 +62,6 @@ import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
-import org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -663,8 +662,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-    throws IllegalHttpUploadArgumentsException {
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
@@ -695,9 +693,6 @@ public class DataStoreBlobStore
                     }
                 };
             }
-            catch (UnsupportedHttpUploadArgumentsException e) {
-                throw new IllegalHttpUploadArgumentsException(e);
-            }
             catch (HttpUploadException e) {
                 log.warn("Unable to initiate direct HTTP upload", e);
             }
@@ -705,7 +700,7 @@ public class DataStoreBlobStore
         return null;
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public Blob completeHttpUpload(String uploadToken) {
         if (delegate instanceof HttpDataRecordProvider) {
@@ -717,14 +712,18 @@ public class DataStoreBlobStore
                 log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
             }
         }
-        throw new UnsupportedOperationException("HTTP upload not supported");
+        return null;
     }
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(String blobId) {
+    public URL getHttpDownloadURL(Blob blob) {
         if (delegate instanceof HttpDataRecordProvider) {
-            return ((HttpDataRecordProvider) delegate).getDownloadURL(new DataIdentifier(extractBlobId(blobId)));
+            String blobId = blob.getContentIdentity();
+            if (blobId != null) {
+                return ((HttpDataRecordProvider) delegate).getDownloadURL(
+                        new DataIdentifier(extractBlobId(blobId)));
+            }
         }
         return null;
     }

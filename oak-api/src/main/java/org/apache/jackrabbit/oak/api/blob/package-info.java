@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@Version("0.0.1")
+@Version("1.0.0")
 package org.apache.jackrabbit.oak.api.blob;
 
 import org.osgi.annotation.versioning.Version;

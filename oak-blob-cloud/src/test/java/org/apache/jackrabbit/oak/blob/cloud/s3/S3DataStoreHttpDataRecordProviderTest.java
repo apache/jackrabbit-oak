@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordPr
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -133,7 +132,7 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(60);
@@ -149,7 +148,7 @@ public class S3DataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecor
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURLs() throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+    public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
         ConfigurableHttpDataRecordProvider ds = getDataStore();
         long uploadSize = ONE_GB * 50;
         int expectedNumUrls = 5000;

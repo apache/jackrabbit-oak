@@ -43,11 +43,10 @@ import javax.jcr.Session;
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
-import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
@@ -563,7 +562,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             uploadProvider.initiateBinaryUpload(0, 1);
             fail();
         }
-        catch (IllegalHttpUploadArgumentsException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -574,7 +573,19 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             uploadProvider.initiateBinaryUpload(1024 * 20, 0);
             fail();
         }
-        catch (IllegalHttpUploadArgumentsException e) { }
+        catch (IllegalArgumentException e) { }
+    }
+
+    @Test
+    public void testInitiateHttpUploadWithUnsupportedNegativeNumberUrlsFails()
+        throws RepositoryException {
+        getConfigurableHttpDataRecordProvider()
+                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
+        try {
+            uploadProvider.initiateBinaryUpload(1024 * 20, -2);
+            fail();
+        }
+        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -606,7 +617,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 1);
             fail();
         }
-        catch (IllegalHttpUploadArgumentsException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -617,7 +628,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 1024L * 10L, -1);
             fail();
         }
-        catch (IllegalHttpUploadArgumentsException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     @Test
@@ -628,7 +639,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 10);
             fail();
         }
-        catch (IllegalHttpUploadArgumentsException e) { }
+        catch (IllegalArgumentException e) { }
     }
 
     // -----------------------------------------------------------------< helpers >--------------

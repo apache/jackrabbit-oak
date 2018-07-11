@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
@@ -109,21 +108,24 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Nullable
     @Override
     public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws UnsupportedHttpUploadArgumentsException, HttpUploadException {
+            throws HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
-            throw new UnsupportedHttpUploadArgumentsException("maxUploadSizeInBytes must be > 0");
+            throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0L == maxNumberOfURLs) {
-            throw new UnsupportedHttpUploadArgumentsException("maxNumberOfURLs must be > 0");
+        else if (0 == maxNumberOfURLs) {
+            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
+        }
+        else if (-1 > maxNumberOfURLs) {
+            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
                 maxNumberOfURLs == 1) {
-            throw new UnsupportedHttpUploadArgumentsException(
+            throw new IllegalArgumentException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
         }
         else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
-            throw new UnsupportedHttpUploadArgumentsException(
+            throw new IllegalArgumentException(
                     String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
             );
         }

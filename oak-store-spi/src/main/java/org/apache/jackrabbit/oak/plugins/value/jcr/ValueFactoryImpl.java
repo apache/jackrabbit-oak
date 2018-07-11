@@ -312,38 +312,33 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     @Override
     @Nullable
     public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
-        try {
-            HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
-            if (null == upload) {
-                return null;
+        HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+        if (null == upload) {
+            return null;
+        }
+
+        return new BinaryUpload() {
+            @Override
+            public Iterable<URL> getURLs() {
+                return upload.getUploadURLs();
             }
 
-            return new BinaryUpload() {
-                @Override
-                public Iterable<URL> getURLs() {
-                    return upload.getUploadURLs();
-                }
+            @Override
+            public long getMinPartSize() {
+                return upload.getMinPartSize();
+            }
 
-                @Override
-                public long getMinPartSize() {
-                    return upload.getMinPartSize();
-                }
+            @Override
+            public long getMaxPartSize() {
+                return upload.getMaxPartSize();
+            }
 
-                @Override
-                public long getMaxPartSize() {
-                    return upload.getMaxPartSize();
-                }
-
-                @Override
-                public Binary complete() throws RepositoryException {
-                    return createBinary(
-                            httpBlobProvider.completeHttpUpload(upload.getUploadToken()));
-                }
-            };
-        }
-        catch (org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException e) {
-            throw new org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException(e);
-        }
+            @Override
+            public Binary complete() throws RepositoryException {
+                return createBinary(
+                        httpBlobProvider.completeHttpUpload(upload.getUploadToken()));
+            }
+        };
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
@@ -362,9 +357,9 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     }
 
     @Nullable
-    public String getBlobId(Binary binary) throws RepositoryException {
+    public Blob getBlob(Binary binary) throws RepositoryException {
         if (binary instanceof BinaryImpl) {
-            return ((BinaryImpl) binary).getBinaryValue().getBlob().getContentIdentity();
+            return ((BinaryImpl) binary).getBinaryValue().getBlob();
         }
         return null;
     }
@@ -390,7 +385,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public URL getHttpDownloadURL(String blobId) {
+        public URL getHttpDownloadURL(Blob blob) {
             return null;
         }
     }
