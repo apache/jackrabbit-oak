@@ -36,10 +36,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -56,19 +58,24 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.AfterClass;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
@@ -154,6 +161,20 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
         public T getClient() { return client; }
         public String getContainerName() { return containerName; }
+    }
+
+    @Override
+    protected Repository createRepository(NodeStore nodeStore) {
+        Whiteboard wb = new DefaultWhiteboard();
+        if (fixture instanceof BlobStoreHolder) {
+            BlobStoreHolder holder = (BlobStoreHolder) fixture;
+            BlobStore blobStore = holder.getBlobStore();
+            if (blobStore instanceof HttpBlobProvider) {
+                wb.register(HttpBlobProvider.class, (HttpBlobProvider) blobStore,
+                        Collections.emptyMap());
+            }
+        }
+        return initJcr(new Jcr(nodeStore).with(wb)).createRepository();
     }
 
     @AfterClass
@@ -277,18 +298,25 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         DataStore getDataStore();
     }
 
+    protected interface BlobStoreHolder {
+        BlobStore getBlobStore();
+    }
+
     /**
      * Creates a repository with
      * - SegmentNodeStore, storing data in-memory
      * - an optional DataStore provided by DataStoreFixture
      */
-    protected static class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements DataStoreHolder {
+    protected static class SegmentMemoryNodeStoreFixture extends NodeStoreFixture
+            implements BlobStoreHolder, DataStoreHolder {
 
         private final DataStoreFixture dataStoreFixture;
 
         private NodeStore nodeStore;
 
         private DataStore dataStore;
+
+        private BlobStore blobStore;
 
         public SegmentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
             this.dataStoreFixture = dataStoreFixture;
@@ -316,7 +344,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
                         // init with a new folder inside a temporary one
                         dataStore.init(createTempFolder().getAbsolutePath());
 
-                        fileStoreBuilder.withBlobStore(new DataStoreBlobStore(dataStore));
+                        blobStore = new DataStoreBlobStore(dataStore);
+                        fileStoreBuilder.withBlobStore(blobStore);
                     }
 
                     nodeStore = SegmentNodeStoreBuilders.builder(fileStoreBuilder.build()).build();
@@ -331,6 +360,11 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         @Override
         public DataStore getDataStore() {
             return dataStore;
+        }
+
+        @Override
+        public BlobStore getBlobStore() {
+            return blobStore;
         }
 
         // for nice Junit parameterized test labels
@@ -351,13 +385,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
      * - DocumentNodeStore, storing data in-memory
      * - an optional DataStore provided by DataStoreFixture
      */
-    protected static class DocumentMemoryNodeStoreFixture extends NodeStoreFixture implements DataStoreHolder {
+    protected static class DocumentMemoryNodeStoreFixture extends NodeStoreFixture
+            implements BlobStoreHolder, DataStoreHolder {
 
         private final DataStoreFixture dataStoreFixture;
 
         private NodeStore nodeStore;
 
         private DataStore dataStore;
+
+        private BlobStore blobStore;
 
         public DocumentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
             this.dataStoreFixture = dataStoreFixture;
@@ -382,7 +419,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
                         // init with a new folder inside a temporary one
                         dataStore.init(createTempFolder().getAbsolutePath());
 
-                        documentNodeStoreBuilder.setBlobStore(new DataStoreBlobStore(dataStore));
+                        blobStore = new DataStoreBlobStore(dataStore);
+                        documentNodeStoreBuilder.setBlobStore(blobStore);
                     }
 
                     nodeStore = documentNodeStoreBuilder.build();
@@ -397,6 +435,11 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         @Override
         public DataStore getDataStore() {
             return dataStore;
+        }
+
+        @Override
+        public BlobStore getBlobStore() {
+            return blobStore;
         }
 
         // for nice Junit parameterized test labels

@@ -22,9 +22,11 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.util.Calendar;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -37,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
@@ -54,6 +57,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
     private final Type<?> type;
     private final int index;
     private final NamePathMapper namePathMapper;
+    private final HttpBlobProvider httpBlobProvider;
 
     private InputStream stream = null;
 
@@ -66,13 +70,29 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper)
+    ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper,
+              @Nullable HttpBlobProvider httpBlobProvider)
             throws RepositoryException {
         checkArgument(index < property.count());
         this.propertyState = checkNotNull(property);
         this.type = getType(property);
         this.index = index;
         this.namePathMapper = checkNotNull(namePathMapper);
+        this.httpBlobProvider = httpBlobProvider;
+    }
+
+    /**
+     * Create a new {@code Value} instance
+     * @param property  The property state this instance is based on
+     * @param index  The index
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
+     * @throws IllegalArgumentException if {@code index < propertyState.count()}
+     * @throws RepositoryException if the underlying node state cannot be accessed
+     */
+    ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper)
+            throws RepositoryException {
+        this(property, index, namePathMapper, null);
     }
 
     /**
@@ -83,9 +103,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@Nonnull PropertyState property, @Nonnull NamePathMapper namePathMapper)
+    ValueImpl(@Nonnull PropertyState property, @Nonnull NamePathMapper namePathMapper,
+              @Nonnull HttpBlobProvider httpBlobProvider)
             throws RepositoryException {
-        this(checkSingleValued(property), 0, namePathMapper);
+        this(checkSingleValued(property), 0, namePathMapper, checkNotNull(httpBlobProvider));
     }
 
     private static PropertyState checkSingleValued(PropertyState property) {
@@ -368,6 +389,14 @@ class ValueImpl implements JackrabbitValue, OakValue {
             return getValue(Type.STRING, index);
         } catch (RepositoryException e) {
             return e.toString();
+        }
+    }
+
+    URL getHttpDownloadURL(String id) {
+        if (httpBlobProvider == null) {
+            return null;
+        } else {
+            return httpBlobProvider.getHttpDownloadURL(id);
         }
     }
 

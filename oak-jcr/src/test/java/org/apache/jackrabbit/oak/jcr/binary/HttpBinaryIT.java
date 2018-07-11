@@ -40,18 +40,20 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.HttpBinaryProvider;
-import org.apache.jackrabbit.api.binary.HttpBinaryUpload;
 import org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException;
-import org.apache.jackrabbit.api.binary.InvalidHttpUploadTokenException;
+import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,11 +77,6 @@ import org.junit.runners.Parameterized;
 public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     private static final String FILE_PATH = "/file";
-    private static final String BINARY_PATH = Joiner.on("/").join(
-            FILE_PATH,
-            JcrConstants.JCR_CONTENT,
-            JcrConstants.JCR_DATA
-    );
     private static final int REGULAR_WRITE_EXPIRY = 60; // seconds
     private static final int REGULAR_READ_EXPIRY = 60; // seconds
 
@@ -87,9 +84,18 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         super(fixture);
     }
 
+    private Session adminSession;
+    private Session anonymousSession;
+    private JackrabbitValueFactory uploadProvider;
+    private JackrabbitValueFactory anonymousUploadProvider;
+
     @Before
     public void cleanRepoContents() throws RepositoryException {
-        Session adminSession = getAdminSession();
+        adminSession = getAdminSession();
+        anonymousSession = getAnonymousSession();
+        uploadProvider = (JackrabbitValueFactory) adminSession.getValueFactory();
+        anonymousUploadProvider = (JackrabbitValueFactory) anonymousSession.getValueFactory();
+
         if (adminSession.nodeExists(FILE_PATH)) {
             adminSession.getNode(FILE_PATH).remove();
             adminSession.save();
@@ -106,17 +112,15 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         final String content = getRandomString(256);
         final long size = content.getBytes("utf-8").length;
 
-        assertTrue(getAdminSession() instanceof HttpBinaryProvider);
+        assertTrue(adminSession.getValueFactory() instanceof JackrabbitValueFactory);
 
-        HttpBinaryProvider uploadProvider = (HttpBinaryProvider) getAdminSession();
-
-        HttpBinaryUpload upload = uploadProvider.initiateHttpUpload(BINARY_PATH, size, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(size, 1);
         assertNotNull(upload);
 
         // very small test binary
         assertTrue(size < upload.getMaxPartSize());
 
-        URL url = upload.getUploadURLs().iterator().next();
+        URL url = upload.getURLs().iterator().next();
         assertNotNull(url);
 
         LOG.info("- uploading binary via PUT to {}", url.toString());
@@ -125,10 +129,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertTrue("PUT to pre-signed S3 URL failed",
                 isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
-        Binary writeBinary = uploadProvider.completeHttpUpload(upload.getUploadToken());
-        putBinary(getAdminSession(), FILE_PATH, writeBinary);
+        Binary writeBinary = upload.complete();
+        putBinary(adminSession, FILE_PATH, writeBinary);
 
-        Binary readBinary = getBinary(getAdminSession(), FILE_PATH);
+        Binary readBinary = getBinary(adminSession, FILE_PATH);
         StringWriter writer = new StringWriter();
         IOUtils.copy(readBinary.getStream(), writer, "utf-8");
         assertEquals(content, writer.toString());
@@ -140,19 +144,17 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-        assertTrue(getAdminSession() instanceof HttpBinaryProvider);
-
-        HttpBinaryProvider uploadProvider = (HttpBinaryProvider) getAdminSession();
+        assertTrue(adminSession.getValueFactory() instanceof JackrabbitValueFactory);
 
         // 25MB is a good size to ensure chunking is done
         long uploadSize = 1024 * 1024 * 25;
-        HttpBinaryUpload uploadContext = uploadProvider.initiateHttpUpload(BINARY_PATH, uploadSize, 50);
+        BinaryUpload uploadContext = uploadProvider.initiateBinaryUpload(uploadSize, 50);
         assertNotNull(uploadContext);
 
         String buffer = getRandomString(uploadSize);
         long uploadPartSize = uploadContext.getMaxPartSize();
         long remaining = uploadSize;
-        for (URL url : uploadContext.getUploadURLs()) {
+        for (URL url : uploadContext.getURLs()) {
             String nextPart = buffer.substring(0, (int) Math.min(uploadPartSize, remaining));
             int code = httpPut(url,
                     nextPart.getBytes().length,
@@ -163,10 +165,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             if (remaining <= 0) break;
         }
 
-        Binary writeBinary = uploadProvider.completeHttpUpload(uploadContext.getUploadToken());
-        putBinary(getAdminSession(), FILE_PATH, writeBinary);
+        Binary writeBinary = uploadContext.complete();
+        putBinary(adminSession, FILE_PATH, writeBinary);
 
-        Binary readBinary = getBinary(getAdminSession(), FILE_PATH);
+        Binary readBinary = getBinary(adminSession, FILE_PATH);
         StringWriter writer = new StringWriter();
         IOUtils.copy(readBinary.getStream(), writer, "utf-8");
         assertEquals(buffer, writer.toString());
@@ -181,17 +183,14 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 1. add binary and upload
         String content = getRandomString(256);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(
-                FILE_PATH,
-                content.getBytes().length,
-                10);
-        int code = httpPut(upload.getUploadURLs().iterator().next(),
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        int code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
-        Binary binaryWrite = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
-        saveFileWithBinary(getAdminSession(), FILE_PATH, binaryWrite);
+        Binary binaryWrite = upload.complete();
+        saveFileWithBinary(adminSession, FILE_PATH, binaryWrite);
 
         // 2. stream through JCR and validate it's the same
         Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
@@ -208,11 +207,13 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // Must be larger than the minimum file size, to keep it from being inlined in the node store.
         String content = getRandomString(1024*20);
-        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+        Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        Assert.assertTrue(writeBinary instanceof BinaryDownload);
+
+        URL downloadURL = ((BinaryDownload) writeBinary).getURL();
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURL), writer, "utf-8");
         assertEquals(content, writer.toString());
@@ -228,16 +229,15 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 1. add binary and upload
         String content = getRandomString(256);
-        HttpBinaryProvider binaryProvider = (HttpBinaryProvider) getAdminSession();
-        HttpBinaryUpload upload = binaryProvider.initiateHttpUpload(BINARY_PATH, content.getBytes().length, 10);
-        int code = httpPut(upload.getUploadURLs().iterator().next(),
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        int code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
-        Binary writeBinary = binaryProvider.completeHttpUpload(upload.getUploadToken());
+        Binary writeBinary = upload.complete();
 
         // 2. read binary, get the URL
-        URL downloadURL = binaryProvider.getHttpDownloadURL(writeBinary);
+        URL downloadURL = ((BinaryDownload)(writeBinary)).getURL();
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURL), writer, "utf-8");
 
@@ -252,24 +252,25 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // Must be smaller than the minimum file size, (inlined binary)
         String content = getRandomString(256);
-        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+        Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        URL downloadURL = ((BinaryDownload)(writeBinary)).getURL();
         assertNull(downloadURL);
     }
 
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property
     //      where the user has JCR set_property permission.
     @Test
+    @Ignore("OAK-7602")  // michid FIXME OAK-7602
     public void testUnprivilegedSessionCannotUploadBinary() throws Exception {
         // enable writable URL feature
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         try {
-            ((HttpBinaryProvider) getAnonymousSession()).initiateHttpUpload(BINARY_PATH, 1024*20, 10);
+            anonymousUploadProvider.initiateBinaryUpload(1024*20, 10);
             fail();
         }
         catch (AccessDeniedException e) { }
@@ -283,10 +284,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpUploadURLExpirySeconds(0);
 
         String content = getRandomString(256);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
 
         assertNotNull(upload);
-        assertEquals(0, upload.getUploadURLs().size());
+        assertFalse(upload.getURLs().iterator().hasNext());
     }
 
     // A2 - disable get URLs entirely
@@ -296,11 +297,11 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpDownloadURLExpirySeconds(0);
 
         String content = getRandomString(1024*20);
-        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+        Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        URL downloadURL = ((BinaryDownload)(writeBinary)).getURL();
         assertNull(downloadURL);
     }
 
@@ -312,13 +313,13 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpUploadURLExpirySeconds(1);
 
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
 
         // wait to pass timeout
         Thread.sleep(2 * SECONDS);
 
         // ensure PUT fails with 403 or anything 400+
-        assertTrue(httpPutTestStream(upload.getUploadURLs().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
+        assertTrue(httpPutTestStream(upload.getURLs().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
     // F2 - CDN & transfer accelerators (S3 only for now)
@@ -331,16 +332,16 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
             provider.setBinaryTransferAccelerationEnabled(true);
 
-            HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH,1024*20, 1);
-            URL url = upload.getUploadURLs().iterator().next();
+            BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 20, 1);
+            URL url = upload.getURLs().iterator().next();
             assertNotNull(url);
 
             LOG.info("accelerated URL: {}", url.toString());
             assertTrue(url.getHost().endsWith(".s3-accelerate.amazonaws.com"));
 
             provider.setBinaryTransferAccelerationEnabled(false);
-            upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH,1024*20, 1);
-            url = upload.getUploadURLs().iterator().next();
+            upload = uploadProvider.initiateBinaryUpload(1024*20, 1);
+            url = upload.getURLs().iterator().next();
             assertNotNull(url);
 
             LOG.info("non-accelerated URL: {}", url.toString());
@@ -355,8 +356,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
-        URL url = upload.getUploadURLs().iterator().next();
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        URL url = upload.getURLs().iterator().next();
         URL changedUrl = new URL(
                 String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URL filename
                 url.getProtocol(),
@@ -377,8 +378,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
-        URL url = upload.getUploadURLs().iterator().next();
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        URL url = upload.getURLs().iterator().next();
         int code = httpPut(url, content.getBytes().length, new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
@@ -396,15 +397,15 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
         String content = getRandomString(1024*20);
-        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+        Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URL downloadURL = ((HttpBinaryProvider) getAdminSession()).getHttpDownloadURL(writeBinary);
+        URL downloadURL = ((BinaryDownload)(writeBinary)).getURL();
         assertNotNull(downloadURL);
 
         String moreContent = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, moreContent.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(moreContent.getBytes().length, 1);
         HttpURLConnection conn = (HttpURLConnection) downloadURL.openConnection();
         conn.setRequestMethod("PUT");
         conn.setDoOutput(true);
@@ -425,28 +426,29 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
+
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload);
-        int code = httpPut(upload.getUploadURLs().iterator().next(),
+        int code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
-        Binary uploadedBinary = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
-        saveFileWithBinary(getAdminSession(), FILE_PATH, uploadedBinary);
+        Binary uploadedBinary = upload.complete();
+        saveFileWithBinary(adminSession, FILE_PATH, uploadedBinary);
 
-        Binary binary1 = getBinary(getAdminSession(), FILE_PATH);
+        Binary binary1 = getBinary(adminSession, FILE_PATH);
 
         String moreContent = getRandomString(1024*21);
-        upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, moreContent.getBytes().length, 1);
+        upload = uploadProvider.initiateBinaryUpload(moreContent.getBytes().length, 1);
         assertNotNull(upload);
-        code = httpPut(upload.getUploadURLs().iterator().next(),
+        code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(moreContent.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
-        uploadedBinary = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
-        saveFileWithBinary(getAdminSession(), FILE_PATH, uploadedBinary);
+        uploadedBinary = upload.complete();
+        saveFileWithBinary(adminSession, FILE_PATH, uploadedBinary);
 
-        Binary binary2 = getBinary(getAdminSession(), FILE_PATH);
+        Binary binary2 = getBinary(adminSession, FILE_PATH);
 
         assertTrue(binary1 instanceof ReferenceBinary);
         assertTrue(binary2 instanceof ReferenceBinary);
@@ -461,13 +463,14 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload1 = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
+
+        BinaryUpload upload1 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload1);
-        HttpBinaryUpload upload2 = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
+        BinaryUpload upload2 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload2);
 
-        assertNotEquals(upload1.getUploadURLs().iterator().next().toString(),
-                upload2.getUploadURLs().iterator().next().toString());
+        assertNotEquals(upload1.getURLs().iterator().next().toString(),
+                upload2.getURLs().iterator().next().toString());
     }
 
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
@@ -476,20 +479,21 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
-        int code = httpPut(upload.getUploadURLs().iterator().next(),
+
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        int code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
-        Binary binary = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
-        saveFileWithBinary(getAdminSession(), FILE_PATH+"2", binary);
+        Binary binary = upload.complete();
+        saveFileWithBinary(adminSession, FILE_PATH+"2", binary);
 
-        saveFileWithBinary(getAdminSession(), FILE_PATH, binary);
+        saveFileWithBinary(adminSession, FILE_PATH, binary);
 
-        getAdminSession().getNode(FILE_PATH+"2").remove();
-        getAdminSession().save();
+        adminSession.getNode(FILE_PATH+"2").remove();
+        adminSession.save();
 
-        Binary savedBinary = getBinary(getAdminSession(), FILE_PATH);
+        Binary savedBinary = getBinary(adminSession, FILE_PATH);
         assertNotNull(savedBinary);
         assertTrue(binary instanceof ReferenceBinary);
         assertTrue(savedBinary instanceof ReferenceBinary);
@@ -504,45 +508,45 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
-        getOrCreateNtFile(getAdminSession(), FILE_PATH);
+        getOrCreateNtFile(adminSession, FILE_PATH);
 
         Binary binary;
         try {
-            binary = getBinary(getAdminSession(), FILE_PATH);
+            binary = getBinary(adminSession, FILE_PATH);
             fail();
         }
         catch (PathNotFoundException e) { }
 
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
 
         try {
-            binary = getBinary(getAdminSession(), FILE_PATH);
+            binary = getBinary(adminSession, FILE_PATH);
             fail();
         }
         catch (PathNotFoundException e) { }
 
-        int code = httpPut(upload.getUploadURLs().iterator().next(),
+        int code = httpPut(upload.getURLs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
         try {
-            binary = getBinary(getAdminSession(), FILE_PATH);
+            binary = getBinary(adminSession, FILE_PATH);
             fail();
         }
         catch (PathNotFoundException e) { }
 
-        Binary uploadedBinary = ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken());
+        Binary uploadedBinary = upload.complete();
 
         try {
-            binary = getBinary(getAdminSession(), FILE_PATH);
+            binary = getBinary(adminSession, FILE_PATH);
             fail();
         }
         catch (PathNotFoundException e) { }
 
-        putBinary(getAdminSession(), FILE_PATH, uploadedBinary);
+        putBinary(adminSession, FILE_PATH, uploadedBinary);
 
-        binary = getBinary(getAdminSession(), FILE_PATH);
+        binary = getBinary(adminSession, FILE_PATH);
         assertNotNull(binary);
 
         assertTrue(binary instanceof ReferenceBinary);
@@ -556,13 +560,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
-            ((HttpBinaryProvider) getAdminSession())
-                    .initiateHttpUpload(BINARY_PATH,0, 1);
+            uploadProvider.initiateBinaryUpload(0, 1);
             fail();
         }
-        catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
-        }
+        catch (IllegalHttpUploadArgumentsException e) { }
     }
 
     @Test
@@ -570,22 +571,19 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
-            ((HttpBinaryProvider) getAdminSession()).initiateHttpUpload(BINARY_PATH, 1024 * 20, 0);
+            uploadProvider.initiateBinaryUpload(1024 * 20, 0);
             fail();
         }
-        catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
-        }
+        catch (IllegalHttpUploadArgumentsException e) { }
     }
 
     @Test
     public void testInitiateHttpUploadWithUnlimitedUrls() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession())
-                .initiateHttpUpload(BINARY_PATH,1024 * 1024 * 1024, -1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
-        assertTrue(upload.getUploadURLs().size() > 50);
+        assertTrue(Iterables.size(upload.getURLs()) > 50);
         // 50 is our default expected client max -
         // this is to make sure we will give as many as needed
         // if the client doesn't specify their own limit
@@ -595,10 +593,9 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testInitiateHttpUploadLargeSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession())
-                .initiateHttpUpload(BINARY_PATH,1024 * 1024 * 100, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
-        assertEquals(1, upload.getUploadURLs().size());
+        assertEquals(1, Iterables.size(upload.getURLs()));
     }
 
     @Test
@@ -606,13 +603,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
-            ((HttpBinaryProvider) getAdminSession())
-                    .initiateHttpUpload(BINARY_PATH,1024L * 1024L * 1024L * 10L, 1);
+            uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 1);
             fail();
         }
-        catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
-        }
+        catch (IllegalHttpUploadArgumentsException e) { }
     }
 
     @Test
@@ -620,13 +614,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
-            ((HttpBinaryProvider) getAdminSession())
-                    .initiateHttpUpload(BINARY_PATH, 1024L * 1024L * 1024L * 1024L * 10L, -1);
+            uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 1024L * 10L, -1);
             fail();
         }
-        catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
-        }
+        catch (IllegalHttpUploadArgumentsException e) { }
     }
 
     @Test
@@ -634,28 +625,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
-            ((HttpBinaryProvider) getAdminSession())
-                    .initiateHttpUpload(BINARY_PATH, 1024L * 1024L * 1024L * 10L, 10);
+            uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 10);
             fail();
         }
-        catch (RuntimeException e) {
-            assertTrue(e.getCause() instanceof IllegalHttpUploadArgumentsException);
-        }
-    }
-
-    @Test
-    public void testCompleteHttpUploadWithInvalidTokenFails() throws RepositoryException {
-        getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
-
-        HttpBinaryUpload upload = ((HttpBinaryProvider) getAdminSession())
-                .initiateHttpUpload(BINARY_PATH, 256, 10);
-        assertNotNull(upload);
-        try {
-            ((HttpBinaryProvider) getAdminSession()).completeHttpUpload(upload.getUploadToken()+"X");
-            fail();
-        }
-        catch (InvalidHttpUploadTokenException e) { }
+        catch (IllegalHttpUploadArgumentsException e) { }
     }
 
     // -----------------------------------------------------------------< helpers >--------------
