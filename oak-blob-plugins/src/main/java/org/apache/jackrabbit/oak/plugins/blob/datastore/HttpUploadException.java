@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
+
 /**
  * General exception thrown when a binary upload being made via
- * {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} and
- * {@link HttpDataRecordProvider#completeHttpUpload(String)}
+ * {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} and
+ * {@link DataRecordDirectAccessProvider#completeHttpUpload(String)}
  * cannot be completed.
  */
 public class HttpUploadException extends Exception {

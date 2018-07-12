@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-public interface ConfigurableHttpDataRecordProvider extends HttpDataRecordProvider {
+public interface ConfigurableDataRecordDirectAccessProvider extends DataRecordDirectAccessProvider {
     /**
      * Specifies the number of seconds before a signed download URL will expire.
      * Setting this to 0 is equivalent to turning off the ability to use

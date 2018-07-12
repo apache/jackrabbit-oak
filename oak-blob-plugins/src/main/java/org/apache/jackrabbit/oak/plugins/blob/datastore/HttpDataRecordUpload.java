@@ -21,11 +21,13 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.net.URL;
 import java.util.Collection;
 
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
+
 public interface HttpDataRecordUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * HttpDataRecordProvider#completeHttpUpload(String)}.
+     * DataRecordDirectAccessProvider#completeHttpUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -63,7 +65,7 @@ public interface HttpDataRecordUpload {
      * #getUploadURLs()};
      * <p>
      * If a client calls {@link
-     * HttpDataRecordProvider#initiateHttpUpload(long, int)} with a value of
+     * DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} with a value of
      * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
      * size of the binary to be uploaded, it may not be possible to complete the
      * upload with the URLs provided.  The client should initiate the
@@ -81,11 +83,11 @@ public interface HttpDataRecordUpload {
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URL in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
-     *    {@link HttpDataRecordProvider#initiateHttpUpload(long, int)}, OR
+     *    {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} is less
+     *    {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} is less
      *    than or equal to the minimum size of a multi-part upload part
      * If the collection contains only a single URL the client should treat that
      * URL as a direct single-put upload and write the entire binary to the

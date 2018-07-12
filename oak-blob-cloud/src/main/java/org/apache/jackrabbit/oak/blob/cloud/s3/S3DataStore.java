@@ -26,7 +26,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableHttpDataRecordProvider {
+public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
 
     protected Properties properties;
 
@@ -100,7 +100,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     //
-    // ConfigurableHttpDataRecordProvider implementation
+    // ConfigurableDataRecordDirectAccessProvider implementation
     //
     @Override
     public void setHttpUploadURLExpirySeconds(int seconds) {

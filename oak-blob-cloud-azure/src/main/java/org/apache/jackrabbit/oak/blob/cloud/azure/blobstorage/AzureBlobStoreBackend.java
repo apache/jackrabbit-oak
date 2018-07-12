@@ -168,7 +168,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 LOG.debug("Backend initialized. duration={}",
                           +(System.currentTimeMillis() - start));
 
-                // settings pertaining to HttpDataRecordProvider functionality
+                // settings pertaining to DataRecordDirectAccessProvider functionality
                 String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URL_EXPIRY_SECONDS);
                 if (null != putExpiry) {
                     this.setHttpUploadURLExpirySeconds(Integer.parseInt(putExpiry));

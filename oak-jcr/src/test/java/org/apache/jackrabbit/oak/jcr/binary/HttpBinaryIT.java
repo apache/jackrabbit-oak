@@ -49,7 +49,7 @@ import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -222,7 +222,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testGetBinaryAfterPut() throws Exception {
         // enable writable and readable URL feature
-        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
         provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -324,7 +324,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     // F2 - CDN & transfer accelerators (S3 only for now)
     @Test
     public void testTransferAcceleration() throws Exception {
-        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
         if (provider instanceof S3DataStore) {
             // This test is S3 specific for now
             provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
@@ -372,7 +372,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testCannotReadFromPutURL() throws Exception {
         // enable writable URL and readable URL feature
-        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
         provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -391,7 +391,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testCannotModifyExistingBinaryViaPutURL() throws Exception {
         // enable writable URL and readable URL feature
-        ConfigurableHttpDataRecordProvider provider = getConfigurableHttpDataRecordProvider();
+        ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
         provider.setHttpUploadURLExpirySeconds(REGULAR_WRITE_EXPIRY);
         provider.setHttpDownloadURLExpirySeconds(REGULAR_READ_EXPIRY);
 

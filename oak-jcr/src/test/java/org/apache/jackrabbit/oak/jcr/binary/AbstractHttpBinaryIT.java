@@ -66,7 +66,7 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -212,16 +212,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    protected ConfigurableHttpDataRecordProvider getConfigurableHttpDataRecordProvider()
+    protected ConfigurableDataRecordDirectAccessProvider getConfigurableHttpDataRecordProvider()
         throws RepositoryException {
         getRepository();
         if (fixture instanceof DataStoreHolder) {
             DataStore dataStore = ((DataStoreHolder) fixture).getDataStore();
-            if (dataStore instanceof ConfigurableHttpDataRecordProvider) {
-                return (ConfigurableHttpDataRecordProvider) dataStore;
+            if (dataStore instanceof ConfigurableDataRecordDirectAccessProvider) {
+                return (ConfigurableDataRecordDirectAccessProvider) dataStore;
             }
         }
-        throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableHttpDataRecordProvider");
+        throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordDirectAccessProvider");
     }
 
     // -----< useful constants >----------------------------------------------------------------------------------------
@@ -541,7 +541,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return connection.getResponseCode();
     }
 
-    boolean isSuccessfulHttpPut(int code, ConfigurableHttpDataRecordProvider dataStore) {
+    boolean isSuccessfulHttpPut(int code, ConfigurableDataRecordDirectAccessProvider dataStore) {
         if (dataStore instanceof S3DataStore) {
             return 200 == code;
         }

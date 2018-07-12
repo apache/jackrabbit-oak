@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -664,9 +665,9 @@ public class DataStoreBlobStore
     @Override
     public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
             throws IllegalArgumentException {
-        if (delegate instanceof HttpDataRecordProvider) {
+        if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
-                HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
+                DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
                 HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
                 if (upload == null) {
@@ -704,9 +705,9 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException {
-        if (delegate instanceof HttpDataRecordProvider) {
+        if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
-                DataRecord record = ((HttpDataRecordProvider) delegate).completeHttpUpload(uploadToken);
+                DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeHttpUpload(uploadToken);
                 return new BlobStoreBlob(this, record.getIdentifier().toString());
             }
             catch (DataStoreException | HttpUploadException e) {
@@ -719,10 +720,10 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public URL getHttpDownloadURL(Blob blob) {
-        if (delegate instanceof HttpDataRecordProvider) {
+        if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
-                return ((HttpDataRecordProvider) delegate).getDownloadURL(
+                return ((DataRecordDirectAccessProvider) delegate).getDownloadURL(
                         new DataIdentifier(extractBlobId(blobId)));
             }
         }

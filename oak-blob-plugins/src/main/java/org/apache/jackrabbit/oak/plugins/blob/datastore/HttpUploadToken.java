@@ -29,14 +29,15 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Joiner;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Represents an upload token returned by
- * {@link HttpDataRecordProvider#initiateHttpUpload(long, int)} and used in
- * subsequent calls to {@link HttpDataRecordProvider#completeHttpUpload(String)}.
+ * {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} and used in
+ * subsequent calls to {@link DataRecordDirectAccessProvider#completeHttpUpload(String)}.
  * This class handles creation, signing, and parsing of the token and uses
  * the {@link org.apache.jackrabbit.core.data.DataStore}’s secret key to sign
  * the contents of the token and to validate contents of tokens.

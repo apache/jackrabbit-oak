@@ -40,8 +40,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractHttpDataRecordProviderTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordDirectAccessProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
@@ -50,7 +50,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRecordProviderTest {
+public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDataRecordDirectAccessProviderTest {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -77,7 +77,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
     }
 
     @Override
-    protected ConfigurableHttpDataRecordProvider getDataStore() {
+    protected ConfigurableDataRecordDirectAccessProvider getDataStore() {
         return dataStore;
     }
 
@@ -140,10 +140,10 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
         return conn;
     }
 
-    /** Only run if explicitly asked to via -Dtest=AzureDataStoreHttpDataRecordProviderTest */
-    /** Run like this:  mvn test -Dtest=AzureDataStoreHttpDataRecordProviderTest -Dtest.opts.memory=-Xmx2G */
+    /** Only run if explicitly asked to via -Dtest=AzureDataStoreDataRecordDirectAccessProviderTest */
+    /** Run like this:  mvn test -Dtest=AzureDataStoreDataRecordDirectAccessProviderTest -Dtest.opts.memory=-Xmx2G */
     private static final boolean INTEGRATION_TESTS_ENABLED =
-            AzureDataStoreHttpDataRecordProviderTest.class.getSimpleName().equals(getProperty("test"));
+            AzureDataStoreDataRecordDirectAccessProviderTest.class.getSimpleName().equals(getProperty("test"));
     @Override
     protected boolean integrationTestsEnabled() {
         return INTEGRATION_TESTS_ENABLED;
@@ -151,7 +151,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
 
     @Test
     public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
-        ConfigurableHttpDataRecordProvider ds = getDataStore();
+        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
@@ -169,7 +169,7 @@ public class AzureDataStoreHttpDataRecordProviderTest extends AbstractHttpDataRe
 
     @Test
     public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
-        ConfigurableHttpDataRecordProvider ds = getDataStore();
+        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumUrls = 10000;
         HttpDataRecordUpload upload = ds.initiateHttpUpload(uploadSize, -1);

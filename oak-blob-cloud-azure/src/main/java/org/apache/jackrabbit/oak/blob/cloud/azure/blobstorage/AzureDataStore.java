@@ -30,13 +30,13 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.ConfigurableHttpDataRecordProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableHttpDataRecordProvider {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
     private int minRecordLength = 16*1024;
 
     /**
@@ -91,7 +91,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     }
 
     //
-    // HttpDataRecordProvider Implementation
+    // DataRecordDirectAccessProvider Implementation
     //
     @Override
     public void setHttpUploadURLExpirySeconds(int seconds) {

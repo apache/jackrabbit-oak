@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.net.URL;
 
@@ -26,8 +26,10 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 
-public interface HttpDataRecordProvider {
+public interface DataRecordDirectAccessProvider {
     /**
      * Return a URL for directly reading the binary associated with the provided
      * {@link DataRecord}.

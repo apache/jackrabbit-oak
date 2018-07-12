@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import static java.lang.System.getProperty;
 import static org.junit.Assert.assertEquals;
@@ -52,15 +52,17 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractHttpDataRecordProviderTest {
-    protected static final Logger LOG = LoggerFactory.getLogger(AbstractHttpDataRecordProviderTest.class);
+public abstract class AbstractDataRecordDirectAccessProviderTest {
+    protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordDirectAccessProviderTest.class);
 
-    protected abstract ConfigurableHttpDataRecordProvider getDataStore();
+    protected abstract ConfigurableDataRecordDirectAccessProvider getDataStore();
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
     protected abstract long getProviderMaxSinglePutSize();
@@ -126,7 +128,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testGetReadUrlExpirationOfZeroFails() {
-        ConfigurableHttpDataRecordProvider dataStore = getDataStore();
+        ConfigurableDataRecordDirectAccessProvider dataStore = getDataStore();
         try {
             dataStore.setHttpDownloadURLExpirySeconds(0);
             assertNull(dataStore.getDownloadURL(new DataIdentifier("testIdentifier")));
@@ -139,7 +141,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     @Test
     public void testGetReadUrlIT() throws DataStoreException, IOException {
         DataRecord record = null;
-        HttpDataRecordProvider dataStore = getDataStore();
+        DataRecordDirectAccessProvider dataStore = getDataStore();
         try {
             String testData = randomString(256);
             record = doSynchronousAddRecord((DataStore) dataStore,
@@ -164,7 +166,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
     @Test
     public void testGetExpiredReadUrlFailsIT() throws DataStoreException, IOException {
         DataRecord record = null;
-        ConfigurableHttpDataRecordProvider dataStore = getDataStore();
+        ConfigurableDataRecordDirectAccessProvider dataStore = getDataStore();
         try {
             String testData = randomString(256);
             dataStore.setHttpDownloadURLExpirySeconds(2);
@@ -258,7 +260,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testInititateHttpUploadMultiPartDisabled() throws HttpUploadException {
-        ConfigurableHttpDataRecordProvider ds = getDataStore();
+        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(0);
             HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
@@ -274,7 +276,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testInititateHttpUploadURLListSizes() throws HttpUploadException {
-        HttpDataRecordProvider ds = getDataStore();
+        DataRecordDirectAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 // 20MB upload and 10 URLs requested => should result in 2 urls (10MB each)
                 new InitUploadResult() {
@@ -433,7 +435,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
 
     @Test
     public void testSinglePutDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
-        HttpDataRecordProvider ds = getDataStore();
+        DataRecordDirectAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return ONE_MB; }
@@ -478,7 +480,7 @@ public abstract class AbstractHttpDataRecordProviderTest {
         // Execute this test from the command line like this:
         //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
         assumeTrue(integrationTestsEnabled());
-        HttpDataRecordProvider ds = getDataStore();
+        DataRecordDirectAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return TWENTY_MB; }
