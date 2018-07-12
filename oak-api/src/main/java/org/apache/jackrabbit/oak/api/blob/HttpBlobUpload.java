@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.api.blob;
 import java.net.URL;
 import java.util.Collection;
 
+import org.osgi.annotation.versioning.ProviderType;
+
+@ProviderType
 public interface HttpBlobUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be provided in a
