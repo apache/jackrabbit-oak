@@ -41,7 +41,7 @@ import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.api.binary.BinaryDirectUpload;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -311,13 +311,13 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
     @Override
     @Nullable
-    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
+    public BinaryDirectUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
         BlobDirectUpload upload = blobDirectAccessProvider.initiateHttpUpload(maxSize, maxParts);
         if (null == upload) {
             return null;
         }
 
-        return new BinaryUpload() {
+        return new BinaryDirectUpload() {
             @Override
             public Iterable<URL> getURLs() {
                 return upload.getUploadURLs();
