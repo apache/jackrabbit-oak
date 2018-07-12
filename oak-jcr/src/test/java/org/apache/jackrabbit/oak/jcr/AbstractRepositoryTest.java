@@ -58,6 +58,7 @@ public abstract class AbstractRepositoryTest {
     private volatile NodeStore nodeStore;
     private volatile Repository repository;
     private volatile Session adminSession;
+    private volatile Session anonymousSession;
 
     /**
      * The system property "nsfixtures" can be used to provide a
@@ -113,6 +114,13 @@ public abstract class AbstractRepositoryTest {
         qs.setFullTextComparisonWithoutIndex(true);
         jcr.with(BundlingConfigInitializer.INSTANCE);
         return jcr.withAsyncIndexing().with(qs);
+    }
+
+    protected Session getAnonymousSession() throws RepositoryException {
+        if (anonymousSession == null) {
+            anonymousSession = createAnonymousSession();
+        }
+        return anonymousSession;
     }
 
     protected Session getAdminSession() throws RepositoryException {
