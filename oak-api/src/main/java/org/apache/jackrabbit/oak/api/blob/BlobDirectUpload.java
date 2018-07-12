@@ -24,11 +24,11 @@ import java.util.Collection;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
-public interface HttpBlobUpload {
+public interface BlobDirectUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * HttpBlobProvider#completeHttpUpload(String)}.
+     * BlobDirectAccessProvider#completeHttpUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -66,7 +66,7 @@ public interface HttpBlobUpload {
      * size returned by {@link #getMaxPartSize()} will work without using more
      * URLs than those available in the collection of uploadPartURLs.
      * <p>
-     * If a client calls {@link HttpBlobProvider#initiateHttpUpload(long, int)}
+     * If a client calls {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}
      * with a value of {@code maxUploadSizeInBytes} that ends up being smaller
      * than the actual size of the binary to be uploaded, it may not be possible
      * to complete the upload with the URLs provided.  The client should
@@ -85,11 +85,11 @@ public interface HttpBlobUpload {
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URL in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
-     *    {@link HttpBlobProvider#initiateHttpUpload(long, int)}, OR
+     *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link HttpBlobProvider#initiateHttpUpload(long, int)} is less than or
+     *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)} is less than or
      *    equal to the minimum size of a multi-part upload part
      * If the collection contains only a single URL the client should treat that
      * URL as a direct single-put upload and write the entire binary to the

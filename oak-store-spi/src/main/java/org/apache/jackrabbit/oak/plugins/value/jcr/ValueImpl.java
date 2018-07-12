@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
@@ -57,7 +57,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
     private final Type<?> type;
     private final int index;
     private final NamePathMapper namePathMapper;
-    private final HttpBlobProvider httpBlobProvider;
+    private final BlobDirectAccessProvider blobDirectAccessProvider;
 
     private InputStream stream = null;
 
@@ -71,14 +71,14 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
     ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper,
-              @Nullable HttpBlobProvider httpBlobProvider)
+              @Nullable BlobDirectAccessProvider blobDirectAccessProvider)
             throws RepositoryException {
         checkArgument(index < property.count());
         this.propertyState = checkNotNull(property);
         this.type = getType(property);
         this.index = index;
         this.namePathMapper = checkNotNull(namePathMapper);
-        this.httpBlobProvider = httpBlobProvider;
+        this.blobDirectAccessProvider = blobDirectAccessProvider;
     }
 
     /**
@@ -104,9 +104,9 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
     ValueImpl(@Nonnull PropertyState property, @Nonnull NamePathMapper namePathMapper,
-              @Nonnull HttpBlobProvider httpBlobProvider)
+              @Nonnull BlobDirectAccessProvider blobDirectAccessProvider)
             throws RepositoryException {
-        this(checkSingleValued(property), 0, namePathMapper, checkNotNull(httpBlobProvider));
+        this(checkSingleValued(property), 0, namePathMapper, checkNotNull(blobDirectAccessProvider));
     }
 
     private static PropertyState checkSingleValued(PropertyState property) {
@@ -393,10 +393,10 @@ class ValueImpl implements JackrabbitValue, OakValue {
     }
 
     URL getHttpDownloadURL(Blob blob) {
-        if (httpBlobProvider == null) {
+        if (blobDirectAccessProvider == null) {
             return null;
         } else {
-            return httpBlobProvider.getHttpDownloadURL(blob);
+            return blobDirectAccessProvider.getHttpDownloadURL(blob);
         }
     }
 

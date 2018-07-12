@@ -58,7 +58,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
@@ -169,8 +169,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         if (fixture instanceof BlobStoreHolder) {
             BlobStoreHolder holder = (BlobStoreHolder) fixture;
             BlobStore blobStore = holder.getBlobStore();
-            if (blobStore instanceof HttpBlobProvider) {
-                wb.register(HttpBlobProvider.class, (HttpBlobProvider) blobStore,
+            if (blobStore instanceof BlobDirectAccessProvider) {
+                wb.register(BlobDirectAccessProvider.class, (BlobDirectAccessProvider) blobStore,
                         Collections.emptyMap());
             }
         }

@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
-public interface HttpBlobProvider {
+public interface BlobDirectAccessProvider {
 
     /**
      * Begin a transaction to perform a direct binary upload to the cloud
@@ -60,7 +60,7 @@ public interface HttpBlobProvider {
      *         for this parameter.  If the client is able to accept any number
      *         of URLs, a value of -1 may be passed in to indicate that the
      *         implementation is free to return as many URLs as it desires.
-     * @return A {@link HttpBlobUpload} referencing this direct upload, or
+     * @return A {@link BlobDirectUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct HTTP uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
@@ -70,8 +70,8 @@ public interface HttpBlobProvider {
      *         the service provider or the implementation.
      */
     @Nullable
-    HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes,
-                                      int maxNumberOfURLs)
+    BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes,
+                                        int maxNumberOfURLs)
             throws IllegalArgumentException;
 
     /**
@@ -79,13 +79,13 @@ public interface HttpBlobProvider {
      * storage.
      * <p>
      * This requires the {@code uploadToken} that can be obtained from the
-     * returned {@link HttpBlobUpload} from a previous call to {@link
+     * returned {@link BlobDirectUpload} from a previous call to {@link
      * #initiateHttpUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
      * includes encoded data about the transaction along with a signature
      * that will be verified by the implementation.
      *
-     * @param uploadToken the upload token from a {@link HttpBlobUpload}
+     * @param uploadToken the upload token from a {@link BlobDirectUpload}
      *         object returned from a previous call to {@link
      *         #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
