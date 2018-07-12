@@ -335,15 +335,19 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
                 }
 
                 @Override
-                public Binary complete() throws RepositoryException {
-                    return createBinary(
-                            httpBlobProvider.completeHttpUpload(upload.getUploadToken()));
-                }
+                public String getUploadToken() { return upload.getUploadToken(); }
             };
         }
         catch (org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException e) {
             throw new org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException(e);
         }
+    }
+
+    @Override
+    @Nullable
+    public Binary completeBinaryUpload(String uploadToken) throws RepositoryException {
+        return createBinary(
+                httpBlobProvider.completeHttpUpload(uploadToken));
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
