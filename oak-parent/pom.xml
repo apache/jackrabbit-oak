@@ -156,11 +156,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-              <groupId>biz.aQute.bnd</groupId>
-              <artifactId>biz.aQute.bndlib</artifactId>
-              <version>3.3.0</version>
-            </dependency>
           </dependencies>
           <configuration>
             <exportScr>true</exportScr>
@@ -175,7 +170,7 @@
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
               <!-- Support parsing of maven-scr-plugin annotations through the felix.scr.bnd plugin -->
-              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory};</_plugin>
+              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}</_plugin>
             </instructions>
           </configuration>
           <executions>
