@@ -88,9 +88,11 @@ public interface HttpBlobProvider {
      *         #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
+     * @throws {@link IllegalArgumentException} if the upload token is null,
+     *         empty, or otherwise invalid.
      */
     @Nullable
-    Blob completeHttpUpload(String uploadToken);
+    Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException;
 
     /**
      * Obtain a download URL for a blob. This is usually a signed URL that can
