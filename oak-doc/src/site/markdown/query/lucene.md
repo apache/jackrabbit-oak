@@ -445,6 +445,8 @@ weight
 : Since 1.7.11: if `weight` is set to `10`, then the estimated number of unique entries is 10.
   This means, the cost is reduced by a factor of about 10, for queries that contain this condition.
   See [OAK-6735][OAK-6735] for details.
+: Since 1.10: the default value is now `5`. 
+  See [OAK-7379][OAK-7379] for details.
 
 <a name="property-names"></a>**Property Names**
 
@@ -1790,6 +1792,7 @@ such fields
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
+[OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
