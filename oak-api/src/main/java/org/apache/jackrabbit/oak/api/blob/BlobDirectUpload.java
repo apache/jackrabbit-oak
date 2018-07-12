@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.api.blob;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Collection;
 
 import org.osgi.annotation.versioning.ProviderType;
@@ -38,10 +38,10 @@ public interface BlobDirectUpload {
      * The smallest part size the client can send in a multi-part upload (not
      * counting the final part).  There is no guarantee made that splitting the
      * binary into parts of this size can complete the full upload without
-     * exhausting the full supply of uploadURLs.  In other words, clients
+     * exhausting the full supply of uploadURIs.  In other words, clients
      * wishing to perform a multi-part upload MUST split the binary into parts
      * of at least this size, in bytes, but clients may need to use larger part
-     * sizes in order to upload the entire binary with the number of URLs
+     * sizes in order to upload the entire binary with the number of URIs
      * provided.
      * <p>
      * Note that some backends have lower-bound limits for the size of a part of
@@ -55,7 +55,7 @@ public interface BlobDirectUpload {
     /**
      * The largest part size the client can send in a multi-part upload.  The
      * API guarantees that splitting the file into parts of this size will allow
-     * the client to complete the multi-part upload without requiring more URLs
+     * the client to complete the multi-part upload without requiring more URIs
      * than those provided, SO LONG AS the file being uploaded is not larger
      * than the {@code maxSize} specified in the original call.
      * <p>
@@ -64,12 +64,12 @@ public interface BlobDirectUpload {
      * for clients who wish to tune uploads to match network conditions;
      * however, the only guarantee offered by the API is that using parts of the
      * size returned by {@link #getMaxPartSize()} will work without using more
-     * URLs than those available in the collection of uploadPartURLs.
+     * URIs than those available in the collection of uploadPartURIs.
      * <p>
      * If a client calls {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}
      * with a value of {@code maxUploadSizeInBytes} that ends up being smaller
      * than the actual size of the binary to be uploaded, it may not be possible
-     * to complete the upload with the URLs provided.  The client should
+     * to complete the upload with the URIs provided.  The client should
      * initiate the transaction again with the correct size.
      * <p>
      * Note that some backends have upper-bound limits for the size of a part of
@@ -81,25 +81,25 @@ public interface BlobDirectUpload {
     long getMaxPartSize();
 
     /**
-     * Returns a collection of direct-writable upload URLs for uploading a file,
+     * Returns a collection of direct-writable upload URIs for uploading a file,
      * or file part in the case of multi-part uploading.  This collection may
-     * contain only a single URL in the following cases:
-     *  - If the client requested 1 as the value of maxNumberOfURLs in a call to
+     * contain only a single URI in the following cases:
+     *  - If the client requested 1 as the value of maxNumberOfURIs in a call to
      *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
      *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)} is less than or
      *    equal to the minimum size of a multi-part upload part
-     * If the collection contains only a single URL the client should treat that
-     * URL as a direct single-put upload and write the entire binary to the
-     * single URL.  Otherwise the client may choose to consume any number of
-     * URLs in the collection, up to the entire collection of URLs provided.
+     * If the collection contains only a single URI the client should treat that
+     * URI as a direct single-put upload and write the entire binary to the
+     * single URI.  Otherwise the client may choose to consume any number of
+     * URIs in the collection, up to the entire collection of URIs provided.
      * <p>
-     * Note that ordering matters; URLs should be consumed in sequence and
+     * Note that ordering matters; URIs should be consumed in sequence and
      * should not be skipped.
      *
-     * @return ordered collection of URLs to be consumed in sequence.
+     * @return ordered collection of URIs to be consumed in sequence.
      */
-    Collection<URL> getUploadURLs();
+    Collection<URI> getUploadURIs();
 }

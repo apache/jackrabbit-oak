@@ -20,7 +20,7 @@ import static com.google.common.base.Objects.toStringHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
@@ -87,19 +87,19 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
     }
 
     @Override
-    public URL getURL() throws RepositoryException {
+    public URI getURI() throws RepositoryException {
         if (null == getReference()) {
-            // Binary is inlined, we cannot return a URL for it
+            // Binary is inlined, we cannot return a URI for it
             return null;
         }
 
         // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
         // a client cannot spoof, so we know that the id in question is valid and can be
-        // trusted, so we can safely give out a URL to the binary for downloading.
+        // trusted, so we can safely give out a URI to the binary for downloading.
         Blob blob = getBinaryValue().getBlob();
         String blobId = blob.getContentIdentity();
         if (null != blobId) {
-            return value.getHttpDownloadURL(blob);
+            return value.getHttpDownloadURI(blob);
         }
         return null;
     }

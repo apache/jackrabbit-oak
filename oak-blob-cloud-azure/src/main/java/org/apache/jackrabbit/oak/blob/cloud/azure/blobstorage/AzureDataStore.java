@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
@@ -94,9 +94,9 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     // DataRecordDirectAccessProvider Implementation
     //
     @Override
-    public void setHttpUploadURLExpirySeconds(int seconds) {
+    public void setHttpUploadURIExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setHttpUploadURLExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpUploadURIExpirySeconds(seconds);
         }
     }
 
@@ -107,19 +107,19 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0 == maxNumberOfURLs) {
-            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
+        else if (0 == maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
         }
-        else if (-1 > maxNumberOfURLs) {
-            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
+        else if (-1 > maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURLs == 1) {
+                maxNumberOfURIs == 1) {
             throw new IllegalArgumentException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
@@ -132,7 +132,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         if (null == azureBlobStoreBackend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
         }
-        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
     @Nonnull
@@ -151,21 +151,21 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     }
 
     @Override
-    public void setHttpDownloadURLExpirySeconds(int seconds) {
+    public void setHttpDownloadURIExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setHttpDownloadURLExpirySeconds(seconds);
+            azureBlobStoreBackend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
 
-    public void setHttpDownloadURLCacheSize(int maxSize) {
-        azureBlobStoreBackend.setHttpDownloadURLCacheSize(maxSize);
+    public void setHttpDownloadURICacheSize(int maxSize) {
+        azureBlobStoreBackend.setHttpDownloadURICacheSize(maxSize);
     }
 
     @Nullable
     @Override
-    public URL getDownloadURL(DataIdentifier identifier) {
+    public URI getDownloadURI(DataIdentifier identifier) {
         if (null != azureBlobStoreBackend) {
-            return azureBlobStoreBackend.createHttpDownloadURL(identifier);
+            return azureBlobStoreBackend.createHttpDownloadURI(identifier);
         }
         return null;
     }

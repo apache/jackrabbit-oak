@@ -28,8 +28,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.URI;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -66,8 +65,8 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -118,7 +117,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             fixtures.add(new SegmentMemoryNodeStoreFixture(s3));
             fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
         } else {
-            LOG.warn("WARN: Skipping AbstractURLBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
+            LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
         }
 
         Properties azProps = AzureDataStoreFixture.loadAzureProperties();
@@ -144,7 +143,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             fixtures.add(new SegmentMemoryNodeStoreFixture(azure));
             fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
         } else {
-            LOG.warn("WARN: Skipping AbstractURLBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
+            LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
         }
 
         return fixtures;
@@ -508,14 +507,14 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return new ByteArrayInputStream(blob);
     }
 
-    protected int httpPut(@Nullable URL url, long contentLength, InputStream in) throws IOException {
-        return httpPut(url, contentLength, in, false);
+    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in) throws IOException {
+        return httpPut(uri, contentLength, in, false);
     }
 
     /**
-     * Uploads data via HTTP put to the provided URL.
+     * Uploads data via HTTP put to the provided URI.
      *
-     * @param url The URL to upload to.
+     * @param uri The URI to upload to.
      * @param contentLength Value to set in the Content-Length header.
      * @param in - The input stream to upload.
      * @param isMultiPart - True if this upload is part of a multi-part upload.
@@ -523,11 +522,11 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
      * response for S3 is 200 - OK whereas for Azure it is 201 - Created.
      * @throws IOException
      */
-    protected int httpPut(@Nullable URL url, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
+    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(url);
+        assertNotNull(uri);
 
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setDoOutput(true);
         connection.setRequestMethod("PUT");
         connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
@@ -555,16 +554,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return code >= 400 && code < 500;
     }
 
-    protected int httpPutTestStream(URL url) throws IOException {
+    protected int httpPutTestStream(URI uri) throws IOException {
         String content = "hello world";
-        return httpPut(url, content.getBytes().length, getTestInputStream(content));
+        return httpPut(uri, content.getBytes().length, getTestInputStream(content));
     }
 
-    protected InputStream httpGet(@Nullable URL url) throws IOException  {
+    protected InputStream httpGet(@Nullable URI uri) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(url);
+        assertNotNull(uri);
 
-        URLConnection conn = url.openConnection();
+        HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
         return conn.getInputStream();
     }
 }

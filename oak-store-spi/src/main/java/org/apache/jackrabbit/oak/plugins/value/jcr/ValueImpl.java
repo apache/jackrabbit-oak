@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.URL;
+import java.net.URI;
 import java.util.Calendar;
 
 import javax.annotation.Nonnull;
@@ -392,11 +392,11 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
-    URL getHttpDownloadURL(Blob blob) {
+    URI getHttpDownloadURI(Blob blob) {
         if (blobDirectAccessProvider == null) {
             return null;
         } else {
-            return blobDirectAccessProvider.getHttpDownloadURL(blob);
+            return blobDirectAccessProvider.getHttpDownloadURI(blob);
         }
     }
 

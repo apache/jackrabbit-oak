@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
@@ -103,9 +103,9 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     // ConfigurableDataRecordDirectAccessProvider implementation
     //
     @Override
-    public void setHttpUploadURLExpirySeconds(int seconds) {
+    public void setHttpUploadURIExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setHttpUploadURLExpirySeconds(seconds);
+            s3Backend.setHttpUploadURIExpirySeconds(seconds);
         }
     }
 
@@ -117,19 +117,19 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
-        else if (0 == maxNumberOfURLs) {
-            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
+        else if (0 == maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
         }
-        else if (-1 > maxNumberOfURLs) {
-            throw new IllegalArgumentException("maxNumberOfURLs must either be > 0 or -1");
+        else if (-1 > maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
         }
         else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURLs == 1) {
+                maxNumberOfURIs == 1) {
             throw new IllegalArgumentException(
                     String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
             );
@@ -142,7 +142,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         if (null == s3Backend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
         }
-        return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+        return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
     @Override
@@ -160,24 +160,24 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public void setHttpDownloadURLExpirySeconds(int seconds) {
+    public void setHttpDownloadURIExpirySeconds(int seconds) {
         if (s3Backend != null) {
-            s3Backend.setHttpDownloadURLExpirySeconds(seconds);
+            s3Backend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setHttpDownloadURLCacheSize(int maxSize) {
+    public void setHttpDownloadURICacheSize(int maxSize) {
         if (s3Backend != null) {
-            s3Backend.setHttpDownloadURLCacheSize(maxSize);
+            s3Backend.setHttpDownloadURICacheSize(maxSize);
         }
     }
 
     @Override
-    public URL getDownloadURL(@Nonnull DataIdentifier identifier) {
+    public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {
             return null;
         }
-        return s3Backend.createHttpDownloadURL(identifier);
+        return s3Backend.createHttpDownloadURI(identifier);
     }
 }

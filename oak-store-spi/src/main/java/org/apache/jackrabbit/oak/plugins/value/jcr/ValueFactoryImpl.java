@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.Calendar;
 import java.util.List;
 
@@ -40,10 +39,10 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDirectUpload;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
@@ -319,8 +318,8 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         return new BinaryDirectUpload() {
             @Override
-            public Iterable<URL> getURLs() {
-                return upload.getUploadURLs();
+            public Iterable<URI> getURIs() {
+                return upload.getUploadURIs();
             }
 
             @Override
@@ -377,7 +376,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
         @Nullable
         @Override
         public BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes,
-                                                   int maxNumberOfURLs) {
+                                                   int maxNumberOfURIs) {
             return null;
         }
 
@@ -389,7 +388,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public URL getHttpDownloadURL(Blob blob) {
+        public URI getHttpDownloadURI(Blob blob) {
             return null;
         }
     }

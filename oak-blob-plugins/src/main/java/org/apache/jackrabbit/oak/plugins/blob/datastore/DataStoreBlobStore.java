@@ -31,7 +31,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -665,13 +665,13 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+    public BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
-                DataRecordDirectUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                DataRecordDirectUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
                 if (upload == null) {
                     return null;
                 }
@@ -692,8 +692,8 @@ public class DataStoreBlobStore
                     }
 
                     @Override
-                    public Collection<URL> getUploadURLs() {
-                        return upload.getUploadURLs();
+                    public Collection<URI> getUploadURIs() {
+                        return upload.getUploadURIs();
                     }
                 };
             }
@@ -721,11 +721,11 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URL getHttpDownloadURL(Blob blob) {
+    public URI getHttpDownloadURI(Blob blob) {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
-                return ((DataRecordDirectAccessProvider) delegate).getDownloadURL(
+                return ((DataRecordDirectAccessProvider) delegate).getDownloadURI(
                         new DataIdentifier(extractBlobId(blobId)));
             }
         }

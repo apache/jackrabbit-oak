@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.api.blob;
 
-import java.net.URL;
+import java.net.URI;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +32,7 @@ public interface BlobDirectAccessProvider {
      * Begin a transaction to perform a direct binary upload to the cloud
      * storage. This method will throw a {@link IllegalArgumentException}
      * if no valid upload can be arranged with the arguments specified. E.g. the
-     * max upload size specified divided by the number of URLs requested
+     * max upload size specified divided by the number of URIs requested
      * indicates the minimum size of each upload. If that size exceeds the
      * maximum upload size supported by the service provider, a
      * {@link IllegalArgumentException} is thrown.
@@ -52,26 +52,26 @@ public interface BlobDirectAccessProvider {
      *         uploaded, in bytes, based on the caller's best guess.  If the
      *         actual size of the file to be uploaded is known, that value
      *         should be used.
-     * @param maxNumberOfURLs the maximum number of URLs the client is
+     * @param maxNumberOfURIs the maximum number of URIs the client is
      *         able to accept. If the client does not support multi-part
      *         uploading, this value should be 1. Note that the implementing
      *         class is not required to support multi-part uploading so it may
-     *         return only a single upload URL regardless of the value passed in
+     *         return only a single upload URI regardless of the value passed in
      *         for this parameter.  If the client is able to accept any number
-     *         of URLs, a value of -1 may be passed in to indicate that the
-     *         implementation is free to return as many URLs as it desires.
+     *         of URIs, a value of -1 may be passed in to indicate that the
+     *         implementation is free to return as many URIs as it desires.
      * @return A {@link BlobDirectUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct HTTP uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
-     *         or {@code maxNumberOfURLs} is not either a positive value or -1,
+     *         or {@code maxNumberOfURIs} is not either a positive value or -1,
      *         or if the upload cannot be completed as requested, due to a
      *         mismatch between the request parameters and the capabilities of
      *         the service provider or the implementation.
      */
     @Nullable
     BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes,
-                                        int maxNumberOfURLs)
+                                        int maxNumberOfURIs)
             throws IllegalArgumentException;
 
     /**
@@ -98,14 +98,14 @@ public interface BlobDirectAccessProvider {
     Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException;
 
     /**
-     * Obtain a download URL for a {@link Blob). This is usually a signed URL
+     * Obtain a download URI for a {@link Blob). This is usually a signed URI
      * that can be used to directly download the blob corresponding to the
      * provided {@link Blob}.
      *
      * @param blob for the {@link Blob} to be downloaded.
-     * @return A URL to download the blob directly or {@code null} if the blob
+     * @return A URI to download the blob directly or {@code null} if the blob
      *         cannot be downloaded directly.
      */
     @Nullable
-    URL getHttpDownloadURL(Blob blob);
+    URI getHttpDownloadURI(Blob blob);
 }
