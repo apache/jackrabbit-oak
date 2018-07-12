@@ -42,8 +42,8 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordDirectAccessProviderTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -150,12 +150,12 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
     }
 
     @Test
-    public void testInitDirectUploadURLHonorsExpiryTime() throws HttpUploadException {
+    public void testInitDirectUploadURLHonorsExpiryTime() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setHttpUploadURLExpirySeconds(60);
-            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
+            DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
             URL uploadUrl = uploadContext.getUploadURLs().iterator().next();
             Map<String, String> params = parseQueryString(uploadUrl);
             String expiryDateStr = params.get("se");
@@ -168,11 +168,11 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURLs() throws HttpUploadException {
+    public void testInitiateHttpUploadUnlimitedURLs() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumUrls = 10000;
-        HttpDataRecordUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        DataRecordDirectUpload upload = ds.initiateHttpUpload(uploadSize, -1);
         assertEquals(expectedNumUrls, upload.getUploadURLs().size());
 
         uploadSize = ONE_GB * 500;

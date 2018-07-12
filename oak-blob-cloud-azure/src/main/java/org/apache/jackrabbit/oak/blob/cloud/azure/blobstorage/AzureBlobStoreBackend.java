@@ -76,9 +76,9 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
@@ -753,7 +753,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     public void setHttpUploadURLExpirySeconds(int seconds) { httpUploadURLExpirySeconds = seconds; }
 
-    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls) {
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls) {
         List<URL> uploadPartURLs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -821,9 +821,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         catch (DataStoreException e) {
             LOG.warn("Unable to obtain data store key");
         }
-        String uploadToken = new HttpUploadToken(blobId, uploadId).getEncodedToken(secret);
+        String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-        return new HttpDataRecordUpload() {
+        return new DataRecordDirectUpload() {
             @Override
             public String getUploadToken() { return uploadToken; }
 
@@ -839,8 +839,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
-            throws HttpUploadException, DataStoreException {
-        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
+            throws DataRecordDirectUploadException, DataStoreException {
+        DataRecordDirectUploadToken uploadToken = DataRecordDirectUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
         try {
             if (uploadToken.getUploadId().isPresent()) {
@@ -856,12 +856,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             // else do nothing - single put is already complete
 
             if (! getAzureContainer().getBlockBlobReference(blobId).exists()) {
-                throw new HttpUploadException(
+                throw new DataRecordDirectUploadException(
                         String.format("Unable to finalize direct write of binary %s", blobId));
             }
         }
         catch (URISyntaxException | StorageException e) {
-            throw new HttpUploadException(
+            throw new DataRecordDirectUploadException(
                     String.format("Unable to finalize direct write of binary %s", blobId));
         }
 

@@ -27,8 +27,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
@@ -117,8 +117,8 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     @Override
-    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws IllegalArgumentException, HttpUploadException {
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws IllegalArgumentException, DataRecordDirectUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
@@ -140,14 +140,14 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
             );
         }
         if (null == s3Backend) {
-            throw new HttpUploadException("Backend not initialized");
+            throw new DataRecordDirectUploadException("Backend not initialized");
         }
         return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
     }
 
     @Override
     public DataRecord completeHttpUpload(@Nonnull String uploadToken)
-            throws IllegalArgumentException, HttpUploadException, DataStoreException {
+            throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
         }

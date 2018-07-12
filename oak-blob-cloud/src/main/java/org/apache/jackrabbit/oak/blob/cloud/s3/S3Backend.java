@@ -85,9 +85,9 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
@@ -742,7 +742,7 @@ public class S3Backend extends AbstractSharedBackend {
         return url;
     }
 
-    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls) {
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls) {
         List<URL> uploadPartURLs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -805,9 +805,9 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.warn("Unable to obtain data store key");
         }
 
-        String uploadToken = new HttpUploadToken(blobId, uploadId).getEncodedToken(secret);
+        String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-        return new HttpDataRecordUpload() {
+        return new DataRecordDirectUpload() {
             @Override
             public String getUploadToken() { return uploadToken; }
 
@@ -823,8 +823,8 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
-            throws HttpUploadException, DataStoreException {
-        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
+            throws DataRecordDirectUploadException, DataStoreException {
+        DataRecordDirectUploadToken uploadToken = DataRecordDirectUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
         if (uploadToken.getUploadId().isPresent()) {
             // An existing upload ID means this is a multi-part upload
@@ -850,7 +850,7 @@ public class S3Backend extends AbstractSharedBackend {
 
 
         if (! s3service.doesObjectExist(bucket, blobId)) {
-            throw new HttpUploadException(
+            throw new DataRecordDirectUploadException(
                     String.format("Unable to finalize direct write of binary %s", blobId)
             );
         }

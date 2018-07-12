@@ -52,8 +52,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -193,8 +191,8 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     // Direct HTTP upload tests
     //
     @Test
-    public void testInitiateHttpUploadReturnsValidUploadContext() throws HttpUploadException {
-        HttpDataRecordUpload uploadContext =
+    public void testInitiateHttpUploadReturnsValidUploadContext() throws DataRecordDirectUploadException {
+        DataRecordDirectUpload uploadContext =
                 getDataStore().initiateHttpUpload(ONE_MB, 10);
         assertNotNull(uploadContext);
         assertFalse(uploadContext.getUploadURLs().isEmpty());
@@ -207,7 +205,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInitiateHttpUploadRequiresNonzeroFileSize() throws HttpUploadException {
+    public void testInitiateHttpUploadRequiresNonzeroFileSize() throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(0, 10);
             fail();
@@ -216,7 +214,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadRequiresNonzeroNumURLs() throws HttpUploadException {
+    public void testInititateHttpUploadRequiresNonzeroNumURLs() throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(ONE_MB, 0);
             fail();
@@ -226,7 +224,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
 
     @Test
     public void testInitiateHttpUploadRequiresNonNegativeNumURLs()
-            throws HttpUploadException {
+            throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(ONE_MB, -2);
             fail();
@@ -243,27 +241,27 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadSingleURLRequested() throws HttpUploadException {
-        HttpDataRecordUpload uploadContext =
+    public void testInititateHttpUploadSingleURLRequested() throws DataRecordDirectUploadException {
+        DataRecordDirectUpload uploadContext =
                 getDataStore().initiateHttpUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURLs().size());
         assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
     }
 
     @Test
-    public void testInititateHttpUploadSizeLowerThanMinPartSize() throws HttpUploadException {
-        HttpDataRecordUpload uploadContext =
+    public void testInititateHttpUploadSizeLowerThanMinPartSize() throws DataRecordDirectUploadException {
+        DataRecordDirectUpload uploadContext =
                 getDataStore().initiateHttpUpload(getProviderMinPartSize()-1L, 10);
         assertEquals(1, uploadContext.getUploadURLs().size());
         assertTrue(isSinglePutURL(uploadContext.getUploadURLs().iterator().next()));
     }
 
     @Test
-    public void testInititateHttpUploadMultiPartDisabled() throws HttpUploadException {
+    public void testInititateHttpUploadMultiPartDisabled() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             ds.setHttpUploadURLExpirySeconds(0);
-            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
+            DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(TWENTY_MB, 10);
             assertEquals(0, uploadContext.getUploadURLs().size());
 
             uploadContext = ds.initiateHttpUpload(20, 1);
@@ -275,7 +273,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadURLListSizes() throws HttpUploadException {
+    public void testInititateHttpUploadURLListSizes() throws DataRecordDirectUploadException {
         DataRecordDirectAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 // 20MB upload and 10 URLs requested => should result in 2 urls (10MB each)
@@ -351,7 +349,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 }
         )) {
-            HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+            DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
                     res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
             assertEquals(String.format("Failed for upload size: %d, num urls %d", res.getUploadSize(), res.getMaxNumUrls()),
@@ -362,7 +360,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInitiateHttpUploadSizeTooBigForSinglePut() throws HttpUploadException {
+    public void testInitiateHttpUploadSizeTooBigForSinglePut() throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(getProviderMaxSinglePutSize() + 1, 1);
             fail();
@@ -371,7 +369,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInitiateHttpUploadSizeTooBigForUpload() throws HttpUploadException {
+    public void testInitiateHttpUploadSizeTooBigForUpload() throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(getProviderMaxBinaryUploadSize() + 1, -1);
             fail();
@@ -380,7 +378,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testInititateHttpUploadRequestedPartSizesTooBig() throws HttpUploadException {
+    public void testInititateHttpUploadRequestedPartSizesTooBig() throws DataRecordDirectUploadException {
         try {
             getDataStore().initiateHttpUpload(FIVE_GB, 5);
             fail();
@@ -389,7 +387,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testCompleteHttpUploadRequiresNonNullToken() throws HttpUploadException, DataStoreException {
+    public void testCompleteHttpUploadRequiresNonNullToken() throws DataRecordDirectUploadException, DataStoreException {
         try {
             getDataStore().completeHttpUpload(null);
             fail();
@@ -398,7 +396,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testCompleteHttpUploadRequiresValidToken() throws HttpUploadException, DataStoreException {
+    public void testCompleteHttpUploadRequiresValidToken() throws DataRecordDirectUploadException, DataStoreException {
         for (String token : Lists.newArrayList("", "abc", "abc#123")) {
             try {
                 getDataStore().completeHttpUpload(token);
@@ -409,8 +407,8 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testCompleteHttpUploadSignatureMustMatch() throws HttpUploadException, DataStoreException {
-        HttpDataRecordUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
+    public void testCompleteHttpUploadSignatureMustMatch() throws DataRecordDirectUploadException, DataStoreException {
+        DataRecordDirectUpload uploadContext = getDataStore().initiateHttpUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
         String uploadToken = uploadContext.getUploadToken();
@@ -434,7 +432,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     }
 
     @Test
-    public void testSinglePutDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+    public void testSinglePutDirectUploadIT() throws DataRecordDirectUploadException, DataStoreException, IOException {
         DataRecordDirectAccessProvider ds = getDataStore();
         for (InitUploadResult res : Lists.newArrayList(
                 new InitUploadResult() {
@@ -447,7 +445,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+                DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
 
                 assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
                 String uploaded = randomString(res.getUploadSize());
@@ -475,7 +473,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
 
     //
     @Test
-    public void testMultiPartDirectUploadIT() throws HttpUploadException, DataStoreException, IOException {
+    public void testMultiPartDirectUploadIT() throws DataRecordDirectUploadException, DataStoreException, IOException {
         // Disabled by default - this test uses a lot of memory.
         // Execute this test from the command line like this:
         //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
@@ -499,7 +497,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                HttpDataRecordUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
+                DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(res.getUploadSize(), res.getMaxNumUrls());
                 assertEquals(res.getExpectedNumUrls(), uploadContext.getUploadURLs().size());
 
                 String uploaded = randomString(res.getUploadSize());

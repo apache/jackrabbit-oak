@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -29,7 +29,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Joiner;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
 import org.apache.jackrabbit.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,18 +41,18 @@ import org.slf4j.LoggerFactory;
  * the {@link org.apache.jackrabbit.core.data.DataStore}’s secret key to sign
  * the contents of the token and to validate contents of tokens.
  */
-public class HttpUploadToken {
-    private static Logger LOG = LoggerFactory.getLogger(HttpUploadToken.class);
+public class DataRecordDirectUploadToken {
+    private static Logger LOG = LoggerFactory.getLogger(DataRecordDirectUploadToken.class);
 
     private String blobId;
     private Optional<String> uploadId;
 
-    public HttpUploadToken(@Nonnull String blobId, @Nullable String uploadId) {
+    public DataRecordDirectUploadToken(@Nonnull String blobId, @Nullable String uploadId) {
         this.blobId = blobId;
         this.uploadId = Optional.ofNullable(uploadId);
     }
 
-    public static HttpUploadToken fromEncodedToken(@Nonnull String encoded, @Nonnull byte[] secret) {
+    public static DataRecordDirectUploadToken fromEncodedToken(@Nonnull String encoded, @Nonnull byte[] secret) {
         String[] parts = encoded.split("#", 2);
         if (parts.length < 2) {
             throw new IllegalArgumentException("Encoded string is missing the signature");
@@ -72,7 +71,7 @@ public class HttpUploadToken {
             throw new IllegalArgumentException("Not all upload token parts provided");
         }
 
-        return new HttpUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
+        return new DataRecordDirectUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
     }
 
     public String getEncodedToken(@Nonnull byte[] secret) {

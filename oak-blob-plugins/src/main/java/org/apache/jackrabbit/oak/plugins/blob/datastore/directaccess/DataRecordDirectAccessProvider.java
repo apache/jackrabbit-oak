@@ -26,8 +26,6 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
 
 public interface DataRecordDirectAccessProvider {
     /**
@@ -59,16 +57,16 @@ public interface DataRecordDirectAccessProvider {
      *        parameter.  A caller may also pass in -1 to indicate that it is
      *        able to accept any number of URLs.  Any other negative number or
      *        0 may result in {@link IllegalArgumentException}.
-     * @return A {@link HttpDataRecordUpload} referencing this direct upload, or
+     * @return A {@link DataRecordDirectUpload} referencing this direct upload, or
      * {@code null} if the implementation doees not support direct upload.
      * @throws {@link IllegalArgumentException} if the service
      * provider or implementation cannot support the requested upload,
-     * {@link HttpUploadException} if
+     * {@link DataRecordDirectUploadException} if
      * the upload cannot be completed as requested.
      */
     @Nullable
-    HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws IllegalArgumentException, HttpUploadException;
+    DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws IllegalArgumentException, DataRecordDirectUploadException;
 
     /**
      * Completes the transaction to perform a direct binary upload.  This method
@@ -78,17 +76,17 @@ public interface DataRecordDirectAccessProvider {
      * performed.
      *
      * @param uploadToken The upload token identifying this direct upload
-     *        transaction, as returned in the {@link HttpDataRecordUpload}
+     *        transaction, as returned in the {@link DataRecordDirectUpload}
      *        object resulting from a call to {@link
      *        #initiateHttpUpload(long, int)}.
      * @return A {@link DataRecord} for the uploaded binary.
      * @throws {@link IllegalArgumentException} if the {@code uploadToken} is
-     *         null, empty, or otherwise invalid, {@link HttpUploadException} if
+     *         null, empty, or otherwise invalid, {@link DataRecordDirectUploadException} if
      *         the object written can't be found by the service provider, or
      *         {@link DataStoreException} if the object written can't be found
      *         by the DataStore.
      */
     @Nonnull
     DataRecord completeHttpUpload(String uploadToken)
-            throws IllegalArgumentException, HttpUploadException, DataStoreException;
+            throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException;
 }

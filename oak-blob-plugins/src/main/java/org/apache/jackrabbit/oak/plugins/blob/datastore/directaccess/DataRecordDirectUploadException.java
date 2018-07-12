@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore;
+package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
 
@@ -26,9 +26,9 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordD
  * {@link DataRecordDirectAccessProvider#completeHttpUpload(String)}
  * cannot be completed.
  */
-public class HttpUploadException extends Exception {
-    public HttpUploadException() {}
-    public HttpUploadException(String message) {
+public class DataRecordDirectUploadException extends Exception {
+    public DataRecordDirectUploadException() {}
+    public DataRecordDirectUploadException(String message) {
         super(message);
     }
 }

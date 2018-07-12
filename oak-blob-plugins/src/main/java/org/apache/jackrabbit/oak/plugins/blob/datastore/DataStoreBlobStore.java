@@ -69,6 +69,8 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -669,7 +671,7 @@ public class DataStoreBlobStore
             try {
                 DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
-                HttpDataRecordUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
+                DataRecordDirectUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURLs);
                 if (upload == null) {
                     return null;
                 }
@@ -695,7 +697,7 @@ public class DataStoreBlobStore
                     }
                 };
             }
-            catch (HttpUploadException e) {
+            catch (DataRecordDirectUploadException e) {
                 log.warn("Unable to initiate direct HTTP upload", e);
             }
         }
@@ -710,7 +712,7 @@ public class DataStoreBlobStore
                 DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeHttpUpload(uploadToken);
                 return new BlobStoreBlob(this, record.getIdentifier().toString());
             }
-            catch (DataStoreException | HttpUploadException e) {
+            catch (DataStoreException | DataRecordDirectUploadException e) {
                 log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
             }
         }
