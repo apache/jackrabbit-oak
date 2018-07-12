@@ -75,7 +75,7 @@ public final class IndexDefinitionBuilder {
         this.tree = TreeFactory.createTree(builder);
         tree.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
-        tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
+        setType();
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);
         indexRule = getOrCreateChild(tree, LuceneIndexConstants.INDEX_RULES);
     }
@@ -141,6 +141,13 @@ public final class IndexDefinitionBuilder {
         if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
             tree.setProperty("reindex", true);
             reindexRequired = true;
+        }
+    }
+
+    private void setType() {
+        PropertyState type = tree.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+        if (type == null || !"disabled".equals(type.getValue(Type.STRING))) {
+            tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
         }
     }
 

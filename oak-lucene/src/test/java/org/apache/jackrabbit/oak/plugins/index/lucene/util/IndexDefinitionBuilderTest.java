@@ -257,4 +257,21 @@ public class IndexDefinitionBuilderTest {
         assertTrue(idx.getTree("/indexRules/nt:base/properties/bar").exists());
         assertTrue(idx.getTree("/indexRules/nt:base/properties/foo").exists());
     }
+
+    @Test
+    public void typeNotChangedIfSet() throws Exception{
+        NodeState state = builder.build();
+        assertEquals("lucene", state.getString("type"));
+
+        NodeBuilder updated = state.builder();
+        updated.setProperty("type", "disabled");
+        IndexDefinitionBuilder newBuilder = new IndexDefinitionBuilder(updated);
+
+        NodeState updatedState = newBuilder.build();
+        assertEquals("disabled", updatedState.getString("type"));
+
+        //Type other than 'disabled' would be reset
+        updated.setProperty("type", "foo");
+        assertEquals("lucene", new IndexDefinitionBuilder(updated).build().getString("type"));
+    }
 }
