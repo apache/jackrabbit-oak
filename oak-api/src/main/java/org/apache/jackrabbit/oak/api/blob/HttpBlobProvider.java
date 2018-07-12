@@ -23,7 +23,9 @@ import java.net.URL;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.osgi.annotation.versioning.ProviderType;
 
+@ProviderType
 public interface HttpBlobProvider {
 
     /**
@@ -90,12 +92,12 @@ public interface HttpBlobProvider {
      *         #initiateHttpUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
-     * @throws IllegalArgumentException if the {@code uploadToken} cannot be
-     *         parsed or is otherwise invalid, e.g. if the included signature
-     *         does not match.
+     * @throws IllegalArgumentException if the {@code uploadToken} is null,
+     *         empty, or cannot be parsed or is otherwise invalid, e.g. if the
+     *         included signature does not match.
      */
     @Nullable
-    Blob completeHttpUpload(String uploadToken);
+    Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException;
 
     /**
      * Obtain a download URL for a {@link Blob). This is usually a signed URL
