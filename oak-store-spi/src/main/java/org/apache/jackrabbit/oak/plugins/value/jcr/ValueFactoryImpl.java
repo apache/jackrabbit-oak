@@ -334,11 +334,15 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
             }
 
             @Override
-            public Binary complete() throws RepositoryException {
-                return createBinary(
-                        httpBlobProvider.completeHttpUpload(upload.getUploadToken()));
-            }
+            public String getUploadToken() { return upload.getUploadToken(); }
         };
+    }
+
+    @Override
+    @Nullable
+    public Binary completeBinaryUpload(String uploadToken) throws RepositoryException {
+        return createBinary(
+                httpBlobProvider.completeHttpUpload(uploadToken));
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
