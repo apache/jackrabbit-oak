@@ -662,7 +662,8 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs) {
+    public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
+            throws IllegalArgumentException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 HttpDataRecordProvider provider = (HttpDataRecordProvider) this.delegate;
@@ -702,7 +703,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public Blob completeHttpUpload(String uploadToken) {
+    public Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException {
         if (delegate instanceof HttpDataRecordProvider) {
             try {
                 DataRecord record = ((HttpDataRecordProvider) delegate).completeHttpUpload(uploadToken);

@@ -118,7 +118,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
 
     @Override
     public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws HttpUploadException {
+            throws IllegalArgumentException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
@@ -147,7 +147,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
 
     @Override
     public DataRecord completeHttpUpload(@Nonnull String uploadToken)
-            throws HttpUploadException, DataStoreException {
+            throws IllegalArgumentException, HttpUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
         }

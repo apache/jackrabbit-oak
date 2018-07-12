@@ -66,7 +66,7 @@ public interface HttpDataRecordProvider {
      */
     @Nullable
     HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws HttpUploadException;
+            throws IllegalArgumentException, HttpUploadException;
 
     /**
      * Completes the transaction to perform a direct binary upload.  This method
@@ -80,10 +80,13 @@ public interface HttpDataRecordProvider {
      *        object resulting from a call to {@link
      *        #initiateHttpUpload(long, int)}.
      * @return A {@link DataRecord} for the uploaded binary.
-     * @throws {@link HttpUploadException} if the object written can't be found
-     * by the service provider, or {@link DataStoreException} if the object
-     * written can't be found by the DataStore.
+     * @throws {@link IllegalArgumentException} if the {@code uploadToken} is
+     *         null, empty, or otherwise invalid, {@link HttpUploadException} if
+     *         the object written can't be found by the service provider, or
+     *         {@link DataStoreException} if the object written can't be found
+     *         by the DataStore.
      */
     @Nonnull
-    DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException;
+    DataRecord completeHttpUpload(String uploadToken)
+            throws IllegalArgumentException, HttpUploadException, DataStoreException;
 }

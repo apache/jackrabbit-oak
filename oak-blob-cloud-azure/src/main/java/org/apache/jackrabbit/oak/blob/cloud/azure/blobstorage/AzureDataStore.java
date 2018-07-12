@@ -108,7 +108,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Nullable
     @Override
     public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURLs)
-            throws HttpUploadException {
+            throws IllegalArgumentException, HttpUploadException {
         if (0L >= maxUploadSizeInBytes) {
             throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
         }
@@ -137,7 +137,8 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nonnull
     @Override
-    public DataRecord completeHttpUpload(String uploadToken) throws HttpUploadException, DataStoreException {
+    public DataRecord completeHttpUpload(String uploadToken)
+            throws IllegalArgumentException, HttpUploadException, DataStoreException {
         if (Strings.isNullOrEmpty(uploadToken)) {
             throw new IllegalArgumentException("uploadToken required");
         }
