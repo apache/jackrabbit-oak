@@ -21,7 +21,6 @@ import java.util.Properties;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -46,27 +45,6 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
      * The minimum size of an object that should be stored in this data store.
      */
     private int minRecordLength = 16 * 1024;
-
-    /**
-     * The minimum size of a file in order to do multi-part upload.
-     */
-    static final long minPartSize = S3Backend.MIN_MULTIPART_UPLOAD_PART_SIZE;
-
-    /**
-     * The maximum size of a multi-part upload part (AWS limitation).
-     */
-    static final long maxPartSize = S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
-
-    /**
-     * The maximum allowed size of an upload that can be done via single-put upload.
-     * Beyond this size, multi-part uploading is required.  AWS limitation.
-     */
-    static final long maxSinglePutUploadSize = S3Backend.MAX_SINGLE_PUT_UPLOAD_SIZE;
-
-    /**
-     * The maximum allowed size of a binary upload supported by this provider.
-     */
-    static final long maxBinaryUploadSize = S3Backend.MAX_BINARY_UPLOAD_SIZE;
 
     @Override
     protected AbstractSharedBackend createBackend() {
@@ -119,26 +97,6 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
-        if (0L >= maxUploadSizeInBytes) {
-            throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
-        }
-        else if (0 == maxNumberOfURIs) {
-            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
-        }
-        else if (-1 > maxNumberOfURIs) {
-            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
-        }
-        else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURIs == 1) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
-            );
-        }
-        else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
-            );
-        }
         if (null == s3Backend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
         }
@@ -148,10 +106,6 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     public DataRecord completeHttpUpload(@Nonnull String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
-        if (Strings.isNullOrEmpty(uploadToken)) {
-            throw new IllegalArgumentException("uploadToken required");
-        }
-
         if (s3Backend != null) {
             return s3Backend.completeHttpUpload(uploadToken);
         }

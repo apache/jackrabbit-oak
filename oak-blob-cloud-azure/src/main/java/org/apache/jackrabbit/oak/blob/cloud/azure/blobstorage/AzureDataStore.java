@@ -25,7 +25,6 @@ import java.util.Properties;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -38,27 +37,6 @@ import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 
 public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
     private int minRecordLength = 16*1024;
-
-    /**
-     * The minimum size of a file in order to do multi-part upload.
-     */
-    static final long minPartSize = AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE;
-
-    /**
-     * The maximum size of a multi-part upload part (Azure limitation).
-     */
-    static final long maxPartSize = AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
-
-    /**
-     * The maximum allowed size of an upload that can be done via single-put upload.
-     * Beyond this size, multi-part uploading is required.  Azure limitation.
-     */
-    static final long maxSinglePutUploadSize = AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE;
-
-    /**
-     * The maximum allowed size of a binary upload supported by this provider.
-     */
-    static final long maxBinaryUploadSize = AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE;
 
     protected Properties properties;
 
@@ -91,7 +69,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     }
 
     //
-    // DataRecordDirectAccessProvider Implementation
+    // ConfigurableDataRecordDirectAccessProvider Implementation
     //
     @Override
     public void setHttpUploadURIExpirySeconds(int seconds) {
@@ -109,26 +87,6 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
-        if (0L >= maxUploadSizeInBytes) {
-            throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
-        }
-        else if (0 == maxNumberOfURIs) {
-            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
-        }
-        else if (-1 > maxNumberOfURIs) {
-            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
-        }
-        else if (maxUploadSizeInBytes > maxSinglePutUploadSize &&
-                maxNumberOfURIs == 1) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
-            );
-        }
-        else if (maxUploadSizeInBytes > maxBinaryUploadSize) {
-            throw new IllegalArgumentException(
-                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
-            );
-        }
         if (null == azureBlobStoreBackend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
         }
@@ -139,10 +97,6 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     @Override
     public DataRecord completeHttpUpload(String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
-        if (Strings.isNullOrEmpty(uploadToken)) {
-            throw new IllegalArgumentException("uploadToken required");
-        }
-
         if (azureBlobStoreBackend != null) {
             return azureBlobStoreBackend.completeHttpUpload(uploadToken);
         }

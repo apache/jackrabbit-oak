@@ -757,6 +757,27 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
+        if (0L >= maxUploadSizeInBytes) {
+            throw new IllegalArgumentException("maxUploadSizeInBytes must be > 0");
+        }
+        else if (0 == maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
+        }
+        else if (-1 > maxNumberOfURIs) {
+            throw new IllegalArgumentException("maxNumberOfURIs must either be > 0 or -1");
+        }
+        else if (maxUploadSizeInBytes > MAX_SINGLE_PUT_UPLOAD_SIZE &&
+                maxNumberOfURIs == 1) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
+            );
+        }
+        else if (maxUploadSizeInBytes > MAX_BINARY_UPLOAD_SIZE) {
+            throw new IllegalArgumentException(
+                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
+            );
+        }
+
         DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
@@ -839,6 +860,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
             throws DataRecordDirectUploadException, DataStoreException {
+
+        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+            throw new IllegalArgumentException("uploadToken required");
+        }
+
         DataRecordDirectUploadToken uploadToken = DataRecordDirectUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
         try {

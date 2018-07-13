@@ -98,19 +98,19 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, AzureDataStore.minPartSize);
+        return Math.max(0L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureDataStore.maxPartSize;
+        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return AzureDataStore.maxSinglePutUploadSize; }
+    protected long getProviderMaxSinglePutSize() { return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return AzureDataStore.maxBinaryUploadSize; }
+    protected long getProviderMaxBinaryUploadSize() { return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE; }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {

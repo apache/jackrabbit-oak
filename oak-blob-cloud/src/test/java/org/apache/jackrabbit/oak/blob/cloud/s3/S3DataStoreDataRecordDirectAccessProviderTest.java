@@ -88,19 +88,19 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, S3DataStore.minPartSize);
+        return Math.max(0L, S3Backend.MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return S3DataStore.maxPartSize;
+        return S3Backend.MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return S3DataStore.maxSinglePutUploadSize; }
+    protected long getProviderMaxSinglePutSize() { return S3Backend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return S3DataStore.maxBinaryUploadSize; }
+    protected long getProviderMaxBinaryUploadSize() { return S3Backend.MAX_BINARY_UPLOAD_SIZE; }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {
