@@ -17,11 +17,16 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
@@ -29,20 +34,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.HttpMethod;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.S3ClientOptions;
+import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.GetBucketAccelerateConfigurationRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ListPartsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.PartListing;
+import com.amazonaws.services.s3.model.PartSummary;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
@@ -54,21 +74,25 @@ import com.amazonaws.util.StringUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpDataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.HttpUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.UnsupportedHttpUploadArgumentsException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.collect.Iterables.filter;
-import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -86,7 +110,24 @@ public class S3Backend extends AbstractSharedBackend {
 
     private static final String REF_KEY = "reference.key";
 
+    private static final String NEW_RECORD_SUFFIX = "_NO_HASH";
+
+    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
+
+    static final String PART_NUMBER = "partNumber";
+    static final String UPLOAD_ID = "uploadId";
+
+    private static final int ONE_MB = 1024*1024;
+    static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
+    static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 256; // 256MB
+    static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024L * 1024L * 1024L * 5L; // 5GB, AWS limitation
+    static final long MAX_BINARY_UPLOAD_SIZE = 1024L * 1024L * 1024L * 1024L * 5L; // 5TB, AWS limitation
+    private static final int MAX_ALLOWABLE_UPLOAD_URLS = 10000; // AWS limitation
+
     private AmazonS3Client s3service;
+
+    // needed only in case of transfer acceleration is enabled for presigned URLs
+    private AmazonS3Client s3PresignService;
 
     private String bucket;
 
@@ -100,6 +141,12 @@ public class S3Backend extends AbstractSharedBackend {
 
     private S3RequestDecorator s3ReqDecorator;
 
+    private Cache<DataIdentifier, URL> httpDownloadURLCache;
+
+    // 0 = off by default
+    private int httpUploadURLExpirySeconds = 0;
+    private int httpDownloadURLExpirySeconds = 0;
+
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -111,6 +158,8 @@ public class S3Backend extends AbstractSharedBackend {
 
             s3ReqDecorator = new S3RequestDecorator(properties);
             s3service = Utils.openService(properties);
+            s3PresignService = s3service;
+
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
                 // Alternately check if the 'container' property is set
@@ -164,6 +213,31 @@ public class S3Backend extends AbstractSharedBackend {
             if (renameKeyBool) {
                 renameKeys();
             }
+
+            // settings around pre-signing
+
+            String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
+            if (putExpiry != null) {
+                setHttpUploadURLExpirySeconds(Integer.parseInt(putExpiry));
+            }
+
+            String getExpiry = properties.getProperty(S3Constants.PRESIGNED_GET_EXPIRY_SEC);
+            if (getExpiry != null) {
+                final int getExpirySeconds = Integer.parseInt(getExpiry);
+                setHttpDownloadURLExpirySeconds(getExpirySeconds);
+
+                int cacheMaxSize = 0; // off by default
+                String cacheMaxSizeStr = properties.getProperty(S3Constants.PRESIGNED_GET_URL_CACHE_MAX_SIZE);
+                if (cacheMaxSizeStr != null) {
+                    cacheMaxSize = Integer.parseInt(cacheMaxSizeStr);
+                }
+
+                setHttpDownloadURLCacheSize(cacheMaxSize);
+            }
+
+            String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
+            setBinaryTransferAccelerationEnabled(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
@@ -182,6 +256,27 @@ public class S3Backend extends AbstractSharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    public void setBinaryTransferAccelerationEnabled(boolean enabled) {
+        if (enabled) {
+            // verify acceleration is enabled on the bucket
+            BucketAccelerateConfiguration accelerateConfig = s3service.getBucketAccelerateConfiguration(new GetBucketAccelerateConfigurationRequest(bucket));
+            if (accelerateConfig.isAccelerateEnabled()) {
+                // If transfer acceleration is enabled for presigned urls, we need a separate AmazonS3Client
+                // instance with the acceleration mode enabled, because we don't want the requests from the
+                // data store itself to S3 to use acceleration
+                s3PresignService = Utils.openService(properties);
+                s3PresignService.setS3ClientOptions(S3ClientOptions.builder().setAccelerateModeEnabled(true).build());
+                LOG.info("S3 Transfer Acceleration enabled for presigned URLs.");
+
+            } else {
+                LOG.warn("S3 Transfer Acceleration is not enabled on the bucket {}. Will create normal, non-accelerated presigned URLs.",
+                    bucket, S3Constants.PRESIGNED_URL_ENABLE_ACCELERATION);
+            }
+        } else {
+            s3PresignService = s3service;
         }
     }
 
@@ -292,6 +387,9 @@ public class S3Backend extends AbstractSharedBackend {
             S3Object object = s3service.getObject(bucket, key);
             InputStream in = object.getObjectContent();
             LOG.debug("[{}] read took [{}]ms", identifier, (System.currentTimeMillis() - start));
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("binary downloaded from S3: " + identifier, new Exception());
+            }
             return in;
         } catch (AmazonServiceException e) {
             throw new DataStoreException("Object not found: " + key, e);
@@ -515,10 +613,10 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                LOG.info(
-                    "getRecord:Identifier [{}] not found. Took [{}] ms.",
-                    identifier, (System.currentTimeMillis() - start));
-            }
+                    LOG.info(
+                        "getRecord:Identifier [{}] not found. Took [{}] ms.",
+                        identifier, (System.currentTimeMillis() - start));
+                }
             throw new DataStoreException(e);
         } finally {
             if (contextClassLoader != null) {
@@ -572,6 +670,227 @@ public class S3Backend extends AbstractSharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    public void setHttpUploadURLExpirySeconds(int seconds) {
+        this.httpUploadURLExpirySeconds = seconds;
+    }
+
+    public DataIdentifier addNewRecord() throws DataStoreException {
+        // in case our random uuid generation fails and hits only existing keys (however unlikely)
+        // try only a limited number of times to avoid endless loop and throw instead
+        for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
+            // a random UUID instead of a content hash
+            final String id = UUID.randomUUID().toString() + NEW_RECORD_SUFFIX;
+
+            final DataIdentifier identifier = new DataIdentifier(id);
+            if (exists(identifier)) {
+                LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
+                continue;
+            }
+            LOG.info("Created new unique record id: {}", id);
+            return identifier;
+        }
+        throw new DataStoreException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
+    }
+
+    public URL createPresignedPutURL(DataIdentifier identifier) {
+        if (httpUploadURLExpirySeconds <= 0) {
+            // feature disabled
+            return null;
+        }
+
+        return createPresignedURL(identifier, HttpMethod.PUT, httpUploadURLExpirySeconds);
+    }
+
+    public void setHttpDownloadURLExpirySeconds(int seconds) {
+        this.httpDownloadURLExpirySeconds = seconds;
+    }
+
+    public void setHttpDownloadURLCacheSize(int maxSize) {
+        // max size 0 or smaller is used to turn off the cache
+        if (maxSize > 0) {
+            LOG.info("presigned GET URL cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURLExpirySeconds / 2);
+            httpDownloadURLCache = CacheBuilder.newBuilder()
+                    .maximumSize(maxSize)
+                    // cache for half the expiry time of the urls before giving out new ones
+                    .expireAfterWrite(httpDownloadURLExpirySeconds / 2, TimeUnit.SECONDS)
+                    .build();
+        } else {
+            LOG.info("presigned GET URL cache disabled");
+            httpDownloadURLCache = null;
+        }
+    }
+
+    public URL createHttpDownloadURL(@Nonnull DataIdentifier identifier) {
+        if (httpDownloadURLExpirySeconds <= 0) {
+            // feature disabled
+            return null;
+        }
+
+        URL url = null;
+        // if cache is enabled, check the cache
+        if (httpDownloadURLCache != null) {
+            url = httpDownloadURLCache.getIfPresent(identifier);
+        }
+        if (url == null) {
+            url = createPresignedURL(identifier, HttpMethod.GET, httpDownloadURLExpirySeconds);
+            if (url != null && httpDownloadURLCache != null) {
+                httpDownloadURLCache.put(identifier, url);
+            }
+        }
+        return url;
+    }
+
+    public HttpDataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfUrls)
+            throws UnsupportedHttpUploadArgumentsException {
+        List<URL> uploadPartURLs = Lists.newArrayList();
+        long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
+        long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
+
+        DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
+        String blobId = getKeyName(newIdentifier);
+        String uploadId = null;
+
+        if (httpUploadURLExpirySeconds > 0) {
+            if (maxNumberOfUrls == 1 ||
+                    maxUploadSizeInBytes <= minPartSize) {
+                // single put
+                uploadPartURLs.add(createPresignedPutURL(newIdentifier));
+            }
+            else {
+                // multi-part
+                InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                uploadId = res.getUploadId();
+
+                long numParts = maxNumberOfUrls;
+                if (maxNumberOfUrls > 1) {
+                    long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfUrls));
+                    if (requestedPartSize <= maxPartSize) {
+                        numParts = Math.min(
+                                maxNumberOfUrls,
+                                Math.min(
+                                        (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) minPartSize)),
+                                        MAX_ALLOWABLE_UPLOAD_URLS
+                                )
+                        );
+                    } else {
+                        throw new UnsupportedHttpUploadArgumentsException(
+                                String.format("Cannot do multi-part upload with requested part size %d", requestedPartSize)
+                        );
+                    }
+                }
+                else {
+                    long maximalNumParts = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) MIN_MULTIPART_UPLOAD_PART_SIZE));
+                    numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URLS);
+                }
+
+                Map<String, String> presignedUrlRequestParams = Maps.newHashMap();
+                for (long blockId = 1; blockId <= numParts; ++blockId) {
+                    presignedUrlRequestParams.put("partNumber", String.valueOf(blockId));
+                    presignedUrlRequestParams.put("uploadId", uploadId);
+                    uploadPartURLs.add(createPresignedURL(newIdentifier,
+                            HttpMethod.PUT,
+                            httpUploadURLExpirySeconds,
+                            presignedUrlRequestParams));
+                }
+            }
+        }
+
+        byte[] secret = null;
+        try {
+            secret = getOrCreateReferenceKey();
+        }
+        catch (DataStoreException e) {
+            LOG.warn("Unable to obtain data store key");
+        }
+
+        String uploadToken = new HttpUploadToken(blobId, uploadId).getEncodedToken(secret);
+
+        return new HttpDataRecordUpload() {
+            @Override
+            public String getUploadToken() { return uploadToken; }
+
+            @Override
+            public long getMinPartSize() { return minPartSize; }
+
+            @Override
+            public long getMaxPartSize() { return maxPartSize; }
+
+            @Override
+            public Collection<URL> getUploadURLs() { return uploadPartURLs; }
+        };
+    }
+
+    public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
+            throws HttpUploadException, DataStoreException {
+        HttpUploadToken uploadToken = HttpUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
+        String blobId = uploadToken.getBlobId();
+        if (uploadToken.getUploadId().isPresent()) {
+            // An existing upload ID means this is a multi-part upload
+            String uploadId = uploadToken.getUploadId().get();
+            ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
+            PartListing listing = s3service.listParts(listPartsRequest);
+            List<PartETag> eTags = Lists.newArrayList();
+            for (PartSummary partSummary : listing.getParts()) {
+                PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
+                eTags.add(eTag);
+            }
+
+            CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
+                    bucket,
+                    blobId,
+                    uploadId,
+                    eTags
+            );
+
+            s3service.completeMultipartUpload(completeReq);
+        }
+        // else do nothing - single-put upload is already complete
+
+
+        if (! s3service.doesObjectExist(bucket, blobId)) {
+            throw new HttpUploadException(
+                    String.format("Unable to finalize direct write of binary %s", blobId)
+            );
+        }
+
+        return getRecord(new DataIdentifier(getIdentifierName(blobId)));
+    }
+
+    private URL createPresignedURL(DataIdentifier identifier, HttpMethod method, int expirySeconds) {
+        return createPresignedURL(identifier, method, expirySeconds, Maps.newHashMap());
+    }
+
+    private URL createPresignedURL(DataIdentifier identifier, HttpMethod method, int expirySeconds, Map<String, String> reqParams) {
+        final String key = getKeyName(identifier);
+
+        try {
+            final Date expiration = new Date();
+            expiration.setTime(expiration.getTime() + expirySeconds * 1000);
+
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
+                    .withMethod(method)
+                    .withExpiration(expiration);
+
+            for (Map.Entry<String, String> e : reqParams.entrySet()) {
+                request.addRequestParameter(e.getKey(), e.getValue());
+            }
+
+            URL url = s3PresignService.generatePresignedUrl(request);
+
+            LOG.debug("Presigned {} URL for key {}: {}", method.name(), key, url.toString());
+
+            return url;
+
+        } catch (AmazonServiceException e) {
+            LOG.error("AWS request to create presigned S3 {} URL failed. " +
+                            "Key: {}, Error: {}, HTTP Code: {}, AWS Error Code: {}, Error Type: {}, Request ID: {}",
+                    method.name(), key, e.getMessage(), e.getStatusCode(), e.getErrorCode(), e.getErrorType(), e.getRequestId());
+
+            return null;
         }
     }
 
@@ -698,6 +1017,11 @@ public class S3Backend extends AbstractSharedBackend {
             String id = getKeyName(getIdentifier());
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
+            }
+            if (LOG.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call
+                // came from
+                LOG.debug("binary downloaded from S3: " + getIdentifier(), new Exception());
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }
@@ -863,6 +1187,54 @@ public class S3Backend extends AbstractSharedBackend {
 
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
+        }
+    }
+
+    private class EmptyRecord implements DataRecord {
+
+        private final DataIdentifier identifier;
+
+        public EmptyRecord(DataIdentifier identifier) {
+            this.identifier = identifier;
+        }
+
+        @Override
+        public DataIdentifier getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String getReference() {
+            return null;
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            return 0;
+        }
+
+        @Override
+        public InputStream getStream() throws DataStoreException {
+            // return empty stream
+            return new NullInputStream(0);
+        }
+
+        @Override
+        public long getLastModified() {
+            return 0;
+        }
+
+        public String toString() {
+            return identifier.toString();
+        }
+
+        public boolean equals(Object object) {
+            return (object instanceof DataRecord)
+                && identifier.equals(((DataRecord) object).getIdentifier());
+        }
+
+        public int hashCode() {
+            return identifier.hashCode();
         }
     }
 }
