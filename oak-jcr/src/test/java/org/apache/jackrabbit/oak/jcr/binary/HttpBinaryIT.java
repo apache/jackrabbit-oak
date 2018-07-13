@@ -33,6 +33,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Random;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -271,11 +272,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             anonymousUploadProvider.initiateBinaryUpload(1024*20, 10);
             fail();
         }
-        //catch (AccessDeniedException e) { }
-        // Should use the more specific AccessDeniedException, but since the
-        // method no longer declares that it throws AccessDeniedException the
-        // more generic exception is caught here until OAK-7602 is resolved.
-        catch (Exception e) { }
+        catch (AccessDeniedException e) { }
     }
 
     // A2 - disable write URIs entirely
