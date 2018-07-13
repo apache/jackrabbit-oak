@@ -123,35 +123,32 @@ public class SegmentNodeStoreServiceTest {
             .withStaticPolicy()
             .withGreedyPolicyOption()
             .withTarget("(&(!(split.blobstore=old))(!(split.blobstore=new)))")
-            .withBind("bindBlobStore")
-            .withUnbind("unbindBlobStore")
+            .withField("blobStore")
             .check());
         assertTrue(cd.hasReference("segmentStore")
             .withInterface("org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence")
             .withOptionalUnaryCardinality()
             .withStaticPolicy()
             .withGreedyPolicyOption()
-            .withBind("bindSegmentStore")
-            .withUnbind("unbindSegmentStore")
+            .withField("segmentStore")
             .check());
         assertTrue(cd.hasReference("statisticsProvider")
             .withInterface("org.apache.jackrabbit.oak.stats.StatisticsProvider")
             .withMandatoryUnaryCardinality()
             .withStaticPolicy()
-            .withBind("bindStatisticsProvider")
-            .withUnbind("unbindStatisticsProvider")
+            .withField("statisticsProvider")
             .check());
     }
 
     @Test
     public void testMetatypeInformation() throws Exception {
-        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.xml"));
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService$Configuration.xml"));
         assertTrue(mi.hasDesignate()
             .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService")
-            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService")
+            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService$Configuration")
             .check());
 
-        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService");
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreService$Configuration");
         assertTrue(ocd.hasAttributeDefinition("repository.home")
             .withStringType()
             .check());
