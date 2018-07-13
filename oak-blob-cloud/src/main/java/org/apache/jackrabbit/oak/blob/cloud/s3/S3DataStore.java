@@ -16,19 +16,20 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.util.Properties;
-
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.CompositeDataStoreAware;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
 
 
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements CompositeDataStoreAware {
+
+    private boolean isDelegate = false;
 
     protected Properties properties;
 
@@ -66,5 +67,15 @@ public class S3DataStore extends AbstractSharedCachingDataStore {
 
     public void setMinRecordLength(int minRecordLength) {
         this.minRecordLength = minRecordLength;
+    }
+
+    @Override
+    public boolean isDelegate() {
+        return isDelegate;
+    }
+
+    @Override
+    public void setIsDelegate(boolean isDelegate) {
+        this.isDelegate = isDelegate;
     }
 }
