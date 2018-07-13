@@ -92,8 +92,6 @@ public class S3Backend extends AbstractSharedBackend {
 
     private static final String REF_KEY = "reference.key";
 
-    private static final String NEW_RECORD_SUFFIX = "_NO_HASH";
-
     private static final int MAX_UNIQUE_RECORD_TRIES = 10;
 
     static final String PART_NUMBER = "partNumber";
@@ -659,22 +657,37 @@ public class S3Backend extends AbstractSharedBackend {
         this.httpUploadURIExpirySeconds = seconds;
     }
 
-    public DataIdentifier addNewRecord() throws DataStoreException {
-        // in case our random uuid generation fails and hits only existing keys (however unlikely)
-        // try only a limited number of times to avoid endless loop and throw instead
-        for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
-            // a random UUID instead of a content hash
-            final String id = UUID.randomUUID().toString() + NEW_RECORD_SUFFIX;
+    public DataIdentifier generateSafeRandomIdentifier()
+            throws DataRecordDirectUploadException {
+        // In case our random uuid generation fails and hits only existing keys
+        // (however unlikely), try only a limited number of times to avoid
+        // endless loop and throw instead.
+        //
+        // The odds of a UUID collision are about 1 in 2^-122, or approximately
+        // 1 in 5 undecillion (5,000,000,000,000,000,000,000,000,000,000,000,000).
+        // These odds are small, but still higher than a SHA-256 collision which
+        // are about 1 in 4.3*10^-43, or approximately 1 in 4 tredecillion
+        // (43,000,000,000,000,000,000,000,000,000,000,000,000,000,000) - or
+        // in other words, a UUID collision is about 10,000,000 times more
+        // likely.
+        try {
+            for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
+                // a random UUID instead of a content hash
+                final String id = UUID.randomUUID().toString();
 
-            final DataIdentifier identifier = new DataIdentifier(id);
-            if (exists(identifier)) {
-                LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
-                continue;
+                final DataIdentifier identifier = new DataIdentifier(id);
+                if (exists(identifier)) {
+                    LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
+                    continue;
+                }
+                LOG.info("Created new unique record id: {}", id);
+                return identifier;
             }
-            LOG.info("Created new unique record id: {}", id);
-            return identifier;
+            throw new DataRecordDirectUploadException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
         }
-        throw new DataStoreException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
+        catch (DataStoreException e) {
+            throw new DataRecordDirectUploadException(e);
+        }
     }
 
     public URI createPresignedPutURI(DataIdentifier identifier) {
@@ -725,7 +738,8 @@ public class S3Backend extends AbstractSharedBackend {
         return uri;
     }
 
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws DataRecordDirectUploadException {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -751,7 +765,7 @@ public class S3Backend extends AbstractSharedBackend {
             );
         }
 
-        DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
+        DataIdentifier newIdentifier = generateSafeRandomIdentifier();
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 

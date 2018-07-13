@@ -28,8 +28,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.Collection;
@@ -45,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -99,6 +102,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024 * 1024 * 256; // 256MB, Azure limit
     static final long MAX_BINARY_UPLOAD_SIZE = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75); // 4.75TB, Azure limit
     private static final int MAX_ALLOWABLE_UPLOAD_URIS = 50000; // Azure limit
+    private static final int MAX_UNIQUE_RECORD_TRIES = 10;
 
     private Properties properties;
     private String containerName;
@@ -752,7 +756,41 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     public void setHttpUploadURIExpirySeconds(int seconds) { httpUploadURIExpirySeconds = seconds; }
 
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
+    public DataIdentifier generateSafeRandomIdentifier()
+            throws DataRecordDirectUploadException {
+        // In case our random uuid generation fails and hits only existing keys
+        // (however unlikely), try only a limited number of times to avoid
+        // endless loop and throw instead.
+        //
+        // The odds of a UUID collision are about 1 in 2^-122, or approximately
+        // 1 in 5 undecillion (5,000,000,000,000,000,000,000,000,000,000,000,000).
+        // These odds are small, but still higher than a SHA-256 collision which
+        // are about 1 in 4.3*10^-43, or approximately 1 in 4 tredecillion
+        // (43,000,000,000,000,000,000,000,000,000,000,000,000,000,000) - or
+        // in other words, a UUID collision is about 10,000,000 times more
+        // likely.
+        try {
+            for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
+                // a random UUID instead of a content hash
+                final String id = UUID.randomUUID().toString();
+
+                final DataIdentifier identifier = new DataIdentifier(id);
+                if (exists(identifier)) {
+                    LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
+                    continue;
+                }
+                LOG.info("Created new unique record id: {}", id);
+                return identifier;
+            }
+            throw new DataRecordDirectUploadException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
+        }
+        catch (DataStoreException e) {
+            throw new DataRecordDirectUploadException(e);
+        }
+    }
+
+    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws DataRecordDirectUploadException {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -778,7 +816,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             );
         }
 
-        DataIdentifier newIdentifier = new DataIdentifier(UUID.randomUUID().toString());
+        DataIdentifier newIdentifier = generateSafeRandomIdentifier();
         String blobId = getKeyName(newIdentifier);
         String uploadId = null;
 
@@ -918,6 +956,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         try {
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
             String sharedAccessSignature = blob.generateSharedAccessSignature(policy, null);
+            // Shared access signature is returned encoded already.
 
             String uriString = String.format("https://%s.blob.core.windows.net/%s/%s?%s",
                     accountName,
@@ -929,9 +968,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 StringBuilder builder = new StringBuilder();
                 for (Map.Entry<String, String> e : additionalQueryParams.entrySet()) {
                     builder.append("&");
-                    builder.append(e.getKey());
+                    builder.append(URLEncoder.encode(e.getKey(), Charsets.UTF_8.name()));
                     builder.append("=");
-                    builder.append(e.getValue());
+                    builder.append(URLEncoder.encode(e.getValue(), Charsets.UTF_8.name()));
                 }
                 uriString += builder.toString();
             }
@@ -941,7 +980,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         catch (DataStoreException e) {
             LOG.error("No connection to Azure Blob Storage", e);
         }
-        catch (URISyntaxException | InvalidKeyException e) {
+        catch (URISyntaxException | InvalidKeyException | UnsupportedEncodingException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
         }
         catch (StorageException e) {
