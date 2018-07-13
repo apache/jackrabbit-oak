@@ -111,6 +111,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Findbugs annotations -->
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+
         <!-- Azure Blob Storage dependency -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
@@ -134,6 +140,13 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-blob-plugins</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>

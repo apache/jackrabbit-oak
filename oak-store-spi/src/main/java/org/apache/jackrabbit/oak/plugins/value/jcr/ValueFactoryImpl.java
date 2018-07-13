@@ -16,14 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.List;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -35,12 +41,16 @@ import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobProvider;
+import org.apache.jackrabbit.oak.api.blob.HttpBlobUpload;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -58,17 +68,26 @@ import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
-
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl implements ValueFactory {
+public class ValueFactoryImpl implements JackrabbitValueFactory {
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
     private final Root root;
     private final NamePathMapper namePathMapper;
+
+    @Nonnull
+    private final HttpBlobProvider httpBlobProvider;
+
+    public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+                            @Nullable HttpBlobProvider httpBlobProvider) {
+        this.root = checkNotNull(root);
+        this.namePathMapper = checkNotNull(namePathMapper);
+        this.httpBlobProvider = httpBlobProvider == null
+                ? new DefaultHttpBlobProvider()
+                : httpBlobProvider;
+    }
 
     /**
      * Creates a new instance of {@code ValueFactory}.
@@ -78,8 +97,7 @@ public class ValueFactoryImpl implements ValueFactory {
      * the internal representation.
      */
     public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
-        this.root = checkNotNull(root);
-        this.namePathMapper = checkNotNull(namePathMapper);
+        this(root, namePathMapper, null);
     }
 
     /**
@@ -291,6 +309,47 @@ public class ValueFactoryImpl implements ValueFactory {
         }
     }
 
+    @Override
+    @Nullable
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
+        try {
+            HttpBlobUpload upload = httpBlobProvider.initiateHttpUpload(maxSize, maxParts);
+            if (null == upload) {
+                return null;
+            }
+
+            return new BinaryUpload() {
+                @Override
+                public Iterable<URL> getURLs() {
+                    return upload.getUploadURLs();
+                }
+
+                @Override
+                public long getMinPartSize() {
+                    return upload.getMinPartSize();
+                }
+
+                @Override
+                public long getMaxPartSize() {
+                    return upload.getMaxPartSize();
+                }
+
+                @Override
+                public String getUploadToken() { return upload.getUploadToken(); }
+            };
+        }
+        catch (org.apache.jackrabbit.oak.api.blob.IllegalHttpUploadArgumentsException e) {
+            throw new org.apache.jackrabbit.api.binary.IllegalHttpUploadArgumentsException(e);
+        }
+    }
+
+    @Override
+    @Nullable
+    public Binary completeBinaryUpload(String uploadToken) throws RepositoryException {
+        return createBinary(
+                httpBlobProvider.completeHttpUpload(uploadToken));
+    }
+
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
         long start = binOpsLogger.start();
         Blob blob = root.createBlob(value);
@@ -299,9 +358,45 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
-        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
+        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, httpBlobProvider);
     }
 
-    //------------------------------------------------------------< ErrorValue >---
+    public Binary createBinary(Blob blob) throws RepositoryException {
+        return createBinaryValue(blob).getBinary();
+    }
+
+    @Nullable
+    public String getBlobId(Binary binary) throws RepositoryException {
+        if (binary instanceof BinaryImpl) {
+            return ((BinaryImpl) binary).getBinaryValue().getBlob().getContentIdentity();
+        }
+        return null;
+    }
+
+    /**
+     * A {@link HttpBlobProvider} implementation that does not support direct
+     * binary up- or download.
+     */
+    private static class DefaultHttpBlobProvider implements HttpBlobProvider {
+
+        @Nullable
+        @Override
+        public HttpBlobUpload initiateHttpUpload(long maxUploadSizeInBytes,
+                                                 int maxNumberOfURLs) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Blob completeHttpUpload(String uploadToken) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public URL getHttpDownloadURL(String blobId) {
+            return null;
+        }
+    }
 
 }
