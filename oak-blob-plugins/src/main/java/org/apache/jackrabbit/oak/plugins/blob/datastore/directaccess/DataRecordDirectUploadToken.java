@@ -35,11 +35,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Represents an upload token returned by
- * {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} and used in
- * subsequent calls to {@link DataRecordDirectAccessProvider#completeHttpUpload(String)}.
- * This class handles creation, signing, and parsing of the token and uses
- * the {@link org.apache.jackrabbit.core.data.DataStore}’s secret key to sign
- * the contents of the token and to validate contents of tokens.
+ * {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} and
+ * used in subsequent calls to {@link
+ * DataRecordDirectAccessProvider#completeDirectUpload(String)}.  This class
+ * handles creation, signing, and parsing of the token and uses the {@link
+ * org.apache.jackrabbit.core.data.DataStore}’s secret key to sign the contents
+ * of the token and to validate contents of tokens.
  */
 public class DataRecordDirectUploadToken {
     private static Logger LOG = LoggerFactory.getLogger(DataRecordDirectUploadToken.class);

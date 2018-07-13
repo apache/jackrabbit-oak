@@ -29,8 +29,8 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface BlobDirectAccessProvider {
 
     /**
-     * Begin a transaction to perform a direct binary upload to the cloud
-     * storage. This method will throw a {@link IllegalArgumentException}
+     * Begin a transaction to perform a direct binary upload to a storage
+     * location. This method will throw a {@link IllegalArgumentException}
      * if no valid upload can be arranged with the arguments specified. E.g. the
      * max upload size specified divided by the number of URIs requested
      * indicates the minimum size of each upload. If that size exceeds the
@@ -62,7 +62,7 @@ public interface BlobDirectAccessProvider {
      *         implementation is free to return as many URIs as it desires.
      * @return A {@link BlobDirectUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
-     *         direct HTTP uploading.
+     *         direct uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
      *         or {@code maxNumberOfURIs} is not either a positive value or -1,
      *         or if the upload cannot be completed as requested, due to a
@@ -70,24 +70,24 @@ public interface BlobDirectAccessProvider {
      *         the service provider or the implementation.
      */
     @Nullable
-    BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes,
-                                        int maxNumberOfURIs)
+    BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                          int maxNumberOfURIs)
             throws IllegalArgumentException;
 
     /**
-     * Complete a transaction for uploading a direct binary upload to cloud
-     * storage.
+     * Complete a transaction for uploading a direct binary upload to a storage
+     * location.
      * <p>
      * This requires the {@code uploadToken} that can be obtained from the
      * returned {@link BlobDirectUpload} from a previous call to {@link
-     * #initiateHttpUpload(long, int)}. This token is required to complete
+     * #initiateDirectUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
      * includes encoded data about the transaction along with a signature
      * that will be verified by the implementation.
      *
      * @param uploadToken the upload token from a {@link BlobDirectUpload}
      *         object returned from a previous call to {@link
-     *         #initiateHttpUpload(long, int)}.
+     *         #initiateDirectUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
      * @throws IllegalArgumentException if the {@code uploadToken} is null,
@@ -95,17 +95,17 @@ public interface BlobDirectAccessProvider {
      *         included signature does not match.
      */
     @Nullable
-    Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException;
+    Blob completeDirectUpload(String uploadToken) throws IllegalArgumentException;
 
     /**
      * Obtain a download URI for a {@link Blob). This is usually a signed URI
      * that can be used to directly download the blob corresponding to the
      * provided {@link Blob}.
      *
-     * @param blob for the {@link Blob} to be downloaded.
+     * @param blob The {@link Blob} to be downloaded.
      * @return A URI to download the blob directly or {@code null} if the blob
      *         cannot be downloaded directly.
      */
     @Nullable
-    URI getHttpDownloadURI(Blob blob);
+    URI getDownloadURI(Blob blob);
 }

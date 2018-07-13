@@ -665,13 +665,13 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
-                DataRecordDirectUpload upload = provider.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                DataRecordDirectUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
                 if (upload == null) {
                     return null;
                 }
@@ -698,7 +698,7 @@ public class DataStoreBlobStore
                 };
             }
             catch (DataRecordDirectUploadException e) {
-                log.warn("Unable to initiate direct HTTP upload", e);
+                log.warn("Unable to initiate direct upload", e);
             }
         }
         return null;
@@ -706,14 +706,14 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public Blob completeHttpUpload(String uploadToken) throws IllegalArgumentException {
+    public Blob completeDirectUpload(String uploadToken) throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
-                DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeHttpUpload(uploadToken);
+                DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeDirectUpload(uploadToken);
                 return new BlobStoreBlob(this, record.getIdentifier().toString());
             }
             catch (DataStoreException | DataRecordDirectUploadException e) {
-                log.warn("Unable to complete direct HTTP upload for upload token {}", uploadToken, e);
+                log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);
             }
         }
         return null;
@@ -721,7 +721,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URI getHttpDownloadURI(Blob blob) {
+    public URI getDownloadURI(Blob blob) {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {

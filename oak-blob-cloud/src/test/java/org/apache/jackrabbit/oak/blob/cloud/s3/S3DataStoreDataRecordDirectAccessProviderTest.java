@@ -62,8 +62,8 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
                         ".aws"),
                 homeDir.newFolder().getAbsolutePath()
         );
-        dataStore.setHttpDownloadURIExpirySeconds(expirySeconds);
-        dataStore.setHttpUploadURIExpirySeconds(expirySeconds);
+        dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
+        dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
     }
 
     @Override
@@ -135,34 +135,34 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
     public void testInitDirectUploadURIHonorsExpiryTime() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
-            ds.setHttpUploadURIExpirySeconds(60);
-            DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
+            ds.setDirectUploadURIExpirySeconds(60);
+            DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiresTime = params.get("X-Amz-Expires");
             assertTrue(60 >= Integer.parseInt(expiresTime));
         }
         finally {
-            ds.setHttpUploadURIExpirySeconds(expirySeconds);
+            ds.setDirectUploadURIExpirySeconds(expirySeconds);
         }
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURIs() throws DataRecordDirectUploadException {
+    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 50;
         int expectedNumURIs = 5000;
-        DataRecordDirectUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        DataRecordDirectUpload upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 100;
         expectedNumURIs = 10000;
-        upload = ds.initiateHttpUpload(uploadSize, -1);
+        upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 200;
         // expectedNumURIs still 10000, AWS limit
-        upload = ds.initiateHttpUpload(uploadSize, -1);
+        upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

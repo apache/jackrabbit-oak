@@ -33,7 +33,6 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Random;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -106,7 +105,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testUpload() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         final String content = getRandomString(256);
         final long size = content.getBytes("utf-8").length;
@@ -119,7 +118,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         // very small test binary
         assertTrue(size < upload.getMaxPartSize());
 
-        URI uri = upload.getURIs().iterator().next();
+        URI uri = upload.getUploadURIs().iterator().next();
         assertNotNull(uri);
 
         LOG.info("- uploading binary via PUT to {}", uri.toString());
@@ -141,7 +140,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testMultiPartUpload() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         assertTrue(adminSession.getValueFactory() instanceof JackrabbitValueFactory);
 
@@ -153,7 +152,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String buffer = getRandomString(uploadSize);
         long uploadPartSize = upload.getMaxPartSize();
         long remaining = uploadSize;
-        for (URI uri : upload.getURIs()) {
+        for (URI uri : upload.getUploadURIs()) {
             String nextPart = buffer.substring(0, (int) Math.min(uploadPartSize, remaining));
             int code = httpPut(uri,
                     nextPart.getBytes().length,
@@ -178,12 +177,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testStreamBinaryThroughJCRAfterURIWrite() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         // 1. add binary and upload
         String content = getRandomString(256);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
-        int code = httpPut(upload.getURIs().iterator().next(),
+        int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -202,7 +201,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testGetBinary() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // Must be larger than the minimum file size, to keep it from being inlined in the node store.
         String content = getRandomString(1024*20);
@@ -212,7 +211,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         Assert.assertTrue(writeBinary instanceof BinaryDirectDownload);
 
-        URI downloadURI = ((BinaryDirectDownload) writeBinary).getURI();
+        URI downloadURI = ((BinaryDirectDownload) writeBinary).getDownloadURI();
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
         assertEquals(content, writer.toString());
@@ -223,20 +222,20 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testGetBinaryAfterPut() throws Exception {
         // enable writable and readable URI feature
         ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
-        provider.setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        provider.setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+        provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // 1. add binary and upload
         String content = getRandomString(256);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
-        int code = httpPut(upload.getURIs().iterator().next(),
+        int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
         Binary writeBinary = uploadProvider.completeBinaryUpload(upload.getUploadToken());
 
         // 2. read binary, get the URI
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getURI();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
 
@@ -247,7 +246,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testGetSmallBinaryReturnsNull() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         // Must be smaller than the minimum file size, (inlined binary)
         String content = getRandomString(256);
@@ -255,7 +254,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getURI();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
         assertNull(downloadURI);
     }
 
@@ -266,13 +265,17 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testUnprivilegedSessionCannotUploadBinary() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         try {
             anonymousUploadProvider.initiateBinaryUpload(1024*20, 10);
             fail();
         }
-        catch (AccessDeniedException e) { }
+        //catch (AccessDeniedException e) { }
+        // Should use the more specific AccessDeniedException, but since the
+        // method no longer declares that it throws AccessDeniedException the
+        // more generic exception is caught here until OAK-7602 is resolved.
+        catch (Exception e) { }
     }
 
     // A2 - disable write URIs entirely
@@ -280,27 +283,27 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testDisableDirectHttpUpload() throws Exception {
         // disable in data store config by setting expiry to zero
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(0);
+                .setDirectUploadURIExpirySeconds(0);
 
         String content = getRandomString(256);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
 
         assertNotNull(upload);
-        assertFalse(upload.getURIs().iterator().hasNext());
+        assertFalse(upload.getUploadURIs().iterator().hasNext());
     }
 
     // A2 - disable get URIs entirely
     @Test
     public void testDisableDirectHttpDownload() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpDownloadURIExpirySeconds(0);
+                .setDirectDownloadURIExpirySeconds(0);
 
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getURI();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
         assertNull(downloadURI);
     }
 
@@ -309,7 +312,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testPutURIExpires() throws Exception {
         // short timeout
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(1);
+                .setDirectUploadURIExpirySeconds(1);
 
         String content = getRandomString(1024*20);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
@@ -318,7 +321,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Thread.sleep(2 * SECONDS);
 
         // ensure PUT fails with 403 or anything 400+
-        assertTrue(httpPutTestStream(upload.getURIs().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
+        assertTrue(httpPutTestStream(upload.getUploadURIs().iterator().next()) > HttpURLConnection.HTTP_BAD_REQUEST);
     }
 
     // F2 - CDN & transfer accelerators (S3 only for now)
@@ -327,12 +330,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
         if (provider instanceof S3DataStore) {
             // This test is S3 specific for now
-            provider.setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-            provider.setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+            provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+            provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
             provider.setBinaryTransferAccelerationEnabled(true);
 
             BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 20, 1);
-            URI uri = upload.getURIs().iterator().next();
+            URI uri = upload.getUploadURIs().iterator().next();
             assertNotNull(uri);
 
             LOG.info("accelerated URI: {}", uri.toString());
@@ -340,7 +343,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
             provider.setBinaryTransferAccelerationEnabled(false);
             upload = uploadProvider.initiateBinaryUpload(1024*20, 1);
-            uri = upload.getURIs().iterator().next();
+            uri = upload.getUploadURIs().iterator().next();
             assertNotNull(uri);
 
             LOG.info("non-accelerated URI: {}", uri.toString());
@@ -353,10 +356,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testModifiedPutURIFails() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
-        URI uri = upload.getURIs().iterator().next();
+        URI uri = upload.getUploadURIs().iterator().next();
         URI changedURI = new URI(
                 String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URI filename
                 uri.getScheme(),
@@ -373,12 +376,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testCannotReadFromPutURI() throws Exception {
         // enable writable URI and readable URI feature
         ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
-        provider.setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        provider.setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+        provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         String content = getRandomString(1024*20);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
-        URI uri = upload.getURIs().iterator().next();
+        URI uri = upload.getUploadURIs().iterator().next();
         int code = httpPut(uri, content.getBytes().length, new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
@@ -392,15 +395,15 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testCannotModifyExistingBinaryViaPutURI() throws Exception {
         // enable writable URI and readable URI feature
         ConfigurableDataRecordDirectAccessProvider provider = getConfigurableHttpDataRecordProvider();
-        provider.setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        provider.setHttpDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+        provider.setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+        provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getURI();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
         assertNotNull(downloadURI);
 
         String moreContent = getRandomString(1024*20);
@@ -423,12 +426,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testUploadedBinaryIsImmutable() throws Exception {
         // enable writable URI feature
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload);
-        int code = httpPut(upload.getURIs().iterator().next(),
+        int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -440,7 +443,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String moreContent = getRandomString(1024*21);
         upload = uploadProvider.initiateBinaryUpload(moreContent.getBytes().length, 1);
         assertNotNull(upload);
-        code = httpPut(upload.getURIs().iterator().next(),
+        code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(moreContent.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -460,7 +463,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         // Every upload destination should be unique with no regard to file content
         // The content is not read by the Oak code so no deduplication can be performed
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
         BinaryDirectUpload upload1 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
@@ -468,19 +471,19 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryDirectUpload upload2 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload2);
 
-        assertNotEquals(upload1.getURIs().iterator().next().toString(),
-                upload2.getURIs().iterator().next().toString());
+        assertNotEquals(upload1.getUploadURIs().iterator().next().toString(),
+                upload2.getUploadURIs().iterator().next().toString());
     }
 
     // D3 - do not delete directly => copy nt:file node, delete one, ensure binary still there
     @Test
     public void testBinaryNotDeletedWithNode() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
-        int code = httpPut(upload.getURIs().iterator().next(),
+        int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -504,7 +507,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testBinaryOnlyPersistedInNodeStoreAfterUploadIsCompleted() throws Exception {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
         getOrCreateNtFile(adminSession, FILE_PATH);
@@ -524,7 +527,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         }
         catch (PathNotFoundException e) { }
 
-        int code = httpPut(upload.getURIs().iterator().next(),
+        int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -557,7 +560,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadWithZeroSizeFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(0, 1);
             fail();
@@ -568,7 +571,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadWithZeroURIsFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024 * 20, 0);
             fail();
@@ -580,7 +583,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testInitiateHttpUploadWithUnsupportedNegativeNumberURIsFails()
         throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024 * 20, -2);
             fail();
@@ -591,10 +594,10 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadWithUnlimitedURIs() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
-        assertTrue(Iterables.size(upload.getURIs()) > 50);
+        assertTrue(Iterables.size(upload.getUploadURIs()) > 50);
         // 50 is our default expected client max -
         // this is to make sure we will give as many as needed
         // if the client doesn't specify their own limit
@@ -603,16 +606,16 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadLargeSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
-        assertEquals(1, Iterables.size(upload.getURIs()));
+        assertEquals(1, Iterables.size(upload.getUploadURIs()));
     }
 
     @Test
     public void testInitiateHttpUploadTooLargeForSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 1);
             fail();
@@ -623,7 +626,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadTooLargeForUpload() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 1024L * 10L, -1);
             fail();
@@ -634,7 +637,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testInitiateHttpUploadTooLargeForRequestedNumURIs() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         try {
             uploadProvider.initiateBinaryUpload(1024L * 1024L * 1024L * 10L, 10);
             fail();
@@ -645,7 +648,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     @Test
     public void testCompleteHttpUploadWithInvalidTokenFails() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
-                .setHttpUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
+                .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(256, 10);
         assertNotNull(upload);

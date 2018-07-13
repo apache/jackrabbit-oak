@@ -310,15 +310,15 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
     @Override
     @Nullable
-    public BinaryDirectUpload initiateBinaryUpload(long maxSize, int maxParts) throws RepositoryException {
-        BlobDirectUpload upload = blobDirectAccessProvider.initiateHttpUpload(maxSize, maxParts);
+    public BinaryDirectUpload initiateBinaryUpload(long maxSize, int maxParts) {
+        BlobDirectUpload upload = blobDirectAccessProvider.initiateDirectUpload(maxSize, maxParts);
         if (null == upload) {
             return null;
         }
 
         return new BinaryDirectUpload() {
             @Override
-            public Iterable<URI> getURIs() {
+            public Iterable<URI> getUploadURIs() {
                 return upload.getUploadURIs();
             }
 
@@ -341,7 +341,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     @Nullable
     public Binary completeBinaryUpload(String uploadToken) throws RepositoryException {
         return createBinary(
-                blobDirectAccessProvider.completeHttpUpload(uploadToken));
+                blobDirectAccessProvider.completeDirectUpload(uploadToken));
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
@@ -375,20 +375,20 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public BlobDirectUpload initiateHttpUpload(long maxUploadSizeInBytes,
-                                                   int maxNumberOfURIs) {
+        public BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                                     int maxNumberOfURIs) {
             return null;
         }
 
         @Nullable
         @Override
-        public Blob completeHttpUpload(String uploadToken) {
+        public Blob completeDirectUpload(String uploadToken) {
             return null;
         }
 
         @Nullable
         @Override
-        public URI getHttpDownloadURI(Blob blob) {
+        public URI getDownloadURI(Blob blob) {
             return null;
         }
     }

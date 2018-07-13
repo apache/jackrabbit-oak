@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -81,7 +82,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     // ConfigurableDataRecordDirectAccessProvider implementation
     //
     @Override
-    public void setHttpUploadURIExpirySeconds(int seconds) {
+    public void setDirectUploadURIExpirySeconds(int seconds) {
         if (s3Backend != null) {
             s3Backend.setHttpUploadURIExpirySeconds(seconds);
         }
@@ -94,8 +95,9 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         }
     }
 
+    @Nullable
     @Override
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
         if (null == s3Backend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
@@ -103,30 +105,31 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
+    @Nonnull
     @Override
-    public DataRecord completeHttpUpload(@Nonnull String uploadToken)
+    public DataRecord completeDirectUpload(@Nonnull String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
-        if (s3Backend != null) {
-            return s3Backend.completeHttpUpload(uploadToken);
+        if (null == s3Backend) {
+            throw new DataRecordDirectUploadException("Backend not initialized");
         }
-
-        return null;
+        return s3Backend.completeHttpUpload(uploadToken);
     }
 
     @Override
-    public void setHttpDownloadURIExpirySeconds(int seconds) {
+    public void setDirectDownloadURIExpirySeconds(int seconds) {
         if (s3Backend != null) {
             s3Backend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
 
     @Override
-    public void setHttpDownloadURICacheSize(int maxSize) {
+    public void setDirectDownloadURICacheSize(int maxSize) {
         if (s3Backend != null) {
             s3Backend.setHttpDownloadURICacheSize(maxSize);
         }
     }
 
+    @Nullable
     @Override
     public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
         if (s3Backend == null) {

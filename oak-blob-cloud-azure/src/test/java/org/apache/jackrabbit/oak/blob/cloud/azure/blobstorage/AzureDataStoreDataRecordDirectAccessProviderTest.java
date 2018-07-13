@@ -72,8 +72,8 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         dataStore.setProperties(props);
         dataStore.init(homeDir.newFolder().getAbsolutePath());
 
-        dataStore.setHttpDownloadURIExpirySeconds(expirySeconds);
-        dataStore.setHttpUploadURIExpirySeconds(expirySeconds);
+        dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
+        dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
     }
 
     @Override
@@ -154,8 +154,8 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-            ds.setHttpUploadURIExpirySeconds(60);
-            DataRecordDirectUpload uploadContext = ds.initiateHttpUpload(ONE_MB, 1);
+            ds.setDirectUploadURIExpirySeconds(60);
+            DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiryDateStr = params.get("se");
@@ -163,26 +163,26 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
             assertEquals(now, expiry.minusSeconds(60));
         }
         finally {
-            ds.setHttpUploadURIExpirySeconds(expirySeconds);
+            ds.setDirectUploadURIExpirySeconds(expirySeconds);
         }
     }
 
     @Test
-    public void testInitiateHttpUploadUnlimitedURIs() throws DataRecordDirectUploadException {
+    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordDirectUploadException {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumURIs = 10000;
-        DataRecordDirectUpload upload = ds.initiateHttpUpload(uploadSize, -1);
+        DataRecordDirectUpload upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;
         expectedNumURIs = 50000;
-        upload = ds.initiateHttpUpload(uploadSize, -1);
+        upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 1000;
         // expectedNumURIs still 50000, Azure limit
-        upload = ds.initiateHttpUpload(uploadSize, -1);
+        upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

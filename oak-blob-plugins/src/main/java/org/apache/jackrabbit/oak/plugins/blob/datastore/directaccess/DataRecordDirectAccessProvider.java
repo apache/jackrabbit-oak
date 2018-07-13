@@ -33,7 +33,7 @@ public interface DataRecordDirectAccessProvider {
      * {@link DataRecord}.
      *
      * @param identifier The {@link DataIdentifier} for the {@link DataRecord}
-     *                   containing the binary to be read via direct download.
+     *        containing the binary to be read via direct download.
      * @return A URI for directly reading the binary, or null if the URI cannot
      * be generated, for example if the capability is disabled by configuration
      * or if a service provider error occurs.
@@ -42,8 +42,8 @@ public interface DataRecordDirectAccessProvider {
     URI getDownloadURI(DataIdentifier identifier);
 
     /**
-     * Begin a transaction to perform a direct binary upload to the cloud
-     * storage.
+     * Begin a transaction to perform a direct binary upload to the storage
+     * location.
      *
      * @param maxUploadSizeInBytes - the largest size of the binary to be
      *        uploaded, in bytes, based on the caller's best guess.  If the
@@ -57,15 +57,16 @@ public interface DataRecordDirectAccessProvider {
      *        parameter.  A caller may also pass in -1 to indicate that it is
      *        able to accept any number of URIs.  Any other negative number or
      *        0 may result in {@link IllegalArgumentException}.
-     * @return A {@link DataRecordDirectUpload} referencing this direct upload, or
-     * {@code null} if the implementation doees not support direct upload.
-     * @throws {@link IllegalArgumentException} if the service
-     * provider or implementation cannot support the requested upload,
-     * {@link DataRecordDirectUploadException} if
-     * the upload cannot be completed as requested.
+     * @return A {@link DataRecordDirectUpload} referencing this direct upload,
+     *         or {@code null} if the implementation does not support direct
+     *         upload.
+     * @throws {@link IllegalArgumentException} if the service provider or
+     *         implementation cannot support the requested upload, or {@link
+     *         DataRecordDirectUploadException} if the upload cannot be
+     *         completed as requested.
      */
     @Nullable
-    DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException;
 
     /**
@@ -78,15 +79,15 @@ public interface DataRecordDirectAccessProvider {
      * @param uploadToken The upload token identifying this direct upload
      *        transaction, as returned in the {@link DataRecordDirectUpload}
      *        object resulting from a call to {@link
-     *        #initiateHttpUpload(long, int)}.
-     * @return A {@link DataRecord} for the uploaded binary.
+     *        #initiateDirectUpload(long, int)}.
+     * @return A {@link DataRecord} for the uploaded binary, or if
      * @throws {@link IllegalArgumentException} if the {@code uploadToken} is
-     *         null, empty, or otherwise invalid, {@link DataRecordDirectUploadException} if
-     *         the object written can't be found by the service provider, or
-     *         {@link DataStoreException} if the object written can't be found
-     *         by the DataStore.
+     *         null, empty, or otherwise invalid, {@link
+     *         DataRecordDirectUploadException} if the object written can't be
+     *         found by the service provider, or {@link DataStoreException} if
+     *         the object written can't be found by the DataStore.
      */
     @Nonnull
-    DataRecord completeHttpUpload(String uploadToken)
+    DataRecord completeDirectUpload(String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException;
 }

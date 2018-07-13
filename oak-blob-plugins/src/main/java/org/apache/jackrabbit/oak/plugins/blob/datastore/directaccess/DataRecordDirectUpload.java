@@ -25,7 +25,7 @@ public interface DataRecordDirectUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * DataRecordDirectAccessProvider#completeHttpUpload(String)}.
+     * DataRecordDirectAccessProvider#completeDirectUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -63,7 +63,7 @@ public interface DataRecordDirectUpload {
      * #getUploadURIs()};
      * <p>
      * If a client calls {@link
-     * DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} with a value of
+     * DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
      * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
      * size of the binary to be uploaded, it may not be possible to complete the
      * upload with the URIs provided.  The client should initiate the
@@ -81,11 +81,11 @@ public interface DataRecordDirectUpload {
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URI in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURIs in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)}, OR
+     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateHttpUpload(long, int)} is less
+     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} is less
      *    than or equal to the minimum size of a multi-part upload part
      * If the collection contains only a single URI the client should treat that
      * URI as a direct single-put upload and write the entire binary to the

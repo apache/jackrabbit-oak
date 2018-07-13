@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.URI;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
@@ -86,8 +87,9 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
         // nothing to do
     }
 
+    @Nullable
     @Override
-    public URI getURI() throws RepositoryException {
+    public URI getDownloadURI() throws RepositoryException {
         if (null == getReference()) {
             // Binary is inlined, we cannot return a URI for it
             return null;
@@ -99,7 +101,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
         Blob blob = getBinaryValue().getBlob();
         String blobId = blob.getContentIdentity();
         if (null != blobId) {
-            return value.getHttpDownloadURI(blob);
+            return value.getDownloadURI(blob);
         }
         return null;
     }

@@ -28,7 +28,7 @@ public interface BlobDirectUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * BlobDirectAccessProvider#completeHttpUpload(String)}.
+     * BlobDirectAccessProvider#completeDirectUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -66,11 +66,12 @@ public interface BlobDirectUpload {
      * size returned by {@link #getMaxPartSize()} will work without using more
      * URIs than those available in the collection of uploadPartURIs.
      * <p>
-     * If a client calls {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}
-     * with a value of {@code maxUploadSizeInBytes} that ends up being smaller
-     * than the actual size of the binary to be uploaded, it may not be possible
-     * to complete the upload with the URIs provided.  The client should
-     * initiate the transaction again with the correct size.
+     * If a client calls {@link
+     * BlobDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
+     * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
+     * size of the binary to be uploaded, it may not be possible to complete the
+     * upload with the URIs provided.  The client should initiate the
+     * transaction again with the correct size.
      * <p>
      * Note that some backends have upper-bound limits for the size of a part of
      * a multi-part upload.  You should consult the documentation for your
@@ -85,12 +86,13 @@ public interface BlobDirectUpload {
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URI in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURIs in a call to
-     *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)}, OR
+     *    {@link BlobDirectAccessProvider#initiateDirectUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link BlobDirectAccessProvider#initiateHttpUpload(long, int)} is less than or
-     *    equal to the minimum size of a multi-part upload part
+     *    {@link BlobDirectAccessProvider#initiateDirectUpload(long, int)} is
+     *    less than or equal to the minimum size of a multi-part upload part.
+     * <p>
      * If the collection contains only a single URI the client should treat that
      * URI as a direct single-put upload and write the entire binary to the
      * single URI.  Otherwise the client may choose to consume any number of

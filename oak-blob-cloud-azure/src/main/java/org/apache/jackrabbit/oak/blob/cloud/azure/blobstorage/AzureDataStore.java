@@ -72,7 +72,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     // ConfigurableDataRecordDirectAccessProvider Implementation
     //
     @Override
-    public void setHttpUploadURIExpirySeconds(int seconds) {
+    public void setDirectUploadURIExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
             azureBlobStoreBackend.setHttpUploadURIExpirySeconds(seconds);
         }
@@ -85,7 +85,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
         if (null == azureBlobStoreBackend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
@@ -95,23 +95,23 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nonnull
     @Override
-    public DataRecord completeHttpUpload(String uploadToken)
+    public DataRecord completeDirectUpload(String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
-        if (azureBlobStoreBackend != null) {
-            return azureBlobStoreBackend.completeHttpUpload(uploadToken);
+        if (null == azureBlobStoreBackend) {
+            throw new DataRecordDirectUploadException("Backend not initialized");
         }
-
-        return null;
+        return azureBlobStoreBackend.completeHttpUpload(uploadToken);
     }
 
     @Override
-    public void setHttpDownloadURIExpirySeconds(int seconds) {
+    public void setDirectDownloadURIExpirySeconds(int seconds) {
         if (null != azureBlobStoreBackend) {
             azureBlobStoreBackend.setHttpDownloadURIExpirySeconds(seconds);
         }
     }
 
-    public void setHttpDownloadURICacheSize(int maxSize) {
+    @Override
+    public void setDirectDownloadURICacheSize(int maxSize) {
         azureBlobStoreBackend.setHttpDownloadURICacheSize(maxSize);
     }
 
