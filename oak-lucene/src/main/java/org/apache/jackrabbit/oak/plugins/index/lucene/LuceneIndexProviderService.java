@@ -138,7 +138,8 @@ public class LuceneIndexProviderService {
     @Property(
             boolValue = true,
             label = "Enable CopyOnRead",
-            description = "Enable copying of Lucene index to local file system to improve query performance"
+            description = "Enable copying of Lucene index to local file system to improve query performance",
+            propertyPrivate = true
     )
     private static final String PROP_COPY_ON_READ = "enableCopyOnReadSupport";
 
@@ -154,7 +155,8 @@ public class LuceneIndexProviderService {
     @Property(
             boolValue = PROP_COPY_ON_WRITE_DEFAULT,
             label = "Enable CopyOnWrite",
-            description = "Enable copying of Lucene index to local file system to improve index writer performance"
+            description = "Enable copying of Lucene index to local file system to improve index writer performance",
+            propertyPrivate = true
     )
     private static final String PROP_COPY_ON_WRITE = "enableCopyOnWriteSupport";
 
