@@ -70,5 +70,20 @@ public final class AzureConstants {
      */
     public static final String PROXY_PORT = "proxyPort";
 
+    /**
+     * TTL for presigned HTTP upload URIs - default is 0 (disabled)
+     */
+    public static final String PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS = "presignedHttpUploadURIExpirySeconds";
+
+    /**
+     * TTL for presigned HTTP download URIs - default is 0 (disabled)
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS = "presignedHttpDownloadURIExpirySeconds";
+
+    /**
+     * Maximum size of presigned HTTP download URI cache - default is 0 (no cache)
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
+
     private AzureConstants() { }
 }
