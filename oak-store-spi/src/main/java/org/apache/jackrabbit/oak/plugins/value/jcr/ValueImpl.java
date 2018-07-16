@@ -35,6 +35,7 @@ import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
+import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -392,11 +393,17 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
-    URI getDownloadURI(Blob blob) {
+    URI getDownloadURI(Blob blob, BinaryDirectDownloadOptions downloadOptions) {
         if (blobDirectAccessProvider == null) {
             return null;
         } else {
-            return blobDirectAccessProvider.getDownloadURI(blob);
+            if (null == downloadOptions) {
+                return blobDirectAccessProvider.getDownloadURI(blob);
+            }
+            else {
+                return blobDirectAccessProvider.getDownloadURI(blob,
+                        downloadOptions.toProperties());
+            }
         }
     }
 

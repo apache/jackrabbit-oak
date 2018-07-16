@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.net.URI;
+import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,6 +41,9 @@ public interface DataRecordDirectAccessProvider {
      */
     @Nullable
     URI getDownloadURI(DataIdentifier identifier);
+
+    @Nullable
+    URI getDownloadURI(DataIdentifier identifier, Properties downloadOptions);
 
     /**
      * Begin a transaction to perform a direct binary upload to the storage

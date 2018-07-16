@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordD
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -718,7 +719,8 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(@Nonnull DataIdentifier identifier) {
+    public URI createHttpDownloadURI(@Nonnull DataIdentifier identifier,
+                                     @Nullable Properties downloadOptions) {
         if (httpDownloadURIExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -730,7 +732,22 @@ public class S3Backend extends AbstractSharedBackend {
             uri = httpDownloadURICache.getIfPresent(identifier);
         }
         if (uri == null) {
-            uri = createPresignedURI(identifier, HttpMethod.GET, httpDownloadURIExpirySeconds);
+            Map<String, String> requestParams = Maps.newHashMap();
+            requestParams.put("response-cache-control", "private, max-age=31536000");
+            if (null != downloadOptions) {
+                String contentType = downloadOptions.getProperty("Content-Type");
+                if (null != contentType) {
+                    requestParams.put("response-content-type", contentType);
+                }
+                String contentDisposition = downloadOptions.getProperty("Content-Disposition");
+                if (null != contentDisposition) {
+                    requestParams.put("response-content-disposition", contentDisposition);
+                }
+            }
+            uri = createPresignedURI(identifier,
+                    HttpMethod.GET,
+                    httpDownloadURIExpirySeconds,
+                    requestParams);
             if (uri != null && httpDownloadURICache != null) {
                 httpDownloadURICache.put(identifier, uri);
             }
@@ -881,11 +898,16 @@ public class S3Backend extends AbstractSharedBackend {
         return getRecord(new DataIdentifier(getIdentifierName(blobId)));
     }
 
-    private URI createPresignedURI(DataIdentifier identifier, HttpMethod method, int expirySeconds) {
+    private URI createPresignedURI(DataIdentifier identifier,
+                                   HttpMethod method,
+                                   int expirySeconds) {
         return createPresignedURI(identifier, method, expirySeconds, Maps.newHashMap());
     }
 
-    private URI createPresignedURI(DataIdentifier identifier, HttpMethod method, int expirySeconds, Map<String, String> reqParams) {
+    private URI createPresignedURI(DataIdentifier identifier,
+                                   HttpMethod method,
+                                   int expirySeconds,
+                                   Map<String, String> reqParams) {
         final String key = getKeyName(identifier);
 
         try {

@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -722,11 +723,19 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public URI getDownloadURI(Blob blob) {
+        return getDownloadURI(blob, null);
+    }
+
+    @Nullable
+    @Override
+    public URI getDownloadURI(Blob blob, Properties downloadOptions) {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
                 return ((DataRecordDirectAccessProvider) delegate).getDownloadURI(
-                        new DataIdentifier(extractBlobId(blobId)));
+                        new DataIdentifier(extractBlobId(blobId)),
+                        downloadOptions
+                );
             }
         }
         return null;

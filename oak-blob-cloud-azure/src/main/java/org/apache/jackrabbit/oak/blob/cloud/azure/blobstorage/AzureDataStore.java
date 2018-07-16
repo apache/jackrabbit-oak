@@ -117,9 +117,16 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public URI getDownloadURI(DataIdentifier identifier) {
+    public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
+        return getDownloadURI(identifier, null);
+    }
+
+    @Nullable
+    @Override
+    public URI getDownloadURI(@Nonnull DataIdentifier identifier,
+                              @Nullable Properties downloadOptions) {
         if (null != azureBlobStoreBackend) {
-            return azureBlobStoreBackend.createHttpDownloadURI(identifier);
+            return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }
         return null;
     }

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.api.blob;
 
 import java.net.URI;
+import java.util.Properties;
 
 import javax.annotation.Nullable;
 
@@ -108,4 +109,7 @@ public interface BlobDirectAccessProvider {
      */
     @Nullable
     URI getDownloadURI(Blob blob);
+
+    @Nullable
+    URI getDownloadURI(Blob blob, Properties downloadOptions);
 }

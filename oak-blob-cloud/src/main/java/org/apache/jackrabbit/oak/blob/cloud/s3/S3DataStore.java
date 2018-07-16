@@ -132,9 +132,16 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Nullable
     @Override
     public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
+        return getDownloadURI(identifier, null);
+    }
+
+    @Nullable
+    @Override
+    public URI getDownloadURI(@Nonnull DataIdentifier identifier,
+                              @Nullable Properties downloadOptions) {
         if (s3Backend == null) {
             return null;
         }
-        return s3Backend.createHttpDownloadURI(identifier);
+        return s3Backend.createHttpDownloadURI(identifier, downloadOptions);
     }
 }

@@ -30,6 +30,7 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDirectDownload;
+import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +91,13 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
     @Nullable
     @Override
     public URI getDownloadURI() throws RepositoryException {
+        return getDownloadURI(null);
+    }
+
+    @Nullable
+    @Override
+    public URI getDownloadURI(BinaryDirectDownloadOptions downloadOptions)
+            throws RepositoryException {
         if (null == getReference()) {
             // Binary is inlined, we cannot return a URI for it
             return null;
@@ -101,7 +109,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
         Blob blob = getBinaryValue().getBlob();
         String blobId = blob.getContentIdentity();
         if (null != blobId) {
-            return value.getDownloadURI(blob);
+            return value.getDownloadURI(blob, downloadOptions);
         }
         return null;
     }

@@ -46,6 +46,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDirectDownload;
+import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryDirectUpload;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -257,6 +258,107 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
         assertNull(downloadURI);
+    }
+
+    @Test
+    public void testGetBinaryWithSpecificContentType() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedContentType = "image/png";
+        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+                .builder()
+                .withContentType(expectedContentType)
+                .build();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
+                .getDownloadURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentType = conn.getHeaderField("Content-Type");
+        assertNotNull(contentType);
+        assertEquals(expectedContentType, contentType);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryWithSpecificName() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedName = "beautiful_landscape.png";
+        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+                .builder()
+                .withName(expectedName)
+                .build();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
+                .getDownloadURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String name = conn.getHeaderField("Content-Disposition");
+        assertNotNull(name);
+        assertEquals(expectedName, name);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinarySetsAllHeaders() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedContentType = "image/png";
+        String expectedName = "beautiful_landscape.png";
+        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+                .builder()
+                .withContentType(expectedContentType)
+                .withName(expectedName)
+                .build();
+        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
+                .getDownloadURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentType = conn.getHeaderField("Content-Type");
+        assertNotNull(contentType);
+        assertEquals(expectedContentType, contentType);
+        String name = conn.getHeaderField("Content-Disposition");
+        assertNotNull(name);
+        assertEquals(expectedName, name);
+        String cacheControl = conn.getHeaderField("Cache-Control");
+        assertNotNull(cacheControl);
+        assertEquals("private, max-age=31536000", cacheControl);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
     }
 
     // A6 - Client MUST only get permission to add a blob referenced in a JCR binary property

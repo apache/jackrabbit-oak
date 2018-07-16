@@ -26,6 +26,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -391,6 +392,10 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
         public URI getDownloadURI(Blob blob) {
             return null;
         }
+
+        @Nullable
+        @Override
+        public URI getDownloadURI(Blob blob, Properties downloadOptions) { return null; }
     }
 
 }

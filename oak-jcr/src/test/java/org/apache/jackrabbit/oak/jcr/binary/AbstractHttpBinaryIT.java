@@ -115,7 +115,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
             S3DataStoreFixture s3 = new S3DataStoreFixture(s3Props);
             fixtures.add(new SegmentMemoryNodeStoreFixture(s3));
-            fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
+//            fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
         } else {
             LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
         }
@@ -141,7 +141,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         if (azProps != null) {
             AzureDataStoreFixture azure = new AzureDataStoreFixture(azProps);
             fixtures.add(new SegmentMemoryNodeStoreFixture(azure));
-            fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
+//            fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
         } else {
             LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
         }

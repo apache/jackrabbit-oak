@@ -71,6 +71,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.CopyStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.io.IOUtils;
@@ -737,21 +738,36 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(DataIdentifier identifier) {
-        URI url = null;
+    public URI createHttpDownloadURI(DataIdentifier identifier, Properties downloadOptions) {
+        URI uri = null;
         if (httpDownloadURIExpirySeconds > 0) {
             if (null != httpDownloadURICache) {
-                url = httpDownloadURICache.getIfPresent(identifier);
+                uri = httpDownloadURICache.getIfPresent(identifier);
             }
-            if (null == url) {
+            if (null == uri) {
                 String key = getKeyName(identifier);
-                url = createPresignedURI(key, EnumSet.of(SharedAccessBlobPermissions.READ), httpDownloadURIExpirySeconds);
-                if (url != null && httpDownloadURICache != null) {
-                    httpDownloadURICache.put(identifier, url);
+                SharedAccessBlobHeaders headers = new SharedAccessBlobHeaders();
+                if (null != downloadOptions) {
+                    String contentType = downloadOptions.getProperty("Content-Type");
+                    if (null != contentType) {
+                        headers.setContentType(contentType);
+                    }
+                    String contentDisposition = downloadOptions.getProperty("Content-Disposition");
+                    if (null != contentDisposition) {
+                        headers.setContentDisposition(contentDisposition);
+                    }
+                }
+                headers.setCacheControl("private, max-age=31536000");
+                uri = createPresignedURI(key,
+                        EnumSet.of(SharedAccessBlobPermissions.READ),
+                        httpDownloadURIExpirySeconds,
+                        headers);
+                if (uri != null && httpDownloadURICache != null) {
+                    httpDownloadURICache.put(identifier, uri);
                 }
             }
         }
-        return url;
+        return uri;
     }
 
     public void setHttpUploadURIExpirySeconds(int seconds) { httpUploadURIExpirySeconds = seconds; }
@@ -940,7 +956,22 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     protected URI createPresignedURI(String key,
                                      EnumSet<SharedAccessBlobPermissions> permissions,
                                      int expirySeconds,
+                                     SharedAccessBlobHeaders optionalHeaders) {
+        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders);
+    }
+
+    protected URI createPresignedURI(String key,
+                                     EnumSet<SharedAccessBlobPermissions> permissions,
+                                     int expirySeconds,
                                      Map<String, String> additionalQueryParams) {
+        return createPresignedURI(key, permissions, expirySeconds, additionalQueryParams, null);
+    }
+
+    protected URI createPresignedURI(String key,
+                                     EnumSet<SharedAccessBlobPermissions> permissions,
+                                     int expirySeconds,
+                                     Map<String, String> additionalQueryParams,
+                                     SharedAccessBlobHeaders optionalHeaders) {
         SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
         Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
         policy.setSharedAccessExpiryTime(expiry);
@@ -955,7 +986,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         URI presignedURI = null;
         try {
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
-            String sharedAccessSignature = blob.generateSharedAccessSignature(policy, null);
+            String sharedAccessSignature =
+                    null == optionalHeaders ?
+                            blob.generateSharedAccessSignature(policy,
+                                    null) :
+                            blob.generateSharedAccessSignature(policy,
+                                    optionalHeaders,
+                                    null);
             // Shared access signature is returned encoded already.
 
             String uriString = String.format("https://%s.blob.core.windows.net/%s/%s?%s",
