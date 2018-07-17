@@ -235,134 +235,32 @@ tracker][blobtracker].
 
 _PID `org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService`_
 
-mongouri
-: Default - mongodb://localhost:27017
-: Specifies the [MongoURI][1] required to connect to Mongo Database
-
-db
-: Default - oak
-: Name of the database in Mongo
-
-socketKeepAlive
-: Default - true (was 'false' before 1.10)
-: Enables socket keep-alive for MongoDB connections
-: Since 1.8.0, 1.6.2, 1.4.16
-
-cache
-: Default - 256
-: Cache size in MB. This is distributed among various caches used in DocumentNodeStore
-
-changesSize
-: Default - 256
-: Size in MB of capped collection used in Mongo for caching the diff output.
-
-customBlobStore
-: Default false
-: Boolean value indicating that custom `BlobStore` to use. By default it uses `MongoBlobStore`.
-
-maxReplicationLagInSecs
-: Default 21600 (6 hours)
-: Determines the duration beyond which it can be safely assumed that state on secondary would be consistent 
-  with primary and its safe to read from them. (See [OAK-1645][OAK-1645])
-  
-blobGcMaxAgeInSecs
-: Default 86400 (24 hrs)
-: Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently 
-  (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have
-  been created 24 hrs ago would be considered for GC. It is strongly advised to not set this property to a very low 
-  value of say a few minutes but only set it to a hour at a minimum. This is to ensure that the NodeStore(s) have had the 
-  time to flush out its internal data structures to persistence and the references to recently added blobs are 
-  accounted.
-  
-versionGcMaxAgeInSecs
-: Default 86400 (24 hrs)
-: Oak uses MVCC model to store the data. So each update to a node results in new version getting created. This 
-  duration controls how much old revision data should be kept. For example if a node is deleted at time T1 then its
-  content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision
-  GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs)
-
-versionGCExpression
-: Default ""
-: A cron expression that defines when the Revision GC is scheduled. If this
-  configuration entry is left empty, the default behaviour depends on the
-  `documentStoreType`. For `MONGO` the default is to schedule a run every five
-  seconds (also known as Continuous Revision Garbage Collection). For `RDB` the
-  default is no scheduled GC. It must be enabled explicitly with a cron 
-  expression. E.g. the following expression triggers a GC run every night at
-  2 AM: `0 0 2 * * ?`.
-: Since 1.7.11
-
-versionGCTimeLimitInSecs
-: Default 10800
-: A Revision GC run is canceled after this number of seconds. The default is
-  three hours.
-: Since 1.7.11
-
-journalGCMaxAge
-: Default 86400000 (24 hrs, was 6 hrs until 1.7.4)
-: Journal entries older than `journalGCMaxAge` can be removed by the journal
-  garbage collector. The maximum age is specified in milliseconds.
-: Since 1.0.19, 1.2.3, 1.4
-
-journalGCInterval
-: Default 300000 (5 min)
-: The interval in milliseconds with which the journal garbage collector removes
-  old journal entries.
-: Since 1.0.19, 1.2.3, 1.4
-
-blobCacheSize
-: Default 16 (MB)
-: DocumentNodeStore when running with Mongo would use `MongoBlobStore` by default unless a custom `BlobStore` is 
-  configured. In such scenario the size of in memory cache for the frequently used blobs can be configured via 
-  `blobCacheSize`. 
-  
-persistentCache
-: Default "cache,binary=0" (prior to 1.6, the persistent cache was disabled by default)
-: The [persistent cache][persistent-cache], which is stored in the local file system.
-
-<a name="cache-allocation"></a>
-nodeCachePercentage
-: Default 35 (was 25 until 1.5.14)
-: Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache]
-
-prevDocCachePercentage
-: Default 4
-: Percentage of `cache` allocated for `prevDocCache`. See [Caching][doc-cache]
-: Since 1.3.15
-
-childrenCachePercentage
-: Default 15 (was 10 until 1.5.14)
-: Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache]
-
-diffCachePercentage
-: Default 30 (was 5 until 1.5.14)
-: Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache]
-
-docChildrenCachePercentage
-: Default 3
-: Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache]
-: Removed since 1.5.6
-
-cacheSegmentCount
-: Default 16
-: The number of segments in the LIRS cache
-: Since 1.0.15, 1.2.3, 1.3.0
-
-cacheStackMoveDistance
-: Default 16
-: The delay to move entries to the head of the queue in the LIRS cache
-: Since 1.0.15, 1.2.3, 1.3.0
-
-sharedDSRepoId (From Oak 1.2.11, valid for Oak 1.2.x)
-: Default ""
-: Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore.
-
-blobTrackSnapshotIntervalInSecs
-: Default 43200 (12 hrs)
-: The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and 
-deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This 
-should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob 
-tracker][blobtracker].
+Name | Default | Description | Since
+-----|---------|-------------|------
+mongouri | mongodb://localhost:27017 | Specifies the [MongoURI][1] required to connect to Mongo Database | 1.0
+db | oak | Name of the database in Mongo | 1.0
+socketKeepAlive | true (was 'false' before 1.10) | Enables socket keep-alive for MongoDB connections | 1.8.0, 1.6.2, 1.4.16
+cache | 256 | Cache size in MB. This is distributed among various caches used in DocumentNodeStore | 1.0
+customBlobStore | false | Boolean value indicating that custom `BlobStore` to use. | 1.0
+maxReplicationLagInSecs | 21600 (6 hours) | Determines the duration beyond which it can be safely assumed that state on secondary would be consistent with primary and its safe to read from them. (See [OAK-1645][OAK-1645]) | 1.0.2
+blobGcMaxAgeInSecs | 86400 (24 hrs) | Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have been created 24 hrs ago would be considered for GC. It is strongly advised to not set this property to a very low value of say a few minutes but only set it to a hour at a minimum. This is to ensure that the NodeStore(s) have had the time to flush out its internal data structures to persistence and the references to recently added blobs are accounted. | 1.0
+versionGcMaxAgeInSecs | 86400 (24 hrs) | Oak uses MVCC model to store the data. So each update to a node results in new version getting created. This duration controls how much old revision data should be kept. For example if a node is deleted at time T1 then its content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs) | 1.0
+versionGCExpression | "" | A cron expression that defines when the Revision GC is scheduled. If this configuration entry is left empty, the default behaviour depends on the `documentStoreType`. For `MONGO` the default is to schedule a run every five seconds (also known as Continuous Revision Garbage Collection). For `RDB` the default is no scheduled GC. It must be enabled explicitly with a cron expression. E.g. the following expression triggers a GC run every night at 2 AM: `0 0 2 * * ?`. | 1.7.11
+versionGCTimeLimitInSecs | 10800 | A Revision GC run is canceled after this number of seconds. The default is three hours. | 1.7.11
+journalGCMaxAge | 86400000 (24 hrs, was 6 hrs until 1.7.4) | Journal entries older than `journalGCMaxAge` can be removed by the journal garbage collector. The maximum age is specified in milliseconds. | 1.0.19, 1.2.3, 1.4
+journalGCInterval | 300000 (5 min) | The interval in milliseconds with which the journal garbage collector removes old journal entries. | 1.0.19, 1.2.3, 1.4
+blobCacheSize | 16 (MB) | DocumentNodeStore when running with Mongo will use `MongoBlobStore` by default unless a custom `BlobStore` is configured. In such scenario the size of in memory cache for the frequently used blobs can be configured via `blobCacheSize`. | 1.0
+persistentCache | "cache,binary=0" (prior to 1.6, the persistent cache was disabled by default) | The [persistent cache][persistent-cache], which is stored in the local file system. | 1.0.8
+<a name="cache-allocation"></a> nodeCachePercentage | 35 (was 25 until 1.5.14) | Percentage of `cache` allocated for `nodeCache`. See [Caching][doc-cache] | 1.0.12
+prevDocCachePercentage | 4 | Percentage of `cache` allocated for `prevDocCache`. See [Caching][doc-cache] | 1.3.15
+childrenCachePercentage | 15 (was 10 until 1.5.14) | Percentage of `cache` allocated for `childrenCache`. See [Caching][doc-cache] | 1.0.12
+diffCachePercentage | 30 (was 5 until 1.5.14) | Percentage of `cache` allocated for `diffCache`. See [Caching][doc-cache] | 1.0.12
+docChildrenCachePercentage | 0 (was 3 until 1.5.6) | Percentage of `cache` allocated for `docChildrenCache`. See [Caching][doc-cache] (Removed since 1.5.6) | 1.0.12
+cacheSegmentCount | 16 | The number of segments in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
+cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
+sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore. | 1.2.11
+blobTrackSnapshotIntervalInSecs | 43200 (12 hrs) | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob tracker][blobtracker]. | 1.5.6 
+leaseCheckMode | STRICT | The lease check mode. `STRICT` is the default and will stop the DocumentNodeStore as soon as the lease expires. `LENIENT` will give the background lease update a chance to renew the lease even when the lease expired. This mode is only recommended for development, e.g. when debugging an application and the lease may expire when the JVM is stopped at a breakpoint. | 1.9.6
 
 Example config file
 

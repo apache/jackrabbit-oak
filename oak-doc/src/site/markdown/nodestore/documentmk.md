@@ -37,6 +37,7 @@
     * [Metrics and Monitoring](#metrics)
     * [Cluster Node Metadata](#cluster-node-metadata)
         * [Acquire a Cluster Node ID](#acquire-a-cluster-node-id)
+        * [Update Lease for a Cluster Node ID](#update-lease-for-a-cluster-node-id)
         * [Recovery for a Cluster Node ID](#recovery-for-a-cluster-node-id)
         * [Specifying the Read Preference and Write Concern](#rw-preference)
     * [Caching](#cache)
@@ -553,12 +554,6 @@ MAC address. If no active network adapter is available, then the value for the
 `machine` field will be a random UUID. The `info` field contains the same info
 as a string, plus additional information like the process ID.
 
-Each running cluster node updates the `leaseEnd` time of the cluster node ID
-every ten seconds, to ensure each cluster node uses a different cluster node ID.
-The time is the number of milliseconds since 1970 and with every update is set
-two minutes ahead of the current time. This lease mechanism allows other cluster
-nodes to identify active, inactive and crashed cluster nodes.
-
 The diagram shows the different states a cluster node entry can be in.
 
 ![Cluster node ID state diagram](document/cluster-node-lease.png)
@@ -594,6 +589,40 @@ cluster node will try to acquire it, even when its environment does not match
 the `machine` and `instance` fields. This behaviour is new and was introduced
 with Oak 1.10. Previous versions ignore entries that do not match the
 environment and would create a new entry.
+
+### <a name="update-lease-for-a-cluster-node-id"></a> Update lease for a cluster node ID
+
+Each running cluster node updates the `leaseEnd` time of the cluster node ID
+every ten seconds, to ensure each cluster node uses a different cluster node ID.
+The time is the number of milliseconds since 1970 and with every update the 
+`leaseEnd` is set two minutes ahead of the current time. This lease mechanism
+allows other cluster nodes to identify active, inactive and crashed cluster nodes.
+
+Starting with Oak 1.4 the DocumentNodeStore will invoke a lease failure handler
+when it was unable to renew the lease in time. When deployed in an OSGi
+container, the `DocumentNodeStoreService` implements a lease failure handler
+that will stop the bundle with the DocumentNodeStore implementation. At this
+point appropriate monitoring of the system should detect this situation and
+restart the process. In addition to calling the lease failure handler, the
+DocumentNodeStore will also reject all future access to the underlying
+`DocumentStore` with a `DocumentStoreException`.
+
+The initial lease update mechanism implemented with Oak 1.4 is somewhat lenient.
+The implementation allows a lease update when it actually knows the lease
+expired. The reason for this decision was developer friendliness. Debugging a
+system often means the JVM is suspended for a while, which may result in an
+expired lease. In this situation, the DocumentNodeStore gives the background
+lease update thread a chance to still update the lease.
+
+With Oak 1.10 a new lease update mode was introduced: `STRICT`. This is the
+new default and immediately rejects access to the DocumentStore and calls the
+failure handler, when it detects an expired lease. The previous behaviour is
+still available with the `LENIENT` mode.
+See also OSGi [configuration](../osgi_config.html#document-node-store) for the
+`DocumentNodeStoreService`.
+
+For testing purposes is it also possible to disable the lease check entirely
+with a system property: `-Doak.documentMK.disableLeaseCheck=true`.
 
 ### <a name="recovery-for-a-cluster-node-id"></a> Recovery for a cluster node ID
 
