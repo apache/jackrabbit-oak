@@ -70,11 +70,11 @@ public class LastRevRecoveryTest {
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
         // disable lease check because we fiddle with the virtual clock
-        final boolean leaseCheck = false;
+        final LeaseCheckMode leaseCheck = LeaseCheckMode.DISABLED;
         sharedStore = new MemoryDocumentStore();
         ds1 = builderProvider.newBuilder()
                 .clock(clock)
-                .setLeaseCheck(leaseCheck)
+                .setLeaseCheckMode(leaseCheck)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .setClusterId(1)
@@ -83,7 +83,7 @@ public class LastRevRecoveryTest {
 
         ds2 = builderProvider.newBuilder()
                 .clock(clock)
-                .setLeaseCheck(leaseCheck)
+                .setLeaseCheckMode(leaseCheck)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .setClusterId(2)
@@ -289,7 +289,7 @@ public class LastRevRecoveryTest {
         // restart ds1
         ds1 = builderProvider.newBuilder()
                 .clock(clock)
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setAsyncDelay(0)
                 .setDocumentStore(sharedStore)
                 .setClusterId(1)

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -51,7 +52,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
 
     @Override
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
-        return super.newBuilder(client, dbName).setAsyncDelay(0).setLeaseCheck(false);
+        return super.newBuilder(client, dbName).setAsyncDelay(0).setLeaseCheckMode(LeaseCheckMode.DISABLED);
     }
 
     @Override

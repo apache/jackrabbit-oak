@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
@@ -208,7 +209,7 @@ class Utils {
             return null;
         }
         builder.
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 setClusterId(options.getClusterId());
         if (options.disableBranchesSpec()) {
             builder.disableBranches();

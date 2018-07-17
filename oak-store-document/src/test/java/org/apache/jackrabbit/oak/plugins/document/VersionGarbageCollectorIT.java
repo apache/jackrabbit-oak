@@ -128,7 +128,8 @@ public class VersionGarbageCollectorIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        documentMKBuilder = new DocumentMK.Builder().clock(clock).setLeaseCheck(false)
+        documentMKBuilder = new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
         store = documentMKBuilder.getNodeStore();
         // Enforce primary read preference, otherwise tests may fail on a

@@ -247,10 +247,10 @@ public class JournalDiffLoaderTest {
             }
         };
         DocumentNodeStore ns1 = builderProvider.newBuilder()
-                .setClusterId(1).clock(clock).setLeaseCheck(false)
+                .setClusterId(1).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
-                .setClusterId(2).clock(clock).setLeaseCheck(false)
+                .setClusterId(2).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder b1 = ns1.getRoot().builder();

@@ -196,7 +196,7 @@ public class RandomDocumentNodeStoreSweepTest {
     private DocumentNodeStore createDocumentNodeStore() {
         DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
                 .clock(clock).setClusterId(1).setAsyncDelay(0)
-                .setLeaseCheck(false).getNodeStore();
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
         // do not retry commits
         ns.setMaxBackOffMillis(0);
         return ns;

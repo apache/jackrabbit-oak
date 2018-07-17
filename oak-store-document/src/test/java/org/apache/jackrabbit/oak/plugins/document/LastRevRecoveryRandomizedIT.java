@@ -83,7 +83,7 @@ public class LastRevRecoveryRandomizedIT {
         random.setSeed(SEED);
         store = new MemoryDocumentStore();
         ns = new DocumentMK.Builder().setDocumentStore(store)
-                .setLeaseCheck(false).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).clock(clock)
                 .setAsyncDelay(0).getNodeStore();
         builder = newBuilder(ns);
         builder.child("root");
@@ -257,7 +257,7 @@ public class LastRevRecoveryRandomizedIT {
         // will trigger recovery on startup
         DocumentNodeStore dns = new DocumentMK.Builder()
                 .setClusterId(ns.getClusterId())
-                .clock(clock).setLeaseCheck(false)
+                .clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(s).setAsyncDelay(0).getNodeStore();
         Map<String, NodeState> states = Maps.newHashMap(currentState);
         NodeState root = dns.getRoot().getChildNode("root");

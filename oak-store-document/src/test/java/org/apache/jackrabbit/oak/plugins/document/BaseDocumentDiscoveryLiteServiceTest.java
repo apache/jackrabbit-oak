@@ -688,7 +688,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             MongoConnection connection = connectionFactory.getConnection();
             return register(new DocumentMK.Builder()
                     .setMongoDB(connection.getMongoClient(), connection.getDBName())
-                    .setLeaseCheck(false).setClusterId(clusterId)
+                    .setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(clusterId)
                     .setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {
@@ -702,7 +702,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs) {
-        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setLeaseCheck(false)
+        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setAsyncDelay(asyncDelay).open());
     }
 

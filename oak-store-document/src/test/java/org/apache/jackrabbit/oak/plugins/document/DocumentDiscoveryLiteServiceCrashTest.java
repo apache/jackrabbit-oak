@@ -263,7 +263,7 @@ public class DocumentDiscoveryLiteServiceCrashTest
                     .clock(clock)
                     .setAsyncDelay(0)
                     .setDocumentStore(store)
-                    .setLeaseCheck(false)
+                    .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                     .getNodeStore();
         } finally {
             ClusterNodeInfo.WORKING_DIR = prevWorkingDir;
