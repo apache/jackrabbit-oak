@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -157,7 +158,14 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      * Merge all changes tracked in this builder into the underlying store.
      */
     NodeState merge(CommitHook hook, CommitInfo info) throws CommitFailedException {
-        purge();
+        try {
+            // we need to throw a CommitFailedException if purge fails
+            // here with a DocumentStoreException
+            purge();
+        } catch (DocumentStoreException e) {
+            String msg = "Merge failed to purge changes: " + e.getMessage();
+            throw new CommitFailedException(OAK, 1, msg, e);
+        }
         boolean success = false;
         try {
             branch.merge(hook, info);

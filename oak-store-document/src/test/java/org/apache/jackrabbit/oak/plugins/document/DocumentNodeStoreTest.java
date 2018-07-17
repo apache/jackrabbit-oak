@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -135,11 +136,13 @@ public class DocumentNodeStoreTest {
     @AfterClass
     public static void resetClock() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
     }
 
     @Before
     public void setDefaultClock() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
     }
 
     // OAK-1254
@@ -1665,10 +1668,12 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
                 .setAsyncDelay(0).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(store)
                 .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setAsyncDelay(0).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(store)
                 .setClusterId(2).getNodeStore();
 
@@ -2212,6 +2217,7 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -3268,6 +3274,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
                 .setUpdateLimit(100).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setAsyncDelay(0).getNodeStore();
         RevisionVector head = ns.getHeadRevision();
         NodeBuilder b = ns.getRoot().builder();
@@ -3471,6 +3478,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(docStore).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
                 .setBundlingDisabled(true)
@@ -3525,6 +3533,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(docStore).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
                 .setAsyncDelay(0).clock(clock).getNodeStore();
@@ -3693,6 +3702,79 @@ public class DocumentNodeStoreTest {
             store.fail().never();
         }
         assertTrue(ns.getRoot().hasChildNode("bar"));
+    }
+
+    @Test
+    public void preventCommitPastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a merge must fail
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+        try {
+            merge(ns, builder);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("lease end"));
+        }
+    }
+
+    @Test
+    public void preventBranchCommitPastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setUpdateLimit(10).clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a branch commit must fail
+        builder = ns.getRoot().builder();
+        try {
+            for (int i = 0; i < 30; i++) {
+                builder.child("bar-" + i);
+            }
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("failed to update the lease"));
+        }
+    }
+
+    @Test
+    public void preventBranchMergePastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setUpdateLimit(10).clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // start a branch
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < 30; i++) {
+            builder.child("bar-" + i);
+        }
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a branch merge must fail
+        try {
+            merge(ns, builder);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("lease end"));
+        }
     }
 
     private void getChildNodeCountTest(int numChildren,
