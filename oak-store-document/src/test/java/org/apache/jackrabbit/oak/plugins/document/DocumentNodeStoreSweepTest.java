@@ -333,6 +333,8 @@ public class DocumentNodeStoreSweepTest {
 
     private DocumentNodeStore createDocumentNodeStore(int clusterId) {
         return builderProvider.newBuilder().setDocumentStore(store)
+                // use lenient mode because tests use a virtual clock
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setClusterId(clusterId).clock(clock).setAsyncDelay(0)
                 .getNodeStore();
     }

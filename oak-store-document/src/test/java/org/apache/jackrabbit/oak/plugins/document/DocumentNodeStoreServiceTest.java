@@ -238,6 +238,28 @@ public class DocumentNodeStoreServiceTest {
         assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
+    @Test
+    public void strictLeaseCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        // strict is the default
+        assertEquals(LeaseCheckMode.STRICT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
+    @Test
+    public void lenientLeaseCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("leaseCheckMode", LeaseCheckMode.LENIENT.name());
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
     @Nonnull
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {

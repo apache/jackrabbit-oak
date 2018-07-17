@@ -237,4 +237,18 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
             name = "Persistent Cache Includes",
             description = "Paths which should be cached in persistent cache")
     String[] persistentCacheIncludes() default {"/"};
+
+    @AttributeDefinition(
+            name = "Lease check mode",
+            description = "The lease check mode. 'STRICT' is the default and " +
+                    "will stop the DocumentNodeStore as soon as the lease " +
+                    "expires. 'LENIENT' will give the background lease update " +
+                    "a chance to renew the lease even when the lease expired. " +
+                    "This mode is only recommended for development, e.g. when " +
+                    "debugging an application and the lease may expire when " +
+                    "the JVM is stopped at a breakpoint.",
+            options = {
+            @Option(label = "STRICT", value = "STRICT"),
+            @Option(label = "LENIENT", value = "LENIENT")})
+    String leaseCheckMode() default "STRICT";
 }

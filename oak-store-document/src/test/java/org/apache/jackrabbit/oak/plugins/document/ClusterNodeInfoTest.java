@@ -213,13 +213,7 @@ public class ClusterNodeInfoTest {
         } catch (DocumentStoreException e) {
             // expected
         }
-        for (int i = 0; i < 10; i++) {
-            if (handler.isLeaseFailure()) {
-                return;
-            }
-            Thread.sleep(100);
-        }
-        fail("expected lease failure");
+        assertLeaseFailure();
     }
 
     // OAK-4779
@@ -483,6 +477,46 @@ public class ClusterNodeInfoTest {
         info = newClusterNodeInfo(0);
         // must not use clusterId 1
         assertNotEquals(1, info.getId());
+    }
+
+    @Test
+    public void defaultLeaseCheckMode() {
+        assertEquals(LeaseCheckMode.STRICT, newClusterNodeInfo(0).getLeaseCheckMode());
+    }
+
+    @Test
+    public void strictLeaseCheckMode() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        clock.waitUntil(info.getLeaseEndTime());
+        // lease renew must fail with exception
+        try {
+            info.renewLease();
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("failed to update the lease"));
+            assertThat(e.getMessage(), containsString("mode: STRICT"));
+        }
+        assertLeaseFailure();
+    }
+
+    @Test
+    public void lenientLeaseCheckMode() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        info.setLeaseCheckMode(LeaseCheckMode.LENIENT);
+        clock.waitUntil(info.getLeaseEndTime());
+        // must still be able to renew
+        assertTrue(info.renewLease());
+        assertFalse(handler.isLeaseFailure());
+    }
+
+    private void assertLeaseFailure() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            if (handler.isLeaseFailure()) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+        fail("expected lease failure");
     }
 
     private void expireLease(ClusterNodeInfo info)
