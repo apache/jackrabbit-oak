@@ -57,7 +57,7 @@ public interface DataRecordDirectAccessProvider {
      *        parameter.  A caller may also pass in -1 to indicate that it is
      *        able to accept any number of URIs.  Any other negative number or
      *        0 may result in {@link IllegalArgumentException}.
-     * @return A {@link DataRecordDirectUpload} referencing this direct upload,
+     * @return A {@link DataRecordUpload} referencing this direct upload,
      *         or {@code null} if the implementation does not support direct
      *         upload.
      * @throws {@link IllegalArgumentException} if the service provider or
@@ -66,7 +66,7 @@ public interface DataRecordDirectAccessProvider {
      *         completed as requested.
      */
     @Nullable
-    DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException;
 
     /**
@@ -77,7 +77,7 @@ public interface DataRecordDirectAccessProvider {
      * performed.
      *
      * @param uploadToken The upload token identifying this direct upload
-     *        transaction, as returned in the {@link DataRecordDirectUpload}
+     *        transaction, as returned in the {@link DataRecordUpload}
      *        object resulting from a call to {@link
      *        #initiateDirectUpload(long, int)}.
      * @return A {@link DataRecord} for the uploaded binary, or if

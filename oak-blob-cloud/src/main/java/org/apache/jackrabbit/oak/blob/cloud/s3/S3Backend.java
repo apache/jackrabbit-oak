@@ -68,7 +68,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
@@ -738,7 +738,7 @@ public class S3Backend extends AbstractSharedBackend {
         return uri;
     }
 
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws DataRecordDirectUploadException {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
@@ -825,7 +825,7 @@ public class S3Backend extends AbstractSharedBackend {
 
         String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-        return new DataRecordDirectUpload() {
+        return new DataRecordUpload() {
             @Override
             public String getUploadToken() { return uploadToken; }
 

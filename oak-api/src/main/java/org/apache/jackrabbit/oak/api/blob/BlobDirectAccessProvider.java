@@ -60,7 +60,7 @@ public interface BlobDirectAccessProvider {
      *         for this parameter.  If the client is able to accept any number
      *         of URIs, a value of -1 may be passed in to indicate that the
      *         implementation is free to return as many URIs as it desires.
-     * @return A {@link BlobDirectUpload} referencing this direct upload, or
+     * @return A {@link BlobUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
@@ -70,8 +70,8 @@ public interface BlobDirectAccessProvider {
      *         the service provider or the implementation.
      */
     @Nullable
-    BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes,
-                                          int maxNumberOfURIs)
+    BlobUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                    int maxNumberOfURIs)
             throws IllegalArgumentException;
 
     /**
@@ -79,13 +79,13 @@ public interface BlobDirectAccessProvider {
      * location.
      * <p>
      * This requires the {@code uploadToken} that can be obtained from the
-     * returned {@link BlobDirectUpload} from a previous call to {@link
+     * returned {@link BlobUpload} from a previous call to {@link
      * #initiateDirectUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
      * includes encoded data about the transaction along with a signature
      * that will be verified by the implementation.
      *
-     * @param uploadToken the upload token from a {@link BlobDirectUpload}
+     * @param uploadToken the upload token from a {@link BlobUpload}
      *         object returned from a previous call to {@link
      *         #initiateDirectUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object

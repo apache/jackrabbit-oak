@@ -61,7 +61,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
-import org.apache.jackrabbit.oak.api.blob.BlobDirectUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -69,7 +69,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -665,17 +665,17 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public BlobUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
-                DataRecordDirectUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                DataRecordUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
                 if (upload == null) {
                     return null;
                 }
-                return new BlobDirectUpload() {
+                return new BlobUpload() {
                     @Override
                     public String getUploadToken() {
                         return upload.getUploadToken();
