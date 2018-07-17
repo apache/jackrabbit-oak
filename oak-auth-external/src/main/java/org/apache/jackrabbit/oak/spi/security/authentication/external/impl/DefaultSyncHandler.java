@@ -17,19 +17,14 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Iterator;
-import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
@@ -37,6 +32,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.SyncConfig;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +48,11 @@ import org.slf4j.LoggerFactory;
  */
 @Component(
         // note that the metatype information is generated from DefaultSyncConfig
-        policy = ConfigurationPolicy.REQUIRE
+        configurationPolicy = ConfigurationPolicy.REQUIRE
 )
-@Service
+@Designate(
+        factory = true,
+        ocd = DefaultSyncConfigImpl.SyncConfig.class)
 public class DefaultSyncHandler implements SyncHandler {
 
     /**
@@ -66,7 +68,6 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * Default constructor for OSGi
      */
-    @SuppressWarnings("UnusedDeclaration")
     public DefaultSyncHandler() {
     }
 
@@ -79,11 +80,9 @@ public class DefaultSyncHandler implements SyncHandler {
         this.config = config;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(Map<String, Object> properties) {
-        ConfigurationParameters cfg = ConfigurationParameters.of(properties);
-        config = DefaultSyncConfigImpl.of(cfg);
+    private void activate(SyncConfig configIn) {
+        config = DefaultSyncConfigImpl.of(configIn);
     }
 
     /**

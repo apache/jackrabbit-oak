@@ -113,7 +113,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
      */
-    @SuppressWarnings("UnusedDeclaration")
     public ExternalLoginModule() {
     }
 
@@ -182,7 +181,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public boolean login() throws LoginException {
         if (idp == null || syncHandler == null) {
             return false;

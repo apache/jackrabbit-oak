@@ -18,16 +18,15 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 
 /**
  * {@code ExternalIDPManagerImpl} is used to manage registered external identity provider. This class automatically
@@ -35,13 +34,11 @@ import org.osgi.service.component.ComponentContext;
  * removing the providers.
  */
 @Component(immediate = true)
-@Service
 public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdentityProvider> implements ExternalIdentityProviderManager {
 
     /**
      * Default constructor used by OSGi
      */
-    @SuppressWarnings("UnusedDeclaration")
     public ExternalIDPManagerImpl() {
         super(ExternalIdentityProvider.class);
     }
@@ -55,13 +52,11 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
         start(whiteboard);
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(ComponentContext ctx) {
         start(new OsgiWhiteboard(ctx.getBundleContext()));
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate() {
         stop();

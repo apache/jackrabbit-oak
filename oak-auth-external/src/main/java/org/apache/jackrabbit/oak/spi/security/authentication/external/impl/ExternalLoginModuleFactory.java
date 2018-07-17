@@ -23,15 +23,6 @@ import javax.security.auth.spi.LoginModule;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.felix.jaas.LoginModuleFactory;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -44,6 +35,17 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,62 +54,58 @@ import org.slf4j.LoggerFactory;
  * via OSGi config.
  */
 @Component(
-        label = "Apache Jackrabbit Oak External Login Module",
-        metatype = true,
-        policy = ConfigurationPolicy.REQUIRE,
-        configurationFactory = true
+        configurationPolicy = ConfigurationPolicy.REQUIRE
 )
-@Service
+@Designate(ocd=ExternalLoginModuleFactory.LoginModuleConfig.class, factory=true)
 public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandlerMapping {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak External Login Module"
+            )
+    @interface LoginModuleConfig {
+        @AttributeDefinition(
+                name = "JAAS Ranking",
+                description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
+                        "in a descending order (i.e. higher value ranked configurations come first)."
+                )
+        String jaasRanking() default "50";
+
+        @AttributeDefinition(
+                name = "JAAS Control Flag",
+                description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
+                        "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
+                        "these flags."
+                )
+        String jaasControlFlag() default "SUFFICIENT";
+
+        @AttributeDefinition(
+                name = "JAAS Realm",
+                description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
+                        "realm name is provided then LoginModule is registered with a default realm as configured in " +
+                        "the Felix JAAS configuration."
+                )
+        String jaasRealmName();
+
+        @AttributeDefinition(
+                name = "Identity Provider Name",
+                description = "Name of the identity provider (for example: 'ldap')."
+                )
+        String idpName();
+
+        @AttributeDefinition(
+                name = "Sync Handler Name",
+                description = "Name of the sync handler."
+                )
+        String syncHandlerName() default "default";
+    }
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModuleFactory.class);
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            intValue = 50,
-            label = "JAAS Ranking",
-            description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
-                    "in a descending order (i.e. higher value ranked configurations come first)."
-    )
-    public static final String JAAS_RANKING = LoginModuleFactory.JAAS_RANKING;
+    @Reference(cardinality=ReferenceCardinality.OPTIONAL, policyOption=ReferencePolicyOption.GREEDY)
+    volatile private SecurityProvider securityProvider;
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            value = "SUFFICIENT",
-            label = "JAAS Control Flag",
-            description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
-                    "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
-                    "these flags."
-    )
-    public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;
-
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            label = "JAAS Realm",
-            description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
-                    "realm name is provided then LoginModule is registered with a default realm as configured in " +
-                    "the Felix JAAS configuration."
-    )
-    public static final String JAAS_REALM_NAME = LoginModuleFactory.JAAS_REALM_NAME;
-
-    @Property(
-            label = "Identity Provider Name",
-            description = "Name of the identity provider (for example: 'ldap')."
-    )
-    public static final String PARAM_IDP_NAME = SyncHandlerMapping.PARAM_IDP_NAME;
-
-    @Property(
-            value = "default",
-            label = "Sync Handler Name",
-            description = "Name of the sync handler."
-    )
-    public static final String PARAM_SYNC_HANDLER_NAME = SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME;
-
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
-    private SecurityProvider securityProvider;
-
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC)
-    private ContentRepository contentRepository;
+    @Reference(cardinality=ReferenceCardinality.OPTIONAL, policyOption=ReferencePolicyOption.GREEDY)
+    volatile private ContentRepository contentRepository;
 
     @Reference
     private SyncManager syncManager;
