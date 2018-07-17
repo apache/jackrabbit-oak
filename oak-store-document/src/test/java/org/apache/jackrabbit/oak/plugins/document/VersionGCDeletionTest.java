@@ -71,7 +71,7 @@ public class VersionGCDeletionTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (store != null) {
             store.dispose();
         }
@@ -83,6 +83,7 @@ public class VersionGCDeletionTest {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -127,6 +128,7 @@ public class VersionGCDeletionTest {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -175,6 +177,7 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(new MemoryDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -220,7 +223,8 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
-                .setDocumentStore(new MemoryDocumentStore())
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
 
@@ -257,6 +261,7 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -327,6 +332,7 @@ public class VersionGCDeletionTest {
             }
         };
         store = new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ms).setAsyncDelay(0).getNodeStore();
 
         // create nodes
@@ -365,7 +371,7 @@ public class VersionGCDeletionTest {
         Future<List<String>> f = newSingleThreadExecutor().submit(
                 new Callable<List<String>>() {
             @Override
-            public List<String> call() throws Exception {
+            public List<String> call() {
                 List<String> names = Lists.newArrayList();
                 NodeState n = store.getRoot().getChildNode("node");
                 for (ChildNodeEntry entry : n.getChildNodeEntries()) {

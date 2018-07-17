@@ -614,6 +614,7 @@ public class VersionGarbageCollectorIT {
         // run gc on another document node store
         DocumentStore ds2 = fixture.createDocumentStore(2);
         DocumentNodeStore ns2 = new DocumentMK.Builder().setClusterId(2)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .clock(clock).setAsyncDelay(0).setDocumentStore(ds2).getNodeStore();
         try {
             VersionGarbageCollector gc = ns2.getVersionGarbageCollector();

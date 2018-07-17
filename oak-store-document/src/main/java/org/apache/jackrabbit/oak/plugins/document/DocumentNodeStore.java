@@ -1960,7 +1960,18 @@ public final class DocumentNodeStore
         if (simpleRevisionCounter != null) {
             return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
         }
-        return Revision.newRevision(clusterId);
+        Revision r = Revision.newRevision(clusterId);
+        if (clusterNodeInfo.getLeaseCheckMode() == LeaseCheckMode.STRICT) {
+            // verify revision timestamp is within lease period
+            long leaseEnd = clusterNodeInfo.getLeaseEndTime();
+            if (r.getTimestamp() >= leaseEnd) {
+                String msg = String.format("Cannot use new revision %s " +
+                        "with timestamp %s >= lease end %s",
+                        r, r.getTimestamp(), leaseEnd);
+                throw new DocumentStoreException(msg);
+            }
+        }
+        return r;
     }
 
     @Override

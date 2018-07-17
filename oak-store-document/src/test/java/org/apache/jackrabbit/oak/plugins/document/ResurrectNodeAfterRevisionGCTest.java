@@ -66,8 +66,10 @@ public class ResurrectNodeAfterRevisionGCTest
         c.waitUntil(System.currentTimeMillis());
         Revision.setClock(c);
         ns1 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setClusterId(1).setDocumentStore(wrap(ds1)).getNodeStore();
         ns2 = new DocumentMK.Builder().setAsyncDelay(0).clock(c)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setClusterId(2).setDocumentStore(wrap(ds2)).getNodeStore();
     }
 
