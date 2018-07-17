@@ -38,6 +38,8 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -210,6 +212,12 @@ public class ClusterNodeInfo {
     public static final boolean DEFAULT_LEASE_CHECK_DISABLED =
             Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
 
+    /**
+     * Default lease check mode is strict, unless disabled via system property.
+     */
+    static final LeaseCheckMode DEFAULT_LEASE_CHECK_MODE =
+            DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.STRICT;
+
     /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
@@ -313,11 +321,9 @@ public class ClusterNodeInfo {
     private boolean leaseCheckFailed = false;
 
     /**
-     * OAK-2739: for development it would be useful to be able to disable the
-     * lease check - hence there's a system property that does that:
-     * oak.documentMK.disableLeaseCheck
+     * Default lease check mode is strict, unless disabled by
      */
-    private boolean leaseCheckDisabled;
+    private LeaseCheckMode leaseCheckMode = DEFAULT_LEASE_CHECK_MODE;
 
     /**
      * In memory flag indicating that this ClusterNode is entry is new and is being added to
@@ -344,11 +350,14 @@ public class ClusterNodeInfo {
         this.machineId = machineId;
         this.instanceId = instanceId;
         this.newEntry = newEntry;
-        this.leaseCheckDisabled = DEFAULT_LEASE_CHECK_DISABLED;
     }
 
-    public void setLeaseCheckDisabled(boolean leaseCheckDisabled) {
-        this.leaseCheckDisabled = leaseCheckDisabled;
+    void setLeaseCheckMode(@Nonnull LeaseCheckMode mode) {
+        this.leaseCheckMode = checkNotNull(mode);
+    }
+
+    LeaseCheckMode getLeaseCheckMode() {
+        return leaseCheckMode;
     }
     
     public int getId() {
@@ -671,8 +680,10 @@ public class ClusterNodeInfo {
 
     /**
      * Checks if the lease for this cluster node is still valid, otherwise
-     * throws a {@link DocumentStoreException}. This method will not throw the
-     * exception immediately when the lease expires, but instead give the lease
+     * throws a {@link DocumentStoreException}. Depending on the
+     * {@link LeaseCheckMode} this method will not throw the
+     * exception immediately when the lease expires. If the mode is set to
+     * {@link LeaseCheckMode#LENIENT}, then this method will give the lease
      * update thread a last chance of 5 seconds to renew it. This allows the
      * DocumentNodeStore to recover from an expired lease caused by a system
      * put to sleep or a JVM in debug mode.
@@ -680,7 +691,7 @@ public class ClusterNodeInfo {
      * @throws DocumentStoreException if the lease expired.
      */
     public void performLeaseCheck() throws DocumentStoreException {
-        if (leaseCheckDisabled) {
+        if (leaseCheckMode == LeaseCheckMode.DISABLED) {
             // if leaseCheckDisabled is set we never do the check, so return fast
 
             // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
@@ -702,7 +713,7 @@ public class ClusterNodeInfo {
         long now = getCurrentTime();
         // OAK-3238 put the barrier 1/3 of 60sec=20sec before the end
         // OAK-3398 keeps this the same but uses an explicit leaseFailureMargin for this
-        if (now < (leaseEndTime - leaseFailureMargin)) {
+        if (!isLeaseExpired(now)) {
             // then all is good
             return;
         }
@@ -714,9 +725,12 @@ public class ClusterNodeInfo {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
                 throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
             }
-            for (int i = 0; i < MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE; i++) {
+            // only retry in lenient mode, fail immediately in strict mode
+            final int maxRetries = leaseCheckMode == LeaseCheckMode.STRICT ?
+                    0 : MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE;
+            for (int i = 0; i < maxRetries; i++) {
                 now = getCurrentTime();
-                if (now < (leaseEndTime - leaseFailureMargin)) {
+                if (!isLeaseExpired(now)) {
                     // if lease is OK here, then there was a race
                     // between performLeaseCheck and renewLease()
                     // where the winner was: renewLease().
@@ -747,8 +761,8 @@ public class ClusterNodeInfo {
                     String detail = difference >= 0
                             ? String.format("lease within %dms of failing (%dms precisely)", leaseFailureMargin, difference)
                             : String.format("already past lease end (%dms precisely)", -1 * difference);
-                    String retries = String.format("waiting %dms to retry (up to another %d times...)", waitForMs,
-                            MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE - 1 - i);
+                    String retries = String.format("waiting %dms to retry (up to another %d times...)",
+                            waitForMs, maxRetries - 1 - i);
                     LOG.info("performLeaseCheck: " + detail + " - " + retries);
 
                     // directly use this to sleep on - to allow renewLease() to work
@@ -775,6 +789,20 @@ public class ClusterNodeInfo {
         LOG.error(errorMsg);
 
         handleLeaseFailure(errorMsg);
+    }
+
+    /**
+     * Returns {@code true} if the lease for this cluster node info should be
+     * considered expired given the current {@code time}. This method takes
+     * {@link #leaseFailureMargin} into account and will return {@code true}
+     * even before the passed {@code time} is beyond the {@link #leaseEndTime}.
+     *
+     * @param time the current time to check against the lease end.
+     * @return {@code true} if the lease is considered expired, {@code false}
+     *         otherwise.
+     */
+    private boolean isLeaseExpired(long time) {
+        return time >= (leaseEndTime - leaseFailureMargin);
     }
 
     private void handleLeaseFailure(final String errorMsg) {
@@ -851,10 +879,37 @@ public class ClusterNodeInfo {
             updatedLeaseEndTime = now + leaseTime;
         }
 
+        if (leaseCheckMode == LeaseCheckMode.STRICT) {
+            // check whether the lease is still valid and can be renewed
+            if (isLeaseExpired(now)) {
+                synchronized (this) {
+                    if (leaseCheckFailed) {
+                        // some other thread already noticed and calls failure handler
+                        throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                    }
+                    // current thread calls failure handler
+                    // outside synchronized block
+                    leaseCheckFailed = true;
+                }
+                final String errorMsg = LEASE_CHECK_FAILED_MSG + " (mode: " + leaseCheckMode.name() +
+                        ",leaseEndTime: " + leaseEndTime +
+                        ", leaseTime: " + leaseTime +
+                        ", leaseFailureMargin: " + leaseFailureMargin +
+                        ", lease check end time (leaseEndTime-leaseFailureMargin): " + (leaseEndTime - leaseFailureMargin) +
+                        ", now: " + now +
+                        ", remaining: " + ((leaseEndTime - leaseFailureMargin) - now) +
+                        ") Need to stop oak-store-document/DocumentNodeStoreService.";
+                LOG.error(errorMsg);
+                handleLeaseFailure(errorMsg);
+                // should never be reached: handleLeaseFailure throws a DocumentStoreException
+                return false;
+            }
+        }
+
         UpdateOp update = new UpdateOp("" + id, false);
         update.set(LEASE_END_KEY, updatedLeaseEndTime);
 
-        if (!leaseCheckDisabled) {
+        if (leaseCheckMode != LeaseCheckMode.DISABLED) {
             // if leaseCheckDisabled, then we just update the lease without
             // checking
             // OAK-3398:
@@ -1060,6 +1115,7 @@ public class ClusterNodeInfo {
                 "pid: " + PROCESS_ID + ",\n" +
                 "uuid: " + uuid + ",\n" +
                 "readWriteMode: " + readWriteMode + ",\n" +
+                "leaseCheckMode: " + leaseCheckMode.name() + ",\n" +
                 "state: " + state + ",\n" +
                 "oakVersion: " + OAK_VERSION + ",\n" +
                 "formatVersion: " + DocumentNodeStore.VERSION;

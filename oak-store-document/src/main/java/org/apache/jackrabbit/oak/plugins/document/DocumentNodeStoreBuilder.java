@@ -127,7 +127,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private int asyncDelay = 1000;
     private boolean timing;
     private boolean logging;
-    private boolean leaseCheck = true; // OAK-2739 is enabled by default also for non-osgi
+    private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
@@ -224,12 +224,39 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return logging;
     }
 
+    /**
+     * If {@code true}, sets lease check mode to {@link LeaseCheckMode#LENIENT},
+     * otherwise sets the mode to {@link LeaseCheckMode#DISABLED}. This method
+     * is only kept for backward compatibility with the behaviour before
+     * OAK-7626. The new default lease check mode is {@link LeaseCheckMode#STRICT},
+     * but existing code may rely on the previous behaviour, when enabling the
+     * lease check corresponded with a {@link LeaseCheckMode#LENIENT} behaviour.
+     *
+     * @deprecated use {@link #setLeaseCheckMode(LeaseCheckMode)} instead.
+     */
+    @Deprecated
     public T setLeaseCheck(boolean leaseCheck) {
-        this.leaseCheck = leaseCheck;
+        this.leaseCheck = leaseCheck ? LeaseCheckMode.LENIENT : LeaseCheckMode.DISABLED;
         return thisBuilder();
     }
 
+    /**
+     * @deprecated This method does not distinguish between {@link
+     *         LeaseCheckMode#LENIENT} and {@link LeaseCheckMode#STRICT} and
+     *         returns {@code true} for both modes. Use {@link
+     *         #getLeaseCheckMode()} instead.
+     */
+    @Deprecated
     public boolean getLeaseCheck() {
+        return leaseCheck != LeaseCheckMode.DISABLED;
+    }
+
+    public T setLeaseCheckMode(LeaseCheckMode mode) {
+        this.leaseCheck = mode;
+        return thisBuilder();
+    }
+
+    LeaseCheckMode getLeaseCheckMode() {
         return leaseCheck;
     }
 

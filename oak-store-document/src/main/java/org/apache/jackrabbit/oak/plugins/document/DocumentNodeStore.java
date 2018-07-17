@@ -549,11 +549,10 @@ public final class DocumentNodeStore
         // this cluster id
         this.clusterId = clusterNodeInfo.getId();
 
-        if (builder.getLeaseCheck()) {
+        clusterNodeInfo.setLeaseCheckMode(builder.getLeaseCheckMode());
+        if (builder.getLeaseCheckMode() != LeaseCheckMode.DISABLED) {
             s = new LeaseCheckDocumentStoreWrapper(s, clusterNodeInfo);
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
-        } else {
-            clusterNodeInfo.setLeaseCheckDisabled(true);
         }
         String threadNamePostfix = "(" + clusterId + ")";
         leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
