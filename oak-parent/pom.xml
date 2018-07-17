@@ -195,6 +195,7 @@
                   <filter>!org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage</filter>
                   <filter>!org.apache.jackrabbit.oak</filter>
                   <filter>!org.apache.jackrabbit.oak.json</filter>
+                  <filter>!org.apache.jackrabbit.oak.namepath.impl</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob.datastore</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.commit</filter>
@@ -203,10 +204,12 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.aggregate</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.property.strategy</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.migration</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.migration.report</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.name</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype.write</filter>
@@ -219,6 +222,7 @@
                   <filter>!org.apache.jackrabbit.oak.query</filter>
                   <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.security</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.cluster</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
