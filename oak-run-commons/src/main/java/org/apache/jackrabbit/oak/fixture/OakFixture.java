@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.SegmentTarFixture.SegmentTarFixtureBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -232,7 +233,7 @@ public abstract class OakFixture {
                             .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                             .setStatisticsProvider(statsProvider)
                             // FIXME: OAK-3389
-                            .setLeaseCheck(false)
+                            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                             .setClusterId(i + 1).setLogging(false);
                     if (blobStore != null) {
                         builder.setBlobStore(blobStore);

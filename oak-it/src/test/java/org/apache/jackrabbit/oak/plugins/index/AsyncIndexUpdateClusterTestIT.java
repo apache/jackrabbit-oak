@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -171,7 +172,7 @@ public class AsyncIndexUpdateClusterTestIT {
         builder.setDocumentStore(ds).setBlobStore(bs);
 
         DocumentNodeStore store = builder.setClusterId(++clusterId)
-                .setLeaseCheck(false).open().getNodeStore();
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).open().getNodeStore();
         return store;
     }
 

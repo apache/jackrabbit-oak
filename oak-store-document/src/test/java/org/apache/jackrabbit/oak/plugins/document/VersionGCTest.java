@@ -79,7 +79,7 @@ public class VersionGCTest {
         Revision.setClock(clock);
         ns = builderProvider.newBuilder()
                 .clock(clock)
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(store)
                 .setAsyncDelay(0)
                 .getNodeStore();

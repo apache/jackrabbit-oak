@@ -234,7 +234,7 @@ public class ExternalChangesTest {
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
                 .setJournalPropertyHandlerFactory(tracker)
-                .setLeaseCheck(false) // disabled for debugging purposes
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED) // disabled for debugging purposes
                 .setClusterId(clusterId)
                 .getNodeStore();
     }

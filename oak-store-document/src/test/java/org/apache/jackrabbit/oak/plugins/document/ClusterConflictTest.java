@@ -71,7 +71,7 @@ public class ClusterConflictTest {
         return builderProvider.newBuilder()
                 .setAsyncDelay(60000)
                 .setDocumentStore(store)
-                .setLeaseCheck(false) // disabled for debugging purposes
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED) // disabled for debugging purposes
                 .setClusterId(clusterId)
                 .getNodeStore();
     }

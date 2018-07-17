@@ -24,6 +24,7 @@ import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -72,7 +73,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
                 .setClusterId(1)
                 .setClientSessionDisabled(true)
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .open();
         mongoDS = (MongoDocumentStore) mk.getDocumentStore();
 
@@ -83,7 +84,7 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
                 .setClusterId(2)
                 .setClientSessionDisabled(true)
                 .setMongoDB(mongoConnection2.getMongoClient(), mongoConnection2.getDBName())
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .open();
     }
 

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -60,7 +61,7 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     @Override
     protected DocumentMK.Builder newBuilder(MongoClient client, String dbName) throws Exception {
         // disable lease check because test waits until lease times out
-        return super.newBuilder(client, dbName).setLeaseCheck(false);
+        return super.newBuilder(client, dbName).setLeaseCheckMode(LeaseCheckMode.DISABLED);
     }
 
     @Override

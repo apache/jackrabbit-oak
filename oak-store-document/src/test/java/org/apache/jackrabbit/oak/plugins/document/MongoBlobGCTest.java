@@ -96,7 +96,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         // data directly in MongoDB.
         return super.addToBuilder(mk)
                 .setClientSessionDisabled(true)
-                .setLeaseCheck(false);
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED);
     }
 
     public DataStoreState setUp(boolean deleteDirect, int count) throws Exception {

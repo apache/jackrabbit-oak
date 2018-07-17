@@ -102,7 +102,7 @@ public class AbstractTwoNodeTest {
                 .setAsyncDelay(0)
                 .clock(clock)
                 .setDocumentStore(wrap(customize(store1)))
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setClusterId(1)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
@@ -111,7 +111,7 @@ public class AbstractTwoNodeTest {
                 .setAsyncDelay(0)
                 .clock(clock)
                 .setDocumentStore(wrap(customize(store2)))
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
