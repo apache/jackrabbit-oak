@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -38,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
