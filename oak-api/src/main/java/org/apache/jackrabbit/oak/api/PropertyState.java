@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Immutable property state. A property consists of a name and a value.
@@ -36,7 +36,7 @@ public interface PropertyState {
     /**
      * @return the name of this property state
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -71,7 +71,7 @@ public interface PropertyState {
      * @throws NumberFormatException  if conversion to a number failed.
      * @throws UnsupportedOperationException  if conversion to boolean failed.
      */
-    @Nonnull
+    @NotNull
     <T> T getValue(Type<T> type);
 
     /**
@@ -91,7 +91,7 @@ public interface PropertyState {
      * @throws IllegalArgumentException  if {@code type} refers to an unknown type or if
      *         {@code type.isArray()} is true.
      */
-    @Nonnull
+    @NotNull
     <T> T getValue(Type<T> type, int index);
 
     /**

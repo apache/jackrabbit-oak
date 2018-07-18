@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -102,7 +102,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Creates a backup of the persistent state of the repository")
     CompositeData startBackup();
 
@@ -112,7 +112,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     @Description("The status of the ongoing operation, or the terminal status of the last completed backup operation")
     CompositeData getBackupStatus();
 
@@ -121,7 +121,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Restores the repository from a backup")
     CompositeData startRestore();
 
@@ -131,7 +131,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     @Description("The status of the ongoing operation, or the terminal status of the last completed restore operation")
     CompositeData getRestoreStatus();
 
@@ -141,7 +141,7 @@ public interface RepositoryManagementMBean {
      * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Initiates a data store garbage collection operation")
     CompositeData startDataStoreGC(@Name("markOnly")
             @Description("Set to true to only mark references and not sweep in the mark and sweep operation. " +
@@ -155,7 +155,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     @Description("Data store garbage collection status")
     CompositeData getDataStoreGCStatus();
 
@@ -164,7 +164,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Initiates a revision garbage collection operation")
     CompositeData startRevisionGC();
 
@@ -173,7 +173,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Initiates a revision garbage collection operation for a given role")
     CompositeData startRevisionGCForRole(String role);
 
@@ -183,7 +183,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
     CompositeData cancelRevisionGC();
 
@@ -193,7 +193,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Cancel a running revision garbage collection operation. Does nothing if revision garbage collection is not running.")
     CompositeData cancelRevisionGCForRole(String role);
 
@@ -203,7 +203,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     @Description("Revision garbage collection status")
     CompositeData getRevisionGCStatus();
 
@@ -213,7 +213,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     @Description("Revision garbage collection status for a given role")
     CompositeData getRevisionGCStatusForRole(String role);
 
@@ -231,7 +231,7 @@ public interface RepositoryManagementMBean {
      * @deprecated Use {@link CheckpointMBean} instead
      */
     @Deprecated
-    @CheckForNull
+    @Nullable
     String checkpoint(long lifetime);
 
     /**
@@ -240,7 +240,7 @@ public interface RepositoryManagementMBean {
      * 
      * @return the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     @Description("Initiates a reindex operation for the property indexes marked for reindexing")
     CompositeData startPropertyIndexAsyncReindex();
 
@@ -251,7 +251,7 @@ public interface RepositoryManagementMBean {
      *         status of the last operation or <em>Status not available</em> if
      *         none.
      */
-    @Nonnull
+    @NotNull
     @Description("Asynchronous Property Index reindexing status")
     CompositeData getPropertyIndexAsyncReindexStatus();
 
@@ -259,7 +259,7 @@ public interface RepositoryManagementMBean {
      * Refresh all currently open sessions.
      * <em>Warning</em>: this operation might be disruptive to the owner of the affected sessions
      */
-    @Nonnull
+    @NotNull
     @Description("Refresh all currently open sessions")
     TabularData refreshAllSessions();
 

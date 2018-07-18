@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A tree instance represents a snapshot of the {@link ContentRepository}
@@ -109,7 +108,7 @@ public interface Tree {
     /**
      * @return the name of this {@code Tree} instance.
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -120,7 +119,7 @@ public interface Tree {
     /**
      * @return the absolute path of this {@code Tree} instance from its {@link Root}.
      */
-    @Nonnull
+    @NotNull
     String getPath();
 
     /**
@@ -128,7 +127,7 @@ public interface Tree {
      *
      * @return The status of this tree instance.
      */
-    @Nonnull
+    @NotNull
     Status getStatus();
 
     /**
@@ -143,7 +142,7 @@ public interface Tree {
      * @return the possibly non existent parent of this {@code Tree}.
      * @throws IllegalStateException if called on the root tree.
      */
-    @Nonnull
+    @NotNull
     Tree getParent();
 
     /**
@@ -153,8 +152,8 @@ public interface Tree {
      * @return the property state with the given {@code name} or {@code null}
      *         if no such property state exists or the property is not accessible.
      */
-    @CheckForNull
-    PropertyState getProperty(@Nonnull String name);
+    @Nullable
+    PropertyState getProperty(@NotNull String name);
 
     /**
      * Get the {@code Status} of a property state or {@code null}.
@@ -164,8 +163,8 @@ public interface Tree {
      *         or {@code null} in no such property state exists or if the name refers
      *         to a property that is not accessible.
      */
-    @CheckForNull
-    Status getPropertyStatus(@Nonnull String name);
+    @Nullable
+    Status getPropertyStatus(@NotNull String name);
 
     /**
      * Determine if a property state exists and is accessible.
@@ -174,7 +173,7 @@ public interface Tree {
      * @return {@code true} if and only if a property with the given {@code name}
      *         exists and is accessible.
      */
-    boolean hasProperty(@Nonnull String name);
+    boolean hasProperty(@NotNull String name);
 
     /**
      * Determine the number of properties accessible to the current content session.
@@ -191,7 +190,7 @@ public interface Tree {
      *
      * @return An {@code Iterable} for all accessible property states.
      */
-    @Nonnull
+    @NotNull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -200,8 +199,8 @@ public interface Tree {
      * @return The child with the given {@code name}.
      * @throws IllegalArgumentException if the given name is invalid
      */
-    @Nonnull
-    Tree getChild(@Nonnull String name) throws IllegalArgumentException;
+    @NotNull
+    Tree getChild(@NotNull String name) throws IllegalArgumentException;
 
     /**
      * Determine if a child of this {@code Tree} instance exists. If no child
@@ -211,7 +210,7 @@ public interface Tree {
      * @return {@code true} if and only if a child with the given {@code name}
      *         exists and is accessible for the current content session.
      */
-    boolean hasChild(@Nonnull String name);
+    boolean hasChild(@NotNull String name);
     
     /**
      * Determine the number of children of this {@code Tree} instance taking
@@ -235,7 +234,7 @@ public interface Tree {
      *
      * @return An {@code Iterable} for all accessible children
      */
-    @Nonnull
+    @NotNull
     Iterable<Tree> getChildren();
 
     /**
@@ -254,8 +253,8 @@ public interface Tree {
      * @return the {@code Tree} instance of the child with the given {@code name}.
      * @throws IllegalArgumentException if {@code name} is not valid.
      */
-    @Nonnull
-    Tree addChild(@Nonnull String name) throws IllegalArgumentException;
+    @NotNull
+    Tree addChild(@NotNull String name) throws IllegalArgumentException;
 
     /**
      * Changes the nature of this tree such that the order of the children
@@ -306,7 +305,7 @@ public interface Tree {
      * @throws IllegalArgumentException if {@code property} has a non valid name. A valid name
      *         does not start with a colon, is not empty and does not contain a forward slash.
      */
-    void setProperty(@Nonnull PropertyState property);
+    void setProperty(@NotNull PropertyState property);
 
     /**
      * Set a property state
@@ -318,7 +317,7 @@ public interface Tree {
      * @throws IllegalArgumentException if {@code T} is not one of the above types or
      *         if {@code name} is not valid.
      */
-    <T> void setProperty(@Nonnull String name, @Nonnull T value)
+    <T> void setProperty(@NotNull String name, @NotNull T value)
             throws IllegalArgumentException;
 
     /**
@@ -331,7 +330,7 @@ public interface Tree {
      * @param <T>   The type of this property.
      * @throws IllegalArgumentException if {@code name} is not valid.
      */
-    <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type)
+    <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type)
             throws IllegalArgumentException;
 
     /**
@@ -340,7 +339,7 @@ public interface Tree {
      *
      * @param name The name of the property
      */
-    void removeProperty(@Nonnull String name);
+    void removeProperty(@NotNull String name);
 
     /**
      * Empty array of trees.

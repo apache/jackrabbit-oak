@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.api;
 
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Immutable representation of a binary value of finite length.
@@ -47,7 +47,7 @@ public interface Blob {
      *
      * @return a new stream for this blob
      */
-    @Nonnull
+    @NotNull
     InputStream getNewStream();
 
     /**
@@ -64,7 +64,7 @@ public interface Blob {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-834">OAK-834</a>
      * @return binary reference, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     String getReference();
 
     /**
@@ -85,6 +85,6 @@ public interface Blob {
      *
      * @return the unique identifier or null
      */
-    @CheckForNull
+    @Nullable
     String getContentIdentity();
 }

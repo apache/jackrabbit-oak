@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -38,7 +38,7 @@ public interface FileStoreBackupRestoreMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     CompositeData startBackup();
 
     /**
@@ -47,7 +47,7 @@ public interface FileStoreBackupRestoreMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     CompositeData getBackupStatus();
 
     /**
@@ -55,7 +55,7 @@ public interface FileStoreBackupRestoreMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     CompositeData startRestore();
 
     /**
@@ -64,7 +64,7 @@ public interface FileStoreBackupRestoreMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     CompositeData getRestoreStatus();
 
     /**
@@ -80,7 +80,7 @@ public interface FileStoreBackupRestoreMBean {
      * @deprecated Use {@link org.apache.jackrabbit.oak.api.jmx.CheckpointMBean} instead
      */
     @Deprecated
-    @Nonnull
+    @NotNull
     String checkpoint(long lifetime);
 
 }
