@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.query.facet;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
@@ -34,6 +32,8 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning information about facets
@@ -84,13 +84,13 @@ public class FacetResult {
         perDimFacets.put(dimension, facets);
     }
 
-    @Nonnull
+    @NotNull
     public Set<String> getDimensions() {
         return perDimFacets.keySet();
     }
 
-    @CheckForNull
-    public List<Facet> getFacets(@Nonnull String dimension) {
+    @Nullable
+    public List<Facet> getFacets(@NotNull String dimension) {
         return perDimFacets.get(dimension);
     }
 
@@ -111,7 +111,7 @@ public class FacetResult {
          * get the facet label
          * @return a label
          */
-        @Nonnull
+        @NotNull
         public String getLabel() {
             return label;
         }
