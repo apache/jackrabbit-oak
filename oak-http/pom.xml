@@ -93,10 +93,10 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
 
     <!-- Test dependencies -->
