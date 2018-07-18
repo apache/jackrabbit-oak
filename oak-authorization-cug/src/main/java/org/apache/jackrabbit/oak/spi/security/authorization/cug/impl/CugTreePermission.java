@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code TreePermission} implementation for all tree located within one of the
@@ -34,14 +33,14 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     private final TreePermission parent;
     private Status status;
 
-    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent,
-                      @Nonnull CugPermissionProvider permissionProvider) {
+    CugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parent,
+                      @NotNull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
         this.parent = parent;
     }
 
-    CugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parent,
-                      @Nonnull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead, boolean hasNestedCug) {
+    CugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parent,
+                      @NotNull CugPermissionProvider permissionProvider, boolean inCug, boolean canRead, boolean hasNestedCug) {
         super(tree, type, permissionProvider);
         this.parent = parent;
         status = new Status(inCug, canRead, hasNestedCug);
@@ -92,7 +91,7 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
         }
     }
 
-    private static boolean neverNested(@CheckForNull CugTreePermission parentCugPerm) {
+    private static boolean neverNested(@Nullable CugTreePermission parentCugPerm) {
         if (parentCugPerm != null) {
             Status st = parentCugPerm.status;
             return st != null && st.inCug && !st.hasNested;
@@ -108,7 +107,7 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     }
 
     @Override
-    public boolean canRead(@Nonnull PropertyState property) {
+    public boolean canRead(@NotNull PropertyState property) {
         return isAllow();
     }
 
@@ -128,7 +127,7 @@ final class CugTreePermission extends AbstractTreePermission implements CugConst
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+    public boolean isGranted(long permissions, @NotNull PropertyState property) {
         return permissions == Permissions.READ_PROPERTY && isAllow();
     }
 
