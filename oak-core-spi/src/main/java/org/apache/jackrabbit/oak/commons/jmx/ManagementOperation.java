@@ -42,7 +42,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -55,6 +54,7 @@ import javax.management.openmbean.TabularType;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +72,10 @@ public class ManagementOperation<R> extends FutureTask<R> {
 
     protected final int id;
 
-    @Nonnull
+    @NotNull
     protected final String name;
 
-    @Nonnull
+    @NotNull
     private final Supplier<String> statusMessage;
 
     /**
@@ -86,8 +86,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
      * @param task  task to execute for this operation
      */
     public static <R> ManagementOperation<R> newManagementOperation(
-            @Nonnull String name,
-            @Nonnull Callable<R> task) {
+            @NotNull String name,
+            @NotNull Callable<R> task) {
         return new ManagementOperation<R>(name, Suppliers.ofInstance(""), task);
     }
 
@@ -101,9 +101,9 @@ public class ManagementOperation<R> extends FutureTask<R> {
      * @param task           task to execute for this operation
      */
     public static <R> ManagementOperation<R> newManagementOperation(
-            @Nonnull String name,
-            @Nonnull Supplier<String> statusMessage,
-            @Nonnull Callable<R> task) {
+            @NotNull String name,
+            @NotNull Supplier<String> statusMessage,
+            @NotNull Callable<R> task) {
         return new ManagementOperation<R>(name, statusMessage, task);
     }
 
@@ -114,7 +114,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
      * @param result result returned by the operation
      * @return  a {@code ManagementOperation} instance that is already done.
      */
-    @Nonnull
+    @NotNull
     public static <R> ManagementOperation<R> done(String name, final R result) {
         return new ManagementOperation<R>("done", Suppliers.ofInstance(""),
                 new Callable<R>() {
@@ -154,9 +154,9 @@ public class ManagementOperation<R> extends FutureTask<R> {
      * @param task           task to execute for this operation
      */
     private ManagementOperation(
-            @Nonnull String name,
-            @Nonnull Supplier<String> statusMessage,
-            @Nonnull Callable<R> task) {
+            @NotNull String name,
+            @NotNull Supplier<String> statusMessage,
+            @NotNull Callable<R> task) {
         super(task);
         this.id = idGen.incrementAndGet();
         this.name = checkNotNull(name);
@@ -178,7 +178,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
      * Informal name
      * @return  name of this operation
      */
-    @Nonnull
+    @NotNull
     public String getName() {
         return name;
     }
@@ -197,7 +197,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
      *
      * @return  the current status of this operation
      */
-    @Nonnull
+    @NotNull
     public Status getStatus() {
         if (isCancelled()) {
             return failed(this, name + " cancelled");

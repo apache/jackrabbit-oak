@@ -24,11 +24,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,7 +37,7 @@ public class CacheStatsTest {
 
     private final Weigher<Integer, Integer> weigher = new Weigher<Integer, Integer>() {
         @Override
-        public int weigh(@Nonnull Integer key, @Nonnull Integer value) {
+        public int weigh(@NotNull Integer key, @NotNull Integer value) {
             return 1;
         }
     };

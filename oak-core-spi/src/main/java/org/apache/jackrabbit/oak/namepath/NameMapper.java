@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.namepath;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -38,8 +38,8 @@ public interface NameMapper {
      * @param jcrName JCR name
      * @return Oak name, or {@code null}
      */
-    @CheckForNull
-    String getOakNameOrNull(@Nonnull String jcrName);
+    @Nullable
+    String getOakNameOrNull(@NotNull String jcrName);
 
     /**
      * Returns the Oak name for the specified JCR name. In contrast to
@@ -50,8 +50,8 @@ public interface NameMapper {
      * @return A valid Oak name.
      * @throws RepositoryException If the JCR name cannot be resolved.
      */
-    @Nonnull
-    String getOakName(@Nonnull String jcrName) throws RepositoryException;
+    @NotNull
+    String getOakName(@NotNull String jcrName) throws RepositoryException;
 
     /**
      * Returns the local namespace prefix mappings, or an empty map if
@@ -59,7 +59,7 @@ public interface NameMapper {
      *
      * @return local namespace prefix to URI mappings
      */
-    @Nonnull
+    @NotNull
     Map<String, String> getSessionLocalMappings();
 
     /**
@@ -72,7 +72,7 @@ public interface NameMapper {
      * @param oakName Oak name
      * @return JCR name
      */
-    @Nonnull
-    String getJcrName(@Nonnull String oakName);
+    @NotNull
+    String getJcrName(@NotNull String oakName);
 
 }

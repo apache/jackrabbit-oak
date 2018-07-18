@@ -30,9 +30,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.LoadingCache;
@@ -41,6 +38,8 @@ import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +102,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
          * @param value the evicted item's value or {@code null} if non-resident
          * @param cause the cause of the eviction
          */
-        void evicted(@Nonnull K key, @Nullable V value, @Nonnull RemovalCause cause);
+        void evicted(@NotNull K key, @Nullable V value, @NotNull RemovalCause cause);
     }
     
     final int cacheId = NEXT_CACHE_ID.getAndIncrement();
