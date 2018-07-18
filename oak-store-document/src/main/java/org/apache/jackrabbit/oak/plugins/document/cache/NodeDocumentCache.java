@@ -28,10 +28,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -41,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
@@ -68,11 +66,11 @@ public class NodeDocumentCache implements Closeable {
 
     private final List<CacheChangesTracker> changeTrackers;
 
-    public NodeDocumentCache(@Nonnull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
-                             @Nonnull CacheStats nodeDocumentsCacheStats,
-                             @Nonnull Cache<StringValue, NodeDocument> prevDocumentsCache,
-                             @Nonnull CacheStats prevDocumentsCacheStats,
-                             @Nonnull NodeDocumentLocks locks) {
+    public NodeDocumentCache(@NotNull Cache<CacheValue, NodeDocument> nodeDocumentsCache,
+                             @NotNull CacheStats nodeDocumentsCacheStats,
+                             @NotNull Cache<StringValue, NodeDocument> prevDocumentsCache,
+                             @NotNull CacheStats prevDocumentsCacheStats,
+                             @NotNull NodeDocumentLocks locks) {
         this.nodeDocumentsCache = nodeDocumentsCache;
         this.nodeDocumentsCacheStats = nodeDocumentsCacheStats;
         this.prevDocumentsCache = prevDocumentsCache;
@@ -86,7 +84,7 @@ public class NodeDocumentCache implements Closeable {
      *
      * @param key to invalidate
      */
-    public void invalidate(@Nonnull String key) {
+    public void invalidate(@NotNull String key) {
         Lock lock = locks.acquire(key);
         try {
             if (isLeafPreviousDocId(key)) {
@@ -106,7 +104,7 @@ public class NodeDocumentCache implements Closeable {
      *
      * @param key to mark
      */
-    public void markChanged(@Nonnull String key) {
+    public void markChanged(@NotNull String key) {
         Lock lock = locks.acquire(key);
         try {
             internalMarkChanged(key);
@@ -123,7 +121,7 @@ public class NodeDocumentCache implements Closeable {
      *                  modification stamps.
      * @return number of invalidated entries
      */
-    public int invalidateOutdated(@Nonnull Map<String, ModificationStamp> modStamps) {
+    public int invalidateOutdated(@NotNull Map<String, ModificationStamp> modStamps) {
         int invalidatedCount = 0;
         for (Entry<String, ModificationStamp> e : modStamps.entrySet()) {
             String id = e.getKey();
@@ -147,8 +145,8 @@ public class NodeDocumentCache implements Closeable {
      * @param key document key
      * @return cached value of null if there's no document with given key cached
      */
-    @CheckForNull
-    public NodeDocument getIfPresent(@Nonnull String key) {
+    @Nullable
+    public NodeDocument getIfPresent(@NotNull String key) {
         if (isLeafPreviousDocId(key)) {
             return prevDocumentsCache.getIfPresent(new StringValue(key));
         } else {
@@ -169,8 +167,8 @@ public class NodeDocumentCache implements Closeable {
      * @param valueLoader object used to retrieve the document
      * @return document matching given key
      */
-    @Nonnull
-    public NodeDocument get(@Nonnull final String key, @Nonnull final Callable<NodeDocument> valueLoader)
+    @NotNull
+    public NodeDocument get(@NotNull final String key, @NotNull final Callable<NodeDocument> valueLoader)
             throws ExecutionException {
         Callable<NodeDocument> wrappedLoader = new Callable<NodeDocument>() {
             @Override
@@ -198,7 +196,7 @@ public class NodeDocumentCache implements Closeable {
      *
      * @param doc document to put
      */
-    public void put(@Nonnull NodeDocument doc) {
+    public void put(@NotNull NodeDocument doc) {
         if (doc != NodeDocument.NULL) {
             Lock lock = locks.acquire(doc.getId());
             try {
@@ -217,8 +215,8 @@ public class NodeDocumentCache implements Closeable {
      * @return either the given <code>doc</code> or the document already present
      *         in the cache if it's newer
      */
-    @Nonnull
-    public NodeDocument putIfNewer(@Nonnull final NodeDocument doc) {
+    @NotNull
+    public NodeDocument putIfNewer(@NotNull final NodeDocument doc) {
         if (doc == NodeDocument.NULL) {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
@@ -250,8 +248,8 @@ public class NodeDocumentCache implements Closeable {
      * @return either the given <code>doc</code> or the document already present
      *         in the cache.
      */
-    @Nonnull
-    public NodeDocument putIfAbsent(@Nonnull final NodeDocument doc) {
+    @NotNull
+    public NodeDocument putIfAbsent(@NotNull final NodeDocument doc) {
         if (doc == NodeDocument.NULL) {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
@@ -296,8 +294,8 @@ public class NodeDocumentCache implements Closeable {
      * @param oldDoc the old document
      * @param newDoc the replacement
      */
-    public void replaceCachedDocument(@Nonnull final NodeDocument oldDoc,
-                                      @Nonnull final NodeDocument newDoc) {
+    public void replaceCachedDocument(@NotNull final NodeDocument oldDoc,
+                                      @NotNull final NodeDocument newDoc) {
         if (newDoc == NodeDocument.NULL) {
             throw new IllegalArgumentException("doc must not be NULL document");
         }
@@ -473,7 +471,7 @@ public class NodeDocumentCache implements Closeable {
      *
      * @param doc the document to put into the cache.
      */
-    protected final void putInternal(@Nonnull NodeDocument doc) {
+    protected final void putInternal(@NotNull NodeDocument doc) {
         putInternal(doc, null);
     }
 
@@ -485,7 +483,7 @@ public class NodeDocumentCache implements Closeable {
      * @param trackerToSkip this tracker won't be updated. pass {@code null} to update
      *                      all trackers.
      */
-    protected final void putInternal(@Nonnull NodeDocument doc, @Nullable CacheChangesTracker trackerToSkip) {
+    protected final void putInternal(@NotNull NodeDocument doc, @Nullable CacheChangesTracker trackerToSkip) {
         if (isLeafPreviousDocId(doc.getId())) {
             prevDocumentsCache.put(new StringValue(doc.getId()), doc);
         } else {
@@ -508,7 +506,7 @@ public class NodeDocumentCache implements Closeable {
      * @param doc the tested document
      * @return {@code true} iff the cacheDoc is null or older than the doc
      */
-    private boolean isNewer(@Nullable NodeDocument cachedDoc, @Nonnull NodeDocument doc) {
+    private boolean isNewer(@Nullable NodeDocument cachedDoc, @NotNull NodeDocument doc) {
         if (cachedDoc == null || cachedDoc == NodeDocument.NULL) {
             return true;
         }

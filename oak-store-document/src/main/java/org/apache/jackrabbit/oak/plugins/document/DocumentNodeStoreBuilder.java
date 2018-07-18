@@ -22,9 +22,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Supplier;
@@ -60,6 +57,8 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -479,17 +478,17 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
-    @Nonnull
+    @NotNull
     public Map<CacheType, PersistentCacheStats> getPersistenceCacheStats() {
         return persistentCacheStats;
     }
 
-    @CheckForNull
+    @Nullable
     public BlobStoreStats getBlobStoreStats() {
         return blobStoreStats;
     }
 
-    @CheckForNull
+    @Nullable
     public CacheStats getBlobStoreCacheStats() {
         return blobStoreCacheStats;
     }
@@ -567,7 +566,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return maxRevisionAgeMillis;
     }
 
-    public T setGCMonitor(@Nonnull GCMonitor gcMonitor) {
+    public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
         this.gcMonitor = checkNotNull(gcMonitor);
         return thisBuilder();
     }

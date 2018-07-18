@@ -22,14 +22,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +67,7 @@ abstract class ExternalChange {
      *
      * @param paths the paths of affected nodes.
      */
-    abstract void invalidateCache(@Nonnull Iterable<String> paths);
+    abstract void invalidateCache(@NotNull Iterable<String> paths);
 
     /**
      * Called when all cache entries must be invalidated.
@@ -85,8 +84,8 @@ abstract class ExternalChange {
      * @param changedPaths paths of nodes that are affected by those external
      *                     changes.
      */
-    abstract void updateHead(@Nonnull Set<Revision> externalChanges,
-                             @Nonnull RevisionVector sweepRevisions,
+    abstract void updateHead(@NotNull Set<Revision> externalChanges,
+                             @NotNull RevisionVector sweepRevisions,
                              @Nullable Iterable<String> changedPaths);
 
     /**

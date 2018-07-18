@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -36,7 +35,7 @@ public enum BundlingConfigInitializer implements RepositoryInitializer {
     INSTANCE;
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(JCR_SYSTEM)){
             NodeBuilder system = builder.getChildNode(JCR_SYSTEM);
 

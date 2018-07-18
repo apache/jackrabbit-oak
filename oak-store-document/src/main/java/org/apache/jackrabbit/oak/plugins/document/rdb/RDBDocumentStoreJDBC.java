@@ -47,9 +47,6 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -58,6 +55,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.RDBTableM
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreDB.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -414,7 +413,7 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    @Nonnull
+    @NotNull
     public List<RDBRow> query(Connection connection, RDBTableMetaData tmd, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) throws SQLException {
         long start = System.currentTimeMillis();
@@ -523,7 +522,7 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    @Nonnull
+    @NotNull
     public Iterator<RDBRow> queryAsIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
         return new ResultSetIterator(ch, tmd, minId, maxId, excludeKeyPatterns, conditions, limit, sortBy);
@@ -656,7 +655,7 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
-    @Nonnull
+    @NotNull
     private PreparedStatement prepareQuery(Connection connection, RDBTableMetaData tmd, String columns, String minId, String maxId,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
 
@@ -780,7 +779,7 @@ public class RDBDocumentStoreJDBC {
         return rows;
     }
 
-    @CheckForNull
+    @Nullable
     public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount, long lastmodified) throws SQLException {
 
         boolean useCaseStatement = lastmodcount != -1 && lastmodified >= 1;
@@ -1030,13 +1029,13 @@ public class RDBDocumentStoreJDBC {
         return res.wasNull() ? RDBRow.LONG_UNSET : v;
     }
 
-    @CheckForNull
+    @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
         return res.wasNull() ? null : Boolean.valueOf(v != 0);
     }
 
-    @CheckForNull
+    @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
         return res.wasNull() ? null : Long.valueOf(v);
@@ -1045,12 +1044,12 @@ public class RDBDocumentStoreJDBC {
     private static final Integer INT_FALSE = 0;
     private static final Integer INT_TRUE = 1;
 
-    @CheckForNull
+    @Nullable
     private static Integer deletedOnceAsNullOrInteger(Boolean b) {
         return b == null ? null : (b.booleanValue() ? INT_TRUE : INT_FALSE);
     }
 
-    @CheckForNull
+    @Nullable
     private static Integer hasBinaryAsNullOrInteger(Number n) {
         return n == null ? null : (n.longValue() == 1 ? INT_TRUE : INT_FALSE);
     }

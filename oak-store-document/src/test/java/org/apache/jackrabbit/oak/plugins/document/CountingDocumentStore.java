@@ -20,10 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
 
 public class CountingDocumentStore implements DocumentStore, RevisionListener {
 
@@ -97,7 +96,7 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
         return delegate.find(collection, key, maxCacheAge);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
@@ -110,7 +109,7 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
         return delegate.query(collection, fromKey, toKey, limit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
@@ -224,7 +223,7 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
         return delegate.getMetadata();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         return delegate.getStats();

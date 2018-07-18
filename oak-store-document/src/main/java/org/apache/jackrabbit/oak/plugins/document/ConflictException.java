@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
@@ -44,8 +43,8 @@ class ConflictException extends Exception {
      * @param message the exception / conflict message.
      * @param conflictRevision the conflict revision
      */
-    ConflictException(@Nonnull String message,
-                      @Nonnull Revision conflictRevision) {
+    ConflictException(@NotNull String message,
+                      @NotNull Revision conflictRevision) {
         super(checkNotNull(message));
         this.conflictRevisions = Collections.singleton(checkNotNull(conflictRevision));
     }
@@ -54,8 +53,8 @@ class ConflictException extends Exception {
      * @param message the exception / conflict message.
      * @param conflictRevisions the conflict revision list
      */
-    ConflictException(@Nonnull String message,
-                      @Nonnull Set<Revision> conflictRevisions) {
+    ConflictException(@NotNull String message,
+                      @NotNull Set<Revision> conflictRevisions) {
         super(checkNotNull(message));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }
@@ -63,7 +62,7 @@ class ConflictException extends Exception {
     /**
      * @param message the exception / conflict message.
      */
-    ConflictException(@Nonnull String message) {
+    ConflictException(@NotNull String message) {
         super(checkNotNull(message));
         this.conflictRevisions = Collections.emptySet();
     }
@@ -88,7 +87,7 @@ class ConflictException extends Exception {
      *
      * @return a list of conflict revisions (may be empty)
      */
-    @Nonnull
+    @NotNull
     Iterable<Revision> getConflictRevisions() {
         return conflictRevisions;
     }

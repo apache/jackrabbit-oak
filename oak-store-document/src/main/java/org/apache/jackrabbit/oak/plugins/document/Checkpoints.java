@@ -26,15 +26,13 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +85,7 @@ class Checkpoints {
         final RevisionVector[] rv = new RevisionVector[1];
         nodeStore.commitQueue.done(r, new CommitQueue.Callback() {
             @Override
-            public void headOfQueue(@Nonnull Revision revision) {
+            public void headOfQueue(@NotNull Revision revision) {
                 rv[0] = nodeStore.getHeadRevision();
             }
         });
@@ -117,7 +115,7 @@ class Checkpoints {
      * checkpoint found
      */
     @SuppressWarnings("unchecked")
-    @CheckForNull
+    @Nullable
     public Revision getOldestRevisionToKeep() {
         //Get uncached doc
         SortedMap<Revision, Info> checkpoints = getCheckpoints();
@@ -154,7 +152,7 @@ class Checkpoints {
     }
 
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     SortedMap<Revision, Info> getCheckpoints() {
         Document cdoc = store.find(Collection.SETTINGS, ID, 0);
         SortedMap<Revision, String> data = null;
@@ -178,8 +176,8 @@ class Checkpoints {
      *      if there is no such checkpoint.
      * @throws IllegalArgumentException if the checkpoint is malformed.
      */
-    @CheckForNull
-    RevisionVector retrieve(@Nonnull String checkpoint)
+    @Nullable
+    RevisionVector retrieve(@NotNull String checkpoint)
             throws IllegalArgumentException {
         Revision r;
         try {
@@ -199,7 +197,7 @@ class Checkpoints {
         return rv;
     }
 
-    void setInfoProperty(@Nonnull String checkpoint, @Nonnull String key, @Nullable String value) {
+    void setInfoProperty(@NotNull String checkpoint, @NotNull String key, @Nullable String value) {
         Revision r = Revision.fromString(checkNotNull(checkpoint));
         Info info = getCheckpoints().get(r);
         if (info == null) {
@@ -273,7 +271,7 @@ class Checkpoints {
 
         private Info(long expiryTime,
                      @Nullable  RevisionVector checkpoint,
-                     @Nonnull Map<String, String> info) {
+                     @NotNull Map<String, String> info) {
             this.expiryTime = expiryTime;
             this.checkpoint = checkpoint;
             this.info = Collections.unmodifiableMap(info);
@@ -336,7 +334,7 @@ class Checkpoints {
          *
          * @return the revision vector checkpoint or {@code null}.
          */
-        @CheckForNull
+        @Nullable
         RevisionVector getCheckpoint() {
             return checkpoint;
         }

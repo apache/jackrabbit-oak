@@ -31,8 +31,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -46,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +78,7 @@ public class RDBDocumentSerializer {
      * Serializes all non-column properties of the {@link Document} into a JSON
      * string.
      */
-    public String asString(@Nonnull Document doc, Set<String> columnProperties) {
+    public String asString(@NotNull Document doc, Set<String> columnProperties) {
         StringBuilder sb = new StringBuilder(32768);
         sb.append("{");
         boolean needComma = false;
@@ -144,8 +143,8 @@ public class RDBDocumentSerializer {
     /**
      * Reconstructs a {@link Document} based on the persisted {@link RDBRow}.
      */
-    @Nonnull
-    public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
+    @NotNull
+    public <T extends Document> T fromRow(@NotNull Collection<T> collection, @NotNull RDBRow row) throws DocumentStoreException {
 
         final String charData = row.getData();
         checkNotNull(charData, "RDBRow.getData() is null for collection " + collection + ", id: " + row.getId());
@@ -310,7 +309,7 @@ public class RDBDocumentSerializer {
     /**
      * Reads from an opened JSON stream ("{" already consumed) into a document.
      */
-    private static <T extends Document> void readDocumentFromJson(@Nonnull JsopTokenizer json, @Nonnull T doc) {
+    private static <T extends Document> void readDocumentFromJson(@NotNull JsopTokenizer json, @NotNull T doc) {
         if (!json.matches('}')) {
             do {
                 String key = json.readString();

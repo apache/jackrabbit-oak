@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,11 +53,11 @@ class Collision {
     private final Revision ourRev;
     private final RevisionContext context;
 
-    Collision(@Nonnull NodeDocument document,
-              @Nonnull Revision theirRev,
-              @Nonnull UpdateOp ourOp,
-              @Nonnull Revision ourRev,
-              @Nonnull RevisionContext context) {
+    Collision(@NotNull NodeDocument document,
+              @NotNull Revision theirRev,
+              @NotNull UpdateOp ourOp,
+              @NotNull Revision ourRev,
+              @NotNull RevisionContext context) {
         this.document = checkNotNull(document);
         this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
@@ -77,7 +76,7 @@ class Collision {
      * @throws IllegalStateException if neither their nor our revision can be
      *              marked because both are already committed.
      */
-    @Nonnull
+    @NotNull
     Revision mark(DocumentStore store) throws DocumentStoreException {
         // first try to mark their revision
         if (markCommitRoot(document, theirRev, ourRev, store, context)) {
@@ -141,11 +140,11 @@ class Collision {
      * @return <code>true</code> if the commit for the given revision was marked
      *         successfully; <code>false</code> otherwise.
      */
-    private static boolean markCommitRoot(@Nonnull NodeDocument document,
-                                          @Nonnull Revision revision,
-                                          @Nonnull Revision other,
-                                          @Nonnull DocumentStore store,
-                                          @Nonnull RevisionContext context) {
+    private static boolean markCommitRoot(@NotNull NodeDocument document,
+                                          @NotNull Revision revision,
+                                          @NotNull Revision other,
+                                          @NotNull DocumentStore store,
+                                          @NotNull RevisionContext context) {
         String p = document.getPath();
         String commitRootPath;
         // first check if we can mark the commit with the given revision
@@ -211,8 +210,8 @@ class Collision {
         return true;
     }
 
-    private static void throwNoCommitRootException(@Nonnull Revision revision,
-                                                   @Nonnull Document document)
+    private static void throwNoCommitRootException(@NotNull Revision revision,
+                                                   @NotNull Document document)
                                                            throws DocumentStoreException {
         throw new DocumentStoreException("No commit root for revision: "
                 + revision + ", document: " + document.format());

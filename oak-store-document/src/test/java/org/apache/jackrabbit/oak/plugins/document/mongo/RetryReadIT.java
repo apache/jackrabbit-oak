@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.mongodb.MongoClient;
@@ -115,7 +114,7 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
             return super.findUncached(collection, key, docReadPref);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         protected <T extends Document> List<T> queryInternal(Collection<T> collection,
                                                              String fromKey,

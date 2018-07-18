@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +51,7 @@ public class ConcurrentReadAndAddTest {
     @Before
     public void setUp() throws Exception {
         ns = builderProvider.newBuilder().setDocumentStore(new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,

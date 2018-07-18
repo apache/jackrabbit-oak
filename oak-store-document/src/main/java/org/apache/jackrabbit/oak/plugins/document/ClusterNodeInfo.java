@@ -38,12 +38,11 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -352,7 +351,7 @@ public class ClusterNodeInfo {
         this.newEntry = newEntry;
     }
 
-    void setLeaseCheckMode(@Nonnull LeaseCheckMode mode) {
+    void setLeaseCheckMode(@NotNull LeaseCheckMode mode) {
         this.leaseCheckMode = checkNotNull(mode);
     }
 

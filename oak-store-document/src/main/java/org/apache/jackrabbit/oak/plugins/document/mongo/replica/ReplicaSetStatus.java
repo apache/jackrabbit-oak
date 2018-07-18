@@ -28,14 +28,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.annotation.CheckForNull;
-
 import com.mongodb.ServerAddress;
 import com.mongodb.event.ServerHeartbeatSucceededEvent;
 import com.mongodb.event.ServerMonitorListenerAdapter;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,7 +151,7 @@ public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
             return localTime;
         }
 
-        @CheckForNull
+        @Nullable
         Date getLastWrite() {
             return lastWrite;
         }

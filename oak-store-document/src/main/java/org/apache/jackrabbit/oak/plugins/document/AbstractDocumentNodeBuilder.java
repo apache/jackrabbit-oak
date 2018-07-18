@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
@@ -33,7 +32,7 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
  */
 abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
 
-    public AbstractDocumentNodeBuilder(@Nonnull NodeState base) {
+    public AbstractDocumentNodeBuilder(@NotNull NodeState base) {
         super(base);
     }
 
@@ -52,8 +51,8 @@ abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
      * See also: OAK-1768
      */
     @Override
-    @Nonnull
-    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState state) {
+    @NotNull
+    public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState state) {
         NodeBuilder builder = super.setChildNode(name, EMPTY_NODE);
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
@@ -68,8 +67,8 @@ abstract class AbstractDocumentNodeBuilder extends MemoryNodeBuilder {
     protected abstract DocumentNodeBuilder createChildBuilder(String name);
 
     @Override
-    @Nonnull
-    public DocumentNodeBuilder getChildNode(@Nonnull String name) {
+    @NotNull
+    public DocumentNodeBuilder getChildNode(@NotNull String name) {
         checkValidName(name);
         return createChildBuilder(name);
     }

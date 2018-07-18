@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -41,7 +40,7 @@ public class PrefetchDispatcherTest {
     public void prefetchVisibleChanges() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         MemoryDocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
@@ -72,25 +71,25 @@ public class VisibleChangesTest {
 
         store.paths.clear();
         VersionablePathHook hook = new VersionablePathHook("default", new ProviderCtx() {
-            @Nonnull
+            @NotNull
             @Override
             public SecurityProvider getSecurityProvider() {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public TreeProvider getTreeProvider() {
                 return new TreeProviderService();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public RootProvider getRootProvider() {
                 return new RootProviderService();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public MountInfoProvider getMountInfoProvider() {
                 throw new UnsupportedOperationException();
@@ -113,7 +112,7 @@ public class VisibleChangesTest {
 
         private final Set<String> paths = Sets.newHashSet();
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
                                                   String fromKey,

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Container for the information in a RDB database column.
@@ -53,22 +53,22 @@ public class RDBRow {
         this.bdata = bdata;
     }
 
-    @Nonnull
+    @NotNull
     public String getId() {
         return id;
     }
 
-    @CheckForNull
+    @Nullable
     public Long hasBinaryProperties() {
         return hasBinaryProperties;
     }
 
-    @CheckForNull
+    @Nullable
     public Boolean deletedOnce() {
         return deletedOnce;
     }
 
-    @CheckForNull
+    @Nullable
     public String getData() {
         return data;
     }
@@ -115,7 +115,7 @@ public class RDBRow {
         return sdMaxRevTime;
     }
 
-    @CheckForNull
+    @Nullable
     public byte[] getBdata() {
         return bdata;
     }

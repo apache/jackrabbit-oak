@@ -22,13 +22,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides convenience methods for applying {@link UpdateOp}s to
@@ -44,8 +43,8 @@ public class UpdateUtils {
      * @param update
      *            the changes to apply.
      */
-    public static void applyChanges(@Nonnull Document doc,
-                                    @Nonnull UpdateOp update) {
+    public static void applyChanges(@NotNull Document doc,
+                                    @NotNull UpdateOp update) {
         doc.put(Document.ID, update.getId());
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
@@ -104,8 +103,8 @@ public class UpdateUtils {
         }
     }
 
-    public static boolean checkConditions(@Nonnull Document doc,
-                                          @Nonnull Map<Key, Condition> conditions) {
+    public static boolean checkConditions(@NotNull Document doc,
+                                          @NotNull Map<Key, Condition> conditions) {
         for (Map.Entry<Key, Condition> entry : conditions.entrySet()) {
             Condition c = entry.getValue();
             Key k = entry.getKey();
@@ -163,7 +162,7 @@ public class UpdateUtils {
      * @param up the update operation
      * @throws IllegalArgumentException when the operations is conditional
      */
-    public static void assertUnconditional(@Nonnull UpdateOp up) {
+    public static void assertUnconditional(@NotNull UpdateOp up) {
         Map<Key, Condition> conditions = up.getConditions();
         if (!conditions.isEmpty()) {
             throw new IllegalArgumentException(

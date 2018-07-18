@@ -26,12 +26,11 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedD
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +88,7 @@ public class VersionGCSupport {
      *
      * @return the underlying document store.
      */
-    @Nonnull
+    @NotNull
     public DocumentStore getDocumentStore() {
         return store;
     }

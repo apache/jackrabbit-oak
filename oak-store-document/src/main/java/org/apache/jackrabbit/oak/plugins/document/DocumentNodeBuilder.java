@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
@@ -49,7 +48,7 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public NodeState getBaseState() {
         if (base == null || rootBase != root.getBaseState()) {
             base = getParent().getBaseState().getChildNode(getName());
@@ -64,7 +63,7 @@ class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
     }
 
     @Override
-    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName) {
+    public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName) {
         checkNotNull(newParent);
         checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {

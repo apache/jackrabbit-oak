@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A diff cache implementation, which immediately forgets the diff.
@@ -35,9 +34,9 @@ class AmnesiaDiffCache extends DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull RevisionVector from,
-                             @Nonnull RevisionVector to,
-                             @Nonnull String path,
+    public String getChanges(@NotNull RevisionVector from,
+                             @NotNull RevisionVector to,
+                             @NotNull String path,
                              @Nullable Loader loader) {
         if (loader != null) {
             return loader.call();
@@ -45,12 +44,12 @@ class AmnesiaDiffCache extends DiffCache {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Entry newEntry(@Nonnull RevisionVector from, @Nonnull RevisionVector to, boolean local) {
+    public Entry newEntry(@NotNull RevisionVector from, @NotNull RevisionVector to, boolean local) {
         return new Entry() {
             @Override
-            public void append(@Nonnull String path, @Nonnull String changes) {
+            public void append(@NotNull String path, @NotNull String changes) {
             }
 
             @Override
@@ -60,7 +59,7 @@ class AmnesiaDiffCache extends DiffCache {
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
         return Collections.emptyList();

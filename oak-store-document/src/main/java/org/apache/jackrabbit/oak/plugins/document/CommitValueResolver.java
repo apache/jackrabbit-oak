@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Resolves the commit value for a given change revision on a document.
@@ -31,5 +31,5 @@ public interface CommitValueResolver {
      * @param doc the document with the change.
      * @return the commit value of the revision.
      */
-    String resolve(@Nonnull Revision changeRevision, @Nonnull NodeDocument doc);
+    String resolve(@NotNull Revision changeRevision, @NotNull NodeDocument doc);
 }

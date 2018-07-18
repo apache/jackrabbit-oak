@@ -80,8 +80,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 
 import com.google.common.base.Throwables;
@@ -118,6 +116,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -230,7 +230,7 @@ public class DocumentNodeStoreTest {
     public void childNodeEntries() throws Exception {
         final AtomicInteger counter = new AtomicInteger();
         DocumentStore docStore = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -507,7 +507,7 @@ public class DocumentNodeStoreTest {
     public void readChildrenWithDeletedSiblings() throws Exception {
         final AtomicInteger maxLimit = new AtomicInteger(0);
         DocumentStore docStore = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -816,7 +816,7 @@ public class DocumentNodeStoreTest {
     public void diffOnce() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         MemoryDocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -1875,12 +1875,12 @@ public class DocumentNodeStoreTest {
         private final Semaphore controllee = new Semaphore(0);
 
         private void startMerge(final NodeStore store,
-                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
             startMerge(store, null, addChildren, removeChildren, change);
         }
 
         private void startMerge(final NodeStore store, final CommitHook hook,
-                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
             setDontBlock(false);
 
             //our controller is controllee for merge thread (and vice versa)
@@ -1914,13 +1914,13 @@ public class DocumentNodeStoreTest {
 
         private Thread createMergeThread(final NodeStore store, final CommitHook hook,
                                          final Semaphore controller, final Semaphore controllee,
-                                         @Nonnull final String [] addChildren, @Nonnull final String [] removeChildren,
+                                         @NotNull final String [] addChildren, @NotNull final String [] removeChildren,
                                          final boolean change) {
             return new Thread(new Runnable() {
                 @Override
                 public void run() {
                     final CommitHook blockingHook = new CommitHook() {
-                        @Nonnull
+                        @NotNull
                         @Override
                         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
                                 throws CommitFailedException {
@@ -2142,7 +2142,7 @@ public class DocumentNodeStoreTest {
     public void diffCache() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         MemoryDocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -2202,7 +2202,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         final List<Long> startValues = Lists.newArrayList();
         MemoryDocumentStore ds = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -2309,7 +2309,7 @@ public class DocumentNodeStoreTest {
 
         try {
             b.merge(new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
@@ -2741,7 +2741,7 @@ public class DocumentNodeStoreTest {
         final AtomicBoolean failCommit = new AtomicBoolean();
         ns.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
                 if (failCommit.get()){
                     throw testException;
                 }
@@ -2764,7 +2764,7 @@ public class DocumentNodeStoreTest {
     public void localChangesFromCache() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         DocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -3191,7 +3191,7 @@ public class DocumentNodeStoreTest {
             @Override
             public MissingLastRevSeeker createMissingLastRevSeeker() {
                 return new MissingLastRevSeeker(getDocumentStore(), getClock()) {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterable<NodeDocument> getCandidates(long startTime) {
                         candidateCalls.incrementAndGet();
@@ -3889,7 +3889,7 @@ public class DocumentNodeStoreTest {
 
         TestHook(final String prefix) {
             super(new EditorProvider() {
-                @CheckForNull
+                @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before,
                                             NodeState after,
@@ -3903,7 +3903,7 @@ public class DocumentNodeStoreTest {
     }
 
     private static final CommitHook FAILING_HOOK = new CommitHook() {
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before,
                                        NodeState after,

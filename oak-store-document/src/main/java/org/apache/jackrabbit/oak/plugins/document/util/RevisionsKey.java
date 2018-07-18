@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +72,7 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
         return r1 + "/" + r2;
     }
 
-    public int compareTo(@Nonnull RevisionsKey k) {
+    public int compareTo(@NotNull RevisionsKey k) {
         int c = r1.compareTo(k.r1);
         if (c != 0) {
             return c;

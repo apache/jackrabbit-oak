@@ -18,18 +18,17 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.jetbrains.annotations.Nullable;
 import org.junit.rules.ExternalResource;
 
 public class MongoConnectionFactory extends ExternalResource {
 
     private final List<MongoConnection> connections = Lists.newArrayList();
 
-    @CheckForNull
+    @Nullable
     public MongoConnection getConnection() {
         MongoConnection c = MongoUtils.getConnection();
         if (c != null) {
@@ -38,7 +37,7 @@ public class MongoConnectionFactory extends ExternalResource {
         return c;
     }
 
-    @CheckForNull
+    @Nullable
     public MongoConnection getConnection(String dbName) {
         MongoConnection c = MongoUtils.getConnection(dbName);
         if (c != null) {

@@ -20,12 +20,11 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -115,7 +114,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
 
         @Override
         protected <T extends Document> T convertFromDBObject(
-                @Nonnull Collection<T> collection, @Nullable DBObject n) {
+                @NotNull Collection<T> collection, @Nullable DBObject n) {
             Semaphore s = semaphores.get(Thread.currentThread());
             if (s != null) {
                 s.acquireUninterruptibly();

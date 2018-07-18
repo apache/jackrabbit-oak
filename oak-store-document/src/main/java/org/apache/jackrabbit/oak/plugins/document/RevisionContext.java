@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides revision related context.
@@ -45,19 +44,19 @@ public interface RevisionContext {
     /**
      * @return the current head revision.
      */
-    @Nonnull
+    @NotNull
     RevisionVector getHeadRevision();
 
     /**
      * @return a new revision for the local document node store instance.
      */
-    @Nonnull
+    @NotNull
     Revision newRevision();
 
     /**
      * @return the clock in use when a new revision is created.
      */
-    @Nonnull
+    @NotNull
     Clock getClock();
 
     /**
@@ -78,7 +77,7 @@ public interface RevisionContext {
      * @return the commit value or {@code null} if the change does not
      *          have a commit value (yet).
      */
-    @CheckForNull
-    String getCommitValue(@Nonnull Revision changeRevision,
-                          @Nonnull NodeDocument doc);
+    @Nullable
+    String getCommitValue(@NotNull Revision changeRevision,
+                          @NotNull NodeDocument doc);
 }

@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@link NodeStateDiffer} implementation backed by a JSOP String.
@@ -40,9 +39,9 @@ class JsopNodeStateDiffer implements NodeStateDiffer {
     }
 
     @Override
-    public boolean compare(@Nonnull final AbstractDocumentNodeState node,
-                           @Nonnull final AbstractDocumentNodeState base,
-                           @Nonnull final NodeStateDiff diff) {
+    public boolean compare(@NotNull final AbstractDocumentNodeState node,
+                           @NotNull final AbstractDocumentNodeState base,
+                           @NotNull final NodeStateDiff diff) {
         if (!withoutPropertyChanges) {
             if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
                 return false;

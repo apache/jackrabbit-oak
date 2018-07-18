@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 
+import org.jetbrains.annotations.Nullable;
 
 public interface DocumentNodeStateCache {
     DocumentNodeStateCache NOOP = new DocumentNodeStateCache() {
@@ -47,7 +46,7 @@ public interface DocumentNodeStateCache {
      * @return nodeState at given path or null. If given revision is not present or the
      * path is not cached then <code>null</code> would be returned
      */
-    @CheckForNull
+    @Nullable
     AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision, RevisionVector lastRev);
 
     /**

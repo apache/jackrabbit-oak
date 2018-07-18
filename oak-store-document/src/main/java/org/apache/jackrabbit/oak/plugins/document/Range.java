@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
 * A revision range for {@link NodeDocument#PREVIOUS} documents.
@@ -36,7 +36,7 @@ final class Range {
      * @param high the high bound.
      * @param low the low bound.
      */
-    Range(@Nonnull Revision high, @Nonnull Revision low, int height) {
+    Range(@NotNull Revision high, @NotNull Revision low, int height) {
         this.high = checkNotNull(high);
         this.low = checkNotNull(low);
         this.height = height;
@@ -56,7 +56,7 @@ final class Range {
      *              (e.g. r1-0-1/0).
      * @return the range.
      */
-    @Nonnull
+    @NotNull
     static Range fromEntry(Revision rev, String value) {
         Revision low;
         int height;
@@ -76,7 +76,7 @@ final class Range {
      * @return the string representation of the lower bound, including the
      *         height (e.g. r1-0-1/0).
      */
-    @Nonnull
+    @NotNull
     String getLowValue() {
         return low + "/" + height;
     }
@@ -88,7 +88,7 @@ final class Range {
      * @return <code>true</code> if within this range; <code>false</code>
      * otherwise.
      */
-    boolean includes(@Nonnull Revision r) {
+    boolean includes(@NotNull Revision r) {
         return high.getClusterId() == r.getClusterId()
                 && high.compareRevisionTime(r) >= 0
                 && low.compareRevisionTime(r) <= 0;
