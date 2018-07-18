@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A blob implementation.
@@ -41,7 +40,7 @@ public class BlobStoreBlob implements Blob {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public InputStream getNewStream() {
         try {
             return blobStore.getInputStream(blobId);
@@ -60,7 +59,7 @@ public class BlobStoreBlob implements Blob {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public String getReference() {
         return blobStore.getReference(blobId);
     }

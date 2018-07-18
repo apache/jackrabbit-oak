@@ -25,13 +25,12 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nullable;
-
 import com.google.common.cache.AbstractCache;
 import com.google.common.cache.CacheLoader;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

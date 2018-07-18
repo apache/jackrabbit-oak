@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -32,6 +29,8 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class for {@link SharedDataStore}.
@@ -59,7 +58,7 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, Long>() {
                     @Override
                     @Nullable
-                    public Long apply(@Nonnull DataRecord input) {
+                    public Long apply(@NotNull DataRecord input) {
                         return input.getLastModified();
                     }
                 }).min(recs);
@@ -78,7 +77,7 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, String>() {
                     @Override
                     @Nullable
-                    public String apply(@Nonnull DataRecord input) {
+                    public String apply(@NotNull DataRecord input) {
                         return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
                     }
                 }).keySet(),
@@ -86,7 +85,7 @@ public class SharedDataStoreUtils {
                         new Function<DataRecord, String>() {
                             @Override
                             @Nullable
-                            public String apply(@Nonnull DataRecord input) {
+                            public String apply(@NotNull DataRecord input) {
                                 return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
                             }
                         }).keySet());

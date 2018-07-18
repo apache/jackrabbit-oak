@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public interface TextWriter {
 
-    void write(@Nonnull String blobId, @Nonnull String text) throws IOException;
+    void write(@NotNull String blobId, @NotNull String text) throws IOException;
 
     void markEmpty(String blobId);
 
