@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.6
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.5 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,65 +15,69 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.5
+Changes in Oak 1.9.6
 --------------------
+
+Sub-task
+
+    [OAK-7626] - Strict lease check mode
+    [OAK-7628] - Prevent commits after lease end
+    [OAK-7636] - Replace usage of deprecated
+    DocumentNodeStoreBuilder.setLeaseCheck()
 
 Technical task
 
-    [OAK-7532] - VersionStorageEditor should allow bootstraping of
-    initial content
-    [OAK-7553] - Extract interface from CommitValueResolver
-    [OAK-7554] - Extract InactiveRevisionContext from
-    LastRevRecoveryAgent
-    [OAK-7587] - RDB*Store: update mysql driver reference to 8.0.11
-    [OAK-7590] - RDB*Store: update Tomcat JDBC pool dependency to
-    8.5.32
+    [OAK-7632] - remove JSR 305 annotations in Groovy code
 
 Bug
 
-    [OAK-7551] - The compaction deadline should be reset at each
-    execution
-    [OAK-7559] - CacheActionDispatcher not memory bound
-    [OAK-7566] - Rename metrics for DataStore garbage collection
-    [OAK-7567] - Migrating an unmodified checkpoint takes a long time
-    [OAK-7588] - Build failure: unapproved license
-    [OAK-7593] - NodeDocument.getLatestValue() may throw
-    IllegalStateException
-    [OAK-7594] - datastorecheck command in oak-run for S3 needs
-    jackson-annotations dependency
-    [OAK-7598] -
-    CopyOnWriteDirectory.COWRemoteFileReference#checkIfLocalValid logs
-    WARN for segments.gen
+    [OAK-7564] - Commit fails when forced journal push throws
+    exception
+    [OAK-7610] - Active blob deletion fails on composite setups
+    [OAK-7630] - Suggest directory update doesn't close
+    AnalyzingInfixSuggester after building
+    [OAK-7638] - Race condition when simultaneous request to stage
+    file for async upload
 
 New Feature
 
-    [OAK-7555] - Enable collection of simple operation stats for
-    Revision garbage collection
-    [OAK-7575] - Make it possible to index and search over similar
-    feature vectors
+    [OAK-7604] - Add FileStoreStatsMBean#getSegmentCount for
+    monitoring the number of segments
+    [OAK-7617] - Metric for DocumentNodeStore lease update
 
 Improvement
 
-    [OAK-7561] - Don't migrate the checkpoints in oak-store-composite
-    seed initialization
-    [OAK-7584] - Add stats for DataStore GC performance
-    [OAK-7601] - Exclude org.apache.jackrabbit.oak.plugins.value.jcr
-    from baseline check
+    [OAK-3883] - Avoid commit from too far in the future (due to clock
+    skews) to go through
+    [OAK-7180] - The error message "postings highlighting failed"
+    should be warn or debug
+    [OAK-7316] - Greedy ClusterNodeInfo
+    [OAK-7334] - Transform CacheWeightEstimator into a unit test
+    [OAK-7615] - Speed up site generation
+    [OAK-7621] - Metric for background read lag
+    [OAK-7627] - Update the dependency on biz.aQute.bndlib
+    [OAK-7629] - Lucene index: hide the settings COR and COW
+
+Test
+
+    [OAK-7620] - Update to Mockito 2.x
 
 Task
 
-    [OAK-7556] - Update failsafe and surefire plugin versions to
-    2.22.0
-    [OAK-7563] - Set baseline plugin comparison for trunk to latest
-    stable version (1.8.4)
-    [OAK-7578] - Update spotbugs plugin to 3.1.5
-    [OAK-7579] - remove obsolete findbugs reference from reactor pom
-    [OAK-7582] - Make the MountInfo constructor public
-    [OAK-7583] - oak-examples/webapp: update jetty-maven-plugin
-    dependency
-    [OAK-7585] - oak-examples/standalone: update spring boot version
-    [OAK-7586] - Update bundle plugin to 3.5.0
-    [OAK-7596] - define jackson version globally
+    [OAK-7257] - oak-examples: update Tomcat dependency
+    [OAK-7609] - Update jackson dependencies to 2.9.6
+    [OAK-7614] - Update Oak trunk to Jackrabbit 2.17.4
+    [OAK-7622] - Update httpcomponent dependencies to 4.4.10/4.5.6
+    (and declare the versions globally)
+    [OAK-7624] - Add "org.apache.jackrabbit.oak.plugins.document.spi"
+    to package export filter
+    [OAK-7625] - remove @Nonnegative annotation in NodeDocumentCache
+    [OAK-7641] - various internal APIs missing in package export
+    filter
+
+Documentation
+
+    [OAK-7616] - Document metrics
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
