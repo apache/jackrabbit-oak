@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Lists;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -208,7 +208,7 @@ public class RepositorySidegrade {
      *
      * @param includes Paths to be included in the copy.
      */
-    public void setIncludes(@Nonnull String... includes) {
+    public void setIncludes(@NotNull String... includes) {
         this.includePaths = copyOf(checkNotNull(includes));
     }
 
@@ -218,7 +218,7 @@ public class RepositorySidegrade {
      *
      * @param excludes Paths to be excluded from the copy.
      */
-    public void setExcludes(@Nonnull String... excludes) {
+    public void setExcludes(@NotNull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
 
@@ -228,7 +228,7 @@ public class RepositorySidegrade {
      *
      * @param merges Paths to be merged during copy.
      */
-    public void setMerges(@Nonnull String... merges) {
+    public void setMerges(@NotNull String... merges) {
         this.mergePaths = copyOf(checkNotNull(merges));
     }
 

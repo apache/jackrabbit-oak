@@ -21,11 +21,10 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
-
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -44,20 +43,20 @@ public class MetadataExposingNodeState extends AbstractDecoratedNodeState {
         metadataProperties.add(createProperty(PROP_LAST_REV, documentNodeState.getLastRevision().asString()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected Iterable<PropertyState> getNewPropertyStates() {
         return metadataProperties;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    protected NodeState decorateChild(@Nonnull String name, @Nonnull NodeState delegateChild) {
+    protected NodeState decorateChild(@NotNull String name, @NotNull NodeState delegateChild) {
         return wrap(delegateChild);
     }
 
     @Override
-    protected PropertyState decorateProperty(@Nonnull PropertyState delegatePropertyState) {
+    protected PropertyState decorateProperty(@NotNull PropertyState delegatePropertyState) {
         return delegatePropertyState;
     }
 
