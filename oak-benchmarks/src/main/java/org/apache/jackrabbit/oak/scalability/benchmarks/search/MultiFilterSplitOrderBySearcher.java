@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.*;
@@ -27,6 +26,7 @@ import javax.jcr.query.*;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Splits the query in {@link org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher}
@@ -63,7 +63,7 @@ public class MultiFilterSplitOrderBySearcher extends MultiFilterOrderBySearcher 
         }
     }
 
-    protected Query getStandardQuery(@Nonnull final QueryManager qm, ExecutionContext context)
+    protected Query getStandardQuery(@NotNull final QueryManager qm, ExecutionContext context)
         throws RepositoryException {
         // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType)[(@viewed = 'true')] order
         // by @viewed descending

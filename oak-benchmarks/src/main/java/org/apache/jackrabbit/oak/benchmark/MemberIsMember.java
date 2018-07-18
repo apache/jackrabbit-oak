@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Same as {@link MemberBaseTest} but testing {@link Group#isMember(Authorizable)}.
@@ -32,7 +31,7 @@ public class MemberIsMember extends MemberBaseTest {
     }
 
     @Override
-    protected void testMembership(@Nonnull Group g, @Nonnull User member) throws Exception {
+    protected void testMembership(@NotNull Group g, @NotNull User member) throws Exception {
         g.isMember(member);
     }
 }

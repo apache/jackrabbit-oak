@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 /**
@@ -48,12 +48,12 @@ public class AddUniqueMembersTest extends AddMembersTest {
     }
 
     @Override
-    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+    protected void createUsers(@NotNull UserManager userManager) throws Exception {
         // no need for creating the users beforehand
     }
 
     @Override
-    protected void addMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s)
+    protected void addMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s)
             throws Exception {
         long uid = index.getAndIncrement();
 

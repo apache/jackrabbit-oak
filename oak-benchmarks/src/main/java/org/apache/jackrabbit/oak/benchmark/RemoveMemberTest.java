@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Test the performance of removing members from groups. The
@@ -46,7 +46,7 @@ public class RemoveMemberTest extends RemoveMembersTest {
         userPaths = new ArrayList<String>(numberOfMembers);
     }
 
-    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+    protected void createUsers(@NotNull UserManager userManager) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             String id = USER + i;
             User u = userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
@@ -54,7 +54,7 @@ public class RemoveMemberTest extends RemoveMembersTest {
         }
     }
 
-    protected void removeMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s) throws Exception {
         int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
             Authorizable member = userManger.getAuthorizable(USER + random.nextInt(numberOfMembers));

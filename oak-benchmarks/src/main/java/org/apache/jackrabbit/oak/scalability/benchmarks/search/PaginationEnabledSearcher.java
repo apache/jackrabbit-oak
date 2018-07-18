@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -31,6 +30,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract class which defines utility methods for processing results like 
@@ -50,7 +50,7 @@ public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchma
 
     protected static final String KEYSET_VAL_PROP = "keysetval";
 
-    protected void processResultsOffsetPagination(@Nonnull final QueryManager qm,
+    protected void processResultsOffsetPagination(@NotNull final QueryManager qm,
             ExecutionContext context) throws RepositoryException {
         for (int page = 0; page < PAGES; page++) {
             Query query = getQuery(qm, context);
@@ -73,7 +73,7 @@ public abstract class PaginationEnabledSearcher extends SearchScalabilityBenchma
         return last;
     }
 
-    protected void processResultsKeysetPagination(@Nonnull final QueryManager qm,
+    protected void processResultsKeysetPagination(@NotNull final QueryManager qm,
             ExecutionContext context) throws RepositoryException {
         Calendar now = Calendar.getInstance();
         now.setTimeZone(TimeZone.getTimeZone("GMT"));

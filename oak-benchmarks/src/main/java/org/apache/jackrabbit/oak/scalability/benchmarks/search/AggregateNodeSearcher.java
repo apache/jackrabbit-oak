@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.jcr.*;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -50,7 +50,7 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
      * @return the query object
      * @throws RepositoryException
      */
-    protected Query getQuery(@Nonnull QueryManager qm,
+    protected Query getQuery(@NotNull QueryManager qm,
         ExecutionContext context) throws RepositoryException {
         List<String> relationships = (List<String>) context.getMap().get(RELATIONSHIPS);
         // /jcr:root//element(*, ActivityType)[((id = 1234 or id = '1354'))] order by jcr:created

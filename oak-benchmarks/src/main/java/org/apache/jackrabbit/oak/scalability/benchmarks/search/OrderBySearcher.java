@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
 import java.util.Calendar;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -29,13 +28,14 @@ import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Searches on path and orders the results by 2 properties
  */
 public class OrderBySearcher extends PaginationEnabledSearcher {
     @SuppressWarnings("deprecation") @Override
-    protected Query getQuery(@Nonnull QueryManager qm, ExecutionContext context)
+    protected Query getQuery(@NotNull QueryManager qm, ExecutionContext context)
         throws RepositoryException {
         // /jcr:root/LongevitySearchAssets/12345//element(*, ParentType) order by @viewed
         // descending, @added descending
