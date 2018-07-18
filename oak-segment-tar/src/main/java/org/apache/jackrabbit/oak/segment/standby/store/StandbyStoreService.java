@@ -17,15 +17,25 @@
 
 package org.apache.jackrabbit.oak.segment.standby.store;
 
-import static org.osgi.service.component.annotations.ReferencePolicy.STATIC;
-import static org.osgi.service.component.annotations.ReferencePolicyOption.GREEDY;
+import static java.lang.String.valueOf;
+import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
+import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
+import java.io.Closeable;
 import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.io.Closer;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -33,99 +43,71 @@ import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
-import org.osgi.service.metatype.annotations.Designate;
-import org.osgi.service.metatype.annotations.ObjectClassDefinition;
-import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
-@Designate(ocd = StandbyStoreService.Configuration.class)
+@Property(name = "org.apache.sling.installer.configuration.persist", label = "Persist configuration", description = "Must be always disabled to avoid storing the configuration in the repository", boolValue = false)
+@Component(metatype = true, policy = ConfigurationPolicy.REQUIRE)
 public class StandbyStoreService {
 
-    private static final Logger log = LoggerFactory.getLogger(StandbyStoreService.class);
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize", 1024 * 1024);
+    private static final String MODE_PRIMARY = "primary";
 
-    @ObjectClassDefinition(
-        name = "Apache Jackrabbit Oak Segment Tar Cold Standby Service",
-        description = "Provides continuous backups of repositories based on Segment Tar"
-    )
-    @interface Configuration {
+    private static final String MODE_STANDBY = "standby";
 
-        @AttributeDefinition(
-            name = "Persist configuration",
-            description = "Must be always disabled to avoid storing the configuration in the repository"
-        )
-        boolean org_apache_sling_installer_configuration_persist() default false;
+    public static final String MODE_DEFAULT = MODE_PRIMARY;
 
-        @AttributeDefinition(
-            name = "Mode",
-            description = "TarMK Cold Standby mode (primary or standby)",
-            options = {
-                @Option(label = "primary", value = "primary"),
-                @Option(label = "standby", value = "standby")}
-        )
-        String mode() default "primary";
+    @Property(options = {
+            @PropertyOption(name = MODE_PRIMARY, value = MODE_PRIMARY),
+            @PropertyOption(name = MODE_STANDBY, value = MODE_STANDBY)},
+            value = MODE_DEFAULT)
+    public static final String MODE = "mode";
 
-        @AttributeDefinition(
-            name = "Port",
-            description = "TCP/IP port to use"
-        )
-        int port() default 8023;
+    public static final int PORT_DEFAULT = 8023;
 
-        @AttributeDefinition(
-            name = "Primary Host",
-            description = "Primary host (standby mode only)"
-        )
-        String primary_host() default "127.0.0.1";
+    @Property(intValue = PORT_DEFAULT)
+    public static final String PORT = "port";
 
-        @AttributeDefinition(
-            name = "Sync interval (seconds)",
-            description = "Sync interval in seconds (standby mode only)"
-        )
-        int interval() default 5;
+    public static final String PRIMARY_HOST_DEFAULT = "127.0.0.1";
 
-        @AttributeDefinition(
-            name = "Allowed IP-Ranges",
-            description = "Accept incoming requests for these host names and IP-ranges only (primary mode only)",
-            cardinality = Integer.MAX_VALUE
-        )
-        String[] primary_allowed$_$client$_$ip$_$ranges() default {};
+    @Property(value = PRIMARY_HOST_DEFAULT)
+    public static final String PRIMARY_HOST = "primary.host";
 
-        @AttributeDefinition(
-            name = "Secure",
-            description = "Use secure connections"
-        )
-        boolean secure() default false;
+    public static final int INTERVAL_DEFAULT = 5;
 
-        @AttributeDefinition(
-            name = "Standby Read Timeout",
-            description = "Timeout for requests issued from the standby instance in milliseconds"
-        )
-        int standby_readtimeout() default 60000;
+    @Property(intValue = INTERVAL_DEFAULT)
+    public static final String INTERVAL = "interval";
 
-        @AttributeDefinition(
-            name = "Standby Automatic Cleanup",
-            description = "Call the cleanup method when the root segment Garbage Collector (GC) generation number increases"
-        )
-        boolean standby_autoclean() default true;
+    public static final String[] ALLOWED_CLIENT_IP_RANGES_DEFAULT = new String[] {};
 
-    }
+    @Property(cardinality = Integer.MAX_VALUE)
+    public static final String ALLOWED_CLIENT_IP_RANGES = "primary.allowed-client-ip-ranges";
+
+    public static final boolean SECURE_DEFAULT = false;
+
+    @Property(boolValue = SECURE_DEFAULT)
+    public static final String SECURE = "secure";
+    
+    public static final int READ_TIMEOUT_DEFAULT = 60000;
+
+    @Property(intValue = READ_TIMEOUT_DEFAULT)
+    public static final String READ_TIMEOUT = "standby.readtimeout";
+
+    public static final boolean AUTO_CLEAN_DEFAULT = true;
+
+    @Property(boolValue = AUTO_CLEAN_DEFAULT)
+    public static final String AUTO_CLEAN = "standby.autoclean";
 
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
+    
+    private static final int BLOB_CHUNK_SIZE = Integer.getInteger("oak.standby.blob.chunkSize", 1024 * 1024);
 
     private final Closer closer = Closer.create();
 
     @Activate
-    private void activate(ComponentContext context, Configuration config) {
+    private void activate(ComponentContext context) {
         SegmentStore segmentStore = storeProvider.getSegmentStore();
 
         if (!(segmentStore instanceof FileStore)) {
@@ -134,15 +116,15 @@ public class StandbyStoreService {
 
         FileStore fileStore = (FileStore) segmentStore;
 
-        String mode = config.mode();
+        String mode = valueOf(context.getProperties().get(MODE));
 
-        if (mode.equals("primary")) {
-            bootstrapMaster(config, fileStore);
+        if (MODE_PRIMARY.equals(mode)) {
+            bootstrapMaster(context, fileStore);
             return;
         }
 
-        if (mode.equals("standby")) {
-            bootstrapSlave(context, config, fileStore);
+        if (MODE_STANDBY.equals(mode)) {
+            bootstrapSlave(context, fileStore);
             return;
         }
 
@@ -154,10 +136,11 @@ public class StandbyStoreService {
         closer.close();
     }
 
-    private void bootstrapMaster(Configuration config, FileStore fileStore) {
-        int port = config.port();
-        String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
-        boolean secure = config.secure();
+    private void bootstrapMaster(ComponentContext context, FileStore fileStore) {
+        Dictionary<?, ?> props = context.getProperties();
+        int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
+        String[] ranges = PropertiesUtil.toStringArray(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
+        boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
 
         StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, BLOB_CHUNK_SIZE, ranges, secure);
         closer.register(standbyServerSync);
@@ -166,13 +149,14 @@ public class StandbyStoreService {
         log.info("Started primary on port {} with allowed IP ranges {}", port, ranges);
     }
 
-    private void bootstrapSlave(ComponentContext context, Configuration config, FileStore fileStore) {
-        int port = config.port();
-        long interval = config.interval();
-        String host = config.primary_host();
-        boolean secure = config.secure();
-        int readTimeout = config.standby_readtimeout();
-        boolean clean = config.standby_autoclean();
+    private void bootstrapSlave(ComponentContext context, FileStore fileStore) {
+        Dictionary<?, ?> props = context.getProperties();
+        int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
+        long interval = PropertiesUtil.toInteger(props.get(INTERVAL), INTERVAL_DEFAULT);
+        String host = PropertiesUtil.toString(props.get(PRIMARY_HOST), PRIMARY_HOST_DEFAULT);
+        boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
+        int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
+        boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
         StandbyClientSync standbyClientSync = new StandbyClientSync(host, port, fileStore, secure, readTimeout, clean, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         closer.register(standbyClientSync);
@@ -181,9 +165,20 @@ public class StandbyStoreService {
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
         ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class.getName(), standbyClientSync, dictionary);
-        closer.register(registration::unregister);
+        closer.register(asCloseable(registration));
 
         log.info("Started standby on port {} with {}s sync frequency", port, interval);
+    }
+
+    private static Closeable asCloseable(final ServiceRegistration r) {
+        return new Closeable() {
+
+            @Override
+            public void close() {
+                r.unregister();
+            }
+
+        };
     }
 
 }

@@ -18,14 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
-import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
-import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
-
 import java.io.File;
 import java.util.Map;
 
@@ -38,11 +30,20 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceRegistration;
+
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
+import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
+import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests the registration of the {@link ConsolidatedDataStoreCacheStatsMBean}.

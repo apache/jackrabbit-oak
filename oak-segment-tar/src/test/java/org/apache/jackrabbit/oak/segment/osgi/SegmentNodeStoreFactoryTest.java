@@ -52,32 +52,36 @@ public class SegmentNodeStoreFactoryTest {
             .withStaticPolicy()
             .withGreedyPolicyOption()
             .withTarget("(&(!(split.blobstore=old))(!(split.blobstore=new)))")
-            .withField("blobStore")
+            .withBind("bindBlobStore")
+            .withUnbind("unbindBlobStore")
             .check());
         assertTrue(cd.hasReference("segmentStore")
             .withInterface("org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence")
             .withOptionalUnaryCardinality()
             .withStaticPolicy()
             .withGreedyPolicyOption()
-            .withField("segmentStore")
+            .withBind("bindSegmentStore")
+            .withUnbind("unbindSegmentStore")
             .check());
         assertTrue(cd.hasReference("statisticsProvider")
             .withInterface("org.apache.jackrabbit.oak.stats.StatisticsProvider")
             .withMandatoryUnaryCardinality()
             .withStaticPolicy()
-            .withField("statisticsProvider")
+            .withBind("bindStatisticsProvider")
+            .withUnbind("unbindStatisticsProvider")
             .check());
     }
 
     @Test
     public void testMetatypeInformation() throws Exception {
-        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory$Configuration.xml"));
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory.xml"));
         assertTrue(mi.hasDesignate()
+            .withPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
             .withFactoryPid("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
-            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory$Configuration")
+            .withReference("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory")
             .check());
 
-        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory$Configuration");
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory");
         assertTrue(ocd.hasAttributeDefinition("role")
             .withStringType()
             .check());

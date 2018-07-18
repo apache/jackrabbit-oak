@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.segment.osgi;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.segment.osgi.MetatypeInformation.ObjectClassDefinition;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class StandbyStoreServiceTest {
@@ -53,6 +52,8 @@ public class StandbyStoreServiceTest {
             .withIntegerType()
             .withValue("5")
             .check());
+        assertTrue(cd.hasProperty("primary.allowed-client-ip-ranges")
+            .check());
         assertTrue(cd.hasProperty("secure")
             .withBooleanType()
             .withValue("false")
@@ -70,19 +71,20 @@ public class StandbyStoreServiceTest {
             .withMandatoryUnaryCardinality()
             .withStaticPolicy()
             .withGreedyPolicyOption()
-            .withField("storeProvider")
+            .withBind("bindStoreProvider")
+            .withUnbind("unbindStoreProvider")
             .check());
     }
 
     @Test
     public void testMetatypeInformation() throws Exception {
-        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService$Configuration.xml"));
+        MetatypeInformation mi = MetatypeInformation.open(getClass().getResourceAsStream("/OSGI-INF/metatype/org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService.xml"));
         assertTrue(mi.hasDesignate()
             .withPid("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService")
-            .withReference("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService$Configuration")
+            .withReference("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService")
             .check());
 
-        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService$Configuration");
+        ObjectClassDefinition ocd = mi.getObjectClassDefinition("org.apache.jackrabbit.oak.segment.standby.store.StandbyStoreService");
         assertTrue(ocd.hasAttributeDefinition("org.apache.sling.installer.configuration.persist")
             .withBooleanType()
             .withDefaultValue("false")
@@ -104,6 +106,10 @@ public class StandbyStoreServiceTest {
             .withIntegerType()
             .withDefaultValue("5")
             .check());
+        assertTrue(ocd.hasAttributeDefinition("primary.allowed-client-ip-ranges")
+            .withStringType()
+            .withCardinality("2147483647")
+            .check());
         assertTrue(ocd.hasAttributeDefinition("secure")
             .withBooleanType()
             .withDefaultValue("false")
@@ -115,10 +121,6 @@ public class StandbyStoreServiceTest {
         assertTrue(ocd.hasAttributeDefinition("standby.autoclean")
             .withBooleanType()
             .withDefaultValue("true")
-            .check());
-        assertTrue(ocd.hasAttributeDefinition("primary.allowed-client-ip-ranges")
-            .withStringType()
-            .withCardinality("2147483647")
             .check());
     }
 

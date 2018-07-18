@@ -19,44 +19,45 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyUnbounded;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreMonitorService.Configuration;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
-import org.osgi.service.metatype.annotations.Designate;
-import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.component.ComponentContext;
 
 /**
  * An OSGi wrapper for segment node store monitoring configurations.
  */
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
-@Designate(ocd = Configuration.class)
+@Component(policy = ConfigurationPolicy.REQUIRE,
+        metatype = true,
+        label = "Oak Segment Tar Monitoring service",
+        description = "This service is responsible for different configurations related to " + 
+                "Oak Segment Tar read/write monitoring."
+)
 public class SegmentNodeStoreMonitorService {
-
-    @ObjectClassDefinition(
-        name = "Oak Segment Tar Monitoring service",
-        description = "This service is responsible for different configurations related to " +
-            "Oak Segment Tar read/write monitoring."
-    )
-    @interface Configuration {
-
-        @AttributeDefinition(
-            name = "Writer groups",
+    
+    @Property(label = "Writer groups",
+            unbounded = PropertyUnbounded.ARRAY,
             description = "Writer groups for which commits are tracked individually"
-        )
-        String[] commitsTrackerWriterGroups() default {};
-
-    }
+    )
+    private static final String COMMITS_TRACKER_WRITER_GROUPS = "commitsTrackerWriterGroups";
 
     @Reference
     private SegmentNodeStoreStatsMBean snsStatsMBean;
-
+    
     @Activate
-    public void activate(Configuration config) {
-        snsStatsMBean.setWriterGroupsForLastMinuteCounts(PropertiesUtil.toStringArray(config.commitsTrackerWriterGroups(), null));
+    public void activate(ComponentContext context, Map<String, ?> config) throws IOException {
+        augmentSegmentNodeStoreStatsMBean(config);
     }
 
+    private void augmentSegmentNodeStoreStatsMBean(Map<String, ?> config) {
+        snsStatsMBean.setWriterGroupsForLastMinuteCounts(
+                PropertiesUtil.toStringArray(config.get(COMMITS_TRACKER_WRITER_GROUPS), null));
+    }
 }
