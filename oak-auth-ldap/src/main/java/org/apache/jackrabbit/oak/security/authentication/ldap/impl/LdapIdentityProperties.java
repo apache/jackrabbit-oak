@@ -20,8 +20,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code LdapIdentityProperties} implements a case insensitive hash map that preserves the case of the keys but
@@ -88,7 +87,7 @@ public class LdapIdentityProperties extends HashMap<String, Object> {
         keyMapping.clear();
     }
 
-    @CheckForNull
+    @Nullable
     private String convert(@Nullable Object obj) {
         if (obj == null) {
             return null;
