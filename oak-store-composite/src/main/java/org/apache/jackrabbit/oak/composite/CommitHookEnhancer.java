@@ -21,11 +21,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.Optional;
-
 import static com.google.common.collect.Maps.newHashMap;
 
 class CommitHookEnhancer implements CommitHook {
@@ -44,7 +43,7 @@ class CommitHookEnhancer implements CommitHook {
         this.hook = hook;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
         Map<MountedNodeStore, NodeState> beforeStates = newHashMap();
