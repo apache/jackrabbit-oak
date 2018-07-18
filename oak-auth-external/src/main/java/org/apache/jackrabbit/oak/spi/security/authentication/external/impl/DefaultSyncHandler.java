@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Iterator;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +89,7 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return config.getName();
@@ -98,10 +98,10 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
-    public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager,
-                                     @Nonnull ValueFactory valueFactory) throws SyncException {
+    public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager,
+                                     @NotNull ValueFactory valueFactory) throws SyncException {
         if (config.user().getDynamicMembership()) {
             return new DynamicSyncContext(config, idp, userManager, valueFactory);
         } else {
@@ -113,7 +113,7 @@ public class DefaultSyncHandler implements SyncHandler {
      * {@inheritDoc}
      */
     @Override
-    public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id)
+    public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id)
             throws RepositoryException {
         return DefaultSyncContext.createSyncedIdentity(userManager.getAuthorizable(id));
     }
@@ -122,7 +122,7 @@ public class DefaultSyncHandler implements SyncHandler {
      * {@inheritDoc}
      */
     @Override
-    public boolean requiresSync(@Nonnull SyncedIdentity identity) {
+    public boolean requiresSync(@NotNull SyncedIdentity identity) {
         if (identity.getExternalIdRef() == null || identity.lastSynced() < 0) {
             return true;
         }
@@ -136,9 +136,9 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
-    public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
+    public Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException {
         final Iterator<Authorizable> iter = userManager.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null);
         return new AbstractLazyIterator<SyncedIdentity>() {
 

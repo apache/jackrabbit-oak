@@ -17,8 +17,6 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandle
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
 
 /**
@@ -69,7 +68,7 @@ public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> impleme
     }
 
     @Override
-    public SyncHandler getSyncHandler(@Nonnull String name) {
+    public SyncHandler getSyncHandler(@NotNull String name) {
         for (SyncHandler handler: getServices()) {
             if (name.equals(handler.getName())) {
                 return handler;

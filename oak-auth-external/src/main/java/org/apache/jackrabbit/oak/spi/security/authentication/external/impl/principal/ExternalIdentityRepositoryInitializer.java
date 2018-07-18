@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
 
@@ -48,7 +47,7 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
     }
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
 
         // create index definition for "rep:externalId" and
         // "rep:externalPrincipalNames"

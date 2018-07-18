@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code ExternalIdentity} defines an identity provided by an external system.
@@ -30,7 +30,7 @@ public interface ExternalIdentity {
      * Returns the id of this identity as used in the external system.
      * @return the external id.
      */
-    @Nonnull
+    @NotNull
     ExternalIdentityRef getExternalId();
 
     /**
@@ -39,7 +39,7 @@ public interface ExternalIdentity {
      *
      * @return the internal id.
      */
-    @Nonnull
+    @NotNull
     String getId();
 
     /**
@@ -47,7 +47,7 @@ public interface ExternalIdentity {
      * {@link org.apache.jackrabbit.api.security.user.Authorizable#getPrincipal()}.{@link java.security.Principal#getName()}
      * @return the principal name
      */
-    @Nonnull
+    @NotNull
     String getPrincipalName();
 
     /**
@@ -57,7 +57,7 @@ public interface ExternalIdentity {
      *
      * @return the intermediate path or {@code null} or empty.
      */
-    @CheckForNull
+    @Nullable
     String getIntermediatePath();
 
     /**
@@ -65,14 +65,14 @@ public interface ExternalIdentity {
      * @return the declared groups
      * @throws ExternalIdentityException if an error occurs
      */
-    @Nonnull
+    @NotNull
     Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException;
 
     /**
      * Returns a map of properties of this external identity.
      * @return the properties
      */
-    @Nonnull
+    @NotNull
     Map<String, ?> getProperties();
 
 }

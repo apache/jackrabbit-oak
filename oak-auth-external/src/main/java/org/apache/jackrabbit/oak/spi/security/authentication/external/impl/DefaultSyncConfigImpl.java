@@ -20,12 +20,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code DefaultSyncConfig} defines how users and groups from an external source are synced into the repository using
@@ -306,9 +305,9 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
         return cfg;
     }
 
-    private static long getMilliSeconds(@Nonnull ConfigurationParameters params, @Nonnull String paramName,
-                                        @Nonnull String defaultParamValue,
-                                        @Nonnull ConfigurationParameters.Milliseconds defaultMillis) {
+    private static long getMilliSeconds(@NotNull ConfigurationParameters params, @NotNull String paramName,
+                                        @NotNull String defaultParamValue,
+                                        @NotNull ConfigurationParameters.Milliseconds defaultMillis) {
         return ConfigurationParameters.Milliseconds.of(params.getConfigValue(paramName, defaultParamValue), defaultMillis).value;
     }
 
@@ -317,7 +316,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @param patterns the patterns
      * @return the mapping map
      */
-    private static Map<String, String> createMapping(@Nonnull String[] patterns) {
+    private static Map<String, String> createMapping(@NotNull String[] patterns) {
         Map<String, String> mapping = new HashMap<String, String>();
         for (String pattern: patterns) {
             int idx = pattern.indexOf('=');

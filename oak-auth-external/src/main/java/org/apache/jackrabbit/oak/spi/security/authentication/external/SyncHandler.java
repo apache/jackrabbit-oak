@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Iterator;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * SyncHandler is used to sync users and groups from an {@link ExternalIdentityProvider}.
@@ -42,7 +42,7 @@ public interface SyncHandler {
      * Returns the name of this sync handler.
      * @return sync handler name
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -54,10 +54,10 @@ public interface SyncHandler {
      * @return the sync context
      * @throws SyncException if an error occurs
      */
-    @Nonnull
-    SyncContext createContext(@Nonnull ExternalIdentityProvider idp,
-                              @Nonnull UserManager userManager,
-                              @Nonnull ValueFactory valueFactory) throws SyncException;
+    @NotNull
+    SyncContext createContext(@NotNull ExternalIdentityProvider idp,
+                              @NotNull UserManager userManager,
+                              @NotNull ValueFactory valueFactory) throws SyncException;
 
     /**
      * Tries to find the identity with the given authorizable id or name.
@@ -66,15 +66,15 @@ public interface SyncHandler {
      * @return a synced identity object or {@code null}
      * @throws RepositoryException if an error occurs
      */
-    @CheckForNull
-    SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException;
+    @Nullable
+    SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException;
 
     /**
      * Checks if the identity requires sync based on the configuration, type and last sync time.
      * @param identity the identity to check
      * @return {@code true} if the identity requires synchronization.
      */
-    boolean requiresSync(@Nonnull SyncedIdentity identity);
+    boolean requiresSync(@NotNull SyncedIdentity identity);
 
     /**
      * Lists all externally synced identities.
@@ -82,7 +82,7 @@ public interface SyncHandler {
      * @return an iterator over all authorizable that are externally synced.
      * @throws RepositoryException if an error occurs
      */
-    @Nonnull
-    Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException;
+    @NotNull
+    Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException;
 
 }
