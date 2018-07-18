@@ -26,9 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
@@ -52,6 +49,8 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.util.BytesRef;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,18 +73,18 @@ public class LuceneDocumentMaker {
     private final IndexAugmentorFactory augmentorFactory;
     private final String path;
 
-    public LuceneDocumentMaker(@Nonnull IndexDefinition definition,
-                               @Nonnull IndexingRule indexingRule,
-                               @Nonnull String path) {
+    public LuceneDocumentMaker(@NotNull IndexDefinition definition,
+                               @NotNull IndexingRule indexingRule,
+                               @NotNull String path) {
         this(null, null, null, definition, indexingRule, path);
     }
 
     public LuceneDocumentMaker(@Nullable BinaryTextExtractor textExtractor,
                                @Nullable FacetsConfigProvider facetsConfigProvider,
                                @Nullable IndexAugmentorFactory augmentorFactory,
-                               @Nonnull  IndexDefinition definition,
-                               @Nonnull IndexingRule indexingRule,
-                               @Nonnull String path) {
+                               @NotNull  IndexDefinition definition,
+                               @NotNull IndexingRule indexingRule,
+                               @NotNull String path) {
         this.textExtractor = textExtractor;
         this.facetsConfigProvider = facetsConfigProvider;
         this.definition = checkNotNull(definition);
@@ -94,12 +93,12 @@ public class LuceneDocumentMaker {
         this.path = checkNotNull(path);
     }
 
-    @CheckForNull
+    @Nullable
     public Document makeDocument(NodeState state) throws IOException {
         return makeDocument(state, false, Collections.<PropertyState>emptyList());
     }
 
-    @CheckForNull
+    @Nullable
     public Document makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
 

@@ -29,9 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
@@ -74,6 +71,8 @@ import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -435,12 +434,12 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return blobSize;
     }
 
-    @CheckForNull
+    @Nullable
     public Codec getCodec() {
         return codec;
     }
 
-    @Nonnull
+    @NotNull
     public MergePolicy getMergePolicy() {
         // MP is not cached to avoid complaining about multiple IWs with multiplexing writers
         return createMergePolicy();
@@ -549,7 +548,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return queryPaths;
     }
 
-    @CheckForNull
+    @Nullable
     public String getUniqueId() {
         return uid;
     }
@@ -665,7 +664,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~---------------------------------------------------< Aggregates >
 
-    @CheckForNull
+    @Nullable
     public Aggregate getAggregate(String nodeType){
         Aggregate agg = aggregates.get(nodeType);
         return agg != null ? agg : null;
@@ -710,7 +709,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return definedRules;
     }
 
-    @CheckForNull
+    @Nullable
     public IndexingRule getApplicableIndexingRule(String primaryNodeType) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
@@ -740,7 +739,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * @param state a node state.
      * @return the indexing rule or <code>null</code> if none applies.
      */
-    @CheckForNull
+    @Nullable
     public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
@@ -1114,7 +1113,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
          *         indexing rule does not contain a configuration for the given
          *         property.
          */
-        @CheckForNull
+        @Nullable
         public PropertyDefinition getConfig(String propertyName) {
             PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
             if (config != null) {
@@ -1674,7 +1673,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                 return TreeUtil.getTree(root,NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return NamePathMapper.DEFAULT;
@@ -1826,7 +1825,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
     }
 
-    @CheckForNull
+    @Nullable
     private static String determineUniqueId(NodeState defn) {
         return defn.getChildNode(STATUS_NODE).getString(PROP_UID);
     }

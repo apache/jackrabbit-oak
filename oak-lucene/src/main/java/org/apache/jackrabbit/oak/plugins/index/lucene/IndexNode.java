@@ -22,13 +22,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 
 public interface IndexNode {
 
@@ -42,17 +41,17 @@ public interface IndexNode {
 
     List<LuceneIndexReader> getPrimaryReaders();
 
-    @CheckForNull
+    @Nullable
     Directory getSuggestDirectory();
 
     List<LuceneIndexReader> getNRTReaders();
 
-    @CheckForNull
+    @Nullable
     AnalyzingInfixSuggester getLookup();
 
     int getIndexNodeId();
 
-    @CheckForNull
+    @Nullable
     LuceneIndexWriter getLocalWriter() throws IOException;
 
     void refreshReadersOnWriteIfRequired();
