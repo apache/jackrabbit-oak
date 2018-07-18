@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,6 +27,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An {@link OakSolrConfiguration} specified via a given {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
@@ -64,13 +63,13 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getPathField() {
         return getStringValueFor(Properties.PATH_FIELD, OakSolrConfigurationDefaults.PATH_FIELD_NAME);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
         String fieldName = null;
@@ -121,7 +120,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()).toUpperCase());
@@ -147,7 +146,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return getBooleanValueFor(Properties.PATH_RESTRICTIONS, OakSolrConfigurationDefaults.PATH_RESTRICTIONS);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<String> getIgnoredProperties() {
         Collection<String> ignoredProperties;
@@ -163,7 +162,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return ignoredProperties;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<String> getUsedProperties() {
         Collection<String> usedProperties;
@@ -184,13 +183,13 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return getBooleanValueFor(Properties.COLLAPSE_JCR_CONTENT_NODES, OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getCollapsedPathField() {
         return getStringValueFor(Properties.COLLAPSED_PATH_FIELD, OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getPathDepthField() {
         return getStringValueFor(Properties.DEPTH_FIELD, OakSolrConfigurationDefaults.PATH_DEPTH_FIELD);
