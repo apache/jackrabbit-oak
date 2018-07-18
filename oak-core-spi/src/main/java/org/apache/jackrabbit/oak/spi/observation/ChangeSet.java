@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.spi.observation;
 
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -30,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A ChangeSet is a collection of items that have been changed as part of a
@@ -105,22 +104,22 @@ public final class ChangeSet {
         return hitsMaxPathDepth;
     }
 
-    @CheckForNull
+    @Nullable
     public Set<String> getParentPaths() {
         return parentPaths;
     }
 
-    @CheckForNull
+    @Nullable
     public Set<String> getParentNodeNames() {
         return parentNodeNames;
     }
 
-    @CheckForNull
+    @Nullable
     public Set<String> getParentNodeTypes() {
         return parentNodeTypes;
     }
 
-    @CheckForNull
+    @Nullable
     public Set<String> getPropertyNames() {
         return propertyNames;
     }
@@ -129,7 +128,7 @@ public final class ChangeSet {
         return maxPathDepth;
     }
 
-    @CheckForNull
+    @Nullable
     public Set<String> getAllNodeTypes() {
         return allNodeTypes;
     }

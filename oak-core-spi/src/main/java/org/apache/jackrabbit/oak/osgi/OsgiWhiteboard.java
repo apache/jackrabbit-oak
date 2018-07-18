@@ -34,12 +34,11 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
@@ -59,7 +58,7 @@ public class OsgiWhiteboard implements Whiteboard {
 
     private final BundleContext context;
 
-    public OsgiWhiteboard(@Nonnull BundleContext context) {
+    public OsgiWhiteboard(@NotNull BundleContext context) {
         this.context = checkNotNull(context);
     }
 

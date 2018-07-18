@@ -25,12 +25,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.Descriptors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the {@link Descriptors} interface. Supports overlying of given default descriptors.
@@ -62,7 +61,7 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      * Note: If this descriptors are based on default descriptors, the returns string array is a merge of this and the
      * base's keys.
      */
-    @Nonnull
+    @NotNull
     @Override
     public String[] getKeys() {
         Set<String> keys = new HashSet<String>(descriptors.keySet());
@@ -78,7 +77,7 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      * Note: If the descriptor with {@code key} does not exist in this set, the call is delegated to the base descriptors.
      */
     @Override
-    public boolean isStandardDescriptor(@Nonnull String key) {
+    public boolean isStandardDescriptor(@NotNull String key) {
         return descriptors.containsKey(key) && descriptors.get(key).standard
                 || base != null && base.isStandardDescriptor(key);
     }
@@ -89,7 +88,7 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      * Note: If the descriptor with {@code key} does not exist in this set, the call is delegated to the base descriptors.
      */
     @Override
-    public boolean isSingleValueDescriptor(@Nonnull String key) {
+    public boolean isSingleValueDescriptor(@NotNull String key) {
         return descriptors.containsKey(key) && descriptors.get(key).singleValued
                 || base != null && base.isSingleValueDescriptor(key);
     }
@@ -99,9 +98,9 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      *
      * Note: If the descriptor with {@code key} does not exist in this set, the call is delegated to the base descriptors.
      */
-    @CheckForNull
+    @Nullable
     @Override
-    public Value getValue(@Nonnull String key) {
+    public Value getValue(@NotNull String key) {
         Descriptor d = descriptors.get(key);
         if (d == null) {
             return base == null ? null : base.getValue(key);
@@ -114,9 +113,9 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      *
      * Note: If the descriptor with {@code key} does not exist in this set, the call is delegated to the base descriptors.
      */
-    @CheckForNull
+    @Nullable
     @Override
-    public Value[] getValues(@Nonnull String key) {
+    public Value[] getValues(@NotNull String key) {
         Descriptor d = descriptors.get(key);
         if (d == null) {
             return base == null ? null : base.getValues(key);
@@ -133,7 +132,7 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      * @param standard flag indicating if this is a standard descriptor. see {@link Descriptors#isStandardDescriptor(String)}
      * @return {@code this} suitable for chaining.
      */
-    public GenericDescriptors put(@Nonnull String name, @Nonnull Value[] values, boolean singleValued, boolean standard) {
+    public GenericDescriptors put(@NotNull String name, @NotNull Value[] values, boolean singleValued, boolean standard) {
         descriptors.put(name, new Descriptor(name, values, singleValued, standard));
         return this;
     }
@@ -147,7 +146,7 @@ public class GenericDescriptors implements org.apache.jackrabbit.oak.api.Descrip
      * @param standard flag indicating if this is a standard descriptor. see {@link Descriptors#isStandardDescriptor(String)}
      * @return {@code this} suitable for chaining.
      */
-    public GenericDescriptors put(@Nonnull String name, @Nonnull Value value, boolean singleValued, boolean standard) {
+    public GenericDescriptors put(@NotNull String name, @NotNull Value value, boolean singleValued, boolean standard) {
         descriptors.put(name, new Descriptor(name, new Value[]{value}, singleValued, standard));
         return this;
     }

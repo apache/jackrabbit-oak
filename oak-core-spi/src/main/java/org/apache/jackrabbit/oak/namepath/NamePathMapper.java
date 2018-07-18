@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.namepath;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -40,25 +40,25 @@ public interface NamePathMapper extends NameMapper, PathMapper {
     class Default implements NamePathMapper {
 
         @Override
-        public String getOakNameOrNull(@Nonnull String jcrName) {
+        public String getOakNameOrNull(@NotNull String jcrName) {
             return jcrName;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+        public String getOakName(@NotNull String jcrName) throws RepositoryException {
             return jcrName;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, String> getSessionLocalMappings() {
             return Collections.emptyMap();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public String getJcrName(@Nonnull String oakName) {
+        public String getJcrName(@NotNull String oakName) {
             return oakName;
         }
 
@@ -67,7 +67,7 @@ public interface NamePathMapper extends NameMapper, PathMapper {
             return jcrPath;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getJcrPath(String oakPath) {
             return oakPath;

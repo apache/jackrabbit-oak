@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import javax.annotation.Nonnull;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
@@ -28,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.NotNull;
 
 public class DefaultWhiteboard implements Whiteboard {
 
@@ -131,7 +131,7 @@ public class DefaultWhiteboard implements Whiteboard {
 
         private final Map<?, ?> properties;
 
-        private Service(@Nonnull Object service, Map<?, ?> properties) {
+        private Service(@NotNull Object service, Map<?, ?> properties) {
             checkNotNull(service);
             this.service = service;
             this.properties = properties;

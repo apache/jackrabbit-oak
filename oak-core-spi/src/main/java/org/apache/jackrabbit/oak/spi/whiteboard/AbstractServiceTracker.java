@@ -24,7 +24,7 @@ import static java.util.Collections.emptyList;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code AbstractServiceTracker} is a base class for composite components
@@ -61,7 +61,7 @@ public abstract class AbstractServiceTracker<T> {
      */
     private volatile Tracker<T> tracker = stopped;
 
-    protected AbstractServiceTracker(@Nonnull Class<T> type) {
+    protected AbstractServiceTracker(@NotNull Class<T> type) {
         this.type = checkNotNull(type);
     }
 

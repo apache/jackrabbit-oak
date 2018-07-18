@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.spi.mount;
 
 import java.util.Collection;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -41,7 +40,7 @@ public interface MountInfoProvider {
      * @return mountInfo for the given path. If no explicit mount configured then
      * default mount would be returned
      */
-    @Nonnull
+    @NotNull
     Mount getMountByPath(String path);
 
     /**
@@ -49,7 +48,7 @@ public interface MountInfoProvider {
      * 
      * @return a collection of mounts, possibly empty
      */
-    @Nonnull
+    @NotNull
     Collection<Mount> getNonDefaultMounts();
 
     /**
@@ -59,7 +58,7 @@ public interface MountInfoProvider {
      * @return mount instance for given mount name. If no mount exists for given name
      * <tt>null</tt> would be returned
      */
-    @CheckForNull
+    @Nullable
     Mount getMountByName(String name);
 
     /**
@@ -77,7 +76,7 @@ public interface MountInfoProvider {
      * 
      * @see Mount#isUnder(String)
      */
-    @Nonnull
+    @NotNull
     Collection<Mount> getMountsPlacedUnder(String path);
 
     /**
@@ -88,7 +87,7 @@ public interface MountInfoProvider {
      * 
      * @see Mount#isDirectlyUnder(String)
      */
-    @Nonnull
+    @NotNull
     Collection<Mount> getMountsPlacedDirectlyUnder(String path);
 
     /**
@@ -96,6 +95,6 @@ public interface MountInfoProvider {
      * 
      * @return the default mount
      */
-    @Nonnull
+    @NotNull
     Mount getDefaultMount();
 }
