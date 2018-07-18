@@ -24,8 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class IOTraceMonitorTest {
@@ -62,12 +61,12 @@ public class IOTraceMonitorTest {
         private boolean flushed;
 
         @Override
-        public void writeHeader(@Nonnull String header) {
+        public void writeHeader(@NotNull String header) {
             this.header = header;
         }
 
         @Override
-        public void writeEntry(@Nonnull String entry) {
+        public void writeEntry(@NotNull String entry) {
             this.entry = entry;
         }
 

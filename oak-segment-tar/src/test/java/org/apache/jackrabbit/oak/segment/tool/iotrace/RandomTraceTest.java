@@ -27,17 +27,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class RandomTraceTest {
 
-    @Nonnull
-    private static NodeState createTree(@Nonnull List<String> paths) {
+    @NotNull
+    private static NodeState createTree(@NotNull List<String> paths) {
         NodeBuilder root = EMPTY_NODE.builder();
         for (String path : paths) {
             createNode(root, path);
@@ -45,7 +44,7 @@ public class RandomTraceTest {
         return root.getNodeState();
     }
 
-    private static void createNode(@Nonnull NodeBuilder root, @Nonnull String path) {
+    private static void createNode(@NotNull NodeBuilder root, @NotNull String path) {
         NodeBuilder child = root;
         for (String name : elements(path)) {
             child = child.child(name);

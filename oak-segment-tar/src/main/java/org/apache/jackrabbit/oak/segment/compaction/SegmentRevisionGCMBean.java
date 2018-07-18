@@ -22,13 +22,12 @@ package org.apache.jackrabbit.oak.segment.compaction;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,19 +37,19 @@ public class SegmentRevisionGCMBean
 
     private static final Logger log = LoggerFactory.getLogger(SegmentRevisionGCMBean.class);
 
-    @Nonnull
+    @NotNull
     private final FileStore fileStore;
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
 
-    @Nonnull
+    @NotNull
     private final FileStoreGCMonitor fileStoreGCMonitor;
 
     public SegmentRevisionGCMBean(
-            @Nonnull FileStore fileStore,
-            @Nonnull SegmentGCOptions gcOptions,
-            @Nonnull FileStoreGCMonitor fileStoreGCMonitor) {
+            @NotNull FileStore fileStore,
+            @NotNull SegmentGCOptions gcOptions,
+            @NotNull FileStoreGCMonitor fileStoreGCMonitor) {
         super(SegmentRevisionGC.class);
         this.fileStore = checkNotNull(fileStore);
         this.gcOptions = checkNotNull(gcOptions);
@@ -166,19 +165,19 @@ public class SegmentRevisionGCMBean
         return fileStoreGCMonitor.getLastReclaimedSize();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getLastError() {
         return fileStoreGCMonitor.getLastError();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public String getLastLogMessage() {
         return fileStoreGCMonitor.getLastLogMessage();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public String getStatus() {
         return fileStoreGCMonitor.getStatus();

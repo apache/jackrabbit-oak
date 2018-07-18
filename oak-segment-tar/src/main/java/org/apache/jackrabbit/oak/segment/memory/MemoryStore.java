@@ -25,9 +25,6 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -41,22 +38,24 @@ import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A store used for in-memory operations.
  */
 public class MemoryStore implements SegmentStore {
 
-    @Nonnull
+    @NotNull
     private final SegmentTracker tracker;
 
-    @Nonnull
+    @NotNull
     private final MemoryStoreRevisions revisions;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader segmentReader;
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter segmentWriter;
 
     private final ConcurrentMap<SegmentId, Segment> segments =
@@ -64,7 +63,7 @@ public class MemoryStore implements SegmentStore {
 
     public MemoryStore() throws IOException {
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @Nonnull
+            @Override @NotNull
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(MemoryStore.this, msb, lsb);
             }
@@ -76,22 +75,22 @@ public class MemoryStore implements SegmentStore {
         segmentWriter.flush();
     }
 
-    @Nonnull
+    @NotNull
     public SegmentWriter getWriter() {
         return segmentWriter;
     }
 
-    @Nonnull
+    @NotNull
     public SegmentReader getReader() {
         return segmentReader;
     }
 
-    @Nonnull
+    @NotNull
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
 
-    @Nonnull
+    @NotNull
     public Revisions getRevisions() {
         return revisions;
     }
@@ -101,7 +100,7 @@ public class MemoryStore implements SegmentStore {
         return id.sameStore(this) || segments.containsKey(id);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Segment readSegment(SegmentId id) {
         Segment segment = segments.get(id);
         if (segment != null) {
@@ -125,7 +124,7 @@ public class MemoryStore implements SegmentStore {
     /**
      * @return  {@code null}
      */
-    @CheckForNull
+    @Nullable
     public BlobStore getBlobStore() {
         return null;
     }

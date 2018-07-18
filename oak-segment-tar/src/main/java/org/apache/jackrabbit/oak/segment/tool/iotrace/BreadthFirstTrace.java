@@ -31,10 +31,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A breadth first traversal trace.
@@ -49,18 +48,18 @@ public class BreadthFirstTrace implements Trace {
      * The context specification of this trace.
      * @see IOTracer#newIOTracer(Function, Writer, String)
      */
-    @Nonnull
+    @NotNull
     public static final String CONTEXT_SPEC = "depth,count";
 
     private final int depth;
 
-    @Nonnull
+    @NotNull
     private final String path;
 
-    @Nonnull
+    @NotNull
     private final Consumer<List<String>> context;
 
-    @Nonnull
+    @NotNull
     private final AtomicInteger nodeCount = new AtomicInteger();
 
     /**
@@ -69,7 +68,7 @@ public class BreadthFirstTrace implements Trace {
      * @param path      path of the root node where to start traversing
      * @param context   consumer to pass the additional context to
      */
-    public BreadthFirstTrace(int depth, @Nonnull String path, @Nonnull Consumer<List<String>> context) {
+    public BreadthFirstTrace(int depth, @NotNull String path, @NotNull Consumer<List<String>> context) {
         checkArgument(depth >= 0);
 
         this.depth = depth;
@@ -78,13 +77,13 @@ public class BreadthFirstTrace implements Trace {
     }
 
     @Override
-    public void run(@Nonnull NodeState node) {
+    public void run(@NotNull NodeState node) {
         updateContext(context, 0, nodeCount.incrementAndGet());
         traverse(newLinkedList(singleton(getNode(node, path))), 0);
     }
 
-    @Nonnull
-    private static NodeState getNode(@Nonnull NodeState root, @Nonnull String path) {
+    @NotNull
+    private static NodeState getNode(@NotNull NodeState root, @NotNull String path) {
         NodeState node = root;
         for (String name : elements(path)) {
             node = node.getChildNode(name);
@@ -92,7 +91,7 @@ public class BreadthFirstTrace implements Trace {
         return node;
     }
 
-    private void traverse(@Nonnull Queue<NodeState> nodes, int depth) {
+    private void traverse(@NotNull Queue<NodeState> nodes, int depth) {
         if (!nodes.isEmpty()) {
             Queue<NodeState> children = newLinkedList();
             while (!nodes.isEmpty()) {
@@ -114,7 +113,7 @@ public class BreadthFirstTrace implements Trace {
         }
     }
 
-    private static void updateContext(@Nonnull Consumer<List<String>> context, int depth, int count) {
+    private static void updateContext(@NotNull Consumer<List<String>> context, int depth, int count) {
         context.accept(ImmutableList.of(valueOf(depth), valueOf(count)));
     }
 

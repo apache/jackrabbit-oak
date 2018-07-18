@@ -21,11 +21,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Converts nodes, properties, values, etc. to records and persists them.
@@ -41,8 +40,8 @@ public interface SegmentWriter {
      * @return the record id of the blob written
      * @throws IOException
      */
-    @Nonnull
-    RecordId writeBlob(@Nonnull Blob blob) throws IOException;
+    @NotNull
+    RecordId writeBlob(@NotNull Blob blob) throws IOException;
 
     /**
      * Writes a stream value record. The given stream is consumed <em>and
@@ -53,8 +52,8 @@ public interface SegmentWriter {
      * @throws IOException if the input stream could not be read or the output
      *                     could not be written
      */
-    @Nonnull
-    RecordId writeStream(@Nonnull InputStream stream) throws IOException;
+    @NotNull
+    RecordId writeStream(@NotNull InputStream stream) throws IOException;
 
     /**
      * Write a node state. If non null, the passed {@code stableId} will be assigned to
@@ -65,8 +64,8 @@ public interface SegmentWriter {
      * @return the record id of the segment node state written
      * @throws IOException
      */
-    @Nonnull
-    RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException;
+    @NotNull
+    RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException;
 
     /**
      * Write a node state.
@@ -75,8 +74,8 @@ public interface SegmentWriter {
      *
      * @see #writeNode(NodeState, ByteBuffer)
      */
-    @Nonnull
-    default RecordId writeNode(@Nonnull NodeState state) throws IOException {
+    @NotNull
+    default RecordId writeNode(@NotNull NodeState state) throws IOException {
         return writeNode(state, null);
     }
 

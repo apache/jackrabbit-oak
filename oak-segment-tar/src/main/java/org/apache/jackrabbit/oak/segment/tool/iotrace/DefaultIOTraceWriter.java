@@ -24,14 +24,14 @@ import java.io.BufferedWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link IOTraceWriter} implementation implements persistence
  * through a {@code Writer} instance.
  */
 public class DefaultIOTraceWriter implements IOTraceWriter {
-    @Nonnull
+    @NotNull
     private final PrintWriter out;
 
     /**
@@ -40,17 +40,17 @@ public class DefaultIOTraceWriter implements IOTraceWriter {
      * not needed anymore.
      * @param writer
      */
-    public DefaultIOTraceWriter(@Nonnull Writer writer) {
+    public DefaultIOTraceWriter(@NotNull Writer writer) {
         out = new PrintWriter(new BufferedWriter(checkNotNull(writer)));
     }
 
     @Override
-    public void writeHeader(@Nonnull String header) {
+    public void writeHeader(@NotNull String header) {
         out.println(header);
     }
 
     @Override
-    public void writeEntry(@Nonnull String entry) {
+    public void writeEntry(@NotNull String entry) {
         out.println(entry);
     }
 

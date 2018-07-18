@@ -25,9 +25,8 @@ import static java.util.Collections.emptySet;
 import java.io.File;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link IOMonitor} instance delegates all calls to all
@@ -40,7 +39,7 @@ public class CompositeIOMonitor implements IOMonitor {
      * Create a new {@code CompositeIOMonitor} instance delegating the passed {@code ioMonitors}
      * @param ioMonitors  {@link IOMonitor} instances to delegate to
      */
-    public CompositeIOMonitor(@Nonnull Iterable<? extends IOMonitor> ioMonitors) {
+    public CompositeIOMonitor(@NotNull Iterable<? extends IOMonitor> ioMonitors) {
         this.ioMonitors = newConcurrentHashSet(checkNotNull(ioMonitors));
     }
 
@@ -59,8 +58,8 @@ public class CompositeIOMonitor implements IOMonitor {
      * @param ioMonitor  {@code IOMonitor} to delegate to
      * @return  a {@code Registration} for {@code ioMonitor}.
      */
-    @Nonnull
-    public Registration registerIOMonitor(@Nonnull IOMonitor ioMonitor) {
+    @NotNull
+    public Registration registerIOMonitor(@NotNull IOMonitor ioMonitor) {
         ioMonitors.add(checkNotNull(ioMonitor));
         return () -> ioMonitors.remove(ioMonitor);
     }

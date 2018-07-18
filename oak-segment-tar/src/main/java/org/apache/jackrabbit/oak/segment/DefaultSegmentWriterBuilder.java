@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
@@ -30,6 +28,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Builder for building {@link DefaultSegmentWriter} instances.
@@ -51,18 +50,18 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
  */
 public final class DefaultSegmentWriterBuilder {
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @Nonnull
+    @NotNull
     private Supplier<GCGeneration> generation = Suppliers.ofInstance(GCGeneration.NULL);
 
     private boolean pooled = false;
 
-    @Nonnull
+    @NotNull
     private WriterCacheManager cacheManager = new WriterCacheManager.Default();
 
-    private DefaultSegmentWriterBuilder(@Nonnull String name) {
+    private DefaultSegmentWriterBuilder(@NotNull String name) {
         this.name = checkNotNull(name);
     }
 
@@ -70,8 +69,8 @@ public final class DefaultSegmentWriterBuilder {
      * Set the {@code name} of this builder. This name will appear in the segment's
      * meta data.
      */
-    @Nonnull
-    public static DefaultSegmentWriterBuilder defaultSegmentWriterBuilder(@Nonnull String name) {
+    @NotNull
+    public static DefaultSegmentWriterBuilder defaultSegmentWriterBuilder(@NotNull String name) {
         return new DefaultSegmentWriterBuilder(name);
     }
 
@@ -86,8 +85,8 @@ public final class DefaultSegmentWriterBuilder {
      * at the generation that {@code generation.get()} returns when a new segment
      * is created by the returned writer.
      */
-    @Nonnull
-    public DefaultSegmentWriterBuilder withGeneration(@Nonnull Supplier<GCGeneration> generation) {
+    @NotNull
+    public DefaultSegmentWriterBuilder withGeneration(@NotNull Supplier<GCGeneration> generation) {
         this.generation = checkNotNull(generation);
         return this;
     }
@@ -96,8 +95,8 @@ public final class DefaultSegmentWriterBuilder {
      * Specify the {@code generation} for the segment written by the returned
      * segment writer.
      */
-    @Nonnull
-    public DefaultSegmentWriterBuilder withGeneration(@Nonnull GCGeneration generation) {
+    @NotNull
+    public DefaultSegmentWriterBuilder withGeneration(@NotNull GCGeneration generation) {
         this.generation = Suppliers.ofInstance(checkNotNull(generation));
         return this;
     }
@@ -106,7 +105,7 @@ public final class DefaultSegmentWriterBuilder {
      * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriterPool}.
      * The returned instance is thread safe.
      */
-    @Nonnull
+    @NotNull
     public DefaultSegmentWriterBuilder withWriterPool() {
         this.pooled = true;
         return this;
@@ -116,7 +115,7 @@ public final class DefaultSegmentWriterBuilder {
      * Create a {@code SegmentWriter} backed by a {@link SegmentBufferWriter}.
      * The returned instance is <em>not</em> thread safe.
      */
-    @Nonnull
+    @NotNull
     public DefaultSegmentWriterBuilder withoutWriterPool() {
         this.pooled = false;
         return this;
@@ -125,7 +124,7 @@ public final class DefaultSegmentWriterBuilder {
     /**
      * Specify the {@code cacheManager} used by the returned writer.
      */
-    @Nonnull
+    @NotNull
     public DefaultSegmentWriterBuilder with(WriterCacheManager cacheManager) {
         this.cacheManager = checkNotNull(cacheManager);
         return this;
@@ -135,7 +134,7 @@ public final class DefaultSegmentWriterBuilder {
      * Specify that the returned writer should not use a cache.
      * @see #with(WriterCacheManager)
      */
-    @Nonnull
+    @NotNull
     public DefaultSegmentWriterBuilder withoutCache() {
         this.cacheManager = Empty.INSTANCE;
         return this;
@@ -144,8 +143,8 @@ public final class DefaultSegmentWriterBuilder {
     /**
      * Build a {@code SegmentWriter} for a {@code FileStore}.
      */
-    @Nonnull
-    public DefaultSegmentWriter build(@Nonnull FileStore store) {
+    @NotNull
+    public DefaultSegmentWriter build(@NotNull FileStore store) {
         return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
@@ -161,8 +160,8 @@ public final class DefaultSegmentWriterBuilder {
      * Attempting to write to the returned writer will cause a
      * {@code UnsupportedOperationException} to be thrown.
      */
-    @Nonnull
-    public DefaultSegmentWriter build(@Nonnull ReadOnlyFileStore store) {
+    @NotNull
+    public DefaultSegmentWriter build(@NotNull ReadOnlyFileStore store) {
         return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
@@ -170,14 +169,14 @@ public final class DefaultSegmentWriterBuilder {
                 store.getBlobStore(),
                 cacheManager,
                 new WriteOperationHandler() {
-                    @Nonnull
+                    @NotNull
                     @Override
-                    public RecordId execute(@Nonnull WriteOperation writeOperation) {
+                    public RecordId execute(@NotNull WriteOperation writeOperation) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
 
                     @Override
-                    public void flush(@Nonnull SegmentStore store) {
+                    public void flush(@NotNull SegmentStore store) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
                 }
@@ -187,8 +186,8 @@ public final class DefaultSegmentWriterBuilder {
     /**
      * Build a {@code SegmentWriter} for a {@code MemoryStore}.
      */
-    @Nonnull
-    public DefaultSegmentWriter build(@Nonnull MemoryStore store) {
+    @NotNull
+    public DefaultSegmentWriter build(@NotNull MemoryStore store) {
         return new DefaultSegmentWriter(
                 checkNotNull(store),
                 store.getReader(),
@@ -199,8 +198,8 @@ public final class DefaultSegmentWriterBuilder {
         );
     }
 
-    @Nonnull
-    private WriteOperationHandler createWriter(@Nonnull FileStore store, boolean pooled) {
+    @NotNull
+    private WriteOperationHandler createWriter(@NotNull FileStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(
                     store.getSegmentIdProvider(),
@@ -218,8 +217,8 @@ public final class DefaultSegmentWriterBuilder {
         }
     }
 
-    @Nonnull
-    private WriteOperationHandler createWriter(@Nonnull MemoryStore store, boolean pooled) {
+    @NotNull
+    private WriteOperationHandler createWriter(@NotNull MemoryStore store, boolean pooled) {
         if (pooled) {
             return new SegmentBufferWriterPool(
                     store.getSegmentIdProvider(),

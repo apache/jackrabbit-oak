@@ -29,8 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
 
 class GarbageCollector {
 
@@ -59,16 +58,16 @@ class GarbageCollector {
      */
     private static final long GC_BACKOFF = getInteger("oak.gc.backoff", 10 * 3600 * 1000);
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
 
     /**
      * {@code GcListener} listening to this instance's gc progress
      */
-    @Nonnull
+    @NotNull
     private final PrefixedGCListener gcListener;
 
-    @Nonnull
+    @NotNull
     private final GCJournal gcJournal;
 
     private final AtomicBoolean sufficientMemory;

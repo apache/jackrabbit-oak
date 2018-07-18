@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.UniformReservoir;
-import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -52,37 +51,37 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 public class LockBasedScheduler implements Scheduler {
 
     public static class LockBasedSchedulerBuilder {
-        @Nonnull
+        @NotNull
         private final SegmentReader reader;
 
-        @Nonnull
+        @NotNull
         private final Revisions revisions;
         
-        @Nonnull
+        @NotNull
         private final SegmentNodeStoreStats stats;
 
         private boolean dispatchChanges = true;
 
-        private LockBasedSchedulerBuilder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader,
-                @Nonnull SegmentNodeStoreStats stats) {
+        private LockBasedSchedulerBuilder(@NotNull Revisions revisions, @NotNull SegmentReader reader,
+                @NotNull SegmentNodeStoreStats stats) {
             this.revisions = revisions;
             this.reader = reader;
             this.stats = stats;
         }
 
-        @Nonnull
+        @NotNull
         public LockBasedSchedulerBuilder dispatchChanges(boolean dispatchChanges) {
             this.dispatchChanges = dispatchChanges;
             return this;
         }
 
-        @Nonnull
+        @NotNull
         public LockBasedScheduler build() {
             if (dispatchChanges) {
                 return new ObservableLockBasedScheduler(this);
@@ -93,8 +92,8 @@ public class LockBasedScheduler implements Scheduler {
 
     }
 
-    public static LockBasedSchedulerBuilder builder(@Nonnull Revisions revisions, @Nonnull SegmentReader reader,
-            @Nonnull SegmentNodeStoreStats stats) {
+    public static LockBasedSchedulerBuilder builder(@NotNull Revisions revisions, @NotNull SegmentReader reader,
+            @NotNull SegmentNodeStoreStats stats) {
         return new LockBasedSchedulerBuilder(checkNotNull(revisions), checkNotNull(reader), checkNotNull(stats));
     }
 
@@ -134,10 +133,10 @@ public class LockBasedScheduler implements Scheduler {
      */
     private final Semaphore commitSemaphore = new Semaphore(1, COMMIT_FAIR_LOCK);
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final Revisions revisions;
 
     protected final AtomicReference<SegmentNodeState> head;
@@ -198,7 +197,7 @@ public class LockBasedScheduler implements Scheduler {
     }
 
     @Override
-    public NodeState schedule(@Nonnull Commit commit, SchedulerOption... schedulingOptions)
+    public NodeState schedule(@NotNull Commit commit, SchedulerOption... schedulingOptions)
             throws CommitFailedException {
         boolean queued = false;
 
@@ -275,7 +274,7 @@ public class LockBasedScheduler implements Scheduler {
     }
 
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         checkArgument(lifetime > 0);
         checkNotNull(properties);
         String name = UUID.randomUUID().toString();

@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Monitors the compaction cycle and keeps a compacted nodes counter, in order
@@ -65,7 +64,7 @@ public class GCNodeWriteMonitor {
 
     private boolean running = false;
 
-    public GCNodeWriteMonitor(long gcProgressLog, @Nonnull GCMonitor gcMonitor) {
+    public GCNodeWriteMonitor(long gcProgressLog, @NotNull GCMonitor gcMonitor) {
         this.gcProgressLog = gcProgressLog;
         this.gcMonitor = gcMonitor;
     }
@@ -128,7 +127,7 @@ public class GCNodeWriteMonitor {
         return estimated;
     }
 
-    @Nonnull
+    @NotNull
     private String getPercentageDone() {
         return estimated > 0
             ? getEstimatedPercentage() + "% complete."

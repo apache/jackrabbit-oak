@@ -24,11 +24,10 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
 import java.util.Arrays;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Weigher;
@@ -39,22 +38,22 @@ import com.google.common.cache.Weigher;
  */
 public abstract class ReaderCache<T> {
 
-    @Nonnull
+    @NotNull
     private final Weigher<CacheKey, T> weigher;
 
-    @Nonnull
+    @NotNull
     private final String name;
 
     /**
      * The fast (array based) cache.
      */
-    @CheckForNull
+    @Nullable
     private final FastCache<T> fastCache;
 
     /**
      * The slower (LIRS) cache.
      */
-    @Nonnull
+    @NotNull
     private final CacheLIRS<CacheKey, T> cache;
 
     /**
@@ -66,7 +65,7 @@ public abstract class ReaderCache<T> {
      * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
     protected ReaderCache(long maxWeight, int averageWeight,
-            @Nonnull String name, @Nonnull Weigher<CacheKey, T> weigher) {
+            @NotNull String name, @NotNull Weigher<CacheKey, T> weigher) {
         this.name = checkNotNull(name);
         this.weigher = checkNotNull(weigher);
         fastCache = new FastCache<>();
@@ -78,7 +77,7 @@ public abstract class ReaderCache<T> {
                 .build();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStats getStats() {
         return new CacheStats(cache, name, weigher, cache.getMaxMemory());
     }
@@ -98,7 +97,7 @@ public abstract class ReaderCache<T> {
      * @param loader the loader function
      * @return the value
      */
-    @Nonnull
+    @NotNull
     public T get(long msb, long lsb, int offset, Function<Integer, T> loader) {
         int hash = getEntryHash(msb, lsb, offset);
         if (fastCache == null) {

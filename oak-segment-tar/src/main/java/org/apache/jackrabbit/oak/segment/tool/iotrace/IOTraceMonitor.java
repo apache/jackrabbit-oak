@@ -31,29 +31,28 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This implementation of a {@link IOMonitor} logs all io reads to an
  * underlying {@link IOTraceWriter}.
  */
 public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
-    @Nonnull
+    @NotNull
     private final AtomicReference<List<String>> context =
             new AtomicReference<>(ImmutableList.of());
 
-    @Nonnull
+    @NotNull
     private final IOTraceWriter traceWriter;
 
-    @Nonnull
+    @NotNull
     private final Lock ioLock = new ReentrantLock();
 
-    @Nonnull
+    @NotNull
     private final ConcurrentLinkedQueue<IOEvent> ioEvents = newConcurrentLinkedQueue();
 
     /**
@@ -61,7 +60,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
      * @param traceWriter   the {@code IOTraceWriter}
      * @param contextSpec   additional context fields. A comma separated string.
      */
-    public IOTraceMonitor(@Nonnull IOTraceWriter traceWriter, @CheckForNull String contextSpec) {
+    public IOTraceMonitor(@NotNull IOTraceWriter traceWriter, @Nullable String contextSpec) {
         this.traceWriter = traceWriter;
         traceWriter.writeHeader(IOEvent.getFields(contextSpec));
     }
@@ -70,7 +69,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
      * Create a new instance writing to {@code traceWriter} additional context fields context.
      * @param traceWriter   the {@code IOTraceWriter}
      */
-    public IOTraceMonitor(@Nonnull IOTraceWriter traceWriter) {
+    public IOTraceMonitor(@NotNull IOTraceWriter traceWriter) {
         this(traceWriter, null);
     }
 
@@ -79,12 +78,12 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
      * @param context  a list of strings corresponding to the fields passed to the
      *                 {@code contextSpec} argument in the constructor.
      */
-    public void setContext(@Nonnull List<String> context) {
+    public void setContext(@NotNull List<String> context) {
         this.context.set(context);
     }
 
     @Override
-    public void afterSegmentRead(@Nonnull File file, long msb, long lsb, int length,
+    public void afterSegmentRead(@NotNull File file, long msb, long lsb, int length,
                                  long elapsed) {
         ioEvents.add(new IOEvent(
                 file.getName(), msb, lsb, length, elapsed, context.get()));
@@ -113,22 +112,22 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     private static class IOEvent {
         private static final String FIELDS = "timestamp,file,segmentId,length,elapsed";
 
-        @Nonnull
+        @NotNull
         private final String fileName;
         private final long msb;
         private final long lsb;
         private final int length;
         private final long elapsed;
-        @Nonnull
+        @NotNull
         private final List<String> context;
 
         private IOEvent(
-                @Nonnull String fileName,
+                @NotNull String fileName,
                 long msb,
                 long lsb,
                 int length,
                 long elapsed,
-                @Nonnull List<String> context) {
+                @NotNull List<String> context) {
             this.fileName = fileName;
             this.msb = msb;
             this.lsb = lsb;
@@ -137,7 +136,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
             this.context = context;
         }
 
-        public static String getFields(@CheckForNull String contextSpec) {
+        public static String getFields(@Nullable String contextSpec) {
             if (contextSpec == null || contextSpec.isEmpty()) {
                 return FIELDS;
             } else {

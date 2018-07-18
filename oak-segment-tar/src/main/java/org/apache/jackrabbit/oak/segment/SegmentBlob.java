@@ -29,21 +29,19 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
 public class SegmentBlob extends Record implements Blob {
 
-    @CheckForNull
+    @Nullable
     private final BlobStore blobStore;
 
     public static Iterable<SegmentId> getBulkSegmentIds(Blob blob) {
@@ -54,7 +52,7 @@ public class SegmentBlob extends Record implements Blob {
         }
     }
 
-    SegmentBlob(@Nullable BlobStore blobStore, @Nonnull RecordId id) {
+    SegmentBlob(@Nullable BlobStore blobStore, @NotNull RecordId id) {
         super(id);
         this.blobStore = blobStore;
     }
@@ -63,7 +61,7 @@ public class SegmentBlob extends Record implements Blob {
         return new SegmentStream(getRecordId(), segment.readBytes(getRecordNumber(), offset, length), length);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public InputStream getNewStream() {
         Segment segment = getSegment();
         byte head = segment.readByte(getRecordNumber());
@@ -118,7 +116,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public String getReference() {
         String blobId = getBlobId();
         if (blobId != null) {
@@ -149,13 +147,13 @@ public class SegmentBlob extends Record implements Blob {
         return (head & 0xf0) == 0xe0 || (head & 0xf8) == 0xf0;
     }
 
-    @CheckForNull
+    @Nullable
     public String getBlobId() {
         return readBlobId(getSegment(), getRecordNumber());
     }
 
-    @CheckForNull
-    public static String readBlobId(@Nonnull Segment segment, int recordNumber) {
+    @Nullable
+    public static String readBlobId(@NotNull Segment segment, int recordNumber) {
         byte head = segment.readByte(recordNumber);
         if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value, small blob ID

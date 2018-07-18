@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Instances of this class represent the result from a compaction. Either
@@ -34,12 +33,12 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
  */
 abstract class CompactionResult {
 
-    @Nonnull
+    @NotNull
     private final GCGeneration currentGeneration;
 
     private final int gcCount;
 
-    private CompactionResult(@Nonnull GCGeneration currentGeneration, int gcCount) {
+    private CompactionResult(@NotNull GCGeneration currentGeneration, int gcCount) {
         this.currentGeneration = currentGeneration;
         this.gcCount = gcCount;
     }
@@ -53,10 +52,10 @@ abstract class CompactionResult {
      * @param compactedRootId the record id of the root created by compaction
      */
     static CompactionResult succeeded(
-        @Nonnull SegmentGCOptions.GCType gcType,
-        @Nonnull GCGeneration newGeneration,
-        @Nonnull final SegmentGCOptions gcOptions,
-        @Nonnull final RecordId compactedRootId,
+        @NotNull SegmentGCOptions.GCType gcType,
+        @NotNull GCGeneration newGeneration,
+        @NotNull final SegmentGCOptions gcOptions,
+        @NotNull final RecordId compactedRootId,
         int gcCount
     ) {
         return new CompactionResult(newGeneration, gcCount) {
@@ -86,8 +85,8 @@ abstract class CompactionResult {
      *                          create
      */
     static CompactionResult aborted(
-        @Nonnull GCGeneration currentGeneration,
-        @Nonnull final GCGeneration failedGeneration,
+        @NotNull GCGeneration currentGeneration,
+        @NotNull final GCGeneration failedGeneration,
         int gcCount
     ) {
         return new CompactionResult(currentGeneration, gcCount) {
@@ -113,10 +112,10 @@ abstract class CompactionResult {
      * @param gcOptions         the current GC options used by compaction
      */
     static CompactionResult skipped(
-        @Nonnull SegmentGCOptions.GCType lastGCType,
-        @Nonnull GCGeneration currentGeneration,
-        @Nonnull final SegmentGCOptions gcOptions,
-        @Nonnull final RecordId compactedRootId,
+        @NotNull SegmentGCOptions.GCType lastGCType,
+        @NotNull GCGeneration currentGeneration,
+        @NotNull final SegmentGCOptions gcOptions,
+        @NotNull final RecordId compactedRootId,
         int gcCount
     ) {
         return new CompactionResult(currentGeneration, gcCount) {

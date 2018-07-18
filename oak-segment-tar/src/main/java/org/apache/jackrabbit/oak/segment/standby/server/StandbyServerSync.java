@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -32,6 +31,7 @@ import javax.management.StandardMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,7 +152,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         state = STATUS_CLOSED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getMode() {
         return "primary";

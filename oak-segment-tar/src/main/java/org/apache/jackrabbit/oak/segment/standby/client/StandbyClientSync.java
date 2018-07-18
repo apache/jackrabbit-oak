@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,7 +189,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         }
     }
 
-    @Nonnull
+    @NotNull
     private static GCGeneration headGeneration(FileStore fileStore) {
         return fileStore.getHead().getRecordId().getSegment().getGcGeneration();
     }
@@ -198,7 +198,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         fileStore.cleanup();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getMode() {
         return "client: " + this.observer.getID();

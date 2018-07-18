@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * SegmentArchiveManager provides a low-level access to the segment files (eg.
@@ -40,7 +40,7 @@ public interface SegmentArchiveManager {
      *
      * @return archive list
      */
-    @Nonnull
+    @NotNull
     List<String> listArchives() throws IOException;
 
     /**
@@ -50,7 +50,7 @@ public interface SegmentArchiveManager {
      * @return the archive reader or null if the archive doesn't exist
      */
     @Nullable
-    SegmentArchiveReader open(@Nonnull String archiveName) throws IOException;
+    SegmentArchiveReader open(@NotNull String archiveName) throws IOException;
 
     /**
      * Creates a new archive.
@@ -58,8 +58,8 @@ public interface SegmentArchiveManager {
      * @param archiveName
      * @return the archive writer
      */
-    @Nonnull
-    SegmentArchiveWriter create(@Nonnull String archiveName) throws IOException;
+    @NotNull
+    SegmentArchiveWriter create(@NotNull String archiveName) throws IOException;
 
     /**
      * Deletes the archive if exists.
@@ -67,7 +67,7 @@ public interface SegmentArchiveManager {
      * @param archiveName
      * @return true if the archive was removed, false otherwise
      */
-    boolean delete(@Nonnull String archiveName);
+    boolean delete(@NotNull String archiveName);
 
     /**
      * Renames the archive.
@@ -76,7 +76,7 @@ public interface SegmentArchiveManager {
      * @param to new name
      * @return true if the archive was renamed, false otherwise
      */
-    boolean renameTo(@Nonnull String from, @Nonnull String to);
+    boolean renameTo(@NotNull String from, @NotNull String to);
 
     /**
      * Copies the archive with all the segments.
@@ -84,7 +84,7 @@ public interface SegmentArchiveManager {
      * @param from the existing archive
      * @param to new name
      */
-    void copyFile(@Nonnull String from, @Nonnull String to) throws IOException;
+    void copyFile(@NotNull String from, @NotNull String to) throws IOException;
 
     /**
      * Check if archive exists.
@@ -92,7 +92,7 @@ public interface SegmentArchiveManager {
      * @param archiveName archive to check
      * @return true if archive exists, false otherwise
      */
-    boolean exists(@Nonnull String archiveName);
+    boolean exists(@NotNull String archiveName);
 
     /**
      * Finds all the segments included in the archive.
@@ -101,6 +101,6 @@ public interface SegmentArchiveManager {
      * @param entries results will be put there, in the order of presence in the
      *                archive
      */
-    void recoverEntries(@Nonnull String archiveName, @Nonnull LinkedHashMap<UUID, byte[]> entries) throws IOException;
+    void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException;
 
 }

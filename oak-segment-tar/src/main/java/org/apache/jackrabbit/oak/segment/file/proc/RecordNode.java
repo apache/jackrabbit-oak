@@ -24,13 +24,12 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import java.util.Arrays;
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.jetbrains.annotations.NotNull;
 
 class RecordNode extends AbstractNode {
 
@@ -40,7 +39,7 @@ class RecordNode extends AbstractNode {
         this.record = record;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Arrays.asList(
@@ -52,7 +51,7 @@ class RecordNode extends AbstractNode {
         );
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return record.getRoot()

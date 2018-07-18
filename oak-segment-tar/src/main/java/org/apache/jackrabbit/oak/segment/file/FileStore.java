@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -54,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,10 +72,10 @@ public class FileStore extends AbstractFileStore {
         return new SynchronizedGarbageCollectionStrategy(new CleanupFirstGarbageCollectionStrategy());
     }
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter segmentWriter;
 
-    @Nonnull
+    @NotNull
     private final GarbageCollector garbageCollector;
 
     private final TarFiles tarFiles;
@@ -113,7 +112,7 @@ public class FileStore extends AbstractFileStore {
 
     private final ShutDown shutDown = new ShutDown();
 
-    @Nonnull
+    @NotNull
     private final SegmentNotFoundExceptionListener snfeListener;
 
     private final GarbageCollectionStrategy garbageCollectionStrategy = newGarbageCollectionStrategy();
@@ -211,7 +210,7 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
-    @Nonnull
+    @NotNull
     private Supplier<RecordId> initialNode() {
         return new Supplier<RecordId>() {
             @Override
@@ -232,7 +231,7 @@ public class FileStore extends AbstractFileStore {
         };
     }
 
-    @Nonnull
+    @NotNull
     private GCGeneration getGcGeneration() {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
@@ -413,7 +412,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public SegmentWriter getWriter() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentWriter;
@@ -421,7 +420,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public TarRevisions getRevisions() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return revisions;
@@ -464,7 +463,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));

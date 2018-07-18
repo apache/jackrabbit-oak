@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Commit;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 class CommitNode extends AbstractNode {
 
@@ -44,7 +43,7 @@ class CommitNode extends AbstractNode {
         this.handle = handle;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return backend.getCommit(handle).map(this::getProperties).orElse(emptySet());
@@ -57,7 +56,7 @@ class CommitNode extends AbstractNode {
         );
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return backend.getCommit(handle)

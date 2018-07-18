@@ -41,8 +41,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
@@ -51,6 +49,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -315,7 +314,7 @@ public class TarReader implements Closeable {
      *
      * @return An array of {@link IndexEntry}.
      */
-    @Nonnull
+    @NotNull
     SegmentArchiveEntry[] getEntries() {
         List<SegmentArchiveEntry> entryList = archive.listSegments();
         return entryList.toArray(new SegmentArchiveEntry[entryList.size()]);
@@ -328,7 +327,7 @@ public class TarReader implements Closeable {
      * @param graph The content of the graph of this TAR file.
      * @return The references of the provided TAR entry.
      */
-    @Nonnull
+    @NotNull
     private static List<UUID> getReferences(UUID id, Map<UUID, List<UUID>> graph) {
         List<UUID> references = graph.get(id);
 
@@ -356,7 +355,7 @@ public class TarReader implements Closeable {
      * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
      */
-    void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
+    void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
         BinaryReferencesIndex references = getBinaryReferences();
 
         if (references == null) {
@@ -463,7 +462,7 @@ public class TarReader implements Closeable {
      * @return Either this {@link TarReader}, or a new instance of {@link
      * TarReader}, or {@code null}.
      */
-    TarReader sweep(@Nonnull Set<UUID> reclaim, @Nonnull Set<UUID> reclaimed) throws IOException {
+    TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
         String name = archive.getName();
         log.debug("Cleaning up {}", name);
 
