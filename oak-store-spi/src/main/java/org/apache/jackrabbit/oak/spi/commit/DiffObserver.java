@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base class for observers that use a content diff to determine
@@ -42,14 +41,14 @@ public abstract class DiffObserver implements Observer {
      * @return diff handler for this change
      */
     protected abstract NodeStateDiff getRootDiff(
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull CommitInfo info);
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull CommitInfo info);
 
     //----------------------------------------------------------< Observer >--
 
     @Override
     public final synchronized void contentChanged(
-            @Nonnull NodeState root, @Nonnull CommitInfo info) {
+            @NotNull NodeState root, @NotNull CommitInfo info) {
         checkNotNull(root);
         if (before != null) {
             NodeStateDiff diff = getRootDiff(before, root, info);

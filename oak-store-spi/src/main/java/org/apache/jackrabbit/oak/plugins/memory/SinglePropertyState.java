@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base class for single valued {@code PropertyState} implementations.
@@ -36,7 +36,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
      * Create a new property state with the given {@code name}
      * @param name  The name of the property state.
      */
-    protected SinglePropertyState(@Nonnull String name) {
+    protected SinglePropertyState(@NotNull String name) {
         super(name);
     }
 
@@ -84,7 +84,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
      * values defined in {@link Type}.
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     @Override
     public <S> S getValue(Type<S> type) {
         if (type.isArray()) {
@@ -106,7 +106,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
      * @throws IllegalArgumentException  if {@code type.isArray} is {@code true}
      * @throws IndexOutOfBoundsException  if {@code index != 0}
      */
-    @Nonnull
+    @NotNull
     @Override
     public <S> S getValue(Type<S> type, int index) {
         checkArgument(!type.isArray(), "Type must not be an array type");

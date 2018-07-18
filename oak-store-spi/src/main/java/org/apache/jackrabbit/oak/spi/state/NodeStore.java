@@ -20,13 +20,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Storage abstraction for trees. At any given point in time the stored
@@ -43,7 +42,7 @@ public interface NodeStore {
      *
      * @return root node state
      */
-    @Nonnull
+    @NotNull
     NodeState getRoot();
 
     /**
@@ -60,10 +59,10 @@ public interface NodeStore {
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
      */
-    @Nonnull
+    @NotNull
     NodeState merge(
-            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException;
+            @NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+            @NotNull CommitInfo info) throws CommitFailedException;
 
     /**
      * Rebases the changes between the
@@ -79,8 +78,8 @@ public interface NodeStore {
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
      */
-    @Nonnull
-    NodeState rebase(@Nonnull NodeBuilder builder);
+    @NotNull
+    NodeState rebase(@NotNull NodeBuilder builder);
 
     /**
      * Reset the passed {@code builder} by throwing away all its changes and
@@ -91,7 +90,7 @@ public interface NodeStore {
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
      */
-    NodeState reset(@Nonnull NodeBuilder builder);
+    NodeState reset(@NotNull NodeBuilder builder);
 
     /**
      * Create a {@link Blob} from the given input stream. The input stream
@@ -100,7 +99,7 @@ public interface NodeStore {
      * @return  The {@code Blob} representing {@code inputStream}
      * @throws IOException  If an error occurs while reading from the stream
      */
-    @Nonnull
+    @NotNull
     Blob createBlob(InputStream inputStream) throws IOException;
 
     /**
@@ -109,8 +108,8 @@ public interface NodeStore {
      * @return  blob or {@code null} if the reference does not resolve to a blob.
      * @see Blob#getReference()
      */
-    @CheckForNull
-    Blob getBlob(@Nonnull String reference);
+    @Nullable
+    Blob getBlob(@NotNull String reference);
 
     /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint
@@ -127,8 +126,8 @@ public interface NodeStore {
      * @param properties properties to associate with the checkpoint
      * @return string reference of this checkpoint
      */
-    @Nonnull
-    String checkpoint(long lifetime, @Nonnull Map<String, String> properties);
+    @NotNull
+    String checkpoint(long lifetime, @NotNull Map<String, String> properties);
 
     /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint
@@ -143,7 +142,7 @@ public interface NodeStore {
      *                 should remain available
      * @return string reference of this checkpoint
      */
-    @Nonnull
+    @NotNull
     String checkpoint(long lifetime);
 
     /**
@@ -154,8 +153,8 @@ public interface NodeStore {
      *         {@code checkpoint} or an empty map when there is no such
      *         checkpoint.
      */
-    @Nonnull
-    Map<String, String> checkpointInfo(@Nonnull String checkpoint);
+    @NotNull
+    Map<String, String> checkpointInfo(@NotNull String checkpoint);
 
     /**
      * Returns all valid checkpoints. The returned {@code Iterable} provides a
@@ -168,7 +167,7 @@ public interface NodeStore {
      *
      * @return valid checkpoints.
      */
-    @Nonnull
+    @NotNull
     Iterable<String> checkpoints();
 
     /**
@@ -178,8 +177,8 @@ public interface NodeStore {
      * @return the root node of the checkpoint,
      *         or {@code null} if the checkpoint is no longer available
      */
-    @CheckForNull
-    NodeState retrieve(@Nonnull String checkpoint);
+    @Nullable
+    NodeState retrieve(@NotNull String checkpoint);
 
     /**
      * Releases the provided checkpoint. If the provided checkpoint doesn't exist this method should return {@code true}.
@@ -187,6 +186,6 @@ public interface NodeStore {
      * @param checkpoint string reference of a checkpoint
      * @return {@code true} if the checkpoint was successfully removed, or if it doesn't exist
      */
-    boolean release(@Nonnull String checkpoint);
+    boolean release(@NotNull String checkpoint);
 
 }

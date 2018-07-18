@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Extension point for validating and modifying content changes. Available
@@ -49,7 +48,7 @@ public interface CommitHook {
      * @return content tree to be committed
      * @throws CommitFailedException if the commit should be rejected
      */
-    @Nonnull
+    @NotNull
     NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
         throws CommitFailedException;
 

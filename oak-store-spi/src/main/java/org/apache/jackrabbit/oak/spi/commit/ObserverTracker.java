@@ -27,10 +27,9 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import java.io.Closeable;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -43,11 +42,11 @@ public class ObserverTracker implements ServiceTrackerCustomizer {
     private BundleContext bundleContext;
     private ServiceTracker observerTracker;
 
-    public ObserverTracker(@Nonnull Observable observable) {
+    public ObserverTracker(@NotNull Observable observable) {
         this.observable = checkNotNull(observable);
     }
 
-    public void start(@Nonnull BundleContext bundleContext) {
+    public void start(@NotNull BundleContext bundleContext) {
         checkState(this.bundleContext == null);
         this.bundleContext = checkNotNull(bundleContext);
         observerTracker = new ServiceTracker(bundleContext, Observer.class.getName(), this);

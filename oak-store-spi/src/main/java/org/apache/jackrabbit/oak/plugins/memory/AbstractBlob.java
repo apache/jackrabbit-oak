@@ -21,14 +21,13 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract base class for {@link Blob} implementations.
@@ -80,7 +79,7 @@ public abstract class AbstractBlob implements Blob {
                 public long length() {
                     return blob.length();
                 }
-                @Nonnull
+                @NotNull
                 @Override
                 public InputStream getNewStream() {
                     return blob.getNewStream();
@@ -122,7 +121,7 @@ public abstract class AbstractBlob implements Blob {
 
     //--------------------------------------------------------------< Blob >--
 
-    @Override @CheckForNull
+    @Override @Nullable
     public String getReference() {
         return null;
     }

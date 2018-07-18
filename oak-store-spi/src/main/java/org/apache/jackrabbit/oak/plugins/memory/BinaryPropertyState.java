@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -27,11 +26,12 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 public class BinaryPropertyState extends SinglePropertyState<Blob> {
     private final Blob value;
 
-    public BinaryPropertyState(@Nonnull String name, @Nonnull Blob value) {
+    public BinaryPropertyState(@NotNull String name, @NotNull Blob value) {
         super(name);
         this.value = checkNotNull(value);
     }
@@ -43,7 +43,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @Nonnull String name, @Nonnull byte[] value) {
+            @NotNull String name, @NotNull byte[] value) {
         return new BinaryPropertyState(
                 name, new ArrayBasedBlob(checkNotNull(value)));
     }
@@ -55,7 +55,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @Nonnull String name, @Nonnull String value) {
+            @NotNull String name, @NotNull String value) {
         return new BinaryPropertyState(
                 name, new StringBasedBlob(checkNotNull(value)));
     }
@@ -67,7 +67,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @Nonnull String name, @Nonnull Blob value) {
+            @NotNull String name, @NotNull Blob value) {
         return new BinaryPropertyState(name, value);
     }
 
@@ -78,7 +78,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @Nonnull String name, @Nonnull Value value) throws RepositoryException {
+            @NotNull String name, @NotNull Value value) throws RepositoryException {
         return new BinaryPropertyState(name, getBlob(value));
     }
 

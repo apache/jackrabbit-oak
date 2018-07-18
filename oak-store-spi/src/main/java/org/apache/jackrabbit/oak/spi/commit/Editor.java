@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Content change editor. An editor receives information about changes
@@ -100,7 +99,7 @@ public interface Editor {
      *         or {@code null} if the subtree does not need processing
      * @throws CommitFailedException if processing failed
      */
-    @CheckForNull
+    @Nullable
     Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException;
 
@@ -115,7 +114,7 @@ public interface Editor {
      *         or {@code null} if the subtree does not need processing
      * @throws CommitFailedException if processing failed
      */
-    @CheckForNull
+    @Nullable
     Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
@@ -129,7 +128,7 @@ public interface Editor {
      *         or {@code null} if the subtree does not need processing
      * @throws CommitFailedException if processing failed
      */
-    @CheckForNull
+    @Nullable
     Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 

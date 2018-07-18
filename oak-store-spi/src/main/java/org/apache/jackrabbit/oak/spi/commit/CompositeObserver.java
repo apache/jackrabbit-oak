@@ -22,9 +22,8 @@ import static com.google.common.collect.Sets.newIdentityHashSet;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Composite observer that delegates all content changes to the set of
@@ -34,11 +33,11 @@ public class CompositeObserver implements Observer {
 
     private final Set<Observer> observers = newIdentityHashSet();
 
-    public synchronized void addObserver(@Nonnull Observer observer) {
+    public synchronized void addObserver(@NotNull Observer observer) {
         checkState(observers.add(checkNotNull(observer)));
     }
 
-    public synchronized void removeObserver(@Nonnull Observer observer) {
+    public synchronized void removeObserver(@NotNull Observer observer) {
         checkState(observers.remove(checkNotNull(observer)));
     }
 
@@ -46,7 +45,7 @@ public class CompositeObserver implements Observer {
 
     @Override
     public synchronized void contentChanged(
-            @Nonnull NodeState root, @Nonnull CommitInfo info) {
+            @NotNull NodeState root, @NotNull CommitInfo info) {
         checkNotNull(root);
         for (Observer observer : observers) {
             observer.contentChanged(root, info);

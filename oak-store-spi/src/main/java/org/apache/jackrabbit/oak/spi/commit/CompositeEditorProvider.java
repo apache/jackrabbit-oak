@@ -22,12 +22,11 @@ import static java.util.Arrays.asList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Lists;
 
@@ -38,7 +37,7 @@ public class CompositeEditorProvider implements EditorProvider {
 
     private static final EditorProvider EMPTY_PROVIDER =
         new EditorProvider() {
-            @Override @CheckForNull
+            @Override @Nullable
             public Editor getRootEditor(
                     NodeState before, NodeState after,
                     NodeBuilder builder, CommitInfo info) {
@@ -46,9 +45,9 @@ public class CompositeEditorProvider implements EditorProvider {
             }
         };
 
-    @Nonnull
+    @NotNull
     public static EditorProvider compose(
-            @Nonnull Collection<? extends EditorProvider> providers) {
+            @NotNull Collection<? extends EditorProvider> providers) {
         checkNotNull(providers);
         switch (providers.size()) {
             case 0:
@@ -71,7 +70,7 @@ public class CompositeEditorProvider implements EditorProvider {
         this(asList(providers));
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder,
             CommitInfo info) throws CommitFailedException {

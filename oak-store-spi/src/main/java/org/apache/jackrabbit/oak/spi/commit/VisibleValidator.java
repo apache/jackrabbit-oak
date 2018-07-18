@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Validator implementation that allows to exclude hidden nodes and/or properties
@@ -35,7 +33,7 @@ public class VisibleValidator implements Validator {
     private final boolean hideNodes;
     private final boolean hideProperties;
 
-    public VisibleValidator(@Nonnull Validator validator, boolean hideNodes, boolean hideProperties) {
+    public VisibleValidator(@NotNull Validator validator, boolean hideNodes, boolean hideProperties) {
         this.validator = validator;
         this.hideNodes = hideNodes;
         this.hideProperties = hideProperties;
@@ -100,7 +98,7 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         if (isVisibleNode(name)) {
             return getValidator(validator.childNodeAdded(name, after));
@@ -109,7 +107,7 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         if (isVisibleNode(name)) {
             return getValidator(validator.childNodeChanged(name, before, after));
@@ -118,7 +116,7 @@ public class VisibleValidator implements Validator {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         if (isVisibleNode(name)) {

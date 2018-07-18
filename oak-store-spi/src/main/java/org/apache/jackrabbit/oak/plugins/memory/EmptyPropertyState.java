@@ -20,10 +20,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -41,7 +40,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
      * Create a new property state with the given {@code name}
      * @param name  The name of the property state.
      */
-    protected EmptyPropertyState(@Nonnull String name) {
+    protected EmptyPropertyState(@NotNull String name) {
         this.name = checkNotNull(name);
     }
 
@@ -63,7 +62,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
@@ -82,7 +81,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
      * @throws IllegalArgumentException {@code type.isArray()} is {@code false}.
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type) {
         checkArgument(type.isArray(), "Type must be an array type");
@@ -92,7 +91,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
     /**
      * @throws IndexOutOfBoundsException always
      */
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         throw new IndexOutOfBoundsException(String.valueOf(index));

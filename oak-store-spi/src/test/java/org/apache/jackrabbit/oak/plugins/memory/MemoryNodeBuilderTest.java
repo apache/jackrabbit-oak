@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import java.util.Collection;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -565,20 +564,20 @@ public class MemoryNodeBuilderTest {
                 return exists;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<? extends PropertyState> getProperties() {
                 return ImmutableSet.of();
             }
 
             @Override
-            public boolean hasChildNode(@Nonnull String name) {
+            public boolean hasChildNode(@NotNull String name) {
                 return "c".equals(name);
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public NodeState getChildNode(@Nonnull String name) {
+            public NodeState getChildNode(@NotNull String name) {
                 if ("c".equals(name)) {
                     return C;
                 } else {
@@ -587,7 +586,7 @@ public class MemoryNodeBuilderTest {
                 }
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
                 if (exists) {
@@ -597,7 +596,7 @@ public class MemoryNodeBuilderTest {
                 }
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public NodeBuilder builder() {
                 return new MemoryNodeBuilder(this);

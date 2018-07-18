@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -31,7 +30,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 public class StringPropertyState extends SinglePropertyState<String> {
     private final String value;
 
-    public StringPropertyState(@Nonnull String name, @Nonnull String value) {
+    public StringPropertyState(@NotNull String name, @NotNull String value) {
         super(name);
         this.value = checkNotNull(value);
     }
@@ -43,7 +42,7 @@ public class StringPropertyState extends SinglePropertyState<String> {
      * @return  The new property state of type {@link Type#STRING}
      */
     public static PropertyState stringProperty(
-            @Nonnull String name, @Nonnull String value) {
+            @NotNull String name, @NotNull String value) {
         return new StringPropertyState(name, value);
     }
 

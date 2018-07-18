@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -37,14 +36,14 @@ public class EditorHook implements CommitHook {
 
     private final EditorProvider provider;
 
-    public EditorHook(@Nonnull EditorProvider provider) {
+    public EditorHook(@NotNull EditorProvider provider) {
         this.provider = checkNotNull(provider);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState processCommit(
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull CommitInfo info) throws CommitFailedException {
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull CommitInfo info) throws CommitFailedException {
         checkNotNull(before);
         checkNotNull(after);
         checkNotNull(info);

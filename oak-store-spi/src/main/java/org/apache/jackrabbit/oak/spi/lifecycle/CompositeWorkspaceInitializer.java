@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Composite repository initializer that delegates the
@@ -34,11 +33,11 @@ public class CompositeWorkspaceInitializer implements WorkspaceInitializer {
 
     private final Collection<WorkspaceInitializer> initializers;
 
-    public CompositeWorkspaceInitializer(@Nonnull Collection<WorkspaceInitializer> trackers) {
+    public CompositeWorkspaceInitializer(@NotNull Collection<WorkspaceInitializer> trackers) {
         this.initializers = trackers;
     }
 
-    public CompositeWorkspaceInitializer(@Nonnull WorkspaceInitializer... initializers) {
+    public CompositeWorkspaceInitializer(@NotNull WorkspaceInitializer... initializers) {
         this.initializers = Arrays.asList(initializers);
     }
 
