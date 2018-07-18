@@ -25,8 +25,6 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
@@ -66,7 +65,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         this.documentStore = documentStore;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<NodeStateEntry> iterator() {
         return getIncludedDocs().iterator();

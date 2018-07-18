@@ -21,18 +21,17 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.Closeable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface NodeStateIndexerProvider extends Closeable {
 
-    @CheckForNull
-    NodeStateIndexer getIndexer(@Nonnull String type,
-                                @Nonnull String indexPath,
-                                @Nonnull NodeBuilder definition,
-                                @Nonnull NodeState root, IndexingProgressReporter progressReporter);
+    @Nullable
+    NodeStateIndexer getIndexer(@NotNull String type,
+                                @NotNull String indexPath,
+                                @NotNull NodeBuilder definition,
+                                @NotNull NodeState root, IndexingProgressReporter progressReporter);
 }

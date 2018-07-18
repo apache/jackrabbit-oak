@@ -33,12 +33,12 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +48,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -101,7 +100,7 @@ public class TextPopulatorTest {
         generator.generate(brp.getBinaries("/"));
     }
 
-    private List<Field> createLuceneDocument(@Nonnull String path, String ... values) {
+    private List<Field> createLuceneDocument(@NotNull String path, String ... values) {
         List<Field> fields = Lists.newArrayList();
         for (String value : values) {
             if (value != null) {
@@ -248,7 +247,7 @@ public class TextPopulatorTest {
         final Map<String, String> data = Maps.newHashMap();
 
         @Override
-        public void write(@Nonnull String blobId, @Nonnull String text) {
+        public void write(@NotNull String blobId, @NotNull String text) {
             processed.add(blobId);
             data.put(blobId, text);
         }
@@ -285,7 +284,7 @@ public class TextPopulatorTest {
         @Override
         public FluentIterable<BinaryResource> getBinaries(String path) {
             return new FluentIterable<BinaryResource>() {
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterator<BinaryResource> iterator() {
                     return binaries.iterator();

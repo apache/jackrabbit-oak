@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wraps an existing revision context and exposes a custom {@code clusterId}.
@@ -49,28 +48,28 @@ public final class RevisionContextWrapper implements RevisionContext {
         return clusterId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RevisionVector getHeadRevision() {
         return context.getHeadRevision();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Revision newRevision() {
         Revision r = context.newRevision();
         return new Revision(r.getTimestamp(), r.getCounter(), clusterId);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Clock getClock() {
         return context.getClock();
     }
 
     @Override
-    public String getCommitValue(@Nonnull Revision revision,
-                                 @Nonnull NodeDocument nodeDocument) {
+    public String getCommitValue(@NotNull Revision revision,
+                                 @NotNull NodeDocument nodeDocument) {
         return context.getCommitValue(revision, nodeDocument);
     }
 }

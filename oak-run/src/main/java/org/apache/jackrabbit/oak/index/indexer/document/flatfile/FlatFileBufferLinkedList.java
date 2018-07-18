@@ -21,10 +21,9 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.Iterator;
-
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileBufferLinkedList.NodeIterator.iteratorFor;
 
 /**
@@ -52,7 +51,7 @@ public class FlatFileBufferLinkedList {
     /**
      * Add {@code item} at the tail of the list
      */
-    public void add(@Nonnull NodeStateEntry item) {
+    public void add(@NotNull NodeStateEntry item) {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
         long incomingSize = item.estimatedMemUsage();
         long memUsage = estimatedMemoryUsage();
@@ -115,7 +114,7 @@ public class FlatFileBufferLinkedList {
             this.next = null;
         }
 
-        ListNode(@Nonnull NodeStateEntry data) {
+        ListNode(@NotNull NodeStateEntry data) {
             Preconditions.checkNotNull(data);
             this.data = data;
             this.next = null;
@@ -125,12 +124,12 @@ public class FlatFileBufferLinkedList {
     static class NodeIterator implements Iterator<NodeStateEntry> {
         private ListNode current;
 
-        static NodeIterator iteratorFor(@Nonnull ListNode node) {
+        static NodeIterator iteratorFor(@NotNull ListNode node) {
             Preconditions.checkNotNull(node);
             return new NodeIterator(node);
         }
 
-        NodeIterator(@Nonnull ListNode start) {
+        NodeIterator(@NotNull ListNode start) {
             Preconditions.checkNotNull(start);
             this.current = start;
         }
