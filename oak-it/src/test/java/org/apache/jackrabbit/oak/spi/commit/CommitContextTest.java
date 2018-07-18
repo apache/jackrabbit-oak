@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
@@ -102,7 +102,7 @@ public class CommitContextTest extends OakBaseTest {
                 .with(new OpenSecurityProvider())
                 .with(observer)
                 .with(new CommitHook() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
                             throws CommitFailedException {
@@ -137,7 +137,7 @@ public class CommitContextTest extends OakBaseTest {
                 .with(new OpenSecurityProvider())
                 .with(observer)
                 .with(new CommitHook() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
                             throws CommitFailedException {
@@ -153,7 +153,7 @@ public class CommitContextTest extends OakBaseTest {
                     }
                 })
                 .with(new CommitHook() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public NodeState processCommit(NodeState before, NodeState after,
                                                    CommitInfo info) throws CommitFailedException {
@@ -190,7 +190,7 @@ public class CommitContextTest extends OakBaseTest {
         CommitInfo info;
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
             this.info = info;
         }
     }
