@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class holds configuration options for segment store revision gc.
@@ -96,7 +96,7 @@ public class SegmentGCOptions {
 
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
-    @Nonnull
+    @NotNull
     private GCType gcType = GCType.FULL;
 
     private boolean offline = false;
@@ -217,7 +217,7 @@ public class SegmentGCOptions {
     /**
      * @return the currently set gc type.
      */
-    @Nonnull
+    @NotNull
     public GCType getGCType() {
         return gcType;
     }
@@ -226,7 +226,7 @@ public class SegmentGCOptions {
      * Set the gc type.
      * @param gcType  the type of gc to run.
      */
-    public void setGCType(@Nonnull GCType gcType) {
+    public void setGCType(@NotNull GCType gcType) {
         this.gcType = gcType;
     }
 

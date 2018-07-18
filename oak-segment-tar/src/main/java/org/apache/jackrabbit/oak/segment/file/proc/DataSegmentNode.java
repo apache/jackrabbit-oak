@@ -23,14 +23,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.jetbrains.annotations.NotNull;
 
 class DataSegmentNode extends AbstractNode {
 
@@ -46,7 +45,7 @@ class DataSegmentNode extends AbstractNode {
         this.segment = segment;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Arrays.asList(
@@ -63,7 +62,7 @@ class DataSegmentNode extends AbstractNode {
         );
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return Arrays.asList(

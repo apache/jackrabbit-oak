@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 class JournalNode extends AbstractNode {
 
@@ -37,20 +36,20 @@ class JournalNode extends AbstractNode {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return backend.commitExists(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         if (backend.commitExists(name)) {
             return new CommitNode(backend, name);
         }
         return EmptyNodeState.MISSING_NODE;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         List<ChildNodeEntry> entries = new ArrayList<>();

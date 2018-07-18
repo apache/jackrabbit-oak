@@ -33,9 +33,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +67,7 @@ public class TarRevisions implements Revisions, Closeable {
      */
     private final Lock journalFileLock = new ReentrantLock();
 
-    @Nonnull
+    @NotNull
     private final AtomicReference<RecordId> head;
 
     private final SegmentNodeStorePersistence persistence;
@@ -85,25 +84,25 @@ public class TarRevisions implements Revisions, Closeable {
      * The persisted head of the root journal, used to determine whether the
      * latest {@link #head} value should be written to the disk.
      */
-    @Nonnull
+    @NotNull
     private final AtomicReference<RecordId> persistedHead;
 
-    @Nonnull
+    @NotNull
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
     private static class TimeOutOption implements Option {
         private final long time;
 
-        @Nonnull
+        @NotNull
         private final TimeUnit unit;
 
-        TimeOutOption(long time, @Nonnull TimeUnit unit) {
+        TimeOutOption(long time, @NotNull TimeUnit unit) {
             this.time = time;
             this.unit = unit;
         }
 
-        @Nonnull
-        public static TimeOutOption from(@CheckForNull Option option) {
+        @NotNull
+        public static TimeOutOption from(@Nullable Option option) {
             if (option instanceof TimeOutOption) {
                 return (TimeOutOption) option;
             } else {
@@ -156,9 +155,9 @@ public class TarRevisions implements Revisions, Closeable {
      * @param writeInitialNode   provider for the initial node in case the journal is empty.
      * @throws IOException
      */
-    synchronized void bind(@Nonnull SegmentStore store,
-                           @Nonnull SegmentIdProvider idProvider,
-                           @Nonnull Supplier<RecordId> writeInitialNode)
+    synchronized void bind(@NotNull SegmentStore store,
+                           @NotNull SegmentIdProvider idProvider,
+                           @NotNull Supplier<RecordId> writeInitialNode)
     throws IOException {
         if (head.get() != null) {
             return;
@@ -241,14 +240,14 @@ public class TarRevisions implements Revisions, Closeable {
         persistedHead.set(after);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getHead() {
         checkBound();
         return head.get();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getPersistedHead() {
         checkBound();
@@ -266,9 +265,9 @@ public class TarRevisions implements Revisions, Closeable {
      */
     @Override
     public boolean setHead(
-            @Nonnull RecordId expected,
-            @Nonnull RecordId head,
-            @Nonnull Option... options) {
+            @NotNull RecordId expected,
+            @NotNull RecordId head,
+            @NotNull Option... options) {
         checkBound();
 
         // If the expedite option was specified we acquire the write lock instead of the read lock.
@@ -301,8 +300,8 @@ public class TarRevisions implements Revisions, Closeable {
      */
     @Override
     public RecordId setHead(
-            @Nonnull Function<RecordId, RecordId> newHead,
-            @Nonnull Option... options)
+            @NotNull Function<RecordId, RecordId> newHead,
+            @NotNull Option... options)
     throws InterruptedException {
         checkBound();
         TimeOutOption timeout = getTimeout(options);
@@ -333,8 +332,8 @@ public class TarRevisions implements Revisions, Closeable {
         }
     }
 
-    @Nonnull
-    private static TimeOutOption getTimeout(@Nonnull Option[] options) {
+    @NotNull
+    private static TimeOutOption getTimeout(@NotNull Option[] options) {
         if (options.length == 0) {
             return TimeOutOption.from(INFINITY);
         } else if (options.length == 1) {

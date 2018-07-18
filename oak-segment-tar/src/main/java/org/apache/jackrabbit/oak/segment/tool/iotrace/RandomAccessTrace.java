@@ -28,11 +28,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A random access trace
@@ -44,15 +43,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class RandomAccessTrace implements Trace {
     public static final String CONTEXT_SPEC = "path";
 
-    @Nonnull
+    @NotNull
     private final Random rnd;
 
     private final int count;
 
-    @Nonnull
+    @NotNull
     private final List<String> paths;
 
-    @Nonnull
+    @NotNull
     private final Consumer<List<String>> context;
 
     /**
@@ -62,7 +61,7 @@ public class RandomAccessTrace implements Trace {
      * @param count     number of paths to trace
      * @param context   consumer to pass the additional context to
      */
-    public RandomAccessTrace(@Nonnull List<String> paths, long seed, int count, @Nonnull Consumer<List<String>> context) {
+    public RandomAccessTrace(@NotNull List<String> paths, long seed, int count, @NotNull Consumer<List<String>> context) {
         this.rnd = new Random(seed);
         this.count = count;
         this.paths = paths;
@@ -70,7 +69,7 @@ public class RandomAccessTrace implements Trace {
     }
 
     @Override
-    public void run(@Nonnull NodeState root) {
+    public void run(@NotNull NodeState root) {
         if(!paths.isEmpty()) {
             for (int c = 0; c < count; c++) {
                 String path = paths.get(rnd.nextInt(paths.size()));

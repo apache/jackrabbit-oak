@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code Revisions} instances provide read and write access to
@@ -45,7 +45,7 @@ public interface Revisions {
      * is a valid id for a {@code SegmentNodeState}.
      * @return  id of the head state
      */
-    @Nonnull
+    @NotNull
     RecordId getHead();
     
     /**
@@ -53,7 +53,7 @@ public interface Revisions {
      * The returned id is a valid id for a {@code SegmentNodeState}.
      * @return  id of the head state
      */
-    @Nonnull
+    @NotNull
     RecordId getPersistedHead();
 
     /**
@@ -72,9 +72,9 @@ public interface Revisions {
      * @return          {@code true} if the current head was successfully
      *                  updated, {@code false} otherwise.
      */
-    boolean setHead(@Nonnull RecordId expected,
-                    @Nonnull RecordId head,
-                    @Nonnull Option... options);
+    boolean setHead(@NotNull RecordId expected,
+                    @NotNull RecordId head,
+                    @NotNull Option... options);
 
     /**
      * Atomically set the record id of the current head state to the value
@@ -95,8 +95,8 @@ public interface Revisions {
      *                 Blocking implementations may throw this exception whe
      *                 interrupted.
      */
-    RecordId setHead(@Nonnull Function<RecordId, RecordId> newHead,
-                    @Nonnull Option... options)
+    RecordId setHead(@NotNull Function<RecordId, RecordId> newHead,
+                    @NotNull Option... options)
     throws InterruptedException;
 }
 

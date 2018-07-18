@@ -44,7 +44,6 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A property, which can read a value or list record from a segment. It
@@ -61,25 +61,25 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
  * of type "LIST" (for arrays).
  */
 public class SegmentPropertyState extends Record implements PropertyState {
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @Nonnull
+    @NotNull
     private final Type<?> type;
 
-    SegmentPropertyState(@Nonnull SegmentReader reader, @Nonnull RecordId id,
-                         @Nonnull String name, @Nonnull Type<?> type) {
+    SegmentPropertyState(@NotNull SegmentReader reader, @NotNull RecordId id,
+                         @NotNull String name, @NotNull Type<?> type) {
         super(id);
         this.reader = checkNotNull(reader);
         this.name = checkNotNull(name);
         this.type = checkNotNull(type);
     }
 
-    SegmentPropertyState(@Nonnull SegmentReader reader, @Nonnull RecordId id,
-                         @Nonnull PropertyTemplate template) {
+    SegmentPropertyState(@NotNull SegmentReader reader, @NotNull RecordId id,
+                         @NotNull PropertyTemplate template) {
         this(reader, id, template.getName(), template.getType());
     }
 
@@ -113,12 +113,12 @@ public class SegmentPropertyState extends Record implements PropertyState {
         return map;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getName() {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Type<?> getType() {
         return type;
@@ -138,7 +138,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         }
     }
 
-    @Override @Nonnull @SuppressWarnings("unchecked")
+    @Override @NotNull @SuppressWarnings("unchecked")
     public <T> T getValue(Type<T> type) {
         Segment segment = getSegment();
         if (isArray()) {
@@ -172,7 +172,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
         return size(0);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public <T> T getValue(Type<T> type, int index) {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");

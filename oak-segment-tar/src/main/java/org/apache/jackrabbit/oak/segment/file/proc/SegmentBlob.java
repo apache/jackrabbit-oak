@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class SegmentBlob implements Blob {
 
@@ -42,7 +41,7 @@ class SegmentBlob implements Blob {
         this.segment = segment;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public InputStream getNewStream() {
         return backend.getSegmentData(segmentId)
@@ -54,13 +53,13 @@ class SegmentBlob implements Blob {
         return segment.getLength();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getReference() {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getContentIdentity() {
         return null;

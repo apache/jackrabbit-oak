@@ -23,14 +23,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 class TarNode extends AbstractNode {
 
@@ -43,7 +42,7 @@ class TarNode extends AbstractNode {
         this.name = name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return ImmutableList.of(
@@ -53,20 +52,20 @@ class TarNode extends AbstractNode {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return backend.segmentExists(this.name, name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         if (backend.segmentExists(this.name, name)) {
             return SegmentNode.newSegmentNode(backend, name);
         }
         return EmptyNodeState.MISSING_NODE;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return StreamSupport.stream(backend.getSegmentIds(name).spliterator(), false)

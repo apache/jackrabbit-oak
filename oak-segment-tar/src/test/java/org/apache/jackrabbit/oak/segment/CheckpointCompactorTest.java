@@ -36,8 +36,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -163,8 +162,8 @@ public class CheckpointCompactorTest {
                 ((SegmentNodeState) node2).getRecordId());
     }
 
-    @Nonnull
-    private static CheckpointCompactor createCompactor(@Nonnull FileStore fileStore, @Nonnull GCGeneration generation) {
+    @NotNull
+    private static CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .build(fileStore);
@@ -177,7 +176,7 @@ public class CheckpointCompactorTest {
                 GCNodeWriteMonitor.EMPTY);
     }
 
-    private static void addTestContent(@Nonnull String parent, @Nonnull NodeStore nodeStore)
+    private static void addTestContent(@NotNull String parent, @NotNull NodeStore nodeStore)
     throws CommitFailedException, IOException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder parentBuilder = rootBuilder.child(parent);

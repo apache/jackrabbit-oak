@@ -26,8 +26,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -35,16 +33,17 @@ import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.jetbrains.annotations.NotNull;
 
 public class ReadOnlyRevisions implements Revisions, Closeable {
 
-    @Nonnull
+    @NotNull
     private final AtomicReference<RecordId> head;
 
-    @Nonnull
+    @NotNull
     private final JournalFile journalFile;
 
-    public ReadOnlyRevisions(@Nonnull SegmentNodeStorePersistence persistence) {
+    public ReadOnlyRevisions(@NotNull SegmentNodeStorePersistence persistence) {
         this.journalFile = checkNotNull(persistence).getJournalFile();
         this.head = new AtomicReference<>(null);
     }
@@ -56,7 +55,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
      * @param idProvider  {@code SegmentIdProvider} of the {@code store}
      * @throws IOException
      */
-    synchronized void bind(@Nonnull SegmentStore store, @Nonnull SegmentIdProvider idProvider)
+    synchronized void bind(@NotNull SegmentStore store, @NotNull SegmentIdProvider idProvider)
     throws IOException {
         if (head.get() != null) {
             return;
@@ -72,21 +71,21 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
         checkState(head.get() != null, "Revisions not bound to a store");
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getHead() {
         checkBound();
         return head.get();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getPersistedHead() {
         return getHead();
     }
 
     @Override
-    public boolean setHead(@Nonnull RecordId expected, @Nonnull RecordId head, @Nonnull Option... options) {
+    public boolean setHead(@NotNull RecordId expected, @NotNull RecordId head, @NotNull Option... options) {
         checkBound();
         RecordId id = this.head.get();
         return id.equals(expected) && this.head.compareAndSet(id, head);
@@ -94,8 +93,8 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
 
     @Override
     public RecordId setHead(
-            @Nonnull Function<RecordId, RecordId> newHead,
-            @Nonnull Option... options) throws InterruptedException {
+            @NotNull Function<RecordId, RecordId> newHead,
+            @NotNull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException("ReadOnly Revisions");
     }
 

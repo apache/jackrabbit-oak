@@ -34,8 +34,6 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -55,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -230,12 +229,12 @@ public class ExternalBlobIT {
         }
 
         @Override
-        public String getBlobId(@Nonnull String reference) {
+        public String getBlobId(@NotNull String reference) {
             return reference;
         }
 
         @Override
-        public String getReference(@Nonnull String blobId) {
+        public String getReference(@NotNull String blobId) {
             return blobId;
         }
     }

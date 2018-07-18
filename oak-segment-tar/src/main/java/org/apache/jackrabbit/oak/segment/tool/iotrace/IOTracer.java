@@ -24,11 +24,10 @@ import java.io.Writer;
 import java.util.List;
 import java.util.function.Function;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This utility class allows collecting IO traces of read accesses to segments
@@ -48,16 +47,16 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
  * as specified during instantiation of an {@code IOTracer}.
  */
 public class IOTracer {
-    @Nonnull
+    @NotNull
     private final Function<IOMonitor, FileStore> fileStoreFactory;
 
-    @Nonnull
+    @NotNull
     private final IOTraceMonitor ioMonitor;
 
     private IOTracer(
-            @Nonnull Function<IOMonitor, FileStore> fileStoreFactory,
-            @Nonnull Writer output,
-            @CheckForNull String contextSpec) {
+            @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
+            @NotNull Writer output,
+            @Nullable String contextSpec) {
         this.fileStoreFactory = checkNotNull(fileStoreFactory);
         ioMonitor = new IOTraceMonitor(new DefaultIOTraceWriter(output), contextSpec);
     }
@@ -73,11 +72,11 @@ public class IOTracer {
      *                          the list of values passed to {@link IOTracer#setContext(List)}.
      * @return A new {@code IOTracer} instance.
      */
-    @Nonnull
+    @NotNull
     public static IOTracer newIOTracer(
-            @Nonnull Function<IOMonitor, FileStore> fileStoreFactory,
-            @Nonnull Writer output,
-            @CheckForNull String contextSpec) {
+            @NotNull Function<IOMonitor, FileStore> fileStoreFactory,
+            @NotNull Writer output,
+            @Nullable String contextSpec) {
         return new IOTracer(fileStoreFactory, output, contextSpec);
     }
 
@@ -85,7 +84,7 @@ public class IOTracer {
      * Collect a IO trace.
      * @param trace
      */
-    public void collectTrace(@Nonnull Trace trace) {
+    public void collectTrace(@NotNull Trace trace) {
         checkNotNull(trace);
         try (FileStore fileStore = checkNotNull(fileStoreFactory).apply(checkNotNull(ioMonitor))) {
             trace.run(fileStore.getHead());
@@ -100,7 +99,7 @@ public class IOTracer {
      * {@link IOTracer#newIOTracer(Function, Writer, String)}.
      * @param context
      */
-    public void setContext(@Nonnull List<String> context) {
+    public void setContext(@NotNull List<String> context) {
         ioMonitor.setContext(context);
     }
 

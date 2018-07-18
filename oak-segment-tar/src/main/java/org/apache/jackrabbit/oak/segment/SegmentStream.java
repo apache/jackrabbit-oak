@@ -28,11 +28,11 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * For reading any record of type "VALUE" as binary streams.
@@ -41,7 +41,7 @@ public class SegmentStream extends InputStream {
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
-    @CheckForNull
+    @Nullable
     public static RecordId getRecordIdIfAvailable(
             InputStream stream, SegmentStore store) {
         if (stream instanceof SegmentStream) {
@@ -138,7 +138,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public int read(@Nonnull byte[] b, int off, int len) {
+    public int read(@NotNull byte[] b, int off, int len) {
         checkNotNull(b);
         checkPositionIndexes(off, off + len, b.length);
 

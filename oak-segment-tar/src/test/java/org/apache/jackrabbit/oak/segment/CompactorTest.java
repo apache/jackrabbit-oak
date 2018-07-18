@@ -36,9 +36,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -50,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -127,7 +126,7 @@ public class CompactorTest {
         compactor.compact(nodeStore.getRoot(), Canceller.newCanceller());
     }
 
-    @Nonnull
+    @NotNull
     private static Compactor createCompactor(FileStore fileStore, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
@@ -179,13 +178,13 @@ public class CompactorTest {
     }
 
     private static class FailingSegmentWriter implements SegmentWriter {
-        @Nonnull
+        @NotNull
         private final SegmentWriter delegate;
 
-        @Nonnull
+        @NotNull
         private final String failOnName;
 
-        public FailingSegmentWriter(@Nonnull SegmentWriter delegate, @Nonnull String failOnName) {
+        public FailingSegmentWriter(@NotNull SegmentWriter delegate, @NotNull String failOnName) {
             this.delegate = delegate;
             this.failOnName = failOnName;
         }
@@ -195,21 +194,21 @@ public class CompactorTest {
             delegate.flush();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeBlob(@Nonnull Blob blob) throws IOException {
+        public RecordId writeBlob(@NotNull Blob blob) throws IOException {
             return delegate.writeBlob(blob);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeStream(@Nonnull InputStream stream) throws IOException {
+        public RecordId writeStream(@NotNull InputStream stream) throws IOException {
             return delegate.writeStream(stream);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        public RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
         throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);

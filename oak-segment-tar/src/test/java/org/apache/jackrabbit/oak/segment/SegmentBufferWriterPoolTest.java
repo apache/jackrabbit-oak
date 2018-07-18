@@ -36,13 +36,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 
@@ -81,8 +80,8 @@ public class SegmentBufferWriterPoolTest {
 
     private WriteOperation createOp(final String key, final ConcurrentMap<String, SegmentBufferWriter> map) {
         return new WriteOperation() {
-            @Nonnull @Override
-            public RecordId execute(@Nonnull SegmentBufferWriter writer) {
+            @NotNull @Override
+            public RecordId execute(@NotNull SegmentBufferWriter writer) {
                 map.put(key, writer);
                 return rootId;
             }
@@ -154,9 +153,9 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testFlushBlocks() throws ExecutionException, InterruptedException {
         Future<RecordId> res = execute(new WriteOperation() {
-            @Nonnull
-            @CheckForNull @Override
-            public RecordId execute(@Nonnull SegmentBufferWriter writer) {
+            @NotNull
+            @Nullable @Override
+            public RecordId execute(@NotNull SegmentBufferWriter writer) {
                 try {
                     // This should deadlock as flush waits for this write
                     // operation to finish, which in this case contains the

@@ -25,7 +25,7 @@ import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import java.util.Formatter;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This utility breaks down space usage per record type.
@@ -58,7 +58,7 @@ public class RecordUsageAnalyser extends SegmentParser {
     private long templateCount;
     private long nodeCount;
 
-    public RecordUsageAnalyser(@Nonnull SegmentReader reader) {
+    public RecordUsageAnalyser(@NotNull SegmentReader reader) {
         super(reader);
     }
 

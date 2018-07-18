@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a write-enabled, append-only archive. It allows to append segments
@@ -64,8 +64,8 @@ public interface SegmentArchiveWriter {
      * @param isCompacted the segment compaction property, see {@link SegmentArchiveEntry#isCompacted()}
      * @throws IOException
      */
-    @Nonnull
-    void writeSegment(long msb, long lsb, @Nonnull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
+    @NotNull
+    void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
 
     /**
      * Read the segment.
@@ -91,14 +91,14 @@ public interface SegmentArchiveWriter {
      *
      * @param data serialized segment graph data
      */
-    void writeGraph(@Nonnull byte[] data) throws IOException;
+    void writeGraph(@NotNull byte[] data) throws IOException;
 
     /**
      * Write the binary references data.
      *
      * @param data serialized binary references data
      */
-    void writeBinaryReferences(@Nonnull byte[] data) throws IOException;
+    void writeBinaryReferences(@NotNull byte[] data) throws IOException;
 
     /**
      * Get the current length of the archive.
@@ -138,6 +138,6 @@ public interface SegmentArchiveWriter {
      *
      * @return archive name
      */
-    @Nonnull
+    @NotNull
     String getName();
 }
