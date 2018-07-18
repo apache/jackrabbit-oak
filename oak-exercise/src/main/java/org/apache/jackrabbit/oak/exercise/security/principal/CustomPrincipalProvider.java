@@ -20,11 +20,10 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Custom principal provider that only knows of a predefined set of principals
@@ -41,7 +40,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
     }
 
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         // EXERCISE: complete
         if (knownPrincipalNames.contains(principalName)) {
             return () -> principalName;
@@ -50,30 +49,30 @@ class CustomPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
         // EXERCISE : expose the group membership of your known Principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
         return Collections.EMPTY_SET;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         // EXERCISE : expose the principal-sets of your known principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
         return Collections.EMPTY_SET;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         // EXERCISE
         return Collections.emptyIterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         // EXERCISE

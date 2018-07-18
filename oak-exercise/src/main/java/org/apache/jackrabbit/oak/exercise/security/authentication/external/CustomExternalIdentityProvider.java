@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
@@ -46,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,14 +98,14 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
         log.info("modified IDP: " + getName());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return "CustomExternalIdentityProvider";
     }
 
     @Override
-    public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) throws ExternalIdentityException {
+    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException {
         if (getName().equals(ref.getProviderName())) {
             String id = ref.getId();
             ExternalIdentity ei = getUser(id);
@@ -119,23 +119,23 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalUser getUser(@Nonnull final String userId) throws ExternalIdentityException {
+    public ExternalUser getUser(@NotNull final String userId) throws ExternalIdentityException {
         if (userGroupMap.containsKey(userId)) {
             return new ExternalUser() {
 
-                @Nonnull
+                @NotNull
                 @Override
                 public ExternalIdentityRef getExternalId() {
                     return new ExternalIdentityRef(userId, getName());
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getId() {
                     return userId;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getPrincipalName() {
                     return "p_" + getExternalId().getString();
@@ -146,7 +146,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     return null;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
                     Set<String> groupIds = userGroupMap.get(userId);
@@ -163,7 +163,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     }
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Map<String, ?> getProperties() {
                     return ImmutableMap.of();
@@ -175,7 +175,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalUser authenticate(@Nonnull Credentials credentials) throws ExternalIdentityException, LoginException {
+    public ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException {
         if (credentials instanceof SimpleCredentials) {
             String userId = ((SimpleCredentials) credentials).getUserID();
             return getUser(userId);
@@ -185,10 +185,10 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalGroup getGroup(@Nonnull final String name) throws ExternalIdentityException {
+    public ExternalGroup getGroup(@NotNull final String name) throws ExternalIdentityException {
         if (groupIds.contains(name)) {
             return new ExternalGroup() {
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
                     Set<ExternalIdentityRef> members = new HashSet<ExternalIdentityRef>();
@@ -200,19 +200,19 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     return members;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public ExternalIdentityRef getExternalId() {
                     return new ExternalIdentityRef(name, getName());
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getId() {
                     return name;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getPrincipalName() {
                     return "p_" + getExternalId().getString();
@@ -223,13 +223,13 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
                     return null;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
                     return ImmutableSet.of();
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Map<String, ?> getProperties() {
                     return ImmutableMap.of();
@@ -240,13 +240,13 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
         throw new UnsupportedOperationException("listUsers");
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
         throw new UnsupportedOperationException("listGroups");

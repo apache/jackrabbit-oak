@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
 import java.security.Principal;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -33,6 +31,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -180,11 +180,11 @@ public class L1_IntroductionTest extends AbstractSecurityTest {
      * @param privilegeNames The privilege names.
      * @throws Exception If an error occurs.
      */
-    private void setupPermission(@Nonnull Root root,
+    private void setupPermission(@NotNull Root root,
                                  @Nullable String path,
-                                 @Nonnull Principal principal,
+                                 @NotNull Principal principal,
                                  boolean isAllow,
-                                 @Nonnull String... privilegeNames) throws Exception {
+                                 @NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
         acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);

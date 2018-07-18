@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class Editor extends Reader {
 
-    public Editor(@Nonnull String name) {
+    public Editor(@NotNull String name) {
         super(name);
     }
 }
