@@ -19,14 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -82,7 +81,7 @@ public class SolrIndexLookupTest {
     }
 
     private static NodeBuilder newSolrIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> properties) {
         if (index.hasChildNode(name)) {
             return index.child(name);

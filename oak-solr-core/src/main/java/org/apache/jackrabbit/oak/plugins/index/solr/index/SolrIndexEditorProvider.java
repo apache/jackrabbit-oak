@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,15 +50,15 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrIndexEditorProvider(
-            @Nonnull SolrServerProvider solrServerProvider,
-            @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+            @NotNull SolrServerProvider solrServerProvider,
+            @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.solrServerProvider = solrServerProvider;
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
 
     @Override
     public Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         SolrIndexEditor editor = null;
         if (SolrQueryIndex.TYPE.equals(type)) {
