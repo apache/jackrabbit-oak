@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.Collections;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Information about a node being imported. This class is used
@@ -89,7 +89,7 @@ public class NodeInfo {
      *
      * @return mixin type names
      */
-    @Nonnull
+    @NotNull
     public Iterable<String> getMixinTypeNames() {
         return mixinTypeNames;
     }

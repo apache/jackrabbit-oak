@@ -18,9 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -94,12 +93,12 @@ public class RestrictionDefinitionImplTest {
         defs.add(new RestrictionDefinitionImpl(name, Type.NAMES, true));
         // - different impl
         defs.add(new RestrictionDefinition() {
-            @Nonnull
+            @NotNull
             @Override
             public String getName() {
                 return name;
             }
-            @Nonnull
+            @NotNull
             @Override
             public Type<?> getRequiredType() {
                 return Type.NAME;

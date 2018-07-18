@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
@@ -43,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -72,15 +72,15 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         rDefs.put("r2", new RestrictionDefinitionImpl("r2", Type.LONGS, false));
 
         return new AbstractRestrictionProvider(rDefs) {
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
             }
         };
@@ -90,29 +90,29 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         return createACL(getTestPath(), Collections.<JackrabbitAccessControlEntry>emptyList(), getNamePathMapper());
     }
 
-    protected AbstractAccessControlList createACL(@Nonnull JackrabbitAccessControlEntry... entries) {
+    protected AbstractAccessControlList createACL(@NotNull JackrabbitAccessControlEntry... entries) {
         return createACL(getTestPath(), Lists.newArrayList(entries), getNamePathMapper());
     }
 
-    protected AbstractAccessControlList createACL(@Nonnull List<JackrabbitAccessControlEntry> entries) {
+    protected AbstractAccessControlList createACL(@NotNull List<JackrabbitAccessControlEntry> entries) {
         return createACL(getTestPath(), entries, getNamePathMapper());
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                  @Nonnull ACE... entries) {
+                                                  @NotNull ACE... entries) {
         return createACL(jcrPath, Lists.newArrayList(entries), getNamePathMapper());
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
-                                                  @Nonnull NamePathMapper namePathMapper) {
+                                                  @NotNull List<JackrabbitAccessControlEntry> entries,
+                                                  @NotNull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
     protected AbstractAccessControlList createACL(@Nullable String jcrPath,
-                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
-                                                  @Nonnull NamePathMapper namePathMapper,
-                                                  @Nonnull RestrictionProvider restrictionProvider) {
+                                                  @NotNull List<JackrabbitAccessControlEntry> entries,
+                                                  @NotNull NamePathMapper namePathMapper,
+                                                  @NotNull RestrictionProvider restrictionProvider) {
         return new TestACL(jcrPath, restrictionProvider, namePathMapper, entries);
     }
 

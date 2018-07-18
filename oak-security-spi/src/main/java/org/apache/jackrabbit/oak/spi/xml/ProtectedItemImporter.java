@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base interface for {@link ProtectedNodeImporter} and {@link ProtectedPropertyImporter}.
@@ -53,11 +53,11 @@ public interface ProtectedItemImporter {
      * @return {@code true} if this importer was successfully initialized and
      * is able to handle an import with the given setup; {@code false} otherwise.
      */
-    boolean init(@Nonnull Session session, @Nonnull Root root,
-            @Nonnull NamePathMapper namePathMapper,
+    boolean init(@NotNull Session session, @NotNull Root root,
+            @NotNull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            @Nonnull ReferenceChangeTracker referenceTracker,
-            @Nonnull SecurityProvider securityProvider);
+            @NotNull ReferenceChangeTracker referenceTracker,
+            @NotNull SecurityProvider securityProvider);
 
     /**
      * Post processing protected reference properties underneath a protected

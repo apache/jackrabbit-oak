@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import java.util.List;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
@@ -36,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -47,18 +46,18 @@ import static org.mockito.Mockito.when;
 
 public class UserUtilTest {
 
-    @Nonnull
-    private static Tree createTree(@CheckForNull String ntName) {
+    @NotNull
+    private static Tree createTree(@Nullable String ntName) {
         return createTree(ntName, null, null);
     }
 
-    @Nonnull
-    private static Tree createTree(@CheckForNull String ntName, @CheckForNull String id) {
+    @NotNull
+    private static Tree createTree(@Nullable String ntName, @Nullable String id) {
         return createTree(ntName, id, null);
     }
 
-    @Nonnull
-    private static Tree createTree(@CheckForNull String ntName, @CheckForNull String id, @CheckForNull String nodeName) {
+    @NotNull
+    private static Tree createTree(@Nullable String ntName, @Nullable String id, @Nullable String nodeName) {
         Tree t = Mockito.mock(Tree.class);
         if (ntName != null) {
             when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));

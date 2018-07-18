@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -33,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -50,7 +50,7 @@ public class AccessControlActionTest implements UserConstants {
     private final UserConfiguration userConfiguration = Mockito.mock(UserConfiguration.class);
     private final AuthorizationConfiguration authorizationConfiguration = Mockito.mock(AuthorizationConfiguration.class);
 
-    private void initSecurityProvider(@Nonnull String adminId, @Nonnull String anonymousId, @Nonnull String... adminPrincipalNames) {
+    private void initSecurityProvider(@NotNull String adminId, @NotNull String anonymousId, @NotNull String... adminPrincipalNames) {
         when(userConfiguration.getParameters()).thenReturn(ConfigurationParameters.of(
                 PARAM_ADMIN_ID, adminId,
                 PARAM_ANONYMOUS_ID, anonymousId));
@@ -62,7 +62,7 @@ public class AccessControlActionTest implements UserConstants {
 
     }
 
-    private AccessControlAction createAction(@Nonnull String... privNames) {
+    private AccessControlAction createAction(@NotNull String... privNames) {
         AccessControlAction action = new AccessControlAction();
         action.init(securityProvider, ConfigurationParameters.of(
                 AccessControlAction.USER_PRIVILEGE_NAMES, privNames,
@@ -70,7 +70,7 @@ public class AccessControlActionTest implements UserConstants {
         return action;
     }
 
-    private AccessControlAction createAction(@Nonnull String[] userPrivNames, @Nonnull String[] groupPrivNames) {
+    private AccessControlAction createAction(@NotNull String[] userPrivNames, @NotNull String[] groupPrivNames) {
         AccessControlAction action = new AccessControlAction();
         action.init(securityProvider, ConfigurationParameters.of(
                 AccessControlAction.USER_PRIVILEGE_NAMES, userPrivNames,
@@ -78,7 +78,7 @@ public class AccessControlActionTest implements UserConstants {
         return action;
     }
 
-    private static void mockAuthorizable(@Nonnull Authorizable a, @Nonnull String id, @CheckForNull String principalName, @CheckForNull String path) throws RepositoryException {
+    private static void mockAuthorizable(@NotNull Authorizable a, @NotNull String id, @Nullable String principalName, @Nullable String path) throws RepositoryException {
         when(a.getID()).thenReturn(id);
         if (principalName != null) {
             when(a.getPrincipal()).thenReturn(new PrincipalImpl(principalName));
@@ -92,14 +92,14 @@ public class AccessControlActionTest implements UserConstants {
         }
     }
 
-    private static User mockUser(@Nonnull String id, @CheckForNull String principalName, @CheckForNull String path) throws RepositoryException {
+    private static User mockUser(@NotNull String id, @Nullable String principalName, @Nullable String path) throws RepositoryException {
         User user = Mockito.mock(User.class);
         when(user.isGroup()).thenReturn(false);
         mockAuthorizable(user, id, principalName, path);
         return user;
     }
 
-    private static Group mockGroup(@Nonnull String id, @CheckForNull String principalName, @CheckForNull String path) throws RepositoryException {
+    private static Group mockGroup(@NotNull String id, @Nullable String principalName, @Nullable String path) throws RepositoryException {
         Group gr = Mockito.mock(Group.class);
         when(gr.isGroup()).thenReturn(true);
         mockAuthorizable(gr, id, principalName, path);

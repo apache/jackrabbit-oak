@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -42,7 +42,7 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
      *                       is allowed.
      * @param isMandatory    A boolean indicating if the restriction is mandatory.
      */
-    public RestrictionDefinitionImpl(@Nonnull String name, Type<?> type, boolean isMandatory) {
+    public RestrictionDefinitionImpl(@NotNull String name, Type<?> type, boolean isMandatory) {
         this.name = checkNotNull(name);
         if (type.tag() == PropertyType.UNDEFINED) {
             throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
@@ -52,13 +52,13 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     }
 
     //----------------------------------------------< RestrictionDefinition >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Type<?> getRequiredType() {
         return type;

@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -40,17 +38,19 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractRestrictionProvider implements RestrictionProvider, AccessControlConstants {
 
     private Map<String, RestrictionDefinition> supported;
 
-    public AbstractRestrictionProvider(@Nonnull Map<String, ? extends RestrictionDefinition> definitions) {
+    public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
         this.supported = ImmutableMap.copyOf(definitions);
     }
 
     //------------------------------------------------< RestrictionProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
         if (isUnsupportedPath(oakPath)) {
@@ -60,9 +60,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
+    public Restriction createRestriction(String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
@@ -78,9 +78,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return createRestriction(propertyState, definition);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
+    public Restriction createRestriction(String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
         RestrictionDefinition definition = getDefinition(oakPath, oakName);
         Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
@@ -101,9 +101,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return createRestriction(propertyState, definition);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
+    public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
@@ -134,7 +134,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(String oakPath, @NotNull Tree aceTree) throws AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (isUnsupportedPath(oakPath)) {
             if (!restrictionProperties.isEmpty()) {
@@ -182,8 +182,8 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
      * @param aceTree The ACE tree for which the restrictions are being read.
      * @return The tree storing the restriction information.
      */
-    @Nonnull
-    protected Tree getRestrictionsTree(@Nonnull Tree aceTree) {
+    @NotNull
+    protected Tree getRestrictionsTree(@NotNull Tree aceTree) {
         Tree restrictions = aceTree.getChild(REP_RESTRICTIONS);
         if (!restrictions.exists()) {
             // no rep:restrictions tree -> read from aceTree for backwards compatibility
@@ -193,8 +193,8 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private RestrictionDefinition getDefinition(@Nullable String oakPath, @Nonnull String oakName) throws AccessControlException {
+    @NotNull
+    private RestrictionDefinition getDefinition(@Nullable String oakPath, @NotNull String oakName) throws AccessControlException {
         if (isUnsupportedPath(oakPath)) {
             throw new AccessControlException("Unsupported restriction at " + oakPath);
         }
@@ -205,12 +205,12 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         return definition;
     }
 
-    @Nonnull
+    @NotNull
     private Restriction createRestriction(PropertyState propertyState, RestrictionDefinition definition) {
         return new RestrictionImpl(propertyState, definition);
     }
 
-    @Nonnull
+    @NotNull
     private Map<String, PropertyState> getRestrictionProperties(Tree aceTree) {
         Tree rTree = getRestrictionsTree(aceTree);
         Map<String, PropertyState> restrictionProperties = new HashMap<String, PropertyState>();

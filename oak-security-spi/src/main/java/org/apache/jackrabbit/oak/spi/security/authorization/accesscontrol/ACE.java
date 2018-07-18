@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -36,6 +34,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
@@ -66,18 +66,18 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     public PrivilegeBits getPrivilegeBits() {
         return privilegeBits;
     }
 
-    @Nonnull
+    @NotNull
     public Set<Restriction> getRestrictions() {
         return restrictions;
     }
 
     //-------------------------------------------------< AccessControlEntry >---
-    @Nonnull
+    @NotNull
     @Override
     public Principal getPrincipal() {
         return principal;
@@ -89,7 +89,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         return isAllow;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
@@ -100,7 +100,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         }).toArray(new String[restrictions.size()]);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
@@ -120,7 +120,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Value[] getRestrictions(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {

@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -78,15 +78,15 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
         supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
         restrictionProvider = new AbstractRestrictionProvider(supported) {
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
             }
         };

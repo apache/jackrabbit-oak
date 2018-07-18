@@ -17,9 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface to manage create and manage login tokens.
@@ -54,7 +55,7 @@ public interface TokenProvider {
      * @param credentials The current credentials.
      * @return {@code true} if a new login token needs to be created, {@code false} otherwise.
      */
-    boolean doCreateToken(@Nonnull Credentials credentials);
+    boolean doCreateToken(@NotNull Credentials credentials);
 
     /**
      * Issues a new login token for the user with the specified credentials
@@ -64,8 +65,8 @@ public interface TokenProvider {
      * @return The {@code TokenInfo} associated with the new login token or
      * {@code null} if no token has been created.
      */
-    @CheckForNull
-    TokenInfo createToken(@Nonnull Credentials credentials);
+    @Nullable
+    TokenInfo createToken(@NotNull Credentials credentials);
 
     /**
      * Issues a new login token for the user with the given {@code userId}
@@ -77,8 +78,8 @@ public interface TokenProvider {
      * @return The {@code TokenInfo} associated with the new login token or
      * {@code null} if no token has been created.
      */
-    @CheckForNull
-    TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String,?> attributes);
+    @Nullable
+    TokenInfo createToken(@NotNull String userId, @NotNull Map<String,?> attributes);
 
     /**
      * Retrieves the {@code TokenInfo} associated with the specified login token
@@ -88,6 +89,6 @@ public interface TokenProvider {
      * @return the {@code TokenInfo} associated with the specified login token
      * or {@code null}.
      */
-    @CheckForNull
-    TokenInfo getTokenInfo(@Nonnull String token);
+    @Nullable
+    TokenInfo getTokenInfo(@NotNull String token);
 }

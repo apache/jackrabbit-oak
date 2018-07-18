@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
 import com.google.common.collect.ImmutableList;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Aggregates a collection of {@link TokenProvider}s into a single
@@ -32,17 +33,17 @@ public final class CompositeTokenProvider implements TokenProvider {
 
     private final List<TokenProvider> providers;
 
-    private CompositeTokenProvider(@Nonnull List<? extends TokenProvider> providers) {
+    private CompositeTokenProvider(@NotNull List<? extends TokenProvider> providers) {
         this.providers = ImmutableList.copyOf(providers);
     }
 
-    @Nonnull
-    public static TokenProvider newInstance(@Nonnull TokenProvider... providers) {
+    @NotNull
+    public static TokenProvider newInstance(@NotNull TokenProvider... providers) {
         return newInstance(Arrays.<TokenProvider>asList(providers));
     }
 
-    @Nonnull
-    public static TokenProvider newInstance(@Nonnull List<? extends TokenProvider> providers) {
+    @NotNull
+    public static TokenProvider newInstance(@NotNull List<? extends TokenProvider> providers) {
         switch (providers.size()) {
             case 0: return NULL_PROVIDER;
             case 1: return providers.iterator().next();
@@ -51,7 +52,7 @@ public final class CompositeTokenProvider implements TokenProvider {
     }
 
     @Override
-    public boolean doCreateToken(@Nonnull Credentials credentials) {
+    public boolean doCreateToken(@NotNull Credentials credentials) {
         for (TokenProvider tp : providers) {
             if (tp.doCreateToken(credentials)) {
                 return true;
@@ -61,7 +62,7 @@ public final class CompositeTokenProvider implements TokenProvider {
     }
 
     @Override
-    public TokenInfo createToken(@Nonnull Credentials credentials) {
+    public TokenInfo createToken(@NotNull Credentials credentials) {
         for (TokenProvider tp : providers) {
             TokenInfo info = tp.createToken(credentials);
             if (info != null) {
@@ -72,7 +73,7 @@ public final class CompositeTokenProvider implements TokenProvider {
     }
 
     @Override
-    public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+    public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         for (TokenProvider tp : providers) {
             TokenInfo info = tp.createToken(userId, attributes);
             if (info != null) {
@@ -83,7 +84,7 @@ public final class CompositeTokenProvider implements TokenProvider {
     }
 
     @Override
-    public TokenInfo getTokenInfo(@Nonnull String token) {
+    public TokenInfo getTokenInfo(@NotNull String token) {
         for (TokenProvider tp : providers) {
             TokenInfo info = tp.getTokenInfo(token);
             if (info != null) {
@@ -95,22 +96,22 @@ public final class CompositeTokenProvider implements TokenProvider {
 
     private static final TokenProvider NULL_PROVIDER = new TokenProvider() {
         @Override
-        public boolean doCreateToken(@Nonnull Credentials credentials) {
+        public boolean doCreateToken(@NotNull Credentials credentials) {
             return false;
         }
 
         @Override
-        public TokenInfo createToken(@Nonnull Credentials credentials) {
+        public TokenInfo createToken(@NotNull Credentials credentials) {
             return null;
         }
 
         @Override
-        public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+        public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
             return null;
         }
 
         @Override
-        public TokenInfo getTokenInfo(@Nonnull String token) {
+        public TokenInfo getTokenInfo(@NotNull String token) {
             return null;
         }
     };

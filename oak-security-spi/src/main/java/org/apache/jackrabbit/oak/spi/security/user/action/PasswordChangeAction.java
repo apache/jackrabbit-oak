@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -27,6 +25,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code PasswordChangeAction} asserts that the upon
@@ -43,7 +43,7 @@ public class PasswordChangeAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onPasswordChange(@Nonnull User user, String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@NotNull User user, String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         if (newPassword == null) {
             throw new ConstraintViolationException("Expected a new password that is not null.");
         }
@@ -54,8 +54,8 @@ public class PasswordChangeAction extends AbstractAuthorizableAction {
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
-    private String getPasswordHash(@Nonnull Root root, @Nonnull User user) throws RepositoryException {
+    @Nullable
+    private String getPasswordHash(@NotNull Root root, @NotNull User user) throws RepositoryException {
         return TreeUtil.getString(root.getTree(user.getPath()), UserConstants.REP_PASSWORD);
     }
 }

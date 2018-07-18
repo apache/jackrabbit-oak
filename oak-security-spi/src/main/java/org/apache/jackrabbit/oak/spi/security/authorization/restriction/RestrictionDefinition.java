@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code RestrictionDefinition} interface provides methods for
@@ -44,7 +43,7 @@ public interface RestrictionDefinition {
      *
      * @return The oak name.
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -52,7 +51,7 @@ public interface RestrictionDefinition {
      *
      * @return The required type which must be a valid {@link javax.jcr.PropertyType}.
      */
-    @Nonnull
+    @NotNull
     Type<?> getRequiredType();
 
     /**

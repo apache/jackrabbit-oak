@@ -20,16 +20,15 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Enumeration;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.jetbrains.annotations.NotNull;
 
 @Deprecated
 class GroupPrincipalWrapper extends PrincipalImpl implements GroupPrincipal {
 
     private final Group group;
 
-    GroupPrincipalWrapper(@Nonnull Group group) {
+    GroupPrincipalWrapper(@NotNull Group group) {
         super(group.getName());
         this.group = group;
     }

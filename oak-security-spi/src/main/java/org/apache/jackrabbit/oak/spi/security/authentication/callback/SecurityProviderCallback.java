@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import javax.annotation.CheckForNull;
 import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Callback implementation to set and get the {@link SecurityProvider}.
@@ -28,7 +28,7 @@ public class SecurityProviderCallback implements Callback {
 
     private SecurityProvider securityProvider;
 
-    @CheckForNull
+    @Nullable
     public SecurityProvider getSecurityProvider() {
         return securityProvider;
     }
