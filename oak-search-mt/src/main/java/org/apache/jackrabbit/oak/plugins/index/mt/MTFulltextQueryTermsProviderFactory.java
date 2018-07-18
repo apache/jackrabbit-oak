@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.mt;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -39,6 +37,7 @@ import org.apache.joshua.decoder.Decoder;
 import org.apache.joshua.decoder.JoshuaConfiguration;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +113,7 @@ public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsPr
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getSupportedTypes() {
         if (queryTermsProvider != null) {
