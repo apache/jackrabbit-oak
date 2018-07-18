@@ -19,9 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.TreeTraverser;
@@ -32,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +92,7 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private static String getString(Tree tree, String name) {
         PropertyState prop = tree.getProperty(name);
         return prop != null ? prop.getValue(Type.STRING) : null;

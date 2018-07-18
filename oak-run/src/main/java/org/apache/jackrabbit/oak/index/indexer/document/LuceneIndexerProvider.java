@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFa
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -58,8 +57,8 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public NodeStateIndexer getIndexer(@Nonnull String type, @Nonnull String indexPath,
-                                       @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+    public NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath,
+                                       @NotNull NodeBuilder definition, @NotNull NodeState root,
                                        IndexingProgressReporter progressReporter) {
         if (!TYPE_LUCENE.equals(definition.getString(TYPE_PROPERTY_NAME))) {
             return null;

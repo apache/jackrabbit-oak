@@ -19,15 +19,14 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class LazyChildrenNodeState implements NodeState{
     private final NodeState delegate;
@@ -44,18 +43,18 @@ class LazyChildrenNodeState implements NodeState{
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return delegate.hasProperty(name);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return delegate.getProperty(name);
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return delegate.getBoolean(name);
     }
 
@@ -64,27 +63,27 @@ class LazyChildrenNodeState implements NodeState{
         return delegate.getLong(name);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getString(String name) {
         return delegate.getString(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getStrings(@Nonnull String name) {
+    public Iterable<String> getStrings(@NotNull String name) {
         return delegate.getStrings(name);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getName(@Nonnull String name) {
+    public String getName(@NotNull String name) {
         return delegate.getName(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getNames(@Nonnull String name) {
+    public Iterable<String> getNames(@NotNull String name) {
         return delegate.getNames(name);
     }
 
@@ -93,13 +92,13 @@ class LazyChildrenNodeState implements NodeState{
         return delegate.getPropertyCount();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return delegate.getProperties();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         return delegate.builder();
@@ -113,13 +112,13 @@ class LazyChildrenNodeState implements NodeState{
     //~-------------------------------< child node access >
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return childProvider.hasChildNode(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         return childProvider.getChildNode(name);
     }
 
@@ -133,7 +132,7 @@ class LazyChildrenNodeState implements NodeState{
         return childProvider.getChildNodeNames();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return childProvider.getChildNodeEntries();
