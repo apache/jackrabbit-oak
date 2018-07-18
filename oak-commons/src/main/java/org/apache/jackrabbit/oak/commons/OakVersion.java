@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides version information about Oak.
@@ -37,7 +37,7 @@ public final class OakVersion {
      * @param clazz a class of the module
      * @return the version (or "SNAPSHOT" when unknown)
      */
-    @Nonnull
+    @NotNull
     public static String getVersion(String moduleName, Class clazz) {
         String version = "SNAPSHOT"; // fallback
         InputStream stream = clazz.getResourceAsStream(
