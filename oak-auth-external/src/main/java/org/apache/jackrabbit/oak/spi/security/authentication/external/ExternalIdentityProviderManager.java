@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The external identity provider management.
@@ -32,6 +32,6 @@ public interface ExternalIdentityProviderManager {
      * @param name the provider name
      * @return the registered provider or {@code null}
      */
-    @CheckForNull
-    ExternalIdentityProvider getProvider(@Nonnull String name);
+    @Nullable
+    ExternalIdentityProvider getProvider(@NotNull String name);
 }

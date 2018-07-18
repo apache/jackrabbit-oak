@@ -22,7 +22,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
@@ -49,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -262,31 +262,31 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     private static final class TestSyncHandler implements SyncHandler {
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return "name";
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) throws SyncException {
+        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) throws SyncException {
             return new DefaultSyncContext(new DefaultSyncConfig(), idp, userManager, valueFactory);
         }
 
         @Override
-        public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException {
+        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException {
             return null;
         }
 
         @Override
-        public boolean requiresSync(@Nonnull SyncedIdentity identity) {
+        public boolean requiresSync(@NotNull SyncedIdentity identity) {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
+        public Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException {
             return Collections.emptyIterator();
         }
     }

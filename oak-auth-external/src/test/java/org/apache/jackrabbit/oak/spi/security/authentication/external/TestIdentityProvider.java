@@ -22,12 +22,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableList;
+
+import org.jetbrains.annotations.NotNull;
 
 public class TestIdentityProvider implements ExternalIdentityProvider {
 
@@ -48,7 +49,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         this(DEFAULT_IDP_NAME);
     }
 
-    public TestIdentityProvider(@Nonnull String idpName) {
+    public TestIdentityProvider(@NotNull String idpName) {
         this.idpName = idpName;
 
         addGroup(new TestGroup("aa", getName()));
@@ -89,14 +90,14 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         externalGroups.put(group.getId().toLowerCase(), (ExternalGroup) group);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return idpName;
     }
 
     @Override
-    public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) throws ExternalIdentityException {
+    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException {
         if (ID_EXCEPTION.equals(ref.getId())) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
@@ -109,7 +110,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     }
 
     @Override
-    public ExternalUser getUser(@Nonnull String userId) throws ExternalIdentityException {
+    public ExternalUser getUser(@NotNull String userId) throws ExternalIdentityException {
         if (ID_EXCEPTION.equals(userId)) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
@@ -117,7 +118,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     }
 
     @Override
-    public ExternalUser authenticate(@Nonnull Credentials credentials) throws ExternalIdentityException, LoginException {
+    public ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException {
         if (!(credentials instanceof SimpleCredentials)) {
             return null;
         }
@@ -132,20 +133,20 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
     }
 
     @Override
-    public ExternalGroup getGroup(@Nonnull String name) throws ExternalIdentityException {
+    public ExternalGroup getGroup(@NotNull String name) throws ExternalIdentityException {
         if (ID_EXCEPTION.equals(name)) {
             throw new ExternalIdentityException(ID_EXCEPTION);
         }
         return externalGroups.get(name.toLowerCase());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
         return externalUsers.values().iterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
         return externalGroups.values().iterator();
@@ -164,35 +165,35 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             this("externalId", "principalName", DEFAULT_IDP_NAME);
         }
 
-        public TestIdentity(@Nonnull String userId) {
+        public TestIdentity(@NotNull String userId) {
             this(userId, userId, DEFAULT_IDP_NAME);
         }
 
-        public TestIdentity(@Nonnull String userId, @Nonnull String principalName, @Nonnull String idpName) {
+        public TestIdentity(@NotNull String userId, @NotNull String principalName, @NotNull String idpName) {
             this.userId = userId;
             this.principalName = principalName;
             id = new ExternalIdentityRef(userId, idpName);
         }
 
-        public TestIdentity(@Nonnull ExternalIdentity base) {
+        public TestIdentity(@NotNull ExternalIdentity base) {
             userId = base.getId();
             principalName = base.getPrincipalName();
             id = base.getExternalId();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getId() {
             return userId;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getPrincipalName() {
             return principalName;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public ExternalIdentityRef getExternalId() {
             return id;
@@ -203,13 +204,13 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return groups;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, ?> getProperties() {
             return props;
@@ -230,7 +231,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static class TestUser extends TestIdentity implements ExternalUser {
 
-        public TestUser(String userId, @Nonnull String idpName) {
+        public TestUser(String userId, @NotNull String idpName) {
             super(userId, userId, idpName);
         }
 
@@ -242,11 +243,11 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static class TestGroup extends TestIdentity implements ExternalGroup {
 
-        public TestGroup(@Nonnull String userId, @Nonnull String idpName) {
+        public TestGroup(@NotNull String userId, @NotNull String idpName) {
             super(userId, userId, idpName);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
             return null;
@@ -266,7 +267,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             super("externalId", "principalName", "AnotherExternalIDP");
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
             return ImmutableList.of();

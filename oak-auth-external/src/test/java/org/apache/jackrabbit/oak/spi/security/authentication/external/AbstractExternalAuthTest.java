@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
@@ -48,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -115,7 +115,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         }
     }
 
-    private static Iterator<String> getAllAuthorizableIds(@Nonnull UserManager userManager) throws Exception {
+    private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
         return Iterators.filter(Iterators.transform(iter, new Function<Authorizable, String>() {
             @Nullable
@@ -182,7 +182,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         return systemRoot;
     }
 
-    protected static void waitUntilExpired(@Nonnull User user, @Nonnull Root root, long expTime) throws RepositoryException {
+    protected static void waitUntilExpired(@NotNull User user, @NotNull Root root, long expTime) throws RepositoryException {
         Tree t = root.getTree(user.getPath());
         PropertyState ps = t.getProperty(ExternalIdentityConstants.REP_LAST_SYNCED);
         if (ps == null || ps.count() == 0) {

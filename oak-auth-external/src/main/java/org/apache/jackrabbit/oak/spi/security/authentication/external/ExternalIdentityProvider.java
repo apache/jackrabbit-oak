@@ -18,10 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.Iterator;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code ExternalIdentityProvider} defines an interface to an external system that provides users and groups that
@@ -33,7 +34,7 @@ public interface ExternalIdentityProvider {
      * Returns the name of this provider.
      * @return the provider name.
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -46,8 +47,8 @@ public interface ExternalIdentityProvider {
      *
      * @throws ExternalIdentityException if an error occurs.
      */
-    @CheckForNull
-    ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) throws ExternalIdentityException;
+    @Nullable
+    ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException;
 
     /**
      * Returns the user for the given (local) id. if the user does not exist {@code null} is returned.
@@ -56,8 +57,8 @@ public interface ExternalIdentityProvider {
      *
      * @throws ExternalIdentityException if an error occurs.
      */
-    @CheckForNull
-    ExternalUser getUser(@Nonnull String userId) throws ExternalIdentityException;
+    @Nullable
+    ExternalUser getUser(@NotNull String userId) throws ExternalIdentityException;
 
     /**
      * Authenticates the user represented by the given credentials and returns it. If the user does not exist in this
@@ -68,8 +69,8 @@ public interface ExternalIdentityProvider {
      * @throws ExternalIdentityException if an error occurs
      * @throws javax.security.auth.login.LoginException if the user could not be authenticated
      */
-    @CheckForNull
-    ExternalUser authenticate(@Nonnull Credentials credentials) throws ExternalIdentityException, LoginException;
+    @Nullable
+    ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException;
 
     /**
      * Returns the group for the given (local) group name. if the group does not exist {@code null} is returned.
@@ -78,15 +79,15 @@ public interface ExternalIdentityProvider {
      *
      * @throws ExternalIdentityException if an error occurs.
      */
-    @CheckForNull
-    ExternalGroup getGroup(@Nonnull String name) throws ExternalIdentityException;
+    @Nullable
+    ExternalGroup getGroup(@NotNull String name) throws ExternalIdentityException;
 
     /**
      * List all external users.
      * @return an iterator over all external users
      * @throws ExternalIdentityException if an error occurs.
      */
-    @Nonnull
+    @NotNull
     Iterator<ExternalUser> listUsers() throws ExternalIdentityException;
 
     /**
@@ -94,6 +95,6 @@ public interface ExternalIdentityProvider {
      * @return an iterator over all external groups
      * @throws ExternalIdentityException if an error occurs.
      */
-    @Nonnull
+    @NotNull
     Iterator<ExternalGroup> listGroups() throws ExternalIdentityException;
 }

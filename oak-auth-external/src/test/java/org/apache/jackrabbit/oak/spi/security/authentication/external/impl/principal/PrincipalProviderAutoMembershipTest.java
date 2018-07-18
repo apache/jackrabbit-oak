@@ -21,8 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -75,7 +74,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Override
-    Set<Principal> getExpectedGroupPrincipals(@Nonnull String userId) throws Exception {
+    Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
         return ImmutableSet.<Principal>builder()
                 .addAll(super.getExpectedGroupPrincipals(userId))
                 .add(userAutoMembershipGroup.getPrincipal())

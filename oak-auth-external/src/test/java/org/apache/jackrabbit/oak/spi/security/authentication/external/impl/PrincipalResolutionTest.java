@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
+import org.jetbrains.annotations.NotNull;
 
 public class PrincipalResolutionTest extends DynamicSyncContextTest {
 
@@ -34,9 +33,9 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
 
     private final class PrincipalResolvingIDP extends TestIdentityProvider implements PrincipalNameResolver {
 
-        @Nonnull
+        @NotNull
         @Override
-        public String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
+        public String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
             ExternalIdentity identity = getIdentity(externalIdentityRef);
             if (identity == null) {
                 throw new ExternalIdentityException();

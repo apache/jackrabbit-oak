@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractEx
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,7 +62,7 @@ public class RepExternalIdTest extends AbstractExternalAuthTest {
         }
     }
 
-    private void assertRepExternalId(@Nonnull SyncResult result) throws Exception {
+    private void assertRepExternalId(@NotNull SyncResult result) throws Exception {
         assertSame(SyncResult.Status.ADD, result.getStatus());
         SyncedIdentity si = result.getIdentity();
         assertNotNull(si);

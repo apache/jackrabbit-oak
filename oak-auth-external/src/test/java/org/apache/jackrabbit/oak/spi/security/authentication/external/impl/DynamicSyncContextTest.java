@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -50,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,13 +96,13 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         return sc;
     }
 
-    private void sync(@Nonnull ExternalIdentity externalIdentity, @Nonnull SyncResult.Status expectedStatus) throws Exception {
+    private void sync(@NotNull ExternalIdentity externalIdentity, @NotNull SyncResult.Status expectedStatus) throws Exception {
         SyncResult result = syncContext.sync(externalIdentity);
         assertSame(expectedStatus, result.getStatus());
         r.commit();
     }
 
-    private void assertDynamicMembership(@Nonnull Authorizable a, @Nonnull ExternalIdentity externalIdentity, long depth) throws Exception {
+    private void assertDynamicMembership(@NotNull Authorizable a, @NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
         Value[] vs = a.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
         Iterable<String> pNames = Iterables.transform(ImmutableList.copyOf(vs), new Function<Value, String>() {
             @Nullable
@@ -123,7 +123,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(expected, ImmutableSet.copyOf(pNames));
     }
 
-    private void collectGroupPrincipals(Set<String> pNames, @Nonnull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws ExternalIdentityException {
+    private void collectGroupPrincipals(Set<String> pNames, @NotNull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws ExternalIdentityException {
         if (depth <= 0) {
             return;
         }
@@ -134,9 +134,9 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         }
     }
 
-    private static void assertSyncedMembership(@Nonnull UserManager userManager,
-                                               @Nonnull Authorizable a,
-                                               @Nonnull ExternalIdentity externalIdentity) throws Exception {
+    private static void assertSyncedMembership(@NotNull UserManager userManager,
+                                               @NotNull Authorizable a,
+                                               @NotNull ExternalIdentity externalIdentity) throws Exception {
         for (ExternalIdentityRef ref : externalIdentity.getDeclaredGroups()) {
             Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
             assertNotNull(gr);
@@ -439,7 +439,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
 
         private Iterable<ExternalIdentityRef> declaredGroupRefs;
 
-        private TestUserWithGroupRefs(@Nonnull ExternalUser base, @Nonnull Iterable<ExternalIdentityRef> declaredGroupRefs) {
+        private TestUserWithGroupRefs(@NotNull ExternalUser base, @NotNull Iterable<ExternalIdentityRef> declaredGroupRefs) {
             super(base);
             this.declaredGroupRefs = declaredGroupRefs;
         }
@@ -448,7 +448,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
             return "";
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return declaredGroupRefs;
