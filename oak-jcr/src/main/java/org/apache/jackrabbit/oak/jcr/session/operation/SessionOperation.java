@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session.operation;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code SessionOperation} provides an execution context for executing session scoped operations.
@@ -30,12 +31,12 @@ public abstract class SessionOperation<T> {
     private final String name;
     private final boolean update;
 
-    protected SessionOperation(@Nonnull String name, boolean update) {
+    protected SessionOperation(@NotNull String name, boolean update) {
         this.name = name;
         this.update = update;
     }
 
-    protected SessionOperation(@Nonnull String name) {
+    protected SessionOperation(@NotNull String name) {
         this(name, false);
     }
 
@@ -64,7 +65,7 @@ public abstract class SessionOperation<T> {
     public void checkPreconditions() throws RepositoryException {
     }
 
-    @Nonnull
+    @NotNull
     public T perform() throws RepositoryException {
         throw new UnsupportedOperationException();
     }

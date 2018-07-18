@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.jcr.lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.lock.Lock;
@@ -31,6 +29,8 @@ import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class LockImpl implements Lock {
 
@@ -38,7 +38,7 @@ public final class LockImpl implements Lock {
 
     private final NodeDelegate delegate;
 
-    public LockImpl(@Nonnull SessionContext context, @Nonnull NodeDelegate delegate) {
+    public LockImpl(@NotNull SessionContext context, @NotNull NodeDelegate delegate) {
         this.context = checkNotNull(context);
         this.delegate = checkNotNull(delegate);
     }
@@ -65,7 +65,7 @@ public final class LockImpl implements Lock {
     @Override
     public boolean isDeep() {
         return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isDeep") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return node.holdsLock(true);
@@ -77,7 +77,7 @@ public final class LockImpl implements Lock {
     public boolean isLive() {
         return context.getSession().isLive() && getSessionDelegate().safePerform(
                 new NodeOperation<Boolean>(delegate, "isLive") {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Boolean perform() {
                         return node.holdsLock(false);
@@ -126,7 +126,7 @@ public final class LockImpl implements Lock {
     @Override
     public boolean isSessionScoped() {
         return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isSessionScoped") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 String path = node.getPath();
@@ -138,7 +138,7 @@ public final class LockImpl implements Lock {
     @Override
     public boolean isLockOwningSession() {
         return getSessionDelegate().safePerform(new NodeOperation<Boolean>(delegate, "isLockOwningSessions") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 String path = node.getPath();
@@ -162,7 +162,7 @@ public final class LockImpl implements Lock {
     }
 
     @Nullable
-    private <U> U savePerformNullable(@Nonnull SessionOperation<U> op) {
+    private <U> U savePerformNullable(@NotNull SessionOperation<U> op) {
         try {
             return context.getSessionDelegate().performNullable(op);
         } catch (RepositoryException e) {

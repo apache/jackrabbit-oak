@@ -23,7 +23,6 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
 
 public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
@@ -53,7 +53,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public VersionHistory getContainingHistory() throws RepositoryException {
         return perform(new SessionOperation<VersionHistory>("getContainingHistory") {
-            @Nonnull
+            @NotNull
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
@@ -66,7 +66,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Calendar getCreated() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Calendar>("getCreated") {
-            @Nonnull
+            @NotNull
             @Override
             public Calendar perform() throws RepositoryException {
                 PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
@@ -120,7 +120,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Version[] getPredecessors() throws RepositoryException {
         return perform(new SessionOperation<Version[]>("getPredecessors") {
-            @Nonnull
+            @NotNull
             @Override
             public Version[] perform() throws RepositoryException {
                 List<Version> predecessors = new ArrayList<Version>();
@@ -135,7 +135,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Version[] getSuccessors() throws RepositoryException {
         return perform(new SessionOperation<Version[]>("getSuccessors") {
-            @Nonnull
+            @NotNull
             @Override
             public Version[] perform() throws RepositoryException {
                 PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_SUCCESSORS);
@@ -153,7 +153,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Node getFrozenNode() throws RepositoryException {
         return perform(new SessionOperation<Node>("getFrozenNode") {
-            @Nonnull
+            @NotNull
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate frozenNode = dlg.getChild(VersionConstants.JCR_FROZENNODE);
@@ -169,13 +169,13 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     //------------------------------< internal >--------------------------------
 
-    @Nonnull
+    @NotNull
     private VersionManagerDelegate getVersionManagerDelegate() {
         return VersionManagerDelegate.create(sessionContext.getSessionDelegate());
     }
 
-    @Nonnull
-    private PropertyDelegate getPropertyOrThrow(@Nonnull String name)
+    @NotNull
+    private PropertyDelegate getPropertyOrThrow(@NotNull String name)
             throws RepositoryException {
         PropertyDelegate p = dlg.getPropertyOrNull(checkNotNull(name));
         if (p == null) {

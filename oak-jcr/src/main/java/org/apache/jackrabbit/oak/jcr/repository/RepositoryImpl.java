@@ -32,9 +32,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -71,6 +68,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,18 +131,18 @@ public class RepositoryImpl implements JackrabbitRepository {
     /**
      * Constructor used for backward compatibility.
      */
-    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
-                          @Nonnull Whiteboard whiteboard,
-                          @Nonnull SecurityProvider securityProvider,
+    public RepositoryImpl(@NotNull ContentRepository contentRepository,
+                          @NotNull Whiteboard whiteboard,
+                          @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter) {
         this(contentRepository, whiteboard, securityProvider, 
                 observationQueueLength, commitRateLimiter, false);
     }
     
-    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
-                          @Nonnull Whiteboard whiteboard,
-                          @Nonnull SecurityProvider securityProvider,
+    public RepositoryImpl(@NotNull ContentRepository contentRepository,
+                          @NotNull Whiteboard whiteboard,
+                          @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize) {
@@ -267,8 +266,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     //------------------------------------------------------------< JackrabbitRepository >---
 
     @Override
-    public Session login(@CheckForNull Credentials credentials, @CheckForNull String workspaceName,
-            @CheckForNull Map<String, Object> attributes) throws RepositoryException {
+    public Session login(@Nullable Credentials credentials, @Nullable String workspaceName,
+            @Nullable Map<String, Object> attributes) throws RepositoryException {
         try {
             if (attributes == null) {
                 attributes = emptyMap();
@@ -375,7 +374,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         ThreadFactory tf = new ThreadFactory() {
             private final AtomicLong counter = new AtomicLong();
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread t = new Thread(r, newName());
                 t.setDaemon(true);
                 return t;

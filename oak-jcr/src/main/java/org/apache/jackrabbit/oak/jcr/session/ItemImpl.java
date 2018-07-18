@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,8 +107,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @return  the result of {@code op.perform()}
      * @throws RepositoryException as thrown by {@code op.perform()}.
      */
-    @Nonnull
-    protected final <U> U perform(@Nonnull SessionOperation<U> op) throws RepositoryException {
+    @NotNull
+    protected final <U> U perform(@NotNull SessionOperation<U> op) throws RepositoryException {
         return sessionDelegate.perform(op);
     }
 
@@ -118,10 +118,10 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @see javax.jcr.Item#getName()
      */
     @Override
-    @Nonnull
+    @NotNull
     public String getName() throws RepositoryException {
         String oakName = perform(new ItemOperation<String>(dlg, "getName") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() {
                 return item.getName();
@@ -135,10 +135,10 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @see javax.jcr.Property#getPath()
      */
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() throws RepositoryException {
         return toJcrPath(perform(new ItemOperation<String>(dlg, "getPath") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() {
                 return item.getPath();
@@ -146,7 +146,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }));
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Session getSession() {
         return sessionContext.getSession();
     }
@@ -161,7 +161,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }
 
         ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg, "getAncestor") {
-            @Nonnull
+            @NotNull
             @Override
             public ItemDelegate perform() throws RepositoryException {
                 String path = item.getPath();
@@ -313,22 +313,22 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     //-----------------------------------------------------------< internal >---
-    @Nonnull
+    @NotNull
     String getOakName(String name) throws RepositoryException {
         return sessionContext.getOakName(name);
     }
 
-    @Nonnull
+    @NotNull
     String getOakPathOrThrow(String jcrPath) throws RepositoryException {
         return sessionContext.getOakPathOrThrow(jcrPath);
     }
 
-    @Nonnull
+    @NotNull
     String getOakPathOrThrowNotFound(String relPath) throws PathNotFoundException {
         return sessionContext.getOakPathOrThrowNotFound(relPath);
     }
 
-    @Nonnull
+    @NotNull
     String toJcrPath(String oakPath) {
         return sessionContext.getJcrPath(oakPath);
     }
@@ -338,22 +338,22 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      *
      * @return the value factory
      */
-    @Nonnull
+    @NotNull
     ValueFactory getValueFactory() {
         return sessionContext.getValueFactory();
     }
 
-    @Nonnull
+    @NotNull
     ReadWriteNodeTypeManager getNodeTypeManager() {
         return sessionContext.getWorkspace().getNodeTypeManager();
     }
 
-    @Nonnull
+    @NotNull
     VersionManager getVersionManager() throws RepositoryException {
         return sessionContext.getWorkspace().getVersionManager();
     }
 
-    @Nonnull
+    @NotNull
     protected PropertyState createSingleState(
             String oakName, Value value, Type<?> type)
             throws RepositoryException {
@@ -367,7 +367,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         }
     }
 
-    @Nonnull
+    @NotNull
     protected PropertyState createMultiState(
             String oakName, List<Value> values, Type<?> type)
             throws RepositoryException {

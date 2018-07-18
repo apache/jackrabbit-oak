@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
@@ -30,6 +29,7 @@ import javax.jcr.version.VersionManager;
 import com.google.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 

@@ -21,13 +21,13 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Lists;
 
@@ -40,12 +40,12 @@ public class VersionDelegate extends NodeDelegate {
         super(checkNotNull(sessionDelegate), checkNotNull(tree));
     }
 
-    static VersionDelegate create(@Nonnull SessionDelegate sessionDelegate,
-                                  @Nonnull Tree tree) {
+    static VersionDelegate create(@NotNull SessionDelegate sessionDelegate,
+                                  @NotNull Tree tree) {
         return new VersionDelegate(sessionDelegate, tree);
     }
 
-    @Nonnull
+    @NotNull
     NodeDelegate getFrozenNode() throws RepositoryException {
         NodeDelegate frozenNode = getChild(JcrConstants.JCR_FROZENNODE);
         if (frozenNode == null) {
@@ -55,7 +55,7 @@ public class VersionDelegate extends NodeDelegate {
         return frozenNode;
     }
 
-    @Nonnull
+    @NotNull
     public Iterable<VersionDelegate> getPredecessors()
             throws RepositoryException {
         PropertyDelegate p = getPropertyOrNull(JCR_PREDECESSORS);
@@ -71,7 +71,7 @@ public class VersionDelegate extends NodeDelegate {
         return predecessors;
     }
 
-    @CheckForNull
+    @Nullable
     public VersionDelegate getLinearPredecessor() throws RepositoryException {
         Iterable<VersionDelegate> predecessors = getPredecessors();
         if (predecessors.iterator().hasNext()) {

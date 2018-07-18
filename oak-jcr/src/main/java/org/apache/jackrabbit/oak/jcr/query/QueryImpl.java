@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.query;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -81,7 +81,7 @@ public class QueryImpl implements Query {
         }
         List<String> names = sessionContext.getSessionDelegate().perform(
                 new SessionOperation<List<String>>("parse") {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public List<String> perform() throws RepositoryException {
                         return manager.parse(statement, language);
@@ -98,7 +98,7 @@ public class QueryImpl implements Query {
     public QueryResult execute() throws RepositoryException {
         return sessionContext.getSessionDelegate().perform(
                 new SessionOperation<QueryResult>("execute") {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public QueryResult perform() throws RepositoryException {
                         return manager.executeQuery(statement, language, limit,

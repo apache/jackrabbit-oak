@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base class for locking operations.
@@ -47,7 +47,7 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
         return true;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public T perform() throws RepositoryException {
         session.refresh(true);
@@ -72,12 +72,12 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
         }
     }
 
-    @Nonnull
-    protected T perform(@Nonnull NodeDelegate node) throws RepositoryException {
+    @NotNull
+    protected T perform(@NotNull NodeDelegate node) throws RepositoryException {
         throw new UnsupportedOperationException();
     }
 
-    protected void performVoid(@Nonnull NodeDelegate node) throws RepositoryException {
+    protected void performVoid(@NotNull NodeDelegate node) throws RepositoryException {
         throw new UnsupportedOperationException();
     }
 
