@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Same as {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
@@ -32,7 +31,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeType;
  */
 final class EmptyCugTreePermission extends AbstractTreePermission {
 
-    EmptyCugTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider) {
+    EmptyCugTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull CugPermissionProvider permissionProvider) {
         super(tree, type, permissionProvider);
     }
 
@@ -44,7 +43,7 @@ final class EmptyCugTreePermission extends AbstractTreePermission {
     }
 
     @Override
-    public boolean canRead(@Nonnull PropertyState property) {
+    public boolean canRead(@NotNull PropertyState property) {
         return false;
     }
 
@@ -64,7 +63,7 @@ final class EmptyCugTreePermission extends AbstractTreePermission {
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+    public boolean isGranted(long permissions, @NotNull PropertyState property) {
         return false;
     }
 }
