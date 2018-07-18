@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.math.BigDecimal;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Function;
@@ -32,6 +31,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base class for multi valued {@code PropertyState} implementations.
@@ -153,7 +153,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * values defined in {@link Type} or if {@code type.isArray()} is {@code false}.
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     @Override
     public <S> S getValue(Type<S> type) {
         checkArgument(type.isArray(), "Type must be an array type");
@@ -190,7 +190,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @throws IndexOutOfBoundsException if {@code index >= count()}.
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     @Override
     public <S> S getValue(Type<S> type, int index) {
         checkArgument(!type.isArray(), "Type must not be an array type");

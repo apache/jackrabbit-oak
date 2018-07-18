@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility class for creating {@link PropertyState} instances.
@@ -52,7 +52,7 @@ public final class PropertyStates {
      * @return  The new property state
      * @throws RepositoryException forwarded from {@code value}
      */
-    @Nonnull
+    @NotNull
     public static PropertyState createProperty(String name, Value value) throws RepositoryException {
         int type = value.getType();
         switch (type) {
@@ -84,7 +84,7 @@ public final class PropertyStates {
      * @return  The new property state
      * @throws RepositoryException forwarded from {@code value}
      */
-    @Nonnull
+    @NotNull
     public static PropertyState createProperty(
             String name, Iterable<Value> values)
             throws RepositoryException {
@@ -164,7 +164,7 @@ public final class PropertyStates {
      * @param type  The type of the property state
      * @return  The new property state
      */
-    @Nonnull
+    @NotNull
     public static PropertyState createProperty(String name, String value, int type) {
         switch (type) {
             case PropertyType.STRING:
@@ -192,7 +192,7 @@ public final class PropertyStates {
      * @return  The new property state
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     public static PropertyState createProperty(String name, Object value, Type<?> type) {
         switch (type.tag()) {
             case PropertyType.STRING:
@@ -255,7 +255,7 @@ public final class PropertyStates {
      * @param value  The value of the property state
      * @return  The new property state
      */
-    @Nonnull
+    @NotNull
     public static <T> PropertyState createProperty(String name, T value) {
         if (value instanceof String) {
             return StringPropertyState.stringProperty(name, (String) value);

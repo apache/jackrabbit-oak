@@ -23,14 +23,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Basic in-memory node state implementation.
@@ -63,12 +62,12 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return properties.containsKey(name);
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return properties.get(name);
     }
 
@@ -77,20 +76,20 @@ class MemoryNodeState extends AbstractNodeState {
         return properties.size();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return properties.values();
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return nodes.containsKey(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         NodeState state = nodes.get(name);
         if (state == null) {
             checkValidName(name);
@@ -104,13 +103,13 @@ class MemoryNodeState extends AbstractNodeState {
         return nodes.size();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<ChildNodeEntry> getChildNodeEntries() {
         return MemoryChildNodeEntry.iterable(nodes.entrySet());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);

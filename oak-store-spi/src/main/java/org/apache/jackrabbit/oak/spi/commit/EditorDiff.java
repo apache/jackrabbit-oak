@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class EditorDiff implements NodeStateDiff {
 
@@ -38,10 +37,10 @@ public class EditorDiff implements NodeStateDiff {
      * @param after state of the modified subtree
      * @return exception if the processing failed, {@code null} otherwise
      */
-    @CheckForNull
+    @Nullable
     public static CommitFailedException process(
-            @CheckForNull Editor editor,
-            @Nonnull NodeState before, @Nonnull NodeState after) {
+            @Nullable Editor editor,
+            @NotNull NodeState before, @NotNull NodeState after) {
         checkNotNull(before);
         checkNotNull(after);
         if (editor != null) {

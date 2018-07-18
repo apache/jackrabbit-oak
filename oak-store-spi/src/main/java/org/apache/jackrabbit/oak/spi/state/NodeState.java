@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicate;
 
@@ -144,7 +142,7 @@ public interface NodeState {
      * @return {@code true} if the named property exists,
      *         {@code false} otherwise
      */
-    boolean hasProperty(@Nonnull String name);
+    boolean hasProperty(@NotNull String name);
 
     /**
      * Returns the named property, or {@code null} if no such property exists.
@@ -152,8 +150,8 @@ public interface NodeState {
      * @param name name of the property to return
      * @return named property, or {@code null} if not found
      */
-    @CheckForNull
-    PropertyState getProperty(@Nonnull String name);
+    @Nullable
+    PropertyState getProperty(@NotNull String name);
 
     /**
      * Returns the boolean value of the named property. The implementation
@@ -170,7 +168,7 @@ public interface NodeState {
      * @param name property name
      * @return boolean value of the named property, or {@code false}
      */
-    boolean getBoolean(@Nonnull String name);
+    boolean getBoolean(@NotNull String name);
 
     /**
      * Returns the long value of the named property. The implementation
@@ -209,7 +207,7 @@ public interface NodeState {
      * @param name property name
      * @return string value of the named property, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     String getString(String name);
 
     /**
@@ -229,8 +227,8 @@ public interface NodeState {
      * @param name property name
      * @return string values of the named property, or an empty collection
      */
-    @Nonnull
-    Iterable<String> getStrings(@Nonnull String name);
+    @NotNull
+    Iterable<String> getStrings(@NotNull String name);
 
     /**
      * Returns the name value of the named property. The implementation
@@ -249,8 +247,8 @@ public interface NodeState {
      * @param name property name
      * @return name value of the named property, or {@code null}
      */
-    @CheckForNull
-    String getName(@Nonnull String name);
+    @Nullable
+    String getName(@NotNull String name);
 
     /**
      * Returns the name values of the named property. The implementation
@@ -269,8 +267,8 @@ public interface NodeState {
      * @param name property name
      * @return name values of the named property, or an empty collection
      */
-    @Nonnull
-    Iterable<String> getNames(@Nonnull String name);
+    @NotNull
+    Iterable<String> getNames(@NotNull String name);
 
     /**
      * Returns the number of properties of this node.
@@ -287,7 +285,7 @@ public interface NodeState {
      *
      * @return properties in some stable order
      */
-    @Nonnull
+    @NotNull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -300,7 +298,7 @@ public interface NodeState {
      * @return {@code true} if the named child node exists,
      *         {@code false} otherwise
      */
-    boolean hasChildNode(@Nonnull String name);
+    boolean hasChildNode(@NotNull String name);
 
     /**
      * Returns the named, possibly non-existent, child node. Use the
@@ -312,8 +310,8 @@ public interface NodeState {
      * @throws IllegalArgumentException if the given name string is is empty
      *                                  or contains a forward slash character
      */
-    @Nonnull
-    NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException;
+    @NotNull
+    NodeState getChildNode(@NotNull String name) throws IllegalArgumentException;
 
     /**
      * Returns the number of <em>iterable</em> child nodes of this node.
@@ -351,7 +349,7 @@ public interface NodeState {
      *
      * @return child node entries in some stable order
      */
-    @Nonnull
+    @NotNull
     Iterable<? extends ChildNodeEntry> getChildNodeEntries();
 
     /**
@@ -362,7 +360,7 @@ public interface NodeState {
      * @since Oak 0.6
      * @return node builder based on this state
      */
-    @Nonnull
+    @NotNull
     NodeBuilder builder();
 
     /**

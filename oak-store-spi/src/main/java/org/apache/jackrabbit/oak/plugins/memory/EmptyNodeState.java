@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Singleton instances of empty and non-existent node states, i.e. ones
@@ -55,17 +54,17 @@ public final class EmptyNodeState implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return false;
     }
 
-    @Override @CheckForNull
-    public PropertyState getProperty(@Nonnull String name) {
+    @Override @Nullable
+    public PropertyState getProperty(@NotNull String name) {
         return null;
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return false;
     }
 
@@ -79,23 +78,23 @@ public final class EmptyNodeState implements NodeState {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getStrings(@Nonnull String name) {
+    public Iterable<String> getStrings(@NotNull String name) {
         return emptyList();
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
+    @Override @Nullable
+    public String getName(@NotNull String name) {
         return null;
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getNames(@NotNull String name) {
         return emptyList();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         return emptyList();
     }
@@ -106,12 +105,12 @@ public final class EmptyNodeState implements NodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return false;
     }
 
-    @Override @Nonnull
-    public NodeState getChildNode(@Nonnull String name) {
+    @Override @NotNull
+    public NodeState getChildNode(@NotNull String name) {
         checkValidName(name);
         return MISSING_NODE;
     }
@@ -121,12 +120,12 @@ public final class EmptyNodeState implements NodeState {
         return emptyList();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return emptyList();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
     }

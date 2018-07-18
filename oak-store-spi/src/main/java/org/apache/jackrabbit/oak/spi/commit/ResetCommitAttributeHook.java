@@ -19,17 +19,16 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public enum ResetCommitAttributeHook implements CommitHook {
     INSTANCE;
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
             throws CommitFailedException {

@@ -25,9 +25,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 public class PropertyStateValueTest {
