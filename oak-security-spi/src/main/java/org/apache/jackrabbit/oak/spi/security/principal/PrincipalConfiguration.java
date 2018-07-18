@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Configuration interface for principal management.
@@ -40,7 +39,7 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      * @return An instance of {@link PrincipalManager}.
      * @see org.apache.jackrabbit.api.JackrabbitSession#getPrincipalManager()
      */
-    @Nonnull
+    @NotNull
     PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper);
 
     /**
@@ -68,6 +67,6 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      * @param namePathMapper The {@code NamePathMapper} to be used.
      * @return An instance of {@link PrincipalProvider}.
      */
-    @Nonnull
+    @NotNull
     PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper);
 }

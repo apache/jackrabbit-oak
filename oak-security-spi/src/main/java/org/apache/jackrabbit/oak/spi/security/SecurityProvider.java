@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -43,7 +42,7 @@ public interface SecurityProvider {
      * identified by the specified name. If the specified name is {@code null}
      * the global config parameters will be returned.
      */
-    @Nonnull
+    @NotNull
     ConfigurationParameters getParameters(@Nullable String name);
 
     /**
@@ -51,7 +50,7 @@ public interface SecurityProvider {
      *
      * @return the available {@link org.apache.jackrabbit.oak.spi.security.SecurityConfiguration}s.
      */
-    @Nonnull
+    @NotNull
     Iterable<? extends SecurityConfiguration> getConfigurations();
 
     /**
@@ -61,6 +60,6 @@ public interface SecurityProvider {
      * @param <T>
      * @return The desired security configuration.
      */
-    @Nonnull
-    <T> T getConfiguration(@Nonnull Class<T> configClass);
+    @NotNull
+    <T> T getConfiguration(@NotNull Class<T> configClass);
 }

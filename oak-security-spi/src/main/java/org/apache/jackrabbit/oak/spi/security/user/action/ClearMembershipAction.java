@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.Iterator;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Authorizable action attempting to clear all group membership before removing
@@ -35,7 +35,7 @@ public class ClearMembershipAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onRemove(@Nonnull Authorizable authorizable, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         clearMembership(authorizable);
     }
 

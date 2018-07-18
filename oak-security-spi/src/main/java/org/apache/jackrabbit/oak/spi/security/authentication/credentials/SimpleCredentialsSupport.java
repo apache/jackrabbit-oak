@@ -18,15 +18,15 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
 import java.util.Collections;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation of the
@@ -44,14 +44,14 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public ImmutableSet<Class> getCredentialClasses() {
         return ImmutableSet.<Class>of(SimpleCredentials.class);
     }
 
     @Override
-    @CheckForNull
-    public String getUserId(@Nonnull Credentials credentials) {
+    @Nullable
+    public String getUserId(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             return ((SimpleCredentials) credentials).getUserID();
         } else {
@@ -60,8 +60,8 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    @Nonnull
-    public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+    @NotNull
+    public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
             return Maps.asMap(ImmutableSet.copyOf(sc.getAttributeNames()), new Function<String, Object>() {
@@ -77,7 +77,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+    public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
         if (credentials instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) credentials;
             for (Map.Entry<String, ?> entry : attributes.entrySet()) {

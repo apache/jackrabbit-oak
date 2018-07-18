@@ -21,8 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
@@ -43,7 +42,7 @@ public interface SecurityConfiguration {
      *
      * @return The name of this configuration.
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -53,7 +52,7 @@ public interface SecurityConfiguration {
      *
      * @return The configuration parameters.
      */
-    @Nonnull
+    @NotNull
     ConfigurationParameters getParameters();
 
     /**
@@ -63,7 +62,7 @@ public interface SecurityConfiguration {
      *
      * @return An instance of {@code WorkspaceInitializer}.
      */
-    @Nonnull
+    @NotNull
     WorkspaceInitializer getWorkspaceInitializer();
 
     /**
@@ -73,7 +72,7 @@ public interface SecurityConfiguration {
      *
      * @return An instance of {@code RepositoryInitializer}.
      */
-    @Nonnull
+    @NotNull
     RepositoryInitializer getRepositoryInitializer();
 
     /**
@@ -83,8 +82,8 @@ public interface SecurityConfiguration {
      * @param workspaceName The name of the workspace.
      * @return A list of commit hooks.
      */
-    @Nonnull
-    List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName);
+    @NotNull
+    List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName);
 
     /**
      * Returns the list of validators that need to be executed for the specified
@@ -96,29 +95,29 @@ public interface SecurityConfiguration {
      * @param moveTracker The move tracker associated with the commit.
      * @return A list of validators.
      */
-    @Nonnull
-    List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName,
-                                                    @Nonnull Set<Principal> principals,
-                                                    @Nonnull MoveTracker moveTracker);
+    @NotNull
+    List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName,
+                                                    @NotNull Set<Principal> principals,
+                                                    @NotNull MoveTracker moveTracker);
 
     /**
      * Returns the list of conflict handlers available for this security configuration.
      *
      * @return A list of {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler}.
      */
-    @Nonnull
+    @NotNull
     List<ThreeWayConflictHandler> getConflictHandlers();
 
     /**
      * @return The list of protected item importers defined by this configuration.
      */
-    @Nonnull
+    @NotNull
     List<ProtectedItemImporter> getProtectedItemImporters();
 
     /**
      * @return The context defined by this configuration.
      */
-    @Nonnull
+    @NotNull
     Context getContext();
 
     /**
@@ -127,56 +126,56 @@ public interface SecurityConfiguration {
      */
     class Default implements SecurityConfiguration {
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return "org.apache.jackrabbit.oak";
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public ConfigurationParameters getParameters() {
             return ConfigurationParameters.EMPTY;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public WorkspaceInitializer getWorkspaceInitializer() {
             return WorkspaceInitializer.DEFAULT;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RepositoryInitializer getRepositoryInitializer() {
             return RepositoryInitializer.DEFAULT;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+        public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
             return Collections.emptyList();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<? extends ValidatorProvider> getValidators(
-                @Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+                @NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
             return Collections.emptyList();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<ThreeWayConflictHandler> getConflictHandlers() {
             return Collections.emptyList();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<ProtectedItemImporter> getProtectedItemImporters() {
             return Collections.emptyList();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Context getContext() {
             return Context.DEFAULT;

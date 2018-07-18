@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface for the authentication setup.
@@ -33,6 +32,6 @@ public interface AuthenticationConfiguration extends SecurityConfiguration {
 
     String PARAM_CONFIG_SPI_NAME = "org.apache.jackrabbit.oak.authentication.configSpiName";
 
-    @Nonnull
+    @NotNull
     LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.2.0")
+@Version("1.2.1")
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import org.osgi.annotation.versioning.Version;

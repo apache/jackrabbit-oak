@@ -20,9 +20,6 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -42,6 +39,8 @@ import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayList;
@@ -83,13 +82,13 @@ public final class TreeUtil {
     private TreeUtil() {
     }
 
-    @CheckForNull
-    public static String getPrimaryTypeName(@Nonnull Tree tree) {
+    @Nullable
+    public static String getPrimaryTypeName(@NotNull Tree tree) {
         return getStringInternal(tree, JcrConstants.JCR_PRIMARYTYPE, Type.NAME);
     }
 
-    @CheckForNull
-    public static Iterable<String> getStrings(@Nonnull Tree tree, @Nonnull String propertyName) {
+    @Nullable
+    public static Iterable<String> getStrings(@NotNull Tree tree, @NotNull String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         if (property == null) {
             return null;
@@ -98,21 +97,21 @@ public final class TreeUtil {
         }
     }
 
-    @CheckForNull
-    public static String getString(@Nonnull Tree tree, @Nonnull String propertyName) {
+    @Nullable
+    public static String getString(@NotNull Tree tree, @NotNull String propertyName) {
         return getStringInternal(tree, propertyName, Type.STRING);
     }
 
-    @CheckForNull
-    public static String getString(@Nonnull Tree tree, @Nonnull String name, @Nullable String defaultValue) {
+    @Nullable
+    public static String getString(@NotNull Tree tree, @NotNull String name, @Nullable String defaultValue) {
         String str = getString(tree, name);
         return (str != null) ? str : defaultValue;
     }
 
-    @CheckForNull
-    private static String getStringInternal(@Nonnull Tree tree,
-                                            @Nonnull String propertyName,
-                                            @Nonnull Type<String> type) {
+    @Nullable
+    private static String getStringInternal(@NotNull Tree tree,
+                                            @NotNull String propertyName,
+                                            @NotNull Type<String> type) {
         PropertyState property = tree.getProperty(propertyName);
         if (property != null && !property.isArray()) {
             return property.getValue(type);
@@ -133,13 +132,13 @@ public final class TreeUtil {
      *         name. This utility returns {@code false} if the property does not exist
      *         or is an multivalued property.
      */
-    public static boolean getBoolean(@Nonnull Tree tree, @Nonnull String propertyName) {
+    public static boolean getBoolean(@NotNull Tree tree, @NotNull String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
     }
 
-    @CheckForNull
-    public static String getName(@Nonnull Tree tree, @Nonnull String name) {
+    @Nullable
+    public static String getName(@NotNull Tree tree, @NotNull String name) {
         PropertyState property = tree.getProperty(name);
         if (property != null && property.getType() == NAME) {
             return property.getValue(NAME);
@@ -148,8 +147,8 @@ public final class TreeUtil {
         }
     }
 
-    @Nonnull
-    public static Iterable<String> getNames(@Nonnull Tree tree, @Nonnull String name) {
+    @NotNull
+    public static Iterable<String> getNames(@NotNull Tree tree, @NotNull String name) {
         PropertyState property = tree.getProperty(name);
         if (property != null && property.getType() == NAMES) {
             return property.getValue(NAMES);
@@ -158,7 +157,7 @@ public final class TreeUtil {
         }
     }
 
-    public static long getLong(@Nonnull Tree tree, @Nonnull String name, long defaultValue) {
+    public static long getLong(@NotNull Tree tree, @NotNull String name, long defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
             return property.getValue(LONG);
@@ -176,8 +175,8 @@ public final class TreeUtil {
      * @param path  path from the start tree
      * @return  tree located at {@code path} from {@code start} or {@code null}
      */
-    @CheckForNull
-    public static Tree getTree(@Nonnull Tree tree, @Nonnull String path) {
+    @Nullable
+    public static Tree getTree(@NotNull Tree tree, @NotNull String path) {
         for (String element : PathUtils.elements(path)) {
             if (PathUtils.denotesParent(element)) {
                 if (tree.isRoot()) {
@@ -193,9 +192,9 @@ public final class TreeUtil {
     }
 
     public static Tree addChild(
-            @Nonnull Tree parent, @Nonnull String name,
-            @CheckForNull String typeName, @Nonnull Tree typeRoot,
-            @CheckForNull String userID) throws RepositoryException {
+            @NotNull Tree parent, @NotNull String name,
+            @Nullable String typeName, @NotNull Tree typeRoot,
+            @Nullable String userID) throws RepositoryException {
         if (typeName == null) {
             typeName = getDefaultChildType(typeRoot, parent, name);
             if (typeName == null) {
@@ -242,8 +241,8 @@ public final class TreeUtil {
      * @return The new child tree with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
      */
-    @Nonnull
-    public static Tree addChild(@Nonnull Tree tree, @Nonnull String childName, @Nonnull String primaryTypeName) throws AccessDeniedException {
+    @NotNull
+    public static Tree addChild(@NotNull Tree tree, @NotNull String childName, @NotNull String primaryTypeName) throws AccessDeniedException {
         Tree child = tree.addChild(childName);
         if (!child.exists()) {
             throw new AccessDeniedException();
@@ -262,13 +261,13 @@ public final class TreeUtil {
      * @return The new child node with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
      */
-    @Nonnull
-    public static Tree getOrAddChild(@Nonnull Tree tree, @Nonnull String childName, @Nonnull String primaryTypeName) throws AccessDeniedException {
+    @NotNull
+    public static Tree getOrAddChild(@NotNull Tree tree, @NotNull String childName, @NotNull String primaryTypeName) throws AccessDeniedException {
         Tree child = tree.getChild(childName);
         return (child.exists()) ? child : addChild(tree, childName, primaryTypeName);
     }
 
-    public static void addMixin(@Nonnull Tree tree, @Nonnull String mixinName, @Nonnull Tree typeRoot, @CheckForNull String userID) throws RepositoryException {
+    public static void addMixin(@NotNull Tree tree, @NotNull String mixinName, @NotNull Tree typeRoot, @Nullable String userID) throws RepositoryException {
         Tree type = typeRoot.getChild(mixinName);
         if (!type.exists()) {
             throw new NoSuchNodeTypeException(
@@ -302,7 +301,7 @@ public final class TreeUtil {
         autoCreateItems(tree, type, typeRoot, userID);
     }
 
-    public static void autoCreateItems(@Nonnull Tree tree, @Nonnull Tree type, @Nonnull Tree typeRoot, @CheckForNull String userID)
+    public static void autoCreateItems(@NotNull Tree tree, @NotNull Tree type, @NotNull Tree typeRoot, @Nullable String userID)
             throws RepositoryException {
         // TODO: use a separate rep:autoCreatePropertyDefinitions
         Tree properties = type.getChild(REP_NAMED_PROPERTY_DEFINITIONS);
@@ -352,9 +351,9 @@ public final class TreeUtil {
         }
     }
 
-    public static PropertyState autoCreateProperty(@Nonnull String name,
-                                                   @Nonnull Tree definition,
-                                                   @CheckForNull String userID) {
+    public static PropertyState autoCreateProperty(@NotNull String name,
+                                                   @NotNull Tree definition,
+                                                   @Nullable String userID) {
         if (JCR_UUID.equals(name)) {
             String uuid = UUIDUtils.generateUUID();
             return PropertyStates.createProperty(name, uuid, STRING);
@@ -494,7 +493,7 @@ public final class TreeUtil {
      * @return {@code true} if the specified tree is an immutable read-only tree.
      * @see org.apache.jackrabbit.oak.plugins.tree.ReadOnly
      */
-    public static boolean isReadOnlyTree(@Nonnull Tree tree) {
+    public static boolean isReadOnlyTree(@NotNull Tree tree) {
         return tree instanceof ReadOnly;
     }
 }

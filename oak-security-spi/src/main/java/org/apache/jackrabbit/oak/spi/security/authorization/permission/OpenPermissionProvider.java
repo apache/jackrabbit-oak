@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Permission provider implementation that grants full access everywhere.
@@ -44,36 +43,36 @@ public final class OpenPermissionProvider implements PermissionProvider {
         // nothing to do
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         return Collections.singleton(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         return true;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.ALL;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         return true;
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         return true;
     }
 }

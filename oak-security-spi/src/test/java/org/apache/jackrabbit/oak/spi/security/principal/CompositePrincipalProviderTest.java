@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.Iterator;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -27,6 +25,7 @@ import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -46,7 +45,7 @@ public class CompositePrincipalProviderTest {
         return Iterables.concat(pp1.getTestPrincipals(), pp2.getTestPrincipals());
     }
 
-    private static void assertIterator(@Nonnull Iterable<? extends Principal> expected, @Nonnull Iterator<? extends Principal> result) {
+    private static void assertIterator(@NotNull Iterable<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
         assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
     }
 

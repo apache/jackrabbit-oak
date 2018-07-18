@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The different authorizable types.
@@ -40,7 +39,7 @@ public enum AuthorizableType {
         this.userType = jcrUserType;
     }
 
-    @Nonnull
+    @NotNull
     public static AuthorizableType getType(int jcrUserType) {
         switch (jcrUserType) {
             case UserManager.SEARCH_TYPE_AUTHORIZABLE:

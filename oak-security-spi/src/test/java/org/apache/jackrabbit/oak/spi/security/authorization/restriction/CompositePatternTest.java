@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -99,12 +98,12 @@ public class CompositePatternTest {
         }
 
         @Override
-        public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+        public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
             return matches;
         }
 
         @Override
-        public boolean matches(@Nonnull String path) {
+        public boolean matches(@NotNull String path) {
             return matches;
         }
 

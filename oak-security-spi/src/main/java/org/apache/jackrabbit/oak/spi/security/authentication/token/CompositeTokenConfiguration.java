@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
 * {@link TokenConfiguration} that combines different token provider implementations.
@@ -34,11 +33,11 @@ public class CompositeTokenConfiguration extends CompositeConfiguration<TokenCon
         super(TokenConfiguration.NAME);
     }
 
-    public CompositeTokenConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public CompositeTokenConfiguration(@NotNull SecurityProvider securityProvider) {
         super(TokenConfiguration.NAME, securityProvider);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public TokenProvider getTokenProvider(final Root root) {
         List<TokenProvider> providers = Lists.transform(getConfigurations(), new Function<TokenConfiguration, TokenProvider>() {

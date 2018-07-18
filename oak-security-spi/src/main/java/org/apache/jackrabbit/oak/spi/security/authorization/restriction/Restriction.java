@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code Restriction} object represents a "live" restriction object that
@@ -34,7 +33,7 @@ public interface Restriction {
      *
      * @return the restriction definition that applies to this restriction.
      */
-    @Nonnull
+    @NotNull
     RestrictionDefinition getDefinition();
 
     /**
@@ -42,6 +41,6 @@ public interface Restriction {
      *
      * @return An {@code PropertyState}.
      */
-    @Nonnull
+    @NotNull
     PropertyState getProperty();
 }

@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Aggregates of a list of {@link RestrictionPattern}s into a single pattern.
@@ -33,11 +32,11 @@ public final class CompositePattern implements RestrictionPattern {
 
     private final List<RestrictionPattern> patterns;
 
-    public CompositePattern(@Nonnull List<RestrictionPattern> patterns) {
+    public CompositePattern(@NotNull List<RestrictionPattern> patterns) {
         this.patterns = patterns;
     }
 
-    public static RestrictionPattern create(@Nonnull List<RestrictionPattern> patterns) {
+    public static RestrictionPattern create(@NotNull List<RestrictionPattern> patterns) {
         switch (patterns.size()) {
             case 0 : return RestrictionPattern.EMPTY;
             case 1 : return patterns.get(0);
@@ -46,7 +45,7 @@ public final class CompositePattern implements RestrictionPattern {
     }
 
     @Override
-    public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+    public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
         for (RestrictionPattern pattern : patterns) {
             if (!pattern.matches(tree, property)) {
                 return false;
@@ -56,7 +55,7 @@ public final class CompositePattern implements RestrictionPattern {
     }
 
     @Override
-    public boolean matches(@Nonnull String path) {
+    public boolean matches(@NotNull String path) {
         for (RestrictionPattern pattern : patterns) {
             if (!pattern.matches(path)) {
                 return false;
