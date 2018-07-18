@@ -35,10 +35,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -202,24 +201,24 @@ public class CompositeChildrenCountTest {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<? extends PropertyState> getProperties() {
             return emptyList();
         }
 
         @Override
-        public boolean hasChildNode(@Nonnull String name) {
+        public boolean hasChildNode(@NotNull String name) {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+        public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
             return EmptyNodeState.MISSING_NODE;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
@@ -241,7 +240,7 @@ public class CompositeChildrenCountTest {
             return childrenCount;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeBuilder builder() {
             return new MemoryNodeBuilder(this);
