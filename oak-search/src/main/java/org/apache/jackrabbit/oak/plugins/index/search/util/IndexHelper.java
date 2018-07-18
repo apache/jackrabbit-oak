@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.of;
@@ -70,13 +69,13 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
+            @NotNull NodeBuilder index, @NotNull String name, String type,
             @Nullable Set<String> propertyTypes) {
         return newFTIndexDefinition(index, name, type, propertyTypes, null, null, null);
     }
 
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
+            @NotNull NodeBuilder index, @NotNull String name, String type,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async) {
         return newFTIndexDefinition(index, type, name, propertyTypes, excludes,
@@ -84,7 +83,7 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
+            @NotNull NodeBuilder index, @NotNull String name, String type,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async,
             @Nullable Boolean stored) {
@@ -113,16 +112,16 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes, @Nonnull String path) {
+            @NotNull NodeBuilder index, @NotNull String name, String type,
+            @Nullable Set<String> propertyTypes, @NotNull String path) {
         return newFTFileIndexDefinition(index, type, name, propertyTypes, null,
                 path, null);
     }
 
     public static NodeBuilder newFTFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
+            @NotNull NodeBuilder index, @NotNull String name, String type,
             @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nonnull String path,
+            @Nullable Set<String> excludes, @NotNull String path,
             @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
@@ -148,9 +147,9 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTPropertyIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nonnull Set<String> includes,
-            @Nonnull String async) {
+            @NotNull NodeBuilder index, @NotNull String name, String type,
+            @NotNull Set<String> includes,
+            @NotNull String async) {
         checkArgument(!includes.isEmpty(), "Fulltext property index " +
                 "requires explicit list of property names to be indexed");
 

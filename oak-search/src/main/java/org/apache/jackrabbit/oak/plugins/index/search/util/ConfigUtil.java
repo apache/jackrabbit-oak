@@ -21,14 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Collections;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -76,7 +75,7 @@ public class ConfigUtil {
      * Assumes that given state is of type nt:file and then reads
      * the jcr:content/@jcr:data property to get the binary content
      */
-    @CheckForNull
+    @Nullable
     public static Blob getBlob(NodeState state, String resourceName){
         NodeState contentNode = state.getChildNode(JcrConstants.JCR_CONTENT);
         checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
