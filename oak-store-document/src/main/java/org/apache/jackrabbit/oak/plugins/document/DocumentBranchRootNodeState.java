@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -31,18 +30,18 @@ class DocumentBranchRootNodeState extends DocumentNodeState {
     private final DocumentNodeStore store;
     private final DocumentNodeStoreBranch branch;
 
-    DocumentBranchRootNodeState(@Nonnull DocumentNodeStore store,
-                                @Nonnull DocumentNodeStoreBranch branch,
-                                @Nonnull String path,
-                                @Nonnull RevisionVector rootRevision,
+    DocumentBranchRootNodeState(@NotNull DocumentNodeStore store,
+                                @NotNull DocumentNodeStoreBranch branch,
+                                @NotNull String path,
+                                @NotNull RevisionVector rootRevision,
                                 @Nullable RevisionVector lastRevision,
-                                @Nonnull BundlingContext bundlingContext) {
+                                @NotNull BundlingContext bundlingContext) {
         super(store, path, lastRevision, rootRevision, false, bundlingContext);
         this.store = store;
         this.branch = checkNotNull(branch);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         return new DocumentRootBuilder(store.getRoot(getRootRevision()), store, branch);

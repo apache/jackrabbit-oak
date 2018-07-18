@@ -24,8 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -1002,7 +1001,7 @@ public class DocumentBundlingTest {
             return super.find(collection, key);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
                                                   String indexedProperty, long startValue, int limit) {

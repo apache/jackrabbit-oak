@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A cache for child node diffs.
@@ -46,10 +44,10 @@ abstract class DiffCache {
      * @param loader an optional loader for the cache entry.
      * @return the diff or {@code null} if unknown and no loader was passed.
      */
-    @CheckForNull
-    abstract String getChanges(@Nonnull RevisionVector from,
-                               @Nonnull RevisionVector to,
-                               @Nonnull String path,
+    @Nullable
+    abstract String getChanges(@NotNull RevisionVector from,
+                               @NotNull RevisionVector to,
+                               @NotNull String path,
                                @Nullable Loader loader);
 
     /**
@@ -62,15 +60,15 @@ abstract class DiffCache {
      * false if it results from an external change
      * @return the cache entry.
      */
-    @Nonnull
-    abstract Entry newEntry(@Nonnull RevisionVector from,
-                            @Nonnull RevisionVector to,
+    @NotNull
+    abstract Entry newEntry(@NotNull RevisionVector from,
+                            @NotNull RevisionVector to,
                             boolean local);
 
     /**
      * @return the statistics for this cache.
      */
-    @Nonnull
+    @NotNull
     abstract Iterable<CacheStats> getStats();
 
     /**
@@ -84,8 +82,8 @@ abstract class DiffCache {
      *      if one of the {@code diff} callbacks requested a stop.
      * @throws IllegalArgumentException if {@code jsop} is malformed.
      */
-    static boolean parseJsopDiff(@Nonnull String jsop,
-                                 @Nonnull Diff diff) {
+    static boolean parseJsopDiff(@NotNull String jsop,
+                                 @NotNull Diff diff) {
         if (jsop.trim().isEmpty()) {
             return true;
         }
@@ -136,8 +134,8 @@ abstract class DiffCache {
          * @param path the path of the parent node.
          * @param changes the child node changes.
          */
-        void append(@Nonnull String path,
-                    @Nonnull String changes);
+        void append(@NotNull String path,
+                    @NotNull String changes);
 
         /**
          * Called when all changes have been appended and the entry is ready

@@ -22,15 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utilities that provide JSON support on top of the existing
@@ -67,7 +66,7 @@ public class RDBJSONSupport {
      * Parses the supplied JSON.
      */
     @Nullable
-    public Object parse(@Nonnull String json) {
+    public Object parse(@NotNull String json) {
         return parse(new JsopTokenizer(json));
     }
 
@@ -75,7 +74,7 @@ public class RDBJSONSupport {
      * Parses the supplied JSON.
      */
     @Nullable
-    public Object parse(@Nonnull JsopTokenizer json) {
+    public Object parse(@NotNull JsopTokenizer json) {
         switch (json.read()) {
             case JsopReader.NULL:
                 return null;

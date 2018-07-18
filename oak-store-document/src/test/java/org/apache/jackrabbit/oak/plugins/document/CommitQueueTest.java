@@ -27,15 +27,14 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -74,7 +73,7 @@ public class CommitQueueTest {
                     new Revision(0, 0, store.getClusterId()));
 
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root, @Nullable CommitInfo info) {
                 DocumentNodeState after = (DocumentNodeState) root;
                 RevisionVector r = after.getRootRevision();
                 LOG.debug("seen: {}", r);
@@ -136,7 +135,7 @@ public class CommitQueueTest {
             private Revision before = Revision.newRevision(1);
 
             @Override
-            public void headOfQueue(@Nonnull Revision r) {
+            public void headOfQueue(@NotNull Revision r) {
                 LOG.debug("seen: {}", r);
                 if (r.compareRevisionTime(before) < 0) {
                     exceptions.add(new Exception(
@@ -217,7 +216,7 @@ public class CommitQueueTest {
     public void suspendUntil() throws Exception {
         final AtomicReference<RevisionVector> headRevision = new AtomicReference<RevisionVector>();
         RevisionContext context = new DummyRevisionContext() {
-            @Nonnull
+            @NotNull
             @Override
             public RevisionVector getHeadRevision() {
                 return headRevision.get();
@@ -265,7 +264,7 @@ public class CommitQueueTest {
     public void suspendUntilTimeout() throws Exception {
         final AtomicReference<RevisionVector> headRevision = new AtomicReference<RevisionVector>();
         RevisionContext context = new DummyRevisionContext() {
-            @Nonnull
+            @NotNull
             @Override
             public RevisionVector getHeadRevision() {
                 return headRevision.get();
@@ -292,7 +291,7 @@ public class CommitQueueTest {
     public void concurrentSuspendUntil() throws Exception {
         final AtomicReference<RevisionVector> headRevision = new AtomicReference<RevisionVector>();
         RevisionContext context = new DummyRevisionContext() {
-            @Nonnull
+            @NotNull
             @Override
             public RevisionVector getHeadRevision() {
                 return headRevision.get();
@@ -357,7 +356,7 @@ public class CommitQueueTest {
         final Semaphore s1 = new Semaphore(0);
         final CommitQueue.Callback c = new CommitQueue.Callback() {
             @Override
-            public void headOfQueue(@Nonnull Revision revision) {
+            public void headOfQueue(@NotNull Revision revision) {
                 s1.acquireUninterruptibly();
             }
         };

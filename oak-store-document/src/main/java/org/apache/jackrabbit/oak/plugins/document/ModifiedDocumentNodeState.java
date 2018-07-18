@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -48,10 +47,10 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
 
     private final NodeState modified;
 
-    ModifiedDocumentNodeState(@Nonnull DocumentNodeStore store,
-                              @Nonnull DocumentNodeStoreBranch branch,
-                              @Nonnull DocumentNodeState base,
-                              @Nonnull NodeState modified) {
+    ModifiedDocumentNodeState(@NotNull DocumentNodeStore store,
+                              @NotNull DocumentNodeStoreBranch branch,
+                              @NotNull DocumentNodeState base,
+                              @NotNull NodeState modified) {
         this.store = checkNotNull(store);
         this.branch = checkNotNull(branch);
         this.base = checkNotNull(base);
@@ -63,31 +62,31 @@ class ModifiedDocumentNodeState extends AbstractNodeState {
         return modified.exists();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return modified.getProperties();
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return modified.hasChildNode(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name)
+    public NodeState getChildNode(@NotNull String name)
             throws IllegalArgumentException {
         return modified.getChildNode(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return modified.getChildNodeEntries();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         NodeBuilder builder = new DocumentRootBuilder(base, store, branch);

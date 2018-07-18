@@ -20,8 +20,6 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -260,7 +259,7 @@ public class DocumentNodeStoreServiceTest {
         assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
     }
 
-    @Nonnull
+    @NotNull
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {
             Field f = s.getClass().getDeclaredField("nonLeaseCheckingStore");

@@ -25,10 +25,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -38,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A DocumentStore wrapper that can be used to log and also time DocumentStore
@@ -90,7 +88,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public <T extends Document> T find(Collection<T> collection, String key) {
         try {
             long start = now();
@@ -106,7 +104,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
         try {
             long start = now();
@@ -122,7 +120,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
                                                 String fromKey,
                                                 String toKey,
@@ -147,7 +145,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
                                               String toKey,
@@ -246,7 +244,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         try {
             long start = now();
@@ -281,7 +279,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         try {
             long start = now();
@@ -383,7 +381,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore, RevisionListen
         return base.getMetadata();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         try {

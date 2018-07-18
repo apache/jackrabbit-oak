@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A DocumentStore implementation which wraps another store and delegates all
@@ -48,7 +47,7 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
         return store.find(collection, key, maxCacheAge);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
@@ -57,7 +56,7 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
         return store.query(collection, fromKey, toKey, limit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
@@ -160,7 +159,7 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
         return store.getMetadata();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         return store.getStats();

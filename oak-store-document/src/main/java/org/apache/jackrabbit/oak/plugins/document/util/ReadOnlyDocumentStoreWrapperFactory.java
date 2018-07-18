@@ -18,18 +18,17 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Set;
-
 public class ReadOnlyDocumentStoreWrapperFactory {
     private static final Set<String> unsupportedMethods = Sets.newHashSet(
             "remove", "create", "update", "createOrUpdate", "findAndUpdate");
-    public static DocumentStore getInstance(@Nonnull final DocumentStore delegate) {
+    public static DocumentStore getInstance(@NotNull final DocumentStore delegate) {
         return (DocumentStore)Proxy.newProxyInstance(DocumentStore.class.getClassLoader(),
                 new Class[]{DocumentStore.class},
                 new InvocationHandler() {

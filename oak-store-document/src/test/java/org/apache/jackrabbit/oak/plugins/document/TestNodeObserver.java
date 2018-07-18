@@ -22,10 +22,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.observation.NodeObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
@@ -42,12 +41,12 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void added(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
         this.added.put(path, newHashSet(added));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));
@@ -56,12 +55,12 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void deleted(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
         this.deleted.put(path, newHashSet(deleted));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));
@@ -70,12 +69,12 @@ public class TestNodeObserver extends NodeObserver {
 
     @Override
     protected void changed(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo) {
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo) {
         this.changed.put(path, newHashSet(changed));
         if (!properties.isEmpty()) {
             this.properties.put(path, newHashMap(properties));

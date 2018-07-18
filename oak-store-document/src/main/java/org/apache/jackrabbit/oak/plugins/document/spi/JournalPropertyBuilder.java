@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.spi;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 public interface JournalPropertyBuilder<T extends JournalProperty> {
     /**

@@ -20,12 +20,10 @@ import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.cache.Cache;
 import org.slf4j.Logger;
@@ -65,11 +63,11 @@ public class MemoryDiffCache extends DiffCache {
                 builder.getWeigher(), builder.getMemoryDiffCacheSize());
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getChanges(@Nonnull final RevisionVector from,
-                             @Nonnull final RevisionVector to,
-                             @Nonnull final String path,
+    public String getChanges(@NotNull final RevisionVector from,
+                             @NotNull final RevisionVector to,
+                             @NotNull final String path,
                              @Nullable final Loader loader) {
         PathRev key = diffCacheKey(path, from, to);
         StringValue diff;
@@ -98,15 +96,15 @@ public class MemoryDiffCache extends DiffCache {
         return diff != null ? diff.toString() : null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Entry newEntry(@Nonnull RevisionVector from,
-                          @Nonnull RevisionVector to,
+    public Entry newEntry(@NotNull RevisionVector from,
+                          @NotNull RevisionVector to,
                           boolean local /*ignored*/) {
         return new MemoryEntry(from, to);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
         return Collections.singleton(diffCacheStats);
@@ -123,7 +121,7 @@ public class MemoryDiffCache extends DiffCache {
         }
 
         @Override
-        public void append(@Nonnull String path, @Nonnull String changes) {
+        public void append(@NotNull String path, @NotNull String changes) {
             PathRev key = diffCacheKey(path, from, to);
             if (changes.length() > CACHE_VALUE_LIMIT) {
                 LOG.warn("Not caching entry for {} from {} to {}. Length of changes is {}.",
@@ -140,9 +138,9 @@ public class MemoryDiffCache extends DiffCache {
         }
     }
 
-    private static PathRev diffCacheKey(@Nonnull String path,
-                                        @Nonnull RevisionVector from,
-                                        @Nonnull RevisionVector to) {
+    private static PathRev diffCacheKey(@NotNull String path,
+                                        @NotNull RevisionVector from,
+                                        @NotNull RevisionVector to) {
         return new PathRev(from + path, to);
     }
 
@@ -159,17 +157,17 @@ public class MemoryDiffCache extends DiffCache {
      * @return {@code true} if there are cache entries that indicate the node
      *      at the given path was modified between the two revisions.
      */
-    private boolean isUnchanged(@Nonnull final RevisionVector from,
-                                @Nonnull final RevisionVector to,
-                                @Nonnull final String path) {
+    private boolean isUnchanged(@NotNull final RevisionVector from,
+                                @NotNull final RevisionVector to,
+                                @NotNull final String path) {
         return !denotesRoot(path)
                 && isChildUnchanged(from, to, getParentPath(path), getName(path));
     }
 
-    private boolean isChildUnchanged(@Nonnull final RevisionVector from,
-                                     @Nonnull final RevisionVector to,
-                                     @Nonnull final String parent,
-                                     @Nonnull final String name) {
+    private boolean isChildUnchanged(@NotNull final RevisionVector from,
+                                     @NotNull final RevisionVector to,
+                                     @NotNull final String parent,
+                                     @NotNull final String name) {
         PathRev parentKey = diffCacheKey(parent, from, to);
         StringValue parentCachedEntry = diffCache.getIfPresent(parentKey);
         boolean unchanged;

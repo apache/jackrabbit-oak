@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.stream.StreamSupport;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -56,7 +55,7 @@ public class MissingLastRevSeeker {
      *
      * @return the clusters
      */
-    @Nonnull
+    @NotNull
     public Iterable<ClusterNodeInfoDocument> getAllClusters() {
         return ClusterNodeInfoDocument.all(store);
     }
@@ -67,7 +66,7 @@ public class MissingLastRevSeeker {
      * @param clusterId the cluster id
      * @return the cluster node info
      */
-    @CheckForNull
+    @Nullable
     public ClusterNodeInfoDocument getClusterNodeInfo(final int clusterId) {
         // Fetch all documents.
         return store.find(CLUSTER_NODES, String.valueOf(clusterId));
@@ -80,7 +79,7 @@ public class MissingLastRevSeeker {
      * @param startTime the start time in milliseconds.
      * @return the candidates
      */
-    @Nonnull
+    @NotNull
     public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
         Iterable<NodeDocument> nodes = getSelectedDocuments(store,
@@ -149,7 +148,7 @@ public class MissingLastRevSeeker {
      * @deprecated use {@link ClusterNodeInfoDocument#isRecoveryNeeded(long)}
      *          instead.
      */
-    public boolean isRecoveryNeeded(@Nonnull ClusterNodeInfoDocument nodeInfo) {
+    public boolean isRecoveryNeeded(@NotNull ClusterNodeInfoDocument nodeInfo) {
         return nodeInfo.isRecoveryNeeded(clock.getTime());
     }
 }

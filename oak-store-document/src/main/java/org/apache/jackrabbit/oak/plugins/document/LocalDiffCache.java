@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.cache.Cache;
 import com.google.common.collect.Maps;
 
@@ -32,6 +29,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,9 +56,9 @@ public class LocalDiffCache extends DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull RevisionVector from,
-                             @Nonnull RevisionVector to,
-                             @Nonnull String path,
+    public String getChanges(@NotNull RevisionVector from,
+                             @NotNull RevisionVector to,
+                             @NotNull String path,
                              @Nullable Loader loader) {
         RevisionsKey key = new RevisionsKey(from, to);
         Diff diff = diffCache.getIfPresent(key);
@@ -73,16 +72,16 @@ public class LocalDiffCache extends DiffCache {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Entry newEntry(final @Nonnull RevisionVector from,
-                          final @Nonnull RevisionVector to,
+    public Entry newEntry(final @NotNull RevisionVector from,
+                          final @NotNull RevisionVector to,
                           boolean local /*ignored*/) {
         return new Entry() {
             private final Map<String, String> changesPerPath = Maps.newHashMap();
             private long size;
             @Override
-            public void append(@Nonnull String path, @Nonnull String changes) {
+            public void append(@NotNull String path, @NotNull String changes) {
                 if (exceedsSize()){
                     return;
                 }
@@ -107,7 +106,7 @@ public class LocalDiffCache extends DiffCache {
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
         return Collections.singleton(diffCacheStats);

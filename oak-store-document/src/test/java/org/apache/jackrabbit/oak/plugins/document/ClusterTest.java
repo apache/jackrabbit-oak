@@ -26,8 +26,6 @@ import static org.junit.Assert.fail;
 import java.util.HashSet;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mongodb.client.MongoDatabase;
@@ -46,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
@@ -358,8 +357,8 @@ public class ClusterTest {
         DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         ns1.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root,
-                                       @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root,
+                                       @NotNull CommitInfo info) {
                 rootStates1.add((DocumentNodeState) root);
             }
         });
@@ -367,8 +366,8 @@ public class ClusterTest {
         DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
         ns2.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root,
-                                       @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root,
+                                       @NotNull CommitInfo info) {
                 rootStates2.add((DocumentNodeState) root);
             }
         });

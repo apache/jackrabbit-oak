@@ -42,9 +42,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -52,6 +49,8 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
 
@@ -346,19 +345,19 @@ public class RDBExport {
         c.close();
     }
 
-    @CheckForNull
+    @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
         return res.wasNull() ? null : Boolean.valueOf(v != 0);
     }
 
-    @CheckForNull
+    @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
         return res.wasNull() ? null : Long.valueOf(v);
     }
 
-    @Nonnull
+    @NotNull
     private static StringBuilder dumpRow(RDBDocumentSerializer ser, String id, RDBRow row) {
         NodeDocument doc = ser.fromRow(Collection.NODES, row);
         String docjson = ser.asString(doc, EXCLUDE_COLUMNS);
@@ -370,7 +369,7 @@ public class RDBExport {
         return fulljson;
     }
 
-    @Nonnull
+    @NotNull
     private static String dumpFieldNames(List<String> fieldNames) {
         StringBuilder result = new StringBuilder();
         for (String f : fieldNames) {
@@ -382,7 +381,7 @@ public class RDBExport {
         return result.toString();
     }
 
-    @Nonnull
+    @NotNull
     private static StringBuilder asJSON(List<String> fieldNames, StringBuilder fulljson) {
         if (fieldNames.isEmpty()) {
             return fulljson;
@@ -405,7 +404,7 @@ public class RDBExport {
         }
     }
 
-    @Nonnull
+    @NotNull
     private static StringBuilder asCSV(List<String> csvFieldNames, StringBuilder fulljson) {
         Map<String, Object> doc = (Map<String, Object>) JSON.parse(fulljson.toString());
         StringBuilder buf = new StringBuilder();

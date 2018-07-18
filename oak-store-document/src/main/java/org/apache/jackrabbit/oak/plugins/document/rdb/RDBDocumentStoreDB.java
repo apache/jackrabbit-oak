@@ -35,9 +35,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -865,7 +864,7 @@ public enum RDBDocumentStoreDB {
      * 
      * @return the DB initialization SQL string
      */
-    public @Nonnull String getInitializationStatement() {
+    public @NotNull String getInitializationStatement() {
         return "";
     }
 
@@ -1037,7 +1036,7 @@ public enum RDBDocumentStoreDB {
         return this.description;
     }
 
-    @Nonnull
+    @NotNull
     public static RDBDocumentStoreDB getValue(String desc) {
         for (RDBDocumentStoreDB db : RDBDocumentStoreDB.values()) {
             if (db.description.equals(desc)) {

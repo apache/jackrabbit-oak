@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -29,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -41,16 +40,16 @@ class PrefetchDispatcher extends ChangeDispatcher {
     private final Executor executor;
     private NodeState root;
 
-    public PrefetchDispatcher(@Nonnull NodeState root,
-                              @Nonnull Executor executor) {
+    public PrefetchDispatcher(@NotNull NodeState root,
+                              @NotNull Executor executor) {
         super(root);
         this.root = root;
         this.executor = checkNotNull(executor);
     }
 
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root,
-                                            @Nonnull CommitInfo info) {
+    public synchronized void contentChanged(@NotNull NodeState root,
+                                            @NotNull CommitInfo info) {
         if (root instanceof DocumentNodeState) {
             final DocumentNodeState state = (DocumentNodeState) root;
             if (state.isFromExternalChange()) {

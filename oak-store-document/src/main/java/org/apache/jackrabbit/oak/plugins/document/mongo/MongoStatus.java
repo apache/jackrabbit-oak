@@ -33,15 +33,14 @@ import com.mongodb.event.ServerMonitorListener;
 import com.mongodb.session.ClientSession;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetStatus;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 public class MongoStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
@@ -69,8 +68,8 @@ public class MongoStatus implements ServerMonitorListener {
 
     private final ReplicaSetStatus replicaSetStatus = new ReplicaSetStatus();
 
-    public MongoStatus(@Nonnull MongoClient client,
-                       @Nonnull String dbName) {
+    public MongoStatus(@NotNull MongoClient client,
+                       @NotNull String dbName) {
         this.client = client;
         this.dbName = dbName;
     }
@@ -132,7 +131,7 @@ public class MongoStatus implements ServerMonitorListener {
         return majorityReadConcernEnabled;
     }
 
-    @Nonnull
+    @NotNull
     public String getServerDetails() {
         Map<String, Object> details = Maps.newHashMap();
         for (String key : SERVER_DETAIL_FIELD_NAMES) {
@@ -144,7 +143,7 @@ public class MongoStatus implements ServerMonitorListener {
         return details.toString();
     }
 
-    @Nonnull
+    @NotNull
     public String getVersion() {
         if (version == null) {
             String v = getServerStatus().getString("version");

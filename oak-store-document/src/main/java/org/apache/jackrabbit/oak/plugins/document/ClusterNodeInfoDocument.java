@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A document storing cluster node info. See also {@link ClusterNodeInfo}.
@@ -114,7 +114,7 @@ public class ClusterNodeInfoDocument extends Document {
      * @return the id of the cluster node performing recovery or {@code null} if
      *          currently not set.
      */
-    @CheckForNull
+    @Nullable
     public Long getRecoveryBy() {
         return (Long) get(ClusterNodeInfo.REV_RECOVERY_BY);
     }

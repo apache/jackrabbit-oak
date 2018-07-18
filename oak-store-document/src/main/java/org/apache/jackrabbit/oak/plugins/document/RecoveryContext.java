@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A revision context that represents a cluster node with an expired lease for
@@ -68,28 +67,28 @@ final class RecoveryContext implements RevisionContext {
         return clusterId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RevisionVector getHeadRevision() {
         return new RevisionVector(root.getLastRev().values());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Revision newRevision() {
         return Revision.newRevision(clusterId);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Clock getClock() {
         return clock;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getCommitValue(@Nonnull Revision changeRevision,
-                                 @Nonnull NodeDocument doc) {
+    public String getCommitValue(@NotNull Revision changeRevision,
+                                 @NotNull NodeDocument doc) {
         return resolver.resolve(changeRevision, doc);
     }
 }

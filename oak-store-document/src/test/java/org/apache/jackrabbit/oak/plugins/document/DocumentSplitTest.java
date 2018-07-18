@@ -26,8 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -46,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -1097,7 +1096,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             return rc.getClusterId();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RevisionVector getHeadRevision() {
             try {
@@ -1108,21 +1107,21 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             return rc.getHeadRevision();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Revision newRevision() {
             return rc.newRevision();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Clock getClock() {
             return rc.getClock();
         }
 
         @Override
-        public String getCommitValue(@Nonnull Revision changeRevision,
-                                     @Nonnull NodeDocument doc) {
+        public String getCommitValue(@NotNull Revision changeRevision,
+                                     @NotNull NodeDocument doc) {
             return rc.getCommitValue(changeRevision, doc);
         }
     }

@@ -25,10 +25,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -39,6 +35,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,8 +88,8 @@ public class Commit {
      * @param baseRevision the base revision for this commit or {@code null} if
      *                     there is none.
      */
-    Commit(@Nonnull DocumentNodeStore nodeStore,
-           @Nonnull Revision revision,
+    Commit(@NotNull DocumentNodeStore nodeStore,
+           @NotNull Revision revision,
            @Nullable RevisionVector baseRevision) {
         this.nodeStore = checkNotNull(nodeStore);
         this.revision = checkNotNull(revision);
@@ -125,7 +123,7 @@ public class Commit {
      *
      * @return the revision for this new commit.
      */
-    @Nonnull
+    @NotNull
     Revision getRevision() {
         return revision;
     }
@@ -138,7 +136,7 @@ public class Commit {
      *
      * @return the base revision of this commit or <code>null</code>.
      */
-    @CheckForNull
+    @Nullable
     RevisionVector getBaseRevision() {
         return baseRevision;
     }
@@ -147,7 +145,7 @@ public class Commit {
      * @return all modified paths, including ancestors without explicit
      *          modifications.
      */
-    @Nonnull
+    @NotNull
     Iterable<String> getModifiedPaths() {
         return modifiedNodes;
     }
@@ -545,7 +543,7 @@ public class Commit {
      * @throws ConflictException if there was a conflict introduced by the
      *          given update operation.
      */
-    private void checkConflicts(@Nonnull UpdateOp op,
+    private void checkConflicts(@NotNull UpdateOp op,
                                 @Nullable NodeDocument before)
             throws ConflictException {
         DocumentStore store = nodeStore.getDocumentStore();
@@ -670,7 +668,7 @@ public class Commit {
      *         otherwise.
      */
     private boolean isConflicting(@Nullable NodeDocument doc,
-                                  @Nonnull UpdateOp op) {
+                                  @NotNull UpdateOp op) {
         if (baseRevision == null || doc == null) {
             // no conflict is possible when there is no baseRevision
             // or document did not exist before
@@ -694,7 +692,7 @@ public class Commit {
      *      {@code false} otherwise.
      */
     private boolean allowConcurrentAddRemove(@Nullable NodeDocument before,
-                                             @Nonnull UpdateOp op) {
+                                             @NotNull UpdateOp op) {
         return nodeStore.getEnableConcurrentAddRemove()
                 && !isConflicting(before, op);
     }
@@ -702,7 +700,7 @@ public class Commit {
     /**
      * @return the branch if this is a branch commit, otherwise {@code null}.
      */
-    @CheckForNull
+    @Nullable
     private Branch getBranch() {
         if (baseRevision == null || !baseRevision.isBranch()) {
             return null;

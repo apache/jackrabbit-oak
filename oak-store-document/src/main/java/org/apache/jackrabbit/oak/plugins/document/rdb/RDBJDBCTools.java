@@ -36,11 +36,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
@@ -91,7 +90,7 @@ public class RDBJDBCTools {
         }
     }
 
-    private static @Nonnull String checkLegalTableName(@Nonnull String tableName) throws IllegalArgumentException {
+    private static @NotNull String checkLegalTableName(@NotNull String tableName) throws IllegalArgumentException {
         for (int i = 0; i < tableName.length(); i++) {
             char c = tableName.charAt(i);
             if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == '_'))) {
@@ -107,7 +106,7 @@ public class RDBJDBCTools {
      * @throws IllegalArgumentException
      *             upon illegal characters in name
      */
-    protected static @Nonnull String createTableName(@Nonnull String prefix, @Nonnull String basename)
+    protected static @NotNull String createTableName(@NotNull String prefix, @NotNull String basename)
             throws IllegalArgumentException {
         String p = checkLegalTableName(prefix);
         String b = checkLegalTableName(basename);
@@ -120,7 +119,7 @@ public class RDBJDBCTools {
     /**
      * Return string representation of transaction isolation level.
      */
-    protected static @Nonnull String isolationLevelToString(int isolationLevel) {
+    protected static @NotNull String isolationLevelToString(int isolationLevel) {
         String name;
         switch (isolationLevel) {
             case Connection.TRANSACTION_NONE:
@@ -178,7 +177,7 @@ public class RDBJDBCTools {
     /**
      * Return a string containing additional messages from chained exceptions.
      */
-    protected static @Nonnull String getAdditionalMessages(SQLException ex) {
+    protected static @NotNull String getAdditionalMessages(SQLException ex) {
         List<String> messages = new ArrayList<String>();
         String message = ex.getMessage();
         SQLException next = ex.getNextException();
@@ -278,7 +277,7 @@ public class RDBJDBCTools {
      * Closes a {@link Statement}, logging potential problems.
      * @return null
      */
-    protected static <T extends Statement> T closeStatement(@CheckForNull T stmt) {
+    protected static <T extends Statement> T closeStatement(@Nullable T stmt) {
         if (stmt != null) {
             try {
                 stmt.close();
@@ -293,7 +292,7 @@ public class RDBJDBCTools {
      * Closes a {@link ResultSet}, logging potential problems.
      * @return null
      */
-    protected static ResultSet closeResultSet(@CheckForNull ResultSet rs) {
+    protected static ResultSet closeResultSet(@Nullable ResultSet rs) {
         if (rs != null) {
             try {
                 rs.close();
@@ -315,7 +314,7 @@ public class RDBJDBCTools {
          * @return a string suitable for inclusion into a
          *         {@link PreparedStatement}
          */
-        @Nonnull
+        @NotNull
         public String getStatementComponent();
 
         /**
@@ -431,7 +430,7 @@ public class RDBJDBCTools {
         return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
     }
     
-    public static DocumentStoreException asDocumentStoreException(@Nonnull Exception cause, @Nonnull String message) {
+    public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause, @NotNull String message) {
         return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
     }
 }

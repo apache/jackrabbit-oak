@@ -20,11 +20,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.bson.BSONObject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
@@ -41,7 +40,7 @@ public class RevisionEntry implements DBObject {
 
     private final Object value;
 
-    public RevisionEntry(@Nonnull Revision revision,
+    public RevisionEntry(@NotNull Revision revision,
                          @Nullable Object value) {
         this.revision = checkNotNull(revision);
         this.value = value;

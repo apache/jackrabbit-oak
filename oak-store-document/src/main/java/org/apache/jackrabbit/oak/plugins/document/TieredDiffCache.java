@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLocalChange;
 
@@ -52,9 +51,9 @@ class TieredDiffCache extends DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull RevisionVector from,
-                             @Nonnull RevisionVector to,
-                             @Nonnull String path,
+    public String getChanges(@NotNull RevisionVector from,
+                             @NotNull RevisionVector to,
+                             @NotNull String path,
                              @Nullable Loader loader) {
         // do not check local cache when changes are external
         if (isLocalChange(from, to, clusterId)) {
@@ -83,9 +82,9 @@ class TieredDiffCache extends DiffCache {
      * @param to the to revision.
      * @return the new entry.
      */
-    @Nonnull
+    @NotNull
     @Override
-    public Entry newEntry(@Nonnull RevisionVector from, @Nonnull RevisionVector to, boolean local) {
+    public Entry newEntry(@NotNull RevisionVector from, @NotNull RevisionVector to, boolean local) {
         if (local) {
             return localCache.newEntry(from, to, true);
         } else {
@@ -93,7 +92,7 @@ class TieredDiffCache extends DiffCache {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
         return Iterables.concat(localCache.getStats(), memoryCache.getStats());
