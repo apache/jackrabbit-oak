@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefi
 
 import java.security.Principal;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +26,7 @@ public class Reader implements Principal {
 
     private final String name;
 
-    public Reader(@Nonnull String name) {
+    public Reader(@NotNull String name) {
         this.name = name;
     }
 

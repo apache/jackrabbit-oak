@@ -20,7 +20,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -62,6 +61,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;
@@ -271,7 +271,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         */
     }
 
-    private AccessControlManager getAcManager(@Nonnull Root root) {
+    private AccessControlManager getAcManager(@NotNull Root root) {
         return getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, NamePathMapper.DEFAULT);
     }
 

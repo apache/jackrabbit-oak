@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.advanced;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
@@ -55,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -207,7 +207,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
 
     }
 
-    private PermissionProvider getPermissionProvider(@Nonnull Set<Principal> principals) {
+    private PermissionProvider getPermissionProvider(@NotNull Set<Principal> principals) {
         return getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), principals);
     }
 

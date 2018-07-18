@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.exercise.security.privilege;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nullable;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
