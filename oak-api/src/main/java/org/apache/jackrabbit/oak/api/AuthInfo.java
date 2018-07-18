@@ -19,8 +19,9 @@ package org.apache.jackrabbit.oak.api;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code AuthInfo} instances provide access to information related
@@ -35,7 +36,7 @@ public interface AuthInfo {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String[] getAttributeNames() {
             return new String[0];
@@ -46,7 +47,7 @@ public interface AuthInfo {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<Principal> getPrincipals() {
             return Collections.emptySet();
@@ -65,7 +66,7 @@ public interface AuthInfo {
      *
      * @return the user ID such as exposed on the JCR Session object.
      */
-    @CheckForNull
+    @Nullable
     String getUserID();
 
     /**
@@ -74,7 +75,7 @@ public interface AuthInfo {
      * @return The attribute names with that instance or an empty array if
      * no attributes are present.
      */
-    @Nonnull
+    @NotNull
     String[] getAttributeNames();
 
     /**
@@ -84,7 +85,7 @@ public interface AuthInfo {
      * @param attributeName The attribute name.
      * @return The attribute or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     Object getAttribute(String attributeName);
 
     /**
@@ -92,6 +93,6 @@ public interface AuthInfo {
      *
      * @return A set of principals.
      */
-    @Nonnull
+    @NotNull
     Set<Principal> getPrincipals();
 }

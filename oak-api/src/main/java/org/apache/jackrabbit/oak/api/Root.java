@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code Root} instance serves as a container for a {@link Tree}. It is
@@ -75,8 +75,8 @@ public interface Root {
      * @param path absolute path to the tree
      * @return tree at the given path.
      */
-    @Nonnull
-    Tree getTree(@Nonnull String path);
+    @NotNull
+    Tree getTree(@NotNull String path);
 
     /**
      * Rebase this root instance to the latest revision. After a call to this method,
@@ -114,7 +114,7 @@ public interface Root {
      * @param info commit information
      * @throws CommitFailedException if the commit failed
      */
-    void commit(@Nonnull Map<String, Object> info) throws CommitFailedException;
+    void commit(@NotNull Map<String, Object> info) throws CommitFailedException;
 
     /**
      * Atomically persists all changes made to the tree attached to this root.
@@ -136,7 +136,7 @@ public interface Root {
      * 
      * @return the query engine
      */
-    @Nonnull
+    @NotNull
     QueryEngine getQueryEngine();
 
     /**
@@ -154,8 +154,8 @@ public interface Root {
      * @return the blob that was created
      * @throws IOException if the stream could not be read
      */
-    @Nonnull
-    Blob createBlob(@Nonnull InputStream stream) throws IOException;
+    @NotNull
+    Blob createBlob(@NotNull InputStream stream) throws IOException;
 
     /**
      * Get a blob by its reference.
@@ -163,8 +163,8 @@ public interface Root {
      * @return  blob or {@code null} if the reference does not resolve to a blob.
      * @see Blob#getReference()
      */
-    @CheckForNull
-    Blob getBlob(@Nonnull String reference);
+    @Nullable
+    Blob getBlob(@NotNull String reference);
 
     /**
      * Get the {@code ContentSession} from which this root was acquired
@@ -173,7 +173,7 @@ public interface Root {
      * 
      * @throws UnsupportedOperationException
      */
-    @Nonnull
+    @NotNull
     ContentSession getContentSession();
 
 }
