@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -95,12 +95,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract boolean indexNodeName(D doc, String value);
 
-    @CheckForNull
+    @Nullable
     public D makeDocument(NodeState state) throws IOException {
         return makeDocument(state, false, Collections.<PropertyState>emptyList());
     }
 
-    @CheckForNull
+    @Nullable
     public D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException {
         boolean facet = false;
 

@@ -19,10 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Callback to be invoked for each indexable property change

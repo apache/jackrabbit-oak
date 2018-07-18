@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
+import org.jetbrains.annotations.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -617,7 +616,7 @@ public class FulltextIndexPlanner {
         return indexedProps;
     }
 
-    @CheckForNull
+    @Nullable
     private static PropertyDefinition getSimpleProperty(IndexingRule indexingRule, String relativePropertyName) {
         String name = PathUtils.getName(relativePropertyName);
         if (name.equals(relativePropertyName)){
@@ -839,7 +838,7 @@ public class FulltextIndexPlanner {
         return orderEntries;
     }
 
-    @CheckForNull
+    @Nullable
     private IndexDefinition.IndexingRule getApplicableRule() {
         if (filter.matchesAllTypes()){
             return definition.getApplicableIndexingRule(JcrConstants.NT_BASE);
@@ -983,7 +982,7 @@ public class FulltextIndexPlanner {
          * @return transformed path. Returns null if the path does not confirm to relative
          * path requirements
          */
-        @CheckForNull
+        @Nullable
         public String transformPath(String path){
             if (isPathTransformed()){
                 // get the base path
@@ -1011,7 +1010,7 @@ public class FulltextIndexPlanner {
 
         public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
 
-        @CheckForNull
+        @Nullable
         public PropertyIndexResult getPropertyIndexResult() {
             return propertyIndexResult;
         }
