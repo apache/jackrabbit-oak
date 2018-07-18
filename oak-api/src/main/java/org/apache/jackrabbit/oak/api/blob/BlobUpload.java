@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
+package org.apache.jackrabbit.oak.api.blob;
 
 import java.net.URI;
 import java.util.Collection;
 
-public interface DataRecordDirectUpload {
+import org.osgi.annotation.versioning.ProviderType;
+
+@ProviderType
+public interface BlobUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * DataRecordDirectAccessProvider#completeDirectUpload(String)}.
+     * BlobDirectAccessProvider#completeDirectUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -35,13 +38,15 @@ public interface DataRecordDirectUpload {
      * The smallest part size the client can send in a multi-part upload (not
      * counting the final part).  There is no guarantee made that splitting the
      * binary into parts of this size can complete the full upload without
-     * exhausting the full supply of uploadPartURIs.  In other words, clients
+     * exhausting the full supply of uploadURIs.  In other words, clients
      * wishing to perform a multi-part upload MUST split the binary into parts
-     * of at least this size, in bytes, but clients may need to use larger parts
-     * in order to upload the entire binary with the number of URIs provided.
+     * of at least this size, in bytes, but clients may need to use larger part
+     * sizes in order to upload the entire binary with the number of URIs
+     * provided.
      * <p>
      * Note that some backends have lower-bound limits for the size of a part of
-     * a multi-part upload.
+     * a multi-part upload.  You should consult the documentation for your
+     * specific service provider for details.
      *
      * @return The smallest part size acceptable, for multi-part uploads.
      */
@@ -51,26 +56,26 @@ public interface DataRecordDirectUpload {
      * The largest part size the client can send in a multi-part upload.  The
      * API guarantees that splitting the file into parts of this size will allow
      * the client to complete the multi-part upload without requiring more URIs
-     * that those provided, SO LONG AS the file being uploaded is not larger
-     * than the maxSize specified in the original call.
+     * than those provided, SO LONG AS the file being uploaded is not larger
+     * than the {@code maxSize} specified in the original call.
      * <p>
      * A smaller size may also be used so long as it exceeds the value returned
      * by {@link #getMinPartSize()}.  Such smaller values may be more desirable
      * for clients who wish to tune uploads to match network conditions;
-     * however, the only guarantee offered by the API is that using parts of
-     * the size returned by {@link #getMaxPartSize()} will work without using
-     * more URIs than those available in the collection returned by {@link
-     * #getUploadURIs()};
+     * however, the only guarantee offered by the API is that using parts of the
+     * size returned by {@link #getMaxPartSize()} will work without using more
+     * URIs than those available in the collection of uploadPartURIs.
      * <p>
      * If a client calls {@link
-     * DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
+     * BlobDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
      * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
      * size of the binary to be uploaded, it may not be possible to complete the
      * upload with the URIs provided.  The client should initiate the
      * transaction again with the correct size.
      * <p>
      * Note that some backends have upper-bound limits for the size of a part of
-     * a multi-part upload.
+     * a multi-part upload.  You should consult the documentation for your
+     * specific service provider for details.
      *
      * @return The largest part size acceptable, for multi-part uploads.
      */
@@ -81,19 +86,20 @@ public interface DataRecordDirectUpload {
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URI in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURIs in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)}, OR
+     *    {@link BlobDirectAccessProvider#initiateDirectUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} is less
-     *    than or equal to the minimum size of a multi-part upload part
+     *    {@link BlobDirectAccessProvider#initiateDirectUpload(long, int)} is
+     *    less than or equal to the minimum size of a multi-part upload part.
+     * <p>
      * If the collection contains only a single URI the client should treat that
      * URI as a direct single-put upload and write the entire binary to the
-     * single URI.  Otherwise the client may choose to consume up to the entire
-     * collection of URIs provided.
+     * single URI.  Otherwise the client may choose to consume any number of
+     * URIs in the collection, up to the entire collection of URIs provided.
      * <p>
-     * Note that ordering matters; URIs should be consumed in sequence and not
-     * skipped.
+     * Note that ordering matters; URIs should be consumed in sequence and
+     * should not be skipped.
      *
      * @return ordered collection of URIs to be consumed in sequence.
      */

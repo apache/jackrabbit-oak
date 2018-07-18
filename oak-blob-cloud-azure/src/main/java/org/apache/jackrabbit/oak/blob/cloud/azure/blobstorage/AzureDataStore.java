@@ -30,7 +30,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
@@ -85,7 +86,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException {
         if (null == azureBlobStoreBackend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
@@ -117,14 +118,8 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public URI getDownloadURI(@Nonnull DataIdentifier identifier) {
-        return getDownloadURI(identifier, null);
-    }
-
-    @Nullable
-    @Override
     public URI getDownloadURI(@Nonnull DataIdentifier identifier,
-                              @Nullable Properties downloadOptions) {
+                              @Nonnull DataRecordDownloadOptions downloadOptions) {
         if (null != azureBlobStoreBackend) {
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }

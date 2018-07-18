@@ -111,14 +111,24 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     @Test
     public void testGetDownloadURIProvidesValidURI() {
         DataIdentifier id = new DataIdentifier("testIdentifier");
-        URI uri = getDataStore().getDownloadURI(id);
+        URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
         assertNotNull(uri);
     }
 
     @Test
     public void testGetDownloadURIRequiresValidIdentifier() {
         try {
-            getDataStore().getDownloadURI(null);
+            getDataStore().getDownloadURI(null, DataRecordDownloadOptions.DEFAULT);
+            fail();
+        }
+        catch (NullPointerException | IllegalArgumentException e) { }
+    }
+
+    @Test
+    public void testGetDownloadURIRequiresValidDownloadOptions() {
+        try {
+            getDataStore().getDownloadURI(new DataIdentifier("testIdentifier"),
+                    null);
             fail();
         }
         catch (NullPointerException | IllegalArgumentException e) { }
@@ -129,7 +139,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         ConfigurableDataRecordDirectAccessProvider dataStore = getDataStore();
         try {
             dataStore.setDirectDownloadURIExpirySeconds(0);
-            assertNull(dataStore.getDownloadURI(new DataIdentifier("testIdentifier")));
+            assertNull(dataStore.getDownloadURI(new DataIdentifier("testIdentifier"), DataRecordDownloadOptions.DEFAULT));
         }
         finally {
             dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
@@ -144,7 +154,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
             String testData = randomString(256);
             record = doSynchronousAddRecord((DataStore) dataStore,
                     new ByteArrayInputStream(testData.getBytes()));
-            URI uri = dataStore.getDownloadURI(record.getIdentifier());
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             assertEquals(200, conn.getResponseCode());
@@ -170,7 +180,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
             dataStore.setDirectDownloadURIExpirySeconds(2);
             record = doSynchronousAddRecord((DataStore) dataStore,
                     new ByteArrayInputStream(testData.getBytes()));
-            URI uri = dataStore.getDownloadURI(record.getIdentifier());
+            URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             try {
                 Thread.sleep(5 * 1000);
             } catch (InterruptedException e) {
@@ -192,7 +202,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
     //
     @Test
     public void testInitiateDirectUploadReturnsValidUploadContext() throws DataRecordDirectUploadException {
-        DataRecordDirectUpload uploadContext =
+        DataRecordUpload uploadContext =
                 getDataStore().initiateDirectUpload(ONE_MB, 10);
         assertNotNull(uploadContext);
         assertFalse(uploadContext.getUploadURIs().isEmpty());
@@ -242,7 +252,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
 
     @Test
     public void testInititateDirectUploadSingleURIRequested() throws DataRecordDirectUploadException {
-        DataRecordDirectUpload uploadContext =
+        DataRecordUpload uploadContext =
                 getDataStore().initiateDirectUpload(TWENTY_MB, 1);
         assertEquals(1, uploadContext.getUploadURIs().size());
         assertTrue(isSinglePutURI(uploadContext.getUploadURIs().iterator().next()));
@@ -250,7 +260,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
 
     @Test
     public void testInititateDirectUploadSizeLowerThanMinPartSize() throws DataRecordDirectUploadException {
-        DataRecordDirectUpload uploadContext =
+        DataRecordUpload uploadContext =
                 getDataStore().initiateDirectUpload(getProviderMinPartSize()-1L, 10);
         assertEquals(1, uploadContext.getUploadURIs().size());
         assertTrue(isSinglePutURI(uploadContext.getUploadURIs().iterator().next()));
@@ -261,7 +271,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         try {
             ds.setDirectUploadURIExpirySeconds(0);
-            DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(TWENTY_MB, 10);
+            DataRecordUpload uploadContext = ds.initiateDirectUpload(TWENTY_MB, 10);
             assertEquals(0, uploadContext.getUploadURIs().size());
 
             uploadContext = ds.initiateDirectUpload(20, 1);
@@ -349,7 +359,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
                     @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
                 }
         )) {
-            DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
+            DataRecordUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
             assertEquals(String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(), res.getMaxNumURIs()),
                     res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
             assertEquals(String.format("Failed for upload size: %d, num URIs %d", res.getUploadSize(), res.getMaxNumURIs()),
@@ -408,7 +418,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
 
     @Test
     public void testCompleteDirectUploadSignatureMustMatch() throws DataRecordDirectUploadException, DataStoreException {
-        DataRecordDirectUpload uploadContext = getDataStore().initiateDirectUpload(ONE_MB, 1);
+        DataRecordUpload uploadContext = getDataStore().initiateDirectUpload(ONE_MB, 1);
 
         // Pull the blob id out and modify it
         String uploadToken = uploadContext.getUploadToken();
@@ -445,7 +455,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
+                DataRecordUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
 
                 assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
                 String uploaded = randomString(res.getUploadSize());
@@ -497,7 +507,7 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
         )) {
             DataRecord uploadedRecord = null;
             try {
-                DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
+                DataRecordUpload uploadContext = ds.initiateDirectUpload(res.getUploadSize(), res.getMaxNumURIs());
                 assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
 
                 String uploaded = randomString(res.getUploadSize());

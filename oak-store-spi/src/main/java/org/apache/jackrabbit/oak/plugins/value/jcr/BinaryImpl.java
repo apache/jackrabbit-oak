@@ -29,8 +29,8 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.BinaryDirectDownload;
-import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
+import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
+import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO document
  */
-class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
+class BinaryImpl implements ReferenceBinary, BinaryDownload {
     private static final Logger LOG = LoggerFactory.getLogger(BinaryImpl.class);
 
     private final ValueImpl value;
@@ -90,13 +90,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDirectDownload {
 
     @Nullable
     @Override
-    public URI getDownloadURI() throws RepositoryException {
-        return getDownloadURI(null);
-    }
-
-    @Nullable
-    @Override
-    public URI getDownloadURI(BinaryDirectDownloadOptions downloadOptions)
+    public URI getURI(BinaryDownloadOptions downloadOptions)
             throws RepositoryException {
         if (null == getReference()) {
             // Binary is inlined, we cannot return a URI for it

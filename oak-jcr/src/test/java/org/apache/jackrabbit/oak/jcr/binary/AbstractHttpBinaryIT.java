@@ -18,21 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URI;
 import java.nio.file.Paths;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,7 +42,6 @@ import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -115,7 +103,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
 
             S3DataStoreFixture s3 = new S3DataStoreFixture(s3Props);
             fixtures.add(new SegmentMemoryNodeStoreFixture(s3));
-//            fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
+            fixtures.add(new DocumentMemoryNodeStoreFixture(s3));
         } else {
             LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for S3 DataStore repo fixture because no S3 properties file was found given by 's3.config' system property or named 'aws.properties'.");
         }
@@ -141,7 +129,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         if (azProps != null) {
             AzureDataStoreFixture azure = new AzureDataStoreFixture(azProps);
             fixtures.add(new SegmentMemoryNodeStoreFixture(azure));
-//            fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
+            fixtures.add(new DocumentMemoryNodeStoreFixture(azure));
         } else {
             LOG.warn("WARN: Skipping AbstractHttpBinaryIT based test for Azure DataStore repo fixture because no AZ properties file was found given by 'azure.config' system property or named 'azure.properties'.");
         }
@@ -222,11 +210,6 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         }
         throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordDirectAccessProvider");
     }
-
-    // -----< useful constants >----------------------------------------------------------------------------------------
-
-    protected static final int MB = 1024 * 1024;
-    protected static final int SECONDS = 1000;
 
     // -----< data store fixtures >-------------------------------------------------------------------------------------
 
@@ -479,91 +462,5 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
             FileUtils.deleteDirectory(folder);
         }
         tempFoldersToDelete.clear();
-    }
-
-    // -----< test helpers >--------------------------------------------------------------------------------------------
-
-    protected void waitForUploads() throws InterruptedException {
-        // let data store upload threads finish
-        Thread.sleep(5 * SECONDS);
-    }
-
-    protected static InputStream getTestInputStream(String content) {
-        try {
-            return new ByteArrayInputStream(content.getBytes("utf-8"));
-        } catch (UnsupportedEncodingException unexpected) {
-            unexpected.printStackTrace();
-            // return empty stream
-            return new ByteArrayInputStream(new byte[0]);
-        }
-    }
-
-    protected static InputStream getTestInputStream(int size) {
-        byte[] blob = new byte[size];
-        // magic bytes so it's not just all zeros
-        blob[0] = 1;
-        blob[1] = 2;
-        blob[2] = 3;
-        return new ByteArrayInputStream(blob);
-    }
-
-    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in) throws IOException {
-        return httpPut(uri, contentLength, in, false);
-    }
-
-    /**
-     * Uploads data via HTTP put to the provided URI.
-     *
-     * @param uri The URI to upload to.
-     * @param contentLength Value to set in the Content-Length header.
-     * @param in - The input stream to upload.
-     * @param isMultiPart - True if this upload is part of a multi-part upload.
-     * @return HTTP response code from the upload request.  Note that a successful
-     * response for S3 is 200 - OK whereas for Azure it is 201 - Created.
-     * @throws IOException
-     */
-    protected int httpPut(@Nullable URI uri, long contentLength, InputStream in, boolean isMultiPart) throws IOException  {
-        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(uri);
-
-        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        connection.setDoOutput(true);
-        connection.setRequestMethod("PUT");
-        connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
-        connection.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
-                .withZone(ZoneOffset.UTC)
-                .format(Instant.now()));
-
-        OutputStream putStream = connection.getOutputStream();
-        IOUtils.copy(in, putStream);
-        putStream.close();
-        return connection.getResponseCode();
-    }
-
-    boolean isSuccessfulHttpPut(int code, ConfigurableDataRecordDirectAccessProvider dataStore) {
-        if (dataStore instanceof S3DataStore) {
-            return 200 == code;
-        }
-        else if (dataStore instanceof AzureDataStore) {
-            return 201 == code;
-        }
-        return 200 == code;
-    }
-
-    boolean isFailedHttpPut(int code) {
-        return code >= 400 && code < 500;
-    }
-
-    protected int httpPutTestStream(URI uri) throws IOException {
-        String content = "hello world";
-        return httpPut(uri, content.getBytes().length, getTestInputStream(content));
-    }
-
-    protected InputStream httpGet(@Nullable URI uri) throws IOException  {
-        // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
-        assertNotNull(uri);
-
-        HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
-        return conn.getInputStream();
     }
 }

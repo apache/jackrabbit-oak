@@ -49,6 +49,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -79,9 +80,10 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
@@ -738,7 +740,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(DataIdentifier identifier, Properties downloadOptions) {
+    public URI createHttpDownloadURI(@Nonnull DataIdentifier identifier,
+                                     @Nonnull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
         if (httpDownloadURIExpirySeconds > 0) {
             if (null != httpDownloadURICache) {
@@ -747,17 +750,29 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             if (null == uri) {
                 String key = getKeyName(identifier);
                 SharedAccessBlobHeaders headers = new SharedAccessBlobHeaders();
-                if (null != downloadOptions) {
-                    String contentType = downloadOptions.getProperty("Content-Type");
-                    if (null != contentType) {
-                        headers.setContentType(contentType);
-                    }
-                    String contentDisposition = downloadOptions.getProperty("Content-Disposition");
-                    if (null != contentDisposition) {
-                        headers.setContentDisposition(contentDisposition);
-                    }
+                String contentType = downloadOptions.getContentType();
+                String contentTypeEncoding = downloadOptions.getContentTypeEncoding();
+                if (! Strings.isNullOrEmpty(contentType)) {
+                    headers.setContentType(
+                            Strings.isNullOrEmpty(contentTypeEncoding) ?
+                                    contentType :
+                                    Joiner.on("; charset=").join(
+                                        contentType,
+                                        contentTypeEncoding)
+                    );
                 }
-                headers.setCacheControl("private, max-age=31536000");
+                String fileName = downloadOptions.getFileName();
+                if (! Strings.isNullOrEmpty(fileName)) {
+                    String dispositionType = downloadOptions.getDispositionType();
+                    if (Strings.isNullOrEmpty(dispositionType)) {
+                        dispositionType = "inline";
+                    }
+                    headers.setContentDisposition(Joiner.on("; filename=").join(
+                            dispositionType,
+                            fileName
+                    ));
+                }
+                headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
                 uri = createPresignedURI(key,
                         EnumSet.of(SharedAccessBlobPermissions.READ),
                         httpDownloadURIExpirySeconds,
@@ -805,7 +820,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
-    public DataRecordDirectUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws DataRecordDirectUploadException {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
@@ -897,7 +912,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
         String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-        return new DataRecordDirectUpload() {
+        return new DataRecordUpload() {
             @Override
             public String getUploadToken() { return uploadToken; }
 

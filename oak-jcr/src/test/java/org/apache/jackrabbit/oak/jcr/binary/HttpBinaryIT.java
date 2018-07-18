@@ -20,6 +20,20 @@ package org.apache.jackrabbit.oak.jcr.binary;
 
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.SECONDS;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.createFileWithBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getOrCreateNtFile;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getRandomString;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getTestInputStream;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.httpGet;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.httpPut;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.httpPutTestStream;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.isFailedHttpPut;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.isSuccessfulHttpPut;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.putBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.saveFileWithBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.waitForUploads;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -27,27 +41,23 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.Random;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
-import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.BinaryDirectDownload;
-import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
-import org.apache.jackrabbit.api.binary.BinaryDirectUpload;
+import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
+import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
@@ -114,7 +124,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         assertTrue(adminSession.getValueFactory() instanceof JackrabbitValueFactory);
 
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(size, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(size, 1);
         assertNotNull(upload);
 
         // very small test binary
@@ -148,7 +158,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 25MB is a good size to ensure chunking is done
         long uploadSize = 1024 * 1024 * 25;
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(uploadSize, 50);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(uploadSize, 50);
         assertNotNull(upload);
 
         String buffer = getRandomString(uploadSize);
@@ -183,7 +193,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 1. add binary and upload
         String content = getRandomString(256);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
         int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
@@ -211,9 +221,9 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        Assert.assertTrue(writeBinary instanceof BinaryDirectDownload);
+        Assert.assertTrue(writeBinary instanceof BinaryDownload);
 
-        URI downloadURI = ((BinaryDirectDownload) writeBinary).getDownloadURI();
+        URI downloadURI = ((BinaryDownload) writeBinary).getURI(BinaryDownloadOptions.DEFAULT);
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
         assertEquals(content, writer.toString());
@@ -229,7 +239,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         // 1. add binary and upload
         String content = getRandomString(256);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
         int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
@@ -237,7 +247,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Binary writeBinary = uploadProvider.completeBinaryUpload(upload.getUploadToken());
 
         // 2. read binary, get the URI
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
+        URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
 
@@ -256,7 +266,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
+        URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
     }
 
@@ -272,12 +282,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         waitForUploads();
 
         String expectedContentType = "image/png";
-        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withContentType(expectedContentType)
                 .build();
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
-                .getDownloadURI(downloadOptions);
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentType = conn.getHeaderField("Content-Type");
@@ -292,7 +302,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     @Test
-    public void testGetBinaryWithSpecificName() throws Exception {
+    public void testGetBinaryWithSpecificContentTypeAndEncoding() throws Exception {
         getConfigurableHttpDataRecordProvider()
                 .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -302,24 +312,153 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedName = "beautiful_landscape.png";
-        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+        String expectedContentType = "text/plain";
+        String expectedContentTypeEncoding = "utf-8";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withName(expectedName)
+                .withContentType(expectedContentType)
+                .withContentTypeEncoding(expectedContentTypeEncoding)
                 .build();
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
-                .getDownloadURI(downloadOptions);
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String name = conn.getHeaderField("Content-Disposition");
-        assertNotNull(name);
-        assertEquals(expectedName, name);
+        String contentType = conn.getHeaderField("Content-Type");
+        assertNotNull(contentType);
+        assertEquals(String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
+                contentType);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
         StringWriter writer = new StringWriter();
         IOUtils.copy(conn.getInputStream(), writer, "utf-8");
         assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryWithContentTypeEncodingOnly() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedContentTypeEncoding = "utf-8";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
+                .builder()
+                .withContentTypeEncoding(expectedContentTypeEncoding)
+                .build();
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentType = conn.getHeaderField("Content-Type");
+        // application/octet-stream is the default Content-Type if none is
+        // set in the signed URI
+        assertEquals("application/octet-stream", contentType);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryWithSpecificFileName() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedName = "beautiful landscape.png";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
+                .builder()
+                .withFileName(expectedName)
+                .build();
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentDisposition = conn.getHeaderField("Content-Disposition");
+        assertNotNull(contentDisposition);
+        assertEquals(String.format("inline; filename=%s", expectedName), contentDisposition);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryWithSpecificFileNameAndDispositionType() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedName = "beautiful landscape.png";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
+                .builder()
+                .withFileName(expectedName)
+                .withDispositionTypeAttachment()
+                .build();
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentDisposition = conn.getHeaderField("Content-Disposition");
+        assertNotNull(contentDisposition);
+        assertEquals(String.format("attachment; filename=%s", expectedName), contentDisposition);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryWithDispositionType() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        String expectedName = "beautiful landscape.png";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
+                .builder()
+                .withDispositionTypeInline()
+                .build();
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentDisposition = conn.getHeaderField("Content-Disposition");
+        assertNull(contentDisposition);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+
     }
 
     @Test
@@ -334,25 +473,64 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         waitForUploads();
 
         String expectedContentType = "image/png";
-        String expectedName = "beautiful_landscape.png";
-        BinaryDirectDownloadOptions downloadOptions = BinaryDirectDownloadOptions
+        String expectedContentTypeEncoding = "utf-8";
+        String expectedName = "beautiful landscape.png";
+        BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withContentType(expectedContentType)
-                .withName(expectedName)
+                .withContentTypeEncoding(expectedContentTypeEncoding)
+                .withFileName(expectedName)
+                .withDispositionTypeInline()
                 .build();
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary))
-                .getDownloadURI(downloadOptions);
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentType = conn.getHeaderField("Content-Type");
         assertNotNull(contentType);
-        assertEquals(expectedContentType, contentType);
-        String name = conn.getHeaderField("Content-Disposition");
-        assertNotNull(name);
-        assertEquals(expectedName, name);
+        assertEquals(String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
+                contentType);
+
+        String contentDisposition = conn.getHeaderField("Content-Disposition");
+        assertNotNull(contentDisposition);
+        assertEquals(String.format("inline; filename=%s", expectedName), contentDisposition);
+
         String cacheControl = conn.getHeaderField("Cache-Control");
         assertNotNull(cacheControl);
-        assertEquals("private, max-age=31536000", cacheControl);
+        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY), cacheControl);
+
+        // Verify response content
+        assertEquals(200, conn.getResponseCode());
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(conn.getInputStream(), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryDefaultOptions() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
+                new ByteArrayInputStream(content.getBytes()));
+
+        waitForUploads();
+
+        URI downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(BinaryDownloadOptions.DEFAULT);
+
+        HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        String contentType = conn.getHeaderField("Content-Type");
+        assertNotNull(contentType);
+        assertEquals("application/octet-stream", contentType);
+
+        String contentDisposition = conn.getHeaderField("Content-Disposition");
+        assertNull(contentDisposition);
+
+        String cacheControl = conn.getHeaderField("Cache-Control");
+        assertNotNull(cacheControl);
+        assertEquals(String.format("private, max-age=%d, immutable", REGULAR_READ_EXPIRY), cacheControl);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -385,7 +563,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(0);
 
         String content = getRandomString(256);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
 
         assertNotNull(upload);
         assertFalse(upload.getUploadURIs().iterator().hasNext());
@@ -402,7 +580,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
+        URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
     }
 
@@ -414,7 +592,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(1);
 
         String content = getRandomString(1024*20);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 10);
 
         // wait to pass timeout
         Thread.sleep(2 * SECONDS);
@@ -433,7 +611,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
             provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
             provider.setBinaryTransferAccelerationEnabled(true);
 
-            BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 20, 1);
+            BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 20, 1);
             URI uri = upload.getUploadURIs().iterator().next();
             assertNotNull(uri);
 
@@ -457,7 +635,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         URI uri = upload.getUploadURIs().iterator().next();
         URI changedURI = new URI(
                 String.format("%s://%s/%sX?%s",  // NOTE the injected "X" in the URI filename
@@ -479,7 +657,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         provider.setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
         String content = getRandomString(1024*20);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         URI uri = upload.getUploadURIs().iterator().next();
         int code = httpPut(uri, content.getBytes().length, new ByteArrayInputStream(content.getBytes()));
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
@@ -502,11 +680,11 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        URI downloadURI = ((BinaryDirectDownload)(writeBinary)).getDownloadURI();
+        URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNotNull(downloadURI);
 
         String moreContent = getRandomString(1024*20);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(moreContent.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(moreContent.getBytes().length, 1);
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         conn.setRequestMethod("PUT");
         conn.setDoOutput(true);
@@ -528,7 +706,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload);
         int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
@@ -565,9 +743,9 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
-        BinaryDirectUpload upload1 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload1 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload1);
-        BinaryDirectUpload upload2 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload2 = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         assertNotNull(upload2);
 
         assertNotEquals(upload1.getUploadURIs().iterator().next().toString(),
@@ -581,7 +759,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         String content = getRandomString(1024*20);
 
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
         int code = httpPut(upload.getUploadURIs().iterator().next(),
                 content.getBytes().length,
                 new ByteArrayInputStream(content.getBytes()));
@@ -618,7 +796,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         }
         catch (PathNotFoundException e) { }
 
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.getBytes().length, 1);
 
         try {
             binary = getBinary(adminSession, FILE_PATH);
@@ -694,7 +872,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testInitiateHttpUploadWithUnlimitedURIs() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
         assertTrue(Iterables.size(upload.getUploadURIs()) > 50);
         // 50 is our default expected client max -
@@ -706,7 +884,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     public void testInitiateHttpUploadLargeSinglePut() throws RepositoryException {
         getConfigurableHttpDataRecordProvider()
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
         assertEquals(1, Iterables.size(upload.getUploadURIs()));
     }
@@ -749,7 +927,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider()
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
-        BinaryDirectUpload upload = uploadProvider.initiateBinaryUpload(256, 10);
+        BinaryUpload upload = uploadProvider.initiateBinaryUpload(256, 10);
         assertNotNull(upload);
 
         try {
@@ -758,62 +936,4 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         }
         catch (IllegalArgumentException e) { }
     }
-
-    // -----------------------------------------------------------------< helpers >--------------
-
-    private Node getOrCreateNtFile(Session session, String path) throws RepositoryException {
-        if (session.nodeExists(path + "/" + JcrConstants.JCR_CONTENT)) {
-            return session.getNode(path + "/" + JcrConstants.JCR_CONTENT);
-        }
-        Node file = session.getRootNode().addNode(path.substring(1), JcrConstants.NT_FILE);
-        return file.addNode(JcrConstants.JCR_CONTENT, JcrConstants.NT_RESOURCE);
-    }
-
-    private void putBinary(Session session, String ntFilePath, Binary binary) throws RepositoryException {
-        Node node = getOrCreateNtFile(session, ntFilePath);
-        node.setProperty(JcrConstants.JCR_DATA, binary);
-    }
-
-    private Binary getBinary(Session session, String ntFilePath) throws RepositoryException {
-        return session.getNode(ntFilePath)
-            .getNode(JcrConstants.JCR_CONTENT)
-            .getProperty(JcrConstants.JCR_DATA)
-            .getBinary();
-    }
-
-    private String getRandomString(long size) {
-        String base = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+/";
-        StringWriter writer = new StringWriter();
-        Random random = new Random();
-        if (size > 256) {
-            String str256 = getRandomString(256);
-            while (size >= 256) {
-                writer.write(str256);
-                size -= 256;
-            }
-            if (size > 0) {
-                writer.write(str256.substring(0, (int)size));
-            }
-        }
-        else {
-            for (long i = 0; i < size; i++) {
-                writer.append(base.charAt(random.nextInt(base.length())));
-            }
-        }
-        return writer.toString();
-    }
-
-    /** Saves an nt:file with a binary at the given path and saves the session. */
-    private void saveFileWithBinary(Session session, String path, Binary binary) throws RepositoryException {
-        Node node = getOrCreateNtFile(session, path);
-        node.setProperty(JcrConstants.JCR_DATA, binary);
-        session.save();
-    }
-
-    private Binary createFileWithBinary(Session session, String path, InputStream stream) throws RepositoryException {
-        Binary binary = session.getValueFactory().createBinary(stream);
-        saveFileWithBinary(session, path, binary);
-        return binary;
-    }
-
 }

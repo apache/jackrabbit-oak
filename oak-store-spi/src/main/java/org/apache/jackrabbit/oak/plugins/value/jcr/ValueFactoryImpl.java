@@ -26,7 +26,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,13 +41,14 @@ import javax.jcr.nodetype.NodeType;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.BinaryDirectUpload;
+import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
-import org.apache.jackrabbit.oak.api.blob.BlobDirectUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
@@ -311,13 +311,13 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
     @Override
     @Nullable
-    public BinaryDirectUpload initiateBinaryUpload(long maxSize, int maxParts) {
-        BlobDirectUpload upload = blobDirectAccessProvider.initiateDirectUpload(maxSize, maxParts);
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) {
+        BlobUpload upload = blobDirectAccessProvider.initiateDirectUpload(maxSize, maxParts);
         if (null == upload) {
             return null;
         }
 
-        return new BinaryDirectUpload() {
+        return new BinaryUpload() {
             @Override
             public Iterable<URI> getUploadURIs() {
                 return upload.getUploadURIs();
@@ -353,11 +353,11 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     }
 
     private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
-        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, blobDirectAccessProvider);
+        return null != blob ? new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, blobDirectAccessProvider) : null;
     }
 
     public Binary createBinary(Blob blob) throws RepositoryException {
-        return createBinaryValue(blob).getBinary();
+        return null != blob ? createBinaryValue(blob).getBinary() : null;
     }
 
     @Nullable
@@ -376,8 +376,8 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes,
-                                                     int maxNumberOfURIs) {
+        public BlobUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                               int maxNumberOfURIs) {
             return null;
         }
 
@@ -389,13 +389,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public URI getDownloadURI(Blob blob) {
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public URI getDownloadURI(Blob blob, Properties downloadOptions) { return null; }
+        public URI getDownloadURI(Blob blob, BlobDownloadOptions downloadOptions) { return null; }
     }
 
 }

@@ -42,7 +42,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordDirectAccessProviderTest;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
@@ -155,7 +155,7 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setDirectUploadURIExpirySeconds(60);
-            DataRecordDirectUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
+            DataRecordUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiryDateStr = params.get("se");
@@ -172,7 +172,7 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumURIs = 10000;
-        DataRecordDirectUpload upload = ds.initiateDirectUpload(uploadSize, -1);
+        DataRecordUpload upload = ds.initiateDirectUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;

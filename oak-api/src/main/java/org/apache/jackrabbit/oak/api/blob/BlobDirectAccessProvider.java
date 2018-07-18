@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.api.blob;
 
 import java.net.URI;
-import java.util.Properties;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -61,7 +61,7 @@ public interface BlobDirectAccessProvider {
      *         for this parameter.  If the client is able to accept any number
      *         of URIs, a value of -1 may be passed in to indicate that the
      *         implementation is free to return as many URIs as it desires.
-     * @return A {@link BlobDirectUpload} referencing this direct upload, or
+     * @return A {@link BlobUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct uploading.
      * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
@@ -71,8 +71,8 @@ public interface BlobDirectAccessProvider {
      *         the service provider or the implementation.
      */
     @Nullable
-    BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes,
-                                          int maxNumberOfURIs)
+    BlobUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                    int maxNumberOfURIs)
             throws IllegalArgumentException;
 
     /**
@@ -80,13 +80,13 @@ public interface BlobDirectAccessProvider {
      * location.
      * <p>
      * This requires the {@code uploadToken} that can be obtained from the
-     * returned {@link BlobDirectUpload} from a previous call to {@link
+     * returned {@link BlobUpload} from a previous call to {@link
      * #initiateDirectUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
      * includes encoded data about the transaction along with a signature
      * that will be verified by the implementation.
      *
-     * @param uploadToken the upload token from a {@link BlobDirectUpload}
+     * @param uploadToken the upload token from a {@link BlobUpload}
      *         object returned from a previous call to {@link
      *         #initiateDirectUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
@@ -96,20 +96,28 @@ public interface BlobDirectAccessProvider {
      *         included signature does not match.
      */
     @Nullable
-    Blob completeDirectUpload(String uploadToken) throws IllegalArgumentException;
+    Blob completeDirectUpload(@Nonnull String uploadToken) throws IllegalArgumentException;
 
     /**
      * Obtain a download URI for a {@link Blob). This is usually a signed URI
      * that can be used to directly download the blob corresponding to the
      * provided {@link Blob}.
+     * <p>
+     * A caller must specify a {@link BlobDownloadOptions} instance.  The
+     * implementation will attempt to apply the specified {@code
+     * downloadOptions} to the subsequent download.  For example, if the caller
+     * knows that the URL refers to a specific type of content, the caller can
+     * specify that content type by setting it in the {@code downloadOptions}.
+     * The caller may also use a default instance obtained via {@link
+     * BlobDownloadOptions#DEFAULT} in which case the caller is indicating that
+     * the default behavior of the service provider is acceptable.
      *
      * @param blob The {@link Blob} to be downloaded.
+     * @param downloadOptions A {@link BlobDownloadOptions} instance that
+     *         specifies any download options to be used for the download URI.
      * @return A URI to download the blob directly or {@code null} if the blob
      *         cannot be downloaded directly.
      */
     @Nullable
-    URI getDownloadURI(Blob blob);
-
-    @Nullable
-    URI getDownloadURI(Blob blob, Properties downloadOptions);
+    URI getDownloadURI(@Nonnull Blob blob, @Nonnull BlobDownloadOptions downloadOptions);
 }

@@ -35,12 +35,13 @@ import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
-import org.apache.jackrabbit.api.binary.BinaryDirectDownloadOptions;
+import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
@@ -393,17 +394,17 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
-    URI getDownloadURI(Blob blob, BinaryDirectDownloadOptions downloadOptions) {
+    URI getDownloadURI(Blob blob, BinaryDownloadOptions downloadOptions) {
         if (blobDirectAccessProvider == null) {
             return null;
         } else {
-            if (null == downloadOptions) {
-                return blobDirectAccessProvider.getDownloadURI(blob);
-            }
-            else {
-                return blobDirectAccessProvider.getDownloadURI(blob,
-                        downloadOptions.toProperties());
-            }
+            return blobDirectAccessProvider.getDownloadURI(blob,
+                    new BlobDownloadOptions(
+                            downloadOptions.getContentType(),
+                            downloadOptions.getContentTypeEncoding(),
+                            downloadOptions.getFileName(),
+                            downloadOptions.getDispositionType())
+                    );
         }
     }
 

@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +61,8 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
-import org.apache.jackrabbit.oak.api.blob.BlobDirectUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -70,8 +70,9 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -666,17 +667,17 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public BlobDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public BlobUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
 
-                DataRecordDirectUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                DataRecordUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
                 if (upload == null) {
                     return null;
                 }
-                return new BlobDirectUpload() {
+                return new BlobUpload() {
                     @Override
                     public String getUploadToken() {
                         return upload.getUploadToken();
@@ -722,19 +723,13 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URI getDownloadURI(Blob blob) {
-        return getDownloadURI(blob, null);
-    }
-
-    @Nullable
-    @Override
-    public URI getDownloadURI(Blob blob, Properties downloadOptions) {
+    public URI getDownloadURI(Blob blob, BlobDownloadOptions downloadOptions) {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
                 return ((DataRecordDirectAccessProvider) delegate).getDownloadURI(
                         new DataIdentifier(extractBlobId(blobId)),
-                        downloadOptions
+                        DataRecordDownloadOptions.fromBlobDownloadOptions(downloadOptions)
                 );
             }
         }

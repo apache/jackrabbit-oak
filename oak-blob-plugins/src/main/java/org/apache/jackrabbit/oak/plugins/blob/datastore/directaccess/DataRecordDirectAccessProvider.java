@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.net.URI;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,23 +26,33 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 
 public interface DataRecordDirectAccessProvider {
     /**
      * Return a URI for directly reading the binary associated with the provided
      * {@link DataRecord}.
+     * <p>
+     * The caller must provide a {@link DataRecordDownloadOptions} instance that
+     * will be used by the implementation to specify options on the download.
+     * This can be obtained from a {@link
+     * BlobDownloadOptions} instance by calling {@link
+     * DataRecordDownloadOptions#fromBlobDownloadOptions(BlobDownloadOptions)},
+     * or to accept the service provider default behavior a caller can simply
+     * use {@link DataRecordDownloadOptions#DEFAULT}.
      *
      * @param identifier The {@link DataIdentifier} for the {@link DataRecord}
-     *        containing the binary to be read via direct download.
+     *         containing the binary to be read via direct download.
+     * @param downloadOptions A {@link DataRecordDownloadOptions} instance
+     *         used to specify any download options that should be set on
+     *         this download.
      * @return A URI for directly reading the binary, or null if the URI cannot
-     * be generated, for example if the capability is disabled by configuration
-     * or if a service provider error occurs.
+     *         be generated, for example if the capability is disabled by
+     *         configuration or if a service provider error occurs.
      */
     @Nullable
-    URI getDownloadURI(DataIdentifier identifier);
-
-    @Nullable
-    URI getDownloadURI(DataIdentifier identifier, Properties downloadOptions);
+    URI getDownloadURI(DataIdentifier identifier,
+                       DataRecordDownloadOptions downloadOptions);
 
     /**
      * Begin a transaction to perform a direct binary upload to the storage
@@ -61,7 +70,7 @@ public interface DataRecordDirectAccessProvider {
      *        parameter.  A caller may also pass in -1 to indicate that it is
      *        able to accept any number of URIs.  Any other negative number or
      *        0 may result in {@link IllegalArgumentException}.
-     * @return A {@link DataRecordDirectUpload} referencing this direct upload,
+     * @return A {@link DataRecordUpload} referencing this direct upload,
      *         or {@code null} if the implementation does not support direct
      *         upload.
      * @throws {@link IllegalArgumentException} if the service provider or
@@ -70,7 +79,7 @@ public interface DataRecordDirectAccessProvider {
      *         completed as requested.
      */
     @Nullable
-    DataRecordDirectUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException;
 
     /**
@@ -81,15 +90,16 @@ public interface DataRecordDirectAccessProvider {
      * performed.
      *
      * @param uploadToken The upload token identifying this direct upload
-     *        transaction, as returned in the {@link DataRecordDirectUpload}
+     *        transaction, as returned in the {@link DataRecordUpload}
      *        object resulting from a call to {@link
      *        #initiateDirectUpload(long, int)}.
-     * @return A {@link DataRecord} for the uploaded binary, or if
-     * @throws {@link IllegalArgumentException} if the {@code uploadToken} is
-     *         null, empty, or otherwise invalid, {@link
-     *         DataRecordDirectUploadException} if the object written can't be
-     *         found by the service provider, or {@link DataStoreException} if
-     *         the object written can't be found by the DataStore.
+     * @return A {@link DataRecord} for the uploaded binary.
+     * @throws IllegalArgumentException if the {@code uploadToken} is null,
+     *         empty, or otherwise invalid.
+     * @throws DataRecordDirectUploadException if the object written can't be
+     *         found by the service provider.
+     * @throws DataStoreException if the object written can't be found by the
+     *         DataStore.
      */
     @Nonnull
     DataRecord completeDirectUpload(String uploadToken)
