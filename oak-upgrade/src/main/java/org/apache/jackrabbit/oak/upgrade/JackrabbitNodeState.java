@@ -54,8 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -86,6 +84,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.Path;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,16 +258,16 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return properties.containsKey(name);
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return properties.get(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<PropertyState> getProperties() {
         return properties.values();
@@ -279,13 +279,13 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return nodes.containsKey(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         NodeId id = nodes.get(name);
         NodeState state = null;
         if (id != null) {
@@ -300,7 +300,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return nodes.keySet();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
         List<MemoryChildNodeEntry> entries = newArrayListWithCapacity(nodes.size());
@@ -314,7 +314,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return entries;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
@@ -322,7 +322,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     //-----------------------------------------------------------< private >--
 
-    @CheckForNull
+    @Nullable
     private JackrabbitNodeState createChildNodeState(NodeId id, String name) {
         if (mountPoints.containsKey(id)) {
             final JackrabbitNodeState nodeState = mountPoints.get(id);
@@ -347,7 +347,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return state;
     }
 
-    private void handleBundleLoadingException(final @Nonnull String name, final Exception e) {
+    private void handleBundleLoadingException(final @NotNull String name, final Exception e) {
         if (!skipOnError) {
             throw new IllegalStateException("Unable to access child node " + name + " of " + getPath(), e);
         }
@@ -602,7 +602,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 }
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public InputStream getNewStream() {
                 try {
