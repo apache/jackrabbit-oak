@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The permission store is used to store and provide access control permissions for principals. It is responsible to
@@ -39,15 +38,15 @@ interface PermissionStore {
      * @param path access controlled path.
      * @return the given {@code entries}, a new collection or {@code null}
      */
-    @CheckForNull
-    Collection<PermissionEntry> load(@Nonnull String principalName, @Nonnull String path);
+    @Nullable
+    Collection<PermissionEntry> load(@NotNull String principalName, @NotNull String path);
 
-    @Nonnull
-    PrincipalPermissionEntries load(@Nonnull String principalName);
+    @NotNull
+    PrincipalPermissionEntries load(@NotNull String principalName);
 
-    @Nonnull
-    NumEntries getNumEntries(@Nonnull String principalName, long max);
+    @NotNull
+    NumEntries getNumEntries(@NotNull String principalName, long max);
 
-    void flush(@Nonnull Root root);
+    void flush(@NotNull Root root);
 
 }

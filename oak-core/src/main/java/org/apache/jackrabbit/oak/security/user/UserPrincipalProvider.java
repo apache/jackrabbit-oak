@@ -23,9 +23,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
@@ -57,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,9 +86,9 @@ class UserPrincipalProvider implements PrincipalProvider {
     private final long expiration;
     private final boolean cacheEnabled;
 
-    UserPrincipalProvider(@Nonnull Root root,
-                          @Nonnull UserConfiguration userConfiguration,
-                          @Nonnull NamePathMapper namePathMapper) {
+    UserPrincipalProvider(@NotNull Root root,
+                          @NotNull UserConfiguration userConfiguration,
+                          @NotNull NamePathMapper namePathMapper) {
         this.root = root;
         this.config = userConfiguration;
         this.namePathMapper = namePathMapper;
@@ -103,7 +102,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         Tree authorizableTree = userProvider.getAuthorizableByPrincipal(new PrincipalImpl(principalName));
         Principal principal = createPrincipal(authorizableTree);
 
@@ -115,9 +114,9 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Principal> getMembershipPrincipals(@Nonnull Principal principal) {
+    public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
         Tree tree = getAuthorizableTree(principal);
         if (tree == null) {
             return Collections.emptySet();
@@ -126,9 +125,9 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         Tree tree = userProvider.getAuthorizable(userID);
         if (tree != null && UserUtil.isType(tree, AuthorizableType.USER)) {
@@ -141,7 +140,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         return principals;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(final String nameHint,
                                                         final int searchType) {
@@ -174,20 +173,20 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
-    private Tree getAuthorizableTree(@Nonnull Principal principal) {
+    @Nullable
+    private Tree getAuthorizableTree(@NotNull Principal principal) {
         return userProvider.getAuthorizableByPrincipal(principal);
     }
 
-    @CheckForNull
-    private Principal createPrincipal(@CheckForNull Tree authorizableTree) {
+    @Nullable
+    private Principal createPrincipal(@Nullable Tree authorizableTree) {
         Principal principal = null;
         if (authorizableTree != null) {
             AuthorizableType type = UserUtil.getType(authorizableTree);
@@ -200,8 +199,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         return principal;
     }
 
-    @CheckForNull
-    private Principal createUserPrincipal(@Nonnull String id, @Nonnull Tree userTree) {
+    @Nullable
+    private Principal createUserPrincipal(@NotNull String id, @NotNull Tree userTree) {
         String principalName = getPrincipalName(userTree);
         if (principalName == null) {
             return null;
@@ -215,8 +214,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @CheckForNull
-    private Principal createGroupPrincipal(@Nonnull Tree groupTree) {
+    @Nullable
+    private Principal createGroupPrincipal(@NotNull Tree groupTree) {
         String principalName = getPrincipalName(groupTree);
         if (principalName == null) {
             return null;
@@ -224,8 +223,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         return new GroupPrincipalImpl(principalName, groupTree);
     }
 
-    @CheckForNull
-    private static String getPrincipalName(@Nonnull Tree tree) {
+    @Nullable
+    private static String getPrincipalName(@NotNull Tree tree) {
         PropertyState principalName = tree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
         if (principalName != null) {
             return principalName.getValue(STRING);
@@ -236,8 +235,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
-    private Set<Principal> getGroupMembership(@Nonnull Tree authorizableTree) {
+    @NotNull
+    private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = null;
         boolean doCache = cacheEnabled && UserUtil.isType(authorizableTree, AuthorizableType.USER);
         if (doCache) {
@@ -270,7 +269,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private void cacheGroups(@Nonnull Tree authorizableNode, @Nonnull Set<Principal> groupPrincipals) {
+    private void cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals) {
         try {
             root.refresh();
             Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
@@ -305,8 +304,8 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @CheckForNull
-    private Set<Principal> readGroupsFromCache(@Nonnull Tree authorizableNode) {
+    @Nullable
+    private Set<Principal> readGroupsFromCache(@NotNull Tree authorizableNode) {
         Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
         if (!principalCache.exists()) {
             log.debug("No group cache at " + authorizableNode.getPath());
@@ -398,11 +397,11 @@ class UserPrincipalProvider implements PrincipalProvider {
 
         private UserManager userManager;
 
-        BaseGroupPrincipal(@Nonnull String principalName, @Nonnull Tree groupTree) {
+        BaseGroupPrincipal(@NotNull String principalName, @NotNull Tree groupTree) {
             super(principalName, groupTree, namePathMapper);
         }
 
-        BaseGroupPrincipal(@Nonnull String principalName, @Nonnull String groupPath) {
+        BaseGroupPrincipal(@NotNull String principalName, @NotNull String groupPath) {
             super(principalName, groupPath, namePathMapper);
         }
 
@@ -420,19 +419,19 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException {
+        boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException {
             org.apache.jackrabbit.api.security.user.Group g = getGroup();
             return g != null && g.isMember(authorizable);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             org.apache.jackrabbit.api.security.user.Group g = getGroup();
             return (g == null) ? Collections.<Authorizable>emptyIterator() : g.getMembers();
         }
 
-        @CheckForNull
+        @Nullable
         abstract org.apache.jackrabbit.api.security.user.Group getGroup()throws RepositoryException;
     }
 
@@ -444,12 +443,12 @@ class UserPrincipalProvider implements PrincipalProvider {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
-        GroupPrincipalImpl(@Nonnull String principalName, @Nonnull Tree groupTree) {
+        GroupPrincipalImpl(@NotNull String principalName, @NotNull Tree groupTree) {
             super(principalName, groupTree);
         }
 
         @Override
-        @CheckForNull
+        @Nullable
         org.apache.jackrabbit.api.security.user.Group getGroup() throws RepositoryException {
             if (group == null) {
                 Authorizable authorizable = getUserManager().getAuthorizable(this);
@@ -465,7 +464,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
-        CachedGroupPrincipal(@Nonnull String principalName) {
+        CachedGroupPrincipal(@NotNull String principalName) {
             super(principalName, "");
         }
 
@@ -487,7 +486,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        @CheckForNull
+        @Nullable
         org.apache.jackrabbit.api.security.user.Group getGroup() throws RepositoryException {
             if (group == null) {
                 Authorizable authorizable = getUserManager().getAuthorizable(new PrincipalImpl(getName()));

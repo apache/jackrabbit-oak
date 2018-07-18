@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A FilteringAwareObserver is the stateless-variant of
@@ -44,6 +43,6 @@ public interface FilteringAwareObserver {
      * @param after the after NodeState
      * @param info the associated CommitInfo
      */
-    void contentChanged(@Nonnull NodeState before, @Nonnull NodeState after, @Nonnull CommitInfo info);
+    void contentChanged(@NotNull NodeState before, @NotNull NodeState after, @NotNull CommitInfo info);
     
 }

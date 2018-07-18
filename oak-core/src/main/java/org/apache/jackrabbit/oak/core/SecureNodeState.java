@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
@@ -52,7 +50,7 @@ class SecureNodeState extends AbstractNodeState {
 
     private long propertyCount = -1;
 
-    SecureNodeState(@Nonnull NodeState state, @Nonnull TreePermission treePermission) {
+    SecureNodeState(@NotNull NodeState state, @NotNull TreePermission treePermission) {
         this.state = checkNotNull(state);
         this.treePermission = checkNotNull(treePermission);
     }
@@ -62,8 +60,8 @@ class SecureNodeState extends AbstractNodeState {
         return treePermission.canRead();
     }
 
-    @Override @CheckForNull
-    public PropertyState getProperty(@Nonnull String name) {
+    @Override @Nullable
+    public PropertyState getProperty(@NotNull String name) {
         PropertyState property = state.getProperty(name);
         if (property != null && treePermission.canRead(property)) {
             return property;
@@ -86,7 +84,7 @@ class SecureNodeState extends AbstractNodeState {
         return propertyCount;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         if (treePermission.canReadProperties()) {
             return state.getProperties();
@@ -98,7 +96,7 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         if (!state.hasChildNode(name)) {
             return false;
         } else if (treePermission.canReadAll()) {
@@ -109,9 +107,9 @@ class SecureNodeState extends AbstractNodeState {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         NodeState child = state.getChildNode(name);
         if (child.exists() && !treePermission.canReadAll()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
@@ -138,7 +136,7 @@ class SecureNodeState extends AbstractNodeState {
         return childNodeCount;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         if (treePermission.canReadAll()) {
             // everything is readable including ac-content -> no secure wrapper needed
@@ -153,7 +151,7 @@ class SecureNodeState extends AbstractNodeState {
        }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
     }
@@ -190,9 +188,9 @@ class SecureNodeState extends AbstractNodeState {
      * we can optimize access by skipping the security wrapper entirely.
      */
     private class WrapChildEntryFunction implements Function<ChildNodeEntry, ChildNodeEntry> {
-        @Nonnull
+        @NotNull
         @Override
-        public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
+        public ChildNodeEntry apply(@NotNull ChildNodeEntry input) {
             String name = input.getName();
             NodeState child = input.getNodeState();
             TreePermission childContext = treePermission.getChildPermission(name, child);

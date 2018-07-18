@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -118,7 +118,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testGetNamesMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
             @Override
-            public String getOakNameOrNull(@Nonnull String jcrName) {
+            public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
             }
 
@@ -212,7 +212,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testSetMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
             @Override
-            public String getOakNameOrNull(@Nonnull String jcrName) {
+            public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
             }
 
@@ -281,7 +281,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
     public void testRemoveMissingResolutionToOakPath() throws Exception {
         AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
             @Override
-            public String getOakNameOrNull(@Nonnull String jcrName) {
+            public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
             }
 

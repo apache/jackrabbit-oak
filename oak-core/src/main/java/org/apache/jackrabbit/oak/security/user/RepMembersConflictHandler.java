@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Sets;
 
@@ -46,10 +45,10 @@ import com.google.common.collect.Sets;
  */
 public class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution addExistingProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState theirs) {
         if (isRepMembersProperty(theirs)) {
             mergeChange(parent, ours, theirs,Sets.newHashSet());
             return Resolution.MERGED;
@@ -59,9 +58,9 @@ public class RepMembersConflictHandler implements ThreeWayConflictHandler {
     }
 
     @Override
-    @Nonnull
-    public Resolution changeDeletedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState base) {
+    @NotNull
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState base) {
         if (isRepMembersProperty(ours)) {
             // removing the members property takes precedence
             return Resolution.THEIRS;
@@ -70,10 +69,10 @@ public class RepMembersConflictHandler implements ThreeWayConflictHandler {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution changeChangedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState theirs, @Nonnull PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
             Set<String> baseMembers = Sets.newHashSet(base.getValue(Type.STRINGS));
             mergeChange(parent, ours, theirs, baseMembers);
@@ -83,17 +82,17 @@ public class RepMembersConflictHandler implements ThreeWayConflictHandler {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution deleteDeletedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
         // both are removing the members property, ignoring
         return Resolution.IGNORED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution deleteChangedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState theirs,
-            @Nonnull PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs,
+            @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
             // removing the members property takes precedence
             return Resolution.OURS;
@@ -103,30 +102,30 @@ public class RepMembersConflictHandler implements ThreeWayConflictHandler {
     }
 
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution addExistingNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState ours,
-            @Nonnull NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
+            @NotNull NodeState theirs) {
         return Resolution.IGNORED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution changeDeletedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState ours,
-            @Nonnull NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
+            @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution deleteChangedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState theirs,
-            @Nonnull NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs,
+            @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Resolution deleteDeletedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
         return Resolution.IGNORED;
     }
 

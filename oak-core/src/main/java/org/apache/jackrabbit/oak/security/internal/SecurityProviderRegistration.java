@@ -20,8 +20,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -50,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -291,7 +290,7 @@ public class SecurityProviderRegistration {
         unbindConfiguration(tokenConfiguration, configuration, properties);
     }
 
-    private <T extends SecurityConfiguration> void bindConfiguration(@Nonnull CompositeConfiguration<T> composite, @Nonnull T configuration, Map<String, Object> properties) {
+    private <T extends SecurityConfiguration> void bindConfiguration(@NotNull CompositeConfiguration<T> composite, @NotNull T configuration, Map<String, Object> properties) {
         synchronized (this) {
             composite.addConfiguration(configuration, ConfigurationParameters.of(properties));
             addCandidate(properties);
@@ -299,7 +298,7 @@ public class SecurityProviderRegistration {
         maybeRegister();
     }
 
-    private <T extends SecurityConfiguration> void unbindConfiguration(@Nonnull CompositeConfiguration<T> composite, @Nonnull T configuration, Map<String, Object> properties) {
+    private <T extends SecurityConfiguration> void unbindConfiguration(@NotNull CompositeConfiguration<T> composite, @NotNull T configuration, Map<String, Object> properties) {
         synchronized (this) {
             composite.removeConfiguration(configuration);
             removeCandidate(properties);
@@ -514,7 +513,7 @@ public class SecurityProviderRegistration {
         log.info("SecurityProvider instance unregistered");
     }
 
-    private SecurityProvider createSecurityProvider(@Nonnull BundleContext context) {
+    private SecurityProvider createSecurityProvider(@NotNull BundleContext context) {
         ConfigurationParameters userParams = ConfigurationParameters.of(
               ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createWhiteboardAuthorizableActionProvider()),
               ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createWhiteboardAuthorizableNodeName()),

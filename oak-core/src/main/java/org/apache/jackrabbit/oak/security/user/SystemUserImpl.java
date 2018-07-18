@@ -17,24 +17,24 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Default implementation for a system user.
  */
 class SystemUserImpl extends UserImpl {
 
-    SystemUserImpl(@Nonnull String id, @Nonnull Tree tree, @Nonnull UserManagerImpl userManager) throws RepositoryException {
+    SystemUserImpl(@NotNull String id, @NotNull Tree tree, @NotNull UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
     }
 
     @Override
-    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+    void checkValidTree(@NotNull Tree tree) throws RepositoryException {
         super.checkValidTree(tree);
         if (!UserUtil.isSystemUser(tree)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:SystemUser expected.");

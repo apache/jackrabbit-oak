@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides a validator for user and group management.
@@ -37,7 +36,7 @@ class UserValidatorProvider extends ValidatorProvider {
 
     private MembershipProvider membershipProvider;
 
-    UserValidatorProvider(@Nonnull ConfigurationParameters config, @Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
+    UserValidatorProvider(@NotNull ConfigurationParameters config, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         this.config = config;
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
@@ -45,7 +44,7 @@ class UserValidatorProvider extends ValidatorProvider {
 
     //--------------------------------------------------< ValidatorProvider >---
 
-    @Override @Nonnull
+    @Override @NotNull
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
         membershipProvider = new MembershipProvider(rootProvider.createReadOnlyRoot(after), config);
@@ -53,12 +52,12 @@ class UserValidatorProvider extends ValidatorProvider {
     }
 
     //-----------------------------------------------------------< internal >---
-    @Nonnull
+    @NotNull
     ConfigurationParameters getConfig() {
         return config;
     }
 
-    @Nonnull
+    @NotNull
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
     }

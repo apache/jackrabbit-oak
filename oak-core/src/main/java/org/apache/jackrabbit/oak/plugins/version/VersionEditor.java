@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
@@ -34,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.lock.LockConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -57,18 +57,18 @@ class VersionEditor implements Editor {
     private boolean isReadOnly;
     private CommitInfo commitInfo;
 
-    public VersionEditor(@Nonnull NodeBuilder versionStore,
-                         @Nonnull NodeBuilder workspaceRoot,
-                         @Nonnull CommitInfo commitInfo) {
+    public VersionEditor(@NotNull NodeBuilder versionStore,
+                         @NotNull NodeBuilder workspaceRoot,
+                         @NotNull CommitInfo commitInfo) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
                 checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
-                  @Nonnull ReadWriteVersionManager vMgr,
-                  @Nonnull NodeBuilder node,
-                  @Nonnull String name,
-                  @Nonnull CommitInfo commitInfo) {
+                  @NotNull ReadWriteVersionManager vMgr,
+                  @NotNull NodeBuilder node,
+                  @NotNull String name,
+                  @NotNull CommitInfo commitInfo) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);

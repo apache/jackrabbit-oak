@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.util;
 
 import java.util.Arrays;
 import java.util.Calendar;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -37,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,17 +69,17 @@ public class NodeUtil {
         this(tree, NamePathMapper.DEFAULT);
     }
 
-    @Nonnull
+    @NotNull
     public Tree getTree() {
         return tree;
     }
 
-    @Nonnull
+    @NotNull
     public String getName() {
         return mapper.getJcrName(tree.getName());
     }
 
-    @Nonnull
+    @NotNull
     public NodeUtil getParent() {
         return new NodeUtil(tree.getParent(), mapper);
     }
@@ -89,7 +88,7 @@ public class NodeUtil {
         return tree.hasChild(name);
     }
 
-    @CheckForNull
+    @Nullable
     public NodeUtil getChild(String name) {
         Tree child = tree.getChild(name);
         return child.exists() ? new NodeUtil(child, mapper) : null;
@@ -109,7 +108,7 @@ public class NodeUtil {
      * @return The new child node with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
      */
-    @Nonnull
+    @NotNull
     public NodeUtil addChild(String name, String primaryTypeName) throws AccessDeniedException {
         Tree child = tree.addChild(name);
         if (!child.exists()) {
@@ -129,7 +128,7 @@ public class NodeUtil {
      * @return The new child node with the specified name and primary type.
      * @throws AccessDeniedException If the child does not exist after creation.
      */
-    @Nonnull
+    @NotNull
     public NodeUtil getOrAddChild(String name, String primaryTypeName) throws AccessDeniedException {
         NodeUtil child = getChild(name);
         return (child != null) ? child : addChild(name, primaryTypeName);
@@ -153,7 +152,7 @@ public class NodeUtil {
      * @throws AccessDeniedException If the any intermediate tree does not exist
      *                               and cannot be created.
      */
-    @Nonnull
+    @NotNull
     public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) throws AccessDeniedException {
         if (PathUtils.denotesCurrent(relativePath)) {
             return this;
@@ -192,7 +191,7 @@ public class NodeUtil {
         tree.setProperty(name, value);
     }
 
-    @CheckForNull
+    @Nullable
     public String getString(String name, @Nullable String defaultValue) {
         String str = TreeUtil.getString(tree, name);
         return (str != null) ? str : defaultValue;
@@ -206,7 +205,7 @@ public class NodeUtil {
         tree.setProperty(name, Arrays.asList(values), STRINGS);
     }
 
-    @CheckForNull
+    @Nullable
     public String getName(String name, @Nullable String defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
@@ -245,7 +244,7 @@ public class NodeUtil {
         }
     }
 
-    public void setLong(@Nonnull String name, long value) {
+    public void setLong(@NotNull String name, long value) {
         tree.setProperty(name, value);
     }
 
@@ -257,7 +256,7 @@ public class NodeUtil {
         }
     }
 
-    @Nonnull
+    @NotNull
     private String getOakName(String jcrName) {
         String oakName = (jcrName == null) ? null : mapper.getOakNameOrNull(jcrName);
         if (oakName == null) {

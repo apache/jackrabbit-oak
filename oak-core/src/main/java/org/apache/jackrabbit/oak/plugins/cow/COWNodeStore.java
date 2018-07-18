@@ -27,15 +27,14 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
  * <p>The copy-on-write (COW) node store implementation allows to temporarily
  * switch the repository into the "testing" mode, in which all the changes are
@@ -120,71 +119,71 @@ public class COWNodeStore implements NodeStore, Observable {
         return () -> observers.remove(observer);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getRoot() {
         return getNodeStore().getRoot();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook, @Nonnull CommitInfo info) throws CommitFailedException {
+    public NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
         return getNodeStore(builder).merge(builder, commitHook, info);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
+    public NodeState rebase(@NotNull NodeBuilder builder) {
         return getNodeStore(builder).rebase(builder);
     }
 
     @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
+    public NodeState reset(@NotNull NodeBuilder builder) {
         return getNodeStore(builder).reset(builder);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
         return getNodeStore().createBlob(inputStream);
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         return getNodeStore().getBlob(reference);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         return getNodeStore().checkpoint(lifetime, properties);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String checkpoint(long lifetime) {
         return getNodeStore().checkpoint(lifetime);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         return getNodeStore().checkpointInfo(checkpoint);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> checkpoints() {
         return getNodeStore().checkpoints();
     }
 
     @Override
-    public NodeState retrieve(@Nonnull String checkpoint) {
+    public NodeState retrieve(@NotNull String checkpoint) {
         return getNodeStore().retrieve(checkpoint);
     }
 
     @Override
-    public boolean release(@Nonnull String checkpoint) {
+    public boolean release(@NotNull String checkpoint) {
         return getNodeStore().release(checkpoint);
     }
 

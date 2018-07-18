@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -29,21 +28,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Component(service = {TreeProvider.class})
 public class TreeProviderService implements TreeProvider {
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree createReadOnlyTree(@Nonnull NodeState rootState) {
+    public Tree createReadOnlyTree(@NotNull NodeState rootState) {
         return TreeFactory.createReadOnlyTree(rootState);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState) {
+    public Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState) {
         return TreeFactory.createReadOnlyTree(readOnlyParent, childName, childState);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState asNodeState(@Nonnull Tree readOnlyTree) {
+    public NodeState asNodeState(@NotNull Tree readOnlyTree) {
         checkArgument(readOnlyTree instanceof AbstractTree);
         return ((AbstractTree) readOnlyTree).getNodeState();
     }

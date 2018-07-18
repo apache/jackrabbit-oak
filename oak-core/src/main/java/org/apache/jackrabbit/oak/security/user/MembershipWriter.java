@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Maps;
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Iterators;
 
@@ -75,7 +75,7 @@ public class MembershipWriter {
      * @return the set of member IDs that was not successfully processed.
      * @throws RepositoryException if an error occurs
      */
-    Set<String> addMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
@@ -162,7 +162,7 @@ public class MembershipWriter {
         return failed;
     }
 
-    private static Tree createMemberRefTree(@Nonnull Tree groupTree, @Nonnull Tree membersList) {
+    private static Tree createMemberRefTree(@NotNull Tree groupTree, @NotNull Tree membersList) {
         if (!membersList.exists()) {
             membersList = groupTree.addChild(UserConstants.REP_MEMBERS_LIST);
             membersList.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
@@ -172,7 +172,7 @@ public class MembershipWriter {
         return refTree;
     }
 
-    private static String nextRefNodeName(@Nonnull Tree membersList) {
+    private static String nextRefNodeName(@NotNull Tree membersList) {
         // keep node names linear
         int i = 0;
         String name = String.valueOf(i);
@@ -189,7 +189,7 @@ public class MembershipWriter {
      * @param memberContentId member to remove
      * @return {@code true} if the member was removed.
      */
-    boolean removeMember(@Nonnull Tree groupTree, @Nonnull String memberContentId) {
+    boolean removeMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
         Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
         m.put(memberContentId, "-");
         return removeMembers(groupTree, m).isEmpty();
@@ -202,7 +202,7 @@ public class MembershipWriter {
      * @param memberIds Map of 'contentId':'memberId' of all members that need to be removed.
      * @return the set of member IDs that was not successfully processed.
      */
-    Set<String> removeMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) {
+    Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
                 Iterators.singletonIterator(groupTree),

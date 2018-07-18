@@ -30,16 +30,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import static com.google.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -49,7 +47,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
 
     private final boolean useNativeEquals;
 
-    protected AbstractDecoratedNodeState(@Nonnull final NodeState delegate, boolean useNativeEquals) {
+    protected AbstractDecoratedNodeState(@NotNull final NodeState delegate, boolean useNativeEquals) {
         this.delegate = delegate;
         this.useNativeEquals = useNativeEquals;
     }
@@ -58,31 +56,31 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         return delegate;
     }
 
-    protected boolean hideChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {
+    protected boolean hideChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
         return false;
     }
 
-    @Nonnull
-    protected abstract NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState delegateChild);
+    @NotNull
+    protected abstract NodeState decorateChild(@NotNull final String name, @NotNull final NodeState delegateChild);
 
-    @Nonnull
-    private NodeState decorate(@Nonnull final String name, @Nonnull final NodeState child) {
+    @NotNull
+    private NodeState decorate(@NotNull final String name, @NotNull final NodeState child) {
         return hideChild(name, child) ? EmptyNodeState.MISSING_NODE : decorateChild(name, child);
     }
 
-    protected boolean hideProperty(@Nonnull final String name) {
+    protected boolean hideProperty(@NotNull final String name) {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     protected Iterable<PropertyState> getNewPropertyStates() {
         return Collections.emptyList();
     }
 
-    @CheckForNull
-    protected abstract PropertyState decorateProperty(@Nonnull final PropertyState delegatePropertyState);
+    @Nullable
+    protected abstract PropertyState decorateProperty(@NotNull final PropertyState delegatePropertyState);
 
-    @CheckForNull
+    @Nullable
     private PropertyState decorate(@Nullable final PropertyState property) {
         return property == null || hideProperty(property.getName()) ? null : decorateProperty(property);
     }
@@ -117,7 +115,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
      * @return a NodeBuilder instance corresponding to this NodeState.
      */
     @Override
-    @Nonnull
+    @NotNull
     public NodeBuilder builder() {
         return new ReadOnlyBuilder(this);
     }
@@ -128,18 +126,18 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull final String name) {
+    public boolean hasChildNode(@NotNull final String name) {
         return getChildNode(name).exists();
     }
 
     @Override
-    @Nonnull
-    public NodeState getChildNode(@Nonnull final String name) throws IllegalArgumentException {
+    @NotNull
+    public NodeState getChildNode(@NotNull final String name) throws IllegalArgumentException {
         return decorate(name, delegate.getChildNode(name));
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         final Iterable<ChildNodeEntry> transformed = Iterables.transform(
                 delegate.getChildNodeEntries(),
@@ -162,8 +160,8 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     }
 
     @Override
-    @CheckForNull
-    public PropertyState getProperty(@Nonnull String name) {
+    @Nullable
+    public PropertyState getProperty(@NotNull String name) {
         PropertyState ps = decorate(delegate.getProperty(name));
         if (ps == null) {
             for (PropertyState p : getNewPropertyStates()) {
@@ -177,13 +175,13 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         final Iterable<PropertyState> propertyStates = Iterables.transform(
                 delegate.getProperties(),
                 new Function<PropertyState, PropertyState>() {
                     @Override
-                    @CheckForNull
+                    @Nullable
                     public PropertyState apply(@Nullable final PropertyState propertyState) {
                         return decorate(propertyState);
                     }

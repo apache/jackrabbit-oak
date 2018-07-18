@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
@@ -30,13 +28,14 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.collect.Lists.newArrayList;
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 
-    @Nonnull
-    public static String getPermissionRootName(@Nonnull Mount mount, @Nonnull String workspace) {
+    @NotNull
+    public static String getPermissionRootName(@NotNull Mount mount, @NotNull String workspace) {
         if (mount.isDefault()) {
             return workspace;
         } else {
@@ -46,10 +45,10 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
     private final MountInfoProvider mountInfoProvider;
 
-    public MountPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-                                   @Nonnull Set<Principal> principals, @Nonnull RestrictionProvider restrictionProvider,
-                                   @Nonnull ConfigurationParameters options, @Nonnull Context ctx,
-                                   @Nonnull ProviderCtx providerCtx) {
+    public MountPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
+                                   @NotNull Set<Principal> principals, @NotNull RestrictionProvider restrictionProvider,
+                                   @NotNull ConfigurationParameters options, @NotNull Context ctx,
+                                   @NotNull ProviderCtx providerCtx) {
         super(root, workspaceName, principals, restrictionProvider, options, ctx, providerCtx);
         this.mountInfoProvider = providerCtx.getMountInfoProvider();
     }
@@ -75,10 +74,10 @@ public class MountPermissionProvider extends PermissionProviderImpl {
             this.stores = stores;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Collection<PermissionEntry> load(@Nonnull String principalName,
-                                                @Nonnull String path) {
+        public Collection<PermissionEntry> load(@NotNull String principalName,
+                                                @NotNull String path) {
             for (PermissionStoreImpl store : stores) {
                 Collection<PermissionEntry> col = store.load(principalName, path);
                 if (col != null && !col.isEmpty()) {
@@ -88,9 +87,9 @@ public class MountPermissionProvider extends PermissionProviderImpl {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public PrincipalPermissionEntries load(@Nonnull String principalName) {
+        public PrincipalPermissionEntries load(@NotNull String principalName) {
             PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
             for (PermissionStoreImpl store : stores) {
                 ppe.putAllEntries(store.load(principalName).getEntries());
@@ -99,9 +98,9 @@ public class MountPermissionProvider extends PermissionProviderImpl {
             return ppe;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public NumEntries getNumEntries(@Nonnull String principalName, long max) {
+        public NumEntries getNumEntries(@NotNull String principalName, long max) {
             long num = 0;
             boolean isExact = true;
             for (PermissionStoreImpl store : stores) {
@@ -122,7 +121,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         }
 
         @Override
-        public void flush(@Nonnull Root root) {
+        public void flush(@NotNull Root root) {
             for (PermissionStoreImpl store : stores) {
                 store.flush(root);
             }

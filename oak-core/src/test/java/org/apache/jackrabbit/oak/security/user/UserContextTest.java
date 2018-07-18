@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -51,7 +50,7 @@ public class UserContextTest implements UserConstants {
 
     private final Context ctx = UserContext.getInstance();
 
-    private static Tree mockTree(@Nonnull String name, @Nonnull String ntName) {
+    private static Tree mockTree(@NotNull String name, @NotNull String ntName) {
         Tree t = Mockito.mock(Tree.class);
         when(t.getName()).thenReturn(name);
         when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));

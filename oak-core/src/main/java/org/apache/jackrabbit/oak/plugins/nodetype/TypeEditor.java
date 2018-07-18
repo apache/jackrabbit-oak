@@ -40,8 +40,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
@@ -59,6 +57,8 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,9 +138,9 @@ public class TypeEditor extends DefaultEditor {
      * @return a new TypeEditor instance
      * @throws CommitFailedException when the primary type of mixin definition is incorrect
      */
-    public static TypeEditor create(@Nonnull ConstraintViolationCallback callback, Set<String> typesToCheck,
-            @Nonnull NodeState types, String primary, Iterable<String> mixins, 
-            @Nonnull NodeBuilder builder) throws CommitFailedException {
+    public static TypeEditor create(@NotNull ConstraintViolationCallback callback, Set<String> typesToCheck,
+            @NotNull NodeState types, String primary, Iterable<String> mixins, 
+            @NotNull NodeBuilder builder) throws CommitFailedException {
         return new TypeEditor(callback, typesToCheck, types, primary, mixins, builder);
     }
 
@@ -183,8 +183,8 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private TypeEditor(
-            @Nonnull TypeEditor parent, @Nonnull String name,
-            @CheckForNull String primary, @Nonnull Iterable<String> mixins, @Nonnull NodeBuilder builder,
+            @NotNull TypeEditor parent, @NotNull String name,
+            @Nullable String primary, @NotNull Iterable<String> mixins, @NotNull NodeBuilder builder,
             boolean validate)
             throws CommitFailedException {
         this.callback= parent.callback;
@@ -320,10 +320,10 @@ public class TypeEditor extends DefaultEditor {
     }
 
     //-----------------------------------------------------------< private >--
-    @Nonnull
+    @NotNull
     private EffectiveType createEffectiveType(
-            @CheckForNull EffectiveType parent, @CheckForNull String name,
-            @CheckForNull String primary, @Nonnull Iterable<String> mixins)
+            @Nullable EffectiveType parent, @Nullable String name,
+            @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
         List<NodeState> list = Lists.newArrayList();
 
@@ -364,7 +364,7 @@ public class TypeEditor extends DefaultEditor {
         return new EffectiveType(list);
     }
 
-    @Nonnull
+    @NotNull
     private EffectiveType getEffective() {
         return effective;
     }

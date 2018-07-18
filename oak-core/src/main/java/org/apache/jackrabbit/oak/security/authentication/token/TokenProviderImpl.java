@@ -27,9 +27,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
@@ -59,6 +56,8 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,11 +125,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private final IdentifierManager identifierManager;
     private final long cleanupThreshold;
 
-    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration) {
+    TokenProviderImpl(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration) {
         this(root, options, userConfiguration, SimpleCredentialsSupport.getInstance());
     }
 
-    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration, @Nonnull CredentialsSupport credentialsSupport) {
+    TokenProviderImpl(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration, @NotNull CredentialsSupport credentialsSupport) {
         this.root = root;
         this.options = options;
         this.credentialsSupport = credentialsSupport;
@@ -155,7 +154,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * empty value; {@code false} otherwise.
      */
     @Override
-    public boolean doCreateToken(@Nonnull Credentials credentials) {
+    public boolean doCreateToken(@NotNull Credentials credentials) {
         Credentials creds = extractCredentials(credentials);
         if (creds == null) {
             return false;
@@ -175,9 +174,9 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @return A new {@code TokenInfo} or {@code null} if the token could not
      *         be created.
      */
-    @CheckForNull
+    @Nullable
     @Override
-    public TokenInfo createToken(@Nonnull Credentials credentials) {
+    public TokenInfo createToken(@NotNull Credentials credentials) {
         Credentials creds = extractCredentials(credentials);
         String uid = (creds != null) ? credentialsSupport.getUserId(creds) : null;
 
@@ -209,7 +208,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         be created.
      */
     @Override
-    public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+    public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         String error = "Failed to create login token. {}";
         User user = getUser(userId);
         Tree tokenParent = (user == null) ? null : getTokenParent(user);
@@ -264,7 +263,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         associated with a valid user.
      */
     @Override
-    public TokenInfo getTokenInfo(@Nonnull String token) {
+    public TokenInfo getTokenInfo(@NotNull String token) {
         int pos = token.indexOf(DELIM);
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
@@ -287,7 +286,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return creationTime + tokenExpiration;
     }
 
-    private static long getExpirationTime(@Nonnull Tree tokenTree, long defaultValue) {
+    private static long getExpirationTime(@NotNull Tree tokenTree, long defaultValue) {
         return TreeUtil.getLong(tokenTree, TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
     }
 
@@ -295,14 +294,14 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return expirationTime < loginTime;
     }
 
-    private static void setExpirationTime(@Nonnull Tree tree, long time) {
+    private static void setExpirationTime(@NotNull Tree tree, long time) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(time);
         tree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, ISO8601.format(calendar), DATE);
     }
 
-    @CheckForNull
-    private Credentials extractCredentials(@Nonnull Credentials credentials) {
+    @Nullable
+    private Credentials extractCredentials(@NotNull Credentials credentials) {
         Credentials creds = credentials;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
@@ -315,7 +314,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
     }
 
-    @Nonnull
+    @NotNull
     private static String generateKey(int size) {
         SecureRandom random = new SecureRandom();
         byte key[] = new byte[size];
@@ -329,12 +328,12 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return res.toString();
     }
 
-    @Nonnull
-    private static String getKeyValue(@Nonnull String key, @Nonnull String userId) {
+    @NotNull
+    private static String getKeyValue(@NotNull String key, @NotNull String userId) {
         return key + userId;
     }
 
-    private static boolean isValidTokenTree(@CheckForNull Tree tokenTree) {
+    private static boolean isValidTokenTree(@Nullable Tree tokenTree) {
         if (tokenTree == null || !tokenTree.exists()) {
             return false;
         } else {
@@ -343,13 +342,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
     }
 
-    @Nonnull
-    private Tree getTokenTree(@Nonnull TokenInfoImpl tokenInfo) {
+    @NotNull
+    private Tree getTokenTree(@NotNull TokenInfoImpl tokenInfo) {
         return root.getTree(tokenInfo.tokenPath);
     }
 
-    @CheckForNull
-    private User getUser(@Nonnull Tree tokenTree) throws RepositoryException {
+    @Nullable
+    private User getUser(@NotNull Tree tokenTree) throws RepositoryException {
         String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
         Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
         if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
@@ -359,8 +358,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
     }
 
-    @CheckForNull
-    private User getUser(@Nonnull String userId) {
+    @Nullable
+    private User getUser(@NotNull String userId) {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
@@ -375,8 +374,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return null;
     }
 
-    @CheckForNull
-    private Tree getTokenParent(@Nonnull User user) {
+    @Nullable
+    private Tree getTokenParent(@NotNull User user) {
         Tree tokenParent = null;
         String parentPath = null;
         try {
@@ -418,9 +417,9 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * new token node.
      *
      */
-    private TokenInfo createTokenNode(@Nonnull Tree parent, @Nonnull String tokenName,
-                                      long expTime, @Nonnull String uuid,
-                                      @Nonnull String id, Map<String, ?> attributes)
+    private TokenInfo createTokenNode(@NotNull Tree parent, @NotNull String tokenName,
+                                      long expTime, @NotNull String uuid,
+                                      @NotNull String id, Map<String, ?> attributes)
             throws AccessDeniedException, UnsupportedEncodingException, NoSuchAlgorithmException {
 
         Tree tokenNode = TreeUtil.addChild(parent, tokenName, TOKEN_NT_NAME);
@@ -458,7 +457,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @param token
      *            The token info used as random data to skip cleanup.
      */
-    private void cleanupExpired(@Nonnull String userId, @Nonnull Tree parent, long currentTime, @Nonnull String token) {
+    private void cleanupExpired(@NotNull String userId, @NotNull Tree parent, long currentTime, @NotNull String token) {
         if (cleanupThreshold > NO_TOKEN_CLEANUP && shouldRunCleanup(token)) {
             long start = System.currentTimeMillis();
             long active = 0;
@@ -496,7 +495,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @param tkn
      * @return true if the cleanup should run
      */
-    static boolean shouldRunCleanup(@Nonnull String token) {
+    static boolean shouldRunCleanup(@NotNull String token) {
         return token.charAt(0) < '2';
     }
 
@@ -518,7 +517,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         private final Map<String, String> mandatoryAttributes;
         private final Map<String, String> publicAttributes;
 
-        private TokenInfoImpl(@Nonnull Tree tokenTree, @Nonnull String token, @Nonnull String userId, @Nullable Principal principal) {
+        private TokenInfoImpl(@NotNull Tree tokenTree, @NotNull String token, @NotNull String userId, @Nullable Principal principal) {
             this.token = token;
             this.tokenPath = tokenTree.getPath();
             this.userId = userId;
@@ -544,20 +543,20 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             }
         }
 
-        @CheckForNull
+        @Nullable
         Principal getPrincipal() {
             return principal;
         }
 
         //------------------------------------------------------< TokenInfo >---
 
-        @Nonnull
+        @NotNull
         @Override
         public String getUserId() {
             return userId;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getToken() {
             return token;
@@ -613,7 +612,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
 
         @Override
-        public boolean matches(@Nonnull TokenCredentials tokenCredentials) {
+        public boolean matches(@NotNull TokenCredentials tokenCredentials) {
             String tk = tokenCredentials.getToken();
             int pos = tk.lastIndexOf(DELIM);
             if (pos > -1) {
@@ -644,13 +643,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, String> getPrivateAttributes() {
             return Collections.unmodifiableMap(mandatoryAttributes);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, String> getPublicAttributes() {
             return Collections.unmodifiableMap(publicAttributes);
@@ -664,7 +663,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
          * @return {@code true} if the specified {@code attributeName}
          *         starts with or equals {@link #TOKEN_ATTRIBUTE}.
          */
-        private boolean isMandatoryAttribute(@Nonnull String attributeName) {
+        private boolean isMandatoryAttribute(@NotNull String attributeName) {
             return attributeName.startsWith(TOKEN_ATTRIBUTE);
         }
 
@@ -678,7 +677,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
          * @return {@code true} if the specified property name doesn't seem
          *         to represent repository internal information.
          */
-        private boolean isInfoAttribute(@Nonnull String attributeName) {
+        private boolean isInfoAttribute(@NotNull String attributeName) {
             String prefix = Text.getNamespacePrefix(attributeName);
             return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
         }

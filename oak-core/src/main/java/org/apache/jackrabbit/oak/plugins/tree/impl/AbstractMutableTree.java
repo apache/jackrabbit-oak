@@ -27,15 +27,14 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code AbstractMutableTree} extends {@code AbstractTree} with implementations
@@ -67,9 +66,9 @@ public abstract class AbstractMutableTree extends AbstractTree {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree addChild(@Nonnull String name) throws IllegalArgumentException {
+    public Tree addChild(@NotNull String name) throws IllegalArgumentException {
         checkArgument(!isHidden(name));
         if (!hasChild(name)) {
             NodeBuilder nodeBuilder = getNodeBuilder();
@@ -170,26 +169,26 @@ public abstract class AbstractMutableTree extends AbstractTree {
     }
 
     @Override
-    public void setProperty(@Nonnull PropertyState property) {
+    public void setProperty(@NotNull PropertyState property) {
         checkArgument(!isHidden(checkNotNull(property).getName()));
         getNodeBuilder().setProperty(property);
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value) throws IllegalArgumentException {
+    public <T> void setProperty(@NotNull String name, @NotNull T value) throws IllegalArgumentException {
         checkArgument(!isHidden(checkNotNull(name)));
         getNodeBuilder().setProperty(name, checkNotNull(value));
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type)
+    public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type)
             throws IllegalArgumentException {
         checkArgument(!isHidden(checkNotNull(name)));
         getNodeBuilder().setProperty(name, checkNotNull(value), checkNotNull(type));
     }
 
     @Override
-    public void removeProperty(@Nonnull String name) {
+    public void removeProperty(@NotNull String name) {
         getNodeBuilder().removeProperty(checkNotNull(name));
     }
 }

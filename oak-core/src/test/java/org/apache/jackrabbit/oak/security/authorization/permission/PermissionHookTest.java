@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
@@ -50,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,18 +110,18 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
-    private void addACE(@Nonnull String path, @Nonnull Principal principal, @Nonnull String... privilegeNames) throws RepositoryException {
+    private void addACE(@NotNull String path, @NotNull Principal principal, @NotNull String... privilegeNames) throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addAccessControlEntry(principal, privilegesFromNames(privilegeNames));
         acMgr.setPolicy(path, acl);
     }
 
-    protected Tree getPrincipalRoot(@Nonnull Principal principal) {
+    protected Tree getPrincipalRoot(@NotNull Principal principal) {
         return root.getTree(PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(principal.getName());
     }
 
-    protected Tree getEntry(@Nonnull Principal principal, String accessControlledPath, long index) throws Exception {
+    protected Tree getEntry(@NotNull Principal principal, String accessControlledPath, long index) throws Exception {
         Tree principalRoot = getPrincipalRoot(principal);
         Tree parent = principalRoot.getChild(PermissionUtil.getEntryName(accessControlledPath));
         Tree entry = parent.getChild(String.valueOf(index));
@@ -688,8 +688,8 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
-    @Nonnull
-    private static Set<String> getAccessControlledPaths(@Nonnull Tree principalTree) {
+    @NotNull
+    private static Set<String> getAccessControlledPaths(@NotNull Tree principalTree) {
         Set<String> s = Sets.newHashSet();
         for (Tree tree : principalTree.getChildren()) {
             String path = getAccessControlledPath(tree);
@@ -708,14 +708,14 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         return s;
     }
 
-    @CheckForNull
-    private static String getAccessControlledPath(@Nonnull Tree t) {
+    @Nullable
+    private static String getAccessControlledPath(@NotNull Tree t) {
         PropertyState pathProp = t.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return (pathProp == null) ? null : pathProp.getValue(Type.STRING);
 
     }
 
-    private static void assertNumPermissionsProperty(long expectedValue, @Nonnull Tree parent) {
+    private static void assertNumPermissionsProperty(long expectedValue, @NotNull Tree parent) {
         PropertyState p = parent.getProperty(REP_NUM_PERMISSIONS);
         assertNotNull(p);
         assertEquals(expectedValue, p.getValue(Type.LONG).longValue());

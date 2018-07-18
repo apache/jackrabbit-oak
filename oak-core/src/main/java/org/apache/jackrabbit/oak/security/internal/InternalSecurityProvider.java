@@ -27,9 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -49,7 +48,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
 
     private Whiteboard whiteboard;
 
-    @Nonnull
+    @NotNull
     @Override
     public ConfigurationParameters getParameters(@Nullable String name) {
         SecurityConfiguration securityConfiguration = getSecurityConfigurationByName(name);
@@ -89,7 +88,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
         return newHashSet(
@@ -102,10 +101,10 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
         );
     }
 
-    @Nonnull
+    @NotNull
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T getConfiguration(@Nonnull Class<T> configurationClass) {
+    public <T> T getConfiguration(@NotNull Class<T> configurationClass) {
         if (configurationClass == AuthenticationConfiguration.class) {
             return (T) authenticationConfiguration;
         }
@@ -134,7 +133,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
     }
 
     @Override
-    public void setWhiteboard(@Nonnull Whiteboard whiteboard) {
+    public void setWhiteboard(@NotNull Whiteboard whiteboard) {
         this.whiteboard = whiteboard;
     }
 

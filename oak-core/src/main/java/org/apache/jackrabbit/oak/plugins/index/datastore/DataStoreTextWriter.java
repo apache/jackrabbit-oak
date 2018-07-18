@@ -27,8 +27,6 @@ import java.lang.ref.SoftReference;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +122,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     @Override
-    public void write(@Nonnull String blobId,@Nonnull String text) throws IOException {
+    public void write(@NotNull String blobId,@NotNull String text) throws IOException {
         checkIfReadOnlyModeEnabled();
         checkNotNull(blobId, "BlobId cannot be null");
         checkNotNull(text, "Text passed for [%s] was null", blobId);

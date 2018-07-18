@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.PrivilegedAction;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -102,8 +102,8 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
         }
     }
 
-    @Nonnull
-    private TreePermission getTreePermission(@Nonnull ContentSession cs, @Nonnull String path) throws Exception {
+    @NotNull
+    private TreePermission getTreePermission(@NotNull ContentSession cs, @NotNull String path) throws Exception {
         Root r = cs.getLatestRoot();
         PermissionProvider pp = config.getPermissionProvider(r, cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
 

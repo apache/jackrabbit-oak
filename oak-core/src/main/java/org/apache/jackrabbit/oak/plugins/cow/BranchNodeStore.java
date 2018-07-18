@@ -26,8 +26,8 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +39,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
@@ -79,57 +78,57 @@ public class BranchNodeStore implements NodeStore, Observable {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getRoot() {
         return memoryNodeStore.getRoot();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook, @Nonnull CommitInfo info) throws CommitFailedException {
+    public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
         return memoryNodeStore.merge(builder, commitHook, info);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
+    public NodeState rebase(@NotNull NodeBuilder builder) {
         return memoryNodeStore.rebase(builder);
     }
 
     @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
+    public NodeState reset(@NotNull NodeBuilder builder) {
         return memoryNodeStore.reset(builder);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
         return memoryNodeStore.createBlob(inputStream);
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         return memoryNodeStore.getBlob(reference);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         String checkpoint = memoryNodeStore.checkpoint(lifetime, properties);
         String uuid = UUID.randomUUID().toString();
         checkpointMapping.put(uuid, checkpoint);
         return uuid;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String checkpoint(long lifetime) {
         return checkpoint(lifetime, emptyMap());
     }
 
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> checkpoints() {
         List<String> result = newArrayList(inheritedCheckpoints);
@@ -143,9 +142,9 @@ public class BranchNodeStore implements NodeStore, Observable {
         return result;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         if (inheritedCheckpoints.contains(checkpoint)) {
             return nodeStore.checkpointInfo(checkpoint);
         } else if (checkpointMapping.containsKey(checkpoint)) {
@@ -156,7 +155,7 @@ public class BranchNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public NodeState retrieve(@Nonnull String checkpoint) {
+    public NodeState retrieve(@NotNull String checkpoint) {
         if (inheritedCheckpoints.contains(checkpoint)) {
             return nodeStore.retrieve(checkpoint);
         } else if (checkpointMapping.containsKey(checkpoint)) {
@@ -167,7 +166,7 @@ public class BranchNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public boolean release(@Nonnull String checkpoint) {
+    public boolean release(@NotNull String checkpoint) {
         if (inheritedCheckpoints.contains(checkpoint)) {
             return nodeStore.release(checkpoint);
         } else if (checkpointMapping.containsKey(checkpoint)) {

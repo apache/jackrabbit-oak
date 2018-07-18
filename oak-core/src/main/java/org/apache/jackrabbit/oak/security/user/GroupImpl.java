@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -38,6 +36,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
-    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+    void checkValidTree(@NotNull Tree tree) throws RepositoryException {
         if (!UserUtil.isType(tree, AuthorizableType.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
@@ -127,7 +127,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public Set<String> addMembers(@Nonnull String... memberIds) throws RepositoryException {
+    public Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException {
         return updateMembers(false, memberIds);
     }
 
@@ -153,7 +153,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public Set<String> removeMembers(@Nonnull String... memberIds) throws RepositoryException {
+    public Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException {
         return updateMembers(true, memberIds);
     }
 
@@ -244,7 +244,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      * authorizable.
      * @throws javax.jcr.RepositoryException If another error occurs.
      */
-    private Set<String> updateMembers(boolean isRemove, @Nonnull String... memberIds) throws RepositoryException {
+    private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
         Set<String> failedIds = Sets.newHashSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
@@ -312,7 +312,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return failedIds;
     }
 
-    private boolean isCyclicMembership(@Nonnull Group member) throws RepositoryException {
+    private boolean isCyclicMembership(@NotNull Group member) throws RepositoryException {
         return member.isMember(this);
     }
 
@@ -336,11 +336,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         @Override
-        boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException {
+        boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException {
             return GroupImpl.this.isMember(authorizable);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             return GroupImpl.this.getMembers();

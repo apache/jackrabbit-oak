@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
@@ -44,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest implements PrivilegeConstants {
@@ -127,7 +127,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         throw new UnsupportedOperationException();
     }
 
-    private ACE createEntry(@Nonnull Principal principal, @Nonnull Privilege[] privileges, boolean isAllow, @Nullable Set<Restriction> restrictions)
+    private ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Set<Restriction> restrictions)
             throws RepositoryException {
         ACL acl = createEmptyACL();
         return acl.createACE(principal, getBitsProvider().getBits(privileges, getNamePathMapper()), isAllow, restrictions);
@@ -137,23 +137,23 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         return createACL(TEST_PATH, Collections.<ACE>emptyList(), getNamePathMapper(), getRestrictionProvider());
     }
 
-    ACL createACL(@Nonnull List<ACE> entries) {
+    ACL createACL(@NotNull List<ACE> entries) {
         return createACL(TEST_PATH, entries, namePathMapper, getRestrictionProvider());
     }
 
     ACL createACL(@Nullable String jcrPath,
-                  @Nonnull List<ACE> entries,
-                  @Nonnull NamePathMapper namePathMapper) {
+                  @NotNull List<ACE> entries,
+                  @NotNull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
     ACL createACL(@Nullable String jcrPath,
-                  @Nonnull List<ACE> entries,
-                  @Nonnull NamePathMapper namePathMapper,
-                  final @Nonnull RestrictionProvider restrictionProvider) {
+                  @NotNull List<ACE> entries,
+                  @NotNull NamePathMapper namePathMapper,
+                  final @NotNull RestrictionProvider restrictionProvider) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ACL(path, entries, namePathMapper) {
-            @Nonnull
+            @NotNull
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return restrictionProvider;

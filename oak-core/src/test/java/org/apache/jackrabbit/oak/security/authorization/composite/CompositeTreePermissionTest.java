@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -76,7 +75,7 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
                 .getTreePermission(rootTree, TreePermission.EMPTY);
     }
 
-    private static void assertCompositeTreePermission(boolean expected, @Nonnull TreePermission tp) {
+    private static void assertCompositeTreePermission(boolean expected, @NotNull TreePermission tp) {
         assertEquals(expected, tp instanceof CompositeTreePermission);
     }
 

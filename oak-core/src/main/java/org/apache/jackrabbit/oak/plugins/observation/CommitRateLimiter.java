@@ -23,13 +23,12 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +88,7 @@ public class CommitRateLimiter implements CommitHook {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
             throws CommitFailedException {

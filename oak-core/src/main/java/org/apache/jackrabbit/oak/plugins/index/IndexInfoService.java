@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
 
-import javax.annotation.CheckForNull;
-
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
@@ -42,7 +41,7 @@ public interface IndexInfoService {
      * @return indexInfo for the index or null if there is no index node
      * found at given path
      */
-    @CheckForNull
+    @Nullable
     IndexInfo getInfo(String indexPath) throws IOException;
 
     /**

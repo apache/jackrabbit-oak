@@ -22,13 +22,12 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An universal {@code Filter} implementation, which can be parametrised by
@@ -52,8 +51,8 @@ public class UniversalFilter implements EventFilter {
      * @param predicate       predicate for determining whether to include or to exclude an event
      */
     public UniversalFilter(
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull Selector selector, @Nonnull Predicate<NodeState> predicate) {
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
         this.beforeState = checkNotNull(before);
         this.afterState = checkNotNull(after);
         this.predicate = checkNotNull(predicate);
@@ -75,9 +74,9 @@ public class UniversalFilter implements EventFilter {
          *                {@link EventFilter#includeDelete(PropertyState)}
          * @return a {@code NodeState} instance for basing the filtering criterion (predicate) upon
          */
-        @Nonnull
-        NodeState select(@Nonnull UniversalFilter filter,
-                @CheckForNull PropertyState before, @CheckForNull PropertyState after);
+        @NotNull
+        NodeState select(@NotNull UniversalFilter filter,
+                @Nullable PropertyState before, @Nullable PropertyState after);
 
         /**
          * Map a node event.
@@ -89,15 +88,15 @@ public class UniversalFilter implements EventFilter {
          *                {@link EventFilter#includeDelete(String, NodeState)}
          * @return a NodeState instance for basing the filtering criterion (predicate) upon
          */
-        @Nonnull
-        NodeState select(@Nonnull UniversalFilter filter, @Nonnull String name,
-                @Nonnull NodeState before, @Nonnull NodeState after);
+        @NotNull
+        NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
+                @NotNull NodeState before, @NotNull NodeState after);
     }
 
     /**
      * @return  before state for this filter
      */
-    @Nonnull
+    @NotNull
     public NodeState getBeforeState() {
         return beforeState;
     }
@@ -105,7 +104,7 @@ public class UniversalFilter implements EventFilter {
     /**
      * @return  after state for this filter
      */
-    @Nonnull
+    @NotNull
     public NodeState getAfterState() {
         return afterState;
     }

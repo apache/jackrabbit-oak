@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.plugins.index.aggregate;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 
@@ -38,13 +37,13 @@ public class AggregateIndexProvider implements QueryIndexProvider {
         this.baseProvider = baseProvider;
     }
     
-    @Nonnull
+    @NotNull
     public static QueryIndexProvider wrap(
-            @Nonnull QueryIndexProvider baseProvider) {
+            @NotNull QueryIndexProvider baseProvider) {
         return new AggregateIndexProvider(baseProvider);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState state) {
         List<? extends QueryIndex> list = baseProvider.getQueryIndexes(state);
         List<QueryIndex> newList = new ArrayList<QueryIndex>();

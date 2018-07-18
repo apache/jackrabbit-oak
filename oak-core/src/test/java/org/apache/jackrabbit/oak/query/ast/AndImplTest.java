@@ -26,8 +26,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class AndImplTest {
@@ -72,8 +71,8 @@ public class AndImplTest {
      * @param clazz the class you want Mockito to generate for you.
      * @return a Mockito instance of the provided ConstraintImpl
      */
-    private static ConstraintImpl mockConstraint(@Nonnull String toString, 
-                                                 @Nonnull Class<? extends ConstraintImpl> clazz) {
+    private static ConstraintImpl mockConstraint(@NotNull String toString, 
+                                                 @NotNull Class<? extends ConstraintImpl> clazz) {
         ConstraintImpl c = mock(checkNotNull(clazz));
         when(c.toString()).thenReturn(checkNotNull(toString));
         return c;

@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An approximate descendant node counter mechanism.
@@ -163,14 +162,14 @@ public class NodeCounterEditorOld implements Editor {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public Editor childNodeChanged(String name, NodeState before, NodeState after)
             throws CommitFailedException {
         return getChildIndexEditor(name, null);
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
@@ -187,7 +186,7 @@ public class NodeCounterEditorOld implements Editor {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {

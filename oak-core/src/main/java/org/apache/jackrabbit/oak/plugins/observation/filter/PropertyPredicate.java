@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Predicate on property values. This property holds if and only if
@@ -41,7 +40,7 @@ public class PropertyPredicate implements Predicate<NodeState> {
      * @param propertyPredicate  predicate on the named property
      */
     public PropertyPredicate(
-            @Nonnull String name, @Nonnull Predicate<PropertyState> propertyPredicate) {
+            @NotNull String name, @NotNull Predicate<PropertyState> propertyPredicate) {
         this.name = checkNotNull(name);
         this.propertyPredicate = checkNotNull(propertyPredicate);
     }

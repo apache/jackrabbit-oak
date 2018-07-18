@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.core;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -53,14 +53,14 @@ public class MutableRootTest {
     @Before
     public void before() {
         SecurityProvider sp = new OpenSecurityProvider() {
-            @Nonnull
+            @NotNull
             @Override
-            public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+            public <T> T getConfiguration(@NotNull Class<T> configClass) {
                 if (AuthorizationConfiguration.class == configClass) {
                     return (T) new OpenAuthorizationConfiguration() {
-                        @Nonnull
+                        @NotNull
                         @Override
-                        public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+                        public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
                             return permissionProvider;
                         }
                     };
@@ -100,7 +100,7 @@ public class MutableRootTest {
         assertEquals(nb2.exists(), nb.exists());
     }
 
-    private boolean canReadRootTree(@Nonnull Tree t) {
+    private boolean canReadRootTree(@NotNull Tree t) {
         return permissionProvider.getTreePermission(t, TreePermission.EMPTY).canRead();
     }
 }

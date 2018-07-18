@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper class for the password history feature.
@@ -42,7 +42,7 @@ final class PasswordHistory implements UserConstants {
     private final int maxSize;
     private final boolean isEnabled;
 
-    public PasswordHistory(@Nonnull ConfigurationParameters config) {
+    public PasswordHistory(@NotNull ConfigurationParameters config) {
         maxSize = Math.min(HISTORY_MAX_SIZE, config.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE));
         isEnabled = maxSize > UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
     }
@@ -61,7 +61,7 @@ final class PasswordHistory implements UserConstants {
      * @throws javax.jcr.AccessDeniedException If the rep:pwd tree cannot be
      * accessed.
      */
-    boolean updatePasswordHistory(@Nonnull Tree userTree, @Nonnull String password) throws ConstraintViolationException, AccessDeniedException {
+    boolean updatePasswordHistory(@NotNull Tree userTree, @NotNull String password) throws ConstraintViolationException, AccessDeniedException {
         boolean updated = false;
         if (isEnabled) {
             checkPasswordInHistory(userTree, password);
@@ -79,7 +79,7 @@ final class PasswordHistory implements UserConstants {
      * @throws AccessDeniedException If the editing session cannot access or
      * create the rep:pwd node.
      */
-    private void shiftPasswordHistory(@Nonnull Tree userTree) throws AccessDeniedException {
+    private void shiftPasswordHistory(@NotNull Tree userTree) throws AccessDeniedException {
         String currentPasswordHash = TreeUtil.getString(userTree, UserConstants.REP_PASSWORD);
         if (currentPasswordHash != null) {
             Tree passwordTree = getPasswordTree(userTree, true);
@@ -108,7 +108,7 @@ final class PasswordHistory implements UserConstants {
      * @throws ConstraintViolationException If the passsword is found in the history
      * @throws AccessDeniedException If the editing session cannot access the rep:pwd node.
      */
-    private void checkPasswordInHistory(@Nonnull Tree userTree, @Nonnull String newPassword) throws ConstraintViolationException, AccessDeniedException {
+    private void checkPasswordInHistory(@NotNull Tree userTree, @NotNull String newPassword) throws ConstraintViolationException, AccessDeniedException {
         if (PasswordUtil.isSame(TreeUtil.getString(userTree, UserConstants.REP_PASSWORD), newPassword)) {
             throw new PasswordHistoryException("New password is identical to the current password.");
         }
@@ -125,8 +125,8 @@ final class PasswordHistory implements UserConstants {
         }
     }
 
-    @Nonnull
-    private static Tree getPasswordTree(@Nonnull Tree userTree, boolean doCreate) throws AccessDeniedException {
+    @NotNull
+    private static Tree getPasswordTree(@NotNull Tree userTree, boolean doCreate) throws AccessDeniedException {
         if (doCreate) {
             return TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
         } else {

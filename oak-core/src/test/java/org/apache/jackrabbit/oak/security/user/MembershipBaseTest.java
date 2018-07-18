@@ -22,8 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Iterables;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -85,7 +85,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
         }
     }
 
-    @Nonnull
+    @NotNull
     User createUser() throws RepositoryException {
         String userId = "testUser" + testUsers.size();
         User usr = userMgr.createUser(userId, "pw");
@@ -93,7 +93,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
         return usr;
     }
 
-    @Nonnull
+    @NotNull
     Group createGroup() throws RepositoryException {
         String groupName = "testGroup" + testGroups.size();
         Group grp = userMgr.createGroup(groupName);
@@ -102,8 +102,8 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     }
 
 
-    @Nonnull
-    List<String> createMembers(@Nonnull Group g, int cnt) throws Exception {
+    @NotNull
+    List<String> createMembers(@NotNull Group g, int cnt) throws Exception {
         List<String> memberPaths = new ArrayList();
         for (int i = 0; i <= cnt; i++) {
             User u = createUser();
@@ -115,7 +115,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
         return memberPaths;
     }
 
-    @Nonnull
+    @NotNull
     Map<String, String> createIdMap(int start, int end) {
         Map<String, String> memberIds = Maps.newLinkedHashMap();
         for (int i = start; i < end; i++) {
@@ -125,23 +125,23 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
         return memberIds;
     }
 
-    @Nonnull
-    String getContentID(@Nonnull String memberId) {
+    @NotNull
+    String getContentID(@NotNull String memberId) {
         return userMgr.getMembershipProvider().getContentID(memberId);
     }
 
-    @CheckForNull
-    String getContentID(@Nonnull Tree tree) {
+    @Nullable
+    String getContentID(@NotNull Tree tree) {
         return TreeUtil.getString(tree, JcrConstants.JCR_UUID);
     }
 
-    @Nonnull
-    Tree getTree(@Nonnull Authorizable a) throws Exception {
+    @NotNull
+    Tree getTree(@NotNull Authorizable a) throws Exception {
         return root.getTree(a.getPath());
     }
 
-    @Nonnull
-    Tree getTree(@Nonnull String path) throws Exception {
+    @NotNull
+    Tree getTree(@NotNull String path) throws Exception {
         return root.getTree(path);
     }
 
@@ -155,7 +155,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
         assertEquals("Group must have all members", 0, members.size());
     }
 
-    static void assertMemberList(@Nonnull Tree groupTree, int cntRefTrees, int cnt) {
+    static void assertMemberList(@NotNull Tree groupTree, int cntRefTrees, int cnt) {
         Tree list = groupTree.getChild(REP_MEMBERS_LIST);
         assertTrue(list.exists());
         assertEquals(cntRefTrees, list.getChildrenCount(5));

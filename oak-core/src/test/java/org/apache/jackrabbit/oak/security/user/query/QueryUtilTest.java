@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -44,7 +44,7 @@ import static org.junit.Assert.assertSame;
 
 public class QueryUtilTest {
 
-    private static void assertSearchRoot(@Nonnull Map<AuthorizableType, String> mapping, @Nonnull ConfigurationParameters params) {
+    private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping, @NotNull ConfigurationParameters params) {
         for (AuthorizableType type : mapping.keySet()) {
             String expected = QueryConstants.SEARCH_ROOT_PATH + mapping.get(type);
             assertEquals(expected, QueryUtil.getSearchRoot(type, params));

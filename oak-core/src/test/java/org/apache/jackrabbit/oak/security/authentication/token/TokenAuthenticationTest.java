@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -147,7 +147,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
         assertNull(tp.getTokenInfo(info.getToken()));
     }
 
-    private void waitUntilExpired(@Nonnull TokenInfo info) {
+    private void waitUntilExpired(@NotNull TokenInfo info) {
         long now = System.currentTimeMillis();
         while (!info.isExpired(now)) {
             now = waitForSystemTimeIncrement(now);

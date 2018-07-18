@@ -21,10 +21,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Name mapper with local namespace mappings.
@@ -44,13 +43,13 @@ public class LocalNameMapper extends GlobalNameMapper {
         this.local = local;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public synchronized Map<String, String> getSessionLocalMappings() {
         return local;
     }
 
-    @Override @Nonnull
-    public synchronized String getJcrName(@Nonnull String oakName) {
+    @Override @NotNull
+    public synchronized String getJcrName(@NotNull String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
@@ -92,8 +91,8 @@ public class LocalNameMapper extends GlobalNameMapper {
         return oakName;
     }
 
-    @Override @CheckForNull
-    public synchronized String getOakNameOrNull(@Nonnull String jcrName) {
+    @Override @Nullable
+    public synchronized String getOakNameOrNull(@NotNull String jcrName) {
         checkNotNull(jcrName);
 
         if (jcrName.startsWith("{")) {

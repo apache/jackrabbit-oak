@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.security.authentication.user;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Arrays;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
@@ -55,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -348,22 +347,22 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         LoginModuleImpl loginModule = new LoginModuleImpl();
 
         UserAuthenticationFactory factory = new UserAuthenticationFactory() {
-            @CheckForNull
+            @Nullable
             @Override
-            public Authentication getAuthentication(@Nonnull UserConfiguration configuration, @Nonnull Root root, @Nullable String userId) {
+            public Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root, @Nullable String userId) {
                 return new Authentication() {
                     @Override
                     public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
                         return true;
                     }
 
-                    @CheckForNull
+                    @Nullable
                     @Override
                     public String getUserId() {
                         return null;
                     }
 
-                    @CheckForNull
+                    @Nullable
                     @Override
                     public Principal getUserPrincipal() {
                         return null;
