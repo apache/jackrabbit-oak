@@ -19,8 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.commit;
 
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
-
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -59,56 +58,56 @@ public class DefaultThreeWayConflictHandler implements ThreeWayConflictHandler {
         this.resolution = resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
             PropertyState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs, PropertyState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours, NodeState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs, NodeState base) {
         return resolution;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution deleteDeletedNode(NodeBuilder parent, String name, NodeState base) {
         return resolution;

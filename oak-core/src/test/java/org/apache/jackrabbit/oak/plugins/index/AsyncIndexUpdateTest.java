@@ -52,9 +52,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.collect.ImmutableList;
@@ -93,6 +90,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 
@@ -310,9 +309,9 @@ public class AsyncIndexUpdateTest {
         final Semaphore retrieve = new Semaphore(1);
         final Semaphore checkpoint = new Semaphore(0);
         NodeStore store = new MemoryNodeStore() {
-            @CheckForNull
+            @Nullable
             @Override
-            public NodeState retrieve(@Nonnull String checkpoint) {
+            public NodeState retrieve(@NotNull String checkpoint) {
                 retrieve.acquireUninterruptibly();
                 try {
                     return super.retrieve(checkpoint);
@@ -321,9 +320,9 @@ public class AsyncIndexUpdateTest {
                 }
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+            public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
                 try {
                     return super.checkpoint(lifetime, properties);
                 } finally {
@@ -384,10 +383,10 @@ public class AsyncIndexUpdateTest {
     public void failOnConflict() throws Exception {
         final Map<Thread, Semaphore> locks = Maps.newIdentityHashMap();
         NodeStore store = new MemoryNodeStore() {
-            @Nonnull
+            @NotNull
             @Override
-            public NodeState merge(@Nonnull NodeBuilder builder,
-                    @Nonnull CommitHook commitHook, @Nonnull CommitInfo info)
+            public NodeState merge(@NotNull NodeBuilder builder,
+                    @NotNull CommitHook commitHook, @NotNull CommitInfo info)
                     throws CommitFailedException {
                 Semaphore s = locks.get(Thread.currentThread());
                 if (s != null) {
@@ -892,8 +891,8 @@ public class AsyncIndexUpdateTest {
         private final FaultyIndexEditor faulty = new FaultyIndexEditor();
 
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                 throws CommitFailedException {
             return faulty;
         }
@@ -1083,7 +1082,7 @@ public class AsyncIndexUpdateTest {
         final Set<String> knownCheckpoints = Sets.newHashSet();
         MemoryNodeStore store = new MemoryNodeStore(){
             @Override
-            public synchronized NodeState retrieve(@Nonnull String checkpoint) {
+            public synchronized NodeState retrieve(@NotNull String checkpoint) {
                 if (!knownCheckpoints.isEmpty() && !knownCheckpoints.contains(checkpoint)){
                     return null;
                 }
@@ -1544,7 +1543,7 @@ public class AsyncIndexUpdateTest {
         final List<NodeState> rootStates = Lists.newArrayList();
         store.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root, @Nullable CommitInfo info) {
                 rootStates.add(root);
             }
         });
@@ -1940,8 +1939,8 @@ public class AsyncIndexUpdateTest {
     private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {
         private String indexPathToFail;
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
-                                     @Nonnull IndexUpdateCallback callback) {
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+                                     @NotNull IndexUpdateCallback callback) {
             IndexingContext context = ((ContextAwareCallback)callback).getIndexingContext();
             if (indexPathToFail != null && indexPathToFail.equals(context.getIndexPath())){
                 RuntimeException e = new RuntimeException();
@@ -1963,8 +1962,8 @@ public class AsyncIndexUpdateTest {
     private static class IndexingContextCapturingProvider extends PropertyIndexEditorProvider {
         IndexingContext lastIndexingContext;
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
-                                     @Nonnull IndexUpdateCallback callback) {
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+                                     @NotNull IndexUpdateCallback callback) {
             lastIndexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             return super.getIndexEditor(type, definition, root, callback);
         }
@@ -2016,7 +2015,7 @@ public class AsyncIndexUpdateTest {
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
             if (info != CommitInfo.EMPTY_EXTERNAL){
                 infos.add(info);
             }

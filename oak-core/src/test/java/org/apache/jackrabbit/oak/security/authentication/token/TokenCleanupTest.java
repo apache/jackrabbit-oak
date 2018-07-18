@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import static org.junit.Assert.assertEquals;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class TokenCleanupTest extends AbstractTokenTest {
@@ -69,7 +68,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
         return tkn;
     }
 
-    private void waitUntilExpired(@Nonnull TokenInfo info) {
+    private void waitUntilExpired(@NotNull TokenInfo info) {
         long now = System.currentTimeMillis();
         while (!info.isExpired(now)) {
             now = waitForSystemTimeIncrement(now);

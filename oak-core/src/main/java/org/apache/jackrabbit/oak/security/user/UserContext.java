@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 final class UserContext implements Context, UserConstants {
 
@@ -39,7 +38,7 @@ final class UserContext implements Context, UserConstants {
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+    public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
         String propName = property.getName();
         String ntName = TreeUtil.getPrimaryTypeName(parent);
         if (NT_REP_USER.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName)) {
@@ -57,18 +56,18 @@ final class UserContext implements Context, UserConstants {
     }
 
     @Override
-    public boolean definesContextRoot(@Nonnull Tree tree) {
+    public boolean definesContextRoot(@NotNull Tree tree) {
         return definesTree(tree);
     }
 
     @Override
-    public boolean definesTree(@Nonnull Tree tree) {
+    public boolean definesTree(@NotNull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_NAMES.contains(ntName);
     }
 
     @Override
-    public boolean definesLocation(@Nonnull TreeLocation location) {
+    public boolean definesLocation(@NotNull TreeLocation location) {
         Tree tree = location.getTree();
         if (tree != null && location.exists()) {
             PropertyState p = location.getProperty();
@@ -88,7 +87,7 @@ final class UserContext implements Context, UserConstants {
     }
 
     @Override
-    public boolean definesInternal(@Nonnull Tree tree) {
+    public boolean definesInternal(@NotNull Tree tree) {
         return false;
     }
 

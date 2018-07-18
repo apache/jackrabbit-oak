@@ -20,13 +20,12 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -117,7 +116,7 @@ public class PermissionEntryProviderImplTest {
      * @return the existingNames set.
      * @throws Exception
      */
-    private static boolean getNoExistingNames(@Nonnull PermissionEntryProviderImpl provider) throws Exception {
+    private static boolean getNoExistingNames(@NotNull PermissionEntryProviderImpl provider) throws Exception {
         Field noExistingNamesField = provider.getClass().getDeclaredField("noExistingNames");
         noExistingNamesField.setAccessible(true);
         return (boolean) noExistingNamesField.get(provider);
@@ -126,23 +125,23 @@ public class PermissionEntryProviderImplTest {
     // Inner Classes
     private class MockPermissionStore implements PermissionStore {
 
-        @CheckForNull
+        @Nullable
         @Override
         public Collection<PermissionEntry> load(
-                @Nonnull String principalName,
-                @Nonnull String path) {
+                @NotNull String principalName,
+                @NotNull String path) {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public PrincipalPermissionEntries load(@Nonnull String principalName) {
+        public PrincipalPermissionEntries load(@NotNull String principalName) {
             return new PrincipalPermissionEntries();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public NumEntries getNumEntries(@Nonnull String principalName, long max) {
+        public NumEntries getNumEntries(@NotNull String principalName, long max) {
             long cnt = 0;
             switch (principalName) {
                 case GROUP_LONG_MAX_MINUS_10:
@@ -158,7 +157,7 @@ public class PermissionEntryProviderImplTest {
             return NumEntries.valueOf(cnt, true);
         }
 
-        public void flush(@Nonnull Root root) {
+        public void flush(@NotNull Root root) {
         }
     }
 }

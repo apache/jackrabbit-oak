@@ -28,9 +28,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
@@ -52,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,7 +189,7 @@ public class AtomicCounterEditor extends DefaultEditor {
      * @param store the current Oak node store. If null the editor will be synchronous.
      * @param board the current Oak {@link Whiteboard}.
      */
-    public AtomicCounterEditor(@Nonnull final NodeBuilder builder, 
+    public AtomicCounterEditor(@NotNull final NodeBuilder builder, 
                                @Nullable String instanceId,
                                @Nullable ScheduledExecutorService executor,
                                @Nullable NodeStore store,
@@ -251,7 +250,7 @@ public class AtomicCounterEditor extends DefaultEditor {
      * 
      * @param builder the builder to work on. Cannot be null.
      */
-    public static void consolidateCount(@Nonnull final NodeBuilder builder) {
+    public static void consolidateCount(@NotNull final NodeBuilder builder) {
         long count = 0;
         for (PropertyState p : builder.getProperties()) {
             if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
@@ -357,12 +356,12 @@ public class AtomicCounterEditor extends DefaultEditor {
         private final long start;
         private final CommitHook hook;
         
-        public ConsolidatorTask(@Nonnull String path, 
+        public ConsolidatorTask(@NotNull String path, 
                                 @Nullable PropertyState revision, 
-                                @Nonnull NodeStore store,
-                                @Nonnull ScheduledExecutorService exec,
+                                @NotNull NodeStore store,
+                                @NotNull ScheduledExecutorService exec,
                                 long delay,
-                                @Nonnull CommitHook hook) {
+                                @NotNull CommitHook hook) {
             this.start = System.currentTimeMillis();
             p = checkNotNull(path);
             rev = revision;
@@ -373,7 +372,7 @@ public class AtomicCounterEditor extends DefaultEditor {
             this.name = UUID.randomUUID().toString();
         }
 
-        private ConsolidatorTask(@Nonnull ConsolidatorTask task, long delay) {
+        private ConsolidatorTask(@NotNull ConsolidatorTask task, long delay) {
             checkNotNull(task);
             this.p = task.p;
             this.rev = task.rev;
@@ -430,7 +429,7 @@ public class AtomicCounterEditor extends DefaultEditor {
             return null;
         }
         
-        private void dumpNode(@Nonnull NodeBuilder b, String path) {
+        private void dumpNode(@NotNull NodeBuilder b, String path) {
             if (LOG.isTraceEnabled()) {
                 checkNotNull(b);
                 StringBuilder s = new StringBuilder();
@@ -485,7 +484,7 @@ public class AtomicCounterEditor extends DefaultEditor {
      * @param revision
      * @return
      */
-    static boolean checkRevision(@Nonnull NodeBuilder builder, @Nullable PropertyState revision) {
+    static boolean checkRevision(@NotNull NodeBuilder builder, @Nullable PropertyState revision) {
         if (revision == null) {
             return true;
         }
@@ -504,7 +503,7 @@ public class AtomicCounterEditor extends DefaultEditor {
         return false;
     }
     
-    private static NodeBuilder builderFromPath(@Nonnull NodeBuilder ancestor, @Nonnull String path) {
+    private static NodeBuilder builderFromPath(@NotNull NodeBuilder ancestor, @NotNull String path) {
         NodeBuilder b = checkNotNull(ancestor);
         for (String name : PathUtils.elements(checkNotNull(path))) {
             b = b.getChildNode(name);
@@ -520,7 +519,7 @@ public class AtomicCounterEditor extends DefaultEditor {
      * @param b the builde to check. Canno be null.
      * @return true if the sum of the hidden counters does not match the exposed one.
      */
-    static boolean isConsolidate(@Nonnull NodeBuilder b) {
+    static boolean isConsolidate(@NotNull NodeBuilder b) {
         checkNotNull(b);
         PropertyState counter = b.getProperty(PROP_COUNTER);
         if (counter == null) {

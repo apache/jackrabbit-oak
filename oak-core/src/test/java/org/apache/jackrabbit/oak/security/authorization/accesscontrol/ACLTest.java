@@ -25,8 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -62,6 +60,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static java.util.Collections.singletonMap;
@@ -879,15 +879,15 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
             super(Collections.singletonMap(name, new RestrictionDefinitionImpl(name, type, isMandatory)));
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
             throw new UnsupportedOperationException();
         }
     }

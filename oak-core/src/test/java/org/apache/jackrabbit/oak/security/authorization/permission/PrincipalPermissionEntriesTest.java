@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -157,7 +156,7 @@ public class PrincipalPermissionEntriesTest {
         assertNull(ppe.getEntriesByPath("/nonExisting"));
     }
 
-    private static final long inspectExpectedSize(@Nonnull PrincipalPermissionEntries ppe) throws Exception {
+    private static final long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
         Field f = PrincipalPermissionEntries.class.getDeclaredField("expectedSize");
         f.setAccessible(true);
 

@@ -17,10 +17,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -190,8 +189,8 @@ public class AstElementFactory {
      * @param e the element to be cloned. Cannot be null.
      * @return same as {@link AstElement#copyOf()}
      */
-    @Nonnull
-    public static AstElement copyElementAndCheckReference(@Nonnull final AstElement e) {
+    @NotNull
+    public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
         AstElement clone = checkNotNull(e).copyOf();
         
         if (clone == e && LOG.isDebugEnabled()) {

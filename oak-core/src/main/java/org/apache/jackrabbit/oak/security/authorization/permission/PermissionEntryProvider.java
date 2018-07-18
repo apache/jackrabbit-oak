@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collection;
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code PermissionEntryProvider} provides permission entries for a given set of principals.
@@ -29,11 +28,11 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 interface PermissionEntryProvider {
 
-    @Nonnull
-    Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate);
+    @NotNull
+    Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate);
 
-    @Nonnull
-    Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree);
+    @NotNull
+    Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree);
 
     void flush();
 }

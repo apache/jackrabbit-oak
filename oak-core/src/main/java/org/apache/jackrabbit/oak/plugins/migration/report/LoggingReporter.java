@@ -20,9 +20,8 @@ package org.apache.jackrabbit.oak.plugins.migration.report;
 
 import com.google.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-
-import javax.annotation.Nonnull;
 
 /**
  * A Reporter implementation that logs every nth node
@@ -67,16 +66,16 @@ public class LoggingReporter extends PeriodicReporter {
     }
 
     @Override
-    protected void reportPeriodicNode(final long count, @Nonnull final ReportingNodeState nodeState) {
+    protected void reportPeriodicNode(final long count, @NotNull final ReportingNodeState nodeState) {
         logger.info("{} node #{}: {}", verb, count, nodeState.getPath());
     }
 
     @Override
-    protected void reportPeriodicProperty(final long count, @Nonnull final ReportingNodeState parent, @Nonnull final String propertyName) {
+    protected void reportPeriodicProperty(final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
         logger.info("{} properties #{}: {}", verb, count, PathUtils.concat(parent.getPath(), propertyName));
     }
 
-    protected boolean skipNodeState(@Nonnull final ReportingNodeState nodeState) {
+    protected boolean skipNodeState(@NotNull final ReportingNodeState nodeState) {
         String path = nodeState.getPath();
         if (lastPaths.contains(path)) {
             return true;

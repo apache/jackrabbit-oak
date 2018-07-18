@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
@@ -42,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -186,17 +186,17 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
         private final TreeType type;
         private final TreeType parentType;
 
-        private TypeTest(@Nonnull String path, TreeType type) {
+        private TypeTest(@NotNull String path, TreeType type) {
             this(path, type, TreeType.DEFAULT);
         }
 
-        private TypeTest(@Nonnull String path, TreeType type, TreeType parentType) {
+        private TypeTest(@NotNull String path, TreeType type, TreeType parentType) {
             this.path = path;
             this.type = type;
             this.parentType = parentType;
         }
 
-        private static List<TypeTest> createTests(@Nonnull Root root) throws Exception {
+        private static List<TypeTest> createTests(@NotNull Root root) throws Exception {
             List<TypeTest> tests = new ArrayList();
             tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy", TreeType.DEFAULT));
             tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy/rep:Policy", TreeType.DEFAULT));

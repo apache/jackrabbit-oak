@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Access control manager that aggregates a list of different access control
@@ -51,16 +51,16 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     private final List<AccessControlManager> acMgrs;
 
-    public CompositeAccessControlManager(@Nonnull Root root,
-                                         @Nonnull NamePathMapper namePathMapper,
-                                         @Nonnull SecurityProvider securityProvider,
-                                         @Nonnull List<AccessControlManager> acMgrs) {
+    public CompositeAccessControlManager(@NotNull Root root,
+                                         @NotNull NamePathMapper namePathMapper,
+                                         @NotNull SecurityProvider securityProvider,
+                                         @NotNull List<AccessControlManager> acMgrs) {
         super(root, namePathMapper, securityProvider);
         this.acMgrs = acMgrs;
     }
 
     //-----------------------------------------------< AccessControlManager >---
-    @Nonnull
+    @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
         ImmutableSet.Builder<Privilege> privs = ImmutableSet.builder();

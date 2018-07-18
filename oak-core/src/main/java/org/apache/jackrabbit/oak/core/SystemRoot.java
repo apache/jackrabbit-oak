@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -28,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *  Internal extension of the {@link MutableRoot} to be used
@@ -48,16 +48,16 @@ public class SystemRoot extends MutableRoot {
         }
     };
     
-    public static SystemRoot create(@Nonnull NodeStore store, @Nonnull CommitHook hook,
-            @Nonnull String workspaceName, @Nonnull SecurityProvider securityProvider,
-            @Nonnull QueryIndexProvider indexProvider) {
+    public static SystemRoot create(@NotNull NodeStore store, @NotNull CommitHook hook,
+            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
+            @NotNull QueryIndexProvider indexProvider) {
         return create(store, hook, workspaceName, securityProvider, null, indexProvider);
     }
     
-    public static SystemRoot create(@Nonnull NodeStore store, @Nonnull CommitHook hook,
-            @Nonnull String workspaceName, @Nonnull SecurityProvider securityProvider,
+    public static SystemRoot create(@NotNull NodeStore store, @NotNull CommitHook hook,
+            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
             @Nullable QueryEngineSettings queryEngineSettings,
-            @Nonnull QueryIndexProvider indexProvider) {
+            @NotNull QueryIndexProvider indexProvider) {
         if (queryEngineSettings == null) {
             queryEngineSettings = new QueryEngineSettings();
         }
@@ -65,15 +65,15 @@ public class SystemRoot extends MutableRoot {
                 queryEngineSettings, indexProvider);
     }
 
-    private SystemRoot(@Nonnull final NodeStore store, @Nonnull final CommitHook hook,
-                      @Nonnull final String workspaceName, @Nonnull final SecurityProvider securityProvider,
-                      @Nonnull final QueryEngineSettings queryEngineSettings,
-                      @Nonnull final QueryIndexProvider indexProvider) {
+    private SystemRoot(@NotNull final NodeStore store, @NotNull final CommitHook hook,
+                      @NotNull final String workspaceName, @NotNull final SecurityProvider securityProvider,
+                      @NotNull final QueryEngineSettings queryEngineSettings,
+                      @NotNull final QueryIndexProvider indexProvider) {
         this(store, hook, workspaceName, securityProvider, queryEngineSettings, indexProvider,
                 new ContentSessionImpl(
                         LOGIN_CONTEXT, securityProvider, workspaceName,
                         store, hook, queryEngineSettings, indexProvider) {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Root getLatestRoot() {
                         return new SystemRoot(
@@ -84,11 +84,11 @@ public class SystemRoot extends MutableRoot {
                 });
     }
     
-    private SystemRoot(@Nonnull NodeStore store, @Nonnull CommitHook hook,
-            @Nonnull String workspaceName, @Nonnull SecurityProvider securityProvider,
+    private SystemRoot(@NotNull NodeStore store, @NotNull CommitHook hook,
+            @NotNull String workspaceName, @NotNull SecurityProvider securityProvider,
             @Nullable QueryEngineSettings queryEngineSettings,
-            @Nonnull QueryIndexProvider indexProvider,
-            @Nonnull ContentSessionImpl session) {
+            @NotNull QueryIndexProvider indexProvider,
+            @NotNull ContentSessionImpl session) {
         super(store, hook, workspaceName, SystemSubject.INSTANCE,
                 securityProvider, queryEngineSettings, indexProvider, session);
     }

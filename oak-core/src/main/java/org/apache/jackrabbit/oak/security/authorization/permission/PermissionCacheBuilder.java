@@ -24,11 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -44,12 +43,12 @@ final class PermissionCacheBuilder {
 
     private boolean initialized = false;
 
-    PermissionCacheBuilder(@Nonnull PermissionStore store) {
+    PermissionCacheBuilder(@NotNull PermissionStore store) {
         this.store = store;
         this.peCache = new PermissionEntryCache();
     }
 
-    boolean init(@Nonnull Set<String> principalNames, long maxSize) {
+    boolean init(@NotNull Set<String> principalNames, long maxSize) {
         existingNames = new HashSet<>();
         long cnt = 0;
         for (String name : principalNames) {
@@ -135,14 +134,14 @@ final class PermissionCacheBuilder {
         private final PermissionEntryCache cache;
         private final Set<String> existingNames;
 
-        DefaultPermissionCache(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache cache, Set<String> existingNames) {
+        DefaultPermissionCache(@NotNull PermissionStore store, @NotNull PermissionEntryCache cache, Set<String> existingNames) {
             this.store = store;
             this.cache = cache;
             this.existingNames = existingNames;
         }
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull String path) {
+        public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> ret = new TreeSet();
             for (String name : existingNames) {
                 cache.load(store, ret, name, path);
@@ -151,7 +150,7 @@ final class PermissionCacheBuilder {
         }
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+        public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return (accessControlledTree.hasChild(AccessControlConstants.REP_POLICY)) ?
                     getEntries(accessControlledTree.getPath()) :
                     Collections.<PermissionEntry>emptyList();
@@ -172,13 +171,13 @@ final class PermissionCacheBuilder {
         }
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull String path) {
+        public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> entries = pathEntryMap.get(path);
             return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
         }
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+        public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             Collection<PermissionEntry> entries = pathEntryMap.get(accessControlledTree.getPath());
             return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
         }
@@ -194,12 +193,12 @@ final class PermissionCacheBuilder {
         private static final PermissionCache INSTANCE = new EmptyCache();
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull String path) {
+        public Collection<PermissionEntry> getEntries(@NotNull String path) {
             return Collections.<PermissionEntry>emptyList();
         }
 
         @Override
-        public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+        public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return Collections.<PermissionEntry>emptyList();
         }
     }

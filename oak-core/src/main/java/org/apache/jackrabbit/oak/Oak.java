@@ -42,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -132,6 +131,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,7 +192,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 return thread;
@@ -219,7 +219,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);
@@ -377,8 +377,8 @@ public class Oak {
      * @param c
      * @return
      */
-    @Nonnull
-    public Oak with(@Nonnull Clusterable c) {
+    @NotNull
+    public Oak with(@NotNull Clusterable c) {
         this.clusterable = checkNotNull(c);
         return this;
     }
@@ -391,20 +391,20 @@ public class Oak {
      * @param defaultWorkspaceName The name of the default workspace.
      * @return this builder.
      */
-    @Nonnull
-    public Oak with(@Nonnull String defaultWorkspaceName) {
+    @NotNull
+    public Oak with(@NotNull String defaultWorkspaceName) {
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull RepositoryInitializer initializer) {
+    @NotNull
+    public Oak with(@NotNull RepositoryInitializer initializer) {
         initializers.add(checkNotNull(initializer));
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull QueryLimits settings) {
+    @NotNull
+    public Oak with(@NotNull QueryLimits settings) {
         QueryEngineSettings s = new QueryEngineSettings();
         s.setFailTraversal(settings.getFailTraversal());
         s.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
@@ -421,8 +421,8 @@ public class Oak {
      * @param provider query index provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull QueryIndexProvider provider) {
+    @NotNull
+    public Oak with(@NotNull QueryIndexProvider provider) {
         queryIndexProviders.add(checkNotNull(provider));
         return this;
     }
@@ -434,8 +434,8 @@ public class Oak {
      * @param provider index hook provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull IndexEditorProvider provider) {
+    @NotNull
+    public Oak with(@NotNull IndexEditorProvider provider) {
         indexEditorProviders.add(checkNotNull(provider));
         return this;
     }
@@ -446,8 +446,8 @@ public class Oak {
      * @param hook commit hook
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull CommitHook hook) {
+    @NotNull
+    public Oak with(@NotNull CommitHook hook) {
         checkNotNull(hook);
         withEditorHook();
         commitHooks.add(hook);
@@ -476,8 +476,8 @@ public class Oak {
      * @param provider editor provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull EditorProvider provider) {
+    @NotNull
+    public Oak with(@NotNull EditorProvider provider) {
         editorProviders.add(checkNotNull(provider));
         return this;
     }
@@ -488,11 +488,11 @@ public class Oak {
      * @param editor editor
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull final Editor editor) {
+    @NotNull
+    public Oak with(@NotNull final Editor editor) {
         checkNotNull(editor);
         return with(new EditorProvider() {
-            @Override @Nonnull
+            @Override @NotNull
             public Editor getRootEditor(
                     NodeState before, NodeState after,
                     NodeBuilder builder, CommitInfo info) {
@@ -501,8 +501,8 @@ public class Oak {
         });
     }
 
-    @Nonnull
-    public Oak with(@Nonnull SecurityProvider securityProvider) {
+    @NotNull
+    public Oak with(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = checkNotNull(securityProvider);
         if (securityProvider instanceof WhiteboardAware) {
             ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
@@ -528,13 +528,13 @@ public class Oak {
      * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
      */
     @Deprecated
-    @Nonnull
-    public Oak with(@Nonnull ConflictHandler conflictHandler) {
+    @NotNull
+    public Oak with(@NotNull ConflictHandler conflictHandler) {
         return with(ConflictHandlers.wrap(conflictHandler));
     }
 
-    @Nonnull
-    public Oak with(@Nonnull ThreeWayConflictHandler conflictHandler) {
+    @NotNull
+    public Oak with(@NotNull ThreeWayConflictHandler conflictHandler) {
         checkNotNull(conflictHandler);
         withEditorHook();
 
@@ -552,26 +552,26 @@ public class Oak {
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull ScheduledExecutorService scheduledExecutor) {
+    @NotNull
+    public Oak with(@NotNull ScheduledExecutorService scheduledExecutor) {
         this.scheduledExecutor = checkNotNull(scheduledExecutor);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Executor executor) {
+    @NotNull
+    public Oak with(@NotNull Executor executor) {
         this.executor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull MBeanServer mbeanServer) {
+    @NotNull
+    public Oak with(@NotNull MBeanServer mbeanServer) {
         this.mbeanServer = checkNotNull(mbeanServer);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Whiteboard whiteboard) {
+    @NotNull
+    public Oak with(@NotNull Whiteboard whiteboard) {
         this.whiteboard = checkNotNull(whiteboard);
         if (securityProvider instanceof WhiteboardAware) {
             ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
@@ -583,8 +583,8 @@ public class Oak {
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Observer observer) {
+    @NotNull
+    public Oak with(@NotNull Observer observer) {
         observers.add(checkNotNull(observer));
         return this;
     }
@@ -649,7 +649,7 @@ public class Oak {
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
      * </p>
      */
-    public Oak withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+    public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         if (this.asyncTasks == null) {
             asyncTasks = new HashMap<String, Long>();
         }
@@ -658,7 +658,7 @@ public class Oak {
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public Whiteboard getWhiteboard() {
         return this.whiteboard;
     }
@@ -834,7 +834,7 @@ public class Oak {
     private static class RepoStateCheckHook implements CommitHook, Closeable {
         private volatile boolean closed;
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
             if (closed){

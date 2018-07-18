@@ -19,15 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.index.progress;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Editor to track traversal and notify the callback for each node traversed.
@@ -54,8 +53,8 @@ class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource
         this.parent = parent;
     }
 
-    @CheckForNull
-    public static Editor wrap(@CheckForNull Editor editor, NodeTraversalCallback onProgress) {
+    @Nullable
+    public static Editor wrap(@Nullable Editor editor, NodeTraversalCallback onProgress) {
         if (editor != null && !(editor instanceof ProgressTrackingEditor)) {
             return new ProgressTrackingEditor(editor, "/", onProgress);
         }
@@ -113,7 +112,7 @@ class ProgressTrackingEditor implements Editor, NodeTraversalCallback.PathSource
         }
     }
 
-    private void buildPath(@Nonnull StringBuilder sb) {
+    private void buildPath(@NotNull StringBuilder sb) {
         if (parent != null) {
             parent.buildPath(sb);
             sb.append('/').append(name);

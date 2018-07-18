@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -217,7 +217,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All node definitions that match the given internal oak name.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<NodeDefinition> getNamedNodeDefinitions(
             final String oakName) {
         return Iterables.concat(Iterables.transform(
@@ -237,7 +237,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All property definitions that match the given internal oak name.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(
             String oakName) {
         List<PropertyDefinition> definitions = newArrayList();
@@ -253,7 +253,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All residual node definitions.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
         List<NodeDefinition> definitions = newArrayList();
         for (NodeTypeImpl type : nodeTypes.values()) {
@@ -268,7 +268,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All residual property definitions.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
         List<PropertyDefinition> definitions = newArrayList();
         for (NodeTypeImpl type : nodeTypes.values()) {

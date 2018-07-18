@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Instance of this class provide a {@link EventFilter} for observation
@@ -44,7 +43,7 @@ public interface FilterProvider extends ChangeSetFilter {
      * commit, {@code false} otherwise.
      * @see org.apache.jackrabbit.oak.spi.commit.Observer
      */
-    boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info);
+    boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info);
 
     /**
      * Factory method for creating a {@code Filter} for the passed before and after
@@ -54,8 +53,8 @@ public interface FilterProvider extends ChangeSetFilter {
      * @param after  after state
      * @return new {@code Filter} instance
      */
-    @Nonnull
-    EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after);
+    @NotNull
+    EventFilter getFilter(@NotNull NodeState before, @NotNull NodeState after);
 
 
     /**
@@ -63,7 +62,7 @@ public interface FilterProvider extends ChangeSetFilter {
      * @return  list of paths
      * @see org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder#addSubTree(String)
      */
-    @Nonnull
+    @NotNull
     Iterable<String> getSubTrees();
 
     FilterConfigMBean getConfigMBean();
@@ -73,6 +72,6 @@ public interface FilterProvider extends ChangeSetFilter {
      * is used to adjust (aggregate) the event identifier before event
      * creation (ie after event filtering).
      */
-    @CheckForNull
+    @Nullable
     EventAggregator getEventAggregator();
 }

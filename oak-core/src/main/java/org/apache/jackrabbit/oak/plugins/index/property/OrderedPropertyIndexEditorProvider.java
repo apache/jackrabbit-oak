@@ -17,9 +17,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -27,6 +24,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +37,11 @@ public class OrderedPropertyIndexEditorProvider implements IndexEditorProvider, 
    private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
    
    @Override
-   @CheckForNull
-   public Editor getIndexEditor(@Nonnull String type, 
-                                @Nonnull NodeBuilder definition, 
-                                @Nonnull NodeState root, 
-                                @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+   @Nullable
+   public Editor getIndexEditor(@NotNull String type, 
+                                @NotNull NodeBuilder definition, 
+                                @NotNull NodeState root, 
+                                @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (OrderedIndex.TYPE.equals(type)) {
             if (hit() % threshold == 0) {
                 if (callback instanceof ContextAwareCallback) {

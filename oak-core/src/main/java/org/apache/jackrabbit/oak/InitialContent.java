@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak;
 
 import java.io.IOException;
 import java.io.InputStream;
-import javax.annotation.Nonnull;
-
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -50,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} the creates
@@ -73,7 +72,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
     private boolean prePopulateVS = false;
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         builder.setProperty(JCR_PRIMARYTYPE, NT_REP_ROOT, Type.NAME);
 
         if (!builder.hasChildNode(JCR_SYSTEM)) {

@@ -29,10 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -44,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -211,7 +209,7 @@ public class PropertyIndexLookup {
         return TYPE;
     }
 
-    @CheckForNull
+    @Nullable
     private static Set<String> getSuperTypes(Filter filter) {
         if (filter != null && !filter.matchesAllTypes()) {
             return filter.getSupertypes();
@@ -219,8 +217,8 @@ public class PropertyIndexLookup {
         return null;
     }
 
-    @Nonnull
-    private static Iterable<String> getNames(@Nonnull NodeState state, @Nonnull String propertyName) {
+    @NotNull
+    private static Iterable<String> getNames(@NotNull NodeState state, @NotNull String propertyName) {
         Iterable<String> ret = state.getNames(propertyName);
         if (ret.iterator().hasNext()) {
             return ret;

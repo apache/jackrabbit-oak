@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.Lists;
@@ -35,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +115,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         super(AuthorizationConfiguration.NAME);
     }
 
-    public CompositeAuthorizationConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public CompositeAuthorizationConfiguration(@NotNull SecurityProvider securityProvider) {
         super(AuthorizationConfiguration.NAME, securityProvider);
     }
 
@@ -123,10 +123,10 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         this.compositionType = CompositionType.fromString(ct);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull final Root root,
-                                                        @Nonnull final NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull final Root root,
+                                                        @NotNull final NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();
@@ -138,7 +138,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         List<AuthorizationConfiguration> configurations = getConfigurations();
@@ -157,11 +157,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull final Root root,
-                                                    @Nonnull final String workspaceName,
-                                                    @Nonnull final Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull final Root root,
+                                                    @NotNull final String workspaceName,
+                                                    @NotNull final Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
             case 0: throw new IllegalStateException();

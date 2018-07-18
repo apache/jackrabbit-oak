@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -44,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -176,7 +175,7 @@ public class AsyncIndexerServiceTest {
     }
 
     private static class FakeClusterableMemoryNodeStore extends MemoryNodeStore implements Clusterable {
-        @Nonnull
+        @NotNull
         @Override
         public String getInstanceId() {
             return "foo";

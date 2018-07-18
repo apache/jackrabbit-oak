@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
@@ -56,6 +56,6 @@ interface VersionSelector {
      * @return A version or {@code null}.
      * @throws RepositoryException if an error occurs.
      */
-    @CheckForNull
-    NodeBuilder select(@Nonnull NodeBuilder versionHistory) throws RepositoryException;
+    @Nullable
+    NodeBuilder select(@NotNull NodeBuilder versionHistory) throws RepositoryException;
 }

@@ -24,9 +24,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +63,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         this(indexName, NOOP);
     }
 
-    public UniqueEntryStoreStrategy(String indexName, @Nonnull Consumer<NodeBuilder> insertCallback) {
+    public UniqueEntryStoreStrategy(String indexName, @NotNull Consumer<NodeBuilder> insertCallback) {
         this.indexName = indexName;
         this.insertCallback = insertCallback;
     }

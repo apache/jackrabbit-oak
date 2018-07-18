@@ -20,11 +20,10 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Set;
-
 /**
  * NodeState implementation that decorates another node-state instance
  * in order to hide subtrees or partial subtrees from the consumer of
@@ -83,10 +82,10 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param excludedFragments A Set of name fragments that should be hidden. Empty if {@code null}.
      * @return The decorated node-state if required, the original node-state if decoration is unnecessary.
      */
-    @Nonnull
+    @NotNull
     public static NodeState wrap(
-            @Nonnull final String path,
-            @Nonnull final NodeState delegate,
+            @NotNull final String path,
+            @NotNull final NodeState delegate,
             @Nullable final Set<String> includePaths,
             @Nullable final Set<String> excludePaths,
             @Nullable final Set<String> fragmentPaths,
@@ -103,12 +102,12 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
     }
 
     private FilteringNodeState(
-            @Nonnull final String path,
-            @Nonnull final NodeState delegate,
-            @Nonnull final Set<String> includedPaths,
-            @Nonnull final Set<String> excludedPaths,
-            @Nonnull final Set<String> fragmentPaths,
-            @Nonnull final Set<String> excludedFragments
+            @NotNull final String path,
+            @NotNull final NodeState delegate,
+            @NotNull final Set<String> includedPaths,
+            @NotNull final Set<String> excludedPaths,
+            @NotNull final Set<String> fragmentPaths,
+            @NotNull final Set<String> excludedFragments
     ) {
         super(delegate, false);
         this.path = path;
@@ -118,20 +117,20 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
         this.excludedFragments = excludedFragments;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    protected NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState child) {
+    protected NodeState decorateChild(@NotNull final String name, @NotNull final NodeState child) {
         final String childPath = PathUtils.concat(path, name);
         return wrap(childPath, child, includedPaths, excludedPaths, fragmentPaths, excludedFragments);
     }
 
     @Override
-    protected boolean hideChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {
+    protected boolean hideChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
         return isHidden(PathUtils.concat(path, name), includedPaths, excludedPaths, excludedFragments);
     }
 
     @Override
-    protected PropertyState decorateProperty(@Nonnull final PropertyState propertyState) {
+    protected PropertyState decorateProperty(@NotNull final PropertyState propertyState) {
         return fixChildOrderPropertyState(this, propertyState);
     }
 
@@ -146,10 +145,10 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @return Whether the {@code path} is hidden or not.
      */
     private static boolean isHidden(
-            @Nonnull final String path,
-            @Nonnull final Set<String> includes,
-            @Nonnull final Set<String> excludes,
-            @Nonnull final Set<String> excludedFragments
+            @NotNull final String path,
+            @NotNull final Set<String> includes,
+            @NotNull final Set<String> excludes,
+            @NotNull final Set<String> excludedFragments
     ) {
         return isExcluded(path, excludes, excludedFragments) || !isIncluded(path, includes);
     }
@@ -165,11 +164,11 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @return Whether the {@code path} or any of its descendants are hidden or not.
      */
     private static boolean hasHiddenDescendants(
-            @Nonnull final String path,
-            @Nonnull final Set<String> includePaths,
-            @Nonnull final Set<String> excludePaths,
-            @Nonnull final Set<String> fragmentPaths,
-            @Nonnull final Set<String> excludedFragments
+            @NotNull final String path,
+            @NotNull final Set<String> includePaths,
+            @NotNull final Set<String> excludePaths,
+            @NotNull final Set<String> fragmentPaths,
+            @NotNull final Set<String> excludedFragments
     ) {
         return isHidden(path, includePaths, excludePaths, excludedFragments)
                 || isAncestorOfAnyPath(path, fragmentPaths)
@@ -190,7 +189,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param includePaths Include paths
      * @return Whether the path is covered by the include paths or not.
      */
-    private static boolean isIncluded(@Nonnull final String path, @Nonnull final Set<String> includePaths) {
+    private static boolean isIncluded(@NotNull final String path, @NotNull final Set<String> includePaths) {
         return isAncestorOfAnyPath(path, includePaths)
                 || includePaths.contains(path)
                 || isDescendantOfAnyPath(path, includePaths);
@@ -206,7 +205,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param excludedFragments Exclude fragments
      * @return Whether the path is covered by the excldue paths or not.
      */
-    private static boolean isExcluded(@Nonnull final String path, @Nonnull final Set<String> excludePaths, @Nonnull final Set<String> excludedFragments) {
+    private static boolean isExcluded(@NotNull final String path, @NotNull final Set<String> excludePaths, @NotNull final Set<String> excludedFragments) {
         return excludePaths.contains(path) || isDescendantOfAnyPath(path, excludePaths) || containsAnyFragment(path, excludedFragments);
     }
 
@@ -218,7 +217,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param paths Paths that may be descendants of {@code ancestor}.
      * @return true if {@code paths} contains a descendant of {@code ancestor}, false otherwise.
      */
-    private static boolean isAncestorOfAnyPath(@Nonnull final String ancestor, @Nonnull final Set<String> paths) {
+    private static boolean isAncestorOfAnyPath(@NotNull final String ancestor, @NotNull final Set<String> paths) {
         for (final String p : paths) {
             if (PathUtils.isAncestor(ancestor, p)) {
                 return true;
@@ -235,7 +234,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param paths Paths that may be ancestors of {@code descendant}.
      * @return true if {@code paths} contains an ancestor of {@code descendant}, false otherwise.
      */
-    private static boolean isDescendantOfAnyPath(@Nonnull final String descendant, @Nonnull final Set<String> paths) {
+    private static boolean isDescendantOfAnyPath(@NotNull final String descendant, @NotNull final Set<String> paths) {
         for (final String p : paths) {
             if (PathUtils.isAncestor(p, descendant)) {
                 return true;
@@ -251,7 +250,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param fragments Fragments, which the path may contain
      * @return true if {@code path} contains any of the {@code fragments}, false otherwise.
      */
-    private static boolean containsAnyFragment(@Nonnull final String path, @Nonnull final Set<String> fragments) {
+    private static boolean containsAnyFragment(@NotNull final String path, @NotNull final Set<String> fragments) {
         for (final String f : fragments) {
             if (path.contains(f)) {
                 return true;
@@ -267,8 +266,8 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param defaultValue Default value
      * @return return the given {@code Set} if it is not empty and a default Set otherwise
      */
-    @Nonnull
-    private static <T> Set<T> defaultIfEmpty(@Nullable Set<T> value, @Nonnull Set<T> defaultValue) {
+    @NotNull
+    private static <T> Set<T> defaultIfEmpty(@Nullable Set<T> value, @NotNull Set<T> defaultValue) {
         return !isEmpty(value) ? value : defaultValue;
     }
 

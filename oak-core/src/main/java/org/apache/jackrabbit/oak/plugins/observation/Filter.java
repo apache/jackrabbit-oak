@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A filter is used by the FilteringObserver to decide whether or not a content
@@ -40,6 +39,6 @@ public interface Filter {
      * @return true to exclude this content change (not forward), false to
      *         include it (forward)
      */
-    boolean excludes(@Nonnull NodeState root, @Nonnull CommitInfo info);
+    boolean excludes(@NotNull NodeState root, @NotNull CommitInfo info);
 
 }

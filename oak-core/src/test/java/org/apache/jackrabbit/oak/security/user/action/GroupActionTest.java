@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.action;
 
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,9 +54,9 @@ public class GroupActionTest extends AbstractSecurityTest {
 
     final TestGroupAction groupAction = new TestGroupAction();
     private final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
             return ImmutableList.of(groupAction);
         }
     };
@@ -195,14 +195,14 @@ public class GroupActionTest extends AbstractSecurityTest {
         Authorizable member;
 
         @Override
-        public void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.member = member;
             onMemberAddedCalled = true;
         }
 
         @Override
-        public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberIds = ImmutableSet.copyOf(memberIds);
             this.failedIds = ImmutableSet.copyOf(failedIds);
@@ -210,14 +210,14 @@ public class GroupActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onMemberRemoved(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.member = member;
             onMemberRemovedCalled = true;
         }
 
         @Override
-        public void onMembersRemoved(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberIds = ImmutableSet.copyOf(memberIds);
             this.failedIds = ImmutableSet.copyOf(failedIds);

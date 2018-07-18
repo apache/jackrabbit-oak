@@ -20,11 +20,10 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -204,12 +203,12 @@ public class PermissionEntryCacheTest {
         assertSame(ppeA, entries);
     }
 
-    private static PrincipalPermissionEntries inspectEntries(@Nonnull PermissionEntryCache cache, @Nonnull String principalName) throws Exception {
+    private static PrincipalPermissionEntries inspectEntries(@NotNull PermissionEntryCache cache, @NotNull String principalName) throws Exception {
         Map<String, PrincipalPermissionEntries> entries = inspectEntries(cache);
         return entries.get(principalName);
     }
 
-    private static Map<String, PrincipalPermissionEntries> inspectEntries(@Nonnull PermissionEntryCache cache) throws Exception {
+    private static Map<String, PrincipalPermissionEntries> inspectEntries(@NotNull PermissionEntryCache cache) throws Exception {
         Field f = PermissionEntryCache.class.getDeclaredField("entries");
         f.setAccessible(true);
 

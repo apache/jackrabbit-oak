@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -47,7 +46,7 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
 
     private final MountInfoProvider mountInfoProvider;
 
-    public AuthorizationInitializer(@Nonnull MountInfoProvider mountInfoProvider) {
+    public AuthorizationInitializer(@NotNull MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
 

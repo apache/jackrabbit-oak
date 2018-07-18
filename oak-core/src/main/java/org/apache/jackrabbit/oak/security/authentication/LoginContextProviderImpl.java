@@ -20,8 +20,6 @@ import java.security.AccessController;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +69,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public LoginContext getLoginContext(Credentials credentials, String workspaceName)
             throws LoginException {
         Subject subject = getSubject();
@@ -86,7 +86,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
+    @Nullable
     private static Subject getSubject() {
         Subject subject = null;
         try {
@@ -97,12 +97,12 @@ class LoginContextProviderImpl implements LoginContextProvider {
         return subject;
     }
 
-    @Nonnull
+    @NotNull
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
         return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider, whiteboard);
     }
 
-    @Nonnull
+    @NotNull
     private Configuration getConfiguration() {
         if (configuration == null) {
             Configuration loginConfig = null;

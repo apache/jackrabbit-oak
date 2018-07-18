@@ -28,10 +28,10 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
 import java.util.List;
@@ -60,9 +60,9 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
         final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-            @Nonnull
+            @NotNull
             @Override
-            public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+            public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
                 return ImmutableList.of(pwAction);
             }
         };

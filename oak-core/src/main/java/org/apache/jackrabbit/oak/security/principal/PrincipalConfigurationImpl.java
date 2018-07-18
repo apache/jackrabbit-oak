@@ -20,8 +20,6 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
@@ -61,14 +60,14 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
 
 
     //---------------------------------------------< PrincipalConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
         PrincipalProvider principalProvider = getPrincipalProvider(root, namePathMapper);
         return new PrincipalManagerImpl(principalProvider);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
@@ -83,7 +82,7 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;

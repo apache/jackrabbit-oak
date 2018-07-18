@@ -26,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -83,6 +81,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -171,7 +171,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         nsRegistry.registerNamespace(prefix, uri);
     }
 
-    private AccessControlManagerImpl createAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    private AccessControlManagerImpl createAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
@@ -248,7 +248,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
                 return getBitsProvider().getBits(privileges, getNamePathMapper());
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return rp;
@@ -256,7 +256,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         };
     }
 
-    @Nonnull
+    @NotNull
     private ACL setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
         Privilege[] privs = (privileges == null || privileges.length == 0) ? testPrivileges : privileges;
         ACL policy = getApplicablePolicy(path);
@@ -269,7 +269,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         return policy;
     }
 
-    private Map<String, Value> getGlobRestriction(@Nonnull String value) {
+    private Map<String, Value> getGlobRestriction(@NotNull String value) {
         return ImmutableMap.of(REP_GLOB, valueFactory.createValue(value));
     }
 
@@ -2377,18 +2377,18 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         private final RestrictionProvider restrictionProvider;
 
         public TestACL(@Nullable String jcrPath,
-                       @Nonnull RestrictionProvider restrictionProvider,
-                       @Nonnull NamePathMapper namePathMapper,
-                       @Nonnull List<JackrabbitAccessControlEntry> entries) {
+                       @NotNull RestrictionProvider restrictionProvider,
+                       @NotNull NamePathMapper namePathMapper,
+                       @NotNull List<JackrabbitAccessControlEntry> entries) {
             super((jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath), namePathMapper);
             this.entries.addAll(entries);
             this.restrictionProvider = restrictionProvider;
         }
 
         public TestACL(@Nullable String jcrPath,
-                       @Nonnull RestrictionProvider restrictionProvider,
-                       @Nonnull NamePathMapper namePathMapper,
-                       @Nonnull JackrabbitAccessControlEntry... entry) {
+                       @NotNull RestrictionProvider restrictionProvider,
+                       @NotNull NamePathMapper namePathMapper,
+                       @NotNull JackrabbitAccessControlEntry... entry) {
             this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
         }
 
@@ -2423,13 +2423,13 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<JackrabbitAccessControlEntry> getEntries() {
             return entries;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RestrictionProvider getRestrictionProvider() {
             return restrictionProvider;

@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -293,8 +292,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
      *      If there are multiple, the first one is the original, and the second the alternative.
      * @return the query
      */
-    @Nonnull
-    private Query prepareAndSelect(@Nonnull List<Query> queries) {
+    @NotNull
+    private Query prepareAndSelect(@NotNull List<Query> queries) {
         Query result = null;
         
         if (checkNotNull(queries).size() == 1) {
@@ -380,7 +379,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * 
      * @param querySelectionMode cannot be null
      */
-    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+    protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
         this.querySelectionMode = querySelectionMode;
     }
 }

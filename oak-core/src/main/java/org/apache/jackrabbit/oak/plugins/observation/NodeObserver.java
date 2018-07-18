@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,12 +78,12 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void added(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo);
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo);
 
     /**
      * A node at {@code path} has been deleted.
@@ -96,12 +95,12 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void deleted(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo);
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo);
 
     /**
      * A node at {@code path} has been changed.
@@ -113,15 +112,15 @@ public abstract class NodeObserver implements Observer {
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void changed(
-            @Nonnull String path,
-            @Nonnull Set<String> added,
-            @Nonnull Set<String> deleted,
-            @Nonnull Set<String> changed,
-            @Nonnull Map<String, String> properties,
-            @Nonnull CommitInfo commitInfo);
+            @NotNull String path,
+            @NotNull Set<String> added,
+            @NotNull Set<String> deleted,
+            @NotNull Set<String> changed,
+            @NotNull Map<String, String> properties,
+            @NotNull CommitInfo commitInfo);
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         if (previousRoot != null) {
             try {
                 long start = PERF_LOGGER.start();

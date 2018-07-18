@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
 
-import javax.annotation.CheckForNull;
-
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -38,7 +37,7 @@ public interface IndexInfoProvider {
      */
     String getType();
 
-    @CheckForNull
+    @Nullable
     IndexInfo getInfo(String indexPath) throws IOException;
 
     /**

@@ -22,10 +22,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.migration.AbstractDecoratedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A decoration layer for NodeState instances that intercepts
@@ -69,8 +67,8 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
         return wrapAndReport(null, "/", nodeState, reporter);
     }
 
-    private static NodeState wrapAndReport(@Nullable ReportingNodeState parent, @Nonnull String name,
-                                           @Nonnull NodeState delegate, @Nonnull Reporter reporter) {
+    private static NodeState wrapAndReport(@Nullable ReportingNodeState parent, @NotNull String name,
+                                           @NotNull NodeState delegate, @NotNull Reporter reporter) {
         final ReportingNodeState nodeState = new ReportingNodeState(parent, name, delegate, reporter);
         reporter.reportNode(nodeState);
         return nodeState;
@@ -98,15 +96,15 @@ public class ReportingNodeState extends AbstractDecoratedNodeState {
         return PathUtils.concat(this.parent.getPath(), name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    protected NodeState decorateChild(@Nonnull final String name, @Nonnull final NodeState delegateChild) {
+    protected NodeState decorateChild(@NotNull final String name, @NotNull final NodeState delegateChild) {
         return wrapAndReport(this, name, delegateChild, reporter);
     }
 
     @Override
-    @CheckForNull
-    protected PropertyState decorateProperty(@Nonnull final PropertyState delegatePropertyState) {
+    @Nullable
+    protected PropertyState decorateProperty(@NotNull final PropertyState delegatePropertyState) {
         reporter.reportProperty(this, delegatePropertyState.getName());
         return delegatePropertyState;
     }

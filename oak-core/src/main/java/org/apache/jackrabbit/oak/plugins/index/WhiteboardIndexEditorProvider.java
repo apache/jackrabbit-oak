@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Dynamic {@link IndexEditorProvider} based on the available
@@ -39,8 +38,8 @@ public class WhiteboardIndexEditorProvider
     }
 
     @Override
-    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder builder,
-            @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder builder,
+            @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         IndexEditorProvider composite = CompositeIndexEditorProvider
                 .compose(getServices());

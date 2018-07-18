@@ -20,11 +20,10 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Part of the FilteringObserver: the FilteringDispatcher is used
@@ -44,8 +43,8 @@ public class FilteringDispatcher implements Observer {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState root,
-                               @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root,
+                               @NotNull CommitInfo info) {
         if (before != null) { 
             // avoid null being passed as before to observer
             // before == null happens only at startup

@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
 public final class OakInitializer {
 
@@ -45,9 +44,9 @@ public final class OakInitializer {
     private OakInitializer() {
     }
 
-    public static void initialize(@Nonnull NodeStore store,
-                                  @Nonnull RepositoryInitializer initializer,
-                                  @Nonnull IndexEditorProvider indexEditor) {
+    public static void initialize(@NotNull NodeStore store,
+                                  @NotNull RepositoryInitializer initializer,
+                                  @NotNull IndexEditorProvider indexEditor) {
         try {
             NodeBuilder builder = store.getRoot().builder();
             initializer.initialize(builder);
@@ -57,10 +56,10 @@ public final class OakInitializer {
         }
     }
 
-    public static void initialize(@Nonnull Iterable<WorkspaceInitializer> initializer,
-                                  @Nonnull NodeStore store,
-                                  @Nonnull String workspaceName,
-                                  @Nonnull IndexEditorProvider indexEditor) {
+    public static void initialize(@NotNull Iterable<WorkspaceInitializer> initializer,
+                                  @NotNull NodeStore store,
+                                  @NotNull String workspaceName,
+                                  @NotNull IndexEditorProvider indexEditor) {
         NodeBuilder builder = store.getRoot().builder();
         for (WorkspaceInitializer wspInit : initializer) {
             wspInit.initialize(builder, workspaceName);
@@ -72,7 +71,7 @@ public final class OakInitializer {
         }
     }
 
-    private static CommitHook createHook(@Nonnull IndexEditorProvider indexEditor) {
+    private static CommitHook createHook(@NotNull IndexEditorProvider indexEditor) {
         return new CompositeHook(
                         ResetCommitAttributeHook.INSTANCE,
                         new EditorHook(new IndexUpdateProvider(indexEditor)));

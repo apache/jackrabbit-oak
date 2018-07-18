@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.atomic.AtomicLong;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract class that simplifies development of a Reporter
@@ -56,7 +56,7 @@ public abstract class PeriodicReporter implements Reporter {
      * @param nodeState The node that was reported.
      */
     protected abstract void reportPeriodicNode(
-            final long count, @Nonnull final ReportingNodeState nodeState);
+            final long count, @NotNull final ReportingNodeState nodeState);
 
     /**
      * Callback called every nth time a property is accessed.
@@ -66,15 +66,15 @@ public abstract class PeriodicReporter implements Reporter {
      * @param propertyName The name of the reported property.
      */
     protected abstract void reportPeriodicProperty(
-            final long count, @Nonnull final ReportingNodeState parent, @Nonnull final String propertyName);
+            final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName);
 
 
-    protected boolean skipNodeState(@Nonnull final ReportingNodeState nodeState) {
+    protected boolean skipNodeState(@NotNull final ReportingNodeState nodeState) {
         return false;
     }
 
     @Override
-    public final void reportNode(@Nonnull final ReportingNodeState nodeState) {
+    public final void reportNode(@NotNull final ReportingNodeState nodeState) {
         if (nodeLogInterval == -1) {
             return;
         }
@@ -90,7 +90,7 @@ public abstract class PeriodicReporter implements Reporter {
     }
 
     @Override
-    public final void reportProperty(@Nonnull final ReportingNodeState parent, @Nonnull final String propertyName) {
+    public final void reportProperty(@NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
         if (propertyLogInterval == -1) {
             return;
         }

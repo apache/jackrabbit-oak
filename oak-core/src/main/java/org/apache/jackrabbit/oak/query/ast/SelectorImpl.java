@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -55,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,7 +199,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching supertypes, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getSupertypes() {
         return supertypes;
     }
@@ -209,7 +208,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching primary subtypes, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getPrimaryTypes() {
         return primaryTypes;
     }
@@ -218,7 +217,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching mixin types, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getMixinTypes() {
         return mixinTypes;
     }

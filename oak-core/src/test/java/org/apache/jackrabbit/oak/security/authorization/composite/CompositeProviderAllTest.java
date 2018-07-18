@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -480,48 +480,48 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
         private static final PermissionProvider BASE = OpenPermissionProvider.getInstance();
 
-        private OpenAggregateProvider(@Nonnull Root root) {
+        private OpenAggregateProvider(@NotNull Root root) {
             super(root);
         }
 
         //-----------------------------------< AggregatedPermissionProvider >---
 
         @Override
-        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+        public boolean isGranted(@NotNull TreeLocation location, long permissions) {
             return true;
         }
 
         //---------------------------------------------< PermissionProvider >---
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
             return BASE.getPrivileges(tree);
         }
 
         @Override
-        public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+        public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
             return BASE.hasPrivileges(tree, privilegeNames);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RepositoryPermission getRepositoryPermission() {
             return BASE.getRepositoryPermission();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
             return BASE.getTreePermission(tree, parentPermission);
         }
 
         @Override
-        public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
             return BASE.isGranted(tree, property, permissions);
         }
 
         @Override
-        public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+        public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
             return BASE.isGranted(oakPath, jcrActions);
         }
     }

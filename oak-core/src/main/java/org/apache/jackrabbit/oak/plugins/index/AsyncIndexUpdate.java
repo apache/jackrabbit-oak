@@ -39,8 +39,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -91,6 +89,8 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -205,13 +205,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     private final StatisticsProvider statisticsProvider;
 
-    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
-                            @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
+    public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
+                            @NotNull IndexEditorProvider provider, boolean switchOnSync) {
         this(name, store, provider, StatisticsProvider.NOOP, switchOnSync);
     }
 
-    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
-                            @Nonnull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
+    public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
+                            @NotNull IndexEditorProvider provider, StatisticsProvider statsProvider, boolean switchOnSync) {
         this.name = checkValidName(name);
         this.lastIndexedTo = lastIndexedTo(name);
         this.store = checkNotNull(store);
@@ -222,8 +222,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         this.indexStats = new AsyncIndexStats(name, statsProvider);
     }
 
-    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
-            @Nonnull IndexEditorProvider provider) {
+    public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,
+            @NotNull IndexEditorProvider provider) {
         this(name, store, provider, false);
     }
 
@@ -830,7 +830,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                                                   NodeBuilder builder, final String checkpoint, final Long lease,
                                                   final String name) throws CommitFailedException {
         CommitHook concurrentUpdateCheck = new CommitHook() {
-            @Override @Nonnull
+            @Override @NotNull
             public NodeState processCommit(
                     NodeState before, NodeState after, CommitInfo info)
                     throws CommitFailedException {
@@ -1388,7 +1388,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             this.newIndexTaskName = newIndexTaskName;
         }
 
-        void maybeSplit(@CheckForNull String refCheckpoint, Long lease)
+        void maybeSplit(@Nullable String refCheckpoint, Long lease)
                 throws CommitFailedException {
             if (paths == null) {
                 return;
@@ -1396,7 +1396,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             split(refCheckpoint, lease);
         }
 
-        private void split(@CheckForNull String refCheckpoint, Long lease) throws CommitFailedException {
+        private void split(@Nullable String refCheckpoint, Long lease) throws CommitFailedException {
             NodeBuilder builder = store.getRoot().builder();
             if (refCheckpoint != null) {
                 String tempCpName = getTempCpName(name);

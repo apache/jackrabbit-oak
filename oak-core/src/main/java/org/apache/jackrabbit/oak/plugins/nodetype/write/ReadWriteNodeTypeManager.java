@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -78,7 +78,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
      *
      * @return fresh {@link Root} instance.
      */
-    @Nonnull
+    @NotNull
     protected Root getWriteRoot() {
         throw new UnsupportedOperationException();
     }

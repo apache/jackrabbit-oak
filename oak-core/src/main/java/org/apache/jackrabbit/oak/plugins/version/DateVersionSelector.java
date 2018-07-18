@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
@@ -64,7 +64,7 @@ class DateVersionSelector implements VersionSelector {
     }
 
     @Override
-    public NodeBuilder select(@Nonnull NodeBuilder history)
+    public NodeBuilder select(@NotNull NodeBuilder history)
             throws RepositoryException {
         long latestDate = Long.MIN_VALUE;
         NodeBuilder latestVersion = null;
