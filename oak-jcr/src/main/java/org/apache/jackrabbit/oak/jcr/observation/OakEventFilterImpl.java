@@ -32,8 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -50,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathHelper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implements OakEventFilter which is an extension to the JackrabbitEventFilter
@@ -248,7 +247,7 @@ public class OakEventFilterImpl extends OakEventFilter {
 
     private Set<String> relativeGlobPaths;
 
-    public OakEventFilterImpl(@Nonnull JackrabbitEventFilter delegate) {
+    public OakEventFilterImpl(@NotNull JackrabbitEventFilter delegate) {
         checkNotNull(delegate);
         this.delegate = delegate;
     }

@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 
 public class VersionManagerImpl implements VersionManager {
 
@@ -253,7 +253,7 @@ public class VersionManagerImpl implements VersionManager {
     public boolean isCheckedOut(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Boolean>("isCheckoutOut") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -284,7 +284,7 @@ public class VersionManagerImpl implements VersionManager {
             throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<VersionHistory>("getVersionHistory") {
-            @Nonnull
+            @NotNull
             @Override
             public VersionHistory perform() throws RepositoryException {
                 return new VersionHistoryImpl(
@@ -297,7 +297,7 @@ public class VersionManagerImpl implements VersionManager {
     public Version getBaseVersion(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>("getBaseVersion") {
-            @Nonnull
+            @NotNull
             @Override
             public Version perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -361,7 +361,7 @@ public class VersionManagerImpl implements VersionManager {
     public Version checkin(final String absPath) throws RepositoryException {
         final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>("checkin", true) {
-            @Nonnull
+            @NotNull
             @Override
             public Version perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(absPath);
@@ -412,9 +412,9 @@ public class VersionManagerImpl implements VersionManager {
      * @return the parent for the given <code>absPath</code>.
      * @throws PathNotFoundException if the node does not exist.
      */
-    @Nonnull
-    private NodeDelegate ensureParentExists(@Nonnull SessionDelegate sessionDelegate,
-                                            @Nonnull String absPath)
+    @NotNull
+    private NodeDelegate ensureParentExists(@NotNull SessionDelegate sessionDelegate,
+                                            @NotNull String absPath)
             throws PathNotFoundException {
         String oakParentPath = getOakPathOrThrowNotFound(
                 PathUtils.getParentPath(checkNotNull(absPath)));
@@ -435,8 +435,8 @@ public class VersionManagerImpl implements VersionManager {
      *                         sub-graphs.
      * @return existing nodes in this workspace.
      */
-    private List<NodeDelegate> getExisting(@Nonnull Version version,
-                                           @Nonnull Set<String> versionablePaths)
+    private List<NodeDelegate> getExisting(@NotNull Version version,
+                                           @NotNull Set<String> versionablePaths)
             throws RepositoryException {
         // collect uuids
         final List<String> uuids = new ArrayList<String>();
@@ -509,9 +509,9 @@ public class VersionManagerImpl implements VersionManager {
      *                               mix:versionable.
      * @throws RepositoryException if some other error occurs.
      */
-    @Nonnull
+    @NotNull
     private VersionHistoryDelegate internalGetVersionHistory(
-            @Nonnull String absPathVersionable)
+            @NotNull String absPathVersionable)
             throws RepositoryException, UnsupportedRepositoryOperationException {
         SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         String oakPath = getOakPathOrThrowNotFound(checkNotNull(absPathVersionable));

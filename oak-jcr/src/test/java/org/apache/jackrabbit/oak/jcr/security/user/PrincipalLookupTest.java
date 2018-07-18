@@ -17,16 +17,16 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.security.Principal;
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
 
 public class PrincipalLookupTest extends AbstractUserTest {
 
-    private static PrincipalManager getPrincipalManager(@Nonnull Session session) throws Exception {
+    private static PrincipalManager getPrincipalManager(@NotNull Session session) throws Exception {
         if (!(session instanceof JackrabbitSession)) {
             throw new NotExecutableException("JackrabbitSession expected");
         }

@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
 import javax.jcr.ReferentialIntegrityException;
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code VersionHistoryImpl}...
@@ -62,7 +62,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public String getVersionableIdentifier() throws RepositoryException {
         return perform(new SessionOperation<String>("getVersionableIdentifier") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() throws RepositoryException {
                 return dlg.getVersionableIdentifier();
@@ -73,7 +73,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getRootVersion() throws RepositoryException {
         return perform(new SessionOperation<Version>("getRootVersion") {
-            @Nonnull
+            @NotNull
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getRootVersion(), sessionContext);
@@ -84,7 +84,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
         return perform(new SessionOperation<VersionIterator>("getAllLinearVersions") {
-            @Nonnull
+            @NotNull
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
@@ -102,7 +102,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
         return perform(new SessionOperation<VersionIterator>("getAllVersions") {
-            @Nonnull
+            @NotNull
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllVersions(),
@@ -131,7 +131,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     public Version getVersion(final String versionName)
             throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersion") {
-            @Nonnull
+            @NotNull
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getVersion(versionName), sessionContext);
@@ -143,7 +143,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     public Version getVersionByLabel(final String label)
             throws VersionException, RepositoryException {
         return perform(new SessionOperation<Version>("getVersionByLabel") {
-            @Nonnull
+            @NotNull
             @Override
             public Version perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -195,7 +195,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public String[] getVersionLabels() throws RepositoryException {
         return perform(new SessionOperation<String[]>("getVersionLabels") {
-            @Nonnull
+            @NotNull
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();
@@ -215,7 +215,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                     "VersionHistory");
         }
         return perform(new SessionOperation<String[]>("getVersionLabels") {
-            @Nonnull
+            @NotNull
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();

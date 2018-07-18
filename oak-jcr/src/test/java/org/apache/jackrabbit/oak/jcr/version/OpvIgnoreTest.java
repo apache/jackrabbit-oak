@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -59,7 +59,7 @@ public class OpvIgnoreTest extends AbstractJCRTest {
         versionManager = superuser.getWorkspace().getVersionManager();
     }
 
-    private void addIgnoredChild(@Nonnull Node node) throws Exception {
+    private void addIgnoredChild(@NotNull Node node) throws Exception {
         AccessControlManager acMgr = superuser.getAccessControlManager();
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, node.getPath());
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ));
