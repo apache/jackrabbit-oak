@@ -29,8 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -45,6 +43,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,7 +295,7 @@ public class IndexRootDirectory {
         return size;
     }
 
-    @CheckForNull
+    @Nullable
     private LocalIndexDir findMatchingIndexDir(File dir) throws IOException {
         //Resolve to canonical file so that equals can work reliable
         dir = dir.getCanonicalFile();

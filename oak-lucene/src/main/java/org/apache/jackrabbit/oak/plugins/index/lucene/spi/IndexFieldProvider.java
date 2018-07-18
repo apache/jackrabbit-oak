@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Field;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Set;
-
 /**
  * Implementations of this interface would get callbacks while indexing documents. It's the responsibility
  * of the implementation to exit as early as possible if it doesn't care about the document being indexed.
@@ -51,7 +50,7 @@ public interface IndexFieldProvider {
      * @param indexDefinition {@link NodeState} of index definition
      * @return {@link Iterable} of fields that are to be added to {@link org.apache.lucene.document.Document} being prepared
      */
-    @Nonnull
+    @NotNull
     Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition);
 
     /**
@@ -61,6 +60,6 @@ public interface IndexFieldProvider {
      * exact matches and do not support inheritance.
      * @return {@link Set} of types supported by the implementation
      */
-    @Nonnull
+    @NotNull
     Set<String> getSupportedTypes();
 }

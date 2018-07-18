@@ -47,8 +47,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.CIHelper;
@@ -87,6 +85,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -589,9 +588,9 @@ public class LuceneIndexEditorTest {
         private boolean shouldFail;
 
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                     @Nonnull NodeState root,
-                                     @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                     @NotNull NodeState root,
+                                     @NotNull IndexUpdateCallback callback) throws CommitFailedException {
             if (PropertyIndexEditorProvider.TYPE.equals(type)) {
                 return new FailOnDemandEditor();
             }

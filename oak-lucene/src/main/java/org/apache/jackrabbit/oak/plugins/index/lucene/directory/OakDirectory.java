@@ -36,17 +36,16 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
 import org.apache.lucene.store.NoLockFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Set;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -101,7 +100,7 @@ public class OakDirectory extends Directory {
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
                         boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore,
-                        @Nonnull BlobDeletionCallback blobDeletionCallback) {
+                        @NotNull BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly,
                 blobStore != null ? BlobFactory.getBlobStoreBlobFactory(blobStore) : BlobFactory.getNodeBuilderBlobFactory(builder),
                 blobDeletionCallback);
@@ -114,13 +113,13 @@ public class OakDirectory extends Directory {
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory,
-                        @Nonnull BlobDeletionCallback blobDeletionCallback) {
+                        @NotNull BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly, blobFactory, blobDeletionCallback, false);
     }
 
     public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory,
-                        @Nonnull BlobDeletionCallback blobDeletionCallback,
+                        @NotNull BlobDeletionCallback blobDeletionCallback,
                         boolean streamingWriteEnabled) {
 
         this.lockFactory = NoLockFactory.getNoLockFactory();

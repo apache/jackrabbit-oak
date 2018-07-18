@@ -45,8 +45,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -60,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlo
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -537,12 +536,12 @@ public class ActiveDeletedBlobCollectorTest {
         }
 
         @Override
-        public String getBlobId(@Nonnull String reference) {
+        public String getBlobId(@NotNull String reference) {
             return null;
         }
 
         @Override
-        public String getReference(@Nonnull String blobId) {
+        public String getReference(@NotNull String blobId) {
             return null;
         }
 

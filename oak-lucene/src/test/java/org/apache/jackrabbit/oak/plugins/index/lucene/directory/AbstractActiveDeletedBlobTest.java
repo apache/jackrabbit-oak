@@ -26,9 +26,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -52,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -197,11 +196,11 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             return delegate.deleteChunks(chunkIds, maxLastModifiedTime);
         }
 
-        @Override @CheckForNull public String getBlobId(@Nonnull String reference) {
+        @Override @Nullable public String getBlobId(@NotNull String reference) {
             return delegate.getBlobId(reference);
         }
 
-        @Override @CheckForNull public String getReference(@Nonnull String blobId) {
+        @Override @Nullable public String getReference(@NotNull String blobId) {
             return delegate.getReference(blobId);
         }
 

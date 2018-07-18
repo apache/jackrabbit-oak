@@ -56,8 +56,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -92,6 +90,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
@@ -1771,7 +1770,7 @@ public class IndexPlannerTest {
         return createSampleDirectory(numOfDocs, Collections.EMPTY_LIST);
     }
 
-    private static Directory createSampleDirectory(long numOfDocs, @Nonnull Document doc) throws IOException {
+    private static Directory createSampleDirectory(long numOfDocs, @NotNull Document doc) throws IOException {
         return createSampleDirectory(numOfDocs, Collections.singletonList(doc));
     }
 
@@ -1795,8 +1794,8 @@ public class IndexPlannerTest {
         return (IndexPlanner.PlanResult) plan.getAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT);
     }
 
-    @Nonnull
-    private static NodeBuilder getNode(@Nonnull NodeBuilder node, @Nonnull String path) {
+    @NotNull
+    private static NodeBuilder getNode(@NotNull NodeBuilder node, @NotNull String path) {
         for (String name : PathUtils.elements(checkNotNull(path))) {
             node = node.getChildNode(checkNotNull(name));
         }

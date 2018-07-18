@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
@@ -47,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +114,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      ExtractedTextCache extractedTextCache,
                                      @Nullable IndexAugmentorFactory augmentorFactory,
                                      MountInfoProvider mountInfoProvider,
-                                     @Nonnull ActiveDeletedBlobCollector activeDeletedBlobCollector) {
+                                     @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
@@ -126,8 +125,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root,
-            @Nonnull IndexUpdateCallback callback)
+            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
             checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +

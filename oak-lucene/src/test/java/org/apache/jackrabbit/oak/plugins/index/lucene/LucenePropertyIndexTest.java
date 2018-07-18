@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Charsets;
@@ -95,6 +94,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -3293,7 +3293,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             this.id = id;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
             accessCount++;

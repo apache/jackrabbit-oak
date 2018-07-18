@@ -24,9 +24,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
@@ -38,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
@@ -84,14 +82,14 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         return readers.build();
     }
 
-    @CheckForNull
+    @Nullable
     private LuceneIndexReader createReader(Mount mount, IndexDefinition definition, NodeState defnNodeState,
                                            String indexPath) throws IOException {
         return createReader(definition, defnNodeState, indexPath, MultiplexersLucene.getIndexDirName(mount),
                 MultiplexersLucene.getSuggestDirName(mount));
     }
 
-    @CheckForNull
+    @Nullable
     private LuceneIndexReader createReader(IndexDefinition definition, NodeState defnNodeState, String indexPath,
                                            String indexDataNodeName, String suggestDataNodeName) throws IOException {
         Directory directory = null;

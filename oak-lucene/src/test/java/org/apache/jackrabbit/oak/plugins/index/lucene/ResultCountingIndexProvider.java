@@ -29,10 +29,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.List;
-
 class ResultCountingIndexProvider implements QueryIndexProvider {
     private final QueryIndexProvider delegate;
     private final CountingCursorFactory cursorFactory;
@@ -62,14 +61,14 @@ class ResultCountingIndexProvider implements QueryIndexProvider {
         count++;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         if (shouldCount) {
             return Lists.transform(delegate.getQueryIndexes(nodeState), new Function<QueryIndex, QueryIndex>() {
-                @Nonnull
+                @NotNull
                 @Override
-                public QueryIndex apply(@Nonnull  QueryIndex input) {
+                public QueryIndex apply(@NotNull  QueryIndex input) {
                     if (input instanceof AdvanceFulltextQueryIndex) {
                         return new CountingIndex((AdvanceFulltextQueryIndex)input, cursorFactory);
                     } else {

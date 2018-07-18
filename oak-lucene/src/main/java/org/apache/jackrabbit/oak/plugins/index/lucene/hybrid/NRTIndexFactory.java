@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.NRTCachingDirectory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +73,7 @@ public class NRTIndexFactory implements Closeable{
 
     //This would not be invoked concurrently
     // but still mark it synchronized for safety
-    @CheckForNull
+    @Nullable
     public synchronized NRTIndex createIndex(IndexDefinition definition) {
         if (!(definition.isNRTIndexingEnabled() || definition.isSyncIndexingEnabled())){
             return null;

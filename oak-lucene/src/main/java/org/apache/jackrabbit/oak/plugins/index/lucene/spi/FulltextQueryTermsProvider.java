@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.spi;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Set;
-
 /**
  * Implementations of this interface would get callbacks while forming lucene full text queries.
  */
@@ -51,7 +50,7 @@ public interface FulltextQueryTermsProvider {
      * @param indexDefinition {@link NodeState} of index definition
      * @return {@link Query} object to be OR'ed with query being prepared. {@code null}, if nothing is to be added.
      */
-    @CheckForNull
+    @Nullable
     Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition);
 
     /**
@@ -61,6 +60,6 @@ public interface FulltextQueryTermsProvider {
      * exact matches and do not support inheritance.
      * @return {@link Set} of types supported by the implementation
      */
-    @Nonnull
+    @NotNull
     Set<String> getSupportedTypes();
 }

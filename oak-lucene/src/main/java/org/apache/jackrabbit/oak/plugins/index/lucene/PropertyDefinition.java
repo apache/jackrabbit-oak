@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcesso
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +104,7 @@ public class PropertyDefinition {
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
      */
-    @CheckForNull
+    @Nullable
     final String nonRelativeName;
 
     /**

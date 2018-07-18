@@ -43,8 +43,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -73,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -97,7 +96,7 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
             .with(new InitialContent() {
 
                 @Override
-                public void initialize(@Nonnull NodeBuilder builder) {
+                public void initialize(@NotNull NodeBuilder builder) {
                     super.initialize(builder);
 
                     // registering additional node types for wider testing
@@ -423,8 +422,8 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
      * @param nodeName the node name to be used
      * @return the {@code metadata} node. See above for details
      */
-    private static Tree createAssetStructure(@Nonnull final Tree parent, 
-                                             @Nonnull final String nodeName) {
+    private static Tree createAssetStructure(@NotNull final Tree parent, 
+                                             @NotNull final String nodeName) {
         checkNotNull(parent);
         checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
         
@@ -461,8 +460,8 @@ public class LuceneIndexAggregation2Test extends AbstractQueryTest {
      * @param nodeName the node name to be used
      * @return the {@code jcr:content} node. See above for details
      */
-    private static Tree createPageStructure(@Nonnull final Tree parent,
-                                            @Nonnull final String nodeName) {
+    private static Tree createPageStructure(@NotNull final Tree parent,
+                                            @NotNull final String nodeName) {
         checkNotNull(parent);
         checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
 
