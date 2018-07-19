@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
@@ -56,8 +57,10 @@ public class SuggestHelper {
         }
     };
 
-    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader) throws IOException {
+    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader, final Closer closer)
+            throws IOException {
         File tempDir = null;
+        boolean shouldCloseDirectory = true;
         try {
             //Analyzing infix suggester takes a file parameter. It uses its path to getDirectory()
             //for actual storage of suggester data. BUT, while building it also does getDirectory() to
@@ -70,11 +73,16 @@ public class SuggestHelper {
 
             if (reader.getDocCount(FieldNames.SUGGEST) > 0) {
                 Dictionary dictionary = new LuceneDictionary(reader, FieldNames.SUGGEST);
-                getLookup(directory, analyzer, tempSubChild).build(dictionary);
+                AnalyzingInfixSuggester suggester = closer.register(getLookup(directory, analyzer, tempSubChild));
+                shouldCloseDirectory = false;
+                suggester.build(dictionary);
             }
         } catch (RuntimeException e) {
             log.debug("could not update the suggester", e);
         } finally {
+            if (shouldCloseDirectory) {
+                closer.register(directory);
+            }
             //cleanup temp dir
             if (tempDir != null && !FileUtils.deleteQuietly(tempDir)) {
                 log.error("Cleanup failed for temp dir {}", tempDir.getAbsolutePath());
