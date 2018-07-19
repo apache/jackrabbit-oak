@@ -31,13 +31,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import junit.framework.Assert;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
@@ -63,6 +60,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test for gc in a shared data store among hetrogeneous oak node stores.
@@ -136,8 +136,9 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        Assert.assertEquals(true, Sets.symmetricDifference(Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
-            cluster1.getExistingBlobIds()).isEmpty());
+        assertTrue(Sets.symmetricDifference(
+                Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+                cluster1.getExistingBlobIds()).isEmpty());
     }
 
     @Test
@@ -152,8 +153,9 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        Assert.assertEquals(true, Sets.symmetricDifference(Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
-            cluster1.getExistingBlobIds()).isEmpty());
+        assertTrue(Sets.symmetricDifference(
+                Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+                cluster1.getExistingBlobIds()).isEmpty());
     }
 
     @Test
@@ -177,14 +179,14 @@ public class SharedBlobStoreGCTest {
         for (GarbageCollectionRepoStats stat : statsList) {
             observedNumBlobs.add(stat.getNumLines());
             observedRepoIds.add(stat.getRepositoryId());
-            Assert.assertTrue(stat.getStartTime() <= stat.getEndTime());
+            assertTrue(stat.getStartTime() <= stat.getEndTime());
             if (stat.getRepositoryId().equals(cluster1.repoId)) {
-                Assert.assertTrue(stat.isLocal());
+                assertTrue(stat.isLocal());
             }
         }
     
-        Assert.assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
-        Assert.assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
 
     @Test
@@ -200,9 +202,9 @@ public class SharedBlobStoreGCTest {
 
         Set<String> existing = cluster1.getExistingBlobIds();
         log.debug("Existing blobs {}", existing);
-        Assert.assertTrue((cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) <= existing.size());
-        Assert.assertTrue(existing.containsAll(cluster2.getInitBlobs()));
-        Assert.assertTrue(existing.containsAll(cluster1.getInitBlobs()));
+        assertTrue((cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) <= existing.size());
+        assertTrue(existing.containsAll(cluster2.getInitBlobs()));
+        assertTrue(existing.containsAll(cluster1.getInitBlobs()));
     }
 
     @Test
@@ -217,7 +219,7 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster2.gc.collectGarbage(false);
 
-        Assert.assertTrue(Sets.symmetricDifference(
+        assertTrue(Sets.symmetricDifference(
             Sets.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
             cluster1.getExistingBlobIds()).isEmpty());
     }
@@ -301,7 +303,7 @@ public class SharedBlobStoreGCTest {
 
             VersionGarbageCollector vGC = ds.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
-            Assert.assertEquals(deletes.size(), stats.deletedDocGCCount);
+            assertEquals(deletes.size(), stats.deletedDocGCCount);
             sleep();
         }
 
