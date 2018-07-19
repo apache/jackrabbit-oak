@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import com.google.common.base.Strings;
 
-import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test for OAK-1589

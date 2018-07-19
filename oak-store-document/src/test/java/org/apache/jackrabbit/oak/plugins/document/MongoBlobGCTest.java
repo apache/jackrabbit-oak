@@ -43,7 +43,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.ReadPreference;
 
-import junit.framework.Assert;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -154,7 +153,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
             VersionGarbageCollector vGC = s.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
-            Assert.assertEquals(processed.size(), stats.deletedDocGCCount);
+            assertEquals(processed.size(), stats.deletedDocGCCount);
         }
 
         return state;
