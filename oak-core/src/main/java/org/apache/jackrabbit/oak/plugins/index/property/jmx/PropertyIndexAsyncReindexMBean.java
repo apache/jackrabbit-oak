@@ -17,8 +17,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * MBean for starting and monitoring the progress of asynchronous reindexing of
@@ -36,7 +37,7 @@ public interface PropertyIndexAsyncReindexMBean {
      * 
      * @return the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     CompositeData startPropertyIndexAsyncReindex();
 
     /**
@@ -46,7 +47,7 @@ public interface PropertyIndexAsyncReindexMBean {
      *         status of the last operation or <em>Status not available</em> if
      *         none.
      */
-    @Nonnull
+    @NotNull
     CompositeData getPropertyIndexAsyncReindexStatus();
 
 }

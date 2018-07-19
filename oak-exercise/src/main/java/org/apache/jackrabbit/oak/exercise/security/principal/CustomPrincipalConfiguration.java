@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,21 +50,21 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @Property(name = "knownPrincipals", value = {}, cardinality = 100)
     private String[] knownPrincipals = new String[0];
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
         log.info("CustomPrincipalConfiguration.getPrincipalManager");
         return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         log.info("CustomPrincipalConfiguration.getPrincipalProvider");
         return new CustomPrincipalProvider(knownPrincipals);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return PrincipalConfiguration.NAME;
@@ -93,7 +92,7 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     }
 
     @Override
-    public void setParameters(@Nonnull ConfigurationParameters config) {
+    public void setParameters(@NotNull ConfigurationParameters config) {
         super.setParameters(config);
         knownPrincipals = config.getConfigValue("knownPrincipals", new String[0]);
     }

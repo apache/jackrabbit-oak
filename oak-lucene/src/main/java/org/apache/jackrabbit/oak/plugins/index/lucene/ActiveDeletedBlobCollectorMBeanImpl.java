@@ -37,11 +37,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -52,6 +53,7 @@ import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Iterators.any;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
@@ -76,16 +78,16 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
     Clock clock = Clock.SIMPLE; // package private for tests
 
-    @Nonnull
+    @NotNull
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
 
-    @Nonnull
+    @NotNull
     private Whiteboard whiteboard;
 
-    @Nonnull
+    @NotNull
     private final GarbageCollectableBlobStore blobStore;
 
-    @Nonnull
+    @NotNull
     private final Executor executor;
 
     private final NodeStore store;
@@ -110,13 +112,13 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      * @param executor                      executor for running the collection task
      */
     ActiveDeletedBlobCollectorMBeanImpl(
-            @Nonnull ActiveDeletedBlobCollector activeDeletedBlobCollector,
-            @Nonnull Whiteboard whiteboard,
-            @Nonnull NodeStore store,
-            @Nonnull IndexPathService indexPathService,
-            @Nonnull AsyncIndexInfoService asyncIndexInfoService,
-            @Nonnull GarbageCollectableBlobStore blobStore,
-            @Nonnull Executor executor) {
+            @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector,
+            @NotNull Whiteboard whiteboard,
+            @NotNull NodeStore store,
+            @NotNull IndexPathService indexPathService,
+            @NotNull AsyncIndexInfoService asyncIndexInfoService,
+            @NotNull GarbageCollectableBlobStore blobStore,
+            @NotNull Executor executor) {
         this.activeDeletedBlobCollector = checkNotNull(activeDeletedBlobCollector);
         this.whiteboard = checkNotNull(whiteboard);
         this.store = store;
@@ -128,7 +130,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startActiveCollection() {
         if (gcOp.isDone()) {
@@ -148,7 +150,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData cancelActiveCollection() {
         if (!gcOp.isDone()) {
@@ -163,7 +165,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getActiveCollectionStatus() {
         return gcOp.getStatus().toCompositeData();
@@ -319,14 +321,26 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
         try {
             List<CheckpointMBean> services = tracker.getServices();
-            if (services.size() == 1) {
-                return services.get(0).getOldestCheckpointCreationTimestamp();
-            } else if (services.isEmpty()) {
+            if (services.isEmpty()) {
                 LOG.warn("Unable to get checkpoint mbean. No service of required type found.");
                 return -1;
             } else {
-                LOG.warn("Unable to get checkpoint mbean. Multiple services of required type found.");
-                return -1;
+                // OAK-7610: Composite node store setups have 2 instances of CheckpointMBean:
+                // 1. registered via CompositeNodeStore
+                // 2. registered via global node store
+                // While it is still to be decided whether it's reasonable to have multiple instances
+                // of checkpoint bean - we are going to iterate over the beans and return oldest
+                // timestamp iff each of the bean reports the same oldest timestamp value. The reason
+                // it'd work, at least as of now, is that CompositeNodeStore implementation of checkpoint
+                // bean simply delegates to global store's implementation
+                Iterator<CheckpointMBean> beans = services.iterator();
+                long ret = beans.next().getOldestCheckpointCreationTimestamp();
+                if (any(beans, bean -> ret != bean.getOldestCheckpointCreationTimestamp())) {
+                    LOG.warn("Unable to get checkpoint mbean. Multiple services of required type found and not" +
+                            " all of them returned same value of oldest timestamp ({})", ret);
+                    return -1;
+                }
+                return ret;
             }
         } finally {
             tracker.stop();

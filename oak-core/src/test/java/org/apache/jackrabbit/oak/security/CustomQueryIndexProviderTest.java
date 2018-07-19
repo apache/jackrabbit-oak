@@ -22,9 +22,6 @@ package org.apache.jackrabbit.oak.security;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -42,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -69,16 +68,16 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
 
     private class UUIDIndexReplacementInitializer implements RepositoryInitializer {
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             builder.child("oak:index").child("uuid").setProperty("type", TEST_INDEX);
         }
     }
 
     private static class TestIndexEditor implements IndexEditorProvider {
-        @CheckForNull
+        @Nullable
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                 throws CommitFailedException {
             if (TEST_INDEX.equals(type)) {
                 PropertyIndexEditorProvider piep = new PropertyIndexEditorProvider();
@@ -89,7 +88,7 @@ public class CustomQueryIndexProviderTest extends AbstractSecurityTest {
     }
 
     private static class TestQueryProvider implements QueryIndexProvider {
-        @Nonnull
+        @NotNull
         @Override
         public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
             return Collections.singletonList(new TestQueryIndex());

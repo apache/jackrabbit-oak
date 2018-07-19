@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 
@@ -61,6 +59,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
@@ -96,7 +96,7 @@ public class TestUtil {
     }
 
     public static NodeBuilder newLuceneIndexDefinitionV2(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes) {
         NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
         useV2(nb);

@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -31,6 +29,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Extension of the default {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}
@@ -55,7 +54,7 @@ public class CugExcludeImpl extends CugExclude.Default {
     private Set<String> principalNames = Collections.emptySet();
 
     @Override
-    public boolean isExcluded(@Nonnull Set<Principal> principals) {
+    public boolean isExcluded(@NotNull Set<Principal> principals) {
         if (super.isExcluded(principals)) {
             return true;
         }
@@ -79,7 +78,7 @@ public class CugExcludeImpl extends CugExclude.Default {
         setPrincipalNames(properties);
     }
 
-    private void setPrincipalNames(@Nonnull Map<String, Object> properties) {
+    private void setPrincipalNames(@NotNull Map<String, Object> properties) {
         this.principalNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
     }
 }

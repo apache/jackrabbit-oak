@@ -26,8 +26,8 @@ import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ALIGN_BITS;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
 
+import org.jetbrains.annotations.NotNull;
 
 public final class TestUtils {
     private TestUtils() {}
@@ -46,7 +46,7 @@ public final class TestUtils {
      * Returns a new valid record offset, between {@code a} and {@code b},
      * exclusive.
      */
-    public static int newValidOffset(@Nonnull Random random, int a, int b) {
+    public static int newValidOffset(@NotNull Random random, int a, int b) {
         int p = (a >> RECORD_ALIGN_BITS) + 1;
         int q = (b >> RECORD_ALIGN_BITS);
         return (p + random.nextInt(q - p)) << RECORD_ALIGN_BITS;

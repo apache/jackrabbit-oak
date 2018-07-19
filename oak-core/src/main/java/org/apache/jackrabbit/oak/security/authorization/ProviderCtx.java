@@ -16,24 +16,23 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 public interface ProviderCtx {
 
-    @Nonnull
+    @NotNull
     SecurityProvider getSecurityProvider();
 
-    @Nonnull
+    @NotNull
     TreeProvider getTreeProvider();
 
-    @Nonnull
+    @NotNull
     RootProvider getRootProvider();
 
-    @Nonnull
+    @NotNull
     MountInfoProvider getMountInfoProvider();
 }

@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Collections;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,14 +57,14 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         privilegesTree = checkNotNull(bitsProvider.getPrivilegesTree());
     }
 
-    private Tree createPrivilegeTree(@Nonnull String privName, @Nonnull String... aggr) {
+    private Tree createPrivilegeTree(@NotNull String privName, @NotNull String... aggr) {
         Tree privTree = privilegesTree.addChild(privName);
         privTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
         privTree.setProperty(REP_AGGREGATES, ImmutableSet.copyOf(aggr), Type.NAMES);
         return privTree;
     }
 
-    private void register(@Nonnull String privName, @Nonnull String... aggr) throws Exception {
+    private void register(@NotNull String privName, @NotNull String... aggr) throws Exception {
         getPrivilegeManager(root).registerPrivilege(privName, false, aggr);
     }
 

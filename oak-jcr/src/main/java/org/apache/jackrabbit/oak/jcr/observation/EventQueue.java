@@ -23,8 +23,6 @@ import static com.google.common.collect.Lists.newLinkedList;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventAggregator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Queue of JCR Events generated from a given content change
@@ -50,9 +50,9 @@ class EventQueue implements EventIterator {
     private long position = 0;
 
     public EventQueue(
-            @Nonnull NamePathMapper mapper, CommitInfo info,
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter,
+            @NotNull NamePathMapper mapper, CommitInfo info,
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull Iterable<String> basePaths, @NotNull EventFilter filter,
             @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, info);

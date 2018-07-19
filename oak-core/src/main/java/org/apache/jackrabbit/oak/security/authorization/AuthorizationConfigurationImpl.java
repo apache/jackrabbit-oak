@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
@@ -56,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -123,7 +123,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         super();
     }
 
-    public AuthorizationConfigurationImpl(@Nonnull SecurityProvider securityProvider) {
+    public AuthorizationConfigurationImpl(@NotNull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
@@ -135,55 +135,55 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return AuthorizationContext.getInstance();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
         return new AuthorizationInitializer(mountInfoProvider);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return ImmutableList.of(
                 new VersionablePathHook(workspaceName, this),
                 new PermissionHook(workspaceName, getRestrictionProvider(), mountInfoProvider, getRootProvider(), getTreeProvider()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
                 new PermissionValidatorProvider(workspaceName, principals, moveTracker, this),
                 new AccessControlValidatorProvider(this));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return ImmutableList.of(new AccessControlImporter());
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new AccessControlManagerImpl(root, namePathMapper, getSecurityProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         RestrictionProvider restrictionProvider = getParameters().getConfigValue(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, null, RestrictionProvider.class);
@@ -194,10 +194,10 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         return restrictionProvider;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-                                                    @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
+                                                    @NotNull Set<Principal> principals) {
         Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
@@ -211,7 +211,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
 
     //--------------------------------------------------------< ProviderCtx >---
 
-    @Nonnull
+    @NotNull
     @Override
     public MountInfoProvider getMountInfoProvider() {
         return mountInfoProvider;

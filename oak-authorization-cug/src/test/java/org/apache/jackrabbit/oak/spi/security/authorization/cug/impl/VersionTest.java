@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -109,7 +108,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         }
     }
 
-    private Tree addVersionContent(@Nonnull String path) throws Exception {
+    private Tree addVersionContent(@NotNull String path) throws Exception {
         Tree t = root.getTree(path);
 
         Tree typesRoot = root.getTree(NodeTypeConstants.NODE_TYPES_PATH);

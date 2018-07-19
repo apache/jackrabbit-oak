@@ -23,12 +23,10 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Maps;
 
@@ -71,7 +69,7 @@ public class Document implements CacheValue {
      * 
      * @return the id or <code>null</code> if none is set.
      */
-    @CheckForNull
+    @Nullable
     public String getId() {
         return (String) get(ID);
     }
@@ -82,7 +80,7 @@ public class Document implements CacheValue {
      * @return the count or <code>null</code> if
      *         none is set.
      */
-    @CheckForNull
+    @Nullable
     public Long getModCount() {
         return Utils.asLong((Number) get(MOD_COUNT));
     }
@@ -93,7 +91,7 @@ public class Document implements CacheValue {
      * @param key the key.
      * @return the data or <code>null</code>.
      */
-    @CheckForNull
+    @Nullable
     public Object get(String key) {
         return data.get(key);
     }
@@ -105,7 +103,7 @@ public class Document implements CacheValue {
      * @param value the value to set.
      * @return the previous value or <code>null</code> if there was none.
      */
-    @CheckForNull
+    @Nullable
     public Object put(String key, Object value) {
         return data.put(key, value);
     }
@@ -116,7 +114,7 @@ public class Document implements CacheValue {
      * @param key the key.
      * @return the previous value or <code>null</code> if there was none.
      */
-    @CheckForNull
+    @Nullable
     public Object remove(String key) {
         return data.remove(key);
     }
@@ -197,8 +195,8 @@ public class Document implements CacheValue {
      *              the top level map, etc.
      * @return the transformed and sealed map.
      */
-    @Nonnull
-    protected Map<?, ?> transformAndSeal(@Nonnull Map<Object, Object> map,
+    @NotNull
+    protected Map<?, ?> transformAndSeal(@NotNull Map<Object, Object> map,
                                          @Nullable String key,
                                          int level) {
         for (Map.Entry<Object, Object> entry : map.entrySet()) {

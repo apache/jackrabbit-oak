@@ -71,6 +71,7 @@ public class VersionGCQueryTest {
             }
         };
         ns = provider.newBuilder().setDocumentStore(store)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
     }
 

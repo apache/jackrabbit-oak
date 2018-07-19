@@ -21,18 +21,15 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Wrapper of another DocumentStore that does a lease check on any method
@@ -40,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * <p>
  * @see "https://issues.apache.org/jira/browse/OAK-2739 for more details"
  */
-public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, RevisionListener {
+public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
 
     private final DocumentStore delegate;
     private final ClusterNodeInfo clusterNodeInfo;
@@ -201,7 +198,7 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
         return delegate.getMetadata();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         performLeaseCheck();
@@ -213,12 +210,4 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore, Revi
         performLeaseCheck();
         return delegate.determineServerTimeDifferenceMillis();
     }
-
-    @Override
-    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
-        if (delegate instanceof RevisionListener) {
-            ((RevisionListener) delegate).updateAccessedRevision(revision, currentClusterId);
-        }
-    }
-
 }

@@ -33,11 +33,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
@@ -47,6 +44,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,19 +64,28 @@ import org.slf4j.LoggerFactory;
 public class LastRevRecoveryAgent {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final DocumentNodeStore nodeStore;
+    private final DocumentStore store;
+
+    private final RevisionContext revisionContext;
 
     private final MissingLastRevSeeker missingLastRevUtil;
 
-    public LastRevRecoveryAgent(DocumentNodeStore nodeStore,
-                                MissingLastRevSeeker seeker) {
-        this.nodeStore = nodeStore;
+    private final Consumer<Integer> afterRecovery;
+
+    public LastRevRecoveryAgent(DocumentStore store,
+                                RevisionContext revisionContext,
+                                MissingLastRevSeeker seeker,
+                                Consumer<Integer> afterRecovery) {
+        this.store = store;
+        this.revisionContext = revisionContext;
         this.missingLastRevUtil = seeker;
+        this.afterRecovery = afterRecovery;
     }
 
-    public LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
-        this(nodeStore, new MissingLastRevSeeker(
-                nodeStore.getDocumentStore(), nodeStore.getClock()));
+    public LastRevRecoveryAgent(DocumentStore store, RevisionContext context) {
+        this(store, context,
+                new MissingLastRevSeeker(store, context.getClock()),
+                i -> {});
     }
 
     /**
@@ -86,7 +93,15 @@ public class LastRevRecoveryAgent {
      * nodes. If another cluster node is already performing the recovery for the
      * given {@code clusterId}, this method will {@code waitUntil} the given
      * time in milliseconds for the recovery to finish.
-     *
+     * <p>
+     * If recovery is performed for the clusterId as exposed by the revision
+     * context passed to the constructor of this recovery agent, then this
+     * method will put a deadline on how long recovery may take. The deadline
+     * is the current lease end as read from the {@code clusterNodes} collection
+     * entry for the {@code clusterId} to recover minus the
+     * {@link ClusterNodeInfo#DEFAULT_LEASE_FAILURE_MARGIN_MILLIS}. This method
+     * will throw a {@link DocumentStoreException} if the deadline is reached.
+     * <p>
      * This method will return:
      * <ul>
      *     <li>{@code -1} when another cluster node is busy performing recovery
@@ -105,22 +120,17 @@ public class LastRevRecoveryAgent {
      *                  already performing the recovery.
      * @return the number of restored nodes or {@code -1} if a timeout occurred
      *          while waiting for an ongoing recovery by another cluster node.
+     * @throws DocumentStoreException if the deadline is reached or some other
+     *          error occurs while reading from the underlying document store.
      */
     public int recover(int clusterId, long waitUntil)
             throws DocumentStoreException {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
 
-        //TODO Currently leaseTime remains same per cluster node. If this
-        //is made configurable then it should be read from DB entry
-        final long leaseTime = ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
-        final long asyncDelay = nodeStore.getAsyncDelay();
-
         if (nodeInfo != null) {
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && current time past leaseEnd
-            if (missingLastRevUtil.isRecoveryNeeded(nodeInfo)) {
-                long leaseEnd = nodeInfo.getLeaseEndTime();
-
+            if (nodeInfo.isRecoveryNeeded(revisionContext.getClock().getTime())) {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
@@ -135,10 +145,9 @@ public class LastRevRecoveryAgent {
                     startTime = lastRev.getTimestamp();
                     reason = "lastRev: " + lastRev.toString();
                 } else {
-                    startTime = leaseEnd - leaseTime - asyncDelay;
+                    startTime = nodeInfo.getStartTime();
                     reason = String.format(
-                            "no lastRev for root, using timestamp based on leaseEnd %d - leaseTime %d - asyncDelay %d", leaseEnd,
-                            leaseTime, asyncDelay);
+                            "no lastRev for root, using startTime %d", startTime);
                 }
                 if (sweepRev != null && sweepRev.getTimestamp() < startTime) {
                     startTime = sweepRev.getTimestamp();
@@ -160,24 +169,37 @@ public class LastRevRecoveryAgent {
      * @param clusterId the cluster id for which the _lastRev are to be recovered
      * @return the number of restored nodes or {@code -1} if there is an ongoing
      *          recovery by another cluster node.
+     * @throws DocumentStoreException if the deadline is reached or some other
+     *          error occurs while reading from the underlying document store.
      */
-    public int recover(int clusterId) {
+    public int recover(int clusterId) throws DocumentStoreException {
         return recover(clusterId, 0);
     }
 
     /**
-     * Recover the correct _lastRev updates for the given candidate nodes.
+     * Same as {@link #recover(Iterable, int, boolean)} with {@code dryRun} set
+     * to {@code false}.
      *
      * @param suspects the potential suspects
      * @param clusterId the cluster id for which _lastRev recovery needed
      * @return the number of documents that required recovery.
+     * @throws DocumentStoreException if the deadline is reached or some other
+     *          error occurs while reading from the underlying document store.
      */
-    public int recover(Iterable<NodeDocument> suspects, int clusterId) {
+    public int recover(Iterable<NodeDocument> suspects, int clusterId)
+            throws DocumentStoreException {
         return recover(suspects, clusterId, false);
     }
 
     /**
-     * Recover the correct _lastRev updates for the given candidate nodes.
+     * Recover the correct _lastRev updates for the given candidate nodes. If
+     * recovery is performed for the clusterId as exposed by the revision
+     * context passed to the constructor of this recovery agent, then this
+     * method will put a deadline on how long recovery may take. The deadline
+     * is the current lease end as read from the {@code clusterNodes} collection
+     * entry for the {@code clusterId} to recover minus the
+     * {@link ClusterNodeInfo#DEFAULT_LEASE_FAILURE_MARGIN_MILLIS}. This method
+     * will throw a {@link DocumentStoreException} if the deadline is reached.
      *
      * @param suspects the potential suspects
      * @param clusterId the cluster id for which _lastRev recovery needed
@@ -186,12 +208,24 @@ public class LastRevRecoveryAgent {
      * @return the number of documents that required recovery. This method
      *          returns the number of the affected documents even if
      *          {@code dryRun} is set true and no document was changed.
+     * @throws DocumentStoreException if the deadline is reached or some other
+     *          error occurs while reading from the underlying document store.
      */
     public int recover(final Iterable<NodeDocument> suspects,
                        final int clusterId, final boolean dryRun)
             throws DocumentStoreException {
-        final DocumentStore docStore = nodeStore.getDocumentStore();
-        NodeDocument rootDoc = Utils.getRootDocument(docStore);
+        // set a deadline if this is a self recovery. Self recovery does not
+        // update the lease in a background thread and must terminate before
+        // the lease acquired by the recovery lock expires.
+        long deadline = Long.MAX_VALUE;
+        if (clusterId == revisionContext.getClusterId()) {
+            ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
+            if (nodeInfo != null && nodeInfo.isActive()) {
+                deadline = nodeInfo.getLeaseEndTime() - ClusterNodeInfo.DEFAULT_LEASE_FAILURE_MARGIN_MILLIS;
+            }
+        }
+
+        NodeDocument rootDoc = Utils.getRootDocument(store);
 
         // first run a sweep
         final AtomicReference<Revision> sweepRev = new AtomicReference<>();
@@ -199,8 +233,9 @@ public class LastRevRecoveryAgent {
             // only run a sweep for a cluster node that already has a
             // sweep revision. Initial sweep is not the responsibility
             // of the recovery agent.
-            final RevisionContext context = new InactiveRevisionContext(
-                    rootDoc, nodeStore, clusterId);
+            final RevisionContext context = new RecoveryContext(rootDoc,
+                    revisionContext.getClock(), clusterId,
+                    revisionContext::getCommitValue);
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
@@ -213,16 +248,16 @@ public class LastRevRecoveryAgent {
                         return;
                     }
                     // create an invalidate entry
-                    JournalEntry inv = JOURNAL.newDocument(docStore);
+                    JournalEntry inv = JOURNAL.newDocument(store);
                     inv.modified(updates.keySet());
                     Revision r = context.newRevision().asBranchRevision();
                     UpdateOp invOp = inv.asUpdateOp(r);
                     // and reference it from a regular entry
-                    JournalEntry entry = JOURNAL.newDocument(docStore);
+                    JournalEntry entry = JOURNAL.newDocument(store);
                     entry.invalidate(Collections.singleton(r));
                     Revision jRev = context.newRevision();
                     UpdateOp jOp = entry.asUpdateOp(jRev);
-                    if (!docStore.create(JOURNAL, newArrayList(invOp, jOp))) {
+                    if (!store.create(JOURNAL, newArrayList(invOp, jOp))) {
                         String msg = "Unable to create journal entries for " +
                                 "document invalidation.";
                         throw new DocumentStoreException(msg);
@@ -230,7 +265,7 @@ public class LastRevRecoveryAgent {
                     sweepRev.set(Utils.max(sweepRev.get(), jRev));
                     // now that journal entry is in place, perform the actual
                     // updates on the documents
-                    docStore.createOrUpdate(NODES, newArrayList(updates.values()));
+                    store.createOrUpdate(NODES, newArrayList(updates.values()));
                     log.info("Sweeper updated {}", updates.keySet());
                 }
             });
@@ -242,7 +277,7 @@ public class LastRevRecoveryAgent {
 
         //Map of known last rev of checked paths
         Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
-        final JournalEntry changes = JOURNAL.newDocument(docStore);
+        final JournalEntry changes = JOURNAL.newDocument(store);
 
         long count = 0;
         for (NodeDocument doc : suspects) {
@@ -292,7 +327,7 @@ public class LastRevRecoveryAgent {
                 // we don't know when the document was last modified with
                 // the given clusterId. need to read from store
                 String id = Utils.getIdFromPath(parentPath);
-                NodeDocument doc = docStore.find(NODES, id);
+                NodeDocument doc = store.find(NODES, id);
                 if (doc != null) {
                     Revision lastRev = doc.getLastRev().get(clusterId);
                     Revision lastMod = determineLastModification(doc, clusterId);
@@ -328,6 +363,15 @@ public class LastRevRecoveryAgent {
             log.info("Dry run of lastRev recovery identified [{}] documents for " +
                     "cluster node [{}]: {}", size, clusterId, updates);
         } else {
+            // check deadline before the update
+            if (revisionContext.getClock().getTime() > deadline) {
+                String msg = String.format("Cluster node %d was unable to " +
+                        "perform lastRev recovery for clusterId %d within " +
+                        "deadline: %s", clusterId, clusterId,
+                        Utils.timestampToString(deadline));
+                throw new DocumentStoreException(msg);
+            }
+
             //UnsavedModifications is designed to be used in concurrent
             //access mode. For recovery case there is no concurrent access
             //involve so just pass a new lock instance
@@ -336,7 +380,7 @@ public class LastRevRecoveryAgent {
             // thus it doesn't matter, where exactly the check is done
             // as to whether the recovered lastRev has already been
             // written to the journal.
-            unsaved.persist(docStore, new Supplier<Revision>() {
+            unsaved.persist(store, new Supplier<Revision>() {
                 @Override
                 public Revision get() {
                     return sweepRev.get();
@@ -357,7 +401,7 @@ public class LastRevRecoveryAgent {
                     }
 
                     final String id = JournalEntry.asId(lastRootRev); // lastRootRev never null at this point
-                    final JournalEntry existingEntry = docStore.find(Collection.JOURNAL, id);
+                    final JournalEntry existingEntry = store.find(Collection.JOURNAL, id);
                     if (existingEntry != null) {
                         // then the journal entry was already written - as can happen if
                         // someone else (or the original instance itself) wrote the
@@ -368,7 +412,7 @@ public class LastRevRecoveryAgent {
                     }
 
                     // otherwise store a new journal entry now
-                    docStore.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)));
+                    store.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)));
                 }
             }, new ReentrantLock());
 
@@ -379,9 +423,19 @@ public class LastRevRecoveryAgent {
         return size;
     }
 
+    //--------------------------< internal >------------------------------------
+
     /**
      * Retrieves possible candidates which have been modified after the given
      * {@code startTime} and recovers the missing updates.
+     * <p>
+     * If recovery is performed for the clusterId as exposed by the revision
+     * context passed to the constructor of this recovery agent, then this
+     * method will put a deadline on how long recovery may take. The deadline
+     * is the current lease end as read from the {@code clusterNodes} collection
+     * entry for the {@code clusterId} to recover minus the
+     * {@link ClusterNodeInfo#DEFAULT_LEASE_FAILURE_MARGIN_MILLIS}. This method
+     * will throw a {@link DocumentStoreException} if the deadline is reached.
      *
      * @param nodeInfo the info of the cluster node to recover.
      * @param startTime the start time
@@ -391,20 +445,23 @@ public class LastRevRecoveryAgent {
      * @return the number of restored nodes or {@code -1} if recovery is still
      *      ongoing by another process even when {@code waitUntil} time was
      *      reached.
+     * @throws DocumentStoreException if the deadline is reached or some other
+     *          error occurs while reading from the underlying document store.
      */
     private int recoverCandidates(final ClusterNodeInfoDocument nodeInfo,
                                   final long startTime,
                                   final long waitUntil,
-                                  final String info) {
+                                  final String info)
+            throws DocumentStoreException {
         ClusterNodeInfoDocument infoDoc = nodeInfo;
         int clusterId = infoDoc.getClusterId();
         for (;;) {
             if (missingLastRevUtil.acquireRecoveryLock(
-                    clusterId, nodeStore.getClusterId())) {
+                    clusterId, revisionContext.getClusterId())) {
                 break;
             }
 
-            Clock clock = nodeStore.getClock();
+            Clock clock = revisionContext.getClock();
             long remaining = waitUntil - clock.getTime();
             if (remaining < 0) {
                 // no need to wait for lock release, waitUntil already reached
@@ -426,7 +483,12 @@ public class LastRevRecoveryAgent {
                 throw new DocumentStoreException(msg, e);
             }
             infoDoc = missingLastRevUtil.getClusterNodeInfo(clusterId);
-            if (!missingLastRevUtil.isRecoveryNeeded(infoDoc)) {
+            if (infoDoc == null) {
+                String msg = String.format("No cluster node info document " +
+                        "for id %d", clusterId);
+                throw new DocumentStoreException(msg);
+            }
+            if (!infoDoc.isRecoveryNeeded(clock.getTime())) {
                 // meanwhile another process finished recovery
                 return 0;
             }
@@ -449,8 +511,7 @@ public class LastRevRecoveryAgent {
             }
         } finally {
             missingLastRevUtil.releaseRecoveryLock(clusterId, success);
-
-            nodeStore.signalClusterStateChange();
+            afterRecovery.accept(clusterId);
         }
     }
 
@@ -464,7 +525,7 @@ public class LastRevRecoveryAgent {
      * @return the commit revision of the last modification by {@code clusterId}
      *          to the given document.
      */
-    @CheckForNull
+    @Nullable
     private Revision determineLastModification(NodeDocument doc, int clusterId) {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
@@ -474,7 +535,7 @@ public class LastRevRecoveryAgent {
             // collect committed changes of this cluster node
             for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp).entrySet()) {
                 Revision rev = entry.getKey();
-                String cv = nodeStore.getCommitValue(rev, doc);
+                String cv = revisionContext.getCommitValue(rev, doc);
                 if (isCommitted(cv)) {
                     lastModified = Utils.max(lastModified, resolveCommitRevision(rev, cv));
                     break;
@@ -501,7 +562,7 @@ public class LastRevRecoveryAgent {
         if (isRecoveryNeeded()) {
             Iterable<Integer> clusterIds = getRecoveryCandidateNodes();
             log.info("ClusterNodeId [{}] starting Last Revision Recovery for clusterNodeId(s) {}",
-                    nodeStore.getClusterId(), clusterIds);
+                    revisionContext.getClusterId(), clusterIds);
             for (int clusterId : clusterIds) {
                 if (recover(clusterId) == -1) {
                     log.info("Last Revision Recovery for cluster node {} " +
@@ -524,14 +585,10 @@ public class LastRevRecoveryAgent {
                 new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
-                return nodeStore.getClusterId() != input.getClusterId() && missingLastRevUtil.isRecoveryNeeded(input);
+                return revisionContext.getClusterId() != input.getClusterId()
+                        && input.isRecoveryNeeded(revisionContext.getClock().getTime());
             }
-        }), new Function<ClusterNodeInfoDocument, Integer>() {
-            @Override
-            public Integer apply(ClusterNodeInfoDocument input) {
-                return input.getClusterId();
-            }
-        });
+        }), ClusterNodeInfoDocument::getClusterId);
     }
 
     private static class ClusterPredicate implements Predicate<Revision> {
@@ -544,67 +601,6 @@ public class LastRevRecoveryAgent {
         @Override
         public boolean apply(Revision input) {
             return clusterId == input.getClusterId();
-        }
-    }
-
-    /**
-     * A revision context that represents an inactive cluster node for which
-     * recovery is performed.
-     */
-    private static class InactiveRevisionContext implements RevisionContext {
-
-        private final NodeDocument root;
-        private final RevisionContext context;
-        private final int clusterId;
-
-        InactiveRevisionContext(NodeDocument root,
-                                RevisionContext context,
-                                int clusterId) {
-            this.root = root;
-            this.context = context;
-            this.clusterId = clusterId;
-        }
-
-        @Override
-        public UnmergedBranches getBranches() {
-            // an inactive cluster node does not have active unmerged branches
-            return new UnmergedBranches();
-        }
-
-        @Override
-        public UnsavedModifications getPendingModifications() {
-            // an inactive cluster node does not have
-            // pending in-memory _lastRev updates
-            return new UnsavedModifications();
-        }
-
-        @Override
-        public int getClusterId() {
-            return clusterId;
-        }
-
-        @Nonnull
-        @Override
-        public RevisionVector getHeadRevision() {
-            return new RevisionVector(root.getLastRev().values());
-        }
-
-        @Nonnull
-        @Override
-        public Revision newRevision() {
-            return Revision.newRevision(clusterId);
-        }
-
-        @Nonnull
-        @Override
-        public Clock getClock() {
-            return context.getClock();
-        }
-
-        @Override
-        public String getCommitValue(@Nonnull Revision changeRevision,
-                                     @Nonnull NodeDocument doc) {
-            return context.getCommitValue(changeRevision, doc);
         }
     }
 }

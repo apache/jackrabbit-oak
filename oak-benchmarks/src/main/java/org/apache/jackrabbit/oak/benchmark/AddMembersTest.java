@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Test the performance of adding a configured number of members to groups. The
@@ -70,7 +70,7 @@ public class AddMembersTest extends AbstractTest {
 
     private final List<String> groupPaths = new ArrayList<>(GROUP_CNT);
 
-    public AddMembersTest(int numberOfMembers, int batchSize, @Nonnull String importBehavior) {
+    public AddMembersTest(int numberOfMembers, int batchSize, @NotNull String importBehavior) {
         this.numberOfMembers = numberOfMembers;
         this.batchSize = batchSize;
         this.importBehavior = importBehavior;
@@ -97,7 +97,7 @@ public class AddMembersTest extends AbstractTest {
         System.out.println("setup done");
     }
 
-    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+    protected void createUsers(@NotNull UserManager userManager) throws Exception {
         if (!ImportBehavior.NAME_BESTEFFORT.equals(importBehavior)) {
             for (int i = 0; i <= numberOfMembers; i++) {
                 String id = USER + i;
@@ -167,7 +167,7 @@ public class AddMembersTest extends AbstractTest {
         }
     }
 
-    protected void addMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+    protected void addMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             if (batchSize <= DEFAULT_BATCH_SIZE) {
                 group.addMembers(USER + i);

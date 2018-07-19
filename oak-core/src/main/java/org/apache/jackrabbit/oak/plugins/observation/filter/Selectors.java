@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Common {@code Selector} implementations
@@ -51,8 +50,8 @@ public final class Selectors {
      * @param relPath  relative path
      * @return  selector for {@code relPath} from {@code THIS}
      */
-    @Nonnull
-    public static Selector fromThis(@Nonnull String relPath) {
+    @NotNull
+    public static Selector fromThis(@NotNull String relPath) {
         return new RelativePathSelector(relPath, THIS);
     }
 
@@ -62,8 +61,8 @@ public final class Selectors {
      * @param relPath  relative path
      * @return  selector for {@code relPath} from {@code PARENT}
      */
-    @Nonnull
-    public static Selector fromParent(@Nonnull String relPath) {
+    @NotNull
+    public static Selector fromParent(@NotNull String relPath) {
         return new RelativePathSelector(relPath, PARENT);
     }
 
@@ -72,14 +71,14 @@ public final class Selectors {
 
     private static class ThisSelector implements Selector {
         @Override
-        public NodeState select(@Nonnull UniversalFilter filter,
-                @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
+        public NodeState select(@NotNull UniversalFilter filter,
+                @Nullable PropertyState before, @Nullable PropertyState after) {
             return MISSING_NODE;
         }
 
         @Override
-        public NodeState select(@Nonnull UniversalFilter filter, @Nonnull String name,
-                @Nonnull NodeState before, @Nonnull NodeState after) {
+        public NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
+                @NotNull NodeState before, @NotNull NodeState after) {
             return after.exists()
                     ? after
                     : before;
@@ -88,16 +87,16 @@ public final class Selectors {
 
     private static class ParentSelector implements Selector {
         @Override
-        public NodeState select(@Nonnull UniversalFilter filter,
-                @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
+        public NodeState select(@NotNull UniversalFilter filter,
+                @Nullable PropertyState before, @Nullable PropertyState after) {
             return after != null
                     ? filter.getAfterState()
                     : filter.getBeforeState();
         }
 
         @Override
-        public NodeState select(@Nonnull UniversalFilter filter, @Nonnull String name,
-                @Nonnull NodeState before, @Nonnull NodeState after) {
+        public NodeState select(@NotNull UniversalFilter filter, @NotNull String name,
+                @NotNull NodeState before, @NotNull NodeState after) {
             return after.exists()
                     ? filter.getAfterState()
                     : filter.getBeforeState();

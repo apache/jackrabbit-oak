@@ -65,7 +65,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -107,6 +106,7 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -775,7 +775,7 @@ public class SegmentCompactionIT {
         private volatile String checkpoint;
         private volatile boolean cancelled;
 
-        private Checkpoint(@Nonnull NodeStore nodeStore) {
+        private Checkpoint(@NotNull NodeStore nodeStore) {
             this.nodeStore = nodeStore;
         }
 

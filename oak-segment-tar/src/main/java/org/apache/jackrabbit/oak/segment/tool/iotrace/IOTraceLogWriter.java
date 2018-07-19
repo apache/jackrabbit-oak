@@ -20,8 +20,7 @@ package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 /**
@@ -30,24 +29,24 @@ import org.slf4j.Logger;
  */
 public class IOTraceLogWriter implements IOTraceWriter {
 
-    @Nonnull
+    @NotNull
     private final Logger log;
 
     /**
      * Create a new instance persisting to {@code log}.
      * @param log
      */
-    public IOTraceLogWriter(@Nonnull Logger log) {
+    public IOTraceLogWriter(@NotNull Logger log) {
         this.log = checkNotNull(log);
     }
 
     @Override
-    public void writeHeader(@Nonnull String header) {
+    public void writeHeader(@NotNull String header) {
         log.debug(header);
     }
 
     @Override
-    public void writeEntry(@Nonnull String entry) {
+    public void writeEntry(@NotNull String entry) {
         log.debug(entry);
     }
 

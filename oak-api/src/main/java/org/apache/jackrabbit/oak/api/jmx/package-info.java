@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Version("4.7.0")
+@Version("4.7.1")
 package org.apache.jackrabbit.oak.api.jmx;
 
 import org.osgi.annotation.versioning.Version;

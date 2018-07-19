@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
-import javax.annotation.Nullable;
-
 
 import static com.google.common.base.Preconditions.checkState;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class to escape '\n', '\r', '\' char

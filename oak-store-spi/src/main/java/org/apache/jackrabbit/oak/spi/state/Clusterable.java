@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface for bearing cluster node specific information.
@@ -31,7 +31,7 @@ public interface Clusterable {
      * 
      * @return Cannot be null or empty.
      */
-    @Nonnull
+    @NotNull
     String getInstanceId();
 
     /**
@@ -84,5 +84,5 @@ public interface Clusterable {
      * @throws InterruptedException
      *             (optionally) thrown if interrupted while waiting
      */
-    boolean isVisible(@Nonnull String visibilityToken, long maxWaitMillis) throws InterruptedException;
+    boolean isVisible(@NotNull String visibilityToken, long maxWaitMillis) throws InterruptedException;
 }

@@ -21,8 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -41,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -53,7 +53,7 @@ import static org.junit.Assert.fail;
  */
 public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
-    private static void assertAttributes(@Nonnull Map<String, ?> expected, @Nonnull AuthInfo info) {
+    private static void assertAttributes(@NotNull Map<String, ?> expected, @NotNull AuthInfo info) {
         assertEquals(expected.size(), info.getAttributeNames().length);
         for (String aName : info.getAttributeNames()) {
             assertEquals(expected.get(aName), info.getAttribute(aName));
@@ -107,7 +107,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
         private final String uid;
 
-        private TestCredentials(@Nonnull String uid) {
+        private TestCredentials(@NotNull String uid) {
             this.uid = uid;
         }
     }
@@ -116,61 +116,61 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
         private final Map attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return "creds_test";
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) {
+        public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) {
             throw new UnsupportedOperationException();
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalUser getUser(@Nonnull String userId) {
+        public ExternalUser getUser(@NotNull String userId) {
             throw new UnsupportedOperationException();
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalUser authenticate(@Nonnull Credentials credentials) {
+        public ExternalUser authenticate(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
                 final String uid = ((TestCredentials) credentials).uid;
                 return new ExternalUser() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public ExternalIdentityRef getExternalId() {
                         return new ExternalIdentityRef(uid, getName());
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public String getId() {
                         return uid;
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public String getPrincipalName() {
                         return "principal" + uid;
                     }
 
-                    @CheckForNull
+                    @Nullable
                     @Override
                     public String getIntermediatePath() {
                         return null;
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterable<ExternalIdentityRef> getDeclaredGroups() {
                         return Collections.emptySet();
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Map<String, ?> getProperties() {
                         return Collections.emptyMap();
@@ -181,33 +181,33 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
             }
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalGroup getGroup(@Nonnull String name) {
+        public ExternalGroup getGroup(@NotNull String name) {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterator<ExternalUser> listUsers() {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterator<ExternalGroup> listGroups() {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
             return ImmutableSet.<Class>of(TestCredentials.class);
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public String getUserId(@Nonnull Credentials credentials) {
+        public String getUserId(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
                 return ((TestCredentials) credentials).uid;
             } else {
@@ -215,9 +215,9 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
             }
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+        public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
@@ -226,7 +226,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         }
 
         @Override
-        public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+        public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
             if (credentials instanceof TestCredentials) {
                 this.attributes.putAll(attributes);
                 return true;

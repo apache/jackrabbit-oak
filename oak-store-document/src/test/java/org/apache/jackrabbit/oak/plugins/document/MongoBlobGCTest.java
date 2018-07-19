@@ -31,8 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
@@ -45,7 +43,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.ReadPreference;
 
-import junit.framework.Assert;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -65,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -96,7 +94,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         // data directly in MongoDB.
         return super.addToBuilder(mk)
                 .setClientSessionDisabled(true)
-                .setLeaseCheck(false);
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED);
     }
 
     public DataStoreState setUp(boolean deleteDirect, int count) throws Exception {
@@ -155,7 +153,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
             VersionGarbageCollector vGC = s.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
-            Assert.assertEquals(processed.size(), stats.deletedDocGCCount);
+            assertEquals(processed.size(), stats.deletedDocGCCount);
         }
 
         return state;

@@ -29,10 +29,6 @@ import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -40,6 +36,8 @@ import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Instances of this class manage the deduplication caches used by the {@link
@@ -89,20 +87,20 @@ public abstract class WriterCacheManager {
     /**
      * @return  cache for string records of the given {@code generation} and {@code operation}.
      */
-    @Nonnull
+    @NotNull
     public abstract Cache<String, RecordId> getStringCache(int generation);
 
     /**
      * @param generation
      * @return  cache for template records of the given {@code generation} and {@code operation}.
      */
-    @Nonnull
+    @NotNull
     public abstract Cache<Template, RecordId> getTemplateCache(int generation);
 
     /**
      * @return  cache for node records of the given {@code generation} and {@code operation}.
      */
-    @Nonnull
+    @NotNull
     public abstract Cache<String, RecordId> getNodeCache(int generation);
 
     /**
@@ -113,17 +111,17 @@ public abstract class WriterCacheManager {
      * @param statisticsProvider
      * @return  an instance of this cache with access statistics enabled.
      */
-    @Nonnull
+    @NotNull
     public WriterCacheManager withAccessTracking(
-            @Nonnull String name,
-            @Nonnull StatisticsProvider statisticsProvider) {
+            @NotNull String name,
+            @NotNull StatisticsProvider statisticsProvider) {
         return new AccessTrackingCacheManager(checkNotNull(name), checkNotNull(statisticsProvider), this);
     }
 
     /**
      * @return  statistics for the string cache or {@code null} if not available.
      */
-    @CheckForNull
+    @Nullable
     public CacheStatsMBean getStringCacheStats() {
         return null;
     }
@@ -131,7 +129,7 @@ public abstract class WriterCacheManager {
     /**
      * @return  statistics for the template cache or {@code null} if not available.
      */
-    @CheckForNull
+    @Nullable
     public CacheStatsMBean getTemplateCacheStats() {
         return null;
     }
@@ -139,7 +137,7 @@ public abstract class WriterCacheManager {
     /**
      * @return  statistics for the node cache or {@code null} if not available.
      */
-    @CheckForNull
+    @Nullable
     public CacheStatsMBean getNodeCacheStats() {
         return null;
     }
@@ -149,7 +147,7 @@ public abstract class WriterCacheManager {
      * evictions per priority.
      * @return  occupancy information for the node deduplication cache.
      */
-    @CheckForNull
+    @Nullable
     public String getNodeCacheOccupancyInfo() { return null; }
 
     /**
@@ -172,7 +170,7 @@ public abstract class WriterCacheManager {
         /**
          * @return  empty cache of size 0
          */
-        @Nonnull
+        @NotNull
         @Override
         public RecordCache<String> getStringCache(int generation) {
             return stringCache;
@@ -181,7 +179,7 @@ public abstract class WriterCacheManager {
         /**
          * @return  empty cache of size 0
          */
-        @Nonnull
+        @NotNull
         @Override
         public RecordCache<Template> getTemplateCache(int generation) {
             return templateCache;
@@ -190,21 +188,21 @@ public abstract class WriterCacheManager {
         /**
          * @return  a {@code Cache} cache that is always empty
          */
-        @Nonnull
+        @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
             return new Cache<String, RecordId>() {
                 @Override
-                public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) { }
+                public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) { }
 
                 @Override
-                public void put(@Nonnull String key, @Nonnull RecordId value) {
+                public void put(@NotNull String key, @NotNull RecordId value) {
                     throw new UnsupportedOperationException();
                 }
 
-                @CheckForNull
+                @Nullable
                 @Override
-                public RecordId get(@Nonnull String stableId) { return null; }
+                public RecordId get(@NotNull String stableId) { return null; }
             };
         }
     }
@@ -243,9 +241,9 @@ public abstract class WriterCacheManager {
          * @param nodeCacheFactory         factory for the node cache
          */
         public Default(
-                @Nonnull Supplier<RecordCache<String>> stringCacheFactory,
-                @Nonnull Supplier<RecordCache<Template>> templateCacheFactory,
-                @Nonnull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
+                @NotNull Supplier<RecordCache<String>> stringCacheFactory,
+                @NotNull Supplier<RecordCache<Template>> templateCacheFactory,
+                @NotNull Supplier<PriorityCache<String, RecordId>> nodeCacheFactory) {
             this.stringCaches = new Generations<>(stringCacheFactory);
             this.templateCaches = new Generations<>(templateCacheFactory);
             this.nodeCache = memoize(nodeCacheFactory);
@@ -267,7 +265,7 @@ public abstract class WriterCacheManager {
             private final ConcurrentMap<Integer, Supplier<T>> generations = newConcurrentMap();
             private final Supplier<T> cacheFactory;
 
-            Generations(@Nonnull Supplier<T> cacheFactory) {
+            Generations(@NotNull Supplier<T> cacheFactory) {
                 this.cacheFactory = checkNotNull(cacheFactory);
             }
 
@@ -279,7 +277,7 @@ public abstract class WriterCacheManager {
                 return generations.get(generation).get();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<T> iterator() {
                 return transform(generations.values().iterator(), new Function<Supplier<T>, T>() {
@@ -290,7 +288,7 @@ public abstract class WriterCacheManager {
                 });
             }
 
-            void evictGenerations(@Nonnull Predicate<Integer> evict) {
+            void evictGenerations(@NotNull Predicate<Integer> evict) {
                 Iterator<Integer> it = generations.keySet().iterator();
                 while (it.hasNext()) {
                     if (evict.apply(it.next())) {
@@ -300,13 +298,13 @@ public abstract class WriterCacheManager {
             }
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Cache<String, RecordId> getStringCache(int generation) {
             return stringCaches.getGeneration(generation);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Cache<Template, RecordId> getTemplateCache(int generation) {
             return templateCaches.getGeneration(generation);
@@ -317,28 +315,28 @@ public abstract class WriterCacheManager {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public Cache<String, RecordId> getNodeCache(final int generation) {
             return new Cache<String, RecordId>() {
                 @Override
-                public void put(@Nonnull String stableId, @Nonnull RecordId recordId, byte cost) {
+                public void put(@NotNull String stableId, @NotNull RecordId recordId, byte cost) {
                     nodeCache().put(stableId, recordId, generation, cost);
                 }
 
                 @Override
-                public void put(@Nonnull String key, @Nonnull RecordId value) {
+                public void put(@NotNull String key, @NotNull RecordId value) {
                     throw new UnsupportedOperationException();
                 }
 
-                @CheckForNull
+                @Nullable
                 @Override
-                public RecordId get(@Nonnull String stableId) {
+                public RecordId get(@NotNull String stableId) {
                     return nodeCache().get(stableId, generation);
                 }
             };
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public CacheStatsMBean getStringCacheStats() {
             return new RecordCacheStats("String deduplication cache stats",
@@ -347,7 +345,7 @@ public abstract class WriterCacheManager {
                     accumulateRecordCacheWeights(stringCaches));
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public CacheStatsMBean getTemplateCacheStats() {
             return new RecordCacheStats("Template deduplication cache stats",
@@ -356,7 +354,7 @@ public abstract class WriterCacheManager {
                     accumulateRecordCacheWeights(templateCaches));
         }
 
-        @Nonnull
+        @NotNull
         private static <T> Supplier<CacheStats> accumulateRecordCacheStats(
                 final Iterable<RecordCache<T>> caches) {
             return new Supplier<CacheStats>() {
@@ -371,7 +369,7 @@ public abstract class WriterCacheManager {
             };
         }
 
-        @Nonnull
+        @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheSizes(
                 final Iterable<RecordCache<T>> caches) {
             return new Supplier<Long>() {
@@ -386,7 +384,7 @@ public abstract class WriterCacheManager {
             };
         }
 
-        @Nonnull
+        @NotNull
         public static <T> Supplier<Long> accumulateRecordCacheWeights(
                 final Iterable<RecordCache<T>> caches) {
             return new Supplier<Long>() {
@@ -401,7 +399,7 @@ public abstract class WriterCacheManager {
             };
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public CacheStatsMBean getNodeCacheStats() {
             return new RecordCacheStats("Node deduplication cache stats",
@@ -442,13 +440,13 @@ public abstract class WriterCacheManager {
      * into a {@link CacheAccessTracker}.
      */
     private static class AccessTrackingCacheManager extends WriterCacheManager {
-        @Nonnull
+        @NotNull
         private final String name;
 
-        @Nonnull
+        @NotNull
         private final StatisticsProvider statisticsProvider;
 
-        @Nonnull
+        @NotNull
         private final WriterCacheManager delegate;
 
         /**
@@ -463,9 +461,9 @@ public abstract class WriterCacheManager {
          * @see #getNodeCache(int)
          */
         public AccessTrackingCacheManager(
-                @Nonnull String name,
-                @Nonnull StatisticsProvider statisticsProvider,
-                @Nonnull WriterCacheManager delegate) {
+                @NotNull String name,
+                @NotNull StatisticsProvider statisticsProvider,
+                @NotNull WriterCacheManager delegate) {
             this.name = name;
             this.statisticsProvider = statisticsProvider;
             this.delegate = delegate;
@@ -476,7 +474,7 @@ public abstract class WriterCacheManager {
          * the same name exposing access statistics under
          * {@code "oak.segment.string-deduplication-cache-" + name}
          */
-        @Nonnull
+        @NotNull
         @Override
         public Cache<String, RecordId> getStringCache(int generation) {
             return new CacheAccessTracker<>(
@@ -490,7 +488,7 @@ public abstract class WriterCacheManager {
          * the same name exposing access statistics under
          * {@code "oak.segment.template-deduplication-cache-" + name}
          */
-        @Nonnull
+        @NotNull
         @Override
         public Cache<Template, RecordId> getTemplateCache(int generation) {
             return new CacheAccessTracker<>(
@@ -504,7 +502,7 @@ public abstract class WriterCacheManager {
          * the same name exposing access statistics under
          * {@code "oak.segment.node-deduplication-cache-" + name}
          */
-        @Nonnull
+        @NotNull
         @Override
         public Cache<String, RecordId> getNodeCache(int generation) {
             return new CacheAccessTracker<>(

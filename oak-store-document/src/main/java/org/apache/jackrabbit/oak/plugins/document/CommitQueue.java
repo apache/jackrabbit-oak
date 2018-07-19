@@ -31,10 +31,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Maps;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,16 +61,16 @@ final class CommitQueue {
 
     private long suspendTimeout = Long.getLong("oak.documentMK.suspendTimeoutMillis", DEFAULT_SUSPEND_TIMEOUT);
 
-    CommitQueue(@Nonnull RevisionContext context) {
+    CommitQueue(@NotNull RevisionContext context) {
         this.context = checkNotNull(context);
     }
 
-    @Nonnull
+    @NotNull
     Revision createRevision() {
         return createRevisions(1).first();
     }
 
-    @Nonnull
+    @NotNull
     SortedSet<Revision> createRevisions(int num) {
         checkArgument(num > 0);
         SortedSet<Revision> revs = new TreeSet<Revision>(StableRevisionComparator.INSTANCE);
@@ -87,17 +86,17 @@ final class CommitQueue {
         return revs;
     }
 
-    void done(@Nonnull Revision revision, @Nonnull Callback c) {
+    void done(@NotNull Revision revision, @NotNull Callback c) {
         checkNotNull(revision);
         waitUntilHeadOfQueue(revision, c);
     }
 
-    void canceled(@Nonnull Revision rev) {
+    void canceled(@NotNull Revision rev) {
         removeCommit(rev);
         notifySuspendedCommits(rev);
     }
 
-    boolean contains(@Nonnull Revision revision) {
+    boolean contains(@NotNull Revision revision) {
         synchronized (this) {
             return commits.containsKey(checkNotNull(revision));
         }
@@ -114,7 +113,7 @@ final class CommitQueue {
      *
      * @param revisions the revisions to become visible.
      */
-    void suspendUntilAll(@Nonnull Set<Revision> revisions) {
+    void suspendUntilAll(@NotNull Set<Revision> revisions) {
         try {
             suspendUntilAll(revisions, suspendTimeout);
         } catch (InterruptedException e) {
@@ -137,7 +136,7 @@ final class CommitQueue {
      * status set or was interrupted while waiting. The current thread's
      * interrupted status is cleared when this exception is thrown.
      */
-    void suspendUntilAll(@Nonnull Set<Revision> revisions, long suspendTimeoutMillis) 
+    void suspendUntilAll(@NotNull Set<Revision> revisions, long suspendTimeoutMillis) 
             throws InterruptedException {
         Semaphore s;
         int addedRevisions;
@@ -192,7 +191,7 @@ final class CommitQueue {
 
     interface Callback {
 
-        void headOfQueue(@Nonnull Revision revision);
+        void headOfQueue(@NotNull Revision revision);
     }
 
     //------------------------< internal >--------------------------------------
@@ -213,7 +212,7 @@ final class CommitQueue {
         }
     }
 
-    private void notifySuspendedCommits(@Nonnull Revision revision) {
+    private void notifySuspendedCommits(@NotNull Revision revision) {
         checkNotNull(revision);
         synchronized (suspendedCommits) {
             if (suspendedCommits.isEmpty()) {
@@ -229,7 +228,7 @@ final class CommitQueue {
         }
     }
 
-    private void removeCommit(@Nonnull Revision rev) {
+    private void removeCommit(@NotNull Revision rev) {
         // simply remove and notify next head if any
         synchronized (this) {
             boolean wasHead = commits.firstKey().equals(rev);
@@ -241,8 +240,8 @@ final class CommitQueue {
         }
     }
 
-    private void waitUntilHeadOfQueue(@Nonnull Revision rev,
-                                      @Nonnull Callback c) {
+    private void waitUntilHeadOfQueue(@NotNull Revision rev,
+                                      @NotNull Callback c) {
         assert !commits.isEmpty();
 
         boolean isHead;

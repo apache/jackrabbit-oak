@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -30,6 +28,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -62,7 +62,7 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
         super.after();
     }
 
-    private static void assertAggregation(@Nonnull Privilege[] aggr, @Nonnull String... expectedNames) {
+    private static void assertAggregation(@NotNull Privilege[] aggr, @NotNull String... expectedNames) {
         assertEquals(expectedNames.length, aggr.length);
 
         Set<String> expected = Sets.newHashSet(expectedNames);

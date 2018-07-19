@@ -33,8 +33,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -57,6 +55,8 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
@@ -270,7 +270,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
             session.logout();
         }
 
-        @CheckForNull
+        @Nullable
         public String pickRandomPath(){
             if (assets != null){
                 return assets.get(random.nextInt(assets.size()));
@@ -303,7 +303,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
     private class BundlingConfigInitializer implements RepositoryInitializer {
 
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             if (builder.hasChildNode(JCR_SYSTEM)){
                 NodeBuilder system = builder.getChildNode(JCR_SYSTEM);
 
@@ -347,7 +347,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
         INSTANCE;
 
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder nodetype = builder.getChildNode("oak:index").getChildNode("nodetype");
             if (nodetype.exists()){
                 nodetype.setProperty(DECLARING_NODE_TYPES, Collections.singleton("rep:Authorizable"), Type.NAMES);

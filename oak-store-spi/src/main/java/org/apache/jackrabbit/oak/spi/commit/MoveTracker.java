@@ -20,13 +20,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility to keep track of the move operations that are performed between two
@@ -45,7 +44,7 @@ public class MoveTracker {
     public MoveTracker() {
     }
 
-    public void addMove(@Nonnull String sourcePath, @Nonnull String destPath) {
+    public void addMove(@NotNull String sourcePath, @NotNull String destPath) {
         // calculate original source path
         String originalSource = sourcePath;
         for (MoveEntry me : Lists.reverse(entries)) {
@@ -67,7 +66,7 @@ public class MoveTracker {
         return entries.isEmpty();
     }
 
-    @CheckForNull
+    @Nullable
     public String getSourcePath(String destPath) {
         for (MoveEntry me : Lists.reverse(entries)) {
             if (me.destPath.equals(destPath)) {
@@ -77,7 +76,7 @@ public class MoveTracker {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     public String getDestPath(String sourcePath) {
         for (MoveEntry me : Lists.reverse(entries)) {
             if (me.sourcePath.equals(sourcePath)) {
@@ -87,7 +86,7 @@ public class MoveTracker {
         return null;
     }
 
-    public boolean containsMove(@CheckForNull String path) {
+    public boolean containsMove(@Nullable String path) {
         if (path != null) {
             for (String p : Iterables.concat(parentSourcePaths, parentDestPaths)) {
                 if (Text.isDescendantOrEqual(path, p)) {
@@ -109,8 +108,8 @@ public class MoveTracker {
         private final String sourcePath;
         private String destPath;
 
-        private MoveEntry(@Nonnull String sourcePath,
-                          @Nonnull String destPath) {
+        private MoveEntry(@NotNull String sourcePath,
+                          @NotNull String destPath) {
             this.sourcePath = sourcePath;
             this.destPath = destPath;
 

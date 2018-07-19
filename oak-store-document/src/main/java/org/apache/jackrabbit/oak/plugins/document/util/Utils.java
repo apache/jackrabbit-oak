@@ -31,10 +31,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
@@ -42,13 +38,17 @@ import com.google.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -282,7 +282,7 @@ public class Utils {
      * @param id id for which parent id needs to be determined
      * @return parent id. null if parent id cannot be determined
      */
-    @CheckForNull
+    @Nullable
     public static String getParentId(String id){
         if(Utils.isIdFromLongPath(id)){
             return null;
@@ -444,7 +444,7 @@ public class Utils {
      * @param fromKey key used as start key in queries
      * @return parentId if possible.
      */
-    @CheckForNull
+    @Nullable
     public static String getParentIdFromLowerLimit(String fromKey){
         //If key just ends with slash 2:/foo/ then append a fake
         //name to create a proper id
@@ -474,9 +474,9 @@ public class Utils {
      * @param tag the associated commit tag.
      * @return the actual commit revision for <code>rev</code>.
      */
-    @Nonnull
-    public static Revision resolveCommitRevision(@Nonnull Revision rev,
-                                                 @Nonnull String tag) {
+    @NotNull
+    public static Revision resolveCommitRevision(@NotNull Revision rev,
+                                                 @NotNull String tag) {
         return checkNotNull(tag).startsWith("c-") ?
                 Revision.fromString(tag.substring(2)) : rev;
     }
@@ -513,7 +513,7 @@ public class Utils {
      * @param b the second revision (or {@code null}).
      * @return the revision with the newer timestamp.
      */
-    @CheckForNull
+    @Nullable
     public static Revision max(@Nullable Revision a, @Nullable Revision b) {
         return max(a, b, StableRevisionComparator.INSTANCE);
     }
@@ -529,10 +529,10 @@ public class Utils {
      * @param c the comparator.
      * @return the revision considered more recent.
      */
-    @CheckForNull
+    @Nullable
     public static Revision max(@Nullable Revision a,
                                @Nullable Revision b,
-                               @Nonnull Comparator<Revision> c) {
+                               @NotNull Comparator<Revision> c) {
         if (a == null) {
             return b;
         } else if (b == null) {
@@ -550,7 +550,7 @@ public class Utils {
      * @param b the second revision (or {@code null}).
      * @return the revision with the older timestamp.
      */
-    @CheckForNull
+    @Nullable
     public static Revision min(@Nullable Revision a, @Nullable Revision b) {
         return min(a, b, StableRevisionComparator.INSTANCE);
     }
@@ -566,10 +566,10 @@ public class Utils {
      * @param c the comparator.
      * @return the revision considered more recent.
      */
-    @CheckForNull
+    @Nullable
     public static Revision min(@Nullable Revision a,
                                @Nullable Revision b,
-                               @Nonnull Comparator<Revision> c) {
+                               @NotNull Comparator<Revision> c) {
         if (a == null) {
             return b;
         } else if (b == null) {
@@ -606,8 +606,8 @@ public class Utils {
      * @return the root document.
      * @throws IllegalStateException if there is no root document.
      */
-    @Nonnull
-    public static NodeDocument getRootDocument(@Nonnull DocumentStore store) {
+    @NotNull
+    public static NodeDocument getRootDocument(@NotNull DocumentStore store) {
         String rootId = Utils.getIdFromPath("/");
         NodeDocument root = store.find(Collection.NODES, rootId);
         if (root == null) {
@@ -694,7 +694,7 @@ public class Utils {
      * @return if {@code path} represent oak's internal path. That is, a path
      *          element start with a colon.
      */
-    public static boolean isHiddenPath(@Nonnull String path) {
+    public static boolean isHiddenPath(@NotNull String path) {
         return path.contains("/:");
     }
 
@@ -704,7 +704,7 @@ public class Utils {
      * {@code null} values.
      */
     public static Iterable<StringValue> asStringValueIterable(
-            @Nonnull Iterable<String> values) {
+            @NotNull Iterable<String> values) {
         return transform(values, new Function<String, StringValue>() {
             @Override
             public StringValue apply(String input) {
@@ -716,7 +716,7 @@ public class Utils {
     /**
      * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
-    public static Iterable<String> pathToId(@Nonnull Iterable<String> paths) {
+    public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
         return transform(paths, new Function<String, String>() {
             @Override
             public String apply(String input) {
@@ -774,9 +774,9 @@ public class Utils {
      *                     are derived from the startTime of a cluster node.
      * @return the minimum timestamp.
      */
-    public static long getMinTimestampForDiff(@Nonnull RevisionVector fromRev,
-                                              @Nonnull RevisionVector toRev,
-                                              @Nonnull RevisionVector minRevisions) {
+    public static long getMinTimestampForDiff(@NotNull RevisionVector fromRev,
+                                              @NotNull RevisionVector toRev,
+                                              @NotNull RevisionVector minRevisions) {
         // make sure we have minimum revisions for all known cluster nodes
         fromRev = fromRev.pmax(minRevisions);
         toRev = toRev.pmax(minRevisions);
@@ -804,8 +804,8 @@ public class Utils {
      * @return true if all the revisions in the {@code a} are at least
      * as recent as their counterparts in the {@code b}
      */
-    public static boolean isGreaterOrEquals(@Nonnull RevisionVector a,
-                                            @Nonnull RevisionVector b) {
+    public static boolean isGreaterOrEquals(@NotNull RevisionVector a,
+                                            @NotNull RevisionVector b) {
         return a.pmax(b).equals(a);
     }
 
@@ -820,8 +820,8 @@ public class Utils {
      * @param clusterId the local clusterId.
      * @return whether the changes are considered local.
      */
-    public static boolean isLocalChange(@Nonnull RevisionVector from,
-                                        @Nonnull RevisionVector to,
+    public static boolean isLocalChange(@NotNull RevisionVector from,
+                                        @NotNull RevisionVector to,
                                         int clusterId) {
         RevisionVector diff = to.difference(from);
         return diff.getDimensions() == 1 && diff.getRevision(clusterId) != null;
@@ -871,8 +871,8 @@ public class Utils {
      *          waiting. The interrupted status on the current thread is cleared
      *          when this exception is thrown.
      */
-    public static void alignWithExternalRevisions(@Nonnull NodeDocument rootDoc,
-                                                  @Nonnull Clock clock,
+    public static void alignWithExternalRevisions(@NotNull NodeDocument rootDoc,
+                                                  @NotNull Clock clock,
                                                   int clusterId)
             throws InterruptedException {
         Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
@@ -932,5 +932,40 @@ public class Utils {
             MODULE_VERSION = v;
         }
         return v;
+    }
+
+    /**
+     * Check the revision age on the root document for the given cluster node
+     * info. The check will fail with a {@link DocumentStoreException} if the
+     * {@code _lastRev} timestamp for the cluster node is newer then the current
+     * {@code clock} time. The check will not fail if the root document does
+     * not exist or does not have a {@code _lastRev} entry for the cluster node.
+     *
+     * @param store the document store from where to read the root document.
+     * @param info the cluster node info with the clusterId.
+     * @param clock the clock to get the current time.
+     * @throws DocumentStoreException if the check fails.
+     */
+    public static void checkRevisionAge(DocumentStore store,
+                                        ClusterNodeInfo info,
+                                        Clock clock)
+            throws DocumentStoreException {
+        NodeDocument root = store.find(Collection.NODES, getIdFromPath("/"));
+        if (root == null) {
+            return;
+        }
+        int clusterId = info.getId();
+        Revision rev = root.getLastRev().get(clusterId);
+        if (rev == null) {
+            return;
+        }
+        long now = clock.getTime();
+        if (rev.getTimestamp() > now) {
+            String msg = String.format("Cluster id %d has a _lastRev %s (%s) " +
+                    "newer than current time %s. Please check system time on " +
+                    "cluster nodes.", clusterId, rev.toString(),
+                    timestampToString(rev.getTimestamp()), timestampToString(now));
+            throw new DocumentStoreException(msg);
+        }
     }
 }

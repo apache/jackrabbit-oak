@@ -22,18 +22,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
-import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * TODO document
@@ -110,7 +110,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
 
     //---------------------------------------------------< ReferenceBinary >--
 
-    @Override @CheckForNull
+    @Override @Nullable
     public String getReference() {
         try {
             return value.getBlob().getReference();

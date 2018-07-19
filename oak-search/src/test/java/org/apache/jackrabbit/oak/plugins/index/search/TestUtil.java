@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 
@@ -56,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
@@ -90,7 +90,7 @@ public class TestUtil {
     }
 
     public static NodeBuilder newFTIndexDefinitionV2(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
+            @NotNull NodeBuilder index, @NotNull String name, String type,
             @Nullable Set<String> propertyTypes) {
         NodeBuilder nb = IndexHelper.newFTIndexDefinition(index, name, type, propertyTypes, null, null, null);
         useV2(nb);

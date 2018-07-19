@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -144,7 +143,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
     private static final class TestTokenConfig extends ConfigurationBase implements TokenConfiguration {
 
-        @Nonnull
+        @NotNull
         @Override
         public TokenProvider getTokenProvider(Root root) {
             return Mockito.mock(TokenProvider.class);

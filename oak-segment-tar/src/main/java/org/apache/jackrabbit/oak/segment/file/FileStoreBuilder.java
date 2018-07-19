@@ -35,9 +35,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
@@ -60,6 +57,8 @@ import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,10 +73,10 @@ public class FileStoreBuilder {
 
     public static final int DEFAULT_MAX_FILE_SIZE = 256;
 
-    @Nonnull
+    @NotNull
     private final File directory;
 
-    @CheckForNull
+    @Nullable
     private BlobStore blobStore;   // null ->  store blobs inline
 
     private int maxFileSize = DEFAULT_MAX_FILE_SIZE;
@@ -98,18 +97,18 @@ public class FileStoreBuilder {
 
     private SegmentNodeStorePersistence persistence;
 
-    @Nonnull
+    @NotNull
     private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
 
-    @Nonnull
+    @NotNull
     private SegmentGCOptions gcOptions = defaultGCOptions();
 
-    @CheckForNull
+    @Nullable
     private EvictingWriteCacheManager cacheManager;
 
     private class FileStoreGCListener extends DelegatingGCMonitor implements GCListener {
         @Override
-        public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
+        public void compactionSucceeded(@NotNull GCGeneration newGeneration) {
             compacted();
             if (cacheManager != null) {
                 cacheManager.evictOldGeneration(newGeneration.getGeneration());
@@ -117,20 +116,20 @@ public class FileStoreBuilder {
         }
 
         @Override
-        public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
+        public void compactionFailed(@NotNull GCGeneration failedGeneration) {
             if (cacheManager != null) {
                 cacheManager.evictGeneration(failedGeneration.getGeneration());
             }
         }
     }
 
-    @Nonnull
+    @NotNull
     private final FileStoreGCListener gcListener = new FileStoreGCListener();
 
-    @Nonnull
+    @NotNull
     private SegmentNotFoundExceptionListener snfeListener = LOG_SNFE;
 
-    @Nonnull
+    @NotNull
     private final Set<IOMonitor> ioMonitors = newHashSet();
 
     private boolean strictVersionCheck;
@@ -142,12 +141,12 @@ public class FileStoreBuilder {
      * @param directory  directory where the tar files are stored
      * @return a new {@code FileStoreBuilder} instance.
      */
-    @Nonnull
-    public static FileStoreBuilder fileStoreBuilder(@Nonnull File directory) {
+    @NotNull
+    public static FileStoreBuilder fileStoreBuilder(@NotNull File directory) {
         return new FileStoreBuilder(directory);
     }
 
-    private FileStoreBuilder(@Nonnull File directory) {
+    private FileStoreBuilder(@NotNull File directory) {
         this.directory = checkNotNull(directory);
         this.gcListener.registerGCMonitor(new LoggingGCMonitor(LOG));
         this.persistence = new TarPersistence(directory);
@@ -158,8 +157,8 @@ public class FileStoreBuilder {
      * @param blobStore
      * @return this instance
      */
-    @Nonnull
-    public FileStoreBuilder withBlobStore(@Nonnull BlobStore blobStore) {
+    @NotNull
+    public FileStoreBuilder withBlobStore(@NotNull BlobStore blobStore) {
         this.blobStore = checkNotNull(blobStore);
         return this;
     }
@@ -169,7 +168,7 @@ public class FileStoreBuilder {
      * @param maxFileSize
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withMaxFileSize(int maxFileSize) {
         this.maxFileSize = maxFileSize;
         return this;
@@ -180,7 +179,7 @@ public class FileStoreBuilder {
      * @param segmentCacheSize  None negative cache size
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withSegmentCacheSize(int segmentCacheSize) {
         this.segmentCacheSize = segmentCacheSize;
         return this;
@@ -191,7 +190,7 @@ public class FileStoreBuilder {
      * @param stringCacheSize  None negative cache size
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withStringCacheSize(int stringCacheSize) {
         this.stringCacheSize = stringCacheSize;
         return this;
@@ -202,7 +201,7 @@ public class FileStoreBuilder {
      * @param templateCacheSize  None negative cache size
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withTemplateCacheSize(int templateCacheSize) {
         this.templateCacheSize = templateCacheSize;
         return this;
@@ -213,7 +212,7 @@ public class FileStoreBuilder {
      * @param stringDeduplicationCacheSize  None negative cache size
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withStringDeduplicationCacheSize(int stringDeduplicationCacheSize) {
         this.stringDeduplicationCacheSize = stringDeduplicationCacheSize;
         return this;
@@ -224,7 +223,7 @@ public class FileStoreBuilder {
      * @param templateDeduplicationCacheSize  None negative cache size
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withTemplateDeduplicationCacheSize(int templateDeduplicationCacheSize) {
         this.templateDeduplicationCacheSize = templateDeduplicationCacheSize;
         return this;
@@ -235,7 +234,7 @@ public class FileStoreBuilder {
      * @param nodeDeduplicationCacheSize  None negative cache size. Must be a power of 2.
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withNodeDeduplicationCacheSize(int nodeDeduplicationCacheSize) {
         this.nodeDeduplicationCacheSize = nodeDeduplicationCacheSize;
         return this;
@@ -246,7 +245,7 @@ public class FileStoreBuilder {
      * @param memoryMapping
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withMemoryMapping(boolean memoryMapping) {
         this.memoryMapping = memoryMapping;
         return this;
@@ -256,7 +255,7 @@ public class FileStoreBuilder {
      * Set memory mapping to the default value based on OS properties
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withDefaultMemoryMapping() {
         this.memoryMapping = MEMORY_MAPPING_DEFAULT;
         return this;
@@ -267,8 +266,8 @@ public class FileStoreBuilder {
      * @param gcMonitor
      * @return this instance
      */
-    @Nonnull
-    public FileStoreBuilder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
+    @NotNull
+    public FileStoreBuilder withGCMonitor(@NotNull GCMonitor gcMonitor) {
         this.gcListener.registerGCMonitor(checkNotNull(gcMonitor));
         return this;
     }
@@ -278,8 +277,8 @@ public class FileStoreBuilder {
      * @param statisticsProvider
      * @return this instance
      */
-    @Nonnull
-    public FileStoreBuilder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
+    @NotNull
+    public FileStoreBuilder withStatisticsProvider(@NotNull StatisticsProvider statisticsProvider) {
         this.statsProvider = checkNotNull(statisticsProvider);
         return this;
     }
@@ -289,7 +288,7 @@ public class FileStoreBuilder {
      * @param gcOptions
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withGCOptions(SegmentGCOptions gcOptions) {
         this.gcOptions = checkNotNull(gcOptions);
         return this;
@@ -300,14 +299,14 @@ public class FileStoreBuilder {
      * @param snfeListener, the actual listener
      * @return this instance
      */
-    @Nonnull
-    public FileStoreBuilder withSnfeListener(@Nonnull SegmentNotFoundExceptionListener snfeListener) {
+    @NotNull
+    public FileStoreBuilder withSnfeListener(@NotNull SegmentNotFoundExceptionListener snfeListener) {
         this.snfeListener = checkNotNull(snfeListener);
         return this;
     }
 
-    @Nonnull
-    public FileStoreBuilder withIOMonitor(@Nonnull IOMonitor ioMonitor) {
+    @NotNull
+    public FileStoreBuilder withIOMonitor(@NotNull IOMonitor ioMonitor) {
         ioMonitors.add(checkNotNull(ioMonitor));
         return this;
     }
@@ -317,8 +316,8 @@ public class FileStoreBuilder {
      * @param logger  logger for logging IO reads
      * @return this.
      */
-    @Nonnull
-    public FileStoreBuilder withIOLogging(@Nonnull Logger logger) {
+    @NotNull
+    public FileStoreBuilder withIOLogging(@NotNull Logger logger) {
         if (logger.isDebugEnabled()) {
             ioMonitors.add(new IOTraceMonitor(new IOTraceLogWriter(logger)));
         }
@@ -333,7 +332,7 @@ public class FileStoreBuilder {
      * @param strictVersionCheck  enables strict version checking iff {@code true}.
      * @return this instance
      */
-    @Nonnull
+    @NotNull
     public FileStoreBuilder withStrictVersionCheck(boolean strictVersionCheck) {
         this.strictVersionCheck = strictVersionCheck;
         return this;
@@ -365,7 +364,7 @@ public class FileStoreBuilder {
      * @return a new file store instance
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     public FileStore build() throws InvalidFileStoreVersionException, IOException {
         checkState(!built, "Cannot re-use builder");
         built = true;
@@ -404,7 +403,7 @@ public class FileStoreBuilder {
      * @return a new file store instance
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     public ReadOnlyFileStore buildReadOnly() throws InvalidFileStoreVersionException, IOException {
         checkState(!built, "Cannot re-use builder");
         checkState(directory.exists() && directory.isDirectory(),
@@ -427,12 +426,12 @@ public class FileStoreBuilder {
         return store;
     }
 
-    @Nonnull
+    @NotNull
     File getDirectory() {
         return directory;
     }
 
-    @CheckForNull
+    @Nullable
     BlobStore getBlobStore() {
         return blobStore;
     }
@@ -457,22 +456,22 @@ public class FileStoreBuilder {
         return memoryMapping;
     }
 
-    @Nonnull
+    @NotNull
     GCListener getGcListener() {
         return gcListener;
     }
 
-    @Nonnull
+    @NotNull
     StatisticsProvider getStatsProvider() {
         return statsProvider;
     }
 
-    @Nonnull
+    @NotNull
     SegmentGCOptions getGcOptions() {
         return gcOptions;
     }
     
-    @Nonnull
+    @NotNull
     SegmentNotFoundExceptionListener getSnfeListener() {
         return snfeListener;
     }
@@ -489,7 +488,7 @@ public class FileStoreBuilder {
      * @see #withStringDeduplicationCacheSize(int)
      * @see #withTemplateDeduplicationCacheSize(int)
      */
-    @Nonnull
+    @NotNull
     public WriterCacheManager getCacheManager() {
         if (cacheManager == null) {
             cacheManager = new EvictingWriteCacheManager(stringDeduplicationCacheSize,

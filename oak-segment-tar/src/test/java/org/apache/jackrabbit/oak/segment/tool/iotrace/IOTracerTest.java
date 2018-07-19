@@ -38,8 +38,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
@@ -49,6 +47,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,7 +79,7 @@ public class IOTracerTest extends IOMonitorAdapter {
         }
     }
 
-    @Nonnull
+    @NotNull
     private FileStore createFileStore(IOMonitor ioMonitor) {
         try {
             return fileStoreBuilder(folder.getRoot())

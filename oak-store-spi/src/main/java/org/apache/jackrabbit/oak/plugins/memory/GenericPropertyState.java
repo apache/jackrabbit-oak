@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,7 +39,7 @@ public class GenericPropertyState extends SinglePropertyState<String> {
      * @throws IllegalArgumentException if {@code type.isArray()} is {@code true}
      */
     public GenericPropertyState(
-            @Nonnull String name, @Nonnull String value, @Nonnull Type<?> type) {
+            @NotNull String name, @NotNull String value, @NotNull Type<?> type) {
         super(name);
         this.value = checkNotNull(value);
         this.type = checkNotNull(type);

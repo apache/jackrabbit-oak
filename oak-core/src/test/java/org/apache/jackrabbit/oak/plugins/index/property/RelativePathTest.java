@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.query.Query;
 
 import com.google.common.collect.ImmutableList;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -46,7 +46,7 @@ public class RelativePathTest extends AbstractQueryTest {
         return new Oak().with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(@Nonnull NodeBuilder builder) {
+                    public void initialize(@NotNull NodeBuilder builder) {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(index, "myProp", true,
                                 false, ImmutableList.<String>of("myProp"), null);

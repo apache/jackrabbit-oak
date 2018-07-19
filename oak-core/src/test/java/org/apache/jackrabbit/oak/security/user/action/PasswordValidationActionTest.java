@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.user.action;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,9 +51,9 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     private final PasswordValidationAction pwAction = new PasswordValidationAction();
     private final TestAction testAction = new TestAction();
     private final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
             return ImmutableList.of(pwAction, testAction);
         }
     };
@@ -140,12 +140,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             onCreateCalled++;
         }
 
         @Override
-        public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             onPasswordChangeCalled++;
         }
     }

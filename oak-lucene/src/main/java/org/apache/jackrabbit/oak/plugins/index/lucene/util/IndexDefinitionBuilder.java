@@ -319,6 +319,11 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule useInSimilarity() {
+            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SIMILARITY, true);
+            return this;
+        }
+
         public PropertyRule type(String type){
             //This would throw an IAE if type is invalid
             PropertyType.valueFromName(type);

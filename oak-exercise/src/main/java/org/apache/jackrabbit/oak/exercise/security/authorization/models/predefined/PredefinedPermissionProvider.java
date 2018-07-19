@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefi
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * EXERCISE: complete PermissionProvider implementation
@@ -35,7 +34,7 @@ class PredefinedPermissionProvider implements PermissionProvider {
 
     private final Set<Principal> principals;
 
-    PredefinedPermissionProvider(@Nonnull Set<Principal> principals) {
+    PredefinedPermissionProvider(@NotNull Set<Principal> principals) {
         this.principals = principals;
     }
 
@@ -45,7 +44,7 @@ class PredefinedPermissionProvider implements PermissionProvider {
 
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         // EXERCISE: complete PermissionProvider implementation
@@ -53,33 +52,33 @@ class PredefinedPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         // EXERCISE: complete PermissionProvider implementation
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         // EXERCISE: complete PermissionProvider implementation
         return RepositoryPermission.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         // EXERCISE: complete PermissionProvider implementation
         return TreePermission.EMPTY;
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         // EXERCISE: complete PermissionProvider implementation
         return false;
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         // EXERCISE: complete PermissionProvider implementation
         return false;
     }

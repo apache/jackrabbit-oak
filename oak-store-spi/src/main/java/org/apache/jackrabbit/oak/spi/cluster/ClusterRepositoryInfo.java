@@ -20,9 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -30,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +59,8 @@ public class ClusterRepositoryInfo {
      * @param store the NodeStore instance
      * @return the persistent clusterId
      */
-    @CheckForNull
-    public static String getOrCreateId(@Nonnull NodeStore store) {
+    @Nullable
+    public static String getOrCreateId(@NotNull NodeStore store) {
         checkNotNull(store, "store is null");
 
         // first try to read an existing clusterId

@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.util.Calendar;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -40,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.facet.FacetsConfig;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +128,7 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
         return indexingContext;
     }
 
-    @CheckForNull
+    @Nullable
     public PropertyUpdateCallback getPropertyUpdateCallback() {
         return propertyUpdateCallback;
     }

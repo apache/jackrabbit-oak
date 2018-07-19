@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -166,7 +165,7 @@ public class ConfigurationInitializerTest {
             super("name");
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public SecurityProvider getSecurityProvider() {
             return super.getSecurityProvider();

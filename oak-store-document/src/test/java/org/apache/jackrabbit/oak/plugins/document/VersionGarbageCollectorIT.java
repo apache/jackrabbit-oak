@@ -33,8 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -78,6 +76,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,7 +127,8 @@ public class VersionGarbageCollectorIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        documentMKBuilder = new DocumentMK.Builder().clock(clock).setLeaseCheck(false)
+        documentMKBuilder = new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
         store = documentMKBuilder.getNodeStore();
         // Enforce primary read preference, otherwise tests may fail on a
@@ -613,6 +613,7 @@ public class VersionGarbageCollectorIT {
         // run gc on another document node store
         DocumentStore ds2 = fixture.createDocumentStore(2);
         DocumentNodeStore ns2 = new DocumentMK.Builder().setClusterId(2)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .clock(clock).setAsyncDelay(0).setDocumentStore(ds2).getNodeStore();
         try {
             VersionGarbageCollector gc = ns2.getVersionGarbageCollector();
@@ -689,7 +690,7 @@ public class VersionGarbageCollectorIT {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
                 return new Iterable<NodeDocument>() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterator<NodeDocument> iterator() {
                         return new AbstractIterator<NodeDocument>() {

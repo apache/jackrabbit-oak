@@ -20,8 +20,6 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -238,7 +237,29 @@ public class DocumentNodeStoreServiceTest {
         assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
-    @Nonnull
+    @Test
+    public void strictLeaseCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        // strict is the default
+        assertEquals(LeaseCheckMode.STRICT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
+    @Test
+    public void lenientLeaseCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("leaseCheckMode", LeaseCheckMode.LENIENT.name());
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
+    @NotNull
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {
             Field f = s.getClass().getDeclaredField("nonLeaseCheckingStore");

@@ -30,14 +30,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.jetbrains.annotations.NotNull;
 
 class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
@@ -185,7 +184,7 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
         };
     }
 
-    private static String toFileNames(@Nonnull List<String> files) {
+    private static String toFileNames(@NotNull List<String> files) {
         if (files.isEmpty()) {
             return "none";
         } else {

@@ -21,15 +21,13 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This {@code SegmentReader} implementation implements caching for
@@ -39,22 +37,22 @@ public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
     public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
 
-    @Nonnull
+    @NotNull
     private final Supplier<SegmentWriter> writer;
 
-    @CheckForNull
+    @Nullable
     private final BlobStore blobStore;
 
     /**
      * Cache for string records
      */
-    @Nonnull
+    @NotNull
     private final StringCache stringCache;
 
     /**
      * Cache for template records
      */
-    @Nonnull
+    @NotNull
     private final TemplateCache templateCache;
 
     /**
@@ -68,7 +66,7 @@ public class CachingSegmentReader implements SegmentReader {
      * @param templateCacheMB the size of the template cache in MBs or {@code 0} for no cache.
      */
     public CachingSegmentReader(
-            @Nonnull Supplier<SegmentWriter> writer,
+            @NotNull Supplier<SegmentWriter> writer,
             @Nullable BlobStore blobStore,
             long stringCacheMB,
             long templateCacheMB) {
@@ -81,14 +79,14 @@ public class CachingSegmentReader implements SegmentReader {
     /**
      * Cached reading of a string.
      */
-    @Nonnull
+    @NotNull
     @Override
-    public String readString(@Nonnull RecordId id) {
+    public String readString(@NotNull RecordId id) {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
         return stringCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, String>() {
-            @Nonnull
+            @NotNull
             @Override
             public String apply(Integer offset) {
                 return segmentId.getSegment().readString(offset);
@@ -96,23 +94,23 @@ public class CachingSegmentReader implements SegmentReader {
         });
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public MapRecord readMap(@Nonnull RecordId id) {
+    public MapRecord readMap(@NotNull RecordId id) {
         return new MapRecord(this, id);
     }
 
     /**
      * Cached reading of a template.
      */
-    @Nonnull
+    @NotNull
     @Override
-    public Template readTemplate(@Nonnull RecordId id) {
+    public Template readTemplate(@NotNull RecordId id) {
         final SegmentId segmentId = id.getSegmentId();
         long msb = segmentId.getMostSignificantBits();
         long lsb = segmentId.getLeastSignificantBits();
         return templateCache.get(msb, lsb, id.getRecordNumber(), new Function<Integer, Template>() {
-            @Nonnull
+            @NotNull
             @Override
             public Template apply(Integer offset) {
                 return segmentId.getSegment().readTemplate(offset);
@@ -120,37 +118,37 @@ public class CachingSegmentReader implements SegmentReader {
         });
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public SegmentNodeState readNode(@Nonnull RecordId id) {
+    public SegmentNodeState readNode(@NotNull RecordId id) {
         return new SegmentNodeState(this, writer, blobStore, id);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public SegmentNodeState readHeadState(@Nonnull Revisions revisions) {
+    public SegmentNodeState readHeadState(@NotNull Revisions revisions) {
         return readNode(revisions.getHead());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentPropertyState readProperty(
-            @Nonnull RecordId id, @Nonnull PropertyTemplate template) {
+            @NotNull RecordId id, @NotNull PropertyTemplate template) {
         return new SegmentPropertyState(this, id, template);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public SegmentBlob readBlob(@Nonnull RecordId id) {
+    public SegmentBlob readBlob(@NotNull RecordId id) {
         return new SegmentBlob(blobStore, id);
     }
 
-    @Nonnull
+    @NotNull
     public CacheStats getStringCacheStats() {
         return stringCache.getStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStats getTemplateCacheStats() {
         return templateCache.getStats();
     }

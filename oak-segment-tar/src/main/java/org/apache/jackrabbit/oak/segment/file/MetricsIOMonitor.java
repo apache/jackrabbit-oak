@@ -22,13 +22,12 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.io.File;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code IOMonitor} implementations registers the following monitoring endpoints
@@ -55,7 +54,7 @@ public class MetricsIOMonitor extends IOMonitorAdapter {
     private final TimerStats segmentReadTime;
     private final TimerStats segmentWriteTime;
 
-    public MetricsIOMonitor(@Nonnull StatisticsProvider statisticsProvider) {
+    public MetricsIOMonitor(@NotNull StatisticsProvider statisticsProvider) {
         segmentReadBytes = statisticsProvider.getMeter(
                 OAK_SEGMENT_SEGMENT_READ_BYTES, StatsOptions.METRICS_ONLY);
         segmentWriteBytes = statisticsProvider.getMeter(

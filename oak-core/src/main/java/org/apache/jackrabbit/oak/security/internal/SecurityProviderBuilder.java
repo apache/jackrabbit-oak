@@ -20,8 +20,6 @@ import static org.apache.jackrabbit.oak.security.internal.ConfigurationInitializ
 import static org.apache.jackrabbit.oak.security.internal.ConfigurationInitializer.initializeConfigurations;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
@@ -52,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 
 public final class SecurityProviderBuilder {
 
@@ -79,7 +78,7 @@ public final class SecurityProviderBuilder {
 
     private ConfigurationParameters configuration;
 
-    @Nonnull
+    @NotNull
     public static SecurityProviderBuilder newBuilder() {
         return new SecurityProviderBuilder();
     }
@@ -88,7 +87,7 @@ public final class SecurityProviderBuilder {
         this.configuration = ConfigurationParameters.EMPTY;
     }
 
-    public SecurityProviderBuilder with(@Nonnull ConfigurationParameters configuration) {
+    public SecurityProviderBuilder with(@NotNull ConfigurationParameters configuration) {
         this.configuration = configuration;
 
         authenticationParams = configuration.getConfigValue(AuthenticationConfiguration.NAME, EMPTY);
@@ -121,13 +120,13 @@ public final class SecurityProviderBuilder {
         return this;
     }
 
-    public SecurityProviderBuilder with(@Nonnull AuthenticationConfiguration authenticationConfiguration,
-            @Nonnull ConfigurationParameters authenticationParams,
-            @Nonnull PrivilegeConfiguration privilegeConfiguration, @Nonnull ConfigurationParameters privilegeParams,
-            @Nonnull UserConfiguration userConfiguration, @Nonnull ConfigurationParameters userParams,
-            @Nonnull AuthorizationConfiguration authorizationConfiguration, @Nonnull ConfigurationParameters authorizationParams,
-            @Nonnull PrincipalConfiguration principalConfiguration, @Nonnull ConfigurationParameters principalParams,
-            @Nonnull TokenConfiguration tokenConfiguration, @Nonnull ConfigurationParameters tokenParams) {
+    public SecurityProviderBuilder with(@NotNull AuthenticationConfiguration authenticationConfiguration,
+            @NotNull ConfigurationParameters authenticationParams,
+            @NotNull PrivilegeConfiguration privilegeConfiguration, @NotNull ConfigurationParameters privilegeParams,
+            @NotNull UserConfiguration userConfiguration, @NotNull ConfigurationParameters userParams,
+            @NotNull AuthorizationConfiguration authorizationConfiguration, @NotNull ConfigurationParameters authorizationParams,
+            @NotNull PrincipalConfiguration principalConfiguration, @NotNull ConfigurationParameters principalParams,
+            @NotNull TokenConfiguration tokenConfiguration, @NotNull ConfigurationParameters tokenParams) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.authenticationParams = authenticationParams;
@@ -233,17 +232,17 @@ public final class SecurityProviderBuilder {
         return securityProvider;
     }
 
-    public SecurityProviderBuilder withWhiteboard(@Nonnull Whiteboard whiteboard) {
+    public SecurityProviderBuilder withWhiteboard(@NotNull Whiteboard whiteboard) {
         this.whiteboard = whiteboard;
         return this;
     }
 
-    public SecurityProviderBuilder withRootProvider(@Nonnull RootProvider rootProvider) {
+    public SecurityProviderBuilder withRootProvider(@NotNull RootProvider rootProvider) {
         this.rootProvider = rootProvider;
         return this;
     }
 
-    public SecurityProviderBuilder withTreeProvider(@Nonnull TreeProvider treeProvider) {
+    public SecurityProviderBuilder withTreeProvider(@NotNull TreeProvider treeProvider) {
         this.treeProvider = treeProvider;
         return this;
     }

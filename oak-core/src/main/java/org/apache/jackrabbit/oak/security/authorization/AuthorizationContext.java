@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -26,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 
 final class AuthorizationContext implements Context, AccessControlConstants, PermissionConstants {
 
@@ -44,12 +43,12 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+    public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
         return definesTree(parent);
     }
 
     @Override
-    public boolean definesContextRoot(@Nonnull Tree tree) {
+    public boolean definesContextRoot(@NotNull Tree tree) {
         String name = tree.getName();
         if (isNodeName(name)) {
             return NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(tree));
@@ -59,13 +58,13 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
     }
 
     @Override
-    public boolean definesTree(@Nonnull Tree tree) {
+    public boolean definesTree(@NotNull Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return ntName != null && isNtName(ntName);
     }
 
     @Override
-    public boolean definesLocation(@Nonnull TreeLocation location) {
+    public boolean definesLocation(@NotNull TreeLocation location) {
         PropertyState p = location.getProperty();
         Tree tree = (p == null) ? location.getTree() : location.getParent().getTree();
         if (tree != null) {
@@ -76,11 +75,11 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
     }
 
     @Override
-    public boolean definesInternal(@Nonnull Tree tree) {
+    public boolean definesInternal(@NotNull Tree tree) {
         return PermissionConstants.REP_PERMISSION_STORE.equals(tree.getName());
     }
 
-    private static boolean isNodeName(@Nonnull String name) {
+    private static boolean isNodeName(@NotNull String name) {
         for (String n : NODE_NAMES) {
             if (n.equals(name)) {
                 return true;
@@ -89,7 +88,7 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
         return false;
     }
 
-    private static boolean isItemName(@Nonnull String name) {
+    private static boolean isItemName(@NotNull String name) {
         if (isNodeName(name)) {
             return true;
         }
@@ -101,7 +100,7 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
         return false;
     }
 
-    private static boolean isNtName(@Nonnull String name) {
+    private static boolean isNtName(@NotNull String name) {
         for (String n : NT_NAMES) {
             if (n.equals(name)) {
                 return true;

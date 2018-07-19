@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -164,7 +163,7 @@ public class DocumentNodeStoreBranchInCommitHookTest {
             this.countDown = numFailures;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before,
                                        NodeState after,

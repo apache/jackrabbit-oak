@@ -37,8 +37,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -97,6 +95,8 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,9 +118,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
-    @CheckForNull
+    @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
-            @CheckForNull NodeDelegate delegate, @Nonnull SessionContext context)
+            @Nullable NodeDelegate delegate, @NotNull SessionContext context)
             throws RepositoryException {
         if (delegate != null) {
             return createNode(delegate, context);
@@ -129,9 +129,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Nonnull
+    @NotNull
     public static NodeImpl<? extends NodeDelegate> createNode(
-                @Nonnull NodeDelegate delegate, @Nonnull SessionContext context)
+                @NotNull NodeDelegate delegate, @NotNull SessionContext context)
                 throws RepositoryException {
         PropertyDelegate pd = delegate.getPropertyOrNull(JCR_PRIMARYTYPE);
         String type = pd != null ? pd.getString() : null;
@@ -166,10 +166,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Item#getParent()
      */
     @Override
-    @Nonnull
+    @NotNull
     public Node getParent() throws RepositoryException {
         return perform(new NodeOperation<Node>(dlg, "getParent") {
-            @Nonnull
+            @NotNull
             @Override
             public Node perform() throws RepositoryException {
                 if (node.isRoot()) {
@@ -191,7 +191,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public boolean isNew() {
         return sessionDelegate.safePerform(new NodeOperation<Boolean>(dlg, "isNew") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return node.exists() && node.getStatus() == Status.NEW;
@@ -205,7 +205,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public boolean isModified() {
         return sessionDelegate.safePerform(new NodeOperation<Boolean>(dlg, "isModified") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return node.exists() && node.getStatus() == Status.MODIFIED;
@@ -246,12 +246,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see Node#addNode(String)
      */
     @Override
-    @Nonnull
+    @NotNull
     public Node addNode(String relPath) throws RepositoryException {
         return addNode(relPath, null);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Node addNode(final String relPath, String primaryNodeTypeName)
             throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(relPath);
@@ -264,7 +264,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
         checkIndexOnName(relPath);
         return perform(new ItemWriteOperation<Node>("addNode") {
-            @Nonnull
+            @NotNull
             @Override
             public Node perform() throws RepositoryException {
                 String oakName = PathUtils.getName(oakPath);
@@ -347,7 +347,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     // of the methods will ever return null, even if asked to remove
     // a non-existing property! See internalRemoveProperty() for details.
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Value value)
             throws RepositoryException {
         if (value != null) {
@@ -357,7 +357,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Value value, int type)
             throws RepositoryException {
         if (value != null) {
@@ -373,7 +373,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Value[] values)
             throws RepositoryException {
         if (values != null) {
@@ -384,7 +384,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String jcrName, Value[] values, int type)
             throws RepositoryException {
         if (values != null) {
@@ -400,7 +400,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, String[] values)
             throws RepositoryException {
         if (values != null) {
@@ -412,7 +412,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, String[] values, int type)
             throws RepositoryException {
         if (values != null) {
@@ -428,7 +428,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, String value)
             throws RepositoryException {
         if (value != null) {
@@ -439,7 +439,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, String value, int type)
             throws RepositoryException {
         if (value != null) {
@@ -455,7 +455,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull @SuppressWarnings("deprecation")
+    @Override @NotNull @SuppressWarnings("deprecation")
     public Property setProperty(String name, InputStream value)
             throws RepositoryException {
         if (value != null) {
@@ -466,7 +466,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Binary value)
             throws RepositoryException {
         if (value != null) {
@@ -477,21 +477,21 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, boolean value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, double value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, BigDecimal value)
             throws RepositoryException {
         if (value != null) {
@@ -502,14 +502,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, long value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
         return internalSetProperty(name, v, false);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Calendar value)
             throws RepositoryException {
         if (value != null) {
@@ -520,7 +520,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Property setProperty(String name, Node value)
             throws RepositoryException {
         if (value != null) {
@@ -532,11 +532,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Node getNode(String relPath) throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(relPath);
         return perform(new NodeOperation<Node>(dlg, "getNode") {
-            @Nonnull
+            @NotNull
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate nd = node.getChild(oakPath);
@@ -550,10 +550,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public NodeIterator getNodes() throws RepositoryException {
         return perform(new NodeOperation<NodeIterator>(dlg, "getNodes") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = node.getChildren();
@@ -580,11 +580,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public NodeIterator getNodes(final String namePattern)
             throws RepositoryException {
         return perform(new NodeOperation<NodeIterator>(dlg, "getNodes") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
@@ -602,10 +602,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
         return perform(new NodeOperation<NodeIterator>(dlg, "getNodes") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(
@@ -623,11 +623,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Property getProperty(String relPath) throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(relPath);
         return perform(new NodeOperation<PropertyImpl>(dlg, "getProperty") {
-            @Nonnull
+            @NotNull
             @Override
             public PropertyImpl perform() throws RepositoryException {
                 PropertyDelegate pd = node.getPropertyOrNull(oakPath);
@@ -642,10 +642,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getProperties() throws RepositoryException {
         return perform(new NodeOperation<PropertyIterator>(dlg, "getProperties") {
-            @Nonnull
+            @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 Iterator<PropertyDelegate> properties = node.getProperties();
@@ -657,10 +657,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
         return perform(new NodeOperation<PropertyIterator>(dlg, "getProperties") {
-            @Nonnull
+            @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
@@ -681,10 +681,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
         return perform(new NodeOperation<PropertyIterator>(dlg, "getProperties") {
-            @Nonnull
+            @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
@@ -708,10 +708,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getPrimaryItem()
      */
     @Override
-    @Nonnull
+    @NotNull
     public Item getPrimaryItem() throws RepositoryException {
         return perform(new NodeOperation<Item>(dlg, "getPrimaryItem") {
-            @Nonnull
+            @NotNull
             @Override
             public Item perform() throws RepositoryException {
                 // TODO: avoid nested calls
@@ -737,10 +737,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getUUID()
      */
     @Override
-    @Nonnull
+    @NotNull
     public String getUUID() throws RepositoryException {
         return perform(new NodeOperation<String>(dlg, "getUUID") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() throws RepositoryException {
                 // TODO: avoid nested calls
@@ -753,11 +753,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getIdentifier() throws RepositoryException {
         // TODO: name mapping for path identifiers
         return perform(new NodeOperation<String>(dlg, "getIdentifier") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() throws RepositoryException {
                 return node.getIdentifier();
@@ -773,7 +773,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     private PropertyIterator internalGetReferences(final String name, final boolean weak) throws RepositoryException {
         return perform(new NodeOperation<PropertyIterator>(dlg, "internalGetReferences") {
-            @Nonnull
+            @NotNull
             @Override
             public PropertyIterator perform() throws InvalidItemStateException {
                 IdentifierManager idManager = sessionDelegate.getIdManager();
@@ -799,13 +799,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getReferences()
      */
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getReferences() throws RepositoryException {
         return internalGetReferences(null, false);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getReferences(final String name) throws RepositoryException {
         return internalGetReferences(name, false);
     }
@@ -814,13 +814,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getWeakReferences()
      */
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getWeakReferences() throws RepositoryException {
         return internalGetReferences(null, true);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public PropertyIterator getWeakReferences(String name) throws RepositoryException {
         return internalGetReferences(name, true);
     }
@@ -830,7 +830,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         try {
             final String oakPath = getOakPathOrThrow(relPath);
             return perform(new NodeOperation<Boolean>(dlg, "hasNode") {
-                @Nonnull
+                @NotNull
                 @Override
                 public Boolean perform() throws RepositoryException {
                     return node.getChild(oakPath) != null;
@@ -846,7 +846,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         try {
             final String oakPath = getOakPathOrThrow(relPath);
             return perform(new NodeOperation<Boolean>(dlg, "hasProperty") {
-                @Nonnull
+                @NotNull
                 @Override
                 public Boolean perform() throws RepositoryException {
                     return node.getPropertyOrNull(oakPath) != null;
@@ -865,7 +865,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     public boolean hasProperties() throws RepositoryException {
         return perform(new NodeOperation<Boolean>(dlg, "hasProperties") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 return node.getPropertyCount() != 0;
@@ -877,10 +877,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getPrimaryNodeType()
      */
     @Override
-    @Nonnull
+    @NotNull
     public NodeType getPrimaryNodeType() throws RepositoryException {
         return perform(new NodeOperation<NodeType>(dlg, "getPrimaryNodeType") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeType perform() throws RepositoryException {
                 Tree tree = node.getTree();
@@ -898,10 +898,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getMixinNodeTypes()
      */
     @Override
-    @Nonnull
+    @NotNull
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
         return perform(new NodeOperation<NodeType[]>(dlg, "getMixinNodeTypes") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeType[] perform() throws RepositoryException {
                 Tree tree = node.getTree();
@@ -925,7 +925,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
         final String oakName = getOakName(nodeTypeName);
         return perform(new NodeOperation<Boolean>(dlg, "isNodeType") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
@@ -1007,7 +1007,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public boolean canAddMixin(String mixinName) throws RepositoryException {
         final String oakTypeName = getOakName(mixinName);
         return perform(new NodeOperation<Boolean>(dlg, "canAddMixin") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
@@ -1021,10 +1021,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public NodeDefinition getDefinition() throws RepositoryException {
         return perform(new NodeOperation<NodeDefinition>(dlg, "getDefinition") {
-            @Nonnull
+            @NotNull
             @Override
             public NodeDefinition perform() throws RepositoryException {
                 NodeDelegate parent = node.getParent();
@@ -1039,10 +1039,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getCorrespondingNodePath(final String workspaceName) throws RepositoryException {
         return toJcrPath(perform(new ItemOperation<String>(dlg, "getCorrespondingNodePath") {
-            @Nonnull
+            @NotNull
             @Override
             public String perform() throws RepositoryException {
                 checkValidWorkspace(workspaceName);
@@ -1081,7 +1081,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#checkin()
      */
     @Override
-    @Nonnull
+    @NotNull
     public Version checkin() throws RepositoryException {
         return getVersionManager().checkin(getPath());
     }
@@ -1114,7 +1114,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#merge(String, boolean)
      */
     @Override
-    @Nonnull
+    @NotNull
     public NodeIterator merge(String srcWorkspace, boolean bestEffort) throws RepositoryException {
         return getVersionManager().merge(getPath(), srcWorkspace, bestEffort);
     }
@@ -1188,7 +1188,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getVersionHistory()
      */
     @Override
-    @Nonnull
+    @NotNull
     public VersionHistory getVersionHistory() throws RepositoryException {
         return getVersionManager().getVersionHistory(getPath());
     }
@@ -1197,7 +1197,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getBaseVersion()
      */
     @Override
-    @Nonnull
+    @NotNull
     public Version getBaseVersion() throws RepositoryException {
         return getVersionManager().getBaseVersion(getPath());
     }
@@ -1219,12 +1219,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return getLockManager().holdsLock(getPath());
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Lock getLock() throws RepositoryException {
         return getLockManager().getLock(getPath());
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Lock lock(boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
         return getLockManager().lock(
@@ -1236,7 +1236,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         getLockManager().unlock(getPath());
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeIterator getSharedSet() {
         return new NodeIteratorAdapter(singleton(this));
     }
@@ -1272,15 +1272,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * @see javax.jcr.Node#getAllowedLifecycleTransistions()
      */
     @Override
-    @Nonnull
+    @NotNull
     public String[] getAllowedLifecycleTransistions() throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("Lifecycle Management is not supported");
 
     }
 
     //------------------------------------------------------------< internal >---
-    @CheckForNull
-    private String getPrimaryTypeName(@Nonnull Tree tree) {
+    @Nullable
+    private String getPrimaryTypeName(@NotNull Tree tree) {
         String primaryTypeName = null;
         if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
             primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
@@ -1292,8 +1292,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return primaryTypeName;
     }
 
-    @Nonnull
-    private Iterator<String> getMixinTypeNames(@Nonnull Tree tree) {
+    @NotNull
+    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) {
         Iterator<String> mixinNames = Collections.emptyIterator();
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
             mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
@@ -1372,7 +1372,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
             }
-            @Nonnull
+            @NotNull
             @Override
             public Property perform() throws RepositoryException {
                 return new PropertyImpl(
@@ -1408,7 +1408,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             "Cannot set property. Node [%s] is checked in.", getNodePath()));
                 }
             }
-            @Nonnull
+            @NotNull
             @Override
             public Property perform() throws RepositoryException {
                 return new PropertyImpl(
@@ -1455,7 +1455,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             "Cannot remove property. Node [%s] is checked in.", getNodePath()));
                 }
             }
-            @Nonnull
+            @NotNull
             @Override
             public Property perform() throws RepositoryException {
                 PropertyDelegate property = dlg.getPropertyOrNull(oakName);

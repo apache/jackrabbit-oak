@@ -23,10 +23,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
 
 class MissingSegmentNode extends AbstractNode {
 
@@ -36,7 +35,7 @@ class MissingSegmentNode extends AbstractNode {
         this.segmentId = segmentId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Arrays.asList(

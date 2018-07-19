@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -49,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +180,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         );
     }
 
-    @Nonnull
+    @NotNull
     private Iterable<Bson> queriesForType(SplitDocType type, RevisionVector sweepRevs) {
         if (type != DEFAULT_NO_BRANCH) {
             return singletonList(Filters.eq(SD_TYPE, type.typeCode()));

@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Instances of this class provides {@link SegmentId} instances of a given
@@ -39,7 +39,7 @@ public interface SegmentIdProvider {
      * @param lsb The least significant bits of the {@code SegmentId}.
      * @return A non-{@code null} instance of {@code SegmentId}.
      */
-    @Nonnull
+    @NotNull
     SegmentId newSegmentId(long msb, long lsb);
 
 
@@ -48,7 +48,7 @@ public interface SegmentIdProvider {
      *
      * @return A non-{@code null} instance of {@code SegmentId}.
      */
-    @Nonnull
+    @NotNull
     SegmentId newDataSegmentId();
 
 
@@ -57,6 +57,6 @@ public interface SegmentIdProvider {
      *
      * @return A non-{@code null} instance of {@code SegmentId}.
      */
-    @Nonnull
+    @NotNull
     SegmentId newBulkSegmentId();
 }

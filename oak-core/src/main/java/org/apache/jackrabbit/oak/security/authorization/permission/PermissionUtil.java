@@ -19,10 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -35,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility methods to evaluate permissions.
@@ -43,8 +41,8 @@ public final class PermissionUtil implements PermissionConstants {
 
     private PermissionUtil() {}
 
-    @CheckForNull
-    public static String getParentPathOrNull(@Nonnull final String path) {
+    @Nullable
+    public static String getParentPathOrNull(@NotNull final String path) {
         if (path.length() <= 1) {
             return null;
         } else {
@@ -57,33 +55,33 @@ public final class PermissionUtil implements PermissionConstants {
         }
     }
 
-    @Nonnull
+    @NotNull
     public static String getEntryName(@Nullable String accessControlledPath) {
         String path = Strings.nullToEmpty(accessControlledPath);
         return String.valueOf(path.hashCode());
     }
 
-    public static boolean checkACLPath(@Nonnull NodeBuilder node, @Nonnull String path) {
+    public static boolean checkACLPath(@NotNull NodeBuilder node, @NotNull String path) {
         PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return property != null && path.equals(property.getValue(Type.STRING));
     }
 
-    public static boolean checkACLPath(@Nonnull Tree node, @Nonnull String path) {
+    public static boolean checkACLPath(@NotNull Tree node, @NotNull String path) {
         PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return property != null && path.equals(property.getValue(Type.STRING));
     }
 
-    @Nonnull
-    public static Tree getPermissionsRoot(@Nonnull Root root, @Nonnull String permissionRootName) {
+    @NotNull
+    public static Tree getPermissionsRoot(@NotNull Root root, @NotNull String permissionRootName) {
         return root.getTree(PERMISSIONS_STORE_PATH + '/' + permissionRootName);
     }
 
-    @Nonnull
-    public static Tree getPrincipalRoot(@Nonnull Tree permissionsTree, @Nonnull String principalName) {
+    @NotNull
+    public static Tree getPrincipalRoot(@NotNull Tree permissionsTree, @NotNull String principalName) {
         return permissionsTree.getChild(Text.escapeIllegalJcrChars(principalName));
     }
 
-    public static boolean isAdminOrSystem(@Nonnull Set<Principal> principals, @Nonnull ConfigurationParameters config) {
+    public static boolean isAdminOrSystem(@NotNull Set<Principal> principals, @NotNull ConfigurationParameters config) {
         if (principals.contains(SystemPrincipal.INSTANCE)) {
             return true;
         } else {
@@ -97,7 +95,7 @@ public final class PermissionUtil implements PermissionConstants {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public static String getPath(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
         String path = null;
         if (parentBefore != null) {
@@ -108,7 +106,7 @@ public final class PermissionUtil implements PermissionConstants {
         return path;
     }
 
-    public static Tree getReadOnlyTree(@Nullable Tree tree, @Nonnull Root readOnlyRoot) {
+    public static Tree getReadOnlyTree(@Nullable Tree tree, @NotNull Root readOnlyRoot) {
         if (tree instanceof ReadOnly) {
             return tree;
         } else {

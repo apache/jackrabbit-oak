@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code DefaultSyncConfig} defines how users and groups from an external source are synced into the repository using
@@ -39,7 +39,7 @@ public class DefaultSyncConfig {
      * Configures the name of this configuration
      * @return the name
      */
-    @Nonnull
+    @NotNull
     public String getName() {
         return name;
     }
@@ -50,8 +50,8 @@ public class DefaultSyncConfig {
      * @return {@code this}
      * @see #getName()
      */
-    @Nonnull
-    public DefaultSyncConfig setName(@Nonnull String name) {
+    @NotNull
+    public DefaultSyncConfig setName(@NotNull String name) {
         this.name = name;
         return this;
     }
@@ -60,7 +60,7 @@ public class DefaultSyncConfig {
      * Returns the sync configuration for users.
      * @return the user sync configuration.
      */
-    @Nonnull
+    @NotNull
     public User user() {
         return user;
     }
@@ -69,7 +69,7 @@ public class DefaultSyncConfig {
      * Returns the sync configuration for groups.
      * @return the group sync configuration.
      */
-    @Nonnull
+    @NotNull
     public Group group() {
         return group;
     }
@@ -104,7 +104,7 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getExpirationTime()
          */
-        @Nonnull
+        @NotNull
         public Authorizable setExpirationTime(long expirationTime) {
             this.expirationTime = expirationTime;
             return this;
@@ -135,7 +135,7 @@ public class DefaultSyncConfig {
          * Defines the set of group names that are automatically added to synced authorizable.
          * @return set of group names.
          */
-        @Nonnull
+        @NotNull
         public Set<String> getAutoMembership() {
             return autoMembership == null ? Collections.<String>emptySet() : autoMembership;
         }
@@ -148,8 +148,8 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getAutoMembership()
          */
-        @Nonnull
-        public Authorizable setAutoMembership(@Nonnull String ... autoMembership) {
+        @NotNull
+        public Authorizable setAutoMembership(@NotNull String ... autoMembership) {
             this.autoMembership = new HashSet<String>();
             for (String groupName: autoMembership) {
                 if (groupName != null && !groupName.trim().isEmpty()) {
@@ -178,7 +178,7 @@ public class DefaultSyncConfig {
          *
          * @return the property mapping where the keys are the local property names and the values the external ones.
          */
-        @Nonnull
+        @NotNull
         public Map<String, String> getPropertyMapping() {
             return propertyMapping == null ? Collections.<String, String>emptyMap() : propertyMapping;
         }
@@ -189,8 +189,8 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getPropertyMapping()
          */
-        @Nonnull
-        public Authorizable setPropertyMapping(@Nonnull Map<String, String> propertyMapping) {
+        @NotNull
+        public Authorizable setPropertyMapping(@NotNull Map<String, String> propertyMapping) {
             this.propertyMapping = propertyMapping;
             return this;
         }
@@ -200,7 +200,7 @@ public class DefaultSyncConfig {
          * is always prepended to the path provided by the {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity}.
          * @return the intermediate path prefix.
          */
-        @Nonnull
+        @NotNull
         public String getPathPrefix() {
             return pathPrefix == null ? "" : pathPrefix;
         }
@@ -211,8 +211,8 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getPathPrefix()
          */
-        @Nonnull
-        public Authorizable setPathPrefix(@Nonnull String pathPrefix) {
+        @NotNull
+        public Authorizable setPathPrefix(@NotNull String pathPrefix) {
             this.pathPrefix = pathPrefix;
             return this;
         }
@@ -250,7 +250,7 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getMembershipExpirationTime()
          */
-        @Nonnull
+        @NotNull
         public User setMembershipExpirationTime(long membershipExpirationTime) {
             this.membershipExpirationTime = membershipExpirationTime;
             return this;
@@ -272,7 +272,7 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getMembershipNestingDepth()
          */
-        @Nonnull
+        @NotNull
         public User setMembershipNestingDepth(long membershipNestingDepth) {
             this.membershipNestingDepth = membershipNestingDepth;
             return this;
@@ -289,7 +289,7 @@ public class DefaultSyncConfig {
          * @return {@code true} if dynamic group membership for external
          * user identities is turn on; {@code false} otherwise.
          */
-        @Nonnull
+        @NotNull
         public boolean getDynamicMembership() {
             return dynamicMembership;
         }
@@ -306,7 +306,7 @@ public class DefaultSyncConfig {
          * @return {@code this}
          * @see #getDynamicMembership() for details.
          */
-        @Nonnull
+        @NotNull
         public User setDynamicMembership(boolean dynamicMembership) {
             this.dynamicMembership = dynamicMembership;
             return this;

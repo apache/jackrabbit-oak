@@ -80,7 +80,7 @@ public class LastRevSingleNodeRecoveryTest {
         builder.setAsyncDelay(0)
                 .setClusterId(clusterId)
                 .clock(clock)
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(store);
         mk = builder.open();
         clock.waitUntil(Revision.getCurrentTimestamp());

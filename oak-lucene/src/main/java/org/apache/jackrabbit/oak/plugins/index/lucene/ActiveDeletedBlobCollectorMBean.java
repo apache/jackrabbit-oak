@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import java.util.Map;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * MBean for starting and monitoring the progress of
@@ -37,7 +38,7 @@ public interface ActiveDeletedBlobCollectorMBean {
      *
      * @return the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     CompositeData startActiveCollection();
 
     /**
@@ -46,7 +47,7 @@ public interface ActiveDeletedBlobCollectorMBean {
      *
      * @return the status of the operation right after it was initiated
      */
-    @Nonnull
+    @NotNull
     CompositeData cancelActiveCollection();
 
     /**
@@ -55,13 +56,13 @@ public interface ActiveDeletedBlobCollectorMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     CompositeData getActiveCollectionStatus();
 
     /**
      * @return true: if recording deleted blob for active deletion is unsafe; false: otherwise
      */
-    @Nonnull
+    @NotNull
     boolean isActiveDeletionUnsafe();
 
     /**
@@ -70,7 +71,7 @@ public interface ActiveDeletedBlobCollectorMBean {
      * in-memory flag so that new blobs also are flagged to be not marked for deletion
      * by active deletion
      */
-    @Nonnull
+    @NotNull
     void flagActiveDeletionUnsafeForCurrentState();
 
     /**

@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -32,6 +30,8 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Test implementation of AbstractAccessControlList
@@ -42,18 +42,18 @@ public final class TestACL extends AbstractAccessControlList {
     private final RestrictionProvider restrictionProvider;
 
     public TestACL(@Nullable String jcrPath,
-                   @Nonnull RestrictionProvider restrictionProvider,
-                   @Nonnull NamePathMapper namePathMapper,
-                   @Nonnull List<JackrabbitAccessControlEntry> entries) {
+                   @NotNull RestrictionProvider restrictionProvider,
+                   @NotNull NamePathMapper namePathMapper,
+                   @NotNull List<JackrabbitAccessControlEntry> entries) {
         super((jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath), namePathMapper);
         this.entries.addAll(entries);
         this.restrictionProvider = restrictionProvider;
     }
 
     public TestACL(@Nullable String jcrPath,
-                   @Nonnull RestrictionProvider restrictionProvider,
-                   @Nonnull NamePathMapper namePathMapper,
-                   @Nonnull JackrabbitAccessControlEntry... entry) {
+                   @NotNull RestrictionProvider restrictionProvider,
+                   @NotNull NamePathMapper namePathMapper,
+                   @NotNull JackrabbitAccessControlEntry... entry) {
         this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
     }
 
@@ -88,13 +88,13 @@ public final class TestACL extends AbstractAccessControlList {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<JackrabbitAccessControlEntry> getEntries() {
         return entries;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return restrictionProvider;

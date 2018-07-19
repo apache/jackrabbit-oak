@@ -25,11 +25,10 @@ import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link GCMonitor} implementation providing the file store gc status.
@@ -45,7 +44,7 @@ public class FileStoreGCMonitor implements GCMonitor {
     private String lastLogMessage;
     private String status = SegmentGCStatus.IDLE.message();
 
-    public FileStoreGCMonitor(@Nonnull Clock clock) {
+    public FileStoreGCMonitor(@NotNull Clock clock) {
         this.clock = checkNotNull(clock);
     }
 
@@ -111,12 +110,12 @@ public class FileStoreGCMonitor implements GCMonitor {
         return lastError;
     }
 
-    @Nonnull
+    @NotNull
     public String getLastLogMessage() {
         return lastLogMessage;
     }
     
-    @Nonnull
+    @NotNull
     public String getStatus() {
         return status;
     }

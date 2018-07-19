@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -29,6 +27,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,12 +67,12 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     }
 
     @Override
-    public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(password, false);
     }
 
     @Override
-    public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(newPassword, true);
     }
 
@@ -82,7 +82,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
      *
      * @param constraint A regular expression that can be used to validate a new password.
      */
-    private void setConstraint(@Nonnull String constraint) {
+    private void setConstraint(@NotNull String constraint) {
         try {
             pattern = Pattern.compile(constraint);
         } catch (PatternSyntaxException e) {

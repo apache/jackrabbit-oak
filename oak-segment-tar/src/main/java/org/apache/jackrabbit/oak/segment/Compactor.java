@@ -31,19 +31,17 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Instances of this class can be used to compact a node state. I.e. to create a clone
@@ -62,19 +60,16 @@ public class Compactor {
     static final int UPDATE_LIMIT =
             Integer.getInteger("compaction.update.limit", 10000);
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     @Nullable
     private final BlobStore blobStore;
 
-    @Nonnull
-    private final Supplier<Boolean> cancel;
-
-    @Nonnull
+    @NotNull
     private final GCNodeWriteMonitor compactionMonitor;
 
     /**
@@ -82,20 +77,17 @@ public class Compactor {
      * @param reader     segment reader used to read from the segments
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
-     * @param cancel     a flag that can be used to cancel the compaction process
      * @param compactionMonitor   notification call back for each compacted nodes,
      *                            properties, and binaries
      */
     public Compactor(
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
             @Nullable BlobStore blobStore,
-            @Nonnull Supplier<Boolean> cancel,
-            @Nonnull GCNodeWriteMonitor compactionMonitor) {
+            @NotNull GCNodeWriteMonitor compactionMonitor) {
         this.writer = checkNotNull(writer);
         this.reader = checkNotNull(reader);
         this.blobStore = blobStore;
-        this.cancel = checkNotNull(cancel);
         this.compactionMonitor = checkNotNull(compactionMonitor);
     }
 
@@ -105,9 +97,9 @@ public class Compactor {
      * @return       the compacted node state or {@code null} if cancelled.
      * @throws IOException
      */
-    @CheckForNull
-    public SegmentNodeState compact(@Nonnull NodeState state) throws IOException {
-        return compact(EMPTY_NODE, state, EMPTY_NODE);
+    @Nullable
+    public SegmentNodeState compact(@NotNull NodeState state, Canceller canceller) throws IOException {
+        return compact(EMPTY_NODE, state, EMPTY_NODE, canceller);
     }
 
     /**
@@ -118,19 +110,20 @@ public class Compactor {
      * @return         the compacted node state or {@code null} if cancelled.
      * @throws IOException
      */
-    @CheckForNull
+    @Nullable
     public SegmentNodeState compact(
-            @Nonnull NodeState before,
-            @Nonnull NodeState after,
-            @Nonnull NodeState onto)
-    throws IOException {
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
         checkNotNull(before);
         checkNotNull(after);
         checkNotNull(onto);
-        return new CompactDiff(onto).diff(before, after);
+        return new CompactDiff(onto, canceller).diff(before, after);
     }
 
-    @CheckForNull
+    @Nullable
     private static ByteBuffer getStableIdBytes(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return ((SegmentNodeState) state).getStableIdBytes();
@@ -140,13 +133,15 @@ public class Compactor {
     }
 
     private class CompactDiff implements NodeStateDiff {
-        @Nonnull
+        @NotNull
         private MemoryNodeBuilder builder;
 
-        @Nonnull
+        @NotNull
         private final NodeState base;
 
-        @CheckForNull
+        private final Canceller canceller;
+
+        @Nullable
         private IOException exception;
 
         private long modCount;
@@ -159,14 +154,15 @@ public class Compactor {
             }
         }
 
-        CompactDiff(@Nonnull NodeState base) {
+        CompactDiff(@NotNull NodeState base, Canceller canceller) {
             this.builder = new MemoryNodeBuilder(checkNotNull(base));
+            this.canceller = canceller;
             this.base = base;
         }
 
-        @CheckForNull
-        SegmentNodeState diff(@Nonnull NodeState before, @Nonnull NodeState after) throws IOException {
-            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, cancel));
+        @Nullable
+        SegmentNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
+            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, () -> canceller.check().isCancelled()));
             if (exception != null) {
                 throw new IOException(exception);
             } else if (success) {
@@ -181,13 +177,13 @@ public class Compactor {
         }
 
         @Override
-        public boolean propertyAdded(@Nonnull PropertyState after) {
+        public boolean propertyAdded(@NotNull PropertyState after) {
             builder.setProperty(compact(after));
             return true;
         }
 
         @Override
-        public boolean propertyChanged(@Nonnull PropertyState before, @Nonnull PropertyState after) {
+        public boolean propertyChanged(@NotNull PropertyState before, @NotNull PropertyState after) {
             builder.setProperty(compact(after));
             return true;
         }
@@ -199,9 +195,9 @@ public class Compactor {
         }
 
         @Override
-        public boolean childNodeAdded(@Nonnull String name, @Nonnull NodeState after) {
+        public boolean childNodeAdded(@NotNull String name, @NotNull NodeState after) {
             try {
-                SegmentNodeState compacted = compact(after);
+                SegmentNodeState compacted = compact(after, canceller);
                 if (compacted != null) {
                     updated();
                     builder.setChildNode(name, compacted);
@@ -216,9 +212,9 @@ public class Compactor {
         }
 
         @Override
-        public boolean childNodeChanged(@Nonnull String name, @Nonnull NodeState before, @Nonnull NodeState after) {
+        public boolean childNodeChanged(@NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
             try {
-                SegmentNodeState compacted = compact(before, after, base.getChildNode(name));
+                SegmentNodeState compacted = compact(before, after, base.getChildNode(name), canceller);
                 if (compacted != null) {
                     updated();
                     builder.setChildNode(name, compacted);
@@ -245,8 +241,8 @@ public class Compactor {
         }
     }
 
-    @Nonnull
-    private  PropertyState compact(@Nonnull PropertyState property) {
+    @NotNull
+    private  PropertyState compact(@NotNull PropertyState property) {
         compactionMonitor.onProperty();
         String name = property.getName();
         Type<?> type = property.getType();

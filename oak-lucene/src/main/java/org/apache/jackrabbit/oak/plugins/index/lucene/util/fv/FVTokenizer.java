@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document.mongo.replica;
+package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import java.io.Reader;
+
+import org.apache.lucene.analysis.util.CharTokenizer;
+import org.apache.lucene.util.Version;
 
 /**
- * Classes implementing this interface will be informed about the current root
- * revision states on secondary instances by {@link ReplicaSetInfo}.
+ * {@link CharTokenizer} which splits at whitespaces and commas
  */
-public interface ReplicaSetInfoListener {
+class FVTokenizer extends CharTokenizer {
+    FVTokenizer(Version matchVersion, Reader input) {
+      super(matchVersion, input);
+    }
 
-    void gotRootRevisions(RevisionVector rootRevision);
-
-}
+    @Override
+    protected boolean isTokenChar(int c) {
+      char c1 = Character.toChars(c)[0];
+      return c1 != ',' && !Character.isWhitespace(c);
+    }
+  }

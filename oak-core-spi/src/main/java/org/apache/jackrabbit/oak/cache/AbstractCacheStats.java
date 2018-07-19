@@ -24,19 +24,18 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base class for providing cache statistic via the {@link CacheStatsMBean}.
  */
 public abstract class AbstractCacheStats extends AnnotatedStandardMBean implements CacheStatsMBean {
 
-    @Nonnull
+    @NotNull
     private final String name;
 
     private CacheStats lastSnapshot =
@@ -46,7 +45,7 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
      * Create a new {@code CacheStatsMBean} for a cache with the given {@code name}.
      * @param name
      */
-    protected AbstractCacheStats(@Nonnull String name) {
+    protected AbstractCacheStats(@NotNull String name) {
         super(CacheStatsMBean.class);
         this.name = checkNotNull(name);
     }
@@ -68,7 +67,7 @@ public abstract class AbstractCacheStats extends AnnotatedStandardMBean implemen
         lastSnapshot = getCurrentStats();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;

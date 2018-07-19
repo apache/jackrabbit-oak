@@ -34,17 +34,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This compactor implementation is aware of the checkpoints in the repository.
@@ -58,21 +56,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * </ul>
  */
 public class CheckpointCompactor {
-    @Nonnull
+    @NotNull
     private final GCMonitor gcListener;
 
-    @Nonnull
+    @NotNull
     private final Map<NodeState, NodeState> cpCache = newHashMap();
 
-    @Nonnull
+    @NotNull
     private final Compactor compactor;
 
-    @Nonnull
+    @NotNull
     private final NodeWriter nodeWriter;
 
     private interface NodeWriter {
-        @Nonnull
-        SegmentNodeState writeNode(@Nonnull NodeState node, @Nullable ByteBuffer stableId) throws IOException;
+        @NotNull
+        SegmentNodeState writeNode(@NotNull NodeState node, @Nullable ByteBuffer stableId) throws IOException;
     }
 
     /**
@@ -80,19 +78,17 @@ public class CheckpointCompactor {
      * @param reader     segment reader used to read from the segments
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
-     * @param cancel     a flag that can be used to cancel the compaction process
      * @param compactionMonitor   notification call back for each compacted nodes,
      *                            properties, and binaries
      */
     public CheckpointCompactor(
-            @Nonnull GCMonitor gcListener,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer,
+            @NotNull GCMonitor gcListener,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
             @Nullable BlobStore blobStore,
-            @Nonnull Supplier<Boolean> cancel,
-            @Nonnull GCNodeWriteMonitor compactionMonitor) {
+            @NotNull GCNodeWriteMonitor compactionMonitor) {
         this.gcListener = gcListener;
-        this.compactor = new Compactor(reader, writer, blobStore, cancel, compactionMonitor);
+        this.compactor = new Compactor(reader, writer, blobStore, compactionMonitor);
         this.nodeWriter = (node, stableId) -> {
             RecordId nodeId = writer.writeNode(node, stableId);
             return new SegmentNodeState(reader, writer, blobStore, nodeId);
@@ -108,19 +104,25 @@ public class CheckpointCompactor {
      * @return  compacted clone of {@code uncompacted} or {@code null} if cancelled.
      * @throws IOException
      */
-    @CheckForNull
+    @Nullable
     public SegmentNodeState compact(
-            @Nonnull NodeState base,
-            @Nonnull NodeState uncompacted,
-            @Nonnull NodeState onto)
-    throws IOException {
+        @NotNull NodeState base,
+        @NotNull NodeState uncompacted,
+        @NotNull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
         // Collect a chronologically ordered list of roots for the uncompacted
         // state. This list consists of all checkpoints followed by the root.
         LinkedHashMap<String, NodeState> uncompactedRoots = collectRoots(uncompacted);
 
         // Compact the list of uncompacted roots to a list of compacted roots.
         LinkedHashMap<String, NodeState> compactedRoots = compact(
-                getRoot(base), uncompactedRoots, getRoot(onto));
+            getRoot(base),
+            uncompactedRoots,
+            getRoot(onto),
+            canceller
+        );
+
         if (compactedRoots == null) {
             return null;
         }
@@ -138,15 +140,15 @@ public class CheckpointCompactor {
         return nodeWriter.writeNode(builder.getNodeState(), getStableIdBytes(uncompacted));
     }
 
-    @CheckForNull
-    private static ByteBuffer getStableIdBytes(@Nonnull NodeState node) {
+    @Nullable
+    private static ByteBuffer getStableIdBytes(@NotNull NodeState node) {
         return node instanceof SegmentNodeState
             ? ((SegmentNodeState) node).getStableIdBytes()
             : null;
     }
 
-    @Nonnull
-    private static NodeState getRoot(@Nonnull NodeState node) {
+    @NotNull
+    private static NodeState getRoot(@NotNull NodeState node) {
         return node.hasChildNode("root")
             ? node.getChildNode("root")
             : EMPTY_NODE;
@@ -156,17 +158,18 @@ public class CheckpointCompactor {
      * Compact a list of uncompacted roots on top of base roots of the same key or
      * an empty node if none.
      */
-    @CheckForNull
+    @Nullable
     private LinkedHashMap<String, NodeState> compact(
-            @Nonnull NodeState base,
-            @Nonnull LinkedHashMap<String, NodeState> uncompactedRoots,
-            @Nonnull NodeState onto)
-    throws IOException {
+        @NotNull NodeState base,
+        @NotNull LinkedHashMap<String, NodeState> uncompactedRoots,
+        @NotNull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
         LinkedHashMap<String, NodeState> compactedRoots = newLinkedHashMap();
         for (Entry<String, NodeState> uncompactedRoot : uncompactedRoots.entrySet()) {
             String path = uncompactedRoot.getKey();
             NodeState uncompacted = uncompactedRoot.getValue();
-            Result result = compactWithCache(base, uncompacted, onto, path);
+            Result result = compactWithCache(base, uncompacted, onto, path, canceller);
             if (result == null) {
                 return null;
             }
@@ -182,7 +185,7 @@ public class CheckpointCompactor {
      * state from a {@code superRoot}. This list consists of all checkpoints followed by
      * the root.
      */
-    @Nonnull
+    @NotNull
     private LinkedHashMap<String, NodeState> collectRoots(@Nullable NodeState superRoot) {
         LinkedHashMap<String, NodeState> roots = newLinkedHashMap();
         if (superRoot != null) {
@@ -207,7 +210,7 @@ public class CheckpointCompactor {
         return roots;
     }
 
-    @Nonnull
+    @NotNull
     private static NodeBuilder getChild(NodeBuilder builder, String path) {
         for (String name : elements(path)) {
             builder = builder.getChildNode(name);
@@ -220,7 +223,7 @@ public class CheckpointCompactor {
             final NodeState nextBefore;
             final NodeState nextOnto;
 
-            Result(@Nonnull NodeState compacted, @Nonnull NodeState nextBefore, @Nonnull NodeState nextOnto) {
+            Result(@NotNull NodeState compacted, @NotNull NodeState nextBefore, @NotNull NodeState nextOnto) {
                 this.compacted = compacted;
                 this.nextBefore = nextBefore;
                 this.nextOnto = nextOnto;
@@ -232,17 +235,18 @@ public class CheckpointCompactor {
      * {@code after} has been compacted before and is found in the cache. In this
      * case the cached version of the previously compacted {@code before} is returned.
      */
-    @CheckForNull
+    @Nullable
     private Result compactWithCache(
-            @Nonnull NodeState before,
-            @Nonnull NodeState after,
-            @Nonnull NodeState onto,
-            @Nonnull String path)
-    throws IOException {
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        @NotNull String path,
+        Canceller canceller
+    ) throws IOException {
         gcListener.info("compacting {}.", path);
         NodeState compacted = cpCache.get(after);
         if (compacted == null) {
-            compacted = compactor.compact(before, after, onto);
+            compacted = compactor.compact(before, after, onto, canceller);
             if (compacted == null) {
                 return null;
             } else {

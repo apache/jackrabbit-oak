@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +137,7 @@ public enum RDBBlobStoreDB {
         return this.description;
     }
 
-    @Nonnull
+    @NotNull
     public static RDBBlobStoreDB getValue(String desc) {
         for (RDBBlobStoreDB db : RDBBlobStoreDB.values()) {
             if (db.description.equals(desc)) {

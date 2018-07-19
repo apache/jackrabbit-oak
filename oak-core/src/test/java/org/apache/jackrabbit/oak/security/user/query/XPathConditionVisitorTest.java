@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import java.util.Iterator;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -60,7 +60,7 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
         return new NamePathMapperImpl(new LocalNameMapper(root, LOCAL));
     }
 
-    private static void reduceCompoundConditionToSingleTerm(@Nonnull Condition.Compound condition) {
+    private static void reduceCompoundConditionToSingleTerm(@NotNull Condition.Compound condition) {
         Iterator<Condition> it = condition.iterator();
         if (it.hasNext()) {
             it.next();

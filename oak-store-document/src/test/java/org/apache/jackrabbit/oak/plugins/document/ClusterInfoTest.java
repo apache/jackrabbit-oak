@@ -50,13 +50,13 @@ public class ClusterInfoTest {
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 setClusterId(1).
                 getNodeStore();
         DocumentNodeStore ns2 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 setClusterId(2).
                 getNodeStore();
         // Bring the current time forward to after the leaseTime which would have been 
@@ -109,7 +109,7 @@ public class ClusterInfoTest {
         DocumentNodeStore ns = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 getNodeStore();
 
         ClusterNodeInfo info = ns.getClusterInfo();
@@ -154,7 +154,7 @@ public class ClusterInfoTest {
                 setDocumentStore(mem).
                 clock(clock).
                 setAsyncDelay(0).
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 getNodeStore();
 
         DocumentStore ds = ns1.getDocumentStore();
@@ -178,7 +178,7 @@ public class ClusterInfoTest {
                 setDocumentStore(mem).
                 clock(clock).
                 setAsyncDelay(0).
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 getNodeStore();
  
         assertEquals("should have re-used existing cluster id", cid, ns1.getClusterId());

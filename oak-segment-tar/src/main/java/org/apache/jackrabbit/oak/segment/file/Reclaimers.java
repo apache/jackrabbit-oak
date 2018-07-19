@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper class exposing static factories for reclaimers. A reclaimer
@@ -59,8 +58,8 @@ class Reclaimers {
      * @param retainedGenerations  number of generations to retain.
      */
     static Predicate<GCGeneration> newOldReclaimer(
-            @Nonnull GCType lastGCType,
-            @Nonnull final GCGeneration referenceGeneration,
+            @NotNull GCType lastGCType,
+            @NotNull final GCGeneration referenceGeneration,
             int retainedGenerations) {
 
         switch (checkNotNull(lastGCType)) {
@@ -74,7 +73,7 @@ class Reclaimers {
     }
 
     private static Predicate<GCGeneration> newOldFullReclaimer(
-            @Nonnull final GCGeneration referenceGeneration,
+            @NotNull final GCGeneration referenceGeneration,
             int retainedGenerations) {
         return new Predicate<GCGeneration>() {
 
@@ -104,7 +103,7 @@ class Reclaimers {
     }
 
     private static Predicate<GCGeneration> newOldTailReclaimer(
-            @Nonnull final GCGeneration referenceGeneration,
+            @NotNull final GCGeneration referenceGeneration,
             int retainedGenerations) {
         return new Predicate<GCGeneration>() {
 
@@ -141,7 +140,7 @@ class Reclaimers {
      * @return  an new instance of an exact reclaimer for segments with their generation
      *          matching {@code referenceGeneration}.
      */
-    static Predicate<GCGeneration> newExactReclaimer(@Nonnull final GCGeneration referenceGeneration) {
+    static Predicate<GCGeneration> newExactReclaimer(@NotNull final GCGeneration referenceGeneration) {
         return new Predicate<GCGeneration>() {
             @Override
             public boolean apply(GCGeneration generation) {

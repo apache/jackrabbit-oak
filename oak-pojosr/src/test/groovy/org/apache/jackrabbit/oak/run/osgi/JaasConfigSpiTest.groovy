@@ -27,7 +27,6 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
-import javax.annotation.Nonnull
 import javax.jcr.Credentials
 import javax.jcr.Session
 import javax.jcr.SimpleCredentials
@@ -86,7 +85,6 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         private Set<? extends Principal> principals;
         private String userId;
 
-        @Nonnull
         @Override
         protected Set<Class> getSupportedCredentials() {
             return ImmutableSet.of(SimpleCredentials.class)

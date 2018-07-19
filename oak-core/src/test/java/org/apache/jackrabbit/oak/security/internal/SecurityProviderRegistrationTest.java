@@ -20,8 +20,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -75,7 +74,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
     private SecurityProviderRegistration registration = new SecurityProviderRegistration();
 
-    private static void assertContext(@Nonnull Context context, int expectedSize, @Nonnull Tree tree, boolean isDefined) throws Exception {
+    private static void assertContext(@NotNull Context context, int expectedSize, @NotNull Tree tree, boolean isDefined) throws Exception {
         Class<?> c = context.getClass();
         assertTrue(c.getName().endsWith("CompositeContext"));
 
@@ -101,7 +100,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         return sc;
     }
 
-    private static SecurityProviderRegistration.Configuration configWithRequiredServiceIds(@Nonnull String... ids) {
+    private static SecurityProviderRegistration.Configuration configWithRequiredServiceIds(@NotNull String... ids) {
         return new SecurityProviderRegistration.Configuration() {
             @Override
             public Class<? extends Annotation> annotationType() { return SecurityProviderRegistration.Configuration.class; }
@@ -607,27 +606,27 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
     private static class ContextImpl implements Context {
 
         @Override
-        public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+        public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
             return true;
         }
 
         @Override
-        public boolean definesContextRoot(@Nonnull Tree tree) {
+        public boolean definesContextRoot(@NotNull Tree tree) {
             return true;
         }
 
         @Override
-        public boolean definesTree(@Nonnull Tree tree) {
+        public boolean definesTree(@NotNull Tree tree) {
             return true;
         }
 
         @Override
-        public boolean definesLocation(@Nonnull TreeLocation location) {
+        public boolean definesLocation(@NotNull TreeLocation location) {
             return true;
         }
 
         @Override
-        public boolean definesInternal(@Nonnull Tree tree) {
+        public boolean definesInternal(@NotNull Tree tree) {
             return true;
         }
     }

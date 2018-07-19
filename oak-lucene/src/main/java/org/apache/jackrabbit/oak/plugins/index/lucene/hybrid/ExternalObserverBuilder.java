@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -30,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +71,7 @@ public class ExternalObserverBuilder {
     private static class WarningObserver extends BackgroundObserver {
         private final int queueLength;
 
-        public WarningObserver(@Nonnull Observer observer, @Nonnull Executor executor, int queueLength) {
+        public WarningObserver(@NotNull Observer observer, @NotNull Executor executor, int queueLength) {
             super(observer, executor, queueLength);
             this.queueLength = queueLength;
         }
@@ -97,7 +96,7 @@ public class ExternalObserverBuilder {
         }
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
             //TODO Optimize for the case where new async index update is detected. Then
             //existing items in queue should not be processed
 

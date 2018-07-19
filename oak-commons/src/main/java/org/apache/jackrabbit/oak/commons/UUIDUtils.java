@@ -17,20 +17,20 @@
 package org.apache.jackrabbit.oak.commons;
 
 import java.util.UUID;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
+
+import org.jetbrains.annotations.NotNull;
 
 public final class UUIDUtils {
 
     private UUIDUtils() {}
 
-    @Nonnull
+    @NotNull
     public static String generateUUID() {
         return UUID.randomUUID().toString();
     }
 
-    @Nonnull
+    @NotNull
     public static String generateUUID(String hint) {
         UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(Charsets.UTF_8));
         return uuid.toString();

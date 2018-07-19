@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An implementation of a record number to offset table that assumes that a
@@ -36,7 +36,7 @@ class IdentityRecordNumbers implements RecordNumbers {
         return recordNumber;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<Entry> iterator() {
         throw new UnsupportedOperationException("invalid usage of the record-number-to-offset table");

@@ -17,14 +17,13 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation of the {@link RestrictionPattern} interface that returns
@@ -42,7 +41,7 @@ class ItemNamePattern implements RestrictionPattern {
     }
 
     @Override
-    public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+    public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
         if (property != null) {
             return names.contains(property.getName());
         } else {
@@ -51,7 +50,7 @@ class ItemNamePattern implements RestrictionPattern {
     }
 
     @Override
-    public boolean matches(@Nonnull String path) {
+    public boolean matches(@NotNull String path) {
         return (PathUtils.denotesRoot(path) ? false : names.contains(PathUtils.getName(path)));
     }
 

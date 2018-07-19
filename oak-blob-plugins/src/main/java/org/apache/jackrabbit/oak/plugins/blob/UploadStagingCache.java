@@ -32,8 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
@@ -58,6 +56,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -294,14 +293,10 @@ public class UploadStagingCache implements Closeable {
         if (((ignoreSize && currentSize.addAndGet(length) >= 0)
                 || currentSize.addAndGet(length) <= size)
             && !attic.containsKey(id)
+            && existsOrNotExistsMoveFile(input, uploadFile, currentSize, length)
             && map.putIfAbsent(id, uploadFile) == null ) {
 
             try {
-                if (!uploadFile.exists()) {
-                    FileUtils.moveFile(input, uploadFile);
-                    LOG.trace("File [{}] moved to staging cache [{}]", input, uploadFile);
-                }
-
                 // update stats
                 cacheStats.markHit();
                 cacheStats.incrementCount();
@@ -326,6 +321,23 @@ public class UploadStagingCache implements Closeable {
             }
         }
         return Optional.absent();
+    }
+
+    private synchronized boolean existsOrNotExistsMoveFile(File source, File destination, AtomicLong currentSize,
+        long length) {
+        if (!destination.exists()) {
+            try {
+                uploader.adopt(source, destination);
+                LOG.trace("Moved file to staging");
+            } catch (IOException e) {
+                LOG.info("Error moving file to staging", e);
+                currentSize.addAndGet(-length);
+                return false;
+            }
+            LOG.trace("File [{}] moved to staging cache [{}]", source, destination);
+            return true;
+        }
+        return true;
     }
 
     /**
@@ -809,4 +821,6 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
  */
 interface StagingUploader {
     void write(String id, File f) throws DataStoreException;
+
+    void adopt(File f, File moved) throws IOException;
 }

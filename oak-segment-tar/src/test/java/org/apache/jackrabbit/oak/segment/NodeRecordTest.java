@@ -26,13 +26,12 @@ import static org.junit.Assert.assertNotNull;
 
 import java.nio.ByteBuffer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -176,19 +175,19 @@ public class NodeRecordTest {
 
             WriterCacheManager defaultCache = new WriterCacheManager.Default();
 
-            @Nonnull
+            @NotNull
             @Override
             public Cache<String, RecordId> getStringCache(int generation) {
                 return Empty.INSTANCE.getStringCache(generation);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Cache<Template, RecordId> getTemplateCache(int generation) {
                 return Empty.INSTANCE.getTemplateCache(generation);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Cache<String, RecordId> getNodeCache(int generation) {
                 return defaultCache.getNodeCache(generation);

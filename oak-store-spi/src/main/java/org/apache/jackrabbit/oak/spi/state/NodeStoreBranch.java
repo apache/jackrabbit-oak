@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An instance of this class represents a private branch of the tree in a
@@ -36,7 +35,7 @@ public interface NodeStoreBranch {
      *
      * @return root node state
      */
-    @Nonnull
+    @NotNull
     NodeState getBase();
 
     /**
@@ -48,7 +47,7 @@ public interface NodeStoreBranch {
      * @return root node state
      * @throws IllegalStateException if the branch is already merged
      */
-    @Nonnull
+    @NotNull
     NodeState getHead();
 
     /**
@@ -70,8 +69,8 @@ public interface NodeStoreBranch {
      * @throws CommitFailedException if the merge failed
      * @throws IllegalStateException if the branch is already merged
      */
-    @Nonnull
-    NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    @NotNull
+    NodeState merge(@NotNull CommitHook hook, @NotNull CommitInfo info)
             throws CommitFailedException;
 
     /**

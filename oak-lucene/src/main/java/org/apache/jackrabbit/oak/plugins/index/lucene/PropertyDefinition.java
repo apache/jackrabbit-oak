@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcesso
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +58,7 @@ public class PropertyDefinition {
      * property etc then it should be defined via 'name' property in NodeState.
      * In such case NodeState name can be set to anything
      */
-    final String name;
+    public final String name;
 
     private final int propertyType;
     /**
@@ -104,7 +104,7 @@ public class PropertyDefinition {
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
      */
-    @CheckForNull
+    @Nullable
     final String nonRelativeName;
 
     /**
@@ -123,7 +123,9 @@ public class PropertyDefinition {
 
     public final boolean unique;
 
-    public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
+    public boolean useInSimilarity;
+
+  public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
@@ -151,6 +153,7 @@ public class PropertyDefinition {
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
         this.useInSuggest = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.useInSimilarity = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SIMILARITY, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);

@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplif
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -40,6 +37,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, ThreeRolesConstants {
 
@@ -58,9 +57,9 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     private Root readOnlyRoot;
 
-    ThreeRolesPermissionProvider(@Nonnull Root root, Set<Principal> principals,
-                                 @Nonnull String supportedPath, @Nonnull Context ctx,
-                                 @Nonnull RootProvider rootProvider) {
+    ThreeRolesPermissionProvider(@NotNull Root root, Set<Principal> principals,
+                                 @NotNull String supportedPath, @NotNull Context ctx,
+                                 @NotNull RootProvider rootProvider) {
         this.root = root;
         this.principalNames = ImmutableSet.copyOf(Iterables.transform(principals, (Function<Principal, String>) Principal::getName));
         this.supportedPath = supportedPath;
@@ -70,7 +69,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         this.readOnlyRoot = rootProvider.createReadOnlyRoot(root);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
         if (tree == null) {
@@ -108,7 +107,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+    public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
         long supported = permissions & SUPPORTED_PERMISSIONS;
         if (supported != Permissions.NO_PERMISSION && Utils.isSupportedPath(supportedPath, location.getPath())) {
             return supported;
@@ -118,7 +117,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         long supported = permissions & SUPPORTED_PERMISSIONS;
         if (supported != Permissions.NO_PERMISSION && (treePermission instanceof ThreeRolesTreePermission)) {
             return supported;
@@ -128,7 +127,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+    public boolean isGranted(@NotNull TreeLocation location, long permissions) {
         if (Utils.isSupportedPath(supportedPath, location.getPath())) {
             TreePermission tp = getTreePermission(location);
 
@@ -139,9 +138,9 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
         // EXERCISE : currently this implementation ignores TreeType -> complete implementation
         return getTreePermission(tree, parentPermission);
     }
@@ -152,7 +151,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree != null) {
@@ -166,19 +165,19 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         return getPrivileges(tree).containsAll(ImmutableSet.copyOf(privilegeNames));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         if (parentPermission instanceof ThreeRolesTreePermission) {
             // nested policies are not supported => within a given tree defined
             // by a ThreeRolePolicy all items share the same permission setup.
@@ -201,7 +200,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         if (Utils.isSupportedPath(supportedPath, tree.getPath())) {
             TreePermission tp = getTreePermission(tree);
             return (property == null) ? tp.isGranted(permissions) : tp.isGranted(permissions, property);
@@ -211,7 +210,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         TreeLocation tl = TreeLocation.create(readOnlyRoot, oakPath);
         long permissions = Permissions.getPermissions(jcrActions, tl, ctx.definesLocation(tl));
 
@@ -220,11 +219,11 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     //--------------------------------------------------------------------------
 
-    private boolean isAncestor(@Nonnull String path) {
+    private boolean isAncestor(@NotNull String path) {
         return Text.isDescendant(path, supportedPath);
     }
 
-    private Role getRole(@Nonnull Tree tree) {
+    private Role getRole(@NotNull Tree tree) {
         Tree policy = tree.getChild(REP_3_ROLES_POLICY);
         if (policy.exists()) {
             if (containsAny(policy, REP_OWNERS)) {
@@ -238,7 +237,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         return Role.NONE;
     }
 
-    private boolean containsAny(@Nonnull Tree policyTree, @Nonnull String propName) {
+    private boolean containsAny(@NotNull Tree policyTree, @NotNull String propName) {
         Iterable<String> names = TreeUtil.getStrings(policyTree, propName);
         if (names != null) {
             for (String principalName : names) {
@@ -250,7 +249,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         return false;
     }
 
-    private Tree getReadOnlyTree(@Nonnull Tree tree) {
+    private Tree getReadOnlyTree(@NotNull Tree tree) {
         if (tree instanceof ReadOnly) {
             return tree;
         } else {
@@ -258,7 +257,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         }
     }
 
-    private TreePermission getTreePermission(@Nonnull Tree readOnlyTree) {
+    private TreePermission getTreePermission(@NotNull Tree readOnlyTree) {
         Tree t = readOnlyTree;
         while (Utils.isSupportedPath(supportedPath, t.getPath())) {
             if (t.hasChild(REP_3_ROLES_POLICY)) {
@@ -269,7 +268,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
         return TreePermission.EMPTY;
     }
 
-    private TreePermission getTreePermission(@Nonnull TreeLocation location) {
+    private TreePermission getTreePermission(@NotNull TreeLocation location) {
         TreeLocation l = location;
         while (Utils.isSupportedPath(supportedPath, l.getPath())) {
             Tree tree = location.getTree();

@@ -19,21 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 
 public interface OakIndexFile {
     static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
-                                        @Nonnull BlobFactory blobFactory) {
+                                        @NotNull BlobFactory blobFactory) {
         return getOakIndexFile(name, file, dirDetails, blobFactory, false);
     }
 
     static OakIndexFile getOakIndexFile(String name, NodeBuilder file, String dirDetails,
-                                        @Nonnull BlobFactory blobFactory, boolean streamingWriteEnabled) {
+                                        @NotNull BlobFactory blobFactory, boolean streamingWriteEnabled) {
 
         boolean useStreaming;
         PropertyState property = file.getProperty(JCR_DATA);

@@ -38,5 +38,7 @@ public interface RevisionGCStatsCollector {
 
     void deletedOnceFlagReset();
 
+    void started();
+
     void finished(VersionGCStats stats);
 }

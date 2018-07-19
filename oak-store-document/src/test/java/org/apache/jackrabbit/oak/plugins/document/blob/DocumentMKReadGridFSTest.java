@@ -19,11 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document.blob;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
-import junit.framework.Assert;
-
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
@@ -55,23 +56,23 @@ public class DocumentMKReadGridFSTest extends AbstractMongoConnectionTest {
         // Complete read.
         byte[] buffer = new byte[blob.length];
         int totalBytes = mk.read(blobId, 0, buffer, 0, blob.length);
-        Assert.assertEquals(blob.length, totalBytes);
-        Assert.assertTrue(Arrays.equals(blob, buffer));
+        assertEquals(blob.length, totalBytes);
+        assertTrue(Arrays.equals(blob, buffer));
 
         // Range end from end.
         buffer = new byte[blob.length / 2];
         totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
-        Assert.assertEquals(blob.length / 2, totalBytes);
+        assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
-            Assert.assertEquals(blob[((blob.length / 2) - 1) + i], buffer[i]);
+            assertEquals(blob[((blob.length / 2) - 1) + i], buffer[i]);
         }
 
         // Range from start.
         buffer = new byte[blob.length / 2];
         totalBytes = mk.read(blobId, 0, buffer, 0, blob.length / 2);
-        Assert.assertEquals(blob.length / 2, totalBytes);
+        assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
-            Assert.assertEquals(blob[i], buffer[i]);
+            assertEquals(blob[i], buffer[i]);
         }
     }
 

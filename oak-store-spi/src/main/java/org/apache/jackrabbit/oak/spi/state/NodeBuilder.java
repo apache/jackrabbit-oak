@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.spi.state;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
@@ -79,7 +78,7 @@ public interface NodeBuilder {
      *
      * @return immutable node state
      */
-    @Nonnull
+    @NotNull
     NodeState getNodeState();
 
     /**
@@ -90,7 +89,7 @@ public interface NodeBuilder {
      *
      * @return base node state, possibly non-existent
      */
-    @Nonnull
+    @NotNull
     NodeState getBaseState();
 
     /**
@@ -158,7 +157,7 @@ public interface NodeBuilder {
      *
      * @return child node names
      */
-    @Nonnull
+    @NotNull
     Iterable<String> getChildNodeNames();
 
     /**
@@ -168,7 +167,7 @@ public interface NodeBuilder {
      * @return {@code true} if the named child node exists,
      *         {@code false} otherwise
      */
-    boolean hasChildNode(@Nonnull String name);
+    boolean hasChildNode(@NotNull String name);
 
     /**
      * Returns a builder for constructing changes to the named child node.
@@ -193,8 +192,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    NodeBuilder child(@Nonnull String name) throws IllegalArgumentException;
+    @NotNull
+    NodeBuilder child(@NotNull String name) throws IllegalArgumentException;
 
     /**
      * Returns a builder for constructing changes to the named child node.
@@ -208,8 +207,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    NodeBuilder getChildNode(@Nonnull String name)
+    @NotNull
+    NodeBuilder getChildNode(@NotNull String name)
             throws IllegalArgumentException;
 
     /**
@@ -222,8 +221,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    NodeBuilder setChildNode(@Nonnull String name)
+    @NotNull
+    NodeBuilder setChildNode(@NotNull String name)
             throws IllegalArgumentException;
 
     /**
@@ -235,8 +234,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState)
+    @NotNull
+    NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState nodeState)
             throws IllegalArgumentException;
 
     /**
@@ -267,7 +266,7 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName)
+    boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName)
             throws IllegalArgumentException;
 
     /**
@@ -282,7 +281,7 @@ public interface NodeBuilder {
      *
      * @return current properties
      */
-    @Nonnull
+    @NotNull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -303,7 +302,7 @@ public interface NodeBuilder {
      * @param name property name
      * @return property state
      */
-    @CheckForNull
+    @Nullable
     PropertyState getProperty(String name);
 
     /**
@@ -321,7 +320,7 @@ public interface NodeBuilder {
      * @param name property name
      * @return boolean value of the named property, or {@code false}
      */
-    boolean getBoolean(@Nonnull String name);
+    boolean getBoolean(@NotNull String name);
 
     /**
      * Returns the name value of the named property. The implementation
@@ -340,7 +339,7 @@ public interface NodeBuilder {
      * @param name property name
      * @return string value of the named property, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     String getString(String name);
 
     /**
@@ -360,8 +359,8 @@ public interface NodeBuilder {
      * @param name property name
      * @return name value of the named property, or {@code null}
      */
-    @CheckForNull
-    String getName(@Nonnull String name);
+    @Nullable
+    String getName(@NotNull String name);
 
     /**
      * Returns the name values of the named property. The implementation
@@ -380,8 +379,8 @@ public interface NodeBuilder {
      * @param name property name
      * @return name values of the named property, or an empty collection
      */
-    @Nonnull
-    Iterable<String> getNames(@Nonnull String name);
+    @NotNull
+    Iterable<String> getNames(@NotNull String name);
 
     /**
      * Set a property state
@@ -390,8 +389,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the property name is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    NodeBuilder setProperty(@Nonnull PropertyState property)
+    @NotNull
+    NodeBuilder setProperty(@NotNull PropertyState property)
             throws IllegalArgumentException;
 
     /**
@@ -402,8 +401,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if {@code T} is not one of the above types, or if the property name is empty or contains the forward slash character
      * @return this builder
      */
-    @Nonnull
-    <T> NodeBuilder setProperty(String name, @Nonnull T value)
+    @NotNull
+    <T> NodeBuilder setProperty(String name, @NotNull T value)
             throws IllegalArgumentException;
 
     /**
@@ -415,8 +414,8 @@ public interface NodeBuilder {
      * @throws IllegalArgumentException if the property name is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
-    <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type)
+    @NotNull
+    <T> NodeBuilder setProperty(String name, @NotNull T value, Type<T> type)
             throws IllegalArgumentException;
 
     /**
@@ -424,7 +423,7 @@ public interface NodeBuilder {
     * property of the given {@code name} does not exist.
     * @param name  name of the property
     */
-    @Nonnull
+    @NotNull
     NodeBuilder removeProperty(String name);
 
     Blob createBlob(InputStream stream) throws IOException;

@@ -32,8 +32,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.tool.iotrace.DepthFirstTrace;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTracer;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.RandomAccessTrace;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.Trace;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility class for running the various {@link Trace} implementations.
@@ -53,13 +52,13 @@ public enum Traces {
      * Utility for running a {@link DepthFirstTrace depth first trace}.
      */
     DEPTH {
-        @Nonnull
+        @NotNull
         private String path = DEFAULT_PATH;
 
         private int depth = DEFAULT_DEPTH;
 
         @Override
-        void setPath(@Nonnull String path) {
+        void setPath(@NotNull String path) {
             this.path = path;
         }
 
@@ -75,10 +74,10 @@ public enum Traces {
 
         @Override
         void collectIOTrace(
-                @Nonnull File segmentStore,
+                @NotNull File segmentStore,
                 boolean mmap,
                 int segmentCacheSize,
-                @Nonnull File output)
+                @NotNull File output)
         throws IOException {
             try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(output, true)))) {
                 Function<IOMonitor, FileStore> factory = ioMonitor ->
@@ -99,13 +98,13 @@ public enum Traces {
      * Utility for running a {@link BreadthFirstTrace breadth first trace}.
      */
     BREADTH {
-        @Nonnull
+        @NotNull
         private String path = DEFAULT_PATH;
 
         private int depth = DEFAULT_DEPTH;
 
         @Override
-        void setPath(@Nonnull String path) {
+        void setPath(@NotNull String path) {
             this.path = path;
         }
 
@@ -121,10 +120,10 @@ public enum Traces {
 
         @Override
         void collectIOTrace(
-                @Nonnull File segmentStore,
+                @NotNull File segmentStore,
                 boolean mmap,
                 int segmentCacheSize,
-                @Nonnull File output)
+                @NotNull File output)
         throws IOException {
             try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(output, true)))) {
                 Function<IOMonitor, FileStore> factory = ioMonitor ->
@@ -144,13 +143,13 @@ public enum Traces {
      * Utility for running a {@link RandomAccessTrace random access trace}.
      */
     RANDOM {
-        @Nonnull
+        @NotNull
         private List<String> paths = emptyList();
         private long seed = DEFAULT_SEED;
         private int count = DEFAULT_COUNT;
 
         @Override
-        void setPaths(@Nonnull File paths) throws IOException {
+        void setPaths(@NotNull File paths) throws IOException {
             this.paths = readAllLines(Paths.get(paths.toURI()));
         }
 
@@ -170,8 +169,8 @@ public enum Traces {
         }
 
         @Override
-        void collectIOTrace(@Nonnull File segmentStore, boolean mmap, int segmentCacheSize,
-                                   @Nonnull File output)
+        void collectIOTrace(@NotNull File segmentStore, boolean mmap, int segmentCacheSize,
+                                   @NotNull File output)
         throws IOException {
             try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(output, true)))) {
                 Function<IOMonitor, FileStore> factory = ioMonitor ->
@@ -190,7 +189,7 @@ public enum Traces {
     /**
      * Default path to the node from where to start tracing.
      */
-    @Nonnull
+    @NotNull
     static final String DEFAULT_PATH = "/root";
 
     /**
@@ -214,7 +213,7 @@ public enum Traces {
      * @see BreadthFirstTrace
      * @see DepthFirstTrace
      */
-    void setPath(@Nonnull String path) {}
+    void setPath(@NotNull String path) {}
 
     /**
      * Set the maximal depth
@@ -230,7 +229,7 @@ public enum Traces {
      * @throws IOException
      * @see RandomAccessTrace
      */
-    void setPaths(@Nonnull File paths) throws IOException {}
+    void setPaths(@NotNull File paths) throws IOException {}
 
     /**
      * Set the seed used to randomly pick paths
@@ -258,13 +257,13 @@ public enum Traces {
      * @throws IOException
      */
     abstract void collectIOTrace(
-            @Nonnull File segmentStore,
+            @NotNull File segmentStore,
             boolean mmap,
             int segmentCacheSize,
-            @Nonnull File output)
+            @NotNull File output)
     throws IOException, InvalidFileStoreVersionException;
 
-    @Nonnull
+    @NotNull
     private static FileStore newFileStore(FileStoreBuilder fileStoreBuilder) {
         try {
             return fileStoreBuilder.build();

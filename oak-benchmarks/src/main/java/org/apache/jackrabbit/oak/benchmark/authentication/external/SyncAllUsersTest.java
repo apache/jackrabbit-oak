@@ -20,13 +20,13 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Benchmark for {@link SynchronizationMBean#syncAllUsers(boolean)}
@@ -37,7 +37,7 @@ public class SyncAllUsersTest extends AbstractExternalTest {
     private SynchronizationMBean bean;
 
     public SyncAllUsersTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
-            @Nonnull List<String> autoMembership) {
+            @NotNull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
         if (dynamicMembership) {
             expectedUpdates = numberOfUsers;

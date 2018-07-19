@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 final class MountUtils {
 
     private MountUtils() {}
 
-    static AuthorizationConfiguration bindMountInfoProvider(@Nonnull SecurityProvider securityProvider, @Nonnull MountInfoProvider mountInfoProvider) {
+    static AuthorizationConfiguration bindMountInfoProvider(@NotNull SecurityProvider securityProvider, @NotNull MountInfoProvider mountInfoProvider) {
         AuthorizationConfiguration acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
                 Assert.assertTrue(acConfig instanceof CompositeAuthorizationConfiguration);
                 ((AuthorizationConfigurationImpl) ((CompositeAuthorizationConfiguration) acConfig).getDefaultConfig())

@@ -29,8 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
@@ -39,9 +37,11 @@ import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.GarbageCollectionStrategy.SuccessfulGarbageCollectionListener;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
 
 class GarbageCollector {
 
@@ -58,16 +58,16 @@ class GarbageCollector {
      */
     private static final long GC_BACKOFF = getInteger("oak.gc.backoff", 10 * 3600 * 1000);
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
 
     /**
      * {@code GcListener} listening to this instance's gc progress
      */
-    @Nonnull
+    @NotNull
     private final PrefixedGCListener gcListener;
 
-    @Nonnull
+    @NotNull
     private final GCJournal gcJournal;
 
     private final AtomicBoolean sufficientMemory;
@@ -90,13 +90,14 @@ class GarbageCollector {
 
     private final FileStoreStats stats;
 
-    private final CancelCompactionSupplier cancel;
+    private final Canceller cancel;
 
     private final Flusher flusher;
 
     private final SegmentWriterFactory segmentWriterFactory;
 
     private final GCNodeWriteMonitor compactionMonitor;
+
 
     /**
      * Timestamp of the last time full or tail compaction was successfully
@@ -112,6 +113,8 @@ class GarbageCollector {
      */
     private SegmentGCOptions.GCType lastCompactionType = FULL;
 
+    private volatile boolean cancelRequested;
+
     GarbageCollector(
         SegmentGCOptions gcOptions,
         GCListener gcListener,
@@ -126,7 +129,7 @@ class GarbageCollector {
         SegmentCache segmentCache,
         SegmentWriter segmentWriter,
         FileStoreStats stats,
-        CancelCompactionSupplier cancel,
+        Canceller canceller,
         Flusher flusher,
         SegmentWriterFactory segmentWriterFactory
     ) {
@@ -143,7 +146,7 @@ class GarbageCollector {
         this.segmentCache = segmentCache;
         this.segmentWriter = segmentWriter;
         this.stats = stats;
-        this.cancel = cancel;
+        this.cancel = canceller.withCondition("cancelled by user", () -> cancelRequested);
         this.flusher = flusher;
         this.segmentWriterFactory = segmentWriterFactory;
         this.compactionMonitor = new GCNodeWriteMonitor(gcOptions.getGcLogInterval(), gcListener);
@@ -201,7 +204,7 @@ class GarbageCollector {
             }
 
             @Override
-            public CancelCompactionSupplier getCanceller() {
+            public Canceller getCanceller() {
                 return cancel;
             }
 
@@ -274,26 +277,32 @@ class GarbageCollector {
     }
 
     synchronized void run(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         strategy.collectGarbage(newGarbageCollectionContext(GC_COUNT.incrementAndGet()));
     }
 
     synchronized void runFull(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         strategy.collectFullGarbage(newGarbageCollectionContext(GC_COUNT.incrementAndGet()));
     }
 
     synchronized void runTail(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         strategy.collectTailGarbage(newGarbageCollectionContext(GC_COUNT.incrementAndGet()));
     }
 
     synchronized CompactionResult compactFull(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         return strategy.compactFull(newGarbageCollectionContext(GC_COUNT.get()));
     }
 
     synchronized CompactionResult compactTail(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         return strategy.compactTail(newGarbageCollectionContext(GC_COUNT.get()));
     }
 
     synchronized List<String> cleanup(GarbageCollectionStrategy strategy) throws IOException {
+        cancelRequested = false;
         return strategy.cleanup(newGarbageCollectionContext(GC_COUNT.get()));
     }
 
@@ -317,7 +326,7 @@ class GarbageCollector {
     }
 
     void cancel() {
-        cancel.cancel();
+        cancelRequested = true;
     }
 
 }

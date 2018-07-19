@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Callback implementation to retrieve {@code Credentials}.
@@ -33,7 +34,7 @@ public class CredentialsCallback implements Callback {
      *
      * @return The {@link Credentials} to be used for authentication or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     public Credentials getCredentials() {
         return credentials;
     }

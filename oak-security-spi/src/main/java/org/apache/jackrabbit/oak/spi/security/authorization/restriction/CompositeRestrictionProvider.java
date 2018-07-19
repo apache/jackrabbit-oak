@@ -25,8 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
@@ -34,6 +32,8 @@ import javax.jcr.security.AccessControlException;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Aggregates of a collection of {@link RestrictionProvider} implementations
@@ -43,15 +43,15 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
 
     private final RestrictionProvider[] providers;
 
-    private CompositeRestrictionProvider(@Nonnull Collection<? extends RestrictionProvider> providers) {
+    private CompositeRestrictionProvider(@NotNull Collection<? extends RestrictionProvider> providers) {
         this.providers = providers.toArray(new RestrictionProvider[providers.size()]);
     }
 
-    public static RestrictionProvider newInstance(@Nonnull RestrictionProvider... providers) {
+    public static RestrictionProvider newInstance(@NotNull RestrictionProvider... providers) {
         return newInstance(Arrays.asList(providers));
     }
 
-    public static RestrictionProvider newInstance(@Nonnull Collection<? extends RestrictionProvider> providers) {
+    public static RestrictionProvider newInstance(@NotNull Collection<? extends RestrictionProvider> providers) {
         switch (providers.size()) {
             case 0: return EMPTY;
             case 1: return providers.iterator().next();
@@ -59,7 +59,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         Set<RestrictionDefinition> defs = Sets.newHashSet();
@@ -69,21 +69,21 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         return defs;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, value);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, values);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+    public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
         Set<Restriction> restrictions = Sets.newHashSet();
         for (RestrictionProvider rp : providers) {
             restrictions.addAll(rp.readRestrictions(oakPath, aceTree));
@@ -100,7 +100,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
         Map<String,RestrictionDefinition> supported = getSupported(oakPath);
         Set<String> rNames = new HashSet<String>();
         for (Restriction r : readRestrictions(oakPath, aceTree)) {
@@ -124,15 +124,15 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
         return getPattern(oakPath, readRestrictions(oakPath, tree));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
         List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>();
         for (RestrictionProvider rp : providers) {
             RestrictionPattern pattern = rp.getPattern(oakPath, restrictions);
@@ -144,7 +144,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     //------------------------------------------------------------< private >---
-    private RestrictionProvider getProvider(@Nullable String oakPath, @Nonnull String oakName) throws AccessControlException {
+    private RestrictionProvider getProvider(@Nullable String oakPath, @NotNull String oakName) throws AccessControlException {
         for (RestrictionProvider rp : providers) {
             for (RestrictionDefinition def : rp.getSupportedRestrictions(oakPath)) {
                 if (def.getName().equals(oakName)) {

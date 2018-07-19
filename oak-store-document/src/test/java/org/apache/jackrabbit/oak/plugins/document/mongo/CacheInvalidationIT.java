@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -203,7 +204,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
                           //Set delay to 0 so that effect of changes are immediately reflected
                           .setAsyncDelay(0)
                           .setBundlingDisabled(true)
-                          .setLeaseCheck(false)
+                          .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                           .getNodeStore();
         // enforce primary read preference, otherwise test fails on a replica
         // set with a read preference configured to secondary.

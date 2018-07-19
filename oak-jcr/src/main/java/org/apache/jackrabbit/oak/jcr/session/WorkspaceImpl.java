@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -86,19 +86,19 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
             }
 
             @Override
-            @Nonnull
+            @NotNull
             protected ValueFactory getValueFactory() {
                 return sessionContext.getValueFactory();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return sessionContext;
@@ -108,7 +108,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     //----------------------------------------------------------< Workspace >---
     @Override
-    @Nonnull
+    @NotNull
     public Session getSession() {
         return sessionContext.getSession();
     }

@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
@@ -34,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBRow;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
         RDBOptions opt = new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
         store = new TestStore(dataSource, builder, opt);
-        mk = builder.setDocumentStore(store).setLeaseCheck(false).open();
+        mk = builder.setDocumentStore(store).setLeaseCheckMode(LeaseCheckMode.DISABLED).open();
     }
 
     @Test
@@ -107,7 +107,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         }
 
         @Override
-        protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nullable RDBRow row) {
+        protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection, @Nullable RDBRow row) {
             Semaphore s = semaphores.get(Thread.currentThread());
             if (s != null) {
                 s.acquireUninterruptibly();

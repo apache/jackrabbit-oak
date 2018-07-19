@@ -27,8 +27,6 @@ import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -66,6 +64,8 @@ import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -77,10 +77,10 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     private final Root root;
     private final NamePathMapper namePathMapper;
 
-    @Nonnull
+    @NotNull
     private final BlobDirectAccessProvider blobDirectAccessProvider;
 
-    public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+    public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper,
                             @Nullable BlobDirectAccessProvider blobDirectAccessProvider) {
         this.root = checkNotNull(root);
         this.namePathMapper = checkNotNull(namePathMapper);
@@ -96,7 +96,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         this(root, namePathMapper, null);
     }
 
@@ -120,8 +120,8 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
      * @return  New {@code Value} instance
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
-    @Nonnull
-    public static Value createValue(@Nonnull PropertyValue property, @Nonnull NamePathMapper namePathMapper) {
+    @NotNull
+    public static Value createValue(@NotNull PropertyValue property, @NotNull NamePathMapper namePathMapper) {
         PropertyState ps = PropertyValues.create(property);
         if (ps == null) {
             throw new IllegalArgumentException("Failed to convert the specified property value to a property state.");

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Strings;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +88,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
     private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(new PropertyIndexProvider(),
             new NodeTypeIndexProvider());
 
-    UserInitializer(@Nonnull SecurityProvider securityProvider) {
+    UserInitializer(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 

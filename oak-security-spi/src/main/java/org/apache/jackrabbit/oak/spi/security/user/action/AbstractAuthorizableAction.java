@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,6 +25,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract implementation of the {@code AuthorizableAction} interface that
@@ -48,7 +48,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      * Doesn't perform any action.
      */
     @Override
-    public void onCreate(@Nonnull Group group, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -56,7 +56,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      * Doesn't perform any action.
      */
     @Override
-    public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -64,7 +64,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      * Doesn't perform any action.
      */
     @Override
-    public void onRemove(@Nonnull Authorizable authorizable, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -72,7 +72,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      * Doesn't perform any action.
      */
     @Override
-    public void onPasswordChange(@Nonnull User user, @Nullable String newPassword, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 }

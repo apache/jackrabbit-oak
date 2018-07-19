@@ -39,7 +39,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -64,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +106,7 @@ public class LucenePropertyFullTextTest extends AbstractTest<LucenePropertyFullT
         final Session session = loginWriter();
         final String title;
         
-        public TestContext(@Nonnull final String title) {
+        public TestContext(@NotNull final String title) {
             this.title = checkNotNull(title);
         }
     }
@@ -118,13 +118,13 @@ public class LucenePropertyFullTextTest extends AbstractTest<LucenePropertyFullT
         private String name;
         private Set<String> properties;
         
-        public LucenePropertyInitialiser(@Nonnull final String name, 
-                                         @Nonnull final Set<String> properties) {
+        public LucenePropertyInitialiser(@NotNull final String name, 
+                                         @NotNull final Set<String> properties) {
             this.name = checkNotNull(name);
             this.properties = checkNotNull(properties);
         }
                 
-        private boolean isAlreadyThere(@Nonnull final NodeBuilder root) {
+        private boolean isAlreadyThere(@NotNull final NodeBuilder root) {
             return checkNotNull(root).hasChildNode(INDEX_DEFINITIONS_NAME) &&
                 root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
         }
@@ -269,7 +269,7 @@ public class LucenePropertyFullTextTest extends AbstractTest<LucenePropertyFullT
         }
     }
     
-    private boolean performQuery(@Nonnull final TestContext ec) throws RepositoryException {
+    private boolean performQuery(@NotNull final TestContext ec) throws RepositoryException {
         QueryManager qm = ec.session.getWorkspace().getQueryManager();
         ValueFactory vf = ec.session.getValueFactory();
         Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [title] = $title", Query.JCR_SQL2);

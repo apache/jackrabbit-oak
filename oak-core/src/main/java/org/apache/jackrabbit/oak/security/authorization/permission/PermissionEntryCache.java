@@ -20,8 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +35,9 @@ class PermissionEntryCache {
 
     private final Map<String, PrincipalPermissionEntries> entries = new HashMap<>();
 
-    @Nonnull
-    PrincipalPermissionEntries getFullyLoadedEntries(@Nonnull PermissionStore store,
-                                                     @Nonnull String principalName) {
+    @NotNull
+    PrincipalPermissionEntries getFullyLoadedEntries(@NotNull PermissionStore store,
+                                                     @NotNull String principalName) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null || !ppe.isFullyLoaded()) {
             ppe = store.load(principalName);
@@ -47,16 +46,16 @@ class PermissionEntryCache {
         return ppe;
     }
 
-    void init(@Nonnull String principalName, long expectedSize) {
+    void init(@NotNull String principalName, long expectedSize) {
         if (!entries.containsKey(principalName)) {
             entries.put(principalName, new PrincipalPermissionEntries(expectedSize));
         }
     }
 
-    void load(@Nonnull PermissionStore store,
-              @Nonnull Collection<PermissionEntry> ret,
-              @Nonnull String principalName,
-              @Nonnull String path) {
+    void load(@NotNull PermissionStore store,
+              @NotNull Collection<PermissionEntry> ret,
+              @NotNull String principalName,
+              @NotNull String path) {
         if (entries.containsKey(principalName)) {
             PrincipalPermissionEntries ppe = entries.get(principalName);
             Collection<PermissionEntry> pes = ppe.getEntriesByPath(path);

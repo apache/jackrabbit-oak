@@ -19,15 +19,16 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ abstract class ExternalChange {
      *
      * @param paths the paths of affected nodes.
      */
-    abstract void invalidateCache(@Nonnull Iterable<String> paths);
+    abstract void invalidateCache(@NotNull Iterable<String> paths);
 
     /**
      * Called when all cache entries must be invalidated.
@@ -83,8 +84,8 @@ abstract class ExternalChange {
      * @param changedPaths paths of nodes that are affected by those external
      *                     changes.
      */
-    abstract void updateHead(@Nonnull Set<Revision> externalChanges,
-                             @Nonnull RevisionVector sweepRevisions,
+    abstract void updateHead(@NotNull Set<Revision> externalChanges,
+                             @NotNull RevisionVector sweepRevisions,
                              @Nullable Iterable<String> changedPaths);
 
     /**
@@ -109,6 +110,12 @@ abstract class ExternalChange {
 
         StringSort externalSort = newSorter();
         StringSort invalidate = newSorter();
+        AtomicLong oldestTimestamp = new AtomicLong(Long.MAX_VALUE);
+        Consumer<JournalEntry> journalEntryConsumer = journalEntry -> {
+            // track timestamp of oldest journal entry
+            oldestTimestamp.set(Math.min(oldestTimestamp.get(),
+                    journalEntry.getRevisionTimestamp()));
+        };
 
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
         try {
@@ -139,7 +146,7 @@ abstract class ExternalChange {
                         try {
                             fillExternalChanges(externalSort, invalidate,
                                     PathUtils.ROOT_PATH, last, r,
-                                    store.getDocumentStore(),
+                                    store.getDocumentStore(), journalEntryConsumer,
                                     changeSetBuilder, journalPropertyHandler);
                         } catch (Exception e1) {
                             LOG.error("backgroundRead: Exception while reading external changes from journal: " + e1, e1);
@@ -183,6 +190,9 @@ abstract class ExternalChange {
             closeQuietly(invalidate);
         }
 
+        if (oldestTimestamp.get() != Long.MAX_VALUE) {
+            stats.externalChangesLag = clock.getTime() - oldestTimestamp.get();
+        }
         return stats;
     }
 

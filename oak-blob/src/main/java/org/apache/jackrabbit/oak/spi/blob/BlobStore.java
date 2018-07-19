@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.blob;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An interface to store and read large binary objects.
@@ -87,8 +87,8 @@ public interface BlobStore {
      * @param reference binary reference
      * @return matching blobId, or {@code null}
      */
-    @CheckForNull
-    String getBlobId(@Nonnull String reference);
+    @Nullable
+    String getBlobId(@NotNull String reference);
 
     /**
      * Returns a secure reference to blob referred by blobid, or {@code null} if no such
@@ -97,7 +97,7 @@ public interface BlobStore {
      * @param blobId blobId referring the blob for which reference is required
      * @return binary reference, or {@code null}
      */
-    @CheckForNull
-    String getReference(@Nonnull String blobId);
+    @Nullable
+    String getReference(@NotNull String blobId);
 
 }

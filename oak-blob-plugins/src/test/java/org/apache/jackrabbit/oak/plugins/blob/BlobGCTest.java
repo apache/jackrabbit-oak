@@ -34,11 +34,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
@@ -51,6 +49,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
@@ -70,6 +69,9 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -78,7 +80,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats
+    .FINISH_FAILURE;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.NAME;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats
+    .NUM_BLOBS_DELETED;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats
+    .NUM_CANDIDATES;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.START;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats
+    .TOTAL_SIZE_DELETED;
+import static org.apache.jackrabbit.oak.plugins.blob.OperationsStatsMBean.TYPE;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -98,7 +112,9 @@ public class BlobGCTest {
 
     protected BlobReferenceRetriever referenceRetriever;
     protected CheckpointMBean checkpointMBean;
-
+    protected ScheduledExecutorService scheduledExecutor;
+    protected ThreadPoolExecutor executor;
+    protected DefaultStatisticsProvider statsProvider;
     protected Clock clock;
 
     @Before
@@ -117,6 +133,15 @@ public class BlobGCTest {
         };
         referenceRetriever = ((MemoryBlobStoreNodeStore) nodeStore).getBlobReferenceRetriever();
         startReferenceTime = ((TimeLapsedBlobStore) blobStore).startTime;
+        scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+        executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+        statsProvider = new DefaultStatisticsProvider(scheduledExecutor);
+    }
+
+    @After
+    public void after() {
+        new ExecutorCloser(scheduledExecutor).close();
+        new ExecutorCloser(executor).close();
     }
 
     protected Clock getClock() {
@@ -134,6 +159,8 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = gcInternal(0);
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(1, 0, state.blobsAdded.size() - state.blobsPresent.size(),
+            state.blobsAdded.size() - state.blobsPresent.size());
     }
 
     @Test
@@ -149,6 +176,7 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = gcInternal(afterSetupTime - startReferenceTime + 2);
         assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+        assertStats(1, 0, 0, state.blobsAdded.size() - state.blobsPresent.size());
     }
 
     @Test
@@ -173,6 +201,9 @@ public class BlobGCTest {
         assertEquals(1, customLogs.getLogs().size());
         long deletedSize = (state.blobsAdded.size() - state.blobsPresent.size()) * 100;
         assertTrue(customLogs.getLogs().get(0).contains(String.valueOf(deletedSize)));
+        assertStats(1, 0, state.blobsAdded.size() - state.blobsPresent.size(),
+            state.blobsAdded.size() - state.blobsPresent.size());
+        assertEquals(deletedSize, getStatCount(TOTAL_SIZE_DELETED));
 
         customLogs.finished();
         assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
@@ -189,6 +220,7 @@ public class BlobGCTest {
 
         Set<String> existingAfterGC = gcInternal(0, true);
         assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+        assertStats(1, 0, 0, 0);
     }
 
     protected Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
@@ -196,22 +228,26 @@ public class BlobGCTest {
     }
 
     protected Set<String> gcInternal(long maxBlobGcInSecs, boolean markOnly) throws Exception {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gc = initGC(maxBlobGcInSecs, executor);
         gc.collectGarbage(markOnly);
 
         assertEquals(0, executor.getTaskCount());
         Set<String> existingAfterGC = iterate();
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
-        assertStats(gc.getOperationStats());
 
         return existingAfterGC;
     }
 
-    private void assertStats(OperationsStatsMBean operationStats) {
-        assertEquals("Start counter mismatch", 1, operationStats.getStartCount());
-        assertEquals("Finish success mismatch", 1, operationStats.getFinishSucessCount());
-        assertEquals("Finish error mismatch", 0, operationStats.getFinishErrorCount());
+    private void assertStats(int start, int failure, long deleted, long candidates) {
+        assertEquals("Start counter mismatch", start, getStatCount(START));
+        assertEquals("Finish error mismatch", failure, getStatCount(FINISH_FAILURE));
+        assertEquals("Num deleted mismatch", deleted, getStatCount(NUM_BLOBS_DELETED));
+        assertEquals("Num candidates mismatch", candidates, getStatCount(NUM_CANDIDATES));
+    }
+
+    private long getStatCount(String name) {
+        return statsProvider.getCounterStats(
+            TYPE + "." + NAME + "." + name, METRICS_ONLY).getCount();
     }
 
     private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor)
@@ -221,7 +257,6 @@ public class BlobGCTest {
 
     private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor,
         String root) throws Exception {
-        DefaultStatisticsProvider statsProvider = new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor());
         String repoId = null;
         if (SharedDataStoreUtils.isShared(blobStore)) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
@@ -387,7 +422,7 @@ public class BlobGCTest {
             public String getContentIdentity() {
                 return id;
             }
-            @Nonnull
+            @NotNull
             @Override
             public InputStream getNewStream() {
                 try {
@@ -498,11 +533,11 @@ public class BlobGCTest {
             return null;
         }
 
-        @CheckForNull @Override public String getBlobId(@Nonnull String reference) {
+        @Nullable @Override public String getBlobId(@NotNull String reference) {
             return reference;
         }
 
-        @CheckForNull @Override public String getReference(@Nonnull String blobId) {
+        @Nullable @Override public String getReference(@NotNull String blobId) {
             return blobId;
         }
 

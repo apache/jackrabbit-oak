@@ -26,8 +26,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -61,7 +60,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
      * 
      * @return
      */
-    @Nonnull
+    @NotNull
     Oak getOakRepositoryInstance() {
         return new Oak().with(new InitialContent())
             .with(new OpenSecurityProvider())
@@ -88,7 +87,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
                 .with(new RepositoryInitializer(){
 
                     @Override
-                    public void initialize(@Nonnull NodeBuilder builder) {
+                    public void initialize(@NotNull NodeBuilder builder) {
                         createIndexDefinition(
                                 builder.child(INDEX_DEFINITIONS_NAME),
                                 "foo",

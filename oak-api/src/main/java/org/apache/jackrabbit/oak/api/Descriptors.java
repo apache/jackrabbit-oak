@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Repository descriptors interface that is used to support providing the repository descriptors of
@@ -36,7 +37,7 @@ public interface Descriptors {
      *
      * @return a string array holding all descriptor keys.
      */
-    @Nonnull
+    @NotNull
     String[] getKeys();
 
     /**
@@ -47,7 +48,7 @@ public interface Descriptors {
      * @param key a descriptor key.
      * @return whether {@code key} is a standard descriptor.
      */
-    boolean isStandardDescriptor(@Nonnull String key);
+    boolean isStandardDescriptor(@NotNull String key);
 
     /**
      * Returns {@code true} if {@code key} is a valid single-value
@@ -57,7 +58,7 @@ public interface Descriptors {
      * @return whether the specified descriptor is multi-valued.
      * @since JCR 2.0
      */
-    boolean isSingleValueDescriptor(@Nonnull String key);
+    boolean isSingleValueDescriptor(@NotNull String key);
 
     /**
      * The value of a single-value descriptor is found by passing the key for
@@ -68,8 +69,8 @@ public interface Descriptors {
      * @param key a descriptor key.
      * @return The value of the indicated descriptor
      */
-    @CheckForNull
-    Value getValue(@Nonnull String key);
+    @Nullable
+    Value getValue(@NotNull String key);
 
     /**
      * The value array of a multi-value descriptor is found by passing the key
@@ -81,6 +82,6 @@ public interface Descriptors {
      * @param key a descriptor key.
      * @return the value array for the indicated descriptor
      */
-    @CheckForNull
-    Value[] getValues(@Nonnull String key);
+    @Nullable
+    Value[] getValues(@NotNull String key);
 }

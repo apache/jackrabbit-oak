@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import javax.annotation.CheckForNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension point for content change editors. Used by the {@link EditorHook}
@@ -50,7 +49,7 @@ public interface EditorProvider {
      * @return editor for processing the changes, or {@code null}
      * @throws CommitFailedException if processing failed
      */
-    @CheckForNull
+    @Nullable
     Editor getRootEditor(
         NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
         throws CommitFailedException;

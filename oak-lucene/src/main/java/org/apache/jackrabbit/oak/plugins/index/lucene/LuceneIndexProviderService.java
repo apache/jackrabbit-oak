@@ -32,7 +32,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Strings;
@@ -89,6 +88,7 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
@@ -138,7 +138,8 @@ public class LuceneIndexProviderService {
     @Property(
             boolValue = true,
             label = "Enable CopyOnRead",
-            description = "Enable copying of Lucene index to local file system to improve query performance"
+            description = "Enable copying of Lucene index to local file system to improve query performance",
+            propertyPrivate = true
     )
     private static final String PROP_COPY_ON_READ = "enableCopyOnReadSupport";
 
@@ -154,7 +155,8 @@ public class LuceneIndexProviderService {
     @Property(
             boolValue = PROP_COPY_ON_WRITE_DEFAULT,
             label = "Enable CopyOnWrite",
-            description = "Enable copying of Lucene index to local file system to improve index writer performance"
+            description = "Enable copying of Lucene index to local file system to improve index writer performance",
+            propertyPrivate = true
     )
     private static final String PROP_COPY_ON_WRITE = "enableCopyOnWriteSupport";
 
@@ -569,7 +571,7 @@ public class LuceneIndexProviderService {
                 }
             };
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);

@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -624,6 +625,7 @@ public class DataStoreTrackerGCTest {
             nodeStore = builderProvider.newBuilder()
                 .setClusterId(clusterId)
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setAsyncDelay(0)
                 .setDocumentStore(store)
                 .setBlobStore(blobStore)

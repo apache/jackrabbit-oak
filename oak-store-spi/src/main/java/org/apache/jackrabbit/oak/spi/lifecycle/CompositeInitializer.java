@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Composite repository initializer that delegates the
@@ -43,7 +42,7 @@ public class CompositeInitializer implements RepositoryInitializer {
     }
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         for (RepositoryInitializer tracker : initializers) {
             tracker.initialize(builder);
         }

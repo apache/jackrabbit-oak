@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Test implementation of the {@code AggregatedPermissionProvider} with following
@@ -65,12 +64,12 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     private static final long GRANTED_PERMS = Permissions.REMOVE_NODE | Permissions.REMOVE_PROPERTY | Permissions.MODIFY_PROPERTY;
     private static final long DENIED_PERMS = Permissions.ADD_NODE | Permissions.ADD_PROPERTY;
 
-    LimitedScopeProvider(@Nonnull Root root) {
+    LimitedScopeProvider(@NotNull Root root) {
         super(root);
     }
 
     //-------------------------------------------------< PermissionProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree == null) {
@@ -83,7 +82,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         Set<String> pSet = Sets.newHashSet(privilegeNames);
         if (tree == null) {
             if (pSet.contains(JCR_NAMESPACE_MANAGEMENT)) {
@@ -102,7 +101,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return new RepositoryPermission() {
@@ -113,14 +112,14 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         return createTreePermission(tree.getPath());
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         if (isSupported(tree)) {
             if (Permissions.includes(permissions, DENIED_PERMS)) {
                 return false;
@@ -133,7 +132,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         if (isSupported(oakPath)) {
             Tree tree = root.getTree(oakPath);
             long perms = Permissions.getPermissions(jcrActions, TreeLocation.create(tree), false);
@@ -148,7 +147,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
         PrivilegeBits supported;
@@ -181,7 +180,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+    public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
         if (isSupported(location.getPath())) {
             return permissions & Permissions.WRITE;
         } else {
@@ -190,7 +189,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         if (treePermission instanceof TestTreePermission && isSupported(((TestTreePermission) treePermission).path)) {
             return permissions & Permissions.WRITE;
         } else {
@@ -199,7 +198,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     @Override
-    public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+    public boolean isGranted(@NotNull TreeLocation location, long permissions) {
         if (isSupported(location.getPath())) {
             if (Permissions.includes(permissions, DENIED_PERMS)) {
                 return false;
@@ -212,15 +211,15 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
     }
 
     //--------------------------------------------------------------------------
-    boolean isSupported(@Nonnull Tree tree) {
+    boolean isSupported(@NotNull Tree tree) {
         return isSupported(tree.getPath());
     }
 
-    static boolean isSupported(@Nonnull String path) {
+    static boolean isSupported(@NotNull String path) {
         return Text.isDescendantOrEqual(AbstractCompositeProviderTest.TEST_A_PATH, path);
     }
 
-    private static TreePermission createTreePermission(@Nonnull String path) {
+    private static TreePermission createTreePermission(@NotNull String path) {
         if (isSupported(path)) {
             return new TestTreePermission(path);
         } else if (Text.isDescendant(path, AbstractCompositeProviderTest.TEST_A_PATH)) {
@@ -234,13 +233,13 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
         private final String path;
 
-        private EmptyTestPermission(@Nonnull String path) {
+        private EmptyTestPermission(@NotNull String path) {
             this.path = path;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return createTreePermission(PathUtils.concat(path, childName));
         }
 
@@ -250,7 +249,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return false;
         }
 
@@ -270,7 +269,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return false;
         }
     }
@@ -279,13 +278,13 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
         private final String path;
 
-        private TestTreePermission(@Nonnull String path) {
+        private TestTreePermission(@NotNull String path) {
             this.path = path;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return createTreePermission(PathUtils.concat(path, childName));
         }
 
@@ -295,7 +294,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return false;
         }
 
@@ -319,7 +318,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             if (Permissions.includes(permissions, DENIED_PERMS)) {
                 return false;
             } else {

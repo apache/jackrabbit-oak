@@ -19,9 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -36,6 +33,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -260,7 +259,7 @@ public class ImmutableTreeTest extends AbstractSecurityTest {
         assertSequence(tree.getChildren(), "node3", "node2", "node1");
     }
 
-    private static ImmutableTree getHiddenTree(@Nonnull ImmutableTree immutable) {
+    private static ImmutableTree getHiddenTree(@NotNull ImmutableTree immutable) {
         return (ImmutableTree) TreeUtil.getTree(immutable, HIDDEN_PATH);
     }
 

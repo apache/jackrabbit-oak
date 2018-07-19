@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Marker interface for services than can hold a whiteboard.
@@ -28,12 +28,12 @@ public interface WhiteboardAware {
      * Sets the whiteboard.
      * @param whiteboard the whiteboard
      */
-    void setWhiteboard(@Nonnull Whiteboard whiteboard);
+    void setWhiteboard(@NotNull Whiteboard whiteboard);
 
     /**
      * Returns the whiteboard
      * @return the whiteboard
      */
-    @CheckForNull
+    @Nullable
     Whiteboard getWhiteboard();
 }

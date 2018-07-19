@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,7 @@ public final class PathRev implements CacheValue {
 
     private final RevisionVector revision;
 
-    public PathRev(@Nonnull String path, @Nonnull RevisionVector revision) {
+    public PathRev(@NotNull String path, @NotNull RevisionVector revision) {
         this.path = checkNotNull(path);
         this.revision = checkNotNull(revision);
     }

@@ -20,14 +20,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +73,8 @@ class GroupPredicate implements Predicate<Authorizable> {
         return false;
     }
 
-    @CheckForNull
-    private String saveGetId(@CheckForNull Authorizable authorizable) {
+    @Nullable
+    private String saveGetId(@Nullable Authorizable authorizable) {
         if (authorizable != null) {
             try {
                 return authorizable.getID();

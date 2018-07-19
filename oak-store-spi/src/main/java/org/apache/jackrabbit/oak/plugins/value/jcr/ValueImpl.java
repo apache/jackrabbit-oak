@@ -25,8 +25,6 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Calendar;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -46,6 +44,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +72,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper,
+    ValueImpl(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper,
               @Nullable BlobDirectAccessProvider blobDirectAccessProvider)
             throws RepositoryException {
         checkArgument(index < property.count());
@@ -92,7 +92,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper)
+    ValueImpl(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper)
             throws RepositoryException {
         this(property, index, namePathMapper, null);
     }
@@ -105,8 +105,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@Nonnull PropertyState property, @Nonnull NamePathMapper namePathMapper,
-              @Nonnull BlobDirectAccessProvider blobDirectAccessProvider)
+    ValueImpl(@NotNull PropertyState property, @NotNull NamePathMapper namePathMapper,
+              @NotNull BlobDirectAccessProvider blobDirectAccessProvider)
             throws RepositoryException {
         this(checkSingleValued(property), 0, namePathMapper, checkNotNull(blobDirectAccessProvider));
     }
@@ -124,8 +124,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * the internal representation.
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      */
-    @Nonnull
-    static Value newValue(@Nonnull PropertyState property, int index, @Nonnull NamePathMapper namePathMapper) {
+    @NotNull
+    static Value newValue(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper) {
         try {
             return new ValueImpl(property, index, namePathMapper);
         } catch (RepositoryException e) {
@@ -140,8 +140,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * the internal representation.
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
-    @Nonnull
-    static Value newValue(@Nonnull PropertyState property, @Nonnull NamePathMapper namePathMapper) {
+    @NotNull
+    static Value newValue(@NotNull PropertyState property, @NotNull NamePathMapper namePathMapper) {
         try {
             return new ValueImpl(property, 0, namePathMapper);
         } catch (RepositoryException e) {
@@ -400,8 +400,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
         } else {
             return blobDirectAccessProvider.getDownloadURI(blob,
                     new BlobDownloadOptions(
-                            downloadOptions.getContentType(),
-                            downloadOptions.getContentTypeEncoding(),
+                            downloadOptions.getMimeType(),
+                            downloadOptions.getEncoding(),
                             downloadOptions.getFileName(),
                             downloadOptions.getDispositionType())
                     );

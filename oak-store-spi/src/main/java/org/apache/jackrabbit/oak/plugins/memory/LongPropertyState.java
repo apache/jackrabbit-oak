@@ -18,17 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 public class LongPropertyState extends SinglePropertyState<Long> {
     private final long value;
 
-    public LongPropertyState(@Nonnull String name, long value) {
+    public LongPropertyState(@NotNull String name, long value) {
         super(name);
         this.value = value;
     }
@@ -40,7 +39,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @return  The new property state of type {@link Type#LONG}
      */
     public static PropertyState createLongProperty(
-            @Nonnull String name, long value) {
+            @NotNull String name, long value) {
         return new LongPropertyState(name, value);
     }
 

@@ -61,6 +61,7 @@ public class RevisionGCTest {
         Revision.setClock(clock);
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(fixture.createDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();

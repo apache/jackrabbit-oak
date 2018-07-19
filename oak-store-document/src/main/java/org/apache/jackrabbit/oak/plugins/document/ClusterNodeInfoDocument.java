@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A document storing cluster node info. See also {@link ClusterNodeInfo}.
@@ -82,6 +82,23 @@ public class ClusterNodeInfoDocument extends Document {
     }
 
     /**
+     * Check if _lastRev recovery is needed for cluster node info document.
+     * Returns {@code true} if both of the below conditions are {@code true}:
+     * <ul>
+     *     <li>State is Active</li>
+     *     <li>Current time is past the leaseEnd time or there is a recovery
+     *          lock on the cluster node info document</li>
+     * </ul>
+     * @param currentTimeMillis the current time in milliseconds since the start
+     *                          start of the epoch.
+     */
+    public boolean isRecoveryNeeded(long currentTimeMillis) {
+        return isActive() &&
+                (currentTimeMillis > getLeaseEndTime() ||
+                        isBeingRecovered());
+    }
+
+    /**
      * Returns {@code true} if the cluster node represented by this document
      * is currently being recovered by the given {@code clusterId}.
      *
@@ -97,7 +114,7 @@ public class ClusterNodeInfoDocument extends Document {
      * @return the id of the cluster node performing recovery or {@code null} if
      *          currently not set.
      */
-    @CheckForNull
+    @Nullable
     public Long getRecoveryBy() {
         return (Long) get(ClusterNodeInfo.REV_RECOVERY_BY);
     }

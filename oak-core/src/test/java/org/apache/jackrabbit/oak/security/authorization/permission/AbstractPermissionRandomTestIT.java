@@ -30,7 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 
@@ -49,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -108,8 +108,8 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         return ConfigurationParameters.EMPTY;
     }
 
-    protected PermissionProvider candidatePermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-            @Nonnull Set<Principal> principals) {
+    protected PermissionProvider candidatePermissionProvider(@NotNull Root root, @NotNull String workspaceName,
+            @NotNull Set<Principal> principals) {
         return new SetsPP(allowU, denyU, allowG, denyG);
     }
 

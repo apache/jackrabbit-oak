@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Method;
 import java.security.Principal;
 import java.util.Collection;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
@@ -35,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +70,7 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         permissionStore = new PermissionStoreImpl(root, root.getContentSession().getWorkspaceName(), getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
     }
 
-    private void addAcl(@Nonnull String path, @Nonnull Principal principal) throws RepositoryException {
+    private void addAcl(@NotNull String path, @NotNull Principal principal) throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
@@ -183,8 +183,8 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         }
     }
 
-    @CheckForNull
-    private Tree getPermissionRoot(@Nonnull String principalName) throws Exception {
+    @Nullable
+    private Tree getPermissionRoot(@NotNull String principalName) throws Exception {
         Method m = PermissionStoreImpl.class.getDeclaredMethod("getPrincipalRoot", String.class);
         m.setAccessible(true);
 

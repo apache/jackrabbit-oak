@@ -27,8 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -54,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -107,13 +107,13 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
      * @param externalIdentity The external identity to be synchronized.
      * @throws Exception
      */
-    private void sync(@Nonnull ExternalIdentity externalIdentity) throws Exception {
+    private void sync(@NotNull ExternalIdentity externalIdentity) throws Exception {
         SyncResult result = syncCtx.sync(externalIdentity);
         assertSame(SyncResult.Status.ADD, result.getStatus());
         root.commit();
     }
 
-    private void setExternalID(@Nonnull Authorizable authorizable, @Nullable String idpName) throws RepositoryException {
+    private void setExternalID(@NotNull Authorizable authorizable, @Nullable String idpName) throws RepositoryException {
         authorizable.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, valueFactory.createValue(authorizable.getID() + ';' + idpName));
     }
 
@@ -1375,17 +1375,17 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         private final ExternalIdentityRef declaredGroupRef;
 
-        private ExternalUserWithDeclaredGroup(@Nonnull ExternalIdentityRef declaredGroupRef) {
+        private ExternalUserWithDeclaredGroup(@NotNull ExternalIdentityRef declaredGroupRef) {
             super("externalId");
             this.declaredGroupRef = declaredGroupRef;
         }
 
-        private ExternalUserWithDeclaredGroup(@Nonnull ExternalIdentityRef declaredGroupRef, @Nonnull ExternalIdentity base) {
+        private ExternalUserWithDeclaredGroup(@NotNull ExternalIdentityRef declaredGroupRef, @NotNull ExternalIdentity base) {
             super(base);
             this.declaredGroupRef = declaredGroupRef;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return ImmutableSet.of(declaredGroupRef);
@@ -1394,7 +1394,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     private final class ExternalUserFromGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {
 
-        private ExternalUserFromGroup(@Nonnull ExternalIdentity base) {
+        private ExternalUserFromGroup(@NotNull ExternalIdentity base) {
             super(base);
         }
     }

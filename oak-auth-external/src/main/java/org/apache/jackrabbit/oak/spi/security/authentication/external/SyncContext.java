@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code SyncContext} is used as scope for sync operations. Implementations are free to associate any resources with
@@ -34,7 +34,7 @@ public interface SyncContext {
     /**
      * See {@link #isKeepMissing()}
      */
-    @Nonnull
+    @NotNull
     SyncContext setKeepMissing(boolean keep);
 
     /**
@@ -46,7 +46,7 @@ public interface SyncContext {
     /**
      * See {@link #isForceUserSync()}
      */
-    @Nonnull
+    @NotNull
     SyncContext setForceUserSync(boolean force);
 
     /**
@@ -58,7 +58,7 @@ public interface SyncContext {
     /**
      * See {@link #isForceGroupSync()}
      */
-    @Nonnull
+    @NotNull
     SyncContext setForceGroupSync(boolean force);
 
     /**
@@ -68,8 +68,8 @@ public interface SyncContext {
      * @return the result of the operation
      * @throws SyncException if an error occurs
      */
-    @Nonnull
-    SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException;
+    @NotNull
+    SyncResult sync(@NotNull ExternalIdentity identity) throws SyncException;
 
     /**
      * Synchronizes an authorizable with the corresponding external identity with the repository based on the respective
@@ -79,8 +79,8 @@ public interface SyncContext {
      * @return the result of the operation
      * @throws SyncException if an error occurs
      */
-    @Nonnull
-    SyncResult sync(@Nonnull String id) throws SyncException;
+    @NotNull
+    SyncResult sync(@NotNull String id) throws SyncException;
 
 
     /**

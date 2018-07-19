@@ -18,9 +18,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An instance of a {@code Trace} specifies a read pattern for tracing
@@ -32,5 +31,5 @@ public interface Trace {
      * Run this trace on the passed {@code node}.
      * @param node
      */
-    void run(@Nonnull NodeState node);
+    void run(@NotNull NodeState node);
 }

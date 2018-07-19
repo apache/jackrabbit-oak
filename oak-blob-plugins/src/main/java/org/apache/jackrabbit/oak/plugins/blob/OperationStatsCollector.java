@@ -29,10 +29,16 @@ public interface OperationStatsCollector {
         @Override public void start() {
         }
 
-        @Override public void finishSuccess() {
+        @Override public void finishFailure() {
         }
 
-        @Override public void finishFailure() {
+        @Override public void updateNumDeleted(long num) {
+        }
+
+        @Override public void updateNumCandidates(long num) {
+        }
+
+        @Override public void updateTotalSizeDeleted(long size) {
         }
 
         @Override public void updateDuration(long time, TimeUnit timeUnit) {
@@ -51,14 +57,27 @@ public interface OperationStatsCollector {
     void start();
 
     /**
-     * Increment the finishSuccess counter
-     */
-    void finishSuccess();
-
-    /**
      * Increment the finishFailure counter
      */
     void finishFailure();
+
+    /**
+     * Update the number deleted
+     * @param num
+     */
+    void updateNumDeleted(long num);
+
+    /**
+     * Update the number of candidates found
+     * @param num
+     */
+    void updateNumCandidates(long num);
+
+    /**
+     * Update the size deleted
+     * @param size
+     */
+    void updateTotalSizeDeleted(long size);
 
     /**
      * Increment the duration timer

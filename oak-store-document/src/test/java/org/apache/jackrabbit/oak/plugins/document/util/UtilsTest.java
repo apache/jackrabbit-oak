@@ -28,8 +28,12 @@ import com.google.common.collect.Iterables;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -43,15 +47,20 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link Utils}.
@@ -343,5 +352,44 @@ public class UtilsTest {
                 Collections.emptyList(), () -> closed.set(true));
         Utils.closeIfCloseable(Utils.abortingIterable(iterable, s -> true));
         assertTrue(closed.get());
+    }
+
+    @Test
+    public void checkRevisionAge() throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        ClusterNodeInfo info = mock(ClusterNodeInfo.class);
+        when(info.getId()).thenReturn(2);
+
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+
+        // store is empty -> fine
+        Utils.checkRevisionAge(store, info, clock);
+
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), true);
+        NodeDocument.setLastRev(op, new Revision(clock.getTime(), 0, 1));
+        assertTrue(store.create(Collection.NODES, Collections.singletonList(op)));
+
+        // root document does not have a lastRev entry for clusterId 2
+        Utils.checkRevisionAge(store, info, clock);
+
+        long lastRevTime = clock.getTime();
+        op = new UpdateOp(Utils.getIdFromPath("/"), false);
+        NodeDocument.setLastRev(op, new Revision(lastRevTime, 0, 2));
+        assertNotNull(store.findAndUpdate(Collection.NODES, op));
+
+        // lastRev entry for clusterId 2 is older than current time
+        Utils.checkRevisionAge(store, info, clock);
+
+        // rewind time
+        clock = new Clock.Virtual();
+        clock.waitUntil(lastRevTime - 1000);
+        try {
+            // now the check must fail
+            Utils.checkRevisionAge(store, info, clock);
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("newer than current time"));
+        }
     }
 }

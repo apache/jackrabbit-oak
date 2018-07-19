@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import javax.annotation.Nonnull;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,7 +51,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
         super.before();
 
         ntMgr = new ReadWriteNodeTypeManager() {
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return root;

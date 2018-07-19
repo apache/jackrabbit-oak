@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -44,6 +43,7 @@ import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,14 +69,14 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
      * @param executor              executor for running the garbage collection task
      */
     public BlobGC(
-            @Nonnull BlobGarbageCollector blobGarbageCollector,
-            @Nonnull Executor executor) {
+            @NotNull BlobGarbageCollector blobGarbageCollector,
+            @NotNull Executor executor) {
         super(BlobGCMBean.class);
         this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
         this.executor = checkNotNull(executor);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startBlobGC(final boolean markOnly) {
         if (gcOp.isDone()) {
@@ -109,7 +109,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getBlobGCStatus();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getBlobGCStatus() {
         return gcOp.getStatus().toCompositeData();
@@ -134,7 +134,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getConsistencyCheckStatus();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getConsistencyCheckStatus() {
         return consistencyOp.getStatus().toCompositeData();
@@ -229,29 +229,25 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
     private CompositeData toCompositeData(OperationsStatsMBean statObj) throws OpenDataException {
         Object[] values = new Object[] {
             statObj.getStartCount(),
-            statObj.getFinishSucessCount(),
-            statObj.getFinishErrorCount(),
+            statObj.getFailureCount(),
             statObj.duration()
         };
         return new CompositeDataSupport(OP_STATS_TYPE, OP_STATS_FIELD_NAMES, values);
     }
 
     private static final String[] OP_STATS_FIELD_NAMES = new String[] {
-        "startCount",
-        "finishSuccessCount",
-        "finishErrorCount",
+        "count",
+        "failureCount",
         "duration"
     };
 
     private static final String[] OP_STATS_FIELD_DESCRIPTIONS = new String[] {
-        "Start Count",
-        "Finish Success Count",
-        "Finish Error Count",
+        "Count",
+        "Failure Count",
         "Duration"
     };
 
     private static final OpenType[] OP_STATS_FIELD_TYPES = new OpenType[] {
-        SimpleType.LONG,
         SimpleType.LONG,
         SimpleType.LONG,
         SimpleType.LONG

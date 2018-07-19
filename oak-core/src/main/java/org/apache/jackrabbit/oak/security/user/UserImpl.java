@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
@@ -33,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -53,7 +53,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
     //---------------------------------------------------< AuthorizableImpl >---
     @Override
-    void checkValidTree(@Nonnull Tree tree) throws RepositoryException {
+    void checkValidTree(@NotNull Tree tree) throws RepositoryException {
         if (!UserUtil.isType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
@@ -158,7 +158,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
+    @Nullable
     private String getPasswordHash() {
         return TreeUtil.getString(getTree(), UserConstants.REP_PASSWORD);
     }

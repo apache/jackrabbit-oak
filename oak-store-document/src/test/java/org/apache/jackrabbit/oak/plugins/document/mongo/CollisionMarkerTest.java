@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -94,7 +95,7 @@ public class CollisionMarkerTest extends AbstractMongoConnectionTest {
 
     private static DocumentMK newDocumentMK(MongoConnection c, int clusterId) {
         DocumentMK mk = new DocumentMK.Builder().setAsyncDelay(0)
-                .setLeaseCheck(false)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setMongoDB(c.getMongoClient(), c.getDBName())
                 .setClusterId(clusterId)
                 .open();

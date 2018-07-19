@@ -28,12 +28,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Set;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.copyOf;
 import static com.google.common.collect.ImmutableSet.of;
@@ -114,7 +113,7 @@ public class NodeStateCopier {
      * @throws CommitFailedException if the operation fails
      * @see NodeStateCopier.Builder#copy(NodeStore, NodeStore)
      */
-    public static boolean copyNodeStore(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
+    public static boolean copyNodeStore(@NotNull final NodeStore source, @NotNull final NodeStore target)
             throws CommitFailedException {
         return builder().copy(checkNotNull(source), checkNotNull(target));
     }
@@ -149,7 +148,7 @@ public class NodeStateCopier {
         return hasChanges;
     }
 
-    private boolean copyNodeState(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
+    private boolean copyNodeState(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
         final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.fragmentPaths, this.excludeFragments);
         boolean hasChanges = false;
         for (String includePath : this.includePaths) {
@@ -180,8 +179,8 @@ public class NodeStateCopier {
      *                   preserved, even if the do not exist in the source.
      * @return An indication of whether there were changes or not.
      */
-    private static boolean copyNodeState(@Nonnull final NodeState source, @Nonnull final NodeBuilder target,
-                                         @Nonnull final String currentPath, @Nonnull final Set<String> mergePaths) {
+    private static boolean copyNodeState(@NotNull final NodeState source, @NotNull final NodeBuilder target,
+                                         @NotNull final String currentPath, @NotNull final Set<String> mergePaths) {
 
 
         boolean hasChanges = false;
@@ -263,8 +262,8 @@ public class NodeStateCopier {
      * @param path An absolute or relative path, which is evaluated as a relative path under the root NodeBuilder.
      * @return a NodeBuilder instance, never null
      */
-    @Nonnull
-    private static NodeBuilder getChildNodeBuilder(@Nonnull final NodeBuilder root, @Nonnull final String path) {
+    @NotNull
+    private static NodeBuilder getChildNodeBuilder(@NotNull final NodeBuilder root, @NotNull final String path) {
         NodeBuilder child = root;
         for (String name : PathUtils.elements(path)) {
             child = child.child(name);
@@ -319,8 +318,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder include(@Nonnull Set<String> paths) {
+        @NotNull
+        public Builder include(@NotNull Set<String> paths) {
             if (!checkNotNull(paths).isEmpty()) {
                 this.includePaths = copyOf(paths);
             }
@@ -334,8 +333,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder include(@Nonnull String... paths) {
+        @NotNull
+        public Builder include(@NotNull String... paths) {
             return include(copyOf(checkNotNull(paths)));
         }
 
@@ -346,8 +345,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder exclude(@Nonnull Set<String> paths) {
+        @NotNull
+        public Builder exclude(@NotNull Set<String> paths) {
             if (!checkNotNull(paths).isEmpty()) {
                 this.excludePaths = copyOf(paths);
             }
@@ -361,8 +360,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder exclude(@Nonnull String... paths) {
+        @NotNull
+        public Builder exclude(@NotNull String... paths) {
             return exclude(copyOf(checkNotNull(paths)));
         }
 
@@ -373,8 +372,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder supportFragment(@Nonnull Set<String> paths) {
+        @NotNull
+        public Builder supportFragment(@NotNull Set<String> paths) {
             if (!checkNotNull(paths).isEmpty()) {
                 this.fragmentPaths = copyOf(paths);
             }
@@ -388,8 +387,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder supportFragment(@Nonnull String... paths) {
+        @NotNull
+        public Builder supportFragment(@NotNull String... paths) {
             return supportFragment(copyOf(checkNotNull(paths)));
         }
 
@@ -400,8 +399,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder excludeFragments(@Nonnull Set<String> fragments) {
+        @NotNull
+        public Builder excludeFragments(@NotNull Set<String> fragments) {
             if (!checkNotNull(fragments).isEmpty()) {
                 this.excludeFragments = copyOf(fragments);
             }
@@ -415,8 +414,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder excludeFragments(@Nonnull String... fragments) {
+        @NotNull
+        public Builder excludeFragments(@NotNull String... fragments) {
             return exclude(copyOf(checkNotNull(fragments)));
         }
 
@@ -427,8 +426,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder merge(@Nonnull Set<String> paths) {
+        @NotNull
+        public Builder merge(@NotNull Set<String> paths) {
             if (!checkNotNull(paths).isEmpty()) {
                 this.mergePaths = copyOf(paths);
             }
@@ -442,8 +441,8 @@ public class NodeStateCopier {
          * @return this Builder instance
          * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
          */
-        @Nonnull
-        public Builder merge(@Nonnull String... paths) {
+        @NotNull
+        public Builder merge(@NotNull String... paths) {
             return merge(copyOf(checkNotNull(paths)));
         }
 
@@ -460,7 +459,7 @@ public class NodeStateCopier {
          * @return true if there were any changes, false if sourceRoot and targetRoot represent
          *         the same content
          */
-        public boolean copy(@Nonnull final NodeState sourceRoot, @Nonnull final NodeBuilder targetRoot) {
+        public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
             final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths, excludeFragments, mergePaths);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
@@ -479,7 +478,7 @@ public class NodeStateCopier {
          *         the same content
          * @throws CommitFailedException if the copy operation fails
          */
-        public boolean copy(@Nonnull final NodeStore source, @Nonnull final NodeStore target)
+        public boolean copy(@NotNull final NodeStore source, @NotNull final NodeStore target)
                 throws CommitFailedException {
             final NodeBuilder targetRoot = checkNotNull(target).getRoot().builder();
             if (copy(checkNotNull(source).getRoot(), targetRoot)) {

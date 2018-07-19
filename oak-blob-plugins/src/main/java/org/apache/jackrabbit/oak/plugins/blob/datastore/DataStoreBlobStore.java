@@ -40,8 +40,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -78,6 +76,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +120,7 @@ public class DataStoreBlobStore
 
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
-        public int weigh(@Nonnull String key, @Nonnull byte[] value) {
+        public int weigh(@NotNull String key, @NotNull byte[] value) {
             long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
             if (weight > Integer.MAX_VALUE) {
                 log.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
@@ -288,7 +288,7 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public String getBlobId(@Nonnull String reference) {
+    public String getBlobId(@NotNull String reference) {
         checkNotNull(reference);
         DataRecord record;
         try {
@@ -303,7 +303,7 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public String getReference(@Nonnull String encodedBlobId) {
+    public String getReference(@NotNull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
@@ -512,7 +512,8 @@ public class DataStoreBlobStore
         } else {
             return Iterators.transform(delegate.getAllIdentifiers(),
                 new Function<DataIdentifier, DataRecord>() {
-                    @Nullable @Override
+                    @Nullable
+                    @Override
                     public DataRecord apply(@Nullable DataIdentifier input) {
                         try {
                             return delegate.getRecord(input);

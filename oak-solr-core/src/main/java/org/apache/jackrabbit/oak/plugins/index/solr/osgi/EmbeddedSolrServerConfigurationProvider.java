@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.io.File;
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
 
 /**
@@ -70,7 +69,7 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
         solrCoreName = null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
         return solrServerConfiguration;

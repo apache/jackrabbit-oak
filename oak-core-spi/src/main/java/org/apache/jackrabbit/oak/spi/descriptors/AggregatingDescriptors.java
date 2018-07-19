@@ -22,12 +22,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An AggregatingDescriptors is an implementation of Descriptors
@@ -69,7 +69,7 @@ public class AggregatingDescriptors implements Descriptors {
     }
 
     @Override
-    public boolean isStandardDescriptor(@Nonnull String key) {
+    public boolean isStandardDescriptor(@NotNull String key) {
         for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
             Descriptors descriptors = it.next();
             if (descriptors.isStandardDescriptor(key)) {
@@ -80,7 +80,7 @@ public class AggregatingDescriptors implements Descriptors {
     }
 
     @Override
-    public boolean isSingleValueDescriptor(@Nonnull String key) {
+    public boolean isSingleValueDescriptor(@NotNull String key) {
         for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
             Descriptors descriptors = it.next();
             if (descriptors.isSingleValueDescriptor(key)) {
@@ -90,9 +90,9 @@ public class AggregatingDescriptors implements Descriptors {
         return false;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public Value getValue(@Nonnull String key) {
+    public Value getValue(@NotNull String key) {
         for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
             Descriptors descriptors = it.next();
             Value value = descriptors.getValue(key);
@@ -103,9 +103,9 @@ public class AggregatingDescriptors implements Descriptors {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public Value[] getValues(@Nonnull String key) {
+    public Value[] getValues(@NotNull String key) {
         for (Iterator<Descriptors> it = getDescriptors().iterator(); it.hasNext();) {
             Descriptors descriptors = it.next();
             Value[] values = descriptors.getValues(key);

@@ -176,8 +176,7 @@ public class RandomDocumentNodeStoreSweepTest {
         }
     }
 
-    private void guardedFail(Operation op, String message)
-            throws CommitFailedException {
+    private void guardedFail(Operation op, String message) {
         store.fail().after(1).eternally();
         try {
             op.call();
@@ -197,7 +196,7 @@ public class RandomDocumentNodeStoreSweepTest {
     private DocumentNodeStore createDocumentNodeStore() {
         DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store)
                 .clock(clock).setClusterId(1).setAsyncDelay(0)
-                .setLeaseCheck(false).getNodeStore();
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
         // do not retry commits
         ns.setMaxBackOffMillis(0);
         return ns;

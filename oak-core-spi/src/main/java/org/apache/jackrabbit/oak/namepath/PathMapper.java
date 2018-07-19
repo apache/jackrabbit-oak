@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -40,7 +39,7 @@ public interface PathMapper {
      * @param jcrPath JCR path
      * @return Oak path, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     String getOakPath(String jcrPath);
 
     /**
@@ -54,7 +53,7 @@ public interface PathMapper {
      * @param oakPath Oak path
      * @return JCR path
      */
-    @Nonnull
+    @NotNull
     String getJcrPath(String oakPath);
 
 }

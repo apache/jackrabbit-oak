@@ -36,21 +36,19 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -78,11 +76,11 @@ public class CompactorTest {
 
     @Test
     public void testCompact() throws Exception {
-        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
+        Compactor compactor = createCompactor(fileStore, null);
         addTestContent(nodeStore);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
-        SegmentNodeState compacted = compactor.compact(uncompacted);
+        SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
@@ -90,7 +88,7 @@ public class CompactorTest {
 
         modifyTestContent(nodeStore);
         NodeState modified = nodeStore.getRoot();
-        compacted = compactor.compact(uncompacted, modified, compacted);
+        compacted = compactor.compact(uncompacted, modified, compacted, Canceller.newCanceller());
         assertNotNull(compacted);
         assertFalse(modified == compacted);
         assertEquals(modified, compacted);
@@ -99,11 +97,11 @@ public class CompactorTest {
 
     @Test
     public void testExceedUpdateLimit() throws Exception {
-        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), null);
+        Compactor compactor = createCompactor(fileStore, null);
         addNodes(nodeStore, Compactor.UPDATE_LIMIT * 2 + 1);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
-        SegmentNodeState compacted = compactor.compact(uncompacted);
+        SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
@@ -112,31 +110,31 @@ public class CompactorTest {
 
     @Test
     public void testCancel() throws IOException, CommitFailedException {
-        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(true), null);
+        Compactor compactor = createCompactor(fileStore, null);
         addTestContent(nodeStore);
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertNull(compactor.compact(nodeStore.getRoot()));
+        assertNull(compactor.compact(nodeStore.getRoot(), Canceller.newCanceller().withCondition("reason", () -> true)));
     }
 
     @Test(expected = IOException.class)
     public void testIOException() throws IOException, CommitFailedException {
-        Compactor compactor = createCompactor(fileStore, Suppliers.ofInstance(false), "IOException");
+        Compactor compactor = createCompactor(fileStore, "IOException");
         addTestContent(nodeStore);
-        compactor.compact(nodeStore.getRoot());
+        compactor.compact(nodeStore.getRoot(), Canceller.newCanceller());
     }
 
-    @Nonnull
-    private static Compactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel, String failOnName) {
+    @NotNull
+    private static Compactor createCompactor(FileStore fileStore, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
                 .build(fileStore);
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        return new Compactor(fileStore.getReader(), writer, fileStore.getBlobStore(), cancel, GCNodeWriteMonitor.EMPTY);
+        return new Compactor(fileStore.getReader(), writer, fileStore.getBlobStore(), GCNodeWriteMonitor.EMPTY);
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
@@ -180,13 +178,13 @@ public class CompactorTest {
     }
 
     private static class FailingSegmentWriter implements SegmentWriter {
-        @Nonnull
+        @NotNull
         private final SegmentWriter delegate;
 
-        @Nonnull
+        @NotNull
         private final String failOnName;
 
-        public FailingSegmentWriter(@Nonnull SegmentWriter delegate, @Nonnull String failOnName) {
+        public FailingSegmentWriter(@NotNull SegmentWriter delegate, @NotNull String failOnName) {
             this.delegate = delegate;
             this.failOnName = failOnName;
         }
@@ -196,21 +194,21 @@ public class CompactorTest {
             delegate.flush();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeBlob(@Nonnull Blob blob) throws IOException {
+        public RecordId writeBlob(@NotNull Blob blob) throws IOException {
             return delegate.writeBlob(blob);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeStream(@Nonnull InputStream stream) throws IOException {
+        public RecordId writeStream(@NotNull InputStream stream) throws IOException {
             return delegate.writeStream(stream);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        public RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
         throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);

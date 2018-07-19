@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.security.user;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 
 @Component(
@@ -32,9 +31,9 @@ import org.osgi.service.component.annotations.Component;
         property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl")
 public class UserAuthenticationFactoryImpl implements UserAuthenticationFactory {
 
-    @Nonnull
+    @NotNull
     @Override
-    public Authentication getAuthentication(@Nonnull UserConfiguration userConfiguration, @Nonnull Root root, @Nullable String userId) {
+    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration, @NotNull Root root, @Nullable String userId) {
         return new UserAuthentication(userConfiguration, root, userId);
     }
 }

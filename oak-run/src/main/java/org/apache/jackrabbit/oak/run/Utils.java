@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.sql.DataSource;
 
@@ -51,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
@@ -180,7 +180,7 @@ class Utils {
         return SegmentNodeStoreBuilders.builder(fileStore).build();
     }
 
-    @CheckForNull
+    @Nullable
     static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
                                                                Closer closer)
             throws IOException {
@@ -208,7 +208,7 @@ class Utils {
             return null;
         }
         builder.
-                setLeaseCheck(false).
+                setLeaseCheckMode(LeaseCheckMode.DISABLED).
                 setClusterId(options.getClusterId());
         if (options.disableBranchesSpec()) {
             builder.disableBranches();

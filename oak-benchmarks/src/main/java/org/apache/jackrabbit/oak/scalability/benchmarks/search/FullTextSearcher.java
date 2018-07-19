@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Full text query search
@@ -37,7 +37,7 @@ public class FullTextSearcher extends SearchScalabilityBenchmark {
 
     @SuppressWarnings("deprecation")
     @Override
-    protected Query getQuery(@Nonnull final QueryManager qm, ExecutionContext context) throws RepositoryException {
+    protected Query getQuery(@NotNull final QueryManager qm, ExecutionContext context) throws RepositoryException {
         @SuppressWarnings("unchecked")
         List<String> paths = (List<String>) context.getMap().get(ScalabilityBlobSearchSuite.CTX_SEARCH_PATHS_PROP);
         

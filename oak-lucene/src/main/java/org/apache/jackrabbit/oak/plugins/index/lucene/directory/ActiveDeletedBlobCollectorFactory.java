@@ -34,10 +34,10 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -57,7 +57,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class ActiveDeletedBlobCollectorFactory {
@@ -134,7 +133,7 @@ public class ActiveDeletedBlobCollectorFactory {
         };
     }
 
-    public static ActiveDeletedBlobCollector newInstance(@Nonnull File rootDirectory,
+    public static ActiveDeletedBlobCollector newInstance(@NotNull File rootDirectory,
                                                          ExecutorService executorService) {
         try {
             FileUtils.forceMkdir(rootDirectory);
@@ -185,12 +184,12 @@ public class ActiveDeletedBlobCollectorFactory {
          * @param executorService executor service to asynchronously flush deleted blobs
          *                        to a file.
          */
-        ActiveDeletedBlobCollectorImpl(@Nonnull File rootDirectory, @Nonnull ExecutorService executorService) {
+        ActiveDeletedBlobCollectorImpl(@NotNull File rootDirectory, @NotNull ExecutorService executorService) {
             this(Clock.SIMPLE, rootDirectory, executorService);
         }
 
-        ActiveDeletedBlobCollectorImpl(Clock clock, @Nonnull File rootDirectory,
-                                       @Nonnull ExecutorService executorService) {
+        ActiveDeletedBlobCollectorImpl(Clock clock, @NotNull File rootDirectory,
+                                       @NotNull ExecutorService executorService) {
             this.clock = clock;
             this.rootDirectory = rootDirectory;
             this.executorService = executorService;
@@ -203,7 +202,7 @@ public class ActiveDeletedBlobCollectorFactory {
          * @param before only purge blobs which were deleted before this timestamps
          * @param blobStore used to purge blobs/chunks
          */
-        public void purgeBlobsDeleted(long before, @Nonnull GarbageCollectableBlobStore blobStore) {
+        public void purgeBlobsDeleted(long before, @NotNull GarbageCollectableBlobStore blobStore) {
             cancelled = false;
             long start = clock.getTime();
             LOG.info("Starting purge of blobs deleted before {}", before);

@@ -76,6 +76,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DocumentNodeStoreService.DEFAULT_BUNDLING_DISABLED, config.bundlingDisabled());
         assertEquals(DocumentMK.Builder.DEFAULT_UPDATE_LIMIT, config.updateLimit());
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
+        assertEquals("STRICT", config.leaseCheckMode());
     }
 
     @Test

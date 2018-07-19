@@ -28,6 +28,8 @@ import java.util.function.Consumer;
 import com.google.common.base.Predicate;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.Lists;
+
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -236,15 +238,15 @@ public class NodeCacheTest {
     }
 
 
-    private static <V> void assertContains(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> void assertContains(NodeCache<PathRev, V> cache, String path) {
         assertPathRevs(cache, path, true);
     }
 
-    private static <V> void assertNotContains(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> void assertNotContains(NodeCache<PathRev, V> cache, String path) {
         assertPathRevs(cache, path, false);
     }
 
-    private static <V> void assertPathRevs(NodeCache<PathRev, V> cache, String path, boolean contains) {
+    private static <V extends CacheValue> void assertPathRevs(NodeCache<PathRev, V> cache, String path, boolean contains) {
         List<PathRev> revs = getPathRevs(cache, path);
         List<PathRev> matchingRevs = Lists.newArrayList();
         for (PathRev pr : revs) {
@@ -262,7 +264,7 @@ public class NodeCacheTest {
         }
     }
 
-    private static <V> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
+    private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
         List<PathRev> revs = Lists.newArrayList();
         for (PathRev pr : cache.asMap().keySet()) {
             if (pr.getPath().equals(path)) {

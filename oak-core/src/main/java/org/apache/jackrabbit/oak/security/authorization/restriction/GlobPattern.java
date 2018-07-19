@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Objects;
@@ -26,6 +24,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -89,7 +89,7 @@ final class GlobPattern implements RestrictionPattern {
 
     private final Pattern pattern;
 
-    private GlobPattern(@Nonnull String path, @Nonnull String restriction)  {
+    private GlobPattern(@NotNull String path, @NotNull String restriction)  {
         this.path = checkNotNull(path);
         this.restriction = restriction;
 
@@ -114,11 +114,11 @@ final class GlobPattern implements RestrictionPattern {
         }
     }
 
-    static GlobPattern create(@Nonnull String nodePath, @Nonnull String restrictions) {
+    static GlobPattern create(@NotNull String nodePath, @NotNull String restrictions) {
         return new GlobPattern(nodePath, restrictions);
     }
 
-    static void validate(@Nonnull String restriction) throws AccessControlException {
+    static void validate(@NotNull String restriction) throws AccessControlException {
         int cnt = 0;
         for (int i = 0; i < restriction.length(); i++) {
             if (WILDCARD_CHAR == restriction.charAt(i)) {
@@ -132,13 +132,13 @@ final class GlobPattern implements RestrictionPattern {
 
     //-------------------------------------------------< RestrictionPattern >---
     @Override
-    public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+    public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
         String itemPath = (property == null) ? tree.getPath() : PathUtils.concat(tree.getPath(), property.getName());
         return matches(itemPath);
     }
 
     @Override
-    public boolean matches(@Nonnull String path) {
+    public boolean matches(@NotNull String path) {
         return pattern.matches(path);
     }
 
@@ -185,7 +185,7 @@ final class GlobPattern implements RestrictionPattern {
      * Base for PathPattern and WildcardPattern
      */
     private abstract class Pattern {
-        abstract boolean matches(@Nonnull String toMatch);
+        abstract boolean matches(@NotNull String toMatch);
     }
 
     /**
@@ -195,12 +195,12 @@ final class GlobPattern implements RestrictionPattern {
 
         private final String patternStr;
 
-        private PathPattern(@Nonnull String patternStr) {
+        private PathPattern(@NotNull String patternStr) {
             this.patternStr = patternStr;
         }
 
         @Override
-        boolean matches(@Nonnull String toMatch) {
+        boolean matches(@NotNull String toMatch) {
             if (patternStr.isEmpty()) {
                 return path.equals(toMatch);
             } else {
@@ -219,13 +219,13 @@ final class GlobPattern implements RestrictionPattern {
         private final String patternEnd;
         private final char[] patternChars;
 
-        private WildcardPattern(@Nonnull String patternStr, @Nullable String patternEnd) {
+        private WildcardPattern(@NotNull String patternStr, @Nullable String patternEnd) {
             patternChars = patternStr.toCharArray();
             this.patternEnd = patternEnd;
         }
 
         @Override
-        boolean matches(@Nonnull String toMatch) {
+        boolean matches(@NotNull String toMatch) {
             if (patternEnd != null && !toMatch.endsWith(patternEnd)) {
                 // shortcut: verify if end of pattern matches end of toMatch
                 return false;

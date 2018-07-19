@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -44,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract test-base for the various membership related operations (isMember, isDeclaredMember, memberOf, declaredMemberOf)
@@ -173,5 +173,5 @@ abstract class MemberBaseTest extends AbstractTest {
         }
     }
 
-    protected abstract void testMembership(@Nonnull Group g, @Nonnull User member) throws Exception;
+    protected abstract void testMembership(@NotNull Group g, @NotNull User member) throws Exception;
 }

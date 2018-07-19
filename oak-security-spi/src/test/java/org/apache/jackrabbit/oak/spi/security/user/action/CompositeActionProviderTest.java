@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -62,9 +61,9 @@ public class CompositeActionProviderTest {
 
     private final class TestAuthorizableActionProvider implements AuthorizableActionProvider {
 
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
             return ImmutableList.of(TestAction.INSTANCE);
         }
     }

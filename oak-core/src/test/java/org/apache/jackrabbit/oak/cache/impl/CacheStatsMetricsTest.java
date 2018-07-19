@@ -21,13 +21,12 @@ package org.apache.jackrabbit.oak.cache.impl;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.cache.impl.CacheStatsMetrics.ELEMENT;
@@ -90,7 +89,7 @@ public class CacheStatsMetricsTest {
 
     private static class TestStats extends AbstractCacheStats {
 
-        TestStats(@Nonnull String name) {
+        TestStats(@NotNull String name) {
             super(name);
         }
 

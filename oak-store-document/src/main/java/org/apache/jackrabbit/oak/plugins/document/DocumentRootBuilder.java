@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 import java.io.IOException;
 import java.io.InputStream;
-
-import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      * This differs from the base state of super since the latter one reflects
      * the base created by the last purge.
      */
-    @Nonnull
+    @NotNull
     private NodeState base;
 
     /**
@@ -70,9 +70,9 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      */
     private int updates;
 
-    DocumentRootBuilder(@Nonnull DocumentNodeState base,
-                        @Nonnull DocumentNodeStore store,
-                        @Nonnull DocumentNodeStoreBranch branch) {
+    DocumentRootBuilder(@NotNull DocumentNodeState base,
+                        @NotNull DocumentNodeStore store,
+                        @NotNull DocumentNodeStoreBranch branch) {
         super(checkNotNull(base));
         this.store = checkNotNull(store);
         this.base = base;
@@ -83,13 +83,13 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     //--------------------------------------------------< MemoryNodeBuilder >---
 
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getBaseState() {
         return base;
     }
 
     @Override
-    public void reset(@Nonnull NodeState newBase) {
+    public void reset(@NotNull NodeState newBase) {
         base = checkNotNull(newBase);
         super.reset(newBase);
     }
@@ -106,7 +106,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getNodeState() {
         if (updates > 0) {
@@ -157,7 +157,14 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      * Merge all changes tracked in this builder into the underlying store.
      */
     NodeState merge(CommitHook hook, CommitInfo info) throws CommitFailedException {
-        purge();
+        try {
+            // we need to throw a CommitFailedException if purge fails
+            // here with a DocumentStoreException
+            purge();
+        } catch (DocumentStoreException e) {
+            String msg = "Merge failed to purge changes: " + e.getMessage();
+            throw new CommitFailedException(OAK, 1, msg, e);
+        }
         boolean success = false;
         try {
             branch.merge(hook, info);

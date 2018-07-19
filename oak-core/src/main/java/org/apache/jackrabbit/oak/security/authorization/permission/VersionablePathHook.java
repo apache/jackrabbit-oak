@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -54,12 +53,12 @@ public class VersionablePathHook implements CommitHook {
     private final String workspaceName;
     private final ProviderCtx providerCtx;
 
-    public VersionablePathHook(@Nonnull String workspaceName, @Nonnull ProviderCtx providerCtx) {
+    public VersionablePathHook(@NotNull String workspaceName, @NotNull ProviderCtx providerCtx) {
         this.workspaceName = workspaceName;
         this.providerCtx = providerCtx;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)
@@ -91,10 +90,10 @@ public class VersionablePathHook implements CommitHook {
         private final Node nodeAfter;
         private final List<CommitFailedException> exceptions;
 
-        private Diff(@Nonnull ReadWriteVersionManager versionManager,
-                     @Nonnull ReadOnlyNodeTypeManager ntMgr,
-                     @Nonnull Node node,
-                     @Nonnull List<CommitFailedException> exceptions) {
+        private Diff(@NotNull ReadWriteVersionManager versionManager,
+                     @NotNull ReadOnlyNodeTypeManager ntMgr,
+                     @NotNull Node node,
+                     @NotNull List<CommitFailedException> exceptions) {
             this.versionManager = versionManager;
             this.ntMgr = ntMgr;
             this.nodeAfter = node;

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -38,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -120,26 +119,26 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
     public void testGetPrincipalProvider4() {
         PrincipalConfigurationImpl pc3 = new PrincipalConfigurationImpl();
         final SecurityProvider sp = new SecurityProvider() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters(@Nullable String name) {
                 return ConfigurationParameters.EMPTY;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<? extends SecurityConfiguration> getConfigurations() {
                 return ImmutableList.of();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+            public <T> T getConfiguration(@NotNull Class<T> configClass) {
                 if (configClass.equals(UserConfiguration.class)) {
                     return (T) new UserConfigurationImpl(this) {
                         @Nullable
                         @Override
-                        public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+                        public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
                             return null;
                         }
                     };

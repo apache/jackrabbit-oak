@@ -23,8 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 import com.google.common.collect.Maps;
@@ -146,7 +145,7 @@ public interface QueryIndex {
          * 
          * @return the node aggregator or null
          */
-        @CheckForNull
+        @Nullable
         NodeAggregator getNodeAggregator();
 
     }
@@ -301,7 +300,7 @@ public interface QueryIndex {
          *
          * @return the restriction this plan is based on or <code>null</code>.
          */
-        @CheckForNull
+        @Nullable
         PropertyRestriction getPropertyRestriction();
 
         /**
@@ -322,7 +321,7 @@ public interface QueryIndex {
          * @return an <code>Object</code> containing the value
          * of the attribute, or <code>null</code> if the attribute does not exist
          */
-        @CheckForNull
+        @Nullable
         Object getAttribute(String name);
 
         /**
@@ -330,7 +329,7 @@ public interface QueryIndex {
          *
          * @return the plan name
          */
-        @CheckForNull
+        @Nullable
         String getPlanName();
 
         /**

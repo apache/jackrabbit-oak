@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 import java.util.Map;
 
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 /**
@@ -27,13 +29,16 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
  * @param <K> key type
  * @param <V> value type
  */
-class InvalidateCacheAction<K, V> implements CacheAction<K, V> {
+class InvalidateCacheAction<K extends CacheValue, V extends CacheValue>
+        implements CacheAction {
 
     private final PersistentCache cache;
 
     private final Map<K, V> map;
 
     private final Iterable<K> keys;
+
+    private int memory = 0;
 
     InvalidateCacheAction(Iterable<K> keys, CacheWriteQueue<K, V> queue) {
         this.keys = keys;
@@ -49,6 +54,19 @@ class InvalidateCacheAction<K, V> implements CacheAction<K, V> {
                 map.remove(key);
             }
         }
+    }
+
+    @Override
+    public int getMemory() {
+        long m = memory;
+        if (m == 0) {
+            for (K key : keys) {
+                m += key.getMemory();
+            }
+            m = Math.min(Integer.MAX_VALUE, m);
+            memory = (int) m;
+        }
+        return (int) m;
     }
 
     @Override

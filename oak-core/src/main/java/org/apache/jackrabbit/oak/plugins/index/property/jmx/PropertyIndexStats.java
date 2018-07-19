@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -51,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -170,7 +170,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
             Tree t = TreeFactory.createReadOnlyTree(cne.getNodeState());
             TreeTraverser<Tree> traverser = new TreeTraverser<Tree>() {
                 @Override
-                public Iterable<Tree> children(@Nonnull  Tree root) {
+                public Iterable<Tree> children(@NotNull  Tree root) {
                     //Break at maxLevel
                     if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
                         return Collections.emptyList();

@@ -28,14 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.RemovalNotification;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A cache for {@link SegmentId#isDataSegmentId() data} {@link Segment}
@@ -62,7 +61,7 @@ public abstract class SegmentCache {
      *
      * @param cacheSizeMB size of the cache in megabytes.
      */
-    @Nonnull
+    @NotNull
     public static SegmentCache newSegmentCache(long cacheSizeMB) {
         if (cacheSizeMB > 0) {
             return new NonEmptyCache(cacheSizeMB);
@@ -80,8 +79,8 @@ public abstract class SegmentCache {
      * @return the segment identified by {@code id}
      * @throws ExecutionException when {@code loader} failed to load an segment
      */
-    @Nonnull
-    public abstract Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
+    @NotNull
+    public abstract Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader)
     throws ExecutionException;
 
     /**
@@ -90,7 +89,7 @@ public abstract class SegmentCache {
      *
      * @param segment the segment to cache
      */
-    public abstract void putSegment(@Nonnull Segment segment);
+    public abstract void putSegment(@NotNull Segment segment);
 
     /**
      * Clear all segment from the cache
@@ -100,7 +99,7 @@ public abstract class SegmentCache {
     /**
      * @return Statistics for this cache.
      */
-    @Nonnull
+    @NotNull
     public abstract AbstractCacheStats getCacheStats();
 
     /**
@@ -115,14 +114,14 @@ public abstract class SegmentCache {
         /**
          * Cache of recently accessed segments
          */
-        @Nonnull
+        @NotNull
         private final Cache<SegmentId, Segment> cache;
 
         /**
          * Statistics of this cache. Do to the special access patter (see class
          * comment), we cannot rely on {@link Cache#stats()}.
          */
-        @Nonnull
+        @NotNull
         private final Stats stats;
 
         /**
@@ -144,7 +143,7 @@ public abstract class SegmentCache {
         /**
          * Removal handler called whenever an item is evicted from the cache.
          */
-        private void onRemove(@Nonnull RemovalNotification<SegmentId, Segment> notification) {
+        private void onRemove(@NotNull RemovalNotification<SegmentId, Segment> notification) {
             stats.evictionCount.incrementAndGet();
             if (notification.getValue() != null) {
                 stats.currentWeight.addAndGet(-segmentWeight(notification.getValue()));
@@ -155,8 +154,8 @@ public abstract class SegmentCache {
         }
 
         @Override
-        @Nonnull
-        public Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader) throws ExecutionException {
+        @NotNull
+        public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader) throws ExecutionException {
             if (id.isDataSegmentId()) {
                 return cache.get(id, () -> {
                     try {
@@ -183,7 +182,7 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void putSegment(@Nonnull Segment segment) {
+        public void putSegment(@NotNull Segment segment) {
             SegmentId id = segment.getSegmentId();
 
             if (id.isDataSegmentId()) {
@@ -205,7 +204,7 @@ public abstract class SegmentCache {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public AbstractCacheStats getCacheStats() {
             return stats;
         }
@@ -220,9 +219,9 @@ public abstract class SegmentCache {
     private static class EmptyCache extends SegmentCache {
         private final Stats stats = new Stats(NAME, 0, () -> 0L);
 
-        @Nonnull
+        @NotNull
         @Override
-        public Segment getSegment(@Nonnull SegmentId id, @Nonnull Callable<Segment> loader)
+        public Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader)
         throws ExecutionException {
             long t0 = System.nanoTime();
             try {
@@ -239,14 +238,14 @@ public abstract class SegmentCache {
         }
 
         @Override
-        public void putSegment(@Nonnull Segment segment) {
+        public void putSegment(@NotNull Segment segment) {
             segment.getSegmentId().unloaded();
         }
 
         @Override
         public void clear() {}
 
-        @Nonnull
+        @NotNull
         @Override
         public AbstractCacheStats getCacheStats() {
             return stats;
@@ -266,31 +265,31 @@ public abstract class SegmentCache {
     private static class Stats extends AbstractCacheStats {
         private final long maximumWeight;
 
-        @Nonnull
+        @NotNull
         private final Supplier<Long> elementCount;
 
-        @Nonnull
+        @NotNull
         final AtomicLong currentWeight = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong loadSuccessCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicInteger loadExceptionCount = new AtomicInteger();
 
-        @Nonnull
+        @NotNull
         final AtomicLong loadTime = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong evictionCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong hitCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong missCount = new AtomicLong();
 
-        protected Stats(@Nonnull String name, long maximumWeight, @Nonnull Supplier<Long> elementCount) {
+        protected Stats(@NotNull String name, long maximumWeight, @NotNull Supplier<Long> elementCount) {
             super(name);
             this.maximumWeight = maximumWeight;
             this.elementCount = checkNotNull(elementCount);

@@ -20,10 +20,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Aggregates a collection of {@link AuthorizableActionProvider}s into a single
@@ -41,9 +40,9 @@ public class CompositeActionProvider implements AuthorizableActionProvider {
         this.providers = Arrays.asList(providers);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
         List<AuthorizableAction> actions = Lists.newArrayList();
         for (AuthorizableActionProvider p : providers) {
             actions.addAll(p.getAuthorizableActions(securityProvider));

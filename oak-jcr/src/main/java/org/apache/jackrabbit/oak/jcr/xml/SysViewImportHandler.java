@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
+import org.jetbrains.annotations.NotNull;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
@@ -288,7 +288,7 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
-    private boolean isSystemProperty(@Nonnull String localName) {
+    private boolean isSystemProperty(@NotNull String localName) {
         return currentPropName != null
                 && currentPropName.getNamespaceUri().equals(NamespaceRegistry.NAMESPACE_JCR)
                 && currentPropName.getLocalName().equals(localName);

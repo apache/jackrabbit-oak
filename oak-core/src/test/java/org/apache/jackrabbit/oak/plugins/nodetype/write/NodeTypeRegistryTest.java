@@ -42,7 +42,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.ValueFactory;
@@ -73,6 +72,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +85,7 @@ public class NodeTypeRegistryTest {
     private Root root;
     private ContentSession session = null;
     
-    static void registerNodeType(@Nonnull Root root, @Nonnull String resourceName) throws IOException {
+    static void registerNodeType(@NotNull Root root, @NotNull String resourceName) throws IOException {
         checkArgument(!Strings.isNullOrEmpty(resourceName));
         checkNotNull(root);
 
@@ -187,7 +187,7 @@ public class NodeTypeRegistryTest {
                 return root.getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return root;

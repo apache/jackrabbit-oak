@@ -20,12 +20,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
 
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
@@ -51,7 +50,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private PermissionCache permissionCache;
 
-    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
+    PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames, @NotNull ConfigurationParameters options) {
         this.store = store;
         this.principalNames = Collections.unmodifiableSet(principalNames);
         this.maxSize = options.getConfigValue(EAGER_CACHE_SIZE_PARAM, DEFAULT_SIZE);
@@ -71,8 +70,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
+    @NotNull
+    public Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate) {
         if (noExistingNames) {
             return Collections.emptyIterator();
         } else {
@@ -81,14 +80,14 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+    @NotNull
+    public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
         return permissionCache.getEntries(accessControlledTree);
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private Collection<PermissionEntry> getEntries(@Nonnull String path) {
+    @NotNull
+    private Collection<PermissionEntry> getEntries(@NotNull String path) {
         return permissionCache.getEntries(path);
     }
 
@@ -102,7 +101,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         // the next oak path for which to retrieve permission entries
         private String path;
 
-        private EntryIterator(@Nonnull EntryPredicate predicate) {
+        private EntryIterator(@NotNull EntryPredicate predicate) {
             this.predicate = predicate;
             this.path = Strings.nullToEmpty(predicate.getPath());
         }

@@ -21,9 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 public interface AsyncIndexInfoService {
 
@@ -45,14 +44,14 @@ public interface AsyncIndexInfoService {
     /**
      * Returns the info for async indexer with given name
      */
-    @CheckForNull
+    @Nullable
     AsyncIndexInfo getInfo(String name);
 
     /**
      * Returns the info for async indexer with given name
      * and based on given root NodeState
      */
-    @CheckForNull
+    @Nullable
     AsyncIndexInfo getInfo(String name, NodeState root);
 
     /**

@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implements an identity that is provided by the {@link LdapIdentityProvider}.
@@ -59,7 +58,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public ExternalIdentityRef getExternalId() {
         return ref;
@@ -68,7 +67,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getId() {
         return id;
@@ -78,7 +77,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
      * Returns the DN as principal name.
      * @return the DN
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getPrincipalName() {
         return ref.getId();
@@ -95,7 +94,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
         if (groups == null) {
@@ -107,7 +106,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, Object> getProperties() {
         return properties;

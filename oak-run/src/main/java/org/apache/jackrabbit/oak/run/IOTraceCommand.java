@@ -33,14 +33,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTracer;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *  Command line utility for collection {@link IOTracer io traces}
@@ -157,9 +156,9 @@ class IOTraceCommand implements Command {
     }
 
     private static void printUsage(
-            @Nonnull OptionParser parser,
-            @Nonnull PrintStream err,
-            @Nonnull String... messages)
+            @NotNull OptionParser parser,
+            @NotNull PrintStream err,
+            @NotNull String... messages)
     throws IOException {
         for (String message : messages) {
             err.println(message);

@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -69,6 +67,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -108,13 +108,13 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
-                                   @Nonnull List<String> autoMembership) {
+                                   @NotNull List<String> autoMembership) {
         this(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership, 0);
     }
 
     protected AbstractExternalTest(int numberOfUsers, int numberOfGroups,
                                    long expTime, boolean dynamicMembership,
-                                   @Nonnull List<String> autoMembership,
+                                   @NotNull List<String> autoMembership,
                                    int roundtripDelay) {
 
         idp = (roundtripDelay < 0) ? new PrincipalResolvingProvider(numberOfUsers, numberOfGroups) : new TestIdentityProvider(numberOfUsers, numberOfGroups);
@@ -261,15 +261,15 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             this.membershipSize = membershipSize;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return "test";
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) {
+        public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) {
             String id = ref.getId();
             long index = Long.valueOf(id.substring(1));
             if (id.charAt(0) == 'u') {
@@ -286,25 +286,25 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             }
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalUser getUser(@Nonnull String userId) {
+        public ExternalUser getUser(@NotNull String userId) {
             return new TestUser(Long.valueOf(userId.substring(1)));
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalUser authenticate(@Nonnull Credentials credentials) {
+        public ExternalUser authenticate(@NotNull Credentials credentials) {
             return getUser(((SimpleCredentials) credentials).getUserID());
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public ExternalGroup getGroup(@Nonnull String name) {
+        public ExternalGroup getGroup(@NotNull String name) {
             return new TestGroup(Long.valueOf(name.substring(1)));
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterator<ExternalUser> listUsers() {
             Set<ExternalUser> all = new HashSet<>();
@@ -314,7 +314,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             return all.iterator();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterator<ExternalGroup> listGroups() {
             Set<ExternalGroup> all = new HashSet<>();
@@ -343,9 +343,9 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             super(numberOfUsers, membershipSize);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) {
+        public String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) {
             return "p_" + externalIdentityRef.getId();
         }
     }
@@ -356,25 +356,25 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         private final String principalName;
         private final ExternalIdentityRef id;
 
-        public TestIdentity(@Nonnull String userId) {
+        public TestIdentity(@NotNull String userId) {
             this.userId = userId;
             this.principalName = "p_"+userId;
             id = new ExternalIdentityRef(userId, idp.getName());
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getId() {
             return userId;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getPrincipalName() {
             return principalName;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public ExternalIdentityRef getExternalId() {
             return id;
@@ -385,13 +385,13 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return ((TestIdentityProvider) idp).getDeclaredGroupRefs(userId);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, ?> getProperties() {
             return ImmutableMap.of();
@@ -413,7 +413,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             super("g" + index);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
             return ImmutableSet.of();

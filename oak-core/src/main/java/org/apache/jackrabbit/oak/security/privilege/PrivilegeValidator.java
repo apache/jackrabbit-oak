@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
@@ -51,7 +50,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     private final PrivilegeBitsProvider bitsProvider;
     private final TreeProvider treeProvider;
 
-    PrivilegeValidator(@Nonnull Root before, @Nonnull Root after, @Nonnull TreeProvider treeProvider) {
+    PrivilegeValidator(@NotNull Root before, @NotNull Root after, @NotNull TreeProvider treeProvider) {
         rootBefore = before;
         rootAfter = after;
         bitsProvider = new PrivilegeBitsProvider(rootBefore);
@@ -133,7 +132,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         }
     }
 
-    @Nonnull
+    @NotNull
     private Tree getPrivilegesTree(Root root) throws CommitFailedException {
         Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
         if (!privilegesTree.exists()) {
@@ -256,7 +255,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         return aggregateNames;
     }
 
-    private static boolean isPrivilegeDefinition(@Nonnull NodeState state) {
+    private static boolean isPrivilegeDefinition(@NotNull NodeState state) {
         return NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(state));
     }
 }

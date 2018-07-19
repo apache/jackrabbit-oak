@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.user;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides a user management specific implementation of the
@@ -43,6 +41,6 @@ public interface UserAuthenticationFactory {
      * {@code userId} or {@code null} if this implementation cannot not handle the
      * specified parameters.
      */
-    @CheckForNull
-    Authentication getAuthentication(@Nonnull UserConfiguration configuration, @Nonnull Root root, @Nullable String userId);
+    @Nullable
+    Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root, @Nullable String userId);
 }

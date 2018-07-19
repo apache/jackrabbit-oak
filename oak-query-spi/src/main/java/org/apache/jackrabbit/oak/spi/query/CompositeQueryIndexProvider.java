@@ -20,9 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -43,9 +42,9 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
         this(Arrays.asList(providers));
     }
 
-    @Nonnull
+    @NotNull
     public static QueryIndexProvider compose(
-            @Nonnull Collection<QueryIndexProvider> providers) {
+            @NotNull Collection<QueryIndexProvider> providers) {
         if (providers.isEmpty()) {
             return new QueryIndexProvider() {
                 @Override
@@ -61,7 +60,7 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         List<QueryIndex> indexes = Lists.newArrayList();
         for (QueryIndexProvider provider : providers) {

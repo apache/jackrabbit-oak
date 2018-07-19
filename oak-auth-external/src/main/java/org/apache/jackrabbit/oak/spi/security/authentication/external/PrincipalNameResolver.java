@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface to obtain the name of the {@link java.security.Principal} from a
@@ -44,6 +44,6 @@ public interface PrincipalNameResolver {
      * @return The name of the {@link java.security.Principal} associated with the external identity referenced by the given {@code externalIdentityRef}.
      * @throws ExternalIdentityException If the reference is not valid or another error occurs.
      */
-    @Nonnull
-    String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException;
+    @NotNull
+    String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException;
 }

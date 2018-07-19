@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code PartialConflictHandler} is responsible for handling conflicts which happen
@@ -74,7 +73,7 @@ public interface PartialConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -85,7 +84,7 @@ public interface PartialConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -97,7 +96,7 @@ public interface PartialConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -108,7 +107,7 @@ public interface PartialConflictHandler {
      * @param ours  our version of the property
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -119,7 +118,7 @@ public interface PartialConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs);
 
     /**
@@ -132,7 +131,7 @@ public interface PartialConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs);
 
     /**
@@ -144,7 +143,7 @@ public interface PartialConflictHandler {
      * @param ours  our version of the node
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours);
 
     /**
@@ -156,7 +155,7 @@ public interface PartialConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs);
 
     /**
@@ -167,6 +166,6 @@ public interface PartialConflictHandler {
      * @param name  name of the node
      * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Resolution deleteDeletedNode(NodeBuilder parent, String name);
 }

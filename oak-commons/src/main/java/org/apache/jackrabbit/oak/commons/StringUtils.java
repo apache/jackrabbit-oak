@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.commons;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +40,8 @@ public class StringUtils {
      * @param value the byte array
      * @return the hex encoded string
      */
-    @Nonnull
-    public static String convertBytesToHex(@Nonnull byte[] value) {
+    @NotNull
+    public static String convertBytesToHex(@NotNull byte[] value) {
         checkNotNull(value);
         int len = value.length;
         char[] buff = new char[len + len];
@@ -61,8 +60,8 @@ public class StringUtils {
      * @param s the hex encoded string
      * @return the byte array
      */
-    @Nonnull
-    public static byte[] convertHexToBytes(@Nonnull String s) {
+    @NotNull
+    public static byte[] convertHexToBytes(@NotNull String s) {
         checkNotNull(s);
         int len = s.length();
         checkArgument(len % 2 == 0);

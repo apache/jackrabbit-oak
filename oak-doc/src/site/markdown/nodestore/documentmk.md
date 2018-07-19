@@ -17,6 +17,7 @@
 # Oak Document Storage
 
 * [Oak Document Storage](#oak-document-storage)
+    * [New in 1.10](#new-1.10)
     * [New in 1.8](#new-1.8)
     * [New in 1.6](#new-1.6)
     * [Backend implementations](#backend-implementations)
@@ -33,23 +34,30 @@
         * [Background Document Split](#background-document-split)
         * [Background Writes](#background-writes)
         * [Background Reads](#bg-read)
-    * [Pending Topics](#pending-topics)
-        * [Conflict Detection and Handling](#conflict-detection-and-handling)
+    * [Metrics and Monitoring](#metrics)
     * [Cluster Node Metadata](#cluster-node-metadata)
+        * [Acquire a Cluster Node ID](#acquire-a-cluster-node-id)
+        * [Update Lease for a Cluster Node ID](#update-lease-for-a-cluster-node-id)
+        * [Recovery for a Cluster Node ID](#recovery-for-a-cluster-node-id)
         * [Specifying the Read Preference and Write Concern](#rw-preference)
-            * [Via Configuration](#via-configuration)
-            * [Changing at Runtime](#changing-at-runtime)
     * [Caching](#cache)
         * [Cache Invalidation](#cache-invalidation)
         * [Cache Configuration](#cache-configuration)
     * [Unlock upgrade](#unlockUpgrade)
     * [Revision Garbage Collection](#revision-gc)
+    * [Pending Topics](#pending-topics)
+        * [Conflict Detection and Handling](#conflict-detection-and-handling)
 
 One of the plugins in Oak stores data in a document oriented format. 
 The plugin implements the low level `NodeStore` interface.
 
 The document storage optionally uses the [persistent cache](persistent-cache.html)
 to reduce read operations on the backend storage.
+
+## <a name="new-1.10"></a> New in 1.10
+
+* Use of MongoDB client sessions. See also [read preference](document/mongo-document-store.html#read-preference).
+* [Greedy cluster node info][OAK-7316]. See also [Acquire a Cluster Node ID](#acquire-a-cluster-node-id).
 
 ## <a name="new-1.8"></a> New in 1.8
 
@@ -499,49 +507,153 @@ The DocumentNodeStore periodically picks up changes from other DocumentNodeStore
 instances by polling the root node for changes of `_lastRev`. This happens once
 every second.
 
-## <a name="pending-topics"></a> Pending Topics
+## <a name="metrics"></a> Metrics and Monitoring
 
-### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
+See [DocumentNodeStore and DocumentStore metrics](document/metrics.html).
 
 ## <a name="cluster-node-metadata"></a> Cluster Node Metadata
 
-Cluster node metadata is stored in the `clusterNodes` collection. There is one entry
-for each cluster node that is running, and there are entries for cluster nodes that were
-ran. Old entries are kept so that if a cluster node is started again, it gets the same 
-cluster node id as before (which is not strictly needed for consistency, but nice for
-support, if one would want to find out which change originated from which cluster node).
+Cluster node metadata is stored in the `clusterNodes` collection. There is one
+entry for each cluster node that is running, and there may be entries for
+cluster nodes that were running in the past. Old entries are kept so that if a
+cluster node is started again, it gets the same cluster node ID as before (which
+is not strictly needed for consistency, but nice for support, if one would want
+to find out which change originated from which cluster node). Starting with Oak
+1.10, acquiring a cluster node ID changed slightly. A cluster node may now also
+acquire an inactive cluster node ID created by another cluster node.
 
-Each running cluster node updates the lease end time of the cluster node id every
-ten seconds, to ensure each cluster node uses a different cluster node id.
+The entries of a `clusterNodes` collection may look like this:
 
     > db.clusterNodes.find().pretty()
     
     {
 		"_id" : "1",
-		"_modCount" : NumberLong(2),
+		"_modCount" : NumberLong(490),
+		"state" : "ACTIVE",
 		"leaseEnd" : NumberLong("1390465250135"),
-		"instance" : "/Users/test/jackrabbit/oak/trunk/oak-jcr",
+		"instance" : "/home/oak",
 		"machine" : "mac:20c9d043f141",
-		"info" : "...pid: 11483, uuid: 6b6e8e4f-8322-4b19-a2b2-de0c573620b9 ..."
+		"info" : "...pid: 983, uuid: 6b6e8e4f-8322-4b19-a2b2-de0c573620b9 ..."
 	}
 	{
 		"_id" : "2",
-		"_modCount" : NumberLong(2),
-		"leaseEnd" : NumberLong("1390465252206"),
-		"instance" : "/Users/mueller/jackrabbit/oak/trunk/oak-jcr",
-		"machine" : "mac:20c9d043f141",
-		"info" : "...pid: 11483, uuid: 28ada13d-ec9c-4d48-aeb9-cef53aa4bb9e ..."
+		"_modCount" : NumberLong(492),
+		"state" : "ACTIVE",
+		"leaseEnd" : NumberLong("1390465255192"),
+		"instance" : "/home/oak",
+		"machine" : "mac:30c3d053f247",
+		"info" : "...pid: 843, uuid: 28ada13d-ec9c-4d48-aeb9-cef53aa4bb9e ..."
 	}
 
-The `_id` is the cluster node id of the node, which is the last part of the revision id.
-The `leaseEnd` is updated every ten seconds by running cluster nodes. It is the number
-of milliseconds since 1970.
-The `instance` is the current working directory.
-The `machine` is the lowest number of the network addresses, 
-or a random uuid if this is not available.
-The `info` contains the same info as a string, plus additionally the process id
-and the uuid.
+In the above example, there are two active cluster nodes running with IDs `1`
+and `2`. The `_id` corresponds to the last part of the revisions generated by a
+cluster node. Please note, the `_id` representation is base 10, while the
+ID part of a revision is base 16! The `instance` is the current working
+directory and the `machine` is the lowest number of an active network adapter's
+MAC address. If no active network adapter is available, then the value for the
+`machine` field will be a random UUID. The `info` field contains the same info
+as a string, plus additional information like the process ID.
 
+The diagram shows the different states a cluster node entry can be in.
+
+![Cluster node ID state diagram](document/cluster-node-lease.png)
+
+### <a name="acquire-a-cluster-node-id"></a> Acquire a cluster node ID
+
+There are different ways how a cluster node acquires an ID.
+
+In the most simple case there are no existing entries in the `clusterNodes`
+collection and the cluster node will create a new active entry with `_id="1"`.
+The `leaseEnd` will already be set to a value higher than the current time. This
+entry is now considered active and in use. Similarly, when a second cluster node
+starts up, then it will create a new active entry with `_id="2"` and so on for
+more cluster nodes.
+
+When a cluster node is shut down, the cluster node ID is released and put into
+the inactive state. This is reflected in the entry with a `state` and `leaseEnd`
+field set to `null`. On startup, the cluster node will re-acquire the same entry
+because the `machine` and `instance` field match its environment.
+
+Immediately restarting a crashed cluster node will lead to a somewhat delayed
+startup, because the cluster node will find a matching and active cluster node
+ID. In this case, the cluster node will wait until the lease expires (up to two
+minutes if the process crashed right after the lease was extended) and then run
+the recovery process for the cluster node ID. Depending on timing, the recovery
+may also be started by another active cluster node. In this case, the starting
+cluster node would wait up to one minute for the recovery to finish. Either way,
+if the recovery was successful, the cluster node ID will have transitioned to
+the inactive state and can be acquired again as described before.
+
+When a new cluster node is started and there is an inactive entry, then the
+cluster node will try to acquire it, even when its environment does not match
+the `machine` and `instance` fields. This behaviour is new and was introduced
+with Oak 1.10. Previous versions ignore entries that do not match the
+environment and would create a new entry.
+
+### <a name="update-lease-for-a-cluster-node-id"></a> Update lease for a cluster node ID
+
+Each running cluster node updates the `leaseEnd` time of the cluster node ID
+every ten seconds, to ensure each cluster node uses a different cluster node ID.
+The time is the number of milliseconds since 1970 and with every update the 
+`leaseEnd` is set two minutes ahead of the current time. This lease mechanism
+allows other cluster nodes to identify active, inactive and crashed cluster nodes.
+
+Starting with Oak 1.4 the DocumentNodeStore will invoke a lease failure handler
+when it was unable to renew the lease in time. When deployed in an OSGi
+container, the `DocumentNodeStoreService` implements a lease failure handler
+that will stop the bundle with the DocumentNodeStore implementation. At this
+point appropriate monitoring of the system should detect this situation and
+restart the process. In addition to calling the lease failure handler, the
+DocumentNodeStore will also reject all future access to the underlying
+`DocumentStore` with a `DocumentStoreException`.
+
+The initial lease update mechanism implemented with Oak 1.4 is somewhat lenient.
+The implementation allows a lease update when it actually knows the lease
+expired. The reason for this decision was developer friendliness. Debugging a
+system often means the JVM is suspended for a while, which may result in an
+expired lease. In this situation, the DocumentNodeStore gives the background
+lease update thread a chance to still update the lease.
+
+With Oak 1.10 a new lease update mode was introduced: `STRICT`. This is the
+new default and immediately rejects access to the DocumentStore and calls the
+failure handler, when it detects an expired lease. The previous behaviour is
+still available with the `LENIENT` mode.
+See also OSGi [configuration](../osgi_config.html#document-node-store) for the
+`DocumentNodeStoreService`.
+
+For testing purposes is it also possible to disable the lease check entirely
+with a system property: `-Doak.documentMK.disableLeaseCheck=true`.
+
+### <a name="recovery-for-a-cluster-node-id"></a> Recovery for a cluster node ID
+
+Recovery becomes necessary when the lease on a cluster node ID entry expires.
+This usually happens when the process that acquired the cluster node ID crashes,
+but the lease may also expire if the cluster node fails to extend the lease in
+time. In the latter case, the cluster node is obligated to stop any further
+operations on the document store. The current implementation does this by
+blocking operations on the document store level and stopping the
+oak-store-document bundle when it detects an outdated lease. Other active
+cluster nodes or the restarted cluster node are then responsible for running
+recovery for the relevant cluster node ID and setting the state back to
+inactive.
+
+Before a cluster node can run the recovery process, the recovery lock on the
+cluster node ID entry must be acquired. This lock again is protected with a
+lease to detect a crashed cluster node that was performing recovery and left
+behind a recovery lock. Other cluster nodes will therefore check whether the
+cluster node ID identified by `recoveryBy` is still active and try to break
+the recovery lock if the recovering cluster node is considered inactive or
+expired.
+
+There is a special case when a starting cluster node performs the recovery for
+itself. That is, for the cluster node ID it wants to acquire but first has to
+run recovery for it. In this case the lease is only updated once for the cluster
+node entry ID entry that needs recovery. This happens when the recovery lock is
+set on the entry. The starting cluster node then must finish the recovery within
+this initial lease deadline, otherwise the recovery will be considered failed
+and the starting cluster node will acquire a different (potentially new) ID. The
+failed recovery will then be performed later by a background job of one of the
+active cluster nodes.
 
 ### <a name="rw-preference"></a> Specifying the Read Preference and Write Concern
 
@@ -743,9 +855,13 @@ mode, the RGC will not log every run but only write an INFO message every hour
 summarizing the GC cycles for the past hour.
 For more details, see also the [OSGi configuration][osgi-config] page. 
 
+## <a name="pending-topics"></a> Pending Topics
+
+### <a name="conflict-detection-and-handling"></a> Conflict Detection and Handling
+
 [OAK-1156]: https://issues.apache.org/jira/browse/OAK-1156
 [OAK-2646]: https://issues.apache.org/jira/browse/OAK-2646
 [OAK-2546]: https://issues.apache.org/jira/browse/OAK-2546
+[OAK-7316]: https://issues.apache.org/jira/browse/OAK-7316
 [osgi-config]: ../osgi_config.html#document-node-store
 [cache-allocation]: ../osgi_config.html#cache-allocation
-

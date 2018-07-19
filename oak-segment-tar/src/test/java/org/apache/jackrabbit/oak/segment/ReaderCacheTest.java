@@ -27,9 +27,8 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import com.google.common.base.Function;
@@ -40,7 +39,7 @@ public class ReaderCacheTest {
     public void empty() {
         final AtomicInteger counter = new AtomicInteger();
         Function<Integer, String> loader = new Function<Integer, String>() {
-            @Override @Nonnull
+            @Override @NotNull
             public String apply(@Nullable Integer input) {
                 counter.incrementAndGet();
                 return valueOf(input);

@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -49,7 +48,7 @@ public class UtilsTest extends AbstractSecurityTest {
         }
     }
 
-    private void assertEqualPath(@Nonnull Tree expected, @Nonnull Tree result) {
+    private void assertEqualPath(@NotNull Tree expected, @NotNull Tree result) {
         assertEquals(expected.getPath(), result.getPath());
     }
 

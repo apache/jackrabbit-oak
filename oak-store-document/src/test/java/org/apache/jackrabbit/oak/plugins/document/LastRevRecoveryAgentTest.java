@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,6 +32,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -190,6 +193,50 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         b1 = ds1.getRoot().builder();
         b1.child("x").child("y").setProperty("p", "v11");
         merge(ds1, b1);
+    }
+
+    @Test
+    public void dryRun() throws Exception {
+        //1. Create base structure /x/y
+        NodeBuilder b1 = ds1.getRoot().builder();
+        b1.child("x").child("y");
+        ds1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ds1.runBackgroundOperations();
+
+        ds2.runBackgroundOperations();
+
+        //2. Add a new node /x/y/z in C2
+        NodeBuilder b2 = ds2.getRoot().builder();
+        b2.child("x").child("y").child("z").setProperty("foo", "bar");
+        ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        Revision zlastRev2 = ds2.getHeadRevision().getRevision(ds2.getClusterId());
+
+        long leaseTime = ds1.getClusterInfo().getLeaseTime();
+        ds1.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + leaseTime + 10);
+
+        //Renew the lease for C1
+        ds1.getClusterInfo().renewLease();
+
+        assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
+
+        Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        assertEquals(1, Iterables.size(cids));
+        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+
+        int updates = ds1.getLastRevRecoveryAgent().recover(
+                Utils.getAllDocuments(store1),
+                Iterables.get(cids, 0),
+                true // dryRun
+        );
+        assertEquals(3, updates);
+
+        // must not have been updated with dryRun set to true
+        assertNull(getDocument(ds1, "/x/y").getLastRev().get(c2Id));
+        assertNull(getDocument(ds1, "/x").getLastRev().get(c2Id));
+        assertNotEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));
     }
 
     private static NodeDocument getDocument(DocumentNodeStore nodeStore,

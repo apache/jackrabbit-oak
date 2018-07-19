@@ -24,12 +24,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Sets.newLinkedHashSet;
 
@@ -41,7 +40,7 @@ public final class ValuePatternUtil {
      * @param property the property
      * @return the longest prefix, or null if none
      */
-    @CheckForNull
+    @Nullable
     public static String getLongestPrefix(Filter filter, String property) {
         boolean first = false, last = false;
         List<String> list = new ArrayList<>();
@@ -79,12 +78,12 @@ public final class ValuePatternUtil {
         return prefix;
     }
 
-    @CheckForNull
+    @Nullable
     public static Set<String> getAllValues(PropertyRestriction restriction){
         return getValues(restriction, ValuePattern.MATCH_ALL);
     }
 
-    @CheckForNull
+    @Nullable
     public static Set<String> getValues(PropertyRestriction restriction, ValuePattern pattern) {
         if (restriction.firstIncluding
                 && restriction.lastIncluding
@@ -105,7 +104,7 @@ public final class ValuePatternUtil {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public static Set<String> read(PropertyValue value, ValuePattern pattern) {
         if (value == null) {
             return null;

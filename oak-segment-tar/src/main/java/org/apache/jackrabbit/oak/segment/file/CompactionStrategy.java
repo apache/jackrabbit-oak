@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -50,7 +51,7 @@ interface CompactionStrategy {
 
         BlobStore getBlobStore();
 
-        CancelCompactionSupplier getCanceller();
+        Canceller getCanceller();
 
         int getGCCount();
 

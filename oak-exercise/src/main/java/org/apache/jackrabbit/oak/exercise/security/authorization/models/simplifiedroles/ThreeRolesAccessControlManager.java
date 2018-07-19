@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -34,12 +32,14 @@ import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class ThreeRolesAccessControlManager implements PolicyOwner, AccessControlManager {
 
     private final String supportedPath;
 
-    ThreeRolesAccessControlManager(@Nonnull Root root, @Nonnull String supportedPath, @Nonnull SecurityProvider securityProvider) {
+    ThreeRolesAccessControlManager(@NotNull Root root, @NotNull String supportedPath, @NotNull SecurityProvider securityProvider) {
         this.supportedPath = supportedPath;
         // EXERCISE
     }
@@ -102,7 +102,7 @@ class ThreeRolesAccessControlManager implements PolicyOwner, AccessControlManage
     }
 
     @Override
-    public boolean defines(@Nullable String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
+    public boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy) {
         if (Utils.isSupportedPath(supportedPath, absPath)) {
             // EXERCISE
         }

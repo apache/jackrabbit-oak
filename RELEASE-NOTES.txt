@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.6
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.4 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,42 +15,69 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.4
+Changes in Oak 1.9.6
 --------------------
+
+Sub-task
+
+    [OAK-7626] - Strict lease check mode
+    [OAK-7628] - Prevent commits after lease end
+    [OAK-7636] - Replace usage of deprecated
+    DocumentNodeStoreBuilder.setLeaseCheck()
 
 Technical task
 
-    [OAK-7527] - Drop mandatory constraint on "rep:system" node for
-    "rep:privileges"
-    [OAK-7529] - Define and register oak namespace
-    [OAK-7533] - NameValidator is not using namespaces defined in the
-    current transaction
-    [OAK-7537] - Allow for initial registration of 'xml' namespace
-    [OAK-7546] - add maven profile to build with Guava beta checks
-    [OAK-7547] - commons: avoid use of Guava beta APIs in StringSort
+    [OAK-7632] - remove JSR 305 annotations in Groovy code
 
 Bug
 
-    [OAK-7521] - Command line params to modify query and read limits
-    don't work for large values
-    [OAK-7540] - Unique property index update fails in composite
-    NodeStore setup
-    [OAK-7543] - MissingLastRevSeekerTest fails on MongoDB with
-    secondary preferred
+    [OAK-7564] - Commit fails when forced journal push throws
+    exception
+    [OAK-7610] - Active blob deletion fails on composite setups
+    [OAK-7630] - Suggest directory update doesn't close
+    AnalyzingInfixSuggester after building
+    [OAK-7638] - Race condition when simultaneous request to stage
+    file for async upload
+
+New Feature
+
+    [OAK-7604] - Add FileStoreStatsMBean#getSegmentCount for
+    monitoring the number of segments
+    [OAK-7617] - Metric for DocumentNodeStore lease update
 
 Improvement
 
-    [OAK-7506] - Prevent user enumeration by exploiting time delay
-    vulnerability
-    [OAK-7530] - PrivilegeInitializer should not attempt to create
-    jcr:system node
-    [OAK-7550] - Make running cleanup before compaction the default
-    strategy
+    [OAK-3883] - Avoid commit from too far in the future (due to clock
+    skews) to go through
+    [OAK-7180] - The error message "postings highlighting failed"
+    should be warn or debug
+    [OAK-7316] - Greedy ClusterNodeInfo
+    [OAK-7334] - Transform CacheWeightEstimator into a unit test
+    [OAK-7615] - Speed up site generation
+    [OAK-7621] - Metric for background read lag
+    [OAK-7627] - Update the dependency on biz.aQute.bndlib
+    [OAK-7629] - Lucene index: hide the settings COR and COW
+
+Test
+
+    [OAK-7620] - Update to Mockito 2.x
 
 Task
 
-    [OAK-7512] - RestoreTest.testRestoreNameJcr2 occasionally failing
-    [OAK-7536] - Update aws java sdk version to 1.11.330
+    [OAK-7257] - oak-examples: update Tomcat dependency
+    [OAK-7609] - Update jackson dependencies to 2.9.6
+    [OAK-7614] - Update Oak trunk to Jackrabbit 2.17.4
+    [OAK-7622] - Update httpcomponent dependencies to 4.4.10/4.5.6
+    (and declare the versions globally)
+    [OAK-7624] - Add "org.apache.jackrabbit.oak.plugins.document.spi"
+    to package export filter
+    [OAK-7625] - remove @Nonnegative annotation in NodeDocumentCache
+    [OAK-7641] - various internal APIs missing in package export
+    filter
+
+Documentation
+
+    [OAK-7616] - Document metrics
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.

@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.api;
 
 import java.io.Closeable;
-import javax.annotation.Nonnull;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Authentication session for accessing a content repository.
@@ -36,7 +37,7 @@ public interface ContentSession extends Closeable {
      *
      * @return  immutable {@link AuthInfo} instance
      */
-    @Nonnull
+    @NotNull
     AuthInfo getAuthInfo();
 
     /**
@@ -67,6 +68,6 @@ public interface ContentSession extends Closeable {
      * 
      * @return the current head root
      */
-    @Nonnull
+    @NotNull
     Root getLatestRoot();
 }

@@ -29,13 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Filter} implementation supports filtering on paths using
@@ -74,7 +73,7 @@ public class GlobbingPathFilter implements EventFilter {
     private final List<String> pattern;
     private final Map<String, Pattern> patternMap;
 
-    private GlobbingPathFilter(@Nonnull List<String> pattern, Map<String, Pattern> patternMap) {
+    private GlobbingPathFilter(@NotNull List<String> pattern, Map<String, Pattern> patternMap) {
         // OAK-5589 : for internal constructor case don't copy the pattern, refer to the same one
         // this will work fine given the public constructors make a copy and internally we're
         // never fiddling with the pattern list
@@ -82,7 +81,7 @@ public class GlobbingPathFilter implements EventFilter {
         this.patternMap = checkNotNull(patternMap);
     }
 
-    public GlobbingPathFilter(@Nonnull String pattern, Map<String, Pattern> patternMap) {
+    public GlobbingPathFilter(@NotNull String pattern, Map<String, Pattern> patternMap) {
         // OAK-5589 : use the fastest way to create a List based on an unknown deep pattern
         this.pattern = new ArrayList<String>(10);
         Iterators.addAll(this.pattern, elements(checkNotNull(pattern)).iterator());
@@ -90,7 +89,7 @@ public class GlobbingPathFilter implements EventFilter {
     }
 
     /** for testing only - use variant which passes the patternMap for productive code **/
-    public GlobbingPathFilter(@Nonnull String pattern) {
+    public GlobbingPathFilter(@NotNull String pattern) {
         this(pattern, new HashMap<String, Pattern>());
     }
 

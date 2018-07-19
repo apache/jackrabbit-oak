@@ -32,11 +32,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,10 +148,10 @@ public class BackgroundObserver implements Observer, Closeable {
     private volatile boolean stopped;
 
     public BackgroundObserver(
-            @Nonnull Observer observer,
-            @Nonnull Executor executor,
+            @NotNull Observer observer,
+            @NotNull Executor executor,
             int queueLength,
-            @Nonnull UncaughtExceptionHandler exceptionHandler) {
+            @NotNull UncaughtExceptionHandler exceptionHandler) {
         this.observer = checkNotNull(observer);
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
@@ -161,8 +160,8 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     public BackgroundObserver(
-            @Nonnull final Observer observer,
-            @Nonnull Executor executor,
+            @NotNull final Observer observer,
+            @NotNull Executor executor,
             int queueLength) {
         this(observer, executor, queueLength, new UncaughtExceptionHandler() {
             @Override
@@ -173,8 +172,8 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     public BackgroundObserver(
-            @Nonnull Observer observer,
-            @Nonnull Executor executor) {
+            @NotNull Observer observer,
+            @NotNull Executor executor) {
         this(observer, executor, DEFAULT_QUEUE_SIZE);
     }
 
@@ -218,7 +217,7 @@ public class BackgroundObserver implements Observer, Closeable {
         stopped = true;
     }
 
-    @Nonnull
+    @NotNull
     public BackgroundObserverMBean getMBean(){
         return new BackgroundObserverMBean() {
             @Override
@@ -264,7 +263,7 @@ public class BackgroundObserver implements Observer, Closeable {
      * @throws IllegalStateException  if {@link #close()} has already been called.
      */
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         checkState(!stopped);
         checkNotNull(root);
         checkNotNull(info);
@@ -311,7 +310,7 @@ public class BackgroundObserver implements Observer, Closeable {
 
     //------------------------------------------------------------< internal >---
 
-    private static Logger getLogger(@Nonnull Observer observer) {
+    private static Logger getLogger(@NotNull Observer observer) {
         return LoggerFactory.getLogger(checkNotNull(observer).getClass());
     }
 

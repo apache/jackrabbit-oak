@@ -22,13 +22,12 @@ package org.apache.jackrabbit.oak.plugins.blob.serializer;
 import java.io.File;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -80,7 +79,7 @@ public class FSBlobSerializerTest {
             return "foo";
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
            throw new RuntimeException();

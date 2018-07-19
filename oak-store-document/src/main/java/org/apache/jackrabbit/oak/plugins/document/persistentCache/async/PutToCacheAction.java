@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
-import static java.util.Collections.singleton;
-
 import java.util.Map;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 /**
@@ -29,7 +27,8 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCach
  * @param <K> key type
  * @param <V> value type
  */
-class PutToCacheAction<K, V> implements CacheAction<K, V> {
+class PutToCacheAction<K extends CacheValue, V extends CacheValue>
+        implements CacheAction {
 
     private final PersistentCache cache;
 
@@ -52,6 +51,13 @@ class PutToCacheAction<K, V> implements CacheAction<K, V> {
             cache.switchGenerationIfNeeded();
             map.put(key, value);
         }
+    }
+
+    @Override
+    public int getMemory() {
+        long mem = key.getMemory();
+        mem += value.getMemory();
+        return (int) Math.min(Integer.MAX_VALUE, mem);
     }
 
     @Override

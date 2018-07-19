@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code ExternalIdentityRef} defines a reference to an external identity.
@@ -37,7 +36,7 @@ public class ExternalIdentityRef {
      * @param id the id of the identity.
      * @param providerName the name of the identity provider
      */
-    public ExternalIdentityRef(@Nonnull String id, @CheckForNull String providerName) {
+    public ExternalIdentityRef(@NotNull String id, @Nullable String providerName) {
         this.id = id;
         this.providerName = (providerName == null || providerName.isEmpty()) ? null : providerName;
 
@@ -54,7 +53,7 @@ public class ExternalIdentityRef {
      * Returns the name of the identity provider.
      * @return the name of the identity provider.
      */
-    @CheckForNull
+    @Nullable
     public String getProviderName() {
         return providerName;
     }
@@ -63,7 +62,7 @@ public class ExternalIdentityRef {
      * Returns the id of the external identity. for example the DN of an LDAP user.
      * @return the id
      */
-    @Nonnull
+    @NotNull
     public String getId() {
         return id;
     }
@@ -72,7 +71,7 @@ public class ExternalIdentityRef {
      * Returns a string representation of this external identity reference
      * @return a string representation.
      */
-    @Nonnull
+    @NotNull
     public String getString() {
         return string;
     }
@@ -82,8 +81,8 @@ public class ExternalIdentityRef {
      * @param str the string
      * @return the reference
      */
-    @Nonnull
-    public static ExternalIdentityRef fromString(@Nonnull String str) {
+    @NotNull
+    public static ExternalIdentityRef fromString(@NotNull String str) {
         int idx = str.indexOf(';');
         if (idx < 0) {
             return new ExternalIdentityRef(Text.unescape(str), null);
@@ -100,7 +99,7 @@ public class ExternalIdentityRef {
      * @param builder the builder
      * @param str the string
      */
-    private static void escape(@Nonnull StringBuilder builder, @Nonnull CharSequence str) {
+    private static void escape(@NotNull StringBuilder builder, @NotNull CharSequence str) {
         final int len = str.length();
         for (int i=0; i<len; i++) {
             char c = str.charAt(i);

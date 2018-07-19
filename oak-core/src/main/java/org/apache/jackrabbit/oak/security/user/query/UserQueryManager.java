@@ -24,9 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -50,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +64,10 @@ public class UserQueryManager {
     private final ConfigurationParameters config;
     private final Root root;
 
-    public UserQueryManager(@Nonnull UserManagerImpl userManager,
-                            @Nonnull NamePathMapper namePathMapper,
-                            @Nonnull ConfigurationParameters config,
-                            @Nonnull Root root) {
+    public UserQueryManager(@NotNull UserManagerImpl userManager,
+                            @NotNull NamePathMapper namePathMapper,
+                            @NotNull ConfigurationParameters config,
+                            @NotNull Root root) {
         this.userManager = userManager;
         this.namePathMapper = namePathMapper;
         this.config = config;
@@ -82,8 +81,8 @@ public class UserQueryManager {
      * @return An iterator of authorizables that match the specified query.
      * @throws RepositoryException If an error occurs.
      */
-    @Nonnull
-    public Iterator<Authorizable> findAuthorizables(@Nonnull Query query) throws RepositoryException {
+    @NotNull
+    public Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException {
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
 
@@ -133,10 +132,10 @@ public class UserQueryManager {
      *         found.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    @Nonnull
-    public Iterator<Authorizable> findAuthorizables(@Nonnull String relPath,
+    @NotNull
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath,
                                                     @Nullable String value,
-                                                    @Nonnull AuthorizableType authorizableType) throws RepositoryException {
+                                                    @NotNull AuthorizableType authorizableType) throws RepositoryException {
         return findAuthorizables(relPath, value, authorizableType, true);
     }
 
@@ -158,20 +157,20 @@ public class UserQueryManager {
      *         found.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    @Nonnull
-    public Iterator<Authorizable> findAuthorizables(@Nonnull String relPath,
+    @NotNull
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath,
                                                     @Nullable String value,
-                                                    @Nonnull AuthorizableType authorizableType,
+                                                    @NotNull AuthorizableType authorizableType,
                                                     boolean exact) throws RepositoryException {
         String statement = buildXPathStatement(relPath, value, authorizableType, exact);
         return findAuthorizables(statement, Long.MAX_VALUE, 0, authorizableType);
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private String buildXPathStatement(@Nonnull String relPath,
+    @NotNull
+    private String buildXPathStatement(@NotNull String relPath,
                                        @Nullable String value,
-                                       @Nonnull AuthorizableType type, boolean exact) {
+                                       @NotNull AuthorizableType type, boolean exact) {
         StringBuilder stmt = new StringBuilder();
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
         if (!"/".equals(searchRoot)) {
@@ -221,8 +220,8 @@ public class UserQueryManager {
         return stmt.toString();
     }
 
-    @Nonnull
-    private String buildXPathStatement(@Nonnull XPathQueryBuilder builder) throws RepositoryException {
+    @NotNull
+    private String buildXPathStatement(@NotNull XPathQueryBuilder builder) throws RepositoryException {
         Condition condition = builder.getCondition();
         String sortCol = builder.getSortProperty();
         QueryBuilder.Direction sortDir = builder.getSortDirection();
@@ -268,8 +267,8 @@ public class UserQueryManager {
         return statement.toString();
     }
 
-    @Nonnull
-    private Iterator<Authorizable> findAuthorizables(@Nonnull String statement,
+    @NotNull
+    private Iterator<Authorizable> findAuthorizables(@NotNull String statement,
                                                      long limit,
                                                      long offset,
                                                      @Nullable AuthorizableType type) throws RepositoryException {
@@ -286,8 +285,8 @@ public class UserQueryManager {
         }
     }
 
-    @CheckForNull
-    private static String getQueryPath(@Nonnull String relPath) {
+    @Nullable
+    private static String getQueryPath(@NotNull String relPath) {
         if (relPath.indexOf('/') == -1) {
             // just a single segment -> don't include the path in the query
             return null;
@@ -307,12 +306,12 @@ public class UserQueryManager {
         }
     }
 
-    @CheckForNull
-    private static boolean isReserved(@Nonnull String propName) {
+    @Nullable
+    private static boolean isReserved(@NotNull String propName) {
         return UserConstants.GROUP_PROPERTY_NAMES.contains(propName) || UserConstants.USER_PROPERTY_NAMES.contains(propName);
     }
 
-    private boolean isEveryone(@Nonnull String groupId) throws RepositoryException {
+    private boolean isEveryone(@NotNull String groupId) throws RepositoryException {
         Group gr = userManager.getAuthorizable(groupId, Group.class);
         if (gr == null) {
             // compatibility with original code that didn't check for existence of the group

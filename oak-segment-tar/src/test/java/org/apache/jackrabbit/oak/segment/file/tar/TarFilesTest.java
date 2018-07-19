@@ -164,6 +164,19 @@ public class TarFilesTest {
     }
 
     @Test
+    public void testInitialSegmentCount() {
+        assertEquals(0, tarFiles.segmentCount());
+    }
+
+    @Test
+    public void testSegmentCount() throws IOException {
+        UUID id = randomUUID();
+        writeSegment(id);
+        tarFiles.newWriter();
+        assertEquals(1, tarFiles.segmentCount());
+    }
+
+    @Test
     public void testInitialContainsSegment() throws Exception {
         UUID id = randomUUID();
         assertFalse(containsSegment(id));

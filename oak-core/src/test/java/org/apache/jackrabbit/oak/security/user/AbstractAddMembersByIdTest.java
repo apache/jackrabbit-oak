@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -88,8 +88,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         }
     }
 
-    @Nonnull
-    Iterable<String> getMemberIds(@Nonnull Group group) throws RepositoryException {
+    @NotNull
+    Iterable<String> getMemberIds(@NotNull Group group) throws RepositoryException {
         // test group tree
         Tree groupTree = root.getTree(group.getPath());
         PropertyState membersProp = groupTree.getProperty(UserConstants.REP_MEMBERS);
@@ -97,7 +97,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         return membersProp.getValue(Type.WEAKREFERENCES);
     }
 
-    @Nonnull
+    @NotNull
     Set<String> addNonExistingMember() throws Exception {
         return testGroup.addMembers(NON_EXISTING_IDS);
     }

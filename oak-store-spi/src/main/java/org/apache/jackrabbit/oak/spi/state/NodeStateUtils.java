@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.spi.state;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.repeat;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility method for code that deals with node states.
@@ -43,7 +42,7 @@ public final class NodeStateUtils {
      * @param name the node or property name
      * @return true if the item is hidden
      */
-    public static boolean isHidden(@Nonnull String name) {
+    public static boolean isHidden(@NotNull String name) {
         return !name.isEmpty() && name.charAt(0) == ':';
     }
 
@@ -53,7 +52,7 @@ public final class NodeStateUtils {
      * @param path the path
      * @return true if one of the nodes is hidden
      */
-    public static boolean isHiddenPath(@Nonnull String path) {
+    public static boolean isHiddenPath(@NotNull String path) {
         for (String n : PathUtils.elements(path)) {
             if (isHidden(n)) {
                 return true;
@@ -62,7 +61,7 @@ public final class NodeStateUtils {
         return false;
     }
 
-    @CheckForNull
+    @Nullable
     public static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         return (ps == null) ? null : ps.getValue(Type.NAME);
@@ -74,8 +73,8 @@ public final class NodeStateUtils {
      * @param path  path of the child node
      * @return  child node of {@code node} at {@code path}.
      */
-    @Nonnull
-    public static NodeState getNode(@Nonnull NodeState node, @Nonnull String path) {
+    @NotNull
+    public static NodeState getNode(@NotNull NodeState node, @NotNull String path) {
         for (String name : PathUtils.elements(checkNotNull(path))) {
             node = node.getChildNode(checkNotNull(name));
         }

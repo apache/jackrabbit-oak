@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
@@ -66,9 +66,9 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
 
     TestAction testAction;
     AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
             return (testAction == null) ? ImmutableList.<AuthorizableAction>of() : ImmutableList.of(testAction);
         }
     };
@@ -162,7 +162,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return groupTree;
     }
 
-    PropInfo createPropInfo(@Nonnull String name, final String... values) {
+    PropInfo createPropInfo(@NotNull String name, final String... values) {
         List<TextValue> txtValues = Lists.newArrayList();
         for (final String v : values) {
             txtValues.add(new TextValue() {
@@ -185,14 +185,14 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return new PropInfo(name, PropertyType.STRING, txtValues);
     }
 
-    PropertyDefinition mockPropertyDefinition(@Nonnull String declaringNt, boolean mv) throws Exception {
+    PropertyDefinition mockPropertyDefinition(@NotNull String declaringNt, boolean mv) throws Exception {
         PropertyDefinition def = Mockito.mock(PropertyDefinition.class);
         when(def.isMultiple()).thenReturn(mv);
         when(def.getDeclaringNodeType()).thenReturn(ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper()).getNodeType(declaringNt));
         return def;
     }
 
-    NodeInfo createNodeInfo(@Nonnull String name, @Nonnull String primaryTypeName) {
+    NodeInfo createNodeInfo(@NotNull String name, @NotNull String primaryTypeName) {
         return new NodeInfo(name, primaryTypeName, ImmutableList.<String>of(), null);
     }
 

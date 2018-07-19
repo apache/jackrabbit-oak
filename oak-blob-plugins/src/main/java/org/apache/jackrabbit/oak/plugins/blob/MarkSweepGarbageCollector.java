@@ -44,8 +44,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -76,6 +74,7 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -331,8 +330,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
                         sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
             }
-
-            statsCollector.finishSuccess();
         } catch (Exception e) {
             statsCollector.finishFailure();
             LOG.error("Blob garbage collection error", e);
@@ -494,6 +491,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 numDeletedSizeAvailable,
                 org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(deletedSize), deletedSize);
         }
+
+        statsCollector.updateNumCandidates(count);
+        statsCollector.updateNumDeleted(deleted);
+        statsCollector.updateTotalSizeDeleted(deletedSize);
 
         // Remove all the merged marked references
         GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
@@ -981,16 +982,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     class GarbageCollectionOperationStats implements OperationsStatsMBean {
-        private static final String START = "START";
-        private static final String FINISH_SUCCESS = "FINISH_SUCCESS";
-        private static final String FINISH_FAILURE = "FINISH_FAILURE";
-        private static final String DURATION = "DURATION";
-        private static final String MARK_DURATION = "MARK_DURATION";
-        private static final String SWEEP_DURATION = "SWEEP_DURATION";
+        static final String NAME = "DataStoreGarbageCollection";
+        static final String START = "COUNTER";
+        static final String FINISH_FAILURE = "FAILURE";
+        static final String DURATION = "ACTIVE_TIMER";
+        static final String MARK_DURATION = "MARK_TIMER";
+        static final String SWEEP_DURATION = "SWEEP_TIMER";
+        static final String NUM_BLOBS_DELETED = "NUM_BLOBS_DELETED";
+        static final String TOTAL_SIZE_DELETED = "TOTAL_SIZE_DELETED";
+        static final String NUM_CANDIDATES = "NUM_CANDIDATES";
 
         private CounterStats startCounter;
-        private CounterStats finishSuccessCounter;
         private CounterStats finishFailureCounter;
+        private CounterStats numDeletedCounter;
+        private CounterStats totalSizeDeletedCounter;
+        private CounterStats numCandidatesCounter;
         private TimerStats duration;
         private final TimerStats markDuration;
         private final TimerStats sweepDuration;
@@ -998,8 +1004,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         GarbageCollectionOperationStats(StatisticsProvider sp) {
             this.startCounter = sp.getCounterStats(getMetricName(START), StatsOptions.METRICS_ONLY);
-            this.finishSuccessCounter = sp.getCounterStats(getMetricName(FINISH_SUCCESS), StatsOptions.METRICS_ONLY);
             this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
+            this.numDeletedCounter = sp.getCounterStats(getMetricName(NUM_BLOBS_DELETED), StatsOptions.METRICS_ONLY);
+            this.totalSizeDeletedCounter = sp.getCounterStats(getMetricName(TOTAL_SIZE_DELETED), StatsOptions.METRICS_ONLY);
+            this.numCandidatesCounter = sp.getCounterStats(getMetricName(NUM_CANDIDATES), StatsOptions.METRICS_ONLY);
             this.duration = sp.getTimer(getMetricName(DURATION), StatsOptions.METRICS_ONLY);
             this.markDuration = sp.getTimer(getMetricName(MARK_DURATION), StatsOptions.METRICS_ONLY);
             this.sweepDuration = sp.getTimer(getMetricName(SWEEP_DURATION), StatsOptions.METRICS_ONLY);
@@ -1011,13 +1019,23 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 @Override
-                public void finishSuccess() {
-                    finishSuccessCounter.inc();
+                public void finishFailure() {
+                    finishFailureCounter.inc();
                 }
 
                 @Override
-                public void finishFailure() {
-                    finishFailureCounter.inc();
+                public void updateNumDeleted(long num) {
+                    numDeletedCounter.inc(num);
+                }
+
+                @Override
+                public void updateNumCandidates(long num) {
+                    numCandidatesCounter.inc(num);
+                }
+
+                @Override
+                public void updateTotalSizeDeleted(long size) {
+                    totalSizeDeletedCounter.inc(size);
                 }
 
                 @Override
@@ -1044,18 +1062,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         @Override public String getName() {
-            return TYPE + "." + GarbageCollectionOperationStats.class.getSimpleName();
+            return TYPE + "." + NAME;
         }
 
         @Override public long getStartCount() {
             return startCounter.getCount();
         }
 
-        @Override public long getFinishSucessCount() {
-            return finishSuccessCounter.getCount();
-        }
-
-        @Override public long getFinishErrorCount() {
+        @Override public long getFailureCount() {
             return finishFailureCounter.getCount();
         }
 

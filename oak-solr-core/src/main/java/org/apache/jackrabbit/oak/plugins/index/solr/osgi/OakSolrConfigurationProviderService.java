@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -35,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.ComponentContext;
 
 /**
@@ -157,7 +156,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         oakSolrConfiguration = null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public OakSolrConfiguration getConfiguration() {
         if (oakSolrConfiguration == null) {
@@ -190,13 +189,13 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return null;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getPathField() {
                     return pathExactFieldName;
                 }
 
-                @CheckForNull
+                @Nullable
                 @Override
                 public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
                     String fieldName = null;
@@ -226,7 +225,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return fieldName;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public CommitPolicy getCommitPolicy() {
                     return commitPolicy;
@@ -257,7 +256,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return useForPathRestrictions;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Collection<String> getIgnoredProperties() {
                     if (ignoredProperties != null && ignoredProperties.length > 0 && ignoredProperties[0].length() > 0) {
@@ -267,7 +266,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     }
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Collection<String> getUsedProperties() {
                     if (usedProperties != null && usedProperties.length > 0 && usedProperties[0].length() > 0) {
@@ -282,7 +281,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return collapseJcrContentNodes;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public String getCollapsedPathField() {
                     return collapsedPathField;

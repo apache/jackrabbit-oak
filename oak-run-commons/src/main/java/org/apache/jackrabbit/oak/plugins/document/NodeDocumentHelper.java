@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.SortedMap;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Helper class to access package private methods on NodeDocument.
@@ -28,19 +28,19 @@ public class NodeDocumentHelper {
     private NodeDocumentHelper() {
     }
 
-    @Nonnull
+    @NotNull
     public static SortedMap<Revision, String> getLocalMap(
             NodeDocument doc, String key) {
         return doc.getLocalMap(key);
     }
     
-    @Nonnull
+    @NotNull
     public static SortedMap<Revision, String> getLocalCommitRoot(
             NodeDocument doc) {
         return doc.getLocalCommitRoot();
     }
     
-    @Nonnull
+    @NotNull
     public static String commitRoot() {
         return NodeDocument.COMMIT_ROOT;
     }

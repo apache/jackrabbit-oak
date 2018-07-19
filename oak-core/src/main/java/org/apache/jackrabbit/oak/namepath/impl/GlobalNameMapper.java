@@ -35,8 +35,6 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -44,6 +42,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -113,8 +113,8 @@ public class GlobalNameMapper implements NameMapper {
         this.nsdata = createReadOnlyTree(reverse.getNodeState());
     }
 
-    @Override @Nonnull
-    public String getJcrName(@Nonnull String oakName) {
+    @Override @NotNull
+    public String getJcrName(@NotNull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
         checkNotNull(oakName);
         checkArgument(!isHiddenName(oakName), oakName);
@@ -123,8 +123,8 @@ public class GlobalNameMapper implements NameMapper {
         return oakName;
     }
 
-    @Override @CheckForNull
-    public String getOakNameOrNull(@Nonnull String jcrName) {
+    @Override @Nullable
+    public String getOakNameOrNull(@NotNull String jcrName) {
         if (jcrName.startsWith("{")) {
             return getOakNameFromExpanded(jcrName);
         }
@@ -132,8 +132,8 @@ public class GlobalNameMapper implements NameMapper {
         return jcrName;
     }
 
-    @Override @Nonnull
-    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+    @Override @NotNull
+    public String getOakName(@NotNull String jcrName) throws RepositoryException {
         String oakName = getOakNameOrNull(jcrName);
         if (oakName == null) {
             throw new RepositoryException("Invalid jcr name " + jcrName);
@@ -141,13 +141,13 @@ public class GlobalNameMapper implements NameMapper {
         return oakName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getSessionLocalMappings() {
         return emptyMap();
     }
 
-    @CheckForNull
+    @Nullable
     protected String getOakNameFromExpanded(String expandedName) {
         checkArgument(expandedName.startsWith("{"));
 
@@ -170,7 +170,7 @@ public class GlobalNameMapper implements NameMapper {
         return expandedName; // not an expanded name
     }
 
-    @CheckForNull
+    @Nullable
     protected synchronized String getOakPrefixOrNull(String uri) {
         if (uri.isEmpty()) {
             return uri;
@@ -179,7 +179,7 @@ public class GlobalNameMapper implements NameMapper {
         return getNsData(encodeUri(uri));
     }
 
-    @CheckForNull
+    @Nullable
     protected synchronized String getOakURIOrNull(String prefix) {
         if (prefix.isEmpty()) {
             return prefix;

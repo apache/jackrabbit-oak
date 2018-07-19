@@ -30,8 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +86,7 @@ public class SegmentIdTable {
      * @param maker A non-{@code null} instance of {@link SegmentIdFactory}.
      * @return the segment id
      */
-    @Nonnull
+    @NotNull
     synchronized SegmentId newSegmentId(long msb, long lsb, SegmentIdFactory maker) {
         int index = getIndex(lsb);
         boolean shouldRefresh = false;
@@ -195,7 +194,7 @@ public class SegmentIdTable {
         return ((int) lsb) & (references.size() - 1);
     }
 
-    synchronized void clearSegmentIdTables(@Nonnull Set<UUID> reclaimed, @Nonnull String gcInfo) {
+    synchronized void clearSegmentIdTables(@NotNull Set<UUID> reclaimed, @NotNull String gcInfo) {
         for (WeakReference<SegmentId> reference : references) {
             if (reference != null) {
                 SegmentId id = reference.get();

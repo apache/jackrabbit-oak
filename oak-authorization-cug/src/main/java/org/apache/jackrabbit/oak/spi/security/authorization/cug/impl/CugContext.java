@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * CUG specific {@code Context} implementation.
@@ -34,22 +33,22 @@ final class CugContext implements Context, CugConstants {
     static final Context INSTANCE = new CugContext();
 
     @Override
-    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+    public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
         return CugUtil.definesCug(parent, property);
     }
 
     @Override
-    public boolean definesContextRoot(@Nonnull Tree tree) {
+    public boolean definesContextRoot(@NotNull Tree tree) {
         return CugUtil.definesCug(tree);
     }
 
     @Override
-    public boolean definesTree(@Nonnull Tree tree) {
+    public boolean definesTree(@NotNull Tree tree) {
         return CugUtil.definesCug(tree);
     }
 
     @Override
-    public boolean definesLocation(@Nonnull TreeLocation location) {
+    public boolean definesLocation(@NotNull TreeLocation location) {
         PropertyState p = location.getProperty();
         Tree tree = (p == null) ? location.getTree() : location.getParent().getTree();
         if (tree != null) {
@@ -61,7 +60,7 @@ final class CugContext implements Context, CugConstants {
     }
 
     @Override
-    public boolean definesInternal(@Nonnull Tree tree) {
+    public boolean definesInternal(@NotNull Tree tree) {
         return false;
     }
 }

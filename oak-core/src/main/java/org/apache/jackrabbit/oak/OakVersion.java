@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides version information about Oak.
@@ -33,7 +33,7 @@ public final class OakVersion {
      * 
      * @return the version (or "SNAPSHOT" when unknown)
      */
-    @Nonnull
+    @NotNull
     public synchronized static String getVersion() {
         if (version == null) {
             version = org.apache.jackrabbit.oak.commons.OakVersion.getVersion(

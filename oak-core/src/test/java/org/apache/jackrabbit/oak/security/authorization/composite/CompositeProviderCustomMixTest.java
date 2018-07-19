@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -42,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -241,7 +240,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         private final Set<String> granted;
         private final Map<String, Long> grantMap;
 
-        private CustomProvider(@Nonnull Root root, Set<String> supported, Set<String> granted,
+        private CustomProvider(@NotNull Root root, Set<String> supported, Set<String> granted,
                 Map<String, Long> grantMap) {
             this.pbp = new PrivilegeBitsProvider(root);
 
@@ -258,7 +257,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             return suppBits;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
             return toBits(supported, pbp).retain(privilegeBits);
@@ -292,7 +291,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
             long myperms = mapToPermissions(granted, grantMap);
             return Permissions.includes(myperms, permissions);
         }

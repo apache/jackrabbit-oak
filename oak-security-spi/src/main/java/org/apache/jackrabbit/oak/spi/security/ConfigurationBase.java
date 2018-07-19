@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Abstract base implementation for the various security configurations.
@@ -43,12 +42,12 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     /**
      * non-osgi constructor
      */
-    public ConfigurationBase(@Nonnull SecurityProvider securityProvider, @Nonnull ConfigurationParameters config) {
+    public ConfigurationBase(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
         this.securityProvider = securityProvider;
         this.config = config;
     }
 
-    @Nonnull
+    @NotNull
     public SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             throw new IllegalStateException();
@@ -56,19 +55,19 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
         return securityProvider;
     }
 
-    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
+    public void setSecurityProvider(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
-    public void setParameters(@Nonnull ConfigurationParameters config) {
+    public void setParameters(@NotNull ConfigurationParameters config) {
         this.config = config;
     }
 
-    public void setRootProvider(@Nonnull RootProvider rootProvider) {
+    public void setRootProvider(@NotNull RootProvider rootProvider) {
         this.rootProvider = rootProvider;
     }
 
-    @Nonnull
+    @NotNull
     public RootProvider getRootProvider() {
         if (rootProvider == null) {
             throw new IllegalStateException("RootProvider missing.");
@@ -76,11 +75,11 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
         return rootProvider;
     }
 
-    public void setTreeProvider(@Nonnull TreeProvider treeProvider) {
+    public void setTreeProvider(@NotNull TreeProvider treeProvider) {
         this.treeProvider = treeProvider;
     }
 
-    @Nonnull
+    @NotNull
     public TreeProvider getTreeProvider() {
         if (treeProvider == null) {
             throw new IllegalStateException("TreeProvider missing.");
@@ -89,7 +88,7 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public ConfigurationParameters getParameters() {
         return config;

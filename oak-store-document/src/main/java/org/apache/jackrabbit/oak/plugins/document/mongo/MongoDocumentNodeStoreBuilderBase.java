@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.mongodb.DB;
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentNodeStoreBuilder.class);
 
-    private String mongoUri;
     private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
@@ -71,11 +69,9 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @param blobCacheSizeMB the blob cache size in MB.
      * @return this
      */
-    public T setMongoDB(@Nonnull String uri,
-                        @Nonnull String name,
+    public T setMongoDB(@NotNull String uri,
+                        @NotNull String name,
                         int blobCacheSizeMB) {
-        this.mongoUri = uri;
-
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
         options.addServerMonitorListener(serverMonitorListener);
@@ -103,7 +99,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this
      * @deprecated use {@link #setMongoDB(MongoClient, String, int)} instead.
      */
-    public T setMongoDB(@Nonnull DB db,
+    public T setMongoDB(@NotNull DB db,
                         int blobCacheSizeMB) {
         return setMongoDB(mongoClientFrom(db), db.getName(), blobCacheSizeMB);
     }
@@ -116,8 +112,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @param blobCacheSizeMB the size of the blob cache in MB.
      * @return this
      */
-    public T setMongoDB(@Nonnull MongoClient client,
-                        @Nonnull String dbName,
+    public T setMongoDB(@NotNull MongoClient client,
+                        @NotNull String dbName,
                         int blobCacheSizeMB) {
         return setMongoDB(client, client.getDatabase(dbName),
                 new MongoStatus(client, dbName), blobCacheSizeMB);
@@ -130,7 +126,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this
      * @deprecated use {@link #setMongoDB(MongoClient, String)} instead.
      */
-    public T setMongoDB(@Nonnull DB db) {
+    public T setMongoDB(@NotNull DB db) {
         return setMongoDB(mongoClientFrom(db), db.getName());
     }
 
@@ -141,8 +137,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @param dbName the database name
      * @return this
      */
-    public T setMongoDB(@Nonnull MongoClient client,
-                        @Nonnull String dbName) {
+    public T setMongoDB(@NotNull MongoClient client,
+                        @NotNull String dbName) {
         return setMongoDB(client, dbName, 16);
     }
 
@@ -218,16 +214,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Returns the Mongo URI used in the {@link #setMongoDB(String, String, int)} method.
-     *
-     * @return the Mongo URI or null if the {@link #setMongoDB(String, String, int)} method hasn't
-     * been called.
-     */
-    String getMongoUri() {
-        return mongoUri;
-    }
-
-    /**
      * Returns the status of the Mongo server configured in the {@link #setMongoDB(String, String, int)} method.
      *
      * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't
@@ -241,8 +227,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return maxReplicationLagMillis;
     }
 
-    private T setMongoDB(@Nonnull MongoClient client,
-                         @Nonnull MongoDatabase db,
+    private T setMongoDB(@NotNull MongoClient client,
+                         @NotNull MongoDatabase db,
                          MongoStatus status,
                          int blobCacheSizeMB) {
         if (!MongoConnection.isSufficientWriteConcern(client, db.getWriteConcern())) {
