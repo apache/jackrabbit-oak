@@ -38,8 +38,10 @@ import com.google.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -930,5 +932,40 @@ public class Utils {
             MODULE_VERSION = v;
         }
         return v;
+    }
+
+    /**
+     * Check the revision age on the root document for the given cluster node
+     * info. The check will fail with a {@link DocumentStoreException} if the
+     * {@code _lastRev} timestamp for the cluster node is newer then the current
+     * {@code clock} time. The check will not fail if the root document does
+     * not exist or does not have a {@code _lastRev} entry for the cluster node.
+     *
+     * @param store the document store from where to read the root document.
+     * @param info the cluster node info with the clusterId.
+     * @param clock the clock to get the current time.
+     * @throws DocumentStoreException if the check fails.
+     */
+    public static void checkRevisionAge(DocumentStore store,
+                                        ClusterNodeInfo info,
+                                        Clock clock)
+            throws DocumentStoreException {
+        NodeDocument root = store.find(Collection.NODES, getIdFromPath("/"));
+        if (root == null) {
+            return;
+        }
+        int clusterId = info.getId();
+        Revision rev = root.getLastRev().get(clusterId);
+        if (rev == null) {
+            return;
+        }
+        long now = clock.getTime();
+        if (rev.getTimestamp() > now) {
+            String msg = String.format("Cluster id %d has a _lastRev %s (%s) " +
+                    "newer than current time %s. Please check system time on " +
+                    "cluster nodes.", clusterId, rev.toString(),
+                    timestampToString(rev.getTimestamp()), timestampToString(now));
+            throw new DocumentStoreException(msg);
+        }
     }
 }
