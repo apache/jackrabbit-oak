@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
  * A DocumentStore implementation which wraps another store and delegates all
  * calls to it.
  */
-public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
+public class DocumentStoreWrapper implements DocumentStore {
 
     protected final DocumentStore store;
 
@@ -168,12 +168,5 @@ public class DocumentStoreWrapper implements DocumentStore, RevisionListener {
     @Override
     public long determineServerTimeDifferenceMillis() {
         return store.determineServerTimeDifferenceMillis();
-    }
-
-    @Override
-    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
-        if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
-        }
     }
 }

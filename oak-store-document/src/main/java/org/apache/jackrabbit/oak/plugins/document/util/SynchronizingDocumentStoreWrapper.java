@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * Implements a <code>DocumentStore</code> wrapper which synchronizes on all
  * methods.
  */
-public class SynchronizingDocumentStoreWrapper implements DocumentStore, RevisionListener {
+public class SynchronizingDocumentStoreWrapper implements DocumentStore {
 
     final DocumentStore store;
 
@@ -158,12 +156,5 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore, Revisio
     @Override
     public synchronized Map<String, String> getStats() {
         return store.getStats();
-    }
-
-    @Override
-    public synchronized void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
-        if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(revision, currentClusterId);
-        }
     }
 }
