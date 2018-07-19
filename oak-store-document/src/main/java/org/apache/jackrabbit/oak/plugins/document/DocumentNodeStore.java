@@ -542,10 +542,8 @@ public final class DocumentNodeStore
             clusterNodeInfo = ClusterNodeInfo.getInstance(nonLeaseCheckingStore,
                     new RecoveryHandlerImpl(nonLeaseCheckingStore, clock, lastRevSeeker),
                     null, null, cid);
+            checkRevisionAge(nonLeaseCheckingStore, clusterNodeInfo, clock);
         }
-        // TODO we should ensure revisions generated from now on
-        // are never "older" than revisions already in the repository for
-        // this cluster id
         this.clusterId = clusterNodeInfo.getId();
 
         clusterNodeInfo.setLeaseCheckMode(builder.getLeaseCheckMode());
@@ -2541,6 +2539,31 @@ public final class DocumentNodeStore
                         storeVersion + ", this version: " + VERSION + ". Use " +
                         "the oak-run-" + getModuleVersion() + ".jar tool " +
                         "with the unlockUpgrade command first.");
+            }
+        }
+    }
+
+    /**
+     * Checks the revision age as defined in
+     * {@link Utils#checkRevisionAge(DocumentStore, ClusterNodeInfo, Clock)}
+     * and disposes the passed cluster node {@code info} if the check fails.
+     *
+     * @param store the document store from where to read the root document.
+     * @param info the cluster node info with the clusterId.
+     * @param clock the clock to get the current time.
+     * @throws DocumentStoreException if the check fails.
+     */
+    private static void checkRevisionAge(DocumentStore store,
+                                         ClusterNodeInfo info,
+                                         Clock clock)
+            throws DocumentStoreException {
+        boolean success = false;
+        try {
+            Utils.checkRevisionAge(store, info, clock);
+            success = true;
+        } finally {
+            if (!success) {
+                info.dispose();
             }
         }
     }

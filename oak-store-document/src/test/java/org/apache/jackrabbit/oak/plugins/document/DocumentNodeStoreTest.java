@@ -21,6 +21,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -3775,6 +3776,45 @@ public class DocumentNodeStoreTest {
         } catch (CommitFailedException e) {
             assertThat(e.getMessage(), containsString("lease end"));
         }
+    }
+
+    @Test
+    public void preventCommitInPast() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                .setClusterId(1).clock(clock)
+                .setDocumentStore(store).build();
+        // wait two minutes
+        clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(2));
+        doSomeChange(ns);
+        ns.dispose();
+
+        long now = clock.getTime();
+        // rewind time by one minute
+        clock = new Clock.Virtual();
+        clock.waitUntil(now - TimeUnit.MINUTES.toMillis(1));
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+
+        try {
+            builderProvider.newBuilder()
+                    .setClusterId(1).clock(clock)
+                    .setDocumentStore(store).build();
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("newer than current time"));
+        }
+
+        // cluster node info 1 must not be active
+        ClusterNodeInfoDocument info = store.find(CLUSTER_NODES, "1");
+        assertNotNull(info);
+        assertFalse(info.isActive());
     }
 
     private void getChildNodeCountTest(int numChildren,
