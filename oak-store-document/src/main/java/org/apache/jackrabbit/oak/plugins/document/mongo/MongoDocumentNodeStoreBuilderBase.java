@@ -50,7 +50,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentNodeStoreBuilder.class);
 
-    private String mongoUri;
     private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
@@ -73,8 +72,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setMongoDB(@NotNull String uri,
                         @NotNull String name,
                         int blobCacheSizeMB) {
-        this.mongoUri = uri;
-
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
         options.addServerMonitorListener(serverMonitorListener);
@@ -214,16 +211,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         } else {
             return super.createMissingLastRevSeeker();
         }
-    }
-
-    /**
-     * Returns the Mongo URI used in the {@link #setMongoDB(String, String, int)} method.
-     *
-     * @return the Mongo URI or null if the {@link #setMongoDB(String, String, int)} method hasn't
-     * been called.
-     */
-    String getMongoUri() {
-        return mongoUri;
     }
 
     /**

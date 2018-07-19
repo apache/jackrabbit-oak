@@ -1010,10 +1010,6 @@ public final class NodeDocument extends Document {
             }
         }
 
-        if (store instanceof RevisionListener) {
-            ((RevisionListener) store).updateAccessedRevision(lastRevision, nodeStore.getClusterId());
-        }
-
         return new DocumentNodeState(nodeStore, path, readRevision, props, hasChildren(), lastRevision);
     }
 

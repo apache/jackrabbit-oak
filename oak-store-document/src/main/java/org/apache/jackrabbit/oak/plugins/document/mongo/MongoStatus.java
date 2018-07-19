@@ -32,7 +32,6 @@ import com.mongodb.event.ServerHeartbeatSucceededEvent;
 import com.mongodb.event.ServerMonitorListener;
 import com.mongodb.session.ClientSession;
 
-import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

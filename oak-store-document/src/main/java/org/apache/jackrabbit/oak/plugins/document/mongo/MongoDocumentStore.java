@@ -59,8 +59,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
@@ -71,8 +69,6 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheChangesTracker;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
-import org.apache.jackrabbit.oak.plugins.document.mongo.replica.LocalChanges;
-import org.apache.jackrabbit.oak.plugins.document.mongo.replica.ReplicaSetInfo;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -126,7 +122,7 @@ import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasInd
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements DocumentStore, RevisionListener {
+public class MongoDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -160,12 +156,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     private Clock clock = Clock.SIMPLE;
 
-    private ReplicaSetInfo replicaInfo;
-
-    private RevisionVector mostRecentAccessedRevisions;
-
-    LocalChanges localChanges;
-
     private final long maxReplicationLagMillis;
 
     /**
@@ -195,24 +185,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      */
     private final long maxQueryTimeMS =
             Long.getLong("oak.mongo.maxQueryTimeMS", TimeUnit.MINUTES.toMillis(1));
-
-    /**
-     * How often in milliseconds the MongoDocumentStore should estimate the
-     * replication lag.
-     * <p>
-     * Default is 60'000 (one minute).
-     */
-    private long estimationPullFrequencyMS =
-            Long.getLong("oak.mongo.estimationPullFrequencyMS", TimeUnit.SECONDS.toMillis(5));
-
-    /**
-     * Fallback to the old secondary-routing strategy. Setting this to true
-     * disables the optimisation introduced in the OAK-3865.
-     * <p>
-     * Default is false.
-     */
-    private boolean fallbackSecondaryStrategy =
-            Boolean.getBoolean("oak.mongo.fallbackSecondaryStrategy");
 
     /**
      * The number of documents to put into one bulk update.
@@ -288,15 +260,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
-        if (fallbackSecondaryStrategy) {
-            replicaInfo = null;
-            localChanges = null;
-        } else {
-            replicaInfo = new ReplicaSetInfo(clock, client, dbName, builder.getMongoUri(), estimationPullFrequencyMS, maxReplicationLagMillis, builder.getExecutor());
-            Thread replicaInfoThread = new Thread(replicaInfo, "MongoDocumentStore replica set info provider");
-            replicaInfoThread.setDaemon(true);
-            replicaInfoThread.start();
-        }
         useClientSession = !builder.isClientSessionDisabled()
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
@@ -582,7 +545,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         boolean isSlaveOk = false;
         boolean docFound = true;
         try {
-            ReadPreference readPreference = getMongoReadPreference(collection, null, key, docReadPref);
+            ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
 
             if(readPreference.isSlaveOk()){
@@ -716,7 +679,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
         try {
             ReadPreference readPreference =
-                    getMongoReadPreference(collection, parentId, null, getDefaultReadPreference(collection));
+                    getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
             if(readPreference.isSlaveOk()){
                 isSlaveOk = true;
@@ -1008,7 +971,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 if (collection == Collection.NODES) {
                     NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
                     nodesCache.put(newDoc);
-                    updateLocalChanges(newDoc);
                 }
                 oldDoc.seal();
             } else if (upsert) {
@@ -1016,7 +978,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
                     UpdateUtils.applyChanges(doc, updateOp);
                     nodesCache.putIfAbsent(doc);
-                    updateLocalChanges(doc);
                 }
             } else {
                 // updateOp without conditions and not an upsert
@@ -1186,10 +1147,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
                         docsToCache.add(newDoc);
                     }
-                }
-
-                for (NodeDocument doc : docsToCache) {
-                    updateLocalChanges(doc);
                 }
 
                 nodesCache.putNonConflictingDocs(tracker, docsToCache);
@@ -1374,7 +1331,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 if (collection == Collection.NODES) {
                     for (T doc : docs) {
                         nodesCache.putIfAbsent((NodeDocument) doc);
-                        updateLocalChanges((NodeDocument) doc);
                     }
                 }
                 insertSuccess = true;
@@ -1425,11 +1381,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return modCounts;
     }
 
-    DocumentReadPreference getReadPreference(int maxCacheAge){
-        long lag = fallbackSecondaryStrategy ? maxReplicationLagMillis : replicaInfo.getLag();
+    DocumentReadPreference getReadPreference(int maxCacheAge) {
         if (withClientSession()) {
             return DocumentReadPreference.PREFER_SECONDARY;
-        } else if(maxCacheAge >= 0 && maxCacheAge < lag) {
+        } else if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
             return DocumentReadPreference.PRIMARY;
         } else if(maxCacheAge == Integer.MAX_VALUE){
             return DocumentReadPreference.PREFER_SECONDARY;
@@ -1450,7 +1405,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     <T extends Document> ReadPreference getMongoReadPreference(@NotNull Collection<T> collection,
                                                                @Nullable String parentId,
-                                                               @Nullable String documentId,
                                                                @NotNull DocumentReadPreference preference) {
         switch(preference){
             case PRIMARY:
@@ -1472,7 +1426,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 boolean secondarySafe;
                 if (withClientSession() && secondariesWithinAcceptableLag()) {
                     secondarySafe = true;
-                } else if (fallbackSecondaryStrategy) {
+                } else {
                    // This is not quite accurate, because ancestors
                     // are updated in a background thread (_lastRev). We
                     // will need to revise this for low maxReplicationLagMillis
@@ -1487,14 +1441,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                         NodeDocument cachedDoc = nodesCache.getIfPresent(parentId);
                         secondarySafe = cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit);
                     }
-                } else if (localChanges != null) {
-                    secondarySafe = true;
-                    secondarySafe &= collection == Collection.NODES;
-                    secondarySafe &= documentId == null || !localChanges.mayContain(documentId);
-                    secondarySafe &= parentId == null || !localChanges.mayContainChildrenOf(parentId);
-                    secondarySafe &= mostRecentAccessedRevisions == null || replicaInfo.isMoreRecentThan(mostRecentAccessedRevisions);
-                } else { // localChanges not initialized yet
-                    secondarySafe = false;
                 }
 
                 ReadPreference readPreference;
@@ -1591,9 +1537,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
 
     @Override
     public void dispose() {
-        if (replicaInfo != null) {
-            replicaInfo.stop();
-        }
         client.close();
         try {
             nodesCache.close();
@@ -1806,14 +1749,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         this.stats = stats;
     }
 
-    void setReplicaInfo(ReplicaSetInfo replicaInfo) {
-        if (this.replicaInfo != null) {
-            this.replicaInfo.stop();
-        }
-        this.replicaInfo = replicaInfo;
-        this.replicaInfo.addListener(localChanges);
-    }
-
     @Override
     public long determineServerTimeDifferenceMillis() {
         // the assumption is that the network delay from this instance
@@ -1863,30 +1798,6 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                             + "(Result details: server exception=" + e + ", server error message=" + e.getMessage() + ")", e);
         }
         return 0;
-    }
-
-    @Override
-    public synchronized void updateAccessedRevision(RevisionVector revisions, int clusterId) {
-        if (localChanges == null && replicaInfo != null) {
-            localChanges = new LocalChanges(clusterId);
-            replicaInfo.addListener(localChanges);
-        }
-
-        RevisionVector previousValue = mostRecentAccessedRevisions;
-        if (mostRecentAccessedRevisions == null) {
-            mostRecentAccessedRevisions = revisions;
-        } else {
-            mostRecentAccessedRevisions = mostRecentAccessedRevisions.pmax(revisions);
-        }
-        if (LOG.isDebugEnabled() && !mostRecentAccessedRevisions.equals(previousValue)) {
-            LOG.debug("Most recent accessed revisions: {}", mostRecentAccessedRevisions);
-        }
-    }
-
-    private void updateLocalChanges(NodeDocument doc) {
-        if (localChanges != null) {
-            localChanges.add(doc.getId(), Revision.getCurrentTimestamp());
-        }
     }
 
     private <T extends Document> DocumentStoreException handleException(Throwable ex,

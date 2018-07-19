@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 
-public class CountingDocumentStore implements DocumentStore, RevisionListener {
+public class CountingDocumentStore implements DocumentStore {
 
     private DocumentStore delegate;
 
@@ -232,12 +232,5 @@ public class CountingDocumentStore implements DocumentStore, RevisionListener {
     @Override
     public long determineServerTimeDifferenceMillis() {
         return delegate.determineServerTimeDifferenceMillis();
-    }
-
-    @Override
-    public void updateAccessedRevision(RevisionVector revision, int currentClusterId) {
-        if (delegate instanceof RevisionListener) {
-            ((RevisionListener) delegate).updateAccessedRevision(revision, currentClusterId);
-        }
     }
 }
