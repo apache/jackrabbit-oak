@@ -33,7 +33,7 @@ public interface CredentialsSupport {
 
     /**
      * Returns all {@link Credentials credentials} classes supported by this
-     * implemenation.
+     * implementation.
      *
      * @return the supported {@link Credentials credentials} classes.
      */
