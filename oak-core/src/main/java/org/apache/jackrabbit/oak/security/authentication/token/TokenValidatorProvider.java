@@ -73,8 +73,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
-        //private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
-        private TokenValidator(Tree parentBefore, Tree parentAfter, CommitInfo commitInfo) {
+        private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.commitInfo = commitInfo;

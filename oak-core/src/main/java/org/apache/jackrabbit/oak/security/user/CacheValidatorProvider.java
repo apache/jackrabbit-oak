@@ -96,8 +96,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private final boolean isCache;
 
-        //private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
-        private CacheValidator(Tree parentBefore, Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
+        private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
 
