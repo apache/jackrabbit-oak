@@ -394,7 +394,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
-    URI getDownloadURI(Blob blob, BinaryDownloadOptions downloadOptions) {
+    @Nullable
+    URI getDownloadURI(@NotNull Blob blob, @NotNull BinaryDownloadOptions downloadOptions) {
         if (blobDirectAccessProvider == null) {
             return null;
         } else {

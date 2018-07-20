@@ -44,6 +44,7 @@ import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -284,7 +285,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String expectedContentType = "image/png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withContentType(expectedContentType)
+                .withMimeType(expectedContentType)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
@@ -316,8 +317,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String expectedContentTypeEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withContentType(expectedContentType)
-                .withContentTypeEncoding(expectedContentTypeEncoding)
+                .withMimeType(expectedContentType)
+                .withEncoding(expectedContentTypeEncoding)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
@@ -349,7 +350,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String expectedContentTypeEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withContentTypeEncoding(expectedContentTypeEncoding)
+                .withEncoding(expectedContentTypeEncoding)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
@@ -389,7 +390,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        assertEquals(String.format("inline; filename=%s", expectedName), contentDisposition);
+        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
+                contentDisposition
+        );
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -413,7 +419,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
-                .withDispositionTypeAttachment()
+                .withDispositionTypeInline()
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
@@ -421,7 +427,12 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        assertEquals(String.format("attachment; filename=%s", expectedName), contentDisposition);
+        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
+                contentDisposition
+        );
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -441,7 +452,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedName = "beautiful landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withDispositionTypeInline()
@@ -451,6 +461,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
+        // Should be no header since filename was not set
         assertNull(contentDisposition);
 
         // Verify response content
@@ -477,8 +488,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String expectedName = "beautiful landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withContentType(expectedContentType)
-                .withContentTypeEncoding(expectedContentTypeEncoding)
+                .withMimeType(expectedContentType)
+                .withEncoding(expectedContentTypeEncoding)
                 .withFileName(expectedName)
                 .withDispositionTypeInline()
                 .build();
@@ -488,12 +499,18 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentType = conn.getHeaderField("Content-Type");
         assertNotNull(contentType);
-        assertEquals(String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
+        assertEquals(
+                String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
                 contentType);
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        assertEquals(String.format("inline; filename=%s", expectedName), contentDisposition);
+        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
+        assertEquals(
+                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
+                contentDisposition
+        );
 
         String cacheControl = conn.getHeaderField("Cache-Control");
         assertNotNull(cacheControl);

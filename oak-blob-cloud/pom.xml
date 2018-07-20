@@ -180,12 +180,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!-- Findbugs annotations -->
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-        </dependency>
-
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>

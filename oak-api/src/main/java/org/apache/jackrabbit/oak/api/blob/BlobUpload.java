@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.api.blob;
 import java.net.URI;
 import java.util.Collection;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
@@ -32,6 +33,7 @@ public interface BlobUpload {
      *
      * @return The unique upload token for this upload.
      */
+    @NotNull
     String getUploadToken();
 
     /**
@@ -59,12 +61,13 @@ public interface BlobUpload {
      * than those provided, SO LONG AS the file being uploaded is not larger
      * than the {@code maxSize} specified in the original call.
      * <p>
-     * A smaller size may also be used so long as it exceeds the value returned
-     * by {@link #getMinPartSize()}.  Such smaller values may be more desirable
-     * for clients who wish to tune uploads to match network conditions;
-     * however, the only guarantee offered by the API is that using parts of the
-     * size returned by {@link #getMaxPartSize()} will work without using more
-     * URIs than those available in the collection of uploadPartURIs.
+     * A smaller upload part size may also be used so long as it exceeds the
+     * value returned by {@link #getMinPartSize()}.  Such smaller values may be
+     * more desirable for clients who wish to tune uploads to match network
+     * conditions; however, the only guarantee offered by the API is that using
+     * parts of the size returned by {@link #getMaxPartSize()} will work without
+     * using more URIs than those available in the Collection returned by
+     * {@link #getUploadURIs()}.
      * <p>
      * If a client calls {@link
      * BlobDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
@@ -91,7 +94,8 @@ public interface BlobUpload {
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
      *    {@link BlobDirectAccessProvider#initiateDirectUpload(long, int)} is
-     *    less than or equal to the minimum size of a multi-part upload part.
+     *    less than or equal to the minimum supported size of a multi-part
+     *    upload part.
      * <p>
      * If the collection contains only a single URI the client should treat that
      * URI as a direct single-put upload and write the entire binary to the
@@ -103,5 +107,6 @@ public interface BlobUpload {
      *
      * @return ordered collection of URIs to be consumed in sequence.
      */
+    @NotNull
     Collection<URI> getUploadURIs();
 }

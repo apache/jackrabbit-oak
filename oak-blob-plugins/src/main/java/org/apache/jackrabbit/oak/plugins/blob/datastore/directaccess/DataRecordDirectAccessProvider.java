@@ -20,13 +20,12 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.net.URI;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface DataRecordDirectAccessProvider {
     /**
@@ -51,8 +50,8 @@ public interface DataRecordDirectAccessProvider {
      *         configuration or if a service provider error occurs.
      */
     @Nullable
-    URI getDownloadURI(DataIdentifier identifier,
-                       DataRecordDownloadOptions downloadOptions);
+    URI getDownloadURI(@NotNull DataIdentifier identifier,
+                       @NotNull DataRecordDownloadOptions downloadOptions);
 
     /**
      * Begin a transaction to perform a direct binary upload to the storage
@@ -79,7 +78,8 @@ public interface DataRecordDirectAccessProvider {
      *         completed as requested.
      */
     @Nullable
-    DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes,
+                                          int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordDirectUploadException;
 
     /**
@@ -101,7 +101,7 @@ public interface DataRecordDirectAccessProvider {
      * @throws DataStoreException if the object written can't be found by the
      *         DataStore.
      */
-    @Nonnull
-    DataRecord completeDirectUpload(String uploadToken)
+    @NotNull
+    DataRecord completeDirectUpload(@NotNull String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException;
 }

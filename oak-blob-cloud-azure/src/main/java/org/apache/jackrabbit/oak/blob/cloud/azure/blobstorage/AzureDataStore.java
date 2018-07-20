@@ -22,19 +22,18 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 import java.net.URI;
 import java.util.Properties;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
     private int minRecordLength = 16*1024;
@@ -94,7 +93,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
         return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public DataRecord completeDirectUpload(String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
@@ -118,8 +117,8 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public URI getDownloadURI(@Nonnull DataIdentifier identifier,
-                              @Nonnull DataRecordDownloadOptions downloadOptions) {
+    public URI getDownloadURI(@NotNull DataIdentifier identifier,
+                              @NotNull DataRecordDownloadOptions downloadOptions) {
         if (null != azureBlobStoreBackend) {
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }

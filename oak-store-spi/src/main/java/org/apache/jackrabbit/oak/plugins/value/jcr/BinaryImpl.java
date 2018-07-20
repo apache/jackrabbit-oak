@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +91,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
 
     @Nullable
     @Override
-    public URI getURI(BinaryDownloadOptions downloadOptions)
+    public URI getURI(@NotNull BinaryDownloadOptions downloadOptions)
             throws RepositoryException {
         if (null == getReference()) {
             // Binary is inlined, we cannot return a URI for it
