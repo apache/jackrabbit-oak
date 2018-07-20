@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.UUID;
 
+import javax.annotation.Nullable;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
@@ -62,7 +63,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;

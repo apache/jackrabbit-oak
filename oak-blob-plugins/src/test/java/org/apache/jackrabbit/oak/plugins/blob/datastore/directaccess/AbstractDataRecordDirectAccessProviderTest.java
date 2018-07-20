@@ -36,7 +36,6 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
@@ -53,7 +52,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -160,54 +158,6 @@ public abstract class AbstractDataRecordDirectAccessProviderTest {
             HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             assertEquals(200, conn.getResponseCode());
-
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(conn.getInputStream(), writer, "utf-8");
-
-            assertEquals(testData, writer.toString());
-        }
-        finally {
-            if (null != record) {
-                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
-            }
-        }
-    }
-
-    @Test
-    public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
-        DataRecord record = null;
-        DataRecordDirectAccessProvider dataStore = getDataStore();
-        try {
-            String testData = randomString(256);
-            record = doSynchronousAddRecord((DataStore) dataStore,
-                    new ByteArrayInputStream(testData.getBytes()));
-            String mimeType = "image/png";
-            String fileName = "album cover.png";
-            String dispositionType = "inline";
-            DataRecordDownloadOptions downloadOptions =
-                    DataRecordDownloadOptions.fromBlobDownloadOptions(
-                            new BlobDownloadOptions(
-                                    mimeType,
-                                    null,
-                                    fileName,
-                                    dispositionType
-                            )
-                    );
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(),
-                    downloadOptions);
-
-            HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
-            conn.setRequestMethod("GET");
-            assertEquals(200, conn.getResponseCode());
-
-            assertEquals(mimeType, conn.getHeaderField("Content-Type"));
-            assertEquals(
-                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                            dispositionType, fileName,
-                            new String(fileName.getBytes(StandardCharsets.UTF_8))
-                    ),
-                    conn.getHeaderField("Content-Disposition")
-            );
 
             StringWriter writer = new StringWriter();
             IOUtils.copy(conn.getInputStream(), writer, "utf-8");

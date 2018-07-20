@@ -23,13 +23,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.util.Base64;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,12 +48,12 @@ public class DataRecordDirectUploadToken {
     private String blobId;
     private Optional<String> uploadId;
 
-    public DataRecordDirectUploadToken(@NotNull String blobId, @Nullable String uploadId) {
+    public DataRecordDirectUploadToken(@Nonnull String blobId, @Nullable String uploadId) {
         this.blobId = blobId;
         this.uploadId = Optional.ofNullable(uploadId);
     }
 
-    public static DataRecordDirectUploadToken fromEncodedToken(@NotNull String encoded, @NotNull byte[] secret) {
+    public static DataRecordDirectUploadToken fromEncodedToken(@Nonnull String encoded, @Nonnull byte[] secret) {
         String[] parts = encoded.split("#", 2);
         if (parts.length < 2) {
             throw new IllegalArgumentException("Encoded string is missing the signature");
@@ -75,7 +75,7 @@ public class DataRecordDirectUploadToken {
         return new DataRecordDirectUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
     }
 
-    public String getEncodedToken(@NotNull byte[] secret) {
+    public String getEncodedToken(@Nonnull byte[] secret) {
         String now = Instant.now().toString();
         String toBeEncoded = uploadId.isPresent() ?
                 Joiner.on("#").join(blobId, now, uploadId.get()) :

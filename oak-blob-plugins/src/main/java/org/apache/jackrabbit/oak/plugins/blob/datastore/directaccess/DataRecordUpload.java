@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 import java.net.URI;
 import java.util.Collection;
 
-import org.jetbrains.annotations.NotNull;
-
 public interface DataRecordUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
@@ -31,7 +29,6 @@ public interface DataRecordUpload {
      *
      * @return The unique upload token for this upload.
      */
-    @NotNull
     String getUploadToken();
 
     /**
@@ -62,15 +59,15 @@ public interface DataRecordUpload {
      * for clients who wish to tune uploads to match network conditions;
      * however, the only guarantee offered by the API is that using parts of
      * the size returned by {@link #getMaxPartSize()} will work without using
-     * more URIs than those available in the Collection returned by {@link
+     * more URIs than those available in the collection returned by {@link
      * #getUploadURIs()};
      * <p>
      * If a client calls {@link
-     * DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} with a
-     * value of {@code maxUploadSizeInBytes} that ends up being smaller than the
-     * actual size of the binary to be uploaded, it may not be possible to
-     * complete the upload with the URIs provided.  The client should initiate
-     * the transaction again with the correct size.
+     * DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
+     * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
+     * size of the binary to be uploaded, it may not be possible to complete the
+     * upload with the URIs provided.  The client should initiate the
+     * transaction again with the correct size.
      * <p>
      * Note that some backends have upper-bound limits for the size of a part of
      * a multi-part upload.
@@ -80,17 +77,16 @@ public interface DataRecordUpload {
     long getMaxPartSize();
 
     /**
-     * Returns a Collection of direct-writable upload URIs for uploading a file,
+     * Returns a collection of direct-writable upload URIs for uploading a file,
      * or file part in the case of multi-part uploading.  This collection may
      * contain only a single URI in the following cases:
      *  - If the client requested 1 as the value of maxNumberOfURIs in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)},
-     *    OR
+     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for maxUploadSizeInBytes in a call to
-     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)}
-     *    is less than or equal to the minimum size of a multi-part upload part
+     *    {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} is less
+     *    than or equal to the minimum size of a multi-part upload part
      * If the collection contains only a single URI the client should treat that
      * URI as a direct single-put upload and write the entire binary to the
      * single URI.  Otherwise the client may choose to consume up to the entire
@@ -101,6 +97,5 @@ public interface DataRecordUpload {
      *
      * @return ordered collection of URIs to be consumed in sequence.
      */
-    @NotNull
     Collection<URI> getUploadURIs();
 }

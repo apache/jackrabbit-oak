@@ -20,26 +20,23 @@ package org.apache.jackrabbit.oak.api.blob;
 
 import java.net.URI;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.api.Blob;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
-/**
- * Extension interface applied to a class that indicates that the class
- * implements the direct upload and direct download feature for {@link Blob}s.
- */
 @ProviderType
 public interface BlobDirectAccessProvider {
 
     /**
      * Begin a transaction to perform a direct binary upload to a storage
-     * location. This method will throw {@link IllegalArgumentException} if no
-     * valid upload can be arranged with the arguments specified. E.g. the max
-     * upload size specified divided by the number of URIs requested indicates
-     * the minimum size of each upload. If that size exceeds the maximum upload
-     * size supported by the service provider, {@link IllegalArgumentException}
-     * is thrown.
+     * location. This method will throw a {@link IllegalArgumentException}
+     * if no valid upload can be arranged with the arguments specified. E.g. the
+     * max upload size specified divided by the number of URIs requested
+     * indicates the minimum size of each upload. If that size exceeds the
+     * maximum upload size supported by the service provider, a
+     * {@link IllegalArgumentException} is thrown.
      * <p>
      * Each service provider has specific limitations with regard to maximum
      * upload sizes, maximum overall binary sizes, numbers of URIs in multi-part
@@ -56,14 +53,14 @@ public interface BlobDirectAccessProvider {
      *         uploaded, in bytes, based on the caller's best guess.  If the
      *         actual size of the file to be uploaded is known, that value
      *         should be used.
-     * @param maxNumberOfURIs the maximum number of URIs the client is able to
-     *         accept. If the client does not support multi-part uploading, this
-     *         value should be 1. Note that the implementing class is not
-     *         required to support multi-part uploading so it may return only a
-     *         single upload URI regardless of the value passed in for this
-     *         parameter.  If the client is able to accept any number of URIs, a
-     *         value of -1 may be passed in to indicate that the implementation
-     *         is free to return as many URIs as it desires.
+     * @param maxNumberOfURIs the maximum number of URIs the client is
+     *         able to accept. If the client does not support multi-part
+     *         uploading, this value should be 1. Note that the implementing
+     *         class is not required to support multi-part uploading so it may
+     *         return only a single upload URI regardless of the value passed in
+     *         for this parameter.  If the client is able to accept any number
+     *         of URIs, a value of -1 may be passed in to indicate that the
+     *         implementation is free to return as many URIs as it desires.
      * @return A {@link BlobUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct uploading.
@@ -82,15 +79,15 @@ public interface BlobDirectAccessProvider {
      * Complete a transaction for uploading a direct binary upload to a storage
      * location.
      * <p>
-     * This requires an {@code uploadToken} that can be obtained from the
+     * This requires the {@code uploadToken} that can be obtained from the
      * returned {@link BlobUpload} from a previous call to {@link
      * #initiateDirectUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
-     * includes encoded data about the transaction and may include a signature
+     * includes encoded data about the transaction along with a signature
      * that will be verified by the implementation.
      *
-     * @param uploadToken the upload token from a {@link BlobUpload} object
-     *         returned from a previous call to {@link
+     * @param uploadToken the upload token from a {@link BlobUpload}
+     *         object returned from a previous call to {@link
      *         #initiateDirectUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
@@ -99,8 +96,7 @@ public interface BlobDirectAccessProvider {
      *         included signature does not match.
      */
     @Nullable
-    Blob completeDirectUpload(@NotNull String uploadToken)
-            throws IllegalArgumentException;
+    Blob completeDirectUpload(@Nonnull String uploadToken) throws IllegalArgumentException;
 
     /**
      * Obtain a download URI for a {@link Blob). This is usually a signed URI
@@ -123,6 +119,5 @@ public interface BlobDirectAccessProvider {
      *         cannot be downloaded directly.
      */
     @Nullable
-    URI getDownloadURI(@NotNull Blob blob,
-                       @NotNull BlobDownloadOptions downloadOptions);
+    URI getDownloadURI(@Nonnull Blob blob, @Nonnull BlobDownloadOptions downloadOptions);
 }

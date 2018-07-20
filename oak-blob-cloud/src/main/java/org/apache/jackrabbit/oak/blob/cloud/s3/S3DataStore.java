@@ -19,18 +19,19 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 import java.net.URI;
 import java.util.Properties;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -105,9 +106,9 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
         return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
-    @NotNull
+    @Nonnull
     @Override
-    public DataRecord completeDirectUpload(@NotNull String uploadToken)
+    public DataRecord completeDirectUpload(@Nonnull String uploadToken)
             throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
         if (null == s3Backend) {
             throw new DataRecordDirectUploadException("Backend not initialized");
@@ -131,8 +132,8 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
 
     @Nullable
     @Override
-    public URI getDownloadURI(@NotNull DataIdentifier identifier,
-                              @NotNull DataRecordDownloadOptions downloadOptions) {
+    public URI getDownloadURI(@Nonnull DataIdentifier identifier,
+                              @Nonnull DataRecordDownloadOptions downloadOptions) {
         if (s3Backend == null) {
             return null;
         }

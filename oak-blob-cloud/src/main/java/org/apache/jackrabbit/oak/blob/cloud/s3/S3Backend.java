@@ -41,6 +41,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
@@ -53,6 +55,7 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.util.StringUtils;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -72,7 +75,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordD
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -718,8 +720,8 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
-                                     @NotNull DataRecordDownloadOptions downloadOptions) {
+    public URI createHttpDownloadURI(@Nonnull DataIdentifier identifier,
+                                     @Nonnull DataRecordDownloadOptions downloadOptions) {
         if (httpDownloadURIExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -733,22 +735,30 @@ public class S3Backend extends AbstractSharedBackend {
         if (uri == null) {
             Map<String, String> requestParams = Maps.newHashMap();
             requestParams.put("response-cache-control",
-                    String.format("private, max-age=%d, immutable",
-                            httpDownloadURIExpirySeconds)
-            );
-
-            String contentType = downloadOptions.getContentTypeHeader();
+                    String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
+            String contentType = downloadOptions.getContentType();
+            String contentTypeEncoding = downloadOptions.getContentTypeEncoding();
             if (! Strings.isNullOrEmpty(contentType)) {
-                requestParams.put("response-content-type", contentType);
+                requestParams.put("response-content-type",
+                        Strings.isNullOrEmpty(contentTypeEncoding) ?
+                                contentType :
+                                Joiner.on("; charset=").join(
+                                    contentType,
+                                    contentTypeEncoding)
+                );
             }
-            String contentDisposition =
-                    downloadOptions.getContentDispositionHeader();
-
-            if (! Strings.isNullOrEmpty(contentDisposition)) {
+            String fileName = downloadOptions.getFileName();
+            if (! Strings.isNullOrEmpty(fileName)) {
+                String dispositionType = downloadOptions.getDispositionType();
+                if (Strings.isNullOrEmpty(dispositionType)) {
+                    dispositionType = "inline";
+                }
                 requestParams.put("response-content-disposition",
-                        contentDisposition);
+                        Joiner.on("; filename=").join(
+                                dispositionType,
+                                fileName
+                        ));
             }
-
             uri = createPresignedURI(identifier,
                     HttpMethod.GET,
                     httpDownloadURIExpirySeconds,
@@ -849,7 +859,6 @@ public class S3Backend extends AbstractSharedBackend {
 
         return new DataRecordUpload() {
             @Override
-            @NotNull
             public String getUploadToken() { return uploadToken; }
 
             @Override
@@ -859,12 +868,11 @@ public class S3Backend extends AbstractSharedBackend {
             public long getMaxPartSize() { return maxPartSize; }
 
             @Override
-            @NotNull
             public Collection<URI> getUploadURIs() { return uploadPartURIs; }
         };
     }
 
-    public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
+    public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
             throws DataRecordDirectUploadException, DataStoreException {
 
         if (Strings.isNullOrEmpty(uploadTokenStr)) {

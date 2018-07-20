@@ -19,22 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import java.nio.charset.StandardCharsets;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class DataRecordDownloadOptions {
-    private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
-
-    public static DataRecordDownloadOptions fromBlobDownloadOptions(
-            @NotNull BlobDownloadOptions downloadOptions) {
+    public static DataRecordDownloadOptions fromBlobDownloadOptions(BlobDownloadOptions downloadOptions) {
         return new DataRecordDownloadOptions(
-                downloadOptions.getMimeType(),
-                downloadOptions.getEncoding(),
+                downloadOptions.getContentType(),
+                downloadOptions.getContentTypeEncoding(),
                 downloadOptions.getFileName(),
                 downloadOptions.getDispositionType()
         );
@@ -46,72 +37,33 @@ public class DataRecordDownloadOptions {
                     null,
                     null);
 
-    private final String mimeType;
-    private final String encoding;
+    private final String contentType;
+    private final String contentTypeEncoding;
     private final String fileName;
     private final String dispositionType;
 
-    private String contentTypeHeader = null;
-    private String contentDispositionHeader = null;
-
-    private DataRecordDownloadOptions(final String mimeType,
-                                      final String encoding,
+    private DataRecordDownloadOptions(final String contentType,
+                                      final String contentTypeEncoding,
                                       final String fileName,
                                       final String dispositionType) {
-        this.mimeType = mimeType;
-        this.encoding = encoding;
+        this.contentType = contentType;
+        this.contentTypeEncoding = contentTypeEncoding;
         this.fileName = fileName;
-        this.dispositionType = Strings.isNullOrEmpty(dispositionType) ?
-                DISPOSITION_TYPE_ATTACHMENT :
-                dispositionType;
+        this.dispositionType = dispositionType;
     }
 
-    @Nullable
-    public String getContentTypeHeader() {
-        if (Strings.isNullOrEmpty(contentTypeHeader)) {
-            if (!Strings.isNullOrEmpty(mimeType)) {
-                contentTypeHeader = Strings.isNullOrEmpty(encoding) ?
-                        mimeType :
-                        Joiner.on("; charset=").join(mimeType, encoding);
-            }
-        }
-        return contentTypeHeader;
+    public String getContentType() {
+        return contentType;
     }
 
-    @Nullable
-    public String getContentDispositionHeader() {
-        if (Strings.isNullOrEmpty(contentDispositionHeader)) {
-            if (!Strings.isNullOrEmpty(fileName)) {
-                String dispositionType = this.dispositionType;
-                if (Strings.isNullOrEmpty(dispositionType)) {
-                    dispositionType = "attachment";
-                }
-                contentDispositionHeader =
-                        String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                                dispositionType, fileName,
-                                new String(fileName.getBytes(StandardCharsets.UTF_8))
-                        );
-            }
-        }
-        return contentDispositionHeader;
+    public String getContentTypeEncoding() {
+        return contentTypeEncoding;
     }
 
-    @Nullable
-    public String getMimeType() {
-        return mimeType;
-    }
-
-    @Nullable
-    public String getEncoding() {
-        return encoding;
-    }
-
-    @Nullable
     public String getFileName() {
         return fileName;
     }
 
-    @Nullable
     public String getDispositionType() {
         return dispositionType;
     }

@@ -666,9 +666,6 @@ public class DataStoreBlobStore
         return encodedBlobId;
     }
 
-
-    // <--------------- BlobDirectAccessProvider implementation - Direct binary access feature --------------->
-
     @Nullable
     @Override
     public BlobUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
@@ -683,7 +680,6 @@ public class DataStoreBlobStore
                 }
                 return new BlobUpload() {
                     @Override
-                    @NotNull
                     public String getUploadToken() {
                         return upload.getUploadToken();
                     }
@@ -699,7 +695,6 @@ public class DataStoreBlobStore
                     }
 
                     @Override
-                    @NotNull
                     public Collection<URI> getUploadURIs() {
                         return upload.getUploadURIs();
                     }
@@ -714,7 +709,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public Blob completeDirectUpload(@NotNull String uploadToken) throws IllegalArgumentException {
+    public Blob completeDirectUpload(String uploadToken) throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeDirectUpload(uploadToken);
@@ -729,7 +724,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public URI getDownloadURI(@NotNull Blob blob, @NotNull BlobDownloadOptions downloadOptions) {
+    public URI getDownloadURI(Blob blob, BlobDownloadOptions downloadOptions) {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
