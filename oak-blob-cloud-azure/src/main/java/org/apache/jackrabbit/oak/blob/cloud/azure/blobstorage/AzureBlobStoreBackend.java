@@ -45,11 +45,8 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -87,6 +84,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordU
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -740,8 +738,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(@Nonnull DataIdentifier identifier,
-                                     @Nonnull DataRecordDownloadOptions downloadOptions) {
+    public URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
+                                     @NotNull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
         if (httpDownloadURIExpirySeconds > 0) {
             if (null != httpDownloadURICache) {
@@ -750,29 +748,19 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             if (null == uri) {
                 String key = getKeyName(identifier);
                 SharedAccessBlobHeaders headers = new SharedAccessBlobHeaders();
-                String contentType = downloadOptions.getContentType();
-                String contentTypeEncoding = downloadOptions.getContentTypeEncoding();
-                if (! Strings.isNullOrEmpty(contentType)) {
-                    headers.setContentType(
-                            Strings.isNullOrEmpty(contentTypeEncoding) ?
-                                    contentType :
-                                    Joiner.on("; charset=").join(
-                                        contentType,
-                                        contentTypeEncoding)
-                    );
-                }
-                String fileName = downloadOptions.getFileName();
-                if (! Strings.isNullOrEmpty(fileName)) {
-                    String dispositionType = downloadOptions.getDispositionType();
-                    if (Strings.isNullOrEmpty(dispositionType)) {
-                        dispositionType = "inline";
-                    }
-                    headers.setContentDisposition(Joiner.on("; filename=").join(
-                            dispositionType,
-                            fileName
-                    ));
-                }
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
+
+                String contentType = downloadOptions.getContentTypeHeader();
+                if (! Strings.isNullOrEmpty(contentType)) {
+                    headers.setContentType(contentType);
+                }
+
+                String contentDisposition =
+                        downloadOptions.getContentDispositionHeader();
+                if (! Strings.isNullOrEmpty(contentDisposition)) {
+                    headers.setContentDisposition(contentDisposition);
+                }
+
                 uri = createPresignedURI(key,
                         EnumSet.of(SharedAccessBlobPermissions.READ),
                         httpDownloadURIExpirySeconds,
@@ -914,6 +902,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
         return new DataRecordUpload() {
             @Override
+            @NotNull
             public String getUploadToken() { return uploadToken; }
 
             @Override
@@ -923,11 +912,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             public long getMaxPartSize() { return maxPartSize; }
 
             @Override
+            @NotNull
             public Collection<URI> getUploadURIs() { return uploadPartURIs; }
         };
     }
 
-    public DataRecord completeHttpUpload(@Nonnull String uploadTokenStr)
+    public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordDirectUploadException, DataStoreException {
 
         if (Strings.isNullOrEmpty(uploadTokenStr)) {

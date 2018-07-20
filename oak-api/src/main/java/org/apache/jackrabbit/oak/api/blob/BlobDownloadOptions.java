@@ -22,8 +22,8 @@ import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public class BlobDownloadOptions {
-    private final String contentType;
-    private final String contentTypeEncoding;
+    private final String mimeType;
+    private final String encoding;
     private final String fileName;
     private final String dispositionType;
 
@@ -33,22 +33,22 @@ public class BlobDownloadOptions {
         this(null, null, null, null);
     }
 
-    public BlobDownloadOptions(final String contentType,
-                               final String contentTypeEncoding,
+    public BlobDownloadOptions(final String mimeType,
+                               final String encoding,
                                final String fileName,
                                final String dispositionType) {
-        this.contentType = contentType;
-        this.contentTypeEncoding = contentTypeEncoding;
+        this.mimeType = mimeType;
+        this.encoding = encoding;
         this.fileName = fileName;
         this.dispositionType = dispositionType;
     }
 
-    public String getContentType() {
-        return contentType;
+    public String getMimeType() {
+        return mimeType;
     }
 
-    public String getContentTypeEncoding() {
-        return contentTypeEncoding;
+    public String getEncoding() {
+        return encoding;
     }
 
     public String getFileName() {

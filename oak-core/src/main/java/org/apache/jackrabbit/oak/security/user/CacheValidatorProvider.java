@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator provider to ensure that the principal-cache stored with a given
@@ -95,7 +96,8 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private final boolean isCache;
 
-        private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
+        //private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
+        private CacheValidator(Tree parentBefore, Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
 

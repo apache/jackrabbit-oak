@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,8 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 class TokenValidatorProvider extends ValidatorProvider implements TokenConstants {
 
@@ -73,7 +73,8 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
-        private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
+        //private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
+        private TokenValidator(Tree parentBefore, Tree parentAfter, CommitInfo commitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.commitInfo = commitInfo;

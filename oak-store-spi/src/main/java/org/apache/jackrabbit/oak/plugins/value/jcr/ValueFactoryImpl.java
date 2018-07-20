@@ -319,6 +319,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         return new BinaryUpload() {
             @Override
+            @NotNull
             public Iterable<URI> getUploadURIs() {
                 return upload.getUploadURIs();
             }
@@ -334,13 +335,14 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
             }
 
             @Override
+            @NotNull
             public String getUploadToken() { return upload.getUploadToken(); }
         };
     }
 
     @Override
     @Nullable
-    public Binary completeBinaryUpload(String uploadToken) throws RepositoryException {
+    public Binary completeBinaryUpload(@NotNull String uploadToken) throws RepositoryException {
         return createBinary(
                 blobDirectAccessProvider.completeDirectUpload(uploadToken));
     }
@@ -356,6 +358,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
         return null != blob ? new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, blobDirectAccessProvider) : null;
     }
 
+    @Nullable
     public Binary createBinary(Blob blob) throws RepositoryException {
         return null != blob ? createBinaryValue(blob).getBinary() : null;
     }
@@ -383,13 +386,14 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
 
         @Nullable
         @Override
-        public Blob completeDirectUpload(String uploadToken) {
+        public Blob completeDirectUpload(@NotNull String uploadToken) {
             return null;
         }
 
         @Nullable
         @Override
-        public URI getDownloadURI(Blob blob, BlobDownloadOptions downloadOptions) { return null; }
+        public URI getDownloadURI(@NotNull Blob blob,
+                                  @NotNull BlobDownloadOptions downloadOptions) { return null; }
     }
 
 }
