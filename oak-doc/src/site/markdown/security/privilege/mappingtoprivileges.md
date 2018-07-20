@@ -232,7 +232,7 @@ Note: privileges for repository operations need to be granted|denied on the _nul
 | `NamespaceRegistry.getPrefix`                | `jcr:read`                     |
 | `NamespaceRegistry.getPrefixes`              | `jcr:read`                     |
 | `NamespaceRegistry.getURI`                   | `jcr:read`                     |
-| `NamespaceRegistry.getUploadURIs`                  | `jcr:read`                     |
+| `NamespaceRegistry.getURIs`                  | `jcr:read`                     |
 | `NamespaceRegistry.registerNamespace`        | `jcr:namespaceManagement`      |
 | `NamespaceRegistry.unregisterNamespace`      | `jcr:namespaceManagement`      |
 
