@@ -652,19 +652,19 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     //~--------------------------------------< stats update methods
 
     void markHit() {
-        hitMeter.mark();
+        hitMeter.mark(1);
     }
 
     void markRequest() {
-        requestMeter.mark();
+        requestMeter.mark(1);
     }
 
     void markLoadSuccess() {
-        loadSuccessMeter.mark();
+        loadSuccessMeter.mark(1);
     }
 
     void markLoad() {
-        loadMeter.mark();
+        loadMeter.mark(1);
     }
 
     TimerStats.Context startUpLoaderTimer() {
@@ -672,7 +672,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     }
 
     void incrementCount() {
-        countMeter.inc();
+        countMeter.inc(1);
     }
 
     void incrementSize(long size) {
@@ -684,7 +684,7 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
     }
 
     void decrementCount() {
-        countMeter.dec();
+        countMeter.dec(1);
     }
 
     void decrementSize(long size) {
