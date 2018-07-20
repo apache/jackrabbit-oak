@@ -67,11 +67,11 @@ public interface BlobDirectAccessProvider {
      * @return A {@link BlobUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct uploading.
-     * @throws IllegalArgumentException if {@code maxUploadSizeInBytes}
-     *         or {@code maxNumberOfURIs} is not either a positive value or -1,
-     *         or if the upload cannot be completed as requested, due to a
-     *         mismatch between the request parameters and the capabilities of
-     *         the service provider or the implementation.
+     * @throws IllegalArgumentException if {@code maxUploadSizeInBytes} is not
+     *         a positive value, or if {@code maxNumberOfURIs} is not either a
+     *         positive value or -1, or if the upload cannot be completed as
+     *         requested, due to a mismatch between the request parameters and
+     *         the capabilities of the service provider or the implementation.
      */
     @Nullable
     BlobUpload initiateDirectUpload(long maxUploadSizeInBytes,
@@ -79,8 +79,8 @@ public interface BlobDirectAccessProvider {
             throws IllegalArgumentException;
 
     /**
-     * Complete a transaction for uploading a direct binary upload to a storage
-     * location.
+     * Complete a transaction for uploading a binary to a storage location via
+     * direct binary upload.
      * <p>
      * This requires an {@code uploadToken} that can be obtained from the
      * returned {@link BlobUpload} from a previous call to {@link
@@ -110,7 +110,7 @@ public interface BlobDirectAccessProvider {
      * A caller must specify a {@link BlobDownloadOptions} instance.  The
      * implementation will attempt to apply the specified {@code
      * downloadOptions} to the subsequent download.  For example, if the caller
-     * knows that the URL refers to a specific type of content, the caller can
+     * knows that the URI refers to a specific type of content, the caller can
      * specify that content type by setting it in the {@code downloadOptions}.
      * The caller may also use a default instance obtained via {@link
      * BlobDownloadOptions#DEFAULT} in which case the caller is indicating that

@@ -61,7 +61,6 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -593,10 +592,10 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                    LOG.info(
+                LOG.info(
                         "getRecord:Identifier [{}] not found. Took [{}] ms.",
                         identifier, (System.currentTimeMillis() - start));
-                }
+            }
             throw new DataStoreException(e);
         } finally {
             if (contextClassLoader != null) {
@@ -1247,54 +1246,6 @@ public class S3Backend extends AbstractSharedBackend {
 
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
-        }
-    }
-
-    private class EmptyRecord implements DataRecord {
-
-        private final DataIdentifier identifier;
-
-        public EmptyRecord(DataIdentifier identifier) {
-            this.identifier = identifier;
-        }
-
-        @Override
-        public DataIdentifier getIdentifier() {
-            return identifier;
-        }
-
-        @Override
-        public String getReference() {
-            return null;
-        }
-
-        @Override
-        public long getLength() throws DataStoreException {
-            return 0;
-        }
-
-        @Override
-        public InputStream getStream() throws DataStoreException {
-            // return empty stream
-            return new NullInputStream(0);
-        }
-
-        @Override
-        public long getLastModified() {
-            return 0;
-        }
-
-        public String toString() {
-            return identifier.toString();
-        }
-
-        public boolean equals(Object object) {
-            return (object instanceof DataRecord)
-                && identifier.equals(((DataRecord) object).getIdentifier());
-        }
-
-        public int hashCode() {
-            return identifier.hashCode();
         }
     }
 }

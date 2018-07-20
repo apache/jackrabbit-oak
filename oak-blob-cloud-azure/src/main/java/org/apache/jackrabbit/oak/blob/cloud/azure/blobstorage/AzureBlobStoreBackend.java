@@ -795,7 +795,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 final DataIdentifier identifier = new DataIdentifier(id);
                 if (exists(identifier)) {
-                    LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
+                    LOG.info("Newly generated random record id already exists as Azure Blob Storage key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
                     continue;
                 }
                 LOG.info("Created new unique record id: {}", id);
@@ -950,12 +950,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
 
         return getRecord(new DataIdentifier(getIdentifierName(blobId)));
-    }
-
-    protected URI createPresignedURI(String key,
-                                     EnumSet<SharedAccessBlobPermissions> permissions,
-                                     int expirySeconds) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap());
     }
 
     protected URI createPresignedURI(String key,

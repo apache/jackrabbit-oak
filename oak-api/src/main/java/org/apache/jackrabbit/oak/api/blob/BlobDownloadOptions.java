@@ -18,8 +18,16 @@
  */
 package org.apache.jackrabbit.oak.api.blob;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.osgi.annotation.versioning.ProviderType;
 
+/**
+ * Download options to be provided to a call to {@link
+ * BlobDirectAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}.
+ * <p>
+ * This object is an internal corrollary to {@link
+ * org.apache.jackrabbit.api.binary.BinaryDownloadOptions}.
+ */
 @ProviderType
 public class BlobDownloadOptions {
     private final String mimeType;

@@ -45,8 +45,8 @@ public interface DataRecordDirectAccessProvider {
      * @param downloadOptions A {@link DataRecordDownloadOptions} instance
      *         used to specify any download options that should be set on
      *         this download.
-     * @return A URI for directly reading the binary, or null if the URI cannot
-     *         be generated, for example if the capability is disabled by
+     * @return A URI for directly reading the binary, or {@code null} if the URI
+     *         cannot be generated, for example if the capability is disabled by
      *         configuration or if a service provider error occurs.
      */
     @Nullable
