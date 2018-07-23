@@ -35,6 +35,7 @@ in-place. Old files will be moved to the repository/crx2 directory.
 An descriptor of the Oak node store. Possible options:
 
   * path to the segment-tar store
+  * az:https://myaccount.blob.core.windows.net/container/repo (don't forget to set AZURE_SECRET_KEY env variable)
   * segment-old:/path/to/classic/segment
   * jdbc:... (requires passing username and password as separate parameters)
   * mongodb://host:port/database

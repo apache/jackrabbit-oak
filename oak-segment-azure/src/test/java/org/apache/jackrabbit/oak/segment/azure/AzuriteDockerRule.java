@@ -50,7 +50,7 @@ public class AzuriteDockerRule implements TestRule {
     }
 
     public CloudBlobContainer getContainer(String name) throws URISyntaxException, StorageException, InvalidKeyException {
-        int mappedPort = wrappedRule.getContainer().getPortBinding("10000/tcp").getPort();
+        int mappedPort = getMappedPort();
         CloudStorageAccount cloud = CloudStorageAccount.parse("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + mappedPort + "/devstoreaccount1;");
         CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(name);
         container.deleteIfExists();
@@ -69,5 +69,9 @@ public class AzuriteDockerRule implements TestRule {
         }
 
         return wrappedRule.apply(statement, description);
+    }
+
+    public int getMappedPort() {
+        return wrappedRule.getContainer().getPortBinding("10000/tcp").getPort();
     }
 }
