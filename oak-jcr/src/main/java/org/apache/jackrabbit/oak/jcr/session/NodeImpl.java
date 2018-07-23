@@ -1293,9 +1293,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @NotNull
-    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) {
+    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) throws RepositoryException {
         Iterator<String> mixinNames = Collections.emptyIterator();
-        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadMixinTypes(tree)) {
             mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
         } else if (tree.getStatus() != Status.NEW) {
             // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
@@ -1305,6 +1305,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     JcrConstants.JCR_MIXINTYPES).iterator();
         }
         return mixinNames;
+    }
+
+    private boolean canReadMixinTypes(@NotNull Tree tree) throws RepositoryException {
+        // OAK-7652: use an zero length MVP to check read permission on jcr:mixinTypes
+        PropertyState mixinTypes = PropertyStates.createProperty(
+                JcrConstants.JCR_MIXINTYPES, Collections.emptyList(), Type.NAMES);
+        return sessionContext.getAccessManager().hasPermissions(
+                tree, mixinTypes, Permissions.READ_PROPERTY);
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {

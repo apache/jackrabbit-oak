@@ -37,7 +37,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CRUDTest extends AbstractRepositoryTest {
@@ -69,7 +68,6 @@ public class CRUDTest extends AbstractRepositoryTest {
     }
 
     // OAK-7652
-    @Ignore("OAK-7652")
     @Test
     public void testMixinsDescendant() throws Exception {
         Session session = getAdminSession();
