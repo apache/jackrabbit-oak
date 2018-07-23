@@ -38,8 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
  * <p>
  * The key is the id of a document. Keys are opaque strings. All characters are
  * allowed. Leading and trailing whitespace is allowed. For keys, the maximum
- * length is 512 bytes in the UTF-8 representation (in the latest Unicode
- * version).
+ * length is 512 bytes in the UTF-8 representation.
  */
 public interface DocumentStore {
 
