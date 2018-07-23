@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -78,8 +78,8 @@ public final class CheckpointRetriever {
             result = getCheckpoints(org.apache.jackrabbit.oak.plugins.segment.CheckpointAccessor.getCheckpointsRoot((org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore) nodeStore));
         } else if (nodeStore instanceof DocumentNodeStore) {
             result = DocumentCheckpointRetriever.getCheckpoints((DocumentNodeStore) nodeStore);
-        } else if (nodeStore instanceof SegmentTarFactory.NodeStoreWithFileStore) {
-            result = getCheckpoints(CheckpointAccessor.getCheckpointsRoot(((SegmentTarFactory.NodeStoreWithFileStore) nodeStore).getNodeStore()));
+        } else if (nodeStore instanceof FileStoreUtils.NodeStoreWithFileStore) {
+            result = getCheckpoints(CheckpointAccessor.getCheckpointsRoot(((FileStoreUtils.NodeStoreWithFileStore) nodeStore).getNodeStore()));
         } else {
             return null;
         }

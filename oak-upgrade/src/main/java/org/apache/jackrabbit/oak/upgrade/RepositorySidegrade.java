@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
-import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -53,8 +52,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.LoggingCompositeHook;
 import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
-import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
+import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
 import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
 import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
@@ -176,8 +176,8 @@ public class RepositorySidegrade {
         this.target = target;
 
         FileStore fs = null;
-        if (target instanceof SegmentTarFactory.NodeStoreWithFileStore) {
-            fs = ((SegmentTarFactory.NodeStoreWithFileStore) target).getFileStore();
+        if (target instanceof FileStoreUtils.NodeStoreWithFileStore) {
+            fs = ((FileStoreUtils.NodeStoreWithFileStore) target).getFileStore();
         }
         this.targetFileStore = fs;
     }
