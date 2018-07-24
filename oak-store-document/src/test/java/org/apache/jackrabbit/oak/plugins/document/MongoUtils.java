@@ -82,7 +82,7 @@ public class MongoUtils {
             return;
         }
         try {
-            dropCollections(c.getDB());
+            dropCollections(c.getDatabase());
         } finally {
             c.close();
         }
@@ -127,7 +127,7 @@ public class MongoUtils {
             return;
         }
         try {
-            c.getDB().dropDatabase();
+            c.getDatabase().drop();
         } finally {
             c.close();
         }
@@ -162,7 +162,7 @@ public class MongoUtils {
         MongoConnection mongoConnection;
         try {
             mongoConnection = new MongoConnection(url);
-            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
+            mongoConnection.getDatabase().runCommand(new BasicDBObject("ping", 1));
             // dropCollections(mongoConnection.getDB());
         } catch (Exception e) {
             exception = e;

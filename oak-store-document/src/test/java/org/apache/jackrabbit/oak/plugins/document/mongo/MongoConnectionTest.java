@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.DB;
-import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReplicaSetStatus;
@@ -119,8 +118,8 @@ public class MongoConnectionTest {
     private void sufficientWriteConcern(WriteConcern w,
                                         boolean replicaSet,
                                         boolean sufficient) {
-        DB db = mockDB(ReadConcern.DEFAULT, w, replicaSet);
-        assertEquals(sufficient, MongoConnection.hasSufficientWriteConcern(db));
+        MongoClient mongo = mockMongoClient(replicaSet);
+        assertEquals(sufficient, MongoConnection.isSufficientWriteConcern(mongo, w));
     }
 
     private void sufficientReadConcernReplicaSet(ReadConcern r,
@@ -135,25 +134,19 @@ public class MongoConnectionTest {
     private void sufficientReadConcern(ReadConcern r,
                                        boolean replicaSet,
                                        boolean sufficient) {
-        DB db = mockDB(r, replicaSet ? WriteConcern.MAJORITY : WriteConcern.W1, replicaSet);
-        assertEquals(sufficient, MongoConnection.hasSufficientReadConcern(db));
+        MongoClient mongo = mockMongoClient(replicaSet);
+        assertEquals(sufficient, MongoConnection.isSufficientReadConcern(mongo, r));
     }
 
-    private DB mockDB(ReadConcern r,
-                      WriteConcern w,
-                      boolean replicaSet) {
+    private MongoClient mockMongoClient(boolean replicaSet) {
         ReplicaSetStatus status;
         if (replicaSet) {
             status = mock(ReplicaSetStatus.class);
         } else {
             status = null;
         }
-        DB db = mock(DB.class);
-        Mongo mongo = mock(Mongo.class);
-        when(db.getMongo()).thenReturn(mongo);
-        when(db.getWriteConcern()).thenReturn(w);
-        when(db.getReadConcern()).thenReturn(r);
-        when(mongo.getReplicaSetStatus()).thenReturn(status);
-        return db;
+        MongoClient client = mock(MongoClient.class);
+        when(client.getReplicaSetStatus()).thenReturn(status);
+        return client;
     }
 }

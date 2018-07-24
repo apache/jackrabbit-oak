@@ -119,7 +119,9 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
 
         assertEquals(ReadPreference.secondary(), mongoDS.getDBCollection(NODES).getReadPreference());
         assertEquals(2, mongoDS.getDBCollection(NODES).getWriteConcern().getW());
-        assertTrue(mongoDS.getDBCollection(NODES).getWriteConcern().getJ());
+        Boolean journal = mongoDS.getDBCollection(NODES).getWriteConcern().getJournal();
+        assertNotNull(journal);
+        assertTrue(journal);
 
         assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
     }

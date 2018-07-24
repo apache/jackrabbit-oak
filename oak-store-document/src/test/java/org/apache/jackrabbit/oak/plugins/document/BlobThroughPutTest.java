@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,20 +30,18 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBAddress;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
-import com.mongodb.QueryBuilder;
+import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.junit.Assert.assertNotNull;
-
 
 public class BlobThroughPutTest {
     private static final int NO_OF_NODES = 100;
@@ -78,9 +75,9 @@ public class BlobThroughPutTest {
 
     @Ignore
     @Test
-    public void performBenchMark() throws UnknownHostException, InterruptedException {
-        MongoClient local = new MongoClient(new DBAddress(localServer));
-        MongoClient remote = new MongoClient(new DBAddress(remoteServer));
+    public void performBenchMark() throws InterruptedException {
+        MongoClient local = new MongoClient(new MongoClientURI(localServer));
+        MongoClient remote = new MongoClient(new MongoClientURI(remoteServer));
 
         run(local, false, false);
         run(local, true, false);
@@ -92,21 +89,21 @@ public class BlobThroughPutTest {
 
     @Ignore
     @Test
-    public void performBenchMark_WriteConcern() throws UnknownHostException, InterruptedException {
-        Mongo mongo = new Mongo(new DBAddress(remoteServer));
-        final DB db = mongo.getDB(TEST_DB1);
-        final DBCollection nodes = db.getCollection("nodes");
-        final DBCollection blobs = db.getCollection("blobs");
+    public void performBenchMark_WriteConcern() throws InterruptedException {
+        MongoClient mongo = new MongoClient(new MongoClientURI(remoteServer));
+        final MongoDatabase db = mongo.getDatabase(TEST_DB1);
+        final MongoCollection<BasicDBObject> nodes = db.getCollection("nodes", BasicDBObject.class);
+        final MongoCollection<BasicDBObject> blobs = db.getCollection("blobs", BasicDBObject.class);
         int readers = 0;
         int writers = 2;
         for(WriteConcern wc : namedConcerns.keySet()){
-            prepareDB(nodes,blobs);
+            prepareDB(nodes, blobs);
             final Benchmark b = new Benchmark(nodes, blobs);
             Result r = b.run(readers, writers, true, wc);
             results.add(r);
         }
 
-        prepareDB(nodes,blobs);
+        prepareDB(nodes, blobs);
 
         dumpResult();
     }
@@ -121,15 +118,15 @@ public class BlobThroughPutTest {
         }
     }
 
-    private void run(Mongo mongo, boolean useSameDB, boolean remote) throws InterruptedException {
-        final DB nodeDB = mongo.getDB(TEST_DB1);
-        final DB blobDB = useSameDB ? mongo.getDB(TEST_DB1) : mongo.getDB(TEST_DB2);
-        final DBCollection nodes = nodeDB.getCollection("nodes");
-        final DBCollection blobs = blobDB.getCollection("blobs");
+    private void run(MongoClient mongo, boolean useSameDB, boolean remote) throws InterruptedException {
+        final MongoDatabase nodeDB = mongo.getDatabase(TEST_DB1);
+        final MongoDatabase blobDB = useSameDB ? mongo.getDatabase(TEST_DB1) : mongo.getDatabase(TEST_DB2);
+        final MongoCollection<BasicDBObject> nodes = nodeDB.getCollection("nodes", BasicDBObject.class);
+        final MongoCollection<BasicDBObject> blobs = blobDB.getCollection("blobs", BasicDBObject.class);
 
         for (int readers : READERS) {
             for (int writers : WRITERS) {
-                prepareDB(nodes,blobs);
+                prepareDB(nodes, blobs);
                 final Benchmark b = new Benchmark(nodes, blobs);
                 Result r = b.run(readers, writers, remote, WriteConcern.SAFE);
                 results.add(r);
@@ -137,18 +134,19 @@ public class BlobThroughPutTest {
         }
     }
 
-    private void prepareDB(DBCollection nodes, DBCollection blobs) {
-        MongoUtils.dropCollections(nodes.getDB());
-        MongoUtils.dropCollections(blobs.getDB());
+    private void prepareDB(MongoCollection<BasicDBObject> nodes,
+                           MongoCollection<BasicDBObject> blobs) {
+        MongoUtils.dropCollections(nodes.getNamespace().getDatabaseName());
+        MongoUtils.dropCollections(blobs.getNamespace().getDatabaseName());
 
         createTestNodes(nodes);
     }
 
-    private void createTestNodes(DBCollection nodes) {
+    private void createTestNodes(MongoCollection<BasicDBObject> nodes) {
         for (int i = 0; i < NO_OF_NODES; i++) {
-            DBObject obj = new BasicDBObject("_id", i)
+            BasicDBObject obj = new BasicDBObject("_id", i)
                     .append("foo", "bar1" + i);
-            nodes.insert(obj, WriteConcern.SAFE);
+            nodes.insertOne(obj);
         }
     }
 
@@ -194,8 +192,8 @@ public class BlobThroughPutTest {
     }
 
     private static class Benchmark {
-        private final DBCollection nodes;
-        private final DBCollection blobs;
+        private final MongoCollection<BasicDBObject> nodes;
+        private final MongoCollection<BasicDBObject> blobs;
         private final Random random = new Random();
         private final AtomicBoolean stopTest = new AtomicBoolean(false);
         private final static byte[] DATA;
@@ -209,13 +207,14 @@ public class BlobThroughPutTest {
             }
         }
 
-        private Benchmark(DBCollection nodes, DBCollection blobs) {
+        private Benchmark(MongoCollection<BasicDBObject> nodes,
+                          MongoCollection<BasicDBObject> blobs) {
             this.nodes = nodes;
             this.blobs = blobs;
         }
 
         public Result run(int noOfReaders, int noOfWriters, boolean remote, WriteConcern writeConcern) throws InterruptedException {
-            boolean sameDB = nodes.getDB().getName().equals(blobs.getDB().getName());
+            boolean sameDB = nodes.getNamespace().getDatabaseName().equals(blobs.getNamespace().getDatabaseName());
 
             List<Reader> readers = new ArrayList<Reader>(noOfReaders);
             List<Writer> writers = new ArrayList<Writer>(noOfWriters);
@@ -299,7 +298,7 @@ public class BlobThroughPutTest {
                 waitForStart();
                 while (!stopTest.get()) {
                     int id = random.nextInt(NO_OF_NODES);
-                    DBObject o = nodes.findOne(QueryBuilder.start("_id").is(id).get());
+                    BasicDBObject o = nodes.find(Filters.eq("_id", id)).first();
                     assertNotNull("did not found object with id " + id, o);
                     readCount++;
                 }
@@ -323,10 +322,10 @@ public class BlobThroughPutTest {
                 waitForStart();
                 while (!stopTest.get()) {
                     String _id = id + "-" + writeCount;
-                    DBObject obj = new BasicDBObject()
+                    BasicDBObject obj = new BasicDBObject()
                             .append("foo", _id);
                     obj.put("blob", DATA);
-                    blobs.insert(obj, writeConcern);
+                    blobs.withWriteConcern(writeConcern).insertOne(obj);
                     writeCount++;
                 }
                 stopLatch.countDown();

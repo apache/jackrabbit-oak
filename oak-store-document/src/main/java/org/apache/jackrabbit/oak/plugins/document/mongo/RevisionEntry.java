@@ -25,6 +25,7 @@ import org.bson.BSONObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 
@@ -102,6 +103,6 @@ public class RevisionEntry implements DBObject {
 
     @Override
     public String toString() {
-        return JSON.serialize(this);
+        return new BasicDBObject(revision.toString(), value).toJson();
     }
 }
