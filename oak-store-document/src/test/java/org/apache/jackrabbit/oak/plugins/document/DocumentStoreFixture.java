@@ -201,7 +201,7 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
-        private List<MongoConnection> connections = Lists.newArrayList();
+        protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
         public String getName() {

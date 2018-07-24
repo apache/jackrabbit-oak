@@ -87,6 +87,17 @@ public class MongoConnection {
     }
 
     /**
+     * Constructs a new {@code MongoConnection}.
+     *
+     * @param uri the connection URI.
+     * @param client the already connected client.
+     */
+    public MongoConnection(String uri, MongoClient client) {
+        mongoURI = new MongoClientURI(uri, MongoConnection.getDefaultBuilder());
+        mongo = client;
+    }
+
+    /**
      * @return the {@link MongoClient} for this connection.
      */
     public MongoClient getMongoClient() {
