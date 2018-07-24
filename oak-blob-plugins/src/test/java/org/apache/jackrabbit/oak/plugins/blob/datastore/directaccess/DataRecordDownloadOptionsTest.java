@@ -50,16 +50,16 @@ public class DataRecordDownloadOptionsTest {
                                String dispositionType) {
         assertNotNull(options);
         if (null != mimeType) {
-            assertEquals(mimeType, options.getMimeType());
+            assertEquals(mimeType, options.getMediaType());
         }
         else {
-            assertNull(options.getMimeType());
+            assertNull(options.getMediaType());
         }
         if (null != encoding) {
-            assertEquals(encoding, options.getEncoding());
+            assertEquals(encoding, options.getCharacterEncoding());
         }
         else {
-            assertNull(options.getEncoding());
+            assertNull(options.getCharacterEncoding());
         }
         if (null != dispositionType) {
             assertEquals(dispositionType, options.getDispositionType());
@@ -102,10 +102,10 @@ public class DataRecordDownloadOptionsTest {
         BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder =
                 BinaryDownloadOptions.builder();
         if (! Strings.isNullOrEmpty(mimeType)) {
-            builder = builder.withMimeType(mimeType);
+            builder = builder.withMediaType(mimeType);
         }
         if (! Strings.isNullOrEmpty(encoding)) {
-            builder = builder.withEncoding(encoding);
+            builder = builder.withCharacterEncoding(encoding);
         }
         if (! Strings.isNullOrEmpty(fileName)) {
             builder = builder.withFileName(fileName);
@@ -119,8 +119,8 @@ public class DataRecordDownloadOptionsTest {
         }
         BinaryDownloadOptions options = builder.build();
         return DataRecordDownloadOptions.fromBlobDownloadOptions(
-                new BlobDownloadOptions(options.getMimeType(),
-                        options.getEncoding(),
+                new BlobDownloadOptions(options.getMediaType(),
+                        options.getCharacterEncoding(),
                         options.getFileName(),
                         options.getDispositionType())
         );
@@ -137,15 +137,16 @@ public class DataRecordDownloadOptionsTest {
 
     private String getContentDispositionHeader(String fileName, String dispositionType) {
         if (Strings.isNullOrEmpty(fileName)) {
+            if (dispositionType.equals(DISPOSITION_TYPE_ATTACHMENT)) {
+                return DISPOSITION_TYPE_ATTACHMENT;
+            }
             return null;
         }
 
         if (Strings.isNullOrEmpty(dispositionType)) {
-            dispositionType = DISPOSITION_TYPE_ATTACHMENT;
+            dispositionType = DISPOSITION_TYPE_INLINE;
         }
-        String fileNameStar = new String(
-                StandardCharsets.UTF_8.encode(fileName).array(),
-                StandardCharsets.UTF_8);
+        String fileNameStar = new String(fileName.getBytes(StandardCharsets.UTF_8));
         return String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
                 dispositionType, fileName, fileNameStar);
     }
@@ -175,17 +176,17 @@ public class DataRecordDownloadOptionsTest {
                 null,
                 null,
                 null,
-                null);
+                DISPOSITION_TYPE_INLINE);
         verifyOptions(DataRecordDownloadOptions
                 .fromBlobDownloadOptions(BlobDownloadOptions.DEFAULT),
                 null,
                 null,
                 null,
-                null);
+                DISPOSITION_TYPE_INLINE);
         BinaryDownloadOptions binaryDownloadOptions = BinaryDownloadOptions.DEFAULT;
         BlobDownloadOptions blobDownloadOptions = new BlobDownloadOptions(
-                binaryDownloadOptions.getMimeType(),
-                binaryDownloadOptions.getEncoding(),
+                binaryDownloadOptions.getMediaType(),
+                binaryDownloadOptions.getCharacterEncoding(),
                 binaryDownloadOptions.getFileName(),
                 binaryDownloadOptions.getDispositionType()
         );
@@ -193,7 +194,7 @@ public class DataRecordDownloadOptionsTest {
                 null,
                 null,
                 null,
-                null);
+                DISPOSITION_TYPE_INLINE);
     }
 
     @Test
@@ -209,15 +210,15 @@ public class DataRecordDownloadOptionsTest {
     public void testFromBinaryDownloadOptions() {
         BinaryDownloadOptions binaryDownloadOptions =
                 BinaryDownloadOptions.builder()
-                        .withMimeType(MIME_TYPE_TEXT_PLAIN)
-                        .withEncoding(ENCODING_UTF_8)
+                        .withMediaType(MIME_TYPE_TEXT_PLAIN)
+                        .withCharacterEncoding(ENCODING_UTF_8)
                         .withFileName(FILE_NAME_TEXT)
                         .withDispositionTypeAttachment()
                         .build();
         BlobDownloadOptions blobDownloadOptions =
                 new BlobDownloadOptions(
-                        binaryDownloadOptions.getMimeType(),
-                        binaryDownloadOptions.getEncoding(),
+                        binaryDownloadOptions.getMediaType(),
+                        binaryDownloadOptions.getCharacterEncoding(),
                         binaryDownloadOptions.getFileName(),
                         binaryDownloadOptions.getDispositionType()
                 );
@@ -273,10 +274,10 @@ public class DataRecordDownloadOptionsTest {
 
     @Test
     public void testGetContentDispositionWithNoDispositionType() {
-        // Ensures that the default disposition type is "attachment"
+        // Ensures that the default disposition type is "inline"
         verifyContentDispositionHeader(
                 getOptions(null, null, FILE_NAME_IMAGE, null),
-                getContentDispositionHeader(FILE_NAME_IMAGE, DISPOSITION_TYPE_ATTACHMENT)
+                getContentDispositionHeader(FILE_NAME_IMAGE, DISPOSITION_TYPE_INLINE)
         );
     }
 
@@ -288,7 +289,7 @@ public class DataRecordDownloadOptionsTest {
         );
         verifyContentDispositionHeader(
                 getOptions(null, null, null, DISPOSITION_TYPE_ATTACHMENT),
-                null
+                DISPOSITION_TYPE_ATTACHMENT
         );
     }
 

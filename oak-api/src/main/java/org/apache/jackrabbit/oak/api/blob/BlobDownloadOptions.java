@@ -30,33 +30,35 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public class BlobDownloadOptions {
-    private final String mimeType;
-    private final String encoding;
+    private static final String DISPOSITION_TYPE_INLINE = "inline";
+
+    private final String mediaType;
+    private final String characterEncoding;
     private final String fileName;
     private final String dispositionType;
 
     public static final BlobDownloadOptions DEFAULT = new BlobDownloadOptions();
 
     public BlobDownloadOptions() {
-        this(null, null, null, null);
+        this(null, null, null, DISPOSITION_TYPE_INLINE);
     }
 
-    public BlobDownloadOptions(final String mimeType,
-                               final String encoding,
+    public BlobDownloadOptions(final String mediaType,
+                               final String characterEncoding,
                                final String fileName,
                                final String dispositionType) {
-        this.mimeType = mimeType;
-        this.encoding = encoding;
+        this.mediaType = mediaType;
+        this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = dispositionType;
     }
 
-    public String getMimeType() {
-        return mimeType;
+    public String getMediaType() {
+        return mediaType;
     }
 
-    public String getEncoding() {
-        return encoding;
+    public String getCharacterEncoding() {
+        return characterEncoding;
     }
 
     public String getFileName() {
