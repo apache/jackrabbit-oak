@@ -122,7 +122,6 @@ public class AzureParserUtils {
      *            the Azure URI as string
      * @return parsed configuration map containing <b>accountName</b>, <b>storageUri</b> and <b>dir</b>
      * (key names in bold)
-     * @throws URISyntaxException if an invalid Azure URI is used
      */
     public static Map<String, String> parseAzureConfigurationFromUri(String uriStr) {
         Map<String, String> config = new HashMap<>();
