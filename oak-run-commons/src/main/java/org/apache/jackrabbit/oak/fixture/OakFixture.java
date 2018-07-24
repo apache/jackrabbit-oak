@@ -399,7 +399,7 @@ public abstract class OakFixture {
             this.dsCacheInMB = dsCacheInMB;
         }
 
-        public DocumentNodeStoreBuilder<?> getBuilder(int clusterId) throws UnknownHostException {
+        public DocumentNodeStoreBuilder<?> getBuilder(int clusterId) {
             MongoConnection mongo = new MongoConnection(uri);
             DocumentNodeStoreBuilder<?> builder = new MongoDocumentNodeStoreBuilder() {
                 @Override
@@ -408,7 +408,7 @@ public abstract class OakFixture {
                     nodeStores.add(ns);
                     return ns;
                 }
-            }.setMongoDB(mongo.getDB()).
+            }.setMongoDB(mongo.getMongoClient(), mongo.getDBName()).
                     memoryCacheSize(cacheSize).
                     setClusterId(clusterId).
                     setLogging(false);
@@ -450,7 +450,7 @@ public abstract class OakFixture {
                 try {
                     MongoConnection mongo =
                             new MongoConnection(uri);
-                    mongo.getDB().dropDatabase();
+                    mongo.getDatabase().drop();
                     mongo.close();
                     if(blobStoreFixture != null){
                         blobStoreFixture.tearDown();
