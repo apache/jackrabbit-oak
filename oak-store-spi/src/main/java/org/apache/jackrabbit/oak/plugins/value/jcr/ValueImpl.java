@@ -401,8 +401,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
         } else {
             return blobDirectAccessProvider.getDownloadURI(blob,
                     new BlobDownloadOptions(
-                            downloadOptions.getMimeType(),
-                            downloadOptions.getEncoding(),
+                            downloadOptions.getMediaType(),
+                            downloadOptions.getCharacterEncoding(),
                             downloadOptions.getFileName(),
                             downloadOptions.getDispositionType())
                     );

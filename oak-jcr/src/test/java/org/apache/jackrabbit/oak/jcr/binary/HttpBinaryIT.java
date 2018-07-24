@@ -272,7 +272,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     @Test
-    public void testGetBinaryWithSpecificContentType() throws Exception {
+    public void testGetBinaryWithSpecificMediaType() throws Exception {
         getConfigurableHttpDataRecordProvider()
                 .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -282,18 +282,18 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedContentType = "image/png";
+        String expectedMediaType = "image/png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withMimeType(expectedContentType)
+                .withMediaType(expectedMediaType)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String contentType = conn.getHeaderField("Content-Type");
-        assertNotNull(contentType);
-        assertEquals(expectedContentType, contentType);
+        String mediaType = conn.getHeaderField("Content-Type");
+        assertNotNull(mediaType);
+        assertEquals(expectedMediaType, mediaType);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -303,7 +303,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     @Test
-    public void testGetBinaryWithSpecificContentTypeAndEncoding() throws Exception {
+    public void testGetBinaryWithSpecificMediaTypeAndEncoding() throws Exception {
         getConfigurableHttpDataRecordProvider()
                 .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -313,21 +313,21 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedContentType = "text/plain";
-        String expectedContentTypeEncoding = "utf-8";
+        String expectedMediaType = "text/plain";
+        String expectedCharacterEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withMimeType(expectedContentType)
-                .withEncoding(expectedContentTypeEncoding)
+                .withMediaType(expectedMediaType)
+                .withCharacterEncoding(expectedCharacterEncoding)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String contentType = conn.getHeaderField("Content-Type");
-        assertNotNull(contentType);
-        assertEquals(String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
-                contentType);
+        String mediaType = conn.getHeaderField("Content-Type");
+        assertNotNull(mediaType);
+        assertEquals(String.format("%s; charset=%s", expectedMediaType, expectedCharacterEncoding),
+                mediaType);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -337,7 +337,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
     }
 
     @Test
-    public void testGetBinaryWithContentTypeEncodingOnly() throws Exception {
+    public void testGetBinaryWithCharacterEncodingOnly() throws Exception {
         getConfigurableHttpDataRecordProvider()
                 .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
 
@@ -347,19 +347,19 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedContentTypeEncoding = "utf-8";
+        String expectedCharacterEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withEncoding(expectedContentTypeEncoding)
+                .withCharacterEncoding(expectedCharacterEncoding)
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String contentType = conn.getHeaderField("Content-Type");
+        String mediaType = conn.getHeaderField("Content-Type");
         // application/octet-stream is the default Content-Type if none is
         // set in the signed URI
-        assertEquals("application/octet-stream", contentType);
+        assertEquals("application/octet-stream", mediaType);
 
         // Verify response content
         assertEquals(200, conn.getResponseCode());
@@ -392,7 +392,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertNotNull(contentDisposition);
         String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
-                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
                 contentDisposition
         );
@@ -419,7 +419,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
-                .withDispositionTypeInline()
+                .withDispositionTypeAttachment()
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
@@ -429,7 +429,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         assertNotNull(contentDisposition);
         String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
-                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
                 contentDisposition
         );
@@ -461,7 +461,8 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
-        // Should be no header since filename was not set
+        // Should be no header since filename was not set and disposition type
+        // is "inline"
         assertNull(contentDisposition);
 
         // Verify response content
@@ -470,6 +471,18 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         IOUtils.copy(conn.getInputStream(), writer, "utf-8");
         assertEquals(content, writer.toString());
 
+        downloadOptions = BinaryDownloadOptions
+                .builder()
+                .withDispositionTypeAttachment()
+                .build();
+        downloadURI = ((BinaryDownload)(writeBinary))
+                .getURI(downloadOptions);
+
+        conn = (HttpURLConnection) downloadURI.toURL().openConnection();
+        contentDisposition = conn.getHeaderField("Content-Disposition");
+        // Content-Disposition should exist now because "attachment" was set
+        assertNotNull(contentDisposition);
+        assertEquals("attachment", contentDisposition);
     }
 
     @Test
@@ -483,31 +496,31 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         waitForUploads();
 
-        String expectedContentType = "image/png";
-        String expectedContentTypeEncoding = "utf-8";
+        String expectedMediaType = "image/png";
+        String expectedCharacterEncoding = "utf-8";
         String expectedName = "beautiful landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
-                .withMimeType(expectedContentType)
-                .withEncoding(expectedContentTypeEncoding)
+                .withMediaType(expectedMediaType)
+                .withCharacterEncoding(expectedCharacterEncoding)
                 .withFileName(expectedName)
-                .withDispositionTypeInline()
+                .withDispositionTypeAttachment()
                 .build();
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(downloadOptions);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String contentType = conn.getHeaderField("Content-Type");
-        assertNotNull(contentType);
+        String mediaType = conn.getHeaderField("Content-Type");
+        assertNotNull(mediaType);
         assertEquals(
-                String.format("%s; charset=%s", expectedContentType, expectedContentTypeEncoding),
-                contentType);
+                String.format("%s; charset=%s", expectedMediaType, expectedCharacterEncoding),
+                mediaType);
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
         String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
-                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
                 contentDisposition
         );
@@ -538,9 +551,9 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .getURI(BinaryDownloadOptions.DEFAULT);
 
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
-        String contentType = conn.getHeaderField("Content-Type");
-        assertNotNull(contentType);
-        assertEquals("application/octet-stream", contentType);
+        String mediaType = conn.getHeaderField("Content-Type");
+        assertNotNull(mediaType);
+        assertEquals("application/octet-stream", mediaType);
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNull(contentDisposition);

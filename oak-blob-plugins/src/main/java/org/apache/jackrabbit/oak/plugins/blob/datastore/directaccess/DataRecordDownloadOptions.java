@@ -28,13 +28,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class DataRecordDownloadOptions {
+    private static final String DISPOSITION_TYPE_INLINE = "inline";
     private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
     public static DataRecordDownloadOptions fromBlobDownloadOptions(
             @NotNull BlobDownloadOptions downloadOptions) {
         return new DataRecordDownloadOptions(
-                downloadOptions.getMimeType(),
-                downloadOptions.getEncoding(),
+                downloadOptions.getMediaType(),
+                downloadOptions.getCharacterEncoding(),
                 downloadOptions.getFileName(),
                 downloadOptions.getDispositionType()
         );
@@ -44,35 +45,35 @@ public class DataRecordDownloadOptions {
             new DataRecordDownloadOptions(null,
                     null,
                     null,
-                    null);
+                    DISPOSITION_TYPE_INLINE);
 
-    private final String mimeType;
-    private final String encoding;
+    private final String mediaType;
+    private final String characterEncoding;
     private final String fileName;
     private final String dispositionType;
 
     private String contentTypeHeader = null;
     private String contentDispositionHeader = null;
 
-    private DataRecordDownloadOptions(final String mimeType,
-                                      final String encoding,
+    private DataRecordDownloadOptions(final String mediaType,
+                                      final String characterEncoding,
                                       final String fileName,
                                       final String dispositionType) {
-        this.mimeType = mimeType;
-        this.encoding = encoding;
+        this.mediaType = mediaType;
+        this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = Strings.isNullOrEmpty(dispositionType) ?
-                DISPOSITION_TYPE_ATTACHMENT :
+                DISPOSITION_TYPE_INLINE :
                 dispositionType;
     }
 
     @Nullable
     public String getContentTypeHeader() {
         if (Strings.isNullOrEmpty(contentTypeHeader)) {
-            if (!Strings.isNullOrEmpty(mimeType)) {
-                contentTypeHeader = Strings.isNullOrEmpty(encoding) ?
-                        mimeType :
-                        Joiner.on("; charset=").join(mimeType, encoding);
+            if (!Strings.isNullOrEmpty(mediaType)) {
+                contentTypeHeader = Strings.isNullOrEmpty(characterEncoding) ?
+                        mediaType :
+                        Joiner.on("; charset=").join(mediaType, characterEncoding);
             }
         }
         return contentTypeHeader;
@@ -84,7 +85,7 @@ public class DataRecordDownloadOptions {
             if (!Strings.isNullOrEmpty(fileName)) {
                 String dispositionType = this.dispositionType;
                 if (Strings.isNullOrEmpty(dispositionType)) {
-                    dispositionType = "attachment";
+                    dispositionType = DISPOSITION_TYPE_INLINE;
                 }
                 contentDispositionHeader =
                         String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
@@ -92,18 +93,21 @@ public class DataRecordDownloadOptions {
                                 new String(fileName.getBytes(StandardCharsets.UTF_8))
                         );
             }
+            else if (DISPOSITION_TYPE_ATTACHMENT.equals(this.dispositionType)) {
+                contentDispositionHeader = DISPOSITION_TYPE_ATTACHMENT;
+            }
         }
         return contentDispositionHeader;
     }
 
     @Nullable
-    public String getMimeType() {
-        return mimeType;
+    public String getMediaType() {
+        return mediaType;
     }
 
     @Nullable
-    public String getEncoding() {
-        return encoding;
+    public String getCharacterEncoding() {
+        return characterEncoding;
     }
 
     @Nullable
