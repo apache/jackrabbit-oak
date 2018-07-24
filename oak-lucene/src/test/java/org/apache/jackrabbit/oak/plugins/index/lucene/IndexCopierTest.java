@@ -44,6 +44,7 @@ import javax.management.openmbean.TabularData;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.io.Closer;
 import com.google.common.util.concurrent.ForwardingListeningExecutorService;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -54,12 +55,15 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.SimpleFSDirectory;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,6 +74,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -79,13 +84,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 public class IndexCopierTest {
     private Random rnd = new Random();
     private int maxFileSize = 7896;
 
     private NodeState root = INITIAL_CONTENT;
+
+    private static final Clock CLOCK = new Clock.Virtual();
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -94,9 +100,26 @@ public class IndexCopierTest {
 
     private String indexPath = "/oak:index/test";
 
+    private final Closer closer = Closer.create();
+    static {
+        try {
+            CLOCK.waitUntil(Clock.SIMPLE.getTime());
+        } catch (InterruptedException e) {
+            // ignored
+        }
+    }
+
     @Before
     public void setUp(){
+        System.setProperty(DELETE_MARGIN_MILLIS_NAME, String.valueOf(TimeUnit.SECONDS.toMillis(1)));
         LuceneIndexEditorContext.configureUniqueId(builder);
+        DelayCopyingSimpleFSDirectory.temporaryFolder = temporaryFolder;
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        closer.close();
+        DelayCopyingSimpleFSDirectory.temporaryFolder = null;
     }
 
     @Test
@@ -277,7 +300,7 @@ public class IndexCopierTest {
 
         IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir());
 
-        TestRAMDirectory remote = new TestRAMDirectory();
+        FileTrackingDirectory remote = new FileTrackingDirectory();
         Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote , "t1");
@@ -329,7 +352,7 @@ public class IndexCopierTest {
 
         final CountDownLatch copyProceed = new CountDownLatch(1);
         final CountDownLatch copyRequestArrived = new CountDownLatch(1);
-        TestRAMDirectory remote = new TestRAMDirectory(){
+        FileTrackingDirectory remote = new FileTrackingDirectory(){
             @Override
             public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
                 copyRequestArrived.countDown();
@@ -384,7 +407,7 @@ public class IndexCopierTest {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
-        TestRAMDirectory remote = new TestRAMDirectory();
+        FileTrackingDirectory remote = new FileTrackingDirectory();
         Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
 
         byte[] t1 = writeFile(remote, "t1");
@@ -442,18 +465,14 @@ public class IndexCopierTest {
     }
 
     @Test
-    public void deletesOnClose() throws Exception{
-        //Use a close safe dir. In actual case the FSDir would
-        //be opened on same file system hence it can retain memory
-        //but RAMDirectory does not retain memory hence we simulate
-        //that by not closing the RAMDir and reuse it
+    public void deletesOnClose() throws Exception {
         Directory baseDir = new CloseSafeDir();
 
 
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
-        Directory r1 = new RAMDirectory();
+        Directory r1 = new DelayCopyingSimpleFSDirectory();
 
         byte[] t1 = writeFile(r1, "t1");
         byte[] t2 = writeFile(r1 , "t2");
@@ -496,7 +515,7 @@ public class IndexCopierTest {
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
-        Directory r1 = new RAMDirectory();
+        Directory r1 = new DelayCopyingSimpleFSDirectory();
 
         byte[] t1 = writeFile(r1, "t1");
         byte[] t2 = writeFile(r1 , "t2");
@@ -974,10 +993,15 @@ public class IndexCopierTest {
 
         Directory remote = new CloseSafeDir();
         byte[] f1 = writeFile(remote, "f1");
+        byte[] f1a = writeFile(remote, "f1a");
 
         Directory cor1 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
         readAndAssert(cor1, "f1", f1);
+        readAndAssert(cor1, "f1a", f1a);
+        //Ensure that deletion task submitted to executor get processed immediately
+        executor.enableImmediateExecution();
         cor1.close();
+        executor.enableDelayedExecution();
 
         final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
         Directory remote2 = new FilterDirectory(remote) {
@@ -999,7 +1023,12 @@ public class IndexCopierTest {
         //Before copy is done to remote lets delete f1 from remote and
         //open a COR and close it such that it triggers delete of f1
         remote.deleteFile("f1");
+        writeFile(remote, "f1b");
         Directory cor2 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
+
+        // Since we're talking of hypothetical stuck cow1 stuck and are running next CoW cycle on 'remote', let's
+        // update timestamps on file that cow1 created to maintain some temporal sanity
+        updateLastModified(cow1, "f2");
 
         //Ensure that deletion task submitted to executor get processed immediately
         executor.enableImmediateExecution();
@@ -1062,7 +1091,14 @@ public class IndexCopierTest {
         IndexOutput o = dir.createOutput(name, IOContext.DEFAULT);
         o.writeBytes(data, data.length);
         o.close();
+
+        updateLastModified(dir, name);
+
         return data;
+    }
+
+    private static void updateLastModified(Directory dir, String name) throws IOException {
+        DelayCopyingSimpleFSDirectory.updateLastModified(dir, name);
     }
 
     private byte[] randomBytes(int size) {
@@ -1113,8 +1149,56 @@ public class IndexCopierTest {
         }
     }
 
-    private static class TestRAMDirectory extends RAMDirectory {
+    private static class DelayCopyingSimpleFSDirectory extends SimpleFSDirectory {
+        private static TemporaryFolder temporaryFolder;
+
+        public DelayCopyingSimpleFSDirectory() throws IOException {
+            super(temporaryFolder.newFolder());
+        }
+
+        public static void updateLastModified(Directory dir, String name) {
+            DelayCopyingSimpleFSDirectory d = null;
+            if (dir instanceof DelayCopyingSimpleFSDirectory) {
+                d = (DelayCopyingSimpleFSDirectory)dir;
+            } else if (dir instanceof FilterDirectory) {
+                Directory delegate = ((FilterDirectory)dir).getDelegate();
+                if (delegate instanceof DelayCopyingSimpleFSDirectory) {
+                    d = (DelayCopyingSimpleFSDirectory)delegate;
+                }
+            }
+
+            if (d != null) {
+                d.updateLastModified(name);
+            }
+        }
+
+        private void updateLastModified(String name) {
+            try {
+                // Update file timestamp manually to mimic last updated time updates without sleeping
+                CLOCK.waitUntil(CLOCK.getTime() + TimeUnit.SECONDS.toMillis(2));
+
+                File f = new File(directory, name);
+                f.setLastModified(CLOCK.getTimeIncreasing());
+            } catch (InterruptedException ie) {
+                // ignored
+            }
+        }
+
+        @Override
+        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
+            super.copy(to, src, dest, context);
+
+            if (to instanceof DelayCopyingSimpleFSDirectory) {
+                ((DelayCopyingSimpleFSDirectory)to).updateLastModified(dest);
+            }
+        }
+    }
+
+    private class FileTrackingDirectory extends DelayCopyingSimpleFSDirectory {
         final List<String> openedFiles = newArrayList();
+
+        public FileTrackingDirectory() throws IOException {
+        }
 
         @Override
         public IndexInput openInput(String name, IOContext context) throws IOException {
@@ -1127,10 +1211,17 @@ public class IndexCopierTest {
         }
     }
 
-    private static class CloseSafeDir extends RAMDirectory {
+    private class CloseSafeDir extends DelayCopyingSimpleFSDirectory {
+        public CloseSafeDir() throws IOException {
+        }
+
         @Override
         public void close() {
+            closer.register(this::close0);
+        }
 
+        private void close0() {
+            super.close();
         }
     }
 

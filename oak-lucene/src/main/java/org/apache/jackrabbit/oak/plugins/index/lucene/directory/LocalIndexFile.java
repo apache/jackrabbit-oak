@@ -116,7 +116,7 @@ public final class LocalIndexFile {
         return dir != null ? new File(dir, name).length() : 0;
     }
 
-    static File getFSDir(Directory dir) {
+    public static File getFSDir(Directory dir) {
         if (dir instanceof FilterDirectory){
             dir = ((FilterDirectory) dir).getDelegate();
         }
