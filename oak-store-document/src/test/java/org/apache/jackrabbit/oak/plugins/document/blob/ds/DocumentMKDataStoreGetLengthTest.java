@@ -28,12 +28,14 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import static org.junit.Assert.assertNotNull;
+
 /**
  * Tests for {@code DocumentMK#getLength(String)} using {@link DataStore}
  */
 public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
+    public static void setUpBeforeClass() {
         try {
             Assume.assumeNotNull(DataStoreUtils.getBlobStore());
         } catch (Exception e) {
@@ -45,6 +47,7 @@ public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
+        assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
@@ -56,6 +59,6 @@ public class DocumentMKDataStoreGetLengthTest extends DocumentMKGetLengthTest {
     public void tearDownConnection() throws Exception {
         FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
     }
 }

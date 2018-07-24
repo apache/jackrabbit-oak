@@ -42,8 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
 
 /**
  * Tests the document store.
@@ -72,7 +72,7 @@ public class MongoDocumentStoreTest {
 
     void dropCollections() {
         if (MONGO_DB) {
-            MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
         }
     }
 
@@ -248,28 +248,30 @@ public class MongoDocumentStoreTest {
         doInsert(NODE_COUNT, false);
     }
 
-    private void doInsert(int n, boolean batch) throws Exception {
+    private void doInsert(int n, boolean batch) {
         dropCollections();
 
-        DBCollection collection = connectionFactory.getConnection().getDB().getCollection("batchInsertTest");
-        DBObject index = new BasicDBObject();
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        MongoCollection<BasicDBObject> collection = c.getDatabase()
+                .getCollection("batchInsertTest", BasicDBObject.class);
+        BasicDBObject index = new BasicDBObject();
         index.put("_path", 1L);
-        DBObject options = new BasicDBObject();
-        options.put("unique", Boolean.TRUE);
+        IndexOptions options = new IndexOptions().unique(true);
         collection.createIndex(index, options);
 
         log("Inserting " + n + " batch? " + batch);
         long start = System.currentTimeMillis();
 
         if (batch) {
-            DBObject[] arr = new BasicDBObject[n];
+            List<BasicDBObject> docs = new ArrayList<>();
             for (int i = 0; i < n; i++) {
-                arr[i] = new BasicDBObject("_path", "/a" + i);
+                docs.add(new BasicDBObject("_path", "/a" + i));
             }
-            collection.insert(arr);
+            collection.insertMany(docs);
         } else {
             for (int i = 0; i < n; i++) {
-                collection.insert(new BasicDBObject("_path", "/a" + i));
+                collection.insertOne(new BasicDBObject("_path", "/a" + i));
             }
 
         }

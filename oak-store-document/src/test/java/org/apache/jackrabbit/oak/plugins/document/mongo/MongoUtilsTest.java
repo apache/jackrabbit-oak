@@ -61,7 +61,8 @@ public class MongoUtilsTest {
     @Test
     public void createIndex() {
         MongoConnection c = connectionFactory.getConnection();
-        c.getDB().dropDatabase();
+        assertNotNull(c);
+        c.getDatabase().drop();
         MongoCollection collection = c.getDatabase().getCollection("test");
         MongoUtils.createIndex(collection, "foo", true, false, true);
         MongoUtils.createIndex(collection, "bar", false, true, false);
@@ -93,13 +94,14 @@ public class MongoUtilsTest {
             }
         }
 
-        c.getDB().dropDatabase();
+        c.getDatabase().drop();
     }
 
     @Test
     public void createPartialIndex() {
         MongoConnection c = connectionFactory.getConnection();
-        c.getDB().dropDatabase();
+        assertNotNull(c);
+        c.getDatabase().drop();
         MongoStatus status = new MongoStatus(c.getMongoClient(), c.getDBName());
         assumeTrue(status.isVersion(3, 2));
 
@@ -126,12 +128,13 @@ public class MongoUtilsTest {
             }
         }
 
-        c.getDB().dropDatabase();
+        c.getDatabase().drop();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void checkArguments() {
         MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
         MongoCollection collection = c.getDatabase().getCollection("test");
         MongoUtils.createIndex(collection, new String[]{"foo", "bar"},
                 new boolean[]{true}, false, true);

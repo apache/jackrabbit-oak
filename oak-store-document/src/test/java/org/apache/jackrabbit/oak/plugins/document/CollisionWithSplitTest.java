@@ -46,9 +46,10 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
     private DocumentNodeStore ns2;
 
     @Override
-    public void setUpConnection() throws Exception {
+    public void setUpConnection() {
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        assertNotNull(mongoConnection);
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         mk = newDocumentMK(mongoConnection, 2);
         ns1 = mk.getNodeStore();
     }

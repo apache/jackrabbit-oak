@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.DB;
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -95,18 +93,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     /**
      * Use the given MongoDB as backend storage for the DocumentNodeStore.
      *
-     * @param db the MongoDB connection
-     * @return this
-     * @deprecated use {@link #setMongoDB(MongoClient, String, int)} instead.
-     */
-    public T setMongoDB(@NotNull DB db,
-                        int blobCacheSizeMB) {
-        return setMongoDB(mongoClientFrom(db), db.getName(), blobCacheSizeMB);
-    }
-
-    /**
-     * Use the given MongoDB as backend storage for the DocumentNodeStore.
-     *
      * @param client the MongoDB connection
      * @param dbName the database name
      * @param blobCacheSizeMB the size of the blob cache in MB.
@@ -117,17 +103,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
                         int blobCacheSizeMB) {
         return setMongoDB(client, client.getDatabase(dbName),
                 new MongoStatus(client, dbName), blobCacheSizeMB);
-    }
-
-    /**
-     * Use the given MongoDB as backend storage for the DocumentNodeStore.
-     *
-     * @param db the MongoDB connection
-     * @return this
-     * @deprecated use {@link #setMongoDB(MongoClient, String)} instead.
-     */
-    public T setMongoDB(@NotNull DB db) {
-        return setMongoDB(mongoClientFrom(db), db.getName());
     }
 
     /**
@@ -256,13 +231,5 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             setGCBlobStore(s);
         }
         return thisBuilder();
-    }
-
-    private static MongoClient mongoClientFrom(DB db) {
-        Mongo mongo = db.getMongo();
-        if (mongo instanceof MongoClient) {
-            return (MongoClient) mongo;
-        }
-        throw new UnsupportedOperationException("DB must be constructed from MongoClient");
     }
 }

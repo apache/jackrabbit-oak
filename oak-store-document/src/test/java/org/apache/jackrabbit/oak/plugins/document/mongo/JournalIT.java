@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class JournalIT extends AbstractJournalTest {
 
@@ -58,7 +59,8 @@ public class JournalIT extends AbstractJournalTest {
     public void clear() {
         super.clear();
         MongoConnection mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        assertNotNull(mongoConnection);
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
     }
 
     @Test
