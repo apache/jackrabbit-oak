@@ -109,7 +109,7 @@ class DocumentFixtureProvider {
             MongoConnection mongo = new MongoConnection(uri.getURI());
             wb.register(MongoConnection.class, mongo, emptyMap());
             closer.register(mongo::close);
-            ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getDB());
+            ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getMongoClient(), mongo.getDBName());
             dns = builder.build();
             wb.register(MongoDocumentStore.class, (MongoDocumentStore) builder.getDocumentStore(), emptyMap());
         } else if (commonOpts.isRDB()) {
