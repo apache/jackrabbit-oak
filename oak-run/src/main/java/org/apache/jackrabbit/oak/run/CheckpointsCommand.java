@@ -65,7 +65,7 @@ class CheckpointsCommand implements Command {
                 MongoClientURI uri = new MongoClientURI(connection);
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore store = newMongoDocumentNodeStoreBuilder()
-                        .setMongoDB(client.getDB(uri.getDatabase()))
+                        .setMongoDB(client, uri.getDatabase())
                         .build();
                 closer.register(Utils.asCloseable(store));
                 cps = Checkpoints.onDocumentMK(store);

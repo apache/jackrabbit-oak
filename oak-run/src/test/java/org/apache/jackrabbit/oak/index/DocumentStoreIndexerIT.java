@@ -137,7 +137,9 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
 
     @Test
     public void bundling() throws Exception{
-        DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder().setMongoDB(getConnection().getDB());
+        MongoConnection c = getConnection();
+        DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName());
         DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();
@@ -172,8 +174,9 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         store.dispose();
         r1.unregister();
 
+        MongoConnection c2 = connectionFactory.getConnection();
         DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
-                .setMongoDB(connectionFactory.getConnection().getDB());
+                .setMongoDB(c2.getMongoClient(), c2.getDBName());
         ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
         store = docBuilderRO.build();
         wb.register(MongoDocumentStore.class, ds, emptyMap());
@@ -220,14 +223,16 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         merge(store, builder);
     }
 
-    private DocumentNodeStore getNodeStore(){
-        return builderProvider.newBuilder().setMongoDB(getConnection().getDB()).getNodeStore();
+    private DocumentNodeStore getNodeStore() {
+        MongoConnection c = getConnection();
+        return builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
     private MongoConnection getConnection(){
         MongoConnection conn = connectionFactory.getConnection();
         assumeNotNull(conn);
-        MongoUtils.dropCollections(conn.getDB());
+        MongoUtils.dropCollections(conn.getDatabase());
         return conn;
     }
 

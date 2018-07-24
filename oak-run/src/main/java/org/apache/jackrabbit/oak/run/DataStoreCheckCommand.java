@@ -182,7 +182,7 @@ public class DataStoreCheckCommand implements Command {
                     MongoClientURI uri = new MongoClientURI(source);
                     MongoClient client = new MongoClient(uri);
                     DocumentNodeStore docNodeStore =
-                        newMongoDocumentNodeStoreBuilder().setMongoDB(client.getDB(uri.getDatabase())).build();
+                        newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));
                     blobStore = (GarbageCollectableBlobStore) docNodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(docNodeStore);
