@@ -16,22 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.List;
-
-import com.mongodb.DBEncoder;
-import com.mongodb.DBObject;
-import com.mongodb.MongoException;
-import com.mongodb.OakFongo;
-import com.mongodb.WriteConcern;
-
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static java.util.Collections.singletonList;
@@ -46,56 +42,28 @@ public class MongoDBExceptionTest {
 
     private String exceptionMsg;
 
+    private MongoTestClient client;
+
+    @BeforeClass
+    public static void checkMongoAvailable() {
+        Assume.assumeTrue(MongoUtils.isAvailable());
+    }
+
     @Before
-    public void before() throws Exception {
-        OakFongo fongo = new OakFongo("fongo") {
-            @Override
-            protected void beforeExecuteBulkWriteOperation(boolean ordered,
-                                                           Boolean bypassDocumentValidation,
-                                                           List<?> writeRequests,
-                                                           WriteConcern aWriteConcern) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void beforeFindAndModify(DBObject query,
-                                               DBObject fields,
-                                               DBObject sort,
-                                               boolean remove,
-                                               DBObject update,
-                                               boolean returnNew,
-                                               boolean upsert) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void beforeUpdate(DBObject q,
-                                        DBObject o,
-                                        boolean upsert,
-                                        boolean multi,
-                                        WriteConcern concern,
-                                        DBEncoder encoder) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void beforeFind(DBObject query, DBObject projection) {
-                maybeThrow();
-            }
-
-            private void maybeThrow() {
-                if (exceptionMsg != null) {
-                    throw new MongoException(exceptionMsg);
-                }
-            }
-        };
-        store = new MongoDocumentStore(fongo.getMongo(), "oak",
+    public void before() {
+        MongoUtils.dropCollections(MongoUtils.DB);
+        client = new MongoTestClient(MongoUtils.URL);
+        store = new MongoDocumentStore(client, MongoUtils.DB,
                 new DocumentMK.Builder());
+    }
 
+    @After
+    public void after() {
+        MongoUtils.dropCollections(MongoUtils.DB);
     }
 
     @Test
-    public void idInExceptionMessage() throws Exception {
+    public void idInExceptionMessage() {
         String id = Utils.getIdFromPath("/foo");
         UpdateOp insert = new UpdateOp(id, true);
         assertTrue(store.create(Collection.NODES, singletonList(insert)));
@@ -103,6 +71,7 @@ public class MongoDBExceptionTest {
         UpdateOp op = new UpdateOp(id, false);
         NodeDocument.setModified(op, new Revision(System.currentTimeMillis(), 0, 1));
         exceptionMsg = "findAndUpdate failed";
+        setExceptionMsg();
         try {
             store.findAndUpdate(Collection.NODES, op);
             fail("DocumentStoreException expected");
@@ -113,6 +82,7 @@ public class MongoDBExceptionTest {
         }
 
         exceptionMsg = "createOrUpdate failed";
+        setExceptionMsg();
         try {
             store.createOrUpdate(Collection.NODES, op);
             fail("DocumentStoreException expected");
@@ -123,6 +93,7 @@ public class MongoDBExceptionTest {
         }
 
         exceptionMsg = "createOrUpdate (multiple) failed";
+        setExceptionMsg();
         try {
             store.createOrUpdate(Collection.NODES, singletonList(op));
             fail("DocumentStoreException expected");
@@ -133,6 +104,7 @@ public class MongoDBExceptionTest {
         }
 
         exceptionMsg = "find failed";
+        setExceptionMsg();
         try {
             store.find(Collection.NODES, id);
             fail("DocumentStoreException expected");
@@ -145,6 +117,7 @@ public class MongoDBExceptionTest {
         String fromKey = Utils.getKeyLowerLimit("/foo");
         String toKey = Utils.getKeyUpperLimit("/foo");
         exceptionMsg = "query failed";
+        setExceptionMsg();
         try {
             store.query(Collection.NODES, fromKey, toKey, 100);
             fail("DocumentStoreException expected");
@@ -155,5 +128,10 @@ public class MongoDBExceptionTest {
             assertTrue("Exception message does not contain id: '" + e.getMessage() + "'",
                     e.getMessage().contains(toKey));
         }
+    }
+
+    private void setExceptionMsg() {
+        client.setExceptionBeforeUpdate(exceptionMsg);
+        client.setExceptionBeforeQuery(exceptionMsg);
     }
 }
