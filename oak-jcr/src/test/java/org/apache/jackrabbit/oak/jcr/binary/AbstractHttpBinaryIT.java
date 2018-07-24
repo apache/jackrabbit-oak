@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -70,8 +71,8 @@ import org.slf4j.LoggerFactory;
 
 /** Base class with all the logic to test different data stores that support binaries with direct HTTP access */
 public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
-    private static CloudStorageContainer s3Container = null;
-    private static CloudStorageContainer azureContainer = null;
+    protected static CloudStorageContainer s3Container = null;
+    protected static CloudStorageContainer azureContainer = null;
 
     protected static Logger LOG = LoggerFactory.getLogger(AbstractHttpBinaryIT.class);
 
@@ -137,7 +138,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         return fixtures;
     }
 
-    private static class CloudStorageContainer<T> {
+    protected static class CloudStorageContainer<T> {
         private final T client;
         private final String containerName;
 
@@ -284,13 +285,22 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         BlobStore getBlobStore();
     }
 
+    protected interface NodeStoreHolder {
+        NodeStore getNodeStore();
+    }
+
+    protected interface FileStoreHolder {
+        FileStore getFileStore();
+        File getFileStoreRoot();
+    }
+
     /**
      * Creates a repository with
      * - SegmentNodeStore, storing data in-memory
      * - an optional DataStore provided by DataStoreFixture
      */
     protected static class SegmentMemoryNodeStoreFixture extends NodeStoreFixture
-            implements BlobStoreHolder, DataStoreHolder {
+            implements BlobStoreHolder, DataStoreHolder, NodeStoreHolder, FileStoreHolder {
 
         private final DataStoreFixture dataStoreFixture;
 
@@ -299,6 +309,9 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         private DataStore dataStore;
 
         private BlobStore blobStore;
+
+        private FileStore fileStore;
+        private File fileStoreRoot;
 
         public SegmentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
             this.dataStoreFixture = dataStoreFixture;
@@ -313,7 +326,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
                     System.out.println();
                     System.out.println("----------------- creating repository using " + toString() + " -----------------");
 
-                    FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(createTempFolder())
+                    fileStoreRoot = createTempFolder();
+                    FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(fileStoreRoot)
                         .withNodeDeduplicationCacheSize(16384)
                         .withMaxFileSize(256)
                         .withMemoryMapping(false);
@@ -330,7 +344,8 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
                         fileStoreBuilder.withBlobStore(blobStore);
                     }
 
-                    nodeStore = SegmentNodeStoreBuilders.builder(fileStoreBuilder.build()).build();
+                    fileStore = fileStoreBuilder.build();
+                    nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
                 } catch (IOException | InvalidFileStoreVersionException | RepositoryException e) {
                     throw new AssertionError("Cannot create test repo fixture " + toString(), e);
@@ -347,6 +362,21 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         @Override
         public BlobStore getBlobStore() {
             return blobStore;
+        }
+
+        @Override
+        public NodeStore getNodeStore() {
+            return nodeStore;
+        }
+
+        @Override
+        public FileStore getFileStore() {
+            return fileStore;
+        }
+
+        @Override
+        public File getFileStoreRoot() {
+            return fileStoreRoot;
         }
 
         // for nice Junit parameterized test labels
