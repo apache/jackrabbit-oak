@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.13
 
 Introduction
 ------------
@@ -7,42 +7,61 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.12 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.13 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.12
+Changes in Oak 1.6.13
 ---------------------
-
-Bug
-
-    [OAK-6490] - Pre-Extraction support fails for empty binaries
-    [OAK-7339] - Fix all sidegrades breaking with UnsupportedOperationException on MissingBlobStore by introducing LoopbackBlobStore
-    [OAK-7466] - Prevent LMSEstimator over/under flow in weights
-    [OAK-7490] - oak-run console lc rmdata command uses second parameter for index path (and defaults to /oak:index/lucene)
-    [OAK-7513] - Possible NPE in exact size calculation for SolrQueryIndex
-
-Improvement
-
-    [OAK-7437] - SimpleExcerptProvider highlighting should be case insensitive
-
-Task
-
-    [OAK-6532] - Minimise usage of junit-addons
-    [OAK-7240] - create announcement mail template for releases
-    [OAK-7452] - fix broken line ends in repo
-    [OAK-7492] - Oak <= 1.6: revert Derby version to one compatible with Java 7
 
 Technical task
 
-    [OAK-7292] - RDB*Store: update tomcat jdbc dependency to 8.5.28
-    [OAK-7441] - RDB*Store: update DB2 JDBC dependency to 4.19.72
-    [OAK-7446] - RDB*Store: update SQLServer JDBC dependency to 6.4.0.jre*
-    [OAK-7453] - oal-core/oak-store-document: fix broken line ends in repo
-    [OAK-7454] - oak-lucene: fix broken line ends in repo
+    [OAK-7062] - RDB*Store: update mysql driver reference to 5.1.45
+    [OAK-7184] - LengthCachingDataStoreTest: Remove unused import of Guava InputSupplier
+    [OAK-7204] - RDB*Store: update postgresql JDBC driver reference to 42.2.0
+    [OAK-7299] - RDB*Store: update postgresql JDBC driver reference to 42.2.1
+    [OAK-7430] - RDB*Store: update postgresql JDBC driver reference to 42.2.2
+    [OAK-7432] - RDB*Store: update mysql driver reference to 5.1.46
+
+
+Bug
+
+    [OAK-6023] - UserImporter: handlePropInfo for rep:authorizableId never returns true
+    [OAK-6028] - UserImporter.start: should return false for User tree
+    [OAK-6294] - The "missing" node cache value breaks the DocumentNodeStore#applyChanges
+    [OAK-6869] - oak-http and oak-remote use potentially vulnerable versions of com.fasterxml.jackson
+    [OAK-7593] - NodeDocument.getLatestValue() may throw IllegalStateException
+    [OAK-7594] - datastorecheck command in oak-run for S3 needs jackson-annotations dependency
+
+
+Improvement
+
+    [OAK-5894] - IndexDefinitionBuilder shouldn't set type=lucene if type=disabled in existing tree
+    [OAK-5895] - Avoid jcr-path conversion in AuthorizableIterator
+    [OAK-6018] - UserImporter: session field can avoided by passing to init method
+    [OAK-6019] - UserImporter: Redundant assignment of UserManager
+    [OAK-6027] - UserImporter.Impersonators : use Oak path to user instead of ID
+    [OAK-6029] - UserImporter.startChildInfo: rather check state than for currentMembership being null
+    [OAK-6662] - Extend CredentialsSupport pluggability
+    [OAK-6695] - Expose an abstract Credentials class
+
+
+Task
+
+    [OAK-7046] - DocumentStore API: clarify key length
+    [OAK-7255] - Upgrade jackson dependencies to version 2.9.4
+    [OAK-7257] - oak-examples: update Tomcat dependency
+    [OAK-7272] - improve BackgroundLeaseUpdate warning messages
+    [OAK-7275] - Update easymock test dependency to 3.4
+    [OAK-7422] - Update jackson dependencies to 2.9.5
+    [OAK-7443] - remove jdk 1.6 specific findbugs profile from pom
+    [OAK-7536] - Update aws java sdk version to 1.11.330
+    [OAK-7596] - define jackson version globally
+    [OAK-7609] - Update jackson dependencies to 2.9.6
+    [OAK-7611] - Disable org.apache.jackrabbit.oak.plugins.segment.standby.ExternalPrivateStoreIT.testProxyFlippedIntermediateByte(Change)2
 
 
 In addition to the above-mentioned changes, this release contains
