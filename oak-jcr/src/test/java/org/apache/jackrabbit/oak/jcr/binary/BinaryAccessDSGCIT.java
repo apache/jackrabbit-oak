@@ -32,6 +32,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -52,16 +53,9 @@ import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
@@ -111,40 +105,17 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60);
     }
 
-    private void drainContainers() {
-        if (null != s3Container) {
-            AmazonS3 client = (AmazonS3) s3Container.getClient();
-            String bucketName = s3Container.getContainerName();
-            ObjectListing listing = client.listObjects(bucketName);
-            while (true) {
-                for (S3ObjectSummary summary : listing.getObjectSummaries()) {
-                    client.deleteObject(bucketName, summary.getKey());
-                }
-                if (! listing.isTruncated()) {
-                    break;
-                }
-                listing = client.listNextBatchOfObjects(listing);
-            }
-        }
-        if (null != azureContainer) {
-            CloudBlobContainer container = (CloudBlobContainer) azureContainer.getClient();
-            for (ListBlobItem item : container.listBlobs()) {
-                if (item instanceof CloudBlob) {
-                    try {
-                        ((CloudBlob) item).delete();
-                    }
-                    catch (StorageException e) {
-                        LOG.warn("Couldn't delete Azure blob '{}'", ((CloudBlob)item).getName());
-                    }
-                }
-            }
-        }
+    @Before
+    public void ignoreIfUsingDocumentNodeStore() {
+        assumeFalse(fixture instanceof DocumentMemoryNodeStoreFixture);
     }
 
+    // For debugging.
     private void printTree(Node root) throws RepositoryException {
         printTree(root, 0);
     }
 
+    // For debugging.
     private void printTree(Node root, int level) throws RepositoryException {
         for (int i=0; i<level; i++) {
             System.out.print(" ");
@@ -262,8 +233,6 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
 
     @Test
     public void testGC() throws Exception {
-        drainContainers();
-
         Map<String, String> binaryContent = Maps.newHashMap();
         Map<String, Binary> binaries = Maps.newHashMap();
 
@@ -325,7 +294,5 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         verifyBinariesExistDirectly(binaries, binaryContent);
 
         verifyBinariesDoNotExistDirectly(deletedBinaries);
-
-        drainContainers();
     }
 }
