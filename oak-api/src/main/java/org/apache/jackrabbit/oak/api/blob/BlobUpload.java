@@ -75,8 +75,8 @@ public interface BlobUpload {
      * value returned by {@link #getMinPartSize()}.  Such smaller values may be
      * more desirable for clients who wish to tune uploads to match network
      * conditions; however, the only guarantee offered by the API is that using
-     * parts of the size returned by {@link #getMaxPartSize()} will work without
-     * using more URIs than those available in the Collection returned by
+     * parts of the size returned by this method will work without using more
+     * URIs than those available in the Collection returned by
      * {@link #getUploadURIs()}.
      * <p>
      * If a client calls {@link
