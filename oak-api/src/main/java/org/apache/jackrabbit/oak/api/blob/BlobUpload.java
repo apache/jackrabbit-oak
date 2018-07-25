@@ -27,10 +27,10 @@ import org.osgi.annotation.versioning.ProviderType;
 /**
  * An object containing information needed to complete a direct binary upload.
  * A client wishing to perform a direct binary upload first calls {@link
- * BlobDirectAccessProvider#initiateDirectUpload(long, int)} which returns an
+ * BlobAccessProvider#initiateBlobUpload(long, int)} which returns an
  * instance of this type.  The client then uses the provided URIs via {@link
  * #getUploadURIs()} to upload the binary.  After this is done, the client
- * calls {@link BlobDirectAccessProvider#completeDirectUpload(String)} passing
+ * calls {@link BlobAccessProvider#completeBlobUpload(String)} passing
  * in the upload token string obtained from this object via {@link
  * #getUploadToken()}.
  */
@@ -39,7 +39,7 @@ public interface BlobUpload {
     /**
      * Returns a token that uniquely identifies this upload.  This token must be
      * provided in a subsequent call to {@link
-     * BlobDirectAccessProvider#completeDirectUpload(String)}.
+     * BlobAccessProvider#completeBlobUpload(String)}.
      *
      * @return The unique upload token for this upload.
      */
@@ -80,7 +80,7 @@ public interface BlobUpload {
      * {@link #getUploadURIs()}.
      * <p>
      * If a client calls {@link
-     * BlobDirectAccessProvider#initiateDirectUpload(long, int)} with a value of
+     * BlobAccessProvider#initiateBlobUpload(long, int)} with a value of
      * {@code maxUploadSizeInBytes} that ends up being smaller than the actual
      * size of the binary to be uploaded, it may not be possible to complete the
      * upload with the URIs provided.  The client should initiate the
@@ -100,12 +100,12 @@ public interface BlobUpload {
      * contain only a single URI in the following cases:
      *  - If the client requested 1 as the value of {@code maxNumberOfURIs} in a
      *    call to {@link
-     *    BlobDirectAccessProvider#initiateDirectUpload(long, int)}, OR
+     *    BlobAccessProvider#initiateBlobUpload(long, int)}, OR
      *  - If the implementing data store does not support multi-part uploading,
      *    OR
      *  - If the client-specified value for {@code maxUploadSizeInBytes} in a
      *    call to {@link
-     *    BlobDirectAccessProvider#initiateDirectUpload(long, int)} is less than
+     *    BlobAccessProvider#initiateBlobUpload(long, int)} is less than
      *    or equal to the minimum supported size of a multi-part upload part.
      * <p>
      * If the collection contains only a single URI the client should treat that

@@ -58,7 +58,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
@@ -87,7 +87,8 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore, BlobDirectAccessProvider {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore,
+        BlobAccessProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -667,11 +668,11 @@ public class DataStoreBlobStore
     }
 
 
-    // <--------------- BlobDirectAccessProvider implementation - Direct binary access feature --------------->
+    // <--------------- BlobAccessProvider implementation - Direct binary access feature --------------->
 
     @Nullable
     @Override
-    public BlobUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+    public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
@@ -714,7 +715,7 @@ public class DataStoreBlobStore
 
     @Nullable
     @Override
-    public Blob completeDirectUpload(@NotNull String uploadToken) throws IllegalArgumentException {
+    public Blob completeBlobUpload(@NotNull String uploadToken) throws IllegalArgumentException {
         if (delegate instanceof DataRecordDirectAccessProvider) {
             try {
                 DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeDirectUpload(uploadToken);

@@ -39,7 +39,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
-import org.apache.jackrabbit.oak.api.blob.BlobDirectAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -146,7 +146,7 @@ public class SessionContext implements NamePathMapper {
         this.namePathMapper = new NamePathMapperImpl(
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot(), namePathMapper, WhiteboardUtils.getService(whiteboard, BlobDirectAccessProvider.class));
+                delegate.getRoot(), namePathMapper, WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class));
         this.fastQueryResultSize = fastQueryResultSize;
     }
 

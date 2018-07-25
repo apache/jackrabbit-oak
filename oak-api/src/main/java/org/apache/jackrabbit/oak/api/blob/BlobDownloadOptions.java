@@ -25,7 +25,7 @@ import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Download options to be provided to a call to {@link
- * BlobDirectAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}.
+ * BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}.
  * <p>
  * This object is an internal corollary to {@code
  * org.apache.jackrabbit.api.binary.BinaryDownloadOptions}.

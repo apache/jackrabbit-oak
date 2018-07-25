@@ -30,10 +30,10 @@ import org.osgi.annotation.versioning.ProviderType;
  * implements the direct upload and direct download feature for {@link Blob}s.
  */
 @ProviderType
-public interface BlobDirectAccessProvider {
+public interface BlobAccessProvider {
 
     /**
-     * Begin a transaction to perform a direct binary upload to a storage
+     * Begin a transaction to perform a direct blob upload to a storage
      * location. This method will throw {@link IllegalArgumentException} if no
      * valid upload can be arranged with the arguments specified. E.g. the max
      * upload size specified divided by the number of URIs requested indicates
@@ -42,7 +42,7 @@ public interface BlobDirectAccessProvider {
      * is thrown.
      * <p>
      * Each service provider has specific limitations with regard to maximum
-     * upload sizes, maximum overall binary sizes, numbers of URIs in multi-part
+     * upload sizes, maximum overall blob sizes, numbers of URIs in multi-part
      * uploads, etc. which can lead to {@link IllegalArgumentException} being
      * thrown. You should consult the documentation for your specific service
      * provider for details.
@@ -52,7 +52,7 @@ public interface BlobDirectAccessProvider {
      * those limitations. Configuration may also be used to set limitations so
      * this exception may be thrown when configuration parameters are exceeded.
      *
-     * @param maxUploadSizeInBytes the largest size of the binary to be
+     * @param maxUploadSizeInBytes the largest size of the blob to be
      *         uploaded, in bytes, based on the caller's best guess.  If the
      *         actual size of the file to be uploaded is known, that value
      *         should be used.
@@ -74,24 +74,24 @@ public interface BlobDirectAccessProvider {
      *         the capabilities of the service provider or the implementation.
      */
     @Nullable
-    BlobUpload initiateDirectUpload(long maxUploadSizeInBytes,
-                                    int maxNumberOfURIs)
+    BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
+                                  int maxNumberOfURIs)
             throws IllegalArgumentException;
 
     /**
-     * Complete a transaction for uploading a binary to a storage location via
-     * direct binary upload.
+     * Complete a transaction for uploading a blob to a storage location via
+     * direct blob upload.
      * <p>
      * This requires an {@code uploadToken} that can be obtained from the
      * returned {@link BlobUpload} from a previous call to {@link
-     * #initiateDirectUpload(long, int)}. This token is required to complete
+     * #initiateBlobUpload(long, int)}. This token is required to complete
      * the transaction for an upload to be valid and complete.  The token
      * includes encoded data about the transaction and may include a signature
      * that will be verified by the implementation.
      *
      * @param uploadToken the upload token from a {@link BlobUpload} object
      *         returned from a previous call to {@link
-     *         #initiateDirectUpload(long, int)}.
+     *         #initiateBlobUpload(long, int)}.
      * @return The {@link Blob} that was created, or {@code null} if the object
      *         could not be created.
      * @throws IllegalArgumentException if the {@code uploadToken} is null,
@@ -99,7 +99,7 @@ public interface BlobDirectAccessProvider {
      *         included signature does not match.
      */
     @Nullable
-    Blob completeDirectUpload(@NotNull String uploadToken)
+    Blob completeBlobUpload(@NotNull String uploadToken)
             throws IllegalArgumentException;
 
     /**
