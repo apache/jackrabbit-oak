@@ -88,8 +88,8 @@ import org.junit.runners.Parameterized;
 public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
     private static final String FILE_PATH = "/file";
-    private static final int REGULAR_WRITE_EXPIRY = 60; // seconds
-    private static final int REGULAR_READ_EXPIRY = 60; // seconds
+    private static final int REGULAR_WRITE_EXPIRY = 60*5; // seconds
+    private static final int REGULAR_READ_EXPIRY = 60*5; // seconds
 
     public HttpBinaryIT(NodeStoreFixture fixture) {
         super(fixture);

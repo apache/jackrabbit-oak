@@ -101,8 +101,8 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         }
         session.getNode("/").addNode(TEST_ROOT);
 
-        getConfigurableHttpDataRecordProvider().setDirectUploadURIExpirySeconds(60);
-        getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60);
+        getConfigurableHttpDataRecordProvider().setDirectUploadURIExpirySeconds(60*5);
+        getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60*5);
     }
 
     @Before
