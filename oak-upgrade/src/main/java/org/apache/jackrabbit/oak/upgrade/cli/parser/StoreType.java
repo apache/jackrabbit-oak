@@ -17,19 +17,18 @@
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
 import static org.apache.commons.lang.StringUtils.removeStart;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.isCustomAzureConnectionString;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.parseAzureConfigurationFromCustomConnection;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_STORAGE_URI;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_CONNECTION_STRING;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_CONTAINER_NAME;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_DIR;
-
 
 import java.util.Map;
 

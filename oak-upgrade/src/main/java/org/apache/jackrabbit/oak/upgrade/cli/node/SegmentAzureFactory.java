@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -35,12 +35,10 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFi
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
 public class SegmentAzureFactory implements NodeStoreFactory {
     private final String accountName;
@@ -132,28 +130,21 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     }
 
     private AzurePersistence createAzurePersistence() throws StorageException, URISyntaxException, InvalidKeyException {
-        AzurePersistence azPersistence = null;
+        CloudBlobDirectory cloudBlobDirectory = null;
 
         if (accountName != null && uri != null) {
             String key = System.getenv("AZURE_SECRET_KEY");
             StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
-            StorageUri storageUri = new StorageUri(new URI(uri));
-            CloudBlobContainer cloudBlobContainer = new CloudBlobContainer(storageUri, credentials);
-
-            azPersistence = new AzurePersistence(cloudBlobContainer.getDirectoryReference(dir));
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
         } else if (connectionString != null && containerName != null) {
-            CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString.toString());
-            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
-            container.createIfNotExists();
-
-            azPersistence = new AzurePersistence(container.getDirectoryReference(dir));
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
         }
 
-        if (azPersistence == null) {
+        if (cloudBlobDirectory == null) {
             throw new IllegalArgumentException("Could not connect to Azure storage. Too few connection parameters specified!");
         }
 
-        return azPersistence;
+        return new AzurePersistence(cloudBlobDirectory);
     }
 
     @Override

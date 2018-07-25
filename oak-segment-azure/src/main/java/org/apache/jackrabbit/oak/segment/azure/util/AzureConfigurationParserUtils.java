@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.parser;
+package org.apache.jackrabbit.oak.segment.azure.util;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.AzureConnectionKey.*;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,7 +28,7 @@ import java.util.Map;
  * string, container name, uri, etc.) from custom encoded String or Azure
  * standard URI.
  */
-public class AzureParserUtils {
+public class AzureConfigurationParserUtils {
     public enum AzureConnectionKey {
         DEFAULT_ENDPOINTS_PROTOCOL("DefaultEndpointsProtocol"),
         ACCOUNT_NAME("AccountName"),
@@ -54,7 +54,7 @@ public class AzureParserUtils {
     public static final String KEY_STORAGE_URI = "storageUri";
     public static final String KEY_DIR = "directory";
 
-    private AzureParserUtils() {
+    private AzureConfigurationParserUtils() {
         // prevent instantiation
     }
 
@@ -152,3 +152,4 @@ public class AzureParserUtils {
         return config;
     }
 }
+

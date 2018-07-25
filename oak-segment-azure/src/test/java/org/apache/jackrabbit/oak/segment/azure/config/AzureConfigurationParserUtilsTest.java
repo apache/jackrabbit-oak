@@ -14,25 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.cli.parser;
+package org.apache.jackrabbit.oak.segment.azure.config;
 
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_CONNECTION_STRING;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_CONTAINER_NAME;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.upgrade.cli.parser.AzureParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils;
 import org.junit.Test;
 
-public class AzureParserUtilsTest {
+public class AzureConfigurationParserUtilsTest {
 
     @Test
-    public void testParseConnectionDetailsFromCustomConnection() throws CliArgumentException {
+    public void testParseConnectionDetailsFromCustomConnection() {
         StringBuilder conn = new StringBuilder();
         StringBuilder connStr = new StringBuilder();
         connStr.append("DefaultEndpointsProtocol=https;");
@@ -44,16 +45,16 @@ public class AzureParserUtilsTest {
         conn.append("ContainerName=oak-test;");
         conn.append("Directory=repository");
 
-        assertTrue(AzureParserUtils.isCustomAzureConnectionString(conn.toString()));
+        assertTrue(AzureConfigurationParserUtils.isCustomAzureConnectionString(conn.toString()));
 
-        Map<String, String> config = AzureParserUtils.parseAzureConfigurationFromCustomConnection(conn.toString());
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn.toString());
         assertEquals(connStr.toString(), config.get(KEY_CONNECTION_STRING));
         assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
         assertEquals("repository", config.get(KEY_DIR));
     }
 
     @Test
-    public void testParseConnectionDetailsFromCustomConnectionShuffledKeys() throws CliArgumentException {
+    public void testParseConnectionDetailsFromCustomConnectionShuffledKeys() {
         StringBuilder conn = new StringBuilder();
         conn.append("Directory=repository;");
         conn.append("DefaultEndpointsProtocol=https;");
@@ -62,21 +63,21 @@ public class AzureParserUtilsTest {
         conn.append("BlobEndpoint=http://127.0.0.1:32806/myaccount;");
         conn.append("AccountKey=mykey==");
 
-        assertTrue(AzureParserUtils.isCustomAzureConnectionString(conn.toString()));
+        assertTrue(AzureConfigurationParserUtils.isCustomAzureConnectionString(conn.toString()));
         String azureConn = "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey==;BlobEndpoint=http://127.0.0.1:32806/myaccount;";
 
-        Map<String, String> config = AzureParserUtils.parseAzureConfigurationFromCustomConnection(conn.toString());
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn.toString());
         assertEquals(azureConn, config.get(KEY_CONNECTION_STRING));
         assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
         assertEquals("repository", config.get(KEY_DIR));
     }
 
     @Test
-    public void testParseConnectionDetailsFromUri() throws CliArgumentException {
+    public void testParseConnectionDetailsFromUri() {
         String uri = "https://myaccount.blob.core.windows.net/oak-test/repository";
-        assertFalse(AzureParserUtils.isCustomAzureConnectionString(uri));
+        assertFalse(AzureConfigurationParserUtils.isCustomAzureConnectionString(uri));
 
-        Map<String, String> config = AzureParserUtils.parseAzureConfigurationFromUri(uri);
+        Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromUri(uri);
 
         assertEquals("myaccount", config.get(KEY_ACCOUNT_NAME));
         assertEquals("https://myaccount.blob.core.windows.net/oak-test", config.get(KEY_STORAGE_URI));
