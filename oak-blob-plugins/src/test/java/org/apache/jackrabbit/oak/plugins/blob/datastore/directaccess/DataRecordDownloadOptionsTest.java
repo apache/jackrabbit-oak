@@ -29,34 +29,33 @@ import java.nio.charset.StandardCharsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
 
 public class DataRecordDownloadOptionsTest {
-    private static final String MIME_TYPE_IMAGE_PNG = "image/png";
-    private static final String MIME_TYPE_TEXT_PLAIN = "text/plain";
-    private static final String ENCODING_UTF_8 = "utf-8";
-    private static final String ENCODING_ISO_8859_1 = "ISO-8859-1";
+    private static final String MEDIA_TYPE_IMAGE_PNG = "image/png";
+    private static final String MEDIA_TYPE_TEXT_PLAIN = "text/plain";
+    private static final String CHARACTER_ENCODING_UTF_8 = "utf-8";
+    private static final String CHARACTER_ENCODING_ISO_8859_1 = "ISO-8859-1";
     private static final String FILE_NAME_IMAGE = "amazing summer sunset.png";
     private static final String FILE_NAME_TEXT = "journal_entry_01-01-2000.txt";
     private static final String DISPOSITION_TYPE_INLINE = "inline";
     private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
     private void verifyOptions(DataRecordDownloadOptions options,
-                               String mimeType,
-                               String encoding,
+                               String mediaType,
+                               String characterEncoding,
                                String fileName,
                                String dispositionType) {
         assertNotNull(options);
-        if (null != mimeType) {
-            assertEquals(mimeType, options.getMediaType());
+        if (null != mediaType) {
+            assertEquals(mediaType, options.getMediaType());
         }
         else {
             assertNull(options.getMediaType());
         }
-        if (null != encoding) {
-            assertEquals(encoding, options.getCharacterEncoding());
+        if (null != characterEncoding) {
+            assertEquals(characterEncoding, options.getCharacterEncoding());
         }
         else {
             assertNull(options.getCharacterEncoding());
@@ -95,43 +94,27 @@ public class DataRecordDownloadOptionsTest {
         }
     }
 
-    private DataRecordDownloadOptions getOptions(String mimeType,
-                                                 String encoding,
+    private DataRecordDownloadOptions getOptions(String mediaType,
+                                                 String characterEncoding,
                                                  String fileName,
                                                  String dispositionType) {
-        BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder =
-                BinaryDownloadOptions.builder();
-        if (! Strings.isNullOrEmpty(mimeType)) {
-            builder = builder.withMediaType(mimeType);
+        if (null == dispositionType) {
+            dispositionType = DataRecordDownloadOptions.DISPOSITION_TYPE_INLINE;
         }
-        if (! Strings.isNullOrEmpty(encoding)) {
-            builder = builder.withCharacterEncoding(encoding);
-        }
-        if (! Strings.isNullOrEmpty(fileName)) {
-            builder = builder.withFileName(fileName);
-        }
-        if (!Strings.isNullOrEmpty(dispositionType)) {
-            if (dispositionType.equals("attachment")) {
-                builder = builder.withDispositionTypeAttachment();
-            } else {
-                builder = builder.withDispositionTypeInline();
-            }
-        }
-        BinaryDownloadOptions options = builder.build();
         return DataRecordDownloadOptions.fromBlobDownloadOptions(
-                new BlobDownloadOptions(options.getMediaType(),
-                        options.getCharacterEncoding(),
-                        options.getFileName(),
-                        options.getDispositionType())
+                new BlobDownloadOptions(mediaType,
+                        characterEncoding,
+                        fileName,
+                        dispositionType)
         );
     }
 
-    private String getContentTypeHeader(String mimeType, String encoding) {
-        return Strings.isNullOrEmpty(mimeType) ?
+    private String getContentTypeHeader(String mediaType, String characterEncoding) {
+        return Strings.isNullOrEmpty(mediaType) ?
                 null :
-                (Strings.isNullOrEmpty(encoding) ?
-                        mimeType :
-                        Joiner.on("; charset=").join(mimeType, encoding)
+                (Strings.isNullOrEmpty(characterEncoding) ?
+                        mediaType :
+                        Joiner.on("; charset=").join(mediaType, characterEncoding)
                 );
     }
 
@@ -155,8 +138,8 @@ public class DataRecordDownloadOptionsTest {
     public void testConstruct() {
         BlobDownloadOptions blobDownloadOptions =
                 new BlobDownloadOptions(
-                        MIME_TYPE_TEXT_PLAIN,
-                        ENCODING_UTF_8,
+                        MEDIA_TYPE_TEXT_PLAIN,
+                        CHARACTER_ENCODING_UTF_8,
                         FILE_NAME_TEXT,
                         DISPOSITION_TYPE_ATTACHMENT
                 );
@@ -164,8 +147,8 @@ public class DataRecordDownloadOptionsTest {
                 DataRecordDownloadOptions.fromBlobDownloadOptions(blobDownloadOptions);
 
         verifyOptions(options,
-                MIME_TYPE_TEXT_PLAIN,
-                ENCODING_UTF_8,
+                MEDIA_TYPE_TEXT_PLAIN,
+                CHARACTER_ENCODING_UTF_8,
                 FILE_NAME_TEXT,
                 DISPOSITION_TYPE_ATTACHMENT);
     }
@@ -183,18 +166,6 @@ public class DataRecordDownloadOptionsTest {
                 null,
                 null,
                 DISPOSITION_TYPE_INLINE);
-        BinaryDownloadOptions binaryDownloadOptions = BinaryDownloadOptions.DEFAULT;
-        BlobDownloadOptions blobDownloadOptions = new BlobDownloadOptions(
-                binaryDownloadOptions.getMediaType(),
-                binaryDownloadOptions.getCharacterEncoding(),
-                binaryDownloadOptions.getFileName(),
-                binaryDownloadOptions.getDispositionType()
-        );
-        verifyOptions(DataRecordDownloadOptions.fromBlobDownloadOptions(blobDownloadOptions),
-                null,
-                null,
-                null,
-                DISPOSITION_TYPE_INLINE);
     }
 
     @Test
@@ -207,53 +178,35 @@ public class DataRecordDownloadOptionsTest {
     }
 
     @Test
-    public void testFromBinaryDownloadOptions() {
-        BinaryDownloadOptions binaryDownloadOptions =
-                BinaryDownloadOptions.builder()
-                        .withMediaType(MIME_TYPE_TEXT_PLAIN)
-                        .withCharacterEncoding(ENCODING_UTF_8)
-                        .withFileName(FILE_NAME_TEXT)
-                        .withDispositionTypeAttachment()
-                        .build();
-        BlobDownloadOptions blobDownloadOptions =
-                new BlobDownloadOptions(
-                        binaryDownloadOptions.getMediaType(),
-                        binaryDownloadOptions.getCharacterEncoding(),
-                        binaryDownloadOptions.getFileName(),
-                        binaryDownloadOptions.getDispositionType()
-                );
-    }
-
-    @Test
     public void testGetContentTypeHeader() {
-        for (String mimeType : Lists.newArrayList(MIME_TYPE_TEXT_PLAIN, MIME_TYPE_IMAGE_PNG)) {
-            for (String encoding : Lists.newArrayList(ENCODING_UTF_8, ENCODING_ISO_8859_1)) {
+        for (String mediaType : Lists.newArrayList(MEDIA_TYPE_TEXT_PLAIN, MEDIA_TYPE_IMAGE_PNG)) {
+            for (String characterEncoding : Lists.newArrayList(CHARACTER_ENCODING_UTF_8, CHARACTER_ENCODING_ISO_8859_1)) {
                 verifyContentTypeHeader(
-                        getOptions(mimeType, encoding, null, null),
-                        getContentTypeHeader(mimeType, encoding)
+                        getOptions(mediaType, characterEncoding, null, null),
+                        getContentTypeHeader(mediaType, characterEncoding)
                 );
             }
         }
     }
 
     @Test
-    public void testGetContentTypeHeaderWithNoEncoding() {
+    public void testGetContentTypeHeaderWithNoCharacterEncoding() {
         verifyContentTypeHeader(
-                getOptions(MIME_TYPE_IMAGE_PNG, null, null, null),
-                MIME_TYPE_IMAGE_PNG
+                getOptions(MEDIA_TYPE_IMAGE_PNG, null, null, null),
+                MEDIA_TYPE_IMAGE_PNG
         );
     }
 
     @Test
-    public void testGetContentTypeHeaderWithNoMimeType() {
+    public void testGetContentTypeHeaderWithNoMediaType() {
         verifyContentTypeHeader(
-                getOptions(null, ENCODING_ISO_8859_1, null, null),
+                getOptions(null, CHARACTER_ENCODING_ISO_8859_1, null, null),
                 null
         );
     }
 
     @Test
-    public void testGetContentTypeHeaderWithNoMimeTypeOrEncoding() {
+    public void testGetContentTypeHeaderWithNoMediaTypeOrCharacterEncoding() {
         verifyContentTypeHeader(
                 getOptions(null, null, null, null),
                 null

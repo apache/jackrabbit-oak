@@ -28,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class DataRecordDownloadOptions {
-    private static final String DISPOSITION_TYPE_INLINE = "inline";
-    private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
+    static final String DISPOSITION_TYPE_INLINE = "inline";
+    static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
     public static DataRecordDownloadOptions fromBlobDownloadOptions(
             @NotNull BlobDownloadOptions downloadOptions) {
