@@ -46,12 +46,12 @@ Improvement
     [OAK-6027] - UserImporter.Impersonators : use Oak path to user instead of ID
     [OAK-6029] - UserImporter.startChildInfo: rather check state than for currentMembership being null
     [OAK-6662] - Extend CredentialsSupport pluggability
-    [OAK-6695] - Expose an abstract Credentials class
 
 
 Task
 
     [OAK-7046] - DocumentStore API: clarify key length
+    [OAK-7161] - LengthCachingDataStore's use of LineIterator.close()
     [OAK-7255] - Upgrade jackson dependencies to version 2.9.4
     [OAK-7257] - oak-examples: update Tomcat dependency
     [OAK-7272] - improve BackgroundLeaseUpdate warning messages
