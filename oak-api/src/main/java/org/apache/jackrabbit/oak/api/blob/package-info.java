@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * Package related to direct upload/download of blobs.
+ */
 @Version("1.0.0")
 package org.apache.jackrabbit.oak.api.blob;
 
