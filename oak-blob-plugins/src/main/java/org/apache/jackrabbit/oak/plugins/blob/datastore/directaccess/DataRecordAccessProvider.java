@@ -34,17 +34,17 @@ public interface DataRecordAccessProvider {
      * <p>
      * The caller must provide a {@link DataRecordDownloadOptions} instance that
      * will be used by the implementation to specify options on the download.
-     * This can be obtained from a {@link
-     * BlobDownloadOptions} instance by calling {@link
+     * This can be obtained from a {@link BlobDownloadOptions} instance by
+     * calling {@link
      * DataRecordDownloadOptions#fromBlobDownloadOptions(BlobDownloadOptions)},
      * or to accept the service provider default behavior a caller can simply
      * use {@link DataRecordDownloadOptions#DEFAULT}.
      *
      * @param identifier The {@link DataIdentifier} for the {@link DataRecord}
      *         containing the binary to be read via direct download.
-     * @param downloadOptions A {@link DataRecordDownloadOptions} instance
-     *         used to specify any download options that should be set on
-     *         this download.
+     * @param downloadOptions A {@link DataRecordDownloadOptions} instance used
+     *         to specify any download options that should be set on this
+     *         download.
      * @return A URI for directly reading the binary, or {@code null} if the URI
      *         cannot be generated, for example if the capability is disabled by
      *         configuration or if a service provider error occurs.
@@ -72,10 +72,10 @@ public interface DataRecordAccessProvider {
      * @return A {@link DataRecordUpload} referencing this direct upload,
      *         or {@code null} if the implementation does not support direct
      *         upload.
-     * @throws {@link IllegalArgumentException} if the service provider or
-     *         implementation cannot support the requested upload, or {@link
-     *         DataRecordUploadException} if the upload cannot be
-     *         completed as requested.
+     * @throws IllegalArgumentException if the service provider or
+     *         implementation cannot support the requested upload.
+     * @throws DataRecordUploadException if the upload cannot be completed as
+     *         requested.
      */
     @Nullable
     DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
@@ -96,8 +96,8 @@ public interface DataRecordAccessProvider {
      * @return A {@link DataRecord} for the uploaded binary.
      * @throws IllegalArgumentException if the {@code uploadToken} is null,
      *         empty, or otherwise invalid.
-     * @throws DataRecordUploadException if the object written can't be
-     *         found by the service provider.
+     * @throws DataRecordUploadException if the object written can't be found by
+     *         the service provider.
      * @throws DataStoreException if the object written can't be found by the
      *         DataStore.
      */
