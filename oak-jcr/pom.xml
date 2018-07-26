@@ -159,8 +159,7 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr,
-              org.apache.jackrabbit.oak.jcr.observation.filter,
-              org.apache.jackrabbit.oak.jcr.api.binary,
+              org.apache.jackrabbit.oak.jcr.observation.filter
             </Export-Package>
           </instructions>
         </configuration>
@@ -352,7 +351,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>15.0</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
