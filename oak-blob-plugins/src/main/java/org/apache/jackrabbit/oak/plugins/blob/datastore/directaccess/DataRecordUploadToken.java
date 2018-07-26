@@ -153,10 +153,20 @@ public class DataRecordUploadToken {
         return null;
     }
 
+    /**
+     * Returns the blob ID of this instance.
+     *
+     * @return The blob ID.
+     */
     public String getBlobId() {
         return blobId;
     }
 
+    /**
+     * Returns the upload ID of this instance.
+     *
+     * @return The upload ID.
+     */
     public Optional<String> getUploadId() {
         return uploadId;
     }

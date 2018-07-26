@@ -27,10 +27,22 @@ import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Contains download options for downloading a data record directly from a
+ * storage location using the direct download feature.
+ */
 public class DataRecordDownloadOptions {
     static final String DISPOSITION_TYPE_INLINE = "inline";
     static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
+    /**
+     * Create an instance of this class directly from a {@link
+     * BlobDownloadOptions} instance.
+     *
+     * @param downloadOptions The download options to use to initialize this
+     *         instance.
+     * @return The new instance of this class.
+     */
     public static DataRecordDownloadOptions fromBlobDownloadOptions(
             @NotNull BlobDownloadOptions downloadOptions) {
         return new DataRecordDownloadOptions(
@@ -41,6 +53,11 @@ public class DataRecordDownloadOptions {
         );
     }
 
+    /**
+     * Provides a default implementation of this class.  Clients should use this
+     * instance when they have no options to specify and are willing to accept
+     * the service provider default behavior.
+     */
     public static DataRecordDownloadOptions DEFAULT =
             new DataRecordDownloadOptions(null,
                     null,
@@ -67,6 +84,16 @@ public class DataRecordDownloadOptions {
                 dispositionType;
     }
 
+    /**
+     * Generate the correct HTTP {@code Content-Type} header value from the
+     * {@link #mediaType} and {@link #characterEncoding} in this class, if set.
+     * <p>
+     * If {@link #mediaType} has not been given a value, this method will return
+     * {@code null}.
+     *
+     * @return The correct value for a {@code Content-Type} header, or {@code
+     *         null} if the {@link #mediaType} has not been specified.
+     */
     @Nullable
     public String getContentTypeHeader() {
         if (Strings.isNullOrEmpty(contentTypeHeader)) {
@@ -79,6 +106,18 @@ public class DataRecordDownloadOptions {
         return contentTypeHeader;
     }
 
+    /**
+     * Generate the correct HTTP {@code Content-Disposition} header value from
+     * the {@link #fileName} and {@link #dispositionType} in this class, if set.
+     * <p>
+     * A value will be returned if the file name has been set, OR if the
+     * disposition type has been explicitly set to "attachment".  Otherwise
+     * {@code null} will be returned.
+     *
+     * @return The correct value for a {@code Content-Disposition} header, or
+     *         {@code null} if the {@link #fileName} has not been specified and
+     *         the {@link #dispositionType} has not been set to "attachment".
+     */
     @Nullable
     public String getContentDispositionHeader() {
         if (Strings.isNullOrEmpty(contentDispositionHeader)) {
@@ -100,21 +139,41 @@ public class DataRecordDownloadOptions {
         return contentDispositionHeader;
     }
 
+    /**
+     * Returns the media type of this instance.
+     *
+     * @return The media type, or {@code null} if it has not been set.
+     */
     @Nullable
     public String getMediaType() {
         return mediaType;
     }
 
+    /**
+     * Returns the character encoding of this instance.
+     *
+     * @return The character encoding, or {@code null} if it has not been set.
+     */
     @Nullable
     public String getCharacterEncoding() {
         return characterEncoding;
     }
 
+    /**
+     * Returns the file name of this instance.
+     *
+     * @return The file name, or {@code null} if it has not been set.
+     */
     @Nullable
     public String getFileName() {
         return fileName;
     }
 
+    /**
+     * Returns the disposition type of this instance.
+     *
+     * @return The disposition type, or {@code null} if it has not been set.
+     */
     @Nullable
     public String getDispositionType() {
         return dispositionType;
