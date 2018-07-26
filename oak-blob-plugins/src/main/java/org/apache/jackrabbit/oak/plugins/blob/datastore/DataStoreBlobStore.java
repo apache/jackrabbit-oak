@@ -67,8 +67,8 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
@@ -674,11 +674,11 @@ public class DataStoreBlobStore
     @Override
     public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
-        if (delegate instanceof DataRecordDirectAccessProvider) {
+        if (delegate instanceof DataRecordAccessProvider) {
             try {
-                DataRecordDirectAccessProvider provider = (DataRecordDirectAccessProvider) this.delegate;
+                DataRecordAccessProvider provider = (DataRecordAccessProvider) this.delegate;
 
-                DataRecordUpload upload = provider.initiateDirectUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                DataRecordUpload upload = provider.initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs);
                 if (upload == null) {
                     return null;
                 }
@@ -706,7 +706,7 @@ public class DataStoreBlobStore
                     }
                 };
             }
-            catch (DataRecordDirectUploadException e) {
+            catch (DataRecordUploadException e) {
                 log.warn("Unable to initiate direct upload", e);
             }
         }
@@ -716,12 +716,12 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public Blob completeBlobUpload(@NotNull String uploadToken) throws IllegalArgumentException {
-        if (delegate instanceof DataRecordDirectAccessProvider) {
+        if (delegate instanceof DataRecordAccessProvider) {
             try {
-                DataRecord record = ((DataRecordDirectAccessProvider) delegate).completeDirectUpload(uploadToken);
+                DataRecord record = ((DataRecordAccessProvider) delegate).completeDataRecordUpload(uploadToken);
                 return new BlobStoreBlob(this, record.getIdentifier().toString());
             }
-            catch (DataStoreException | DataRecordDirectUploadException e) {
+            catch (DataStoreException | DataRecordUploadException e) {
                 log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);
             }
         }
@@ -731,10 +731,10 @@ public class DataStoreBlobStore
     @Nullable
     @Override
     public URI getDownloadURI(@NotNull Blob blob, @NotNull BlobDownloadOptions downloadOptions) {
-        if (delegate instanceof DataRecordDirectAccessProvider) {
+        if (delegate instanceof DataRecordAccessProvider) {
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
-                return ((DataRecordDirectAccessProvider) delegate).getDownloadURI(
+                return ((DataRecordAccessProvider) delegate).getDownloadURI(
                         new DataIdentifier(extractBlobId(blobId)),
                         DataRecordDownloadOptions.fromBlobDownloadOptions(downloadOptions)
                 );

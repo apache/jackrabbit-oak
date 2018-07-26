@@ -53,7 +53,7 @@ import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -200,16 +200,16 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    protected ConfigurableDataRecordDirectAccessProvider getConfigurableHttpDataRecordProvider()
+    protected ConfigurableDataRecordAccessProvider getConfigurableHttpDataRecordProvider()
         throws RepositoryException {
         getRepository();
         if (fixture instanceof DataStoreHolder) {
             DataStore dataStore = ((DataStoreHolder) fixture).getDataStore();
-            if (dataStore instanceof ConfigurableDataRecordDirectAccessProvider) {
-                return (ConfigurableDataRecordDirectAccessProvider) dataStore;
+            if (dataStore instanceof ConfigurableDataRecordAccessProvider) {
+                return (ConfigurableDataRecordAccessProvider) dataStore;
             }
         }
-        throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordDirectAccessProvider");
+        throw new AssertionError("issue with test setup, cannot retrieve underlying DataStore / ConfigurableDataRecordAccessProvider");
     }
 
     // -----< data store fixtures >-------------------------------------------------------------------------------------

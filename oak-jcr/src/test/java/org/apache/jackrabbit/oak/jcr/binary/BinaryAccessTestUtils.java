@@ -42,7 +42,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.jetbrains.annotations.Nullable;
 
 public class BinaryAccessTestUtils {
@@ -156,7 +156,7 @@ public class BinaryAccessTestUtils {
         return connection.getResponseCode();
     }
 
-    static boolean isSuccessfulHttpPut(int code, ConfigurableDataRecordDirectAccessProvider dataStore) {
+    static boolean isSuccessfulHttpPut(int code, ConfigurableDataRecordAccessProvider dataStore) {
         if (dataStore instanceof S3DataStore) {
             return 200 == code;
         }

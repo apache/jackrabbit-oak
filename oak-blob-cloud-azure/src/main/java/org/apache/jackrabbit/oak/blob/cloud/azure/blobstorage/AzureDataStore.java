@@ -26,8 +26,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
     private int minRecordLength = 16*1024;
 
     protected Properties properties;
@@ -69,7 +69,7 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
     }
 
     //
-    // ConfigurableDataRecordDirectAccessProvider Implementation
+    // ConfigurableDataRecordAccessProvider Implementation
     //
     @Override
     public void setDirectUploadURIExpirySeconds(int seconds) {
@@ -85,20 +85,20 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     @Nullable
     @Override
-    public DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordDirectUploadException {
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws IllegalArgumentException, DataRecordUploadException {
         if (null == azureBlobStoreBackend) {
-            throw new DataRecordDirectUploadException("Backend not initialized");
+            throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
     @NotNull
     @Override
-    public DataRecord completeDirectUpload(String uploadToken)
-            throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
+    public DataRecord completeDataRecordUpload(String uploadToken)
+            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
         if (null == azureBlobStoreBackend) {
-            throw new DataRecordDirectUploadException("Backend not initialized");
+            throw new DataRecordUploadException("Backend not initialized");
         }
         return azureBlobStoreBackend.completeHttpUpload(uploadToken);
     }

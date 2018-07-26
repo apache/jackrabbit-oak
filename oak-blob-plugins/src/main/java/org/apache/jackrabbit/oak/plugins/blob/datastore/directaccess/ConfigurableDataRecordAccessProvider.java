@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-public interface ConfigurableDataRecordDirectAccessProvider extends DataRecordDirectAccessProvider {
+public interface ConfigurableDataRecordAccessProvider extends DataRecordAccessProvider {
     /**
      * Specifies the number of seconds before a signed download URI will expire.
      * Setting this to 0 is equivalent to turning off the ability to use

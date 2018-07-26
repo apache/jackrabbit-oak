@@ -35,25 +35,25 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Represents an upload token returned by
- * {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} and
+ * {@link DataRecordAccessProvider#initiateDataRecordUpload(long, int)} and
  * used in subsequent calls to {@link
- * DataRecordDirectAccessProvider#completeDirectUpload(String)}.  This class
+ * DataRecordAccessProvider#completeDataRecordUpload(String)}.  This class
  * handles creation, signing, and parsing of the token and uses the {@link
  * org.apache.jackrabbit.core.data.DataStore}’s secret key to sign the contents
  * of the token and to validate contents of tokens.
  */
-public class DataRecordDirectUploadToken {
-    private static Logger LOG = LoggerFactory.getLogger(DataRecordDirectUploadToken.class);
+public class DataRecordUploadToken {
+    private static Logger LOG = LoggerFactory.getLogger(DataRecordUploadToken.class);
 
     private String blobId;
     private Optional<String> uploadId;
 
-    public DataRecordDirectUploadToken(@NotNull String blobId, @Nullable String uploadId) {
+    public DataRecordUploadToken(@NotNull String blobId, @Nullable String uploadId) {
         this.blobId = blobId;
         this.uploadId = Optional.ofNullable(uploadId);
     }
 
-    public static DataRecordDirectUploadToken fromEncodedToken(@NotNull String encoded, @NotNull byte[] secret) {
+    public static DataRecordUploadToken fromEncodedToken(@NotNull String encoded, @NotNull byte[] secret) {
         String[] parts = encoded.split("#", 2);
         if (parts.length < 2) {
             throw new IllegalArgumentException("Encoded string is missing the signature");
@@ -72,7 +72,7 @@ public class DataRecordDirectUploadToken {
             throw new IllegalArgumentException("Not all upload token parts provided");
         }
 
-        return new DataRecordDirectUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
+        return new DataRecordUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
     }
 
     public String getEncodedToken(@NotNull byte[] secret) {

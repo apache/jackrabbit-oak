@@ -65,8 +65,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
@@ -657,7 +657,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public DataIdentifier generateSafeRandomIdentifier()
-            throws DataRecordDirectUploadException {
+            throws DataRecordUploadException {
         // In case our random uuid generation fails and hits only existing keys
         // (however unlikely), try only a limited number of times to avoid
         // endless loop and throw instead.
@@ -682,10 +682,10 @@ public class S3Backend extends AbstractSharedBackend {
                 LOG.info("Created new unique record id: {}", id);
                 return identifier;
             }
-            throw new DataRecordDirectUploadException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
+            throw new DataRecordUploadException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
         }
         catch (DataStoreException e) {
-            throw new DataRecordDirectUploadException(e);
+            throw new DataRecordUploadException(e);
         }
     }
 
@@ -760,7 +760,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws DataRecordDirectUploadException {
+            throws DataRecordUploadException {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -842,7 +842,7 @@ public class S3Backend extends AbstractSharedBackend {
 
         try {
             byte[] secret = getOrCreateReferenceKey();
-            String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
+            String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
 
             return new DataRecordUpload() {
                 @Override
@@ -868,13 +868,13 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
-            throws DataRecordDirectUploadException, DataStoreException {
+            throws DataRecordUploadException, DataStoreException {
 
         if (Strings.isNullOrEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
-        DataRecordDirectUploadToken uploadToken = DataRecordDirectUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
+        DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
         if (uploadToken.getUploadId().isPresent()) {
             // An existing upload ID means this is a multi-part upload
@@ -900,7 +900,7 @@ public class S3Backend extends AbstractSharedBackend {
 
 
         if (! s3service.doesObjectExist(bucket, blobId)) {
-            throw new DataRecordDirectUploadException(
+            throw new DataRecordUploadException(
                     String.format("Unable to finalize direct write of binary %s", blobId)
             );
         }

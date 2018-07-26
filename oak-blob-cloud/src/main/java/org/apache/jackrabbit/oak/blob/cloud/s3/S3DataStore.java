@@ -23,8 +23,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordDirectAccessProvider {
+public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
 
     protected Properties properties;
 
@@ -79,7 +79,7 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     }
 
     //
-    // ConfigurableDataRecordDirectAccessProvider implementation
+    // ConfigurableDataRecordAccessProvider implementation
     //
     @Override
     public void setDirectUploadURIExpirySeconds(int seconds) {
@@ -97,20 +97,20 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
 
     @Nullable
     @Override
-    public DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordDirectUploadException {
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws IllegalArgumentException, DataRecordUploadException {
         if (null == s3Backend) {
-            throw new DataRecordDirectUploadException("Backend not initialized");
+            throw new DataRecordUploadException("Backend not initialized");
         }
         return s3Backend.initiateHttpUpload(maxUploadSizeInBytes, maxNumberOfURIs);
     }
 
     @NotNull
     @Override
-    public DataRecord completeDirectUpload(@NotNull String uploadToken)
-            throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException {
+    public DataRecord completeDataRecordUpload(@NotNull String uploadToken)
+            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
         if (null == s3Backend) {
-            throw new DataRecordDirectUploadException("Backend not initialized");
+            throw new DataRecordUploadException("Backend not initialized");
         }
         return s3Backend.completeHttpUpload(uploadToken);
     }

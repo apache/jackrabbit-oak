@@ -20,16 +20,16 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 /**
  * General exception thrown when a binary upload being made via
- * {@link DataRecordDirectAccessProvider#initiateDirectUpload(long, int)} and
- * {@link DataRecordDirectAccessProvider#completeDirectUpload(String)}
+ * {@link DataRecordAccessProvider#initiateDataRecordUpload(long, int)} and
+ * {@link DataRecordAccessProvider#completeDataRecordUpload(String)}
  * cannot be completed.
  */
-public class DataRecordDirectUploadException extends Exception {
-    public DataRecordDirectUploadException() {}
-    public DataRecordDirectUploadException(String message) {
+public class DataRecordUploadException extends Exception {
+    public DataRecordUploadException() {}
+    public DataRecordUploadException(String message) {
         super(message);
     }
-    public DataRecordDirectUploadException(Exception e) {
+    public DataRecordUploadException(Exception e) {
         super(e);
     }
 }

@@ -37,9 +37,9 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordDirectAccessProviderTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordAccessProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
@@ -47,7 +47,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataRecordDirectAccessProviderTest {
+public class S3DataStoreDataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -67,7 +67,7 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
     }
 
     @Override
-    protected ConfigurableDataRecordDirectAccessProvider getDataStore() {
+    protected ConfigurableDataRecordAccessProvider getDataStore() {
         return dataStore;
     }
 
@@ -122,21 +122,21 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
         return conn;
     }
 
-    /** Only run if explicitly asked to via -Dtest=S3DataStoreDataRecordDirectAccessProviderTest */
-    /** Run like this:  mvn test -Dtest=S3DataStoreDataRecordDirectAccessProviderTest -Dtest.opts.memory=-Xmx2G */
+    /** Only run if explicitly asked to via -Dtest=S3DataStoreDataRecordAccessProviderTest */
+    /** Run like this:  mvn test -Dtest=S3DataStoreDataRecordAccessProviderTest -Dtest.opts.memory=-Xmx2G */
     private static final boolean INTEGRATION_TESTS_ENABLED =
-            S3DataStoreDataRecordDirectAccessProviderTest.class.getSimpleName().equals(getProperty("test"));
+            S3DataStoreDataRecordAccessProviderTest.class.getSimpleName().equals(getProperty("test"));
     @Override
     protected boolean integrationTestsEnabled() {
         return INTEGRATION_TESTS_ENABLED;
     }
 
     @Test
-    public void testInitDirectUploadURIHonorsExpiryTime() throws DataRecordDirectUploadException {
-        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
+    public void testInitDirectUploadURIHonorsExpiryTime() throws DataRecordUploadException {
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
         try {
             ds.setDirectUploadURIExpirySeconds(60);
-            DataRecordUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
+            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiresTime = params.get("X-Amz-Expires");
@@ -148,21 +148,21 @@ public class S3DataStoreDataRecordDirectAccessProviderTest extends AbstractDataR
     }
 
     @Test
-    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordDirectUploadException {
-        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
+    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException {
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 50;
         int expectedNumURIs = 5000;
-        DataRecordUpload upload = ds.initiateDirectUpload(uploadSize, -1);
+        DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 100;
         expectedNumURIs = 10000;
-        upload = ds.initiateDirectUpload(uploadSize, -1);
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 200;
         // expectedNumURIs still 10000, AWS limit
-        upload = ds.initiateDirectUpload(uploadSize, -1);
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

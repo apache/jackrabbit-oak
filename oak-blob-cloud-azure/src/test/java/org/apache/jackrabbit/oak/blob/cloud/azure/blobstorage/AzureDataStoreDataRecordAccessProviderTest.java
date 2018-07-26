@@ -40,17 +40,17 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordDirectAccessProviderTest;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordDirectAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.AbstractDataRecordAccessProviderTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDirectUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDataRecordDirectAccessProviderTest {
+public class AzureDataStoreDataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
     @ClassRule
     public static TemporaryFolder homeDir = new TemporaryFolder(new File("target"));
 
@@ -77,7 +77,7 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
     }
 
     @Override
-    protected ConfigurableDataRecordDirectAccessProvider getDataStore() {
+    protected ConfigurableDataRecordAccessProvider getDataStore() {
         return dataStore;
     }
 
@@ -134,22 +134,22 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         return conn;
     }
 
-    /** Only run if explicitly asked to via -Dtest=AzureDataStoreDataRecordDirectAccessProviderTest */
-    /** Run like this:  mvn test -Dtest=AzureDataStoreDataRecordDirectAccessProviderTest -Dtest.opts.memory=-Xmx2G */
+    /** Only run if explicitly asked to via -Dtest=AzureDataStoreDataRecordAccessProviderTest */
+    /** Run like this:  mvn test -Dtest=AzureDataStoreDataRecordAccessProviderTest -Dtest.opts.memory=-Xmx2G */
     private static final boolean INTEGRATION_TESTS_ENABLED =
-            AzureDataStoreDataRecordDirectAccessProviderTest.class.getSimpleName().equals(getProperty("test"));
+            AzureDataStoreDataRecordAccessProviderTest.class.getSimpleName().equals(getProperty("test"));
     @Override
     protected boolean integrationTestsEnabled() {
         return INTEGRATION_TESTS_ENABLED;
     }
 
     @Test
-    public void testInitDirectUploadURIHonorsExpiryTime() throws DataRecordDirectUploadException {
-        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
+    public void testInitDirectUploadURIHonorsExpiryTime() throws DataRecordUploadException {
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
         try {
             Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
             ds.setDirectUploadURIExpirySeconds(60);
-            DataRecordUpload uploadContext = ds.initiateDirectUpload(ONE_MB, 1);
+            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
             URI uploadURI = uploadContext.getUploadURIs().iterator().next();
             Map<String, String> params = parseQueryString(uploadURI);
             String expiryDateStr = params.get("se");
@@ -162,21 +162,21 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
     }
 
     @Test
-    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordDirectUploadException {
-        ConfigurableDataRecordDirectAccessProvider ds = getDataStore();
+    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException {
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
         long uploadSize = ONE_GB * 100;
         int expectedNumURIs = 10000;
-        DataRecordUpload upload = ds.initiateDirectUpload(uploadSize, -1);
+        DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 500;
         expectedNumURIs = 50000;
-        upload = ds.initiateDirectUpload(uploadSize, -1);
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
 
         uploadSize = ONE_GB * 1000;
         // expectedNumURIs still 50000, Azure limit
-        upload = ds.initiateDirectUpload(uploadSize, -1);
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
         assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

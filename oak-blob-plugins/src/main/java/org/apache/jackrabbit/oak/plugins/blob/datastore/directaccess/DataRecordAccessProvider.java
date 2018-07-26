@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface DataRecordDirectAccessProvider {
+public interface DataRecordAccessProvider {
     /**
      * Return a URI for directly reading the binary associated with the provided
      * {@link DataRecord}.
@@ -74,13 +74,13 @@ public interface DataRecordDirectAccessProvider {
      *         upload.
      * @throws {@link IllegalArgumentException} if the service provider or
      *         implementation cannot support the requested upload, or {@link
-     *         DataRecordDirectUploadException} if the upload cannot be
+     *         DataRecordUploadException} if the upload cannot be
      *         completed as requested.
      */
     @Nullable
-    DataRecordUpload initiateDirectUpload(long maxUploadSizeInBytes,
-                                          int maxNumberOfURIs)
-            throws IllegalArgumentException, DataRecordDirectUploadException;
+    DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
+                                              int maxNumberOfURIs)
+            throws IllegalArgumentException, DataRecordUploadException;
 
     /**
      * Completes the transaction to perform a direct binary upload.  This method
@@ -92,16 +92,16 @@ public interface DataRecordDirectAccessProvider {
      * @param uploadToken The upload token identifying this direct upload
      *        transaction, as returned in the {@link DataRecordUpload}
      *        object resulting from a call to {@link
-     *        #initiateDirectUpload(long, int)}.
+     *        #initiateDataRecordUpload(long, int)}.
      * @return A {@link DataRecord} for the uploaded binary.
      * @throws IllegalArgumentException if the {@code uploadToken} is null,
      *         empty, or otherwise invalid.
-     * @throws DataRecordDirectUploadException if the object written can't be
+     * @throws DataRecordUploadException if the object written can't be
      *         found by the service provider.
      * @throws DataStoreException if the object written can't be found by the
      *         DataStore.
      */
     @NotNull
-    DataRecord completeDirectUpload(@NotNull String uploadToken)
-            throws IllegalArgumentException, DataRecordDirectUploadException, DataStoreException;
+    DataRecord completeDataRecordUpload(@NotNull String uploadToken)
+            throws IllegalArgumentException, DataRecordUploadException, DataStoreException;
 }
