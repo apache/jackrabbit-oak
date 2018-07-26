@@ -33,7 +33,6 @@ import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.isFaile
 import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.isSuccessfulHttpPut;
 import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.putBinary;
 import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.saveFileWithBinary;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.waitForUploads;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -121,7 +120,7 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
 
         final String content = getRandomString(256);
-        final long size = content.getBytes("utf-8").length;
+        final long size = content.getBytes(StandardCharsets.UTF_8).length;
 
         assertTrue(adminSession.getValueFactory() instanceof JackrabbitValueFactory);
 
@@ -204,10 +203,15 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         saveFileWithBinary(adminSession, FILE_PATH, binaryWrite);
 
         // 2. stream through JCR and validate it's the same
-        Binary binaryRead = getBinary(createAdminSession(), FILE_PATH);
-        StringWriter writer = new StringWriter();
-        IOUtils.copy(binaryRead.getStream(), writer, "utf-8");
-        assertEquals(content, writer.toString());
+        Session session = createAdminSession();
+        try {
+            Binary binaryRead = getBinary(session, FILE_PATH);
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(binaryRead.getStream(), writer, "utf-8");
+            assertEquals(content, writer.toString());
+        } finally {
+            session.logout();
+        }
     }
 
     // F10 - GET Binary when created via repo
@@ -219,8 +223,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         // Must be larger than the minimum file size, to keep it from being inlined in the node store.
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         Assert.assertTrue(writeBinary instanceof BinaryDownload);
 
@@ -265,8 +267,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(256);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
 
-        waitForUploads();
-
         URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
     }
@@ -279,8 +279,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         String expectedMediaType = "image/png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
@@ -310,8 +308,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         String expectedMediaType = "text/plain";
         String expectedCharacterEncoding = "utf-8";
@@ -345,8 +341,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
 
-        waitForUploads();
-
         String expectedCharacterEncoding = "utf-8";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
@@ -376,8 +370,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         String expectedName = "beautiful landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
@@ -413,8 +405,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
 
-        waitForUploads();
-
         String expectedName = "beautiful landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
@@ -449,8 +439,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
@@ -493,8 +481,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         String expectedMediaType = "image/png";
         String expectedCharacterEncoding = "utf-8";
@@ -544,8 +530,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(getAdminSession(), FILE_PATH,
                 new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         URI downloadURI = ((BinaryDownload)(writeBinary))
                 .getURI(BinaryDownloadOptions.DEFAULT);
@@ -607,8 +591,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNull(downloadURI);
@@ -707,8 +689,6 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
 
         String content = getRandomString(1024*20);
         Binary writeBinary = createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
-
-        waitForUploads();
 
         URI downloadURI = ((BinaryDownload)(writeBinary)).getURI(BinaryDownloadOptions.DEFAULT);
         assertNotNull(downloadURI);

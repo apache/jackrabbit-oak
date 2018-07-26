@@ -235,6 +235,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         public DataStore createDataStore() {
             S3DataStore dataStore = new S3DataStore();
             dataStore.setProperties(s3Props);
+            dataStore.setStagingSplitPercentage(0);
             return dataStore;
         }
     }
@@ -256,6 +257,7 @@ public abstract class AbstractHttpBinaryIT extends AbstractRepositoryTest {
         public DataStore createDataStore() {
             AzureDataStore dataStore = new AzureDataStore();
             dataStore.setProperties(azProps);
+            dataStore.setStagingSplitPercentage(0);
             return dataStore;
         }
     }

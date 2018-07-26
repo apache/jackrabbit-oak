@@ -105,10 +105,6 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
         InputStream stream = new ByteArrayInputStream(content.getBytes());
         Binary writeBinary = createFileWithBinary(session, "/my_path", stream);
 
-        // Wait for binary to save
-        Thread.sleep(5 * SECONDS);
-        stream.close();
-
         assertTrue(writeBinary instanceof BinaryDownload);
 
         URI downloadURI = ((BinaryDownload) writeBinary).getURI(BinaryDownloadOptions.DEFAULT);

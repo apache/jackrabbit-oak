@@ -104,11 +104,6 @@ public class BinaryAccessTestUtils {
         return binary;
     }
 
-    static void waitForUploads() throws InterruptedException {
-        // let data store upload threads finish
-        Thread.sleep(5 * SECONDS);
-    }
-
     static InputStream getTestInputStream(String content) {
         try {
             return new ByteArrayInputStream(content.getBytes("utf-8"));
