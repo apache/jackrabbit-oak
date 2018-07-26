@@ -122,7 +122,7 @@ public class SessionContext implements NamePathMapper {
              int observationQueueLength, CommitRateLimiter commitRateLimiter) {
         
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
-            observationQueueLength, commitRateLimiter, null, false);
+            observationQueueLength, commitRateLimiter, null, null, false);
     }
 
     public SessionContext(
@@ -130,7 +130,8 @@ public class SessionContext implements NamePathMapper {
             @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
-            MountInfoProvider mountInfoProvider, boolean fastQueryResultSize) {
+            MountInfoProvider mountInfoProvider, BlobAccessProvider blobAccessProvider,
+            boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -146,7 +147,7 @@ public class SessionContext implements NamePathMapper {
         this.namePathMapper = new NamePathMapperImpl(
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot(), namePathMapper, WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class));
+                delegate.getRoot(), namePathMapper, blobAccessProvider);
         this.fastQueryResultSize = fastQueryResultSize;
     }
 
