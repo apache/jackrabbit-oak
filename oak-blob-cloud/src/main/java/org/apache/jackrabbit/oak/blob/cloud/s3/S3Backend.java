@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,10 +66,10 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
@@ -238,7 +239,7 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public void setBinaryTransferAccelerationEnabled(boolean enabled) {
+    void setBinaryTransferAccelerationEnabled(boolean enabled) {
         if (enabled) {
             // verify acceleration is enabled on the bucket
             BucketAccelerateConfiguration accelerateConfig = s3service.getBucketAccelerateConfiguration(new GetBucketAccelerateConfigurationRequest(bucket));
@@ -652,44 +653,20 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public void setHttpUploadURIExpirySeconds(int seconds) {
+    void setHttpUploadURIExpirySeconds(int seconds) {
         this.httpUploadURIExpirySeconds = seconds;
     }
 
-    public DataIdentifier generateSafeRandomIdentifier()
-            throws DataRecordUploadException {
-        // In case our random uuid generation fails and hits only existing keys
-        // (however unlikely), try only a limited number of times to avoid
-        // endless loop and throw instead.
-        //
-        // The odds of a UUID collision are about 1 in 2^-122, or approximately
-        // 1 in 5 undecillion (5,000,000,000,000,000,000,000,000,000,000,000,000).
-        // These odds are small, but still higher than a SHA-256 collision which
-        // are about 1 in 4.3*10^-43, or approximately 1 in 4 tredecillion
-        // (43,000,000,000,000,000,000,000,000,000,000,000,000,000,000) - or
-        // in other words, a UUID collision is about 10,000,000 times more
-        // likely.
-        try {
-            for (int i = 0; i < MAX_UNIQUE_RECORD_TRIES; i++) {
-                // a random UUID instead of a content hash
-                final String id = UUID.randomUUID().toString();
-
-                final DataIdentifier identifier = new DataIdentifier(id);
-                if (exists(identifier)) {
-                    LOG.info("Newly generated random record id already exists as S3 key [try {} of {}]: {}", id, i, MAX_UNIQUE_RECORD_TRIES);
-                    continue;
-                }
-                LOG.info("Created new unique record id: {}", id);
-                return identifier;
-            }
-            throw new DataRecordUploadException("Could not generate a new unique record id in " + MAX_UNIQUE_RECORD_TRIES + " tries");
-        }
-        catch (DataStoreException e) {
-            throw new DataRecordUploadException(e);
-        }
+    private DataIdentifier generateSafeRandomIdentifier() {
+        return new DataIdentifier(
+                String.format("%s-%d",
+                        UUID.randomUUID().toString(),
+                        Instant.now().toEpochMilli()
+                )
+        );
     }
 
-    public URI createPresignedPutURI(DataIdentifier identifier) {
+    private URI createPresignedPutURI(DataIdentifier identifier) {
         if (httpUploadURIExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -698,11 +675,11 @@ public class S3Backend extends AbstractSharedBackend {
         return createPresignedURI(identifier, HttpMethod.PUT, httpUploadURIExpirySeconds);
     }
 
-    public void setHttpDownloadURIExpirySeconds(int seconds) {
+    void setHttpDownloadURIExpirySeconds(int seconds) {
         this.httpDownloadURIExpirySeconds = seconds;
     }
 
-    public void setHttpDownloadURICacheSize(int maxSize) {
+    void setHttpDownloadURICacheSize(int maxSize) {
         // max size 0 or smaller is used to turn off the cache
         if (maxSize > 0) {
             LOG.info("presigned GET URI cache enabled, maxSize = {} items, expiry = {} seconds", maxSize, httpDownloadURIExpirySeconds / 2);
@@ -717,8 +694,8 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    public URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
-                                     @NotNull DataRecordDownloadOptions downloadOptions) {
+    URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
+                              @NotNull DataRecordDownloadOptions downloadOptions) {
         if (httpDownloadURIExpirySeconds <= 0) {
             // feature disabled
             return null;
@@ -759,8 +736,7 @@ public class S3Backend extends AbstractSharedBackend {
         return uri;
     }
 
-    public DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
-            throws DataRecordUploadException {
+    DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -867,7 +843,7 @@ public class S3Backend extends AbstractSharedBackend {
         return null;
     }
 
-    public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
+    DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
         if (Strings.isNullOrEmpty(uploadTokenStr)) {
