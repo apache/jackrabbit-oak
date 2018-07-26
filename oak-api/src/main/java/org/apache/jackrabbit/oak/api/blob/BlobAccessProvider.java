@@ -103,7 +103,7 @@ public interface BlobAccessProvider {
             throws IllegalArgumentException;
 
     /**
-     * Obtain a download URI for a {@link Blob). This is usually a signed URI
+     * Obtain a download URI for a {@link Blob}. This is usually a signed URI
      * that can be used to directly download the blob corresponding to the
      * provided {@link Blob}.
      * <p>
