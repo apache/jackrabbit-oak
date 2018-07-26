@@ -78,10 +78,14 @@ public abstract class AbstractRepositoryTest {
 
     @After
     public void logout() {
-        // release session field
+        // release session fields
         if (adminSession != null) {
             adminSession.logout();
             adminSession = null;
+        }
+        if (anonymousSession != null) {
+            anonymousSession.logout();
+            anonymousSession = null;
         }
         // release repository field
         if (repository instanceof JackrabbitRepository) {
