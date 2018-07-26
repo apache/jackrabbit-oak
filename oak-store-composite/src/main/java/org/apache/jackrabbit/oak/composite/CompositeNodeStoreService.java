@@ -85,6 +85,12 @@ public class CompositeNodeStoreService {
     )
     private static final String PROP_IGNORE_READ_ONLY_WRITES = "ignoreReadOnlyWrites";
 
+    @Property(label = "Enable node store checks",
+            description = "Whether the composite node store constraints should be checked before start",
+            boolValue = true
+    )
+    private static final String ENABLE_CHECKS = "enableChecks";
+
     @Property(label = "Read-only mounts",
             description = "The partial stores should be configured as read-only",
             boolValue = true
@@ -120,6 +126,8 @@ public class CompositeNodeStoreService {
 
     private boolean pathStats;
 
+    private boolean enableChecks;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
@@ -127,6 +135,7 @@ public class CompositeNodeStoreService {
         partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
         pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
+        enableChecks = PropertiesUtil.toBoolean(config.get(ENABLE_CHECKS), true);
         registerCompositeNodeStore();
     }
 
@@ -168,7 +177,9 @@ public class CompositeNodeStoreService {
         CompositeNodeStore.Builder builder = new CompositeNodeStore.Builder(mountInfoProvider, globalNs.getNodeStoreProvider().getNodeStore());
         nodeStoresInUse.add(globalNs.getNodeStoreProvider());
 
-        builder.with(checks);
+        if (enableChecks) {
+            builder.with(checks);
+        }
         builder.setPartialReadOnly(partialReadOnly);
         for (String p : ignoreReadOnlyWritePaths) {
             builder.addIgnoredReadOnlyWritePath(p);
