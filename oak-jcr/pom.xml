@@ -159,8 +159,7 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr,
-              org.apache.jackrabbit.oak.jcr.observation.filter,
-              org.apache.jackrabbit.oak.jcr.api.binary,
+              org.apache.jackrabbit.oak.jcr.observation.filter
             </Export-Package>
           </instructions>
         </configuration>
@@ -352,7 +351,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>15.0</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -488,12 +486,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-s3</artifactId>
-      <version>1.11.330</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
