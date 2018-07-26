@@ -531,7 +531,6 @@ public abstract class AbstractDataRecordAccessProviderTest {
         }
     }
 
-    //
     @Test
     public void testMultiPartDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
         // Disabled by default - this test uses a lot of memory.
