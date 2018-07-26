@@ -777,12 +777,16 @@ public class S3Backend extends AbstractSharedBackend {
         else if (maxUploadSizeInBytes > MAX_SINGLE_PUT_UPLOAD_SIZE &&
                 maxNumberOfURIs == 1) {
             throw new IllegalArgumentException(
-                    String.format("Cannot do single-put upload with file size %d", maxUploadSizeInBytes)
+                    String.format("Cannot do single-put upload with file size %d - exceeds max single-put upload size of %d",
+                            maxUploadSizeInBytes,
+                            MAX_SINGLE_PUT_UPLOAD_SIZE)
             );
         }
         else if (maxUploadSizeInBytes > MAX_BINARY_UPLOAD_SIZE) {
             throw new IllegalArgumentException(
-                    String.format("Cannot do upload with file size %d", maxUploadSizeInBytes)
+                    String.format("Cannot do upload with file size %d - exceeds max upload size of %d",
+                            maxUploadSizeInBytes,
+                            MAX_BINARY_UPLOAD_SIZE)
             );
         }
 
@@ -836,31 +840,31 @@ public class S3Backend extends AbstractSharedBackend {
             }
         }
 
-        byte[] secret = null;
         try {
-            secret = getOrCreateReferenceKey();
+            byte[] secret = getOrCreateReferenceKey();
+            String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
+
+            return new DataRecordUpload() {
+                @Override
+                @NotNull
+                public String getUploadToken() { return uploadToken; }
+
+                @Override
+                public long getMinPartSize() { return minPartSize; }
+
+                @Override
+                public long getMaxPartSize() { return maxPartSize; }
+
+                @Override
+                @NotNull
+                public Collection<URI> getUploadURIs() { return uploadPartURIs; }
+            };
         }
         catch (DataStoreException e) {
             LOG.warn("Unable to obtain data store key");
         }
 
-        String uploadToken = new DataRecordDirectUploadToken(blobId, uploadId).getEncodedToken(secret);
-
-        return new DataRecordUpload() {
-            @Override
-            @NotNull
-            public String getUploadToken() { return uploadToken; }
-
-            @Override
-            public long getMinPartSize() { return minPartSize; }
-
-            @Override
-            public long getMaxPartSize() { return maxPartSize; }
-
-            @Override
-            @NotNull
-            public Collection<URI> getUploadURIs() { return uploadPartURIs; }
-        };
+        return null;
     }
 
     public DataRecord completeHttpUpload(@NotNull String uploadTokenStr)

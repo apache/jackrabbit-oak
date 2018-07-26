@@ -126,16 +126,10 @@ public class AzureDataStoreDataRecordDirectAccessProviderTest extends AbstractDa
         conn.setDoOutput(true);
         conn.setRequestMethod("PUT");
         conn.setRequestProperty("Content-Length", String.valueOf(length));
-        conn.setRequestProperty("x-ms-date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
                 .withZone(ZoneOffset.UTC)
                 .format(Instant.now()));
         conn.setRequestProperty("x-ms-version", "2017-11-09");
-
-        Map<String, String> queryParams = parseQueryString(uri);
-        if (! queryParams.containsKey("comp") && ! queryParams.containsKey("blockId")) {
-            // single put
-            conn.setRequestProperty("x-ms-blob-type", "BlockBlob");
-        }
 
         return conn;
     }
