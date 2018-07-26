@@ -299,14 +299,6 @@ public class SessionDelegate {
         }
     }
 
-    public <T> T safePerformNullable(SessionOperation<T> sessionOperation) {
-        try {
-            return performNullable(sessionOperation);
-        } catch (RepositoryException e) {
-            throw new RuntimeException("Unexpected exception thrown by operation " + sessionOperation, e);
-        }
-    }
-
     @NotNull
     public ContentSession getContentSession() {
         return contentSession;
