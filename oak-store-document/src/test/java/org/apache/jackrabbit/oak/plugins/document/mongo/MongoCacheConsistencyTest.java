@@ -16,21 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.List;
-
-import com.github.fakemongo.Fongo;
-import com.mongodb.BulkWriteResult;
-import com.mongodb.DBObject;
-import com.mongodb.MongoException;
-import com.mongodb.OakFongo;
-import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
-
 import org.apache.jackrabbit.oak.plugins.document.CacheConsistencyTestBase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 
 public class MongoCacheConsistencyTest extends CacheConsistencyTestBase {
@@ -38,75 +33,32 @@ public class MongoCacheConsistencyTest extends CacheConsistencyTestBase {
     @Rule
     public DocumentMKBuilderProvider provider = new DocumentMKBuilderProvider();
 
-    private String exceptionMsg;
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
+    private MongoTestClient client;
+
+    @BeforeClass
+    public static void checkMongoAvailable() {
+        Assume.assumeTrue(MongoUtils.isAvailable());
+    }
 
     @Override
-    public DocumentStoreFixture getFixture() throws Exception {
-        Fongo fongo = new OakFongo("fongo") {
-
-            private String suppressedEx = null;
-
-            @Override
-            protected void afterInsert(WriteResult result) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void afterFindAndModify(DBObject result) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void afterUpdate(WriteResult result) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void afterRemove(WriteResult result) {
-                maybeThrow();
-            }
-
-            @Override
-            protected void beforeExecuteBulkWriteOperation(boolean ordered,
-                                                           Boolean bypassDocumentValidation,
-                                                           List<?> writeRequests,
-                                                           WriteConcern aWriteConcern) {
-                // suppress potentially set exception message because
-                // fongo bulk writes call other update methods
-                suppressedEx = exceptionMsg;
-                exceptionMsg = null;
-            }
-
-            @Override
-            protected void afterExecuteBulkWriteOperation(BulkWriteResult result) {
-                exceptionMsg = suppressedEx;
-                suppressedEx = null;
-                maybeThrow();
-            }
-
-            private void maybeThrow() {
-                if (exceptionMsg != null) {
-                    throw new MongoException(exceptionMsg);
-                }
-            }
-        };
-        DocumentMK.Builder builder = provider.newBuilder().setAsyncDelay(0);
-        final DocumentStore store = new MongoDocumentStore(fongo.getMongo(), "oak", builder);
-        return new DocumentStoreFixture() {
-            @Override
-            public String getName() {
-                return "MongoDB";
-            }
-
+    public DocumentStoreFixture getFixture() {
+        return new DocumentStoreFixture.MongoFixture() {
             @Override
             public DocumentStore createDocumentStore(DocumentMK.Builder builder) {
-                return store;
+                client = new MongoTestClient(MongoUtils.URL);
+                MongoConnection c = new MongoConnection(MongoUtils.URL, client);
+                connections.add(c);
+                builder.setAsyncDelay(0).setMongoDB(client, MongoUtils.DB);
+                return builder.getDocumentStore();
             }
         };
     }
 
     @Override
     public void setTemporaryUpdateException(String msg) {
-        this.exceptionMsg = msg;
+        client.setExceptionAfterUpdate(msg);
     }
 }

@@ -70,7 +70,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private static final int MAX_FAILURE_ENTRIES = 10000;
     private static final String WORK_DIR_NAME = "indexWriterDir";
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(IndexCopier.class);
     private final Executor executor;
     private final File indexWorkDir;
 
@@ -95,7 +95,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final AtomicLong uploadTime = new AtomicLong();
 
 
-    private final Map<String, Set<String>> sharedWorkingSetMap = newHashMap();
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
     private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
@@ -174,18 +173,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexRootDirectory.getIndexDir(definition, indexPath, dirName);
     }
 
-    public void addIndexFileBeingWritten(String indexPath, String name) {
-        getSharedWorkingSet(indexPath).add(name);
-    }
-
-    public void clearIndexFilesBeingWritten(String indexPath) {
-        getSharedWorkingSet(indexPath).clear();
-    }
-
-    public Set<String> getIndexFilesBeingWritten(String indexPath) {
-        return getSharedWorkingSet(indexPath);
-    }
-
     Map<String, LocalIndexFile> getFailedToDeleteFiles() {
         return Collections.unmodifiableMap(failedToDeleteFiles);
     }
@@ -214,26 +201,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
             garbageCollectedSize.addAndGet(file.getSize());
             deletedFileCount.incrementAndGet();
         }
-    }
-
-    /**
-     * Provide the corresponding shared state to enable COW inform COR
-     * about new files it is creating while indexing. This would allow COR to ignore
-     * such files while determining the deletion candidates.
-     *
-     * @param defn index definition for which the directory is being created
-     * @return a set to maintain the state of new files being created by the COW Directory
-     */
-    private Set<String> getSharedWorkingSet(String indexPath){
-        Set<String> sharedSet;
-        synchronized (sharedWorkingSetMap){
-            sharedSet = sharedWorkingSetMap.get(indexPath);
-            if (sharedSet == null){
-                sharedSet = Sets.newConcurrentHashSet();
-                sharedWorkingSetMap.put(indexPath, sharedSet);
-            }
-        }
-        return sharedSet;
     }
 
     private void checkIntegrity(String indexPath, Directory local, Directory remote) throws IOException {
@@ -289,6 +256,77 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                     "Attempt would be made to delete it on next run ", fileName, dir, e);
         }
         return successFullyDeleted;
+    }
+
+    /**
+     * This method would return the latest modification timestamp from the set of file{@code names}
+     * on the file system.
+     * The parameter {@code localDir} is expected to be an instance of {@link FSDirectory} (or wrapped one in
+     * {@link FilterDirectory}. If this assumption doesn't hold, the method would return -1.
+     * Each of file names are expected to be existing in {@code localDir}. If this fails the method shall return -1.
+     * In case of any error while computing modified timestamps on the file system, the method shall return -1.
+     * @param names file names to evaluate on local FS
+     * @param localDir {@link Directory} implementation to be used to get the files
+     * @return latest timestamp or -1 (with logs) in case of any doubt
+     */
+    public static long getNewestLocalFSTimestampFor(Set<String> names, Directory localDir) {
+        File localFSDir = LocalIndexFile.getFSDir(localDir);
+
+        if (localFSDir == null) {
+            log.warn("Couldn't get FSDirectory instance for {}.", localDir);
+            return -1;
+        }
+
+        long maxTS = 0L;
+        for (String  name : names) {
+            File f = new File(localFSDir, name);
+
+            if (!f.exists()) {
+                log.warn("File {} doesn't exist in {}", name, localFSDir);
+                return -1;
+            }
+
+            long modTS = f.lastModified();
+            if (modTS == 0L) {
+                log.warn("Couldn't get lastModification timestamp for {} in {}", name, localFSDir);
+                return -1;
+            }
+
+            if (modTS > maxTS) {
+                maxTS  = modTS;
+            }
+        }
+
+        return maxTS;
+    }
+
+    /**
+     * @param name file name to evaluate on local FS
+     * @param localDir {@link Directory} implementation to be used to get the file
+     * @param millis timestamp to compare file's modified timestamp against
+     * @return {@code true} if file referred to be {@code name} is modified before {@code millis}; false otherwise
+     */
+    public static boolean isFileModifiedBefore(String name, Directory localDir, long millis) {
+        File localFSDir = LocalIndexFile.getFSDir(localDir);
+
+        if (localFSDir == null) {
+            log.warn("Couldn't get FSDirectory instance for {}.", localDir);
+            return false;
+        }
+
+        File f = new File(localFSDir, name);
+        if (!f.exists()) {
+            log.warn("File {} doesn't exist in {}", name, localFSDir);
+            return false;
+        }
+
+        long modTS = f.lastModified();
+        if (modTS == 0L) {
+            log.warn("Couldn't get lastModification timestamp for {} in {}", name, localFSDir);
+            return false;
+        }
+
+        return modTS < millis;
     }
 
     public long startCopy(LocalIndexFile file) {

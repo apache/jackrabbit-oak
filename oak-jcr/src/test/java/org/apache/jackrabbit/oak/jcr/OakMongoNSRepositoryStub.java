@@ -33,7 +33,7 @@ public class OakMongoNSRepositoryStub extends BaseRepositoryStub {
     static {
         MongoConnection c = MongoUtils.getConnection();
         if (c != null) {
-            MongoUtils.dropCollections(c.getDB());
+            MongoUtils.dropCollections(c.getDatabase());
             c.close();
         }
     }
@@ -55,7 +55,7 @@ public class OakMongoNSRepositoryStub extends BaseRepositoryStub {
             store = new DocumentMK.Builder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
-                    setMongoDB(connection.getDB()).
+                    setMongoDB(connection.getMongoClient(), connection.getDBName()).
                     getNodeStore();
             Jcr jcr = new Jcr(store);
             preCreateRepository(jcr);

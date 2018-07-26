@@ -178,7 +178,7 @@ public abstract class DocumentClusterIT {
     static void dropDB(@NotNull final Class<?> clazz) throws Exception {
         MongoConnection con = createConnection(checkNotNull(clazz));
         try {
-            con.getDB().dropDatabase();
+            con.getDatabase().drop();
         } finally {
             con.close();
         }
@@ -199,8 +199,9 @@ public abstract class DocumentClusterIT {
                                   @NotNull final List<DocumentMK> mks,
                                   final int clusterId,
                                   final int asyncDelay) throws Exception {
-        DocumentMK.Builder builder = new DocumentMK.Builder(); 
-        builder.setMongoDB(createConnection(checkNotNull(clazz)).getDB());
+        DocumentMK.Builder builder = new DocumentMK.Builder();
+        MongoConnection c = createConnection(checkNotNull(clazz));
+        builder.setMongoDB(c.getMongoClient(), c.getDBName());
         if (asyncDelay != NOT_PROVIDED) {
             builder.setAsyncDelay(asyncDelay);
         }

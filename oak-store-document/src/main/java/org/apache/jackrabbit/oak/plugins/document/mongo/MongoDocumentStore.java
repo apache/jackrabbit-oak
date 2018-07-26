@@ -1309,7 +1309,7 @@ public class MongoDocumentStore implements DocumentStore {
                         break;
                 }
             }
-            if (!doc.containsKey(Document.MOD_COUNT)) {
+            if (!doc.containsField(Document.MOD_COUNT)) {
                 doc.put(Document.MOD_COUNT, 1L);
                 target.put(Document.MOD_COUNT, 1L);
             }

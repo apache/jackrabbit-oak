@@ -431,16 +431,19 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Starting testConcurrentSameAddRequest");
 
         closer.close();
+        ListeningExecutorService executorService =
+            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
 
         List<ListenableFuture<Integer>> futures = Lists.newArrayList();
         CountDownLatch moveLatch = new CountDownLatch(1);
         init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
 
         //1st request
-        ListenableFuture<Boolean> resultReq1 = putThread(folder, futures);
+        ListenableFuture<Boolean> resultReq1 = putThread(folder, executorService, futures);
+        Thread.sleep(100);
 
         //2nd Request
-        ListenableFuture<Boolean> resultReq2 = putThread(folder, futures);
+        ListenableFuture<Boolean> resultReq2 = putThread(folder, executorService, futures);
         Thread.sleep(200);
 
         // Allow any thread to start moving
@@ -784,9 +787,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
 
-    private ListenableFuture<Boolean> putThread(TemporaryFolder folder, List<ListenableFuture<Integer>> futures) {
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
+    private ListenableFuture<Boolean> putThread(TemporaryFolder folder, ListeningExecutorService executorService, List<ListenableFuture<Integer>> futures) {
         closer.register(new ExecutorCloser(executorService));
 
         ListenableFuture<Boolean> result = executorService.submit(new Callable<Boolean>() {

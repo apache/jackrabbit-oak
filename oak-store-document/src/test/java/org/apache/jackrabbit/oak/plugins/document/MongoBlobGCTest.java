@@ -40,8 +40,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.ReadPreference;
+import com.mongodb.client.MongoCollection;
 
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -197,10 +197,11 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private void deleteFromMongo(String nodeId) {
-        DBCollection coll = mongoConnection.getDB().getCollection("nodes");
+        MongoCollection<BasicDBObject> coll = mongoConnection.getDatabase()
+                .getCollection("nodes", BasicDBObject.class);
         BasicDBObject blobNodeObj = new BasicDBObject();
         blobNodeObj.put("_id", "1:/" + nodeId);
-        coll.remove(blobNodeObj);
+        coll.deleteOne(blobNodeObj);
     }
 
     @Test

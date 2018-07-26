@@ -376,7 +376,7 @@ public class ConcurrentAddNodesClusterIT {
     private static void dropDB() throws Exception {
         MongoConnection con = createConnection();
         try {
-            con.getDB().dropDatabase();
+            con.getDatabase().drop();
         } finally {
             con.close();
         }

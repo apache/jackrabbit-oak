@@ -16,16 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.conversions.Bson;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.QueryBuilder;
-import com.mongodb.WriteConcern;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.IndexOptions;
 
 /**
  * Test directly ran against MongoDB.
@@ -35,16 +40,17 @@ public class MongoDbTest {
     @Test
     @Ignore
     public void manyChildNodes() {
-        DB db = MongoUtils.getConnection().getDB();
-        MongoUtils.dropCollections(db);
-        DBCollection nodes = db.getCollection(Collection.NODES.toString());
-        DBObject index = new BasicDBObject();
+        MongoConnection c = MongoUtils.getConnection();
+        MongoDatabase db = c.getDatabase();
+        MongoUtils.dropCollections(c.getDatabase());
+        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+        BasicDBObject index = new BasicDBObject();
         // modification time (descending)
         index.put("_mod", -1L);
         // and then id (ascending)
         index.put("_id", 1L);
-        DBObject options = new BasicDBObject();
-        // options.put("unique", Boolean.TRUE);
+        IndexOptions options = new IndexOptions();
+        // options.unique(true);
         nodes.createIndex(index, options);
 
         // index on (_id, _mod):
@@ -72,30 +78,29 @@ public class MongoDbTest {
         int group = 0;
         String parent = "/parent/node/abc";
         for (int i = 0; i < children;) {
-            DBObject[] inserts = new DBObject[perInsert];
+            List<BasicDBObject> inserts = new ArrayList<>();
             group++;
             for (int j = 0; j < perInsert; j++, i++) {
                 BasicDBObject doc = new BasicDBObject();
-                inserts[j] = doc;
+                inserts.add(doc);
                 doc.put("_id", parent + "/node" + i);
                 doc.put("_mod", group);
             }
-            nodes.insert(inserts, WriteConcern.SAFE);
+            nodes.insertMany(inserts);
             log("inserted " + i + "/" + children);
         }
-        QueryBuilder queryBuilder = QueryBuilder.start("_mod");
-        queryBuilder.greaterThanEquals(group - 1);
-        queryBuilder.and("_id").greaterThan(parent + "/");
-        queryBuilder.and("_id").lessThanEquals(parent + "0");
-        DBObject query = queryBuilder.get();
+        Bson query = Filters.and(
+                Filters.gte("_mod", group - 1),
+                Filters.gt("_id", parent + "/"),
+                Filters.lte("_id", parent + "0")
+        );
         BasicDBObject keys = new BasicDBObject();
         keys.put("_id", 1);
-        DBCursor cursor = nodes.find(query, keys);
+        FindIterable<BasicDBObject> cursor = nodes.find(query).projection(keys);
         int count = 0;
-        log("Query plan: " + cursor.explain());
+        log("Query plan: " + explain(nodes, query));
         long time = System.currentTimeMillis();
-        while (cursor.hasNext()) {
-            DBObject obj = cursor.next();
+        for (BasicDBObject obj : cursor) {
             // dummy read operation (to ensure we did get the data)
             obj.get("_id");
             count++;
@@ -104,22 +109,23 @@ public class MongoDbTest {
         time = System.currentTimeMillis() - time;
         log("Time: " + time + " ms");
         log("Count: " + count);
-        db.getMongo().close();
+        c.close();
     }
 
     @Test
     @Ignore
     public void updateDocument() {
-        DB db = MongoUtils.getConnection().getDB();
-        MongoUtils.dropCollections(db);
-        DBCollection nodes = db.getCollection(Collection.NODES.toString());
-        DBObject index = new BasicDBObject();
+        MongoConnection c = MongoUtils.getConnection();
+        MongoDatabase db = c.getDatabase();
+        MongoUtils.dropCollections(c.getDatabase());
+        MongoCollection<BasicDBObject> nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
+        BasicDBObject index = new BasicDBObject();
         // modification time (descending)
         index.put("_mod", -1L);
         // and then id (ascending)
         index.put("_id", 1L);
-        DBObject options = new BasicDBObject();
-        // options.put("unique", Boolean.TRUE);
+        IndexOptions options = new IndexOptions();
+        // options.unique(true);
         nodes.createIndex(index, options);
 
         long time;
@@ -127,27 +133,29 @@ public class MongoDbTest {
 
         int nodeCount = 4500;
         String parent = "/parent/node/abc";
-        DBObject[] inserts = new DBObject[nodeCount];
+        List<BasicDBObject> inserts = new ArrayList<>(nodeCount);
         for (int i = 0; i < nodeCount; i++) {
             BasicDBObject doc = new BasicDBObject();
-            inserts[i] = doc;
+            inserts.add(doc);
             doc.put("_id", parent + "/node" + i);
             doc.put("_mod", 0);
             doc.put("_counter", 0);
             doc.put("x", 10);
         }
-        nodes.insert(inserts, WriteConcern.SAFE);
+        nodes.insertMany(inserts);
 
         time = System.currentTimeMillis() - time;
         System.out.println("insert: " + time);
         time = System.currentTimeMillis();
 
         for (int i = 0; i < nodeCount; i++) {
-            QueryBuilder queryBuilder = QueryBuilder.start(Document.ID).is(parent + "/node" + i);
-            DBObject fields = new BasicDBObject();
+            BasicDBObject fields = new BasicDBObject();
             // return _id only
             fields.put("_id", 1);
-            DBObject query = queryBuilder.get();
+            FindOneAndUpdateOptions updateOptions = new FindOneAndUpdateOptions()
+                    .projection(fields).upsert(true);
+
+            BasicDBObject query = new BasicDBObject(Document.ID, parent + "/node" + i);
 
             BasicDBObject setUpdates = new BasicDBObject();
             BasicDBObject incUpdates = new BasicDBObject();
@@ -171,12 +179,10 @@ public class MongoDbTest {
             // 1087 ms (upsert true+false, returnNew = false)
             // 1100 ms (returnNew = true)
 //            DBObject oldNode =
-            nodes.findAndModify(query, fields,
-                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                    true /*upsert*/);
+            nodes.findOneAndUpdate(query, update, updateOptions);
 
             // 250 ms WriteConcern.NORMAL, NONE
-            // 891 ms WriteConvern.SAFE
+            // 891 ms WriteConcern.SAFE
             // > 10 s WriteConcern.JOURNAL_SAFE, FSYNC_SAFE
 
 //            WriteResult result =
@@ -190,7 +196,12 @@ public class MongoDbTest {
         System.out.println("update: " + time);
         time = System.currentTimeMillis();
 
-        db.getMongo().close();
+        c.close();
+    }
+
+    private static BasicDBObject explain(MongoCollection<BasicDBObject> collection,
+                                         Bson query) {
+        return collection.find(query).modifiers(new BasicDBObject("$explain", true)).first();
     }
 
     private static void log(String msg) {

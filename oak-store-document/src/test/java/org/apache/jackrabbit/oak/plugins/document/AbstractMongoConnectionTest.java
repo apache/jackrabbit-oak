@@ -47,7 +47,7 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDB());
+        MongoUtils.dropCollections(mongoConnection.getDatabase());
         setRevisionClock(getTestClock());
         setClusterNodeInfoClock(getTestClock());
         mk = newBuilder(mongoConnection.getMongoClient(),
