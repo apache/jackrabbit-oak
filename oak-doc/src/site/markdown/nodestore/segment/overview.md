@@ -664,6 +664,13 @@ Oak Segment Tar exposes a number of command line tools that can be used to perfo
 The tools are exposed as sub-commands of [Oak Run](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run).
 The following sections assume that you have built this module or that you have a compiled version of it.
 
+### <a name="remote-segment-stores"/> Remote Segment Stores
+Besides the local storage in TAR files (previously known as TarMK), support for remote Segment Store(s) was introduced in Apache Oak. For connecting to a remote Segment Store, a `cloud-prefix:URI` argument needs to be provided. This applies wherever a `PATH` to the Segment Store was needed.
+
+**Connection Instructions**:
+
+* **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
+
 ### <a name="backup"/> Backup
 
 ```
@@ -738,11 +745,12 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] PATH
+java -jar oak-run.jar compact [--force] [--mmap] PATH | cloud-prefix:URI
 ```
 
-The `compact` command performs offline compaction of the Segment Store at `PATH`. 
-`PATH` must be a valid path to an existing Segment Store. 
+The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
+`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store is the only supported remote Segment Store. 
+Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
 If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
 matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
