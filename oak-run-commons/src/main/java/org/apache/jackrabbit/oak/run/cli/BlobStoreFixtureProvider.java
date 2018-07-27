@@ -103,7 +103,8 @@ public class BlobStoreFixtureProvider {
             delegate.init(null);
         }
         DataStoreBlobStore blobStore = new DataStoreBlobStore(delegate);
-        return new DataStoreFixture(blobStore, closer, !options.getCommonOpts().isReadWrite());
+        return new DataStoreFixture(blobStore, closer,
+            (!options.getCommonOpts().isReadWrite() && !bsopts.isReadWrite()));
     }
 
     static Properties loadConfig(String cfgPath) throws IOException {
