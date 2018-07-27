@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
 import static org.apache.commons.io.FileUtils.copyFile;
@@ -132,6 +133,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     private final OperationStatsCollector statsCollector;
 
+    private boolean traceOutput;
+
     /**
      * Creates an instance of MarkSweepGarbageCollector
      *
@@ -161,6 +164,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             throws IOException {
         this.executor = executor;
         this.blobStore = blobStore;
+        checkNotNull(blobStore, "BlobStore cannot be null");
         this.marker = marker;
         this.batchCount = batchCount;
         this.maxLastModifiedInterval = maxLastModifiedInterval;
@@ -336,7 +340,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             throw e;
         } finally {
             statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-            if (!LOG.isTraceEnabled()) {
+            if (!LOG.isTraceEnabled() && !traceOutput) {
                 Closeables.close(fs, threw);
             }
         }
@@ -660,11 +664,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                             blobStore, fs.getGcCandidates().getAbsolutePath());
             }
         } finally {
-            if (!LOG.isTraceEnabled() && candidates == 0) {
+            if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
                 Closeables.close(fs, threw);
             }
         }
         return candidates;
+    }
+
+    public void setTraceOutput(boolean trace) {
+        traceOutput = trace;
     }
 
     /**
