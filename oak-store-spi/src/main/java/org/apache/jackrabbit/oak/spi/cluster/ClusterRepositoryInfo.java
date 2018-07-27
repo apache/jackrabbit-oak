@@ -104,5 +104,18 @@ public class ClusterRepositoryInfo {
         }
     }
 
+    @Nullable
+    public static String getId(@NotNull NodeStore store) {
+        checkNotNull(store, "store is null");
+
+        // first try to read an existing clusterId
+        NodeState root = store.getRoot();
+        NodeState node = root.getChildNode(CLUSTER_CONFIG_NODE);
+        if (node.exists() && node.hasProperty(CLUSTER_ID_PROP)) {
+            return node.getProperty(CLUSTER_ID_PROP).getValue(Type.STRING);
+        }
+        return null;
+    }
+
 }
 
