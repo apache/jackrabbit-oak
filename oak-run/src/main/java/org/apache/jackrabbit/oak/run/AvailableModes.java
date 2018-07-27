@@ -58,5 +58,6 @@ public final class AvailableModes {
             .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
             .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put("server", new ServerCommand())
+            .put(DataStoreCommand.NAME, new DataStoreCommand())
             .build());
 }
