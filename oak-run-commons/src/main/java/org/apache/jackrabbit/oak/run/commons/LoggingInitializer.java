@@ -48,11 +48,20 @@ public class LoggingInitializer {
     private final File workDir;
     private final String config;
     private final String logIdentifier;
+    private final boolean doReset;
 
     public LoggingInitializer(File workDir, String logIdentifier) {
         this.workDir = workDir;
         this.logIdentifier = logIdentifier;
         this.config = LOGBACK_XML_PREFIX + logIdentifier + ".xml";
+        this.doReset = true;
+    }
+
+    public LoggingInitializer(File workDir, String logIdentifier, boolean reset) {
+        this.workDir = workDir;
+        this.logIdentifier = logIdentifier;
+        this.config = LOGBACK_XML_PREFIX + logIdentifier + ".xml";
+        this.doReset = reset;
     }
 
     public void init() throws IOException {
@@ -82,7 +91,9 @@ public class LoggingInitializer {
             System.setProperty("oak.workDir", FilenameUtils.normalizeNoEndSeparator(workDir.getAbsolutePath()));
             // Call context.reset() to clear any previous configuration, e.g. default
             // configuration. For multi-step configuration, omit calling context.reset().
-            context.reset();
+            if (doReset) {
+                context.reset();
+            }
             configurator.doConfigure(config);
         } catch (JoranException je) {
             // StatusPrinter will handle this
