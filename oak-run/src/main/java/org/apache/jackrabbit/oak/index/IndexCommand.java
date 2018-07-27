@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -60,6 +61,8 @@ import static java.util.Collections.emptyMap;
 
 public class IndexCommand implements Command {
     private static final Logger log = LoggerFactory.getLogger(IndexCommand.class);
+    private static final String LOG_SUFFIX = "indexing";
+
     public static final String NAME = "index";
     public static final String INDEX_DEFINITIONS_JSON = "index-definitions.json";
     public static final String INDEX_INFO_TXT = "index-info.txt";
@@ -355,7 +358,7 @@ public class IndexCommand implements Command {
     }
 
     private static void setupLogging(IndexOptions indexOpts) throws IOException {
-        new LoggingInitializer(indexOpts.getWorkDir()).init();
+        new LoggingInitializer(indexOpts.getWorkDir(), LOG_SUFFIX).init();
     }
 
     private void shutdownLogging() {
