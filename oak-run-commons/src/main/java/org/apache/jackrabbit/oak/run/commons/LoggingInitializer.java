@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.index;
+package org.apache.jackrabbit.oak.run.commons;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Configures the logging based on logback-indexing.xml. This file
+ * Configures the logging based on logback-{logIdentifier}.xml specified. This file
  * would be copied to work directory and then logging would be
  * configured based on that
  *
@@ -43,12 +43,16 @@ import org.slf4j.LoggerFactory;
  * oak-run is in progress would be picked up
  */
 public class LoggingInitializer {
-    private static final String LOGBACK_INDEX_XML = "logback-indexing.xml";
+    private static final String LOGBACK_XML_PREFIX = "logback-";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final File workDir;
+    private final String config;
+    private final String logIdentifier;
 
-    public LoggingInitializer(File workDir) {
+    public LoggingInitializer(File workDir, String logIdentifier) {
         this.workDir = workDir;
+        this.logIdentifier = logIdentifier;
+        this.config = LOGBACK_XML_PREFIX + logIdentifier + ".xml";
     }
 
     public void init() throws IOException {
@@ -61,7 +65,7 @@ public class LoggingInitializer {
         configureLogback(config);
         log.info("Logging configured from {}", config.getAbsolutePath());
         log.info("Any change in logging config would be picked up");
-        log.info("Logs would be written to {}", new File(workDir, "indexing.log"));
+        log.info("Logs would be written to {}", new File(workDir, logIdentifier + ".log"));
     }
 
     public static void shutdownLogging(){
@@ -87,8 +91,8 @@ public class LoggingInitializer {
     }
 
     private File copyDefaultConfig() throws IOException {
-        URL url = getClass().getResource("/" + LOGBACK_INDEX_XML);
-        File dest = new File(workDir, LOGBACK_INDEX_XML);
+        URL url = getClass().getResource("/" + config);
+        File dest = new File(workDir, config);
         try (InputStream is = url.openStream()) {
             FileUtils.copyInputStreamToFile(is, dest);
         }
