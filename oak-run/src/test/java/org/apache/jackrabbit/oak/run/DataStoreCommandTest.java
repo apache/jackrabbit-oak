@@ -513,7 +513,7 @@ public class DataStoreCommandTest {
         Assert.assertNotNull(file);
         Assert.assertTrue(file.exists());
         assertEquals(blobsAdded,
-            FileIOUtils.readStringsAsSet(new FileInputStream(file), false));
+            FileIOUtils.readStringsAsSet(new FileInputStream(file), true));
     }
 
     private static void assertFileNull(File dump, String prefix) {
