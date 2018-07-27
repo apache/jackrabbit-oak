@@ -32,8 +32,8 @@ import junitx.util.PrivateAccessor;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.AdditionalAnswers.delegatesTo;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 

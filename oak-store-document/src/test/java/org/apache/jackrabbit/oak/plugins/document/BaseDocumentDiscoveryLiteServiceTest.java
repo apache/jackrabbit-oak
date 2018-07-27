@@ -20,8 +20,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -616,7 +615,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         ComponentContext c = mock(ComponentContext.class);
         when(c.getBundleContext()).thenReturn(bc);
         final Map<String, Object> registeredServices = new HashMap<String, Object>();
-        when(bc.registerService(anyString(), anyObject(), (Properties) anyObject())).then(new Answer<ServiceRegistration>() {
+        when(bc.registerService(anyString(), any(), any())).then(new Answer<ServiceRegistration>() {
             @Override
             public ServiceRegistration answer(InvocationOnMock invocation) {
                 registeredServices.put((String) invocation.getArguments()[0], invocation.getArguments()[1]);
