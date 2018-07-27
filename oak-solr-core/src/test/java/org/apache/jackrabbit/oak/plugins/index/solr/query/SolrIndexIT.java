@@ -245,6 +245,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
         assumeTrue(!System.getProperty("java.version").startsWith("9"));
+        assumeTrue(!System.getProperty("java.version").startsWith("10"));
 
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=text:World&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
@@ -268,6 +269,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
         assumeTrue(!System.getProperty("java.version").startsWith("9"));
+        assumeTrue(!System.getProperty("java.version").startsWith("10"));
 
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
