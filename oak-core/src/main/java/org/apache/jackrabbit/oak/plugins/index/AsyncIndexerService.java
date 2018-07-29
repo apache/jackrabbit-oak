@@ -85,7 +85,7 @@ public class AsyncIndexerService {
         @AttributeDefinition(
                 name = "Failing Index Timeout (s)",
                 description = "Time interval in seconds after which a failing index is considered as corrupted and " +
-                        "ignored from further indexing untill reindex. To disable this set it to 0"
+                        "ignored from further indexing until reindex. To disable this set it to 0"
         )
         long failingIndexTimeoutSeconds() default 30 * 60;
 

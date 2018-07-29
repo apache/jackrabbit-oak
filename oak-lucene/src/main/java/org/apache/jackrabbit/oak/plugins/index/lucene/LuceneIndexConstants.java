@@ -207,7 +207,7 @@ public interface LuceneIndexConstants {
 
     /**
      * Limit for maximum number of reaggregates allowed. For example if there is an aggregate of nt:folder
-     * and it also includes nt:folder then aggregation would traverse down untill this limit is hit
+     * and it also includes nt:folder then aggregation would traverse down until this limit is hit
      */
     String AGG_RECURSIVE_LIMIT = "reaggregateLimit";
 

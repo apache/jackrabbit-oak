@@ -1590,7 +1590,7 @@ public class AsyncIndexUpdateTest {
         store = new MemoryNodeStore(store.getRoot()) {
             @Override
             public NodeState getRoot() {
-                //Keep returning stale view untill initlease is not invoked
+                //Keep returning stale view until initlease is not invoked
                 if (!intiLeaseCalled.get()) {
                     return oldRootState.get();
                 }

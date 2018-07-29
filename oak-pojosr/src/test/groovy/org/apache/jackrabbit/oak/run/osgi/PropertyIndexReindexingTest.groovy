@@ -70,7 +70,7 @@ class PropertyIndexReindexingTest extends AbstractRepositoryFactoryTest{
        assert registry.getServiceReference(Repository.class.name) == null : "Repository should be unregistered " +
                "if no property index editor found"
 
-        //5. Re-enable the editor and wait untill repository gets re-registered
+        //5. Re-enable the editor and wait until repository gets re-registered
         enableComponent(indexComponent)
         getServiceWithWait(Repository.class, registry.bundleContext)
 
