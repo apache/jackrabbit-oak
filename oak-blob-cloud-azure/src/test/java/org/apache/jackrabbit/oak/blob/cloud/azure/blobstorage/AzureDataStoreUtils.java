@@ -18,11 +18,26 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import com.google.common.base.Predicate;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -30,11 +45,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Properties;
+import static com.google.common.base.StandardSystemProperty.USER_HOME;
 
 /**
  * Extension to {@link DataStoreUtils} to enable Azure extensions for cleaning and initialization.
@@ -43,7 +54,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(AzureDataStoreUtils.class);
 
     private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/azure.properties";
-
+    private static final String DEFAULT_PROPERTY_FILE = "azure.properties";
+    private static final String SYS_PROP_NAME = "azure.config";
 
     /**
      * Check for presence of mandatory properties.
@@ -71,10 +83,17 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      * @return Properties instance
      */
     public static Properties getAzureConfig() {
-        String config = System.getProperty("azure.config");
+        String config = System.getProperty(SYS_PROP_NAME);
+        if (Strings.isNullOrEmpty(config)) {
+            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            if (cfgFile.exists()) {
+                config = cfgFile.getAbsolutePath();
+            }
+        }
         if (Strings.isNullOrEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
+
         Properties props = new Properties();
         if (new File(config).exists()) {
             InputStream is = null;
@@ -117,5 +136,18 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
         boolean result = container.deleteIfExists();
         log.info("Container deleted. containerName={} existed={}", containerName, result);
+    }
+
+    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
+        conn.setDoOutput(true);
+        conn.setRequestMethod("PUT");
+        conn.setRequestProperty("Content-Length", String.valueOf(length));
+        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+            .withZone(ZoneOffset.UTC)
+            .format(Instant.now()));
+        conn.setRequestProperty("x-ms-version", "2017-11-09");
+
+        return conn;
     }
 }
