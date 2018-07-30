@@ -67,8 +67,21 @@ public class AzureJournalFileTest {
         for (int i = 199; i >= 0; i--) {
             assertEquals("line " + i, reader.readLine());
         }
-
-        
     }
 
+    @Test
+    public void testTruncateJournalFile() throws IOException {
+        assertFalse(journal.exists());
+
+        JournalFileWriter writer = journal.openJournalWriter();
+        for (int i = 0; i < 100; i++) {
+            writer.writeLine("line " + i);
+        }
+
+        assertTrue(journal.exists());
+
+        writer.truncate();
+
+        assertTrue(journal.exists());
+    }
 }
