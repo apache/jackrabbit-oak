@@ -43,7 +43,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.17.5-SNAPSHOT</jackrabbit.version>
+    <jackrabbit.version>2.17.5</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -1034,7 +1034,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.2</version>
+          <version>42.2.4</version>
         </dependency>
       </dependencies>
     </profile>
