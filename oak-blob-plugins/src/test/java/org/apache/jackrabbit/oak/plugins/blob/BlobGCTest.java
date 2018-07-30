@@ -377,7 +377,7 @@ public class BlobGCTest {
     /**
      * MemoryNodeStore extension which created blobs in the in-memory blob store
      */
-    static class MemoryBlobStoreNodeStore extends MemoryNodeStore {
+    public static class MemoryBlobStoreNodeStore extends MemoryNodeStore {
         private final BlobStore blobStore;
         Set<String> referencedBlobs;
 

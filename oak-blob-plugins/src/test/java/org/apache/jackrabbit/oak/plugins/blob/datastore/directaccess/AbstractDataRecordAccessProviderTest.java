@@ -18,36 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import static java.lang.System.getProperty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
 
 import javax.net.ssl.HttpsURLConnection;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -58,6 +42,15 @@ import org.apache.jackrabbit.util.Base64;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.io.ByteStreams.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public abstract class AbstractDataRecordAccessProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
@@ -72,7 +65,6 @@ public abstract class AbstractDataRecordAccessProviderTest {
     protected abstract DataRecord doGetRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
     protected abstract DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException;
     protected abstract void doDeleteRecord(DataStore ds, DataIdentifier identifier) throws DataStoreException;
-    protected abstract boolean integrationTestsEnabled();
 
     protected static int expirySeconds = 60*15;
 
@@ -85,27 +77,6 @@ public abstract class AbstractDataRecordAccessProviderTest {
     protected static long FIVE_HUNDRED_MB = ONE_HUNDRED_MB * 5;
     protected static long ONE_GB = ONE_HUNDRED_MB * 10;
     protected static long FIVE_GB = ONE_GB * 5;
-
-    protected static Properties getProperties(
-            String systemPropertyName,
-            String defaultPropertyFileName,
-            String userHomePropertyDir) {
-        File propertiesFile = new File(getProperty(systemPropertyName, defaultPropertyFileName));
-        if (! propertiesFile.exists()) {
-            propertiesFile = Paths.get(getProperty("user.home"), userHomePropertyDir, defaultPropertyFileName).toFile();
-        }
-        if (! propertiesFile.exists()) {
-            propertiesFile = new File("./src/test/resources/" + defaultPropertyFileName);
-        }
-        Properties props = new Properties();
-        try {
-            props.load(new FileReader(propertiesFile));
-        }
-        catch (IOException e) {
-            LOG.error("Couldn't load data store properties - try setting -D{}=<path>", systemPropertyName);
-        }
-        return props;
-    }
 
     //
     // Direct download tests
@@ -153,18 +124,15 @@ public abstract class AbstractDataRecordAccessProviderTest {
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
-            String testData = randomString(256);
-            record = doSynchronousAddRecord((DataStore) dataStore,
-                    new ByteArrayInputStream(testData.getBytes()));
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
             URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
             conn.setRequestMethod("GET");
             assertEquals(200, conn.getResponseCode());
 
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(conn.getInputStream(), writer, "utf-8");
-
-            assertEquals(testData, writer.toString());
+            testStream.reset();
+            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
         }
         finally {
             if (null != record) {
@@ -178,9 +146,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
-            String testData = randomString(256);
-            record = doSynchronousAddRecord((DataStore) dataStore,
-                    new ByteArrayInputStream(testData.getBytes()));
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
             String mimeType = "image/png";
             String fileName = "album cover.png";
             String dispositionType = "inline";
@@ -209,10 +176,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
                     conn.getHeaderField("Content-Disposition")
             );
 
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(conn.getInputStream(), writer, "utf-8");
-
-            assertEquals(testData, writer.toString());
+            testStream.reset();
+            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
         }
         finally {
             if (null != record) {
@@ -226,10 +191,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         DataRecord record = null;
         ConfigurableDataRecordAccessProvider dataStore = getDataStore();
         try {
-            String testData = randomString(256);
             dataStore.setDirectDownloadURIExpirySeconds(2);
-            record = doSynchronousAddRecord((DataStore) dataStore,
-                    new ByteArrayInputStream(testData.getBytes()));
+            record = doSynchronousAddRecord((DataStore) dataStore, randomStream(0, 256));
             URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
             try {
                 Thread.sleep(5 * 1000);
@@ -508,104 +471,24 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(), res.getMaxNumURIs());
 
                 assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
-                String uploaded = randomString(res.getUploadSize());
+
+                InputStream uploadStream = randomStream(0, (int) res.getUploadSize());
                 URI uploadURI = uploadContext.getUploadURIs().iterator().next();
-                doHttpsUpload(new ByteArrayInputStream(uploaded.getBytes()), uploaded.length(), uploadURI);
+                doHttpsUpload(uploadStream, res.getUploadSize(), uploadURI);
 
                 uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
                 assertNotNull(uploadedRecord);
 
                 DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
-                StringWriter writer = new StringWriter();
-                IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
-
-                String retrieved = writer.toString();
-                compareBinaries(uploaded, retrieved);
+                uploadStream.reset();
+                assertTrue(Arrays.equals(toByteArray(uploadStream), toByteArray(retrievedRecord.getStream())));
             }
             finally {
                 if (null != uploadedRecord) {
                     doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 }
             }
-        }
-    }
-
-    @Test
-    public void testMultiPartDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
-        // Disabled by default - this test uses a lot of memory.
-        // Execute this test from the command line like this:
-        //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
-        assumeTrue(integrationTestsEnabled());
-        DataRecordAccessProvider ds = getDataStore();
-        for (InitUploadResult res : Lists.newArrayList(
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return TWENTY_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 2; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                },
-                new InitUploadResult() {
-                    @Override public long getUploadSize() { return ONE_HUNDRED_MB; }
-                    @Override public int getMaxNumURIs() { return 10; }
-                    @Override public int getExpectedNumURIs() { return 10; }
-                    @Override public long getExpectedMinPartSize() { return TEN_MB; }
-                    @Override public long getExpectedMaxPartSize() { return getProviderMaxPartSize(); }
-                }
-        )) {
-            DataRecord uploadedRecord = null;
-            try {
-                DataRecordUpload uploadContext = ds.initiateDataRecordUpload(res.getUploadSize(), res.getMaxNumURIs());
-                assertEquals(res.getExpectedNumURIs(), uploadContext.getUploadURIs().size());
-
-                String uploaded = randomString(res.getUploadSize());
-                long uploadSize = res.getUploadSize();
-                long uploadPartSize = uploadSize / uploadContext.getUploadURIs().size()
-                        + ((uploadSize % uploadContext.getUploadURIs().size()) == 0 ? 0 : 1);
-                ByteArrayInputStream in = new ByteArrayInputStream(uploaded.getBytes());
-
-                assertTrue(uploadPartSize <= uploadContext.getMaxPartSize());
-                assertTrue(uploadPartSize >= uploadContext.getMinPartSize());
-
-                for (URI uri : uploadContext.getUploadURIs()) {
-                    if (0 >= uploadSize) break;
-
-                    long partSize = Math.min(uploadSize, uploadPartSize);
-                    uploadSize -= partSize;
-
-                    byte[] buffer = new byte[(int) partSize];
-                    in.read(buffer, 0, (int) partSize);
-
-                    doHttpsUpload(new ByteArrayInputStream(buffer), partSize, uri);
-                }
-
-                uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
-                assertNotNull(uploadedRecord);
-
-                DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
-                assertNotNull(retrievedRecord);
-                StringWriter writer = new StringWriter();
-                IOUtils.copy(retrievedRecord.getStream(), writer, "utf-8");
-
-                String retrieved = writer.toString();
-                compareBinaries(uploaded, retrieved);
-            }
-            finally {
-                if (null != uploadedRecord) {
-                    doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
-                }
-            }
-        }
-    }
-
-    private void compareBinaries(String uploaded, String retrieved) {
-        assertEquals(uploaded.length(), retrieved.length());
-        byte[] expectedSha = DigestUtils.sha256(uploaded.getBytes());
-        byte[] actualSha = DigestUtils.sha256(retrieved.getBytes());
-        assertEquals(expectedSha.length, actualSha.length);
-        for (int i=0; i<expectedSha.length; i++) {
-            assertEquals(expectedSha[i], actualSha[i]);
         }
     }
 
@@ -622,28 +505,6 @@ public abstract class AbstractDataRecordAccessProviderTest {
             LOG.error("UnsupportedEncodingException caught", e);
         }
         return parsed;
-    }
-
-    protected String randomString(long size) {
-        final String symbols = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        StringWriter writer = new StringWriter();
-        Random random = new Random();
-        if (size > 256) {
-            String str256 = randomString(256);
-            while (size >= 256) {
-                writer.write(str256);
-                size -= 256;
-            }
-            if (size > 0) {
-                writer.write(str256.substring(0, (int)size));
-            }
-        }
-        else {
-            for (long i = 0; i < size; i++) {
-                writer.append(symbols.charAt(random.nextInt(symbols.length())));
-            }
-        }
-        return writer.toString();
     }
 
     protected void doHttpsUpload(InputStream in, long contentLength, URI uri) throws IOException {
