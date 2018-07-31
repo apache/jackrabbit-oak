@@ -28,7 +28,6 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 
-import javax.annotation.Nonnull
 import javax.jcr.Credentials
 import javax.jcr.Session
 import javax.jcr.SimpleCredentials
@@ -72,7 +71,6 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
     @Slf4j
     private static class PreAuthLoginModule extends AbstractLoginModule {
         private MyCredential credential
-        @Nonnull
         @Override
         protected Set<Class> getSupportedCredentials() {
             return Sets.newHashSet(MyCredential.class)
