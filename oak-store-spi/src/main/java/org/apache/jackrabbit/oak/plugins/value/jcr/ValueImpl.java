@@ -133,6 +133,16 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
+    @NotNull
+    static Value newValue(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper, @Nullable BlobAccessProvider blobAccessProvider) {
+        try {
+            return new ValueImpl(property, index, namePathMapper, blobAccessProvider);
+        }
+        catch (RepositoryException e) {
+            return new ErrorValue(e);
+        }
+    }
+
     /**
      * Create a new {@code Value} instance
      * @param property  The property state this instance is based on
@@ -145,6 +155,16 @@ class ValueImpl implements JackrabbitValue, OakValue {
         try {
             return new ValueImpl(property, 0, namePathMapper);
         } catch (RepositoryException e) {
+            return new ErrorValue(e);
+        }
+    }
+
+    @NotNull
+    static Value newValue(@NotNull PropertyState property, @NotNull NamePathMapper namePathMapper, @Nullable BlobAccessProvider blobAccessProvider) {
+        try {
+            return new ValueImpl(property, 0, namePathMapper, blobAccessProvider);
+        }
+        catch (RepositoryException e) {
             return new ErrorValue(e);
         }
     }

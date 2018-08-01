@@ -78,15 +78,19 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     private final NamePathMapper namePathMapper;
 
     @NotNull
-    private final BlobAccessProvider blobAccessProvider;
+    //private final BlobAccessProvider blobAccessProvider;
+    private static BlobAccessProvider blobAccessProvider = new DefaultBlobAccessProvider();
 
     public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper,
                             @Nullable BlobAccessProvider blobAccessProvider) {
         this.root = checkNotNull(root);
         this.namePathMapper = checkNotNull(namePathMapper);
-        this.blobAccessProvider = blobAccessProvider == null
-                ? new DefaultBlobAccessProvider()
-                : blobAccessProvider;
+//        this.blobAccessProvider = blobAccessProvider == null
+//                ? new DefaultBlobAccessProvider()
+//                : blobAccessProvider;
+        if (null != blobAccessProvider) {
+            ValueFactoryImpl.blobAccessProvider = blobAccessProvider;
+        }
     }
 
     /**
@@ -109,7 +113,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
-        return newValue(property, namePathMapper);
+        return newValue(property, namePathMapper, blobAccessProvider);
     }
 
     /**
@@ -126,7 +130,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
         if (ps == null) {
             throw new IllegalArgumentException("Failed to convert the specified property value to a property state.");
         }
-        return newValue(ps, namePathMapper);
+        return newValue(ps, namePathMapper, blobAccessProvider);
     }
 
     /**
@@ -139,7 +143,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
-            values.add(newValue(property, i, namePathMapper));
+            values.add(newValue(property, i, namePathMapper, blobAccessProvider));
         }
         return values;
     }
@@ -152,7 +156,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     public List<Value> createValues(PropertyState property) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
-            values.add(newValue(property, i, namePathMapper));
+            values.add(newValue(property, i, namePathMapper, blobAccessProvider));
         }
         return values;
     }
@@ -248,7 +252,7 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    return newValue(BinaryPropertyState.binaryProperty("", value), namePathMapper);
+                    return newValue(BinaryPropertyState.binaryProperty("", value), namePathMapper, blobAccessProvider);
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
                 case PropertyType.DOUBLE:
