@@ -18,19 +18,19 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.UUID;
 
 import javax.jcr.ItemExistsException;
+import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -38,6 +38,8 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
 
 public class ValidNamesTest extends AbstractRepositoryTest {
 
@@ -51,12 +53,14 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     private String testPrefix;
     private String testNsUri;
 
+    private static char[] SURROGATE_PAIR = Character.toChars(0x1f4a9);
+
     public ValidNamesTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
     @Before
-    public void setup() throws RepositoryException {
+    public void setup() throws NamespaceException, RepositoryException {
         Repository repo = createRepository(fixture);
         Session session = repo.login(getAdminCredentials());
         Node root = session.getRootNode();
@@ -106,89 +110,89 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void testSimple() throws RepositoryException {
+    public void testSimple() {
         nameTest("foo");
     }
 
     // TODO: questionable exception
-    @Test(expected = ItemExistsException.class)
-    public void testDot() throws RepositoryException {
-        nameTest(".");
+    @Test
+    public void testDot() {
+        unsupportedNameTest(".", ItemExistsException.class);
     }
 
     @Test
-    public void testDotFoo() throws RepositoryException {
+    public void testDotFoo() {
         nameTest(".foo");
     }
 
     // TODO: questionable exception
-    @Test(expected = ItemExistsException.class)
-    public void testDotDot() throws RepositoryException {
-        nameTest("..");
+    @Test
+    public void testDotDot() {
+        unsupportedNameTest("..", ItemExistsException.class);
     }
 
     @Test
-    public void testDotDotFoo() throws RepositoryException {
+    public void testDotDotFoo() {
         nameTest("..foo");
     }
 
     @Test
-    public void testTrailingDot() throws RepositoryException {
+    public void testTrailingDot() {
         nameTest("foo.");
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testLeadingBlank() throws RepositoryException {
-        nameTest(" foo");
+    @Test
+    public void testLeadingBlank() {
+        unsupportedNameTest(" foo", RepositoryException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testTrailingBlank() throws RepositoryException {
-        nameTest("foo ");
+    @Test
+    public void testTrailingBlank() {
+        unsupportedNameTest("foo ", RepositoryException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = PathNotFoundException.class)
-    public void testEnclosedSlash() throws RepositoryException {
-        nameTest("foo/bar");
+    @Test
+    public void testEnclosedSlash() {
+        unsupportedNameTest("foo/bar", PathNotFoundException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = PathNotFoundException.class)
-    public void testEnclosedPipe() throws RepositoryException {
-        nameTest("foo|bar");
+    @Test
+    public void testEnclosedPipe() {
+        unsupportedNameTest("foo|bar", PathNotFoundException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = PathNotFoundException.class)
-    public void testEnclosedStar() throws RepositoryException {
-        nameTest("foo*bar");
+    @Test
+    public void testEnclosedStar() {
+        unsupportedNameTest("foo*bar", PathNotFoundException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = PathNotFoundException.class)
-    public void testEnclosedOpenBracket() throws RepositoryException {
-        nameTest("foo[bar");
+    @Test
+    public void testEnclosedOpenBracket() {
+        unsupportedNameTest("foo[bar", PathNotFoundException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = PathNotFoundException.class)
-    public void testEnclosedCloseBracket() throws RepositoryException {
-        nameTest("foo]bar");
+    @Test
+    public void testEnclosedCloseBracket() {
+        unsupportedNameTest("foo]bar", PathNotFoundException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testLeadingColon() throws RepositoryException {
-        nameTest(":foo");
+    @Test
+    public void testLeadingColon() {
+        unsupportedNameTest(":foo", RepositoryException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testEnclosedUnmappedNsColon() throws RepositoryException {
-        nameTest(unmappedNsPrefix + ":bar");
+    @Test
+    public void testEnclosedUnmappedNsColon() {
+        unsupportedNameTest(unmappedNsPrefix + ":bar", RepositoryException.class);
     }
 
     // TODO seems to be a bug
@@ -199,12 +203,12 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void testSingleEnclosedOpenCurly() throws RepositoryException {
+    public void testSingleEnclosedOpenCurly() {
         nameTest("foo{bar");
     }
 
     @Test
-    public void testSingleEnclosedCloseCurly() throws RepositoryException {
+    public void testSingleEnclosedCloseCurly() {
         nameTest("foo}bar");
     }
 
@@ -215,9 +219,9 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testNonUriInCurlys() throws RepositoryException {
-        nameTest("{/}bar");
+    @Test
+    public void testNonUriInCurlys() {
+        unsupportedNameTest("{/}bar", RepositoryException.class);
     }
 
     @Test
@@ -227,87 +231,114 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testValidNamespaceUriInCurlysWrongPlace() throws RepositoryException {
-        nameTest("x{" + testNsUri + "}foo");
+    @Test
+    public void testValidNamespaceUriInCurlysWrongPlace() {
+        unsupportedNameTest("x{" + testNsUri + "}foo", RepositoryException.class);
     }
 
     // TODO: questionable exception
-    @Test(expected = RepositoryException.class)
-    public void testValidNamespaceUriInCurlysNoLocalName() throws RepositoryException {
-        nameTest("{" + testNsUri + "}");
+    @Test
+    public void testValidNamespaceUriInCurlysNoLocalName() {
+        unsupportedNameTest("{" + testNsUri + "}", RepositoryException.class);
     }
 
-    // TODO better exception - or maybe this should pass?
-    @Test(expected = RepositoryException.class)
-    public void testQualifiedNameWithUnmappedNsUri() throws RepositoryException {
+    // TODO this should actually pass
+    @Test
+    public void testQualifiedNameWithUnmappedNsUri() {
         String ns = "urn:uuid:" + UUID.randomUUID().toString();
-        Node n = nameTest("{" + ns + "}foo");
-        String pref = n.getSession().getNamespacePrefix(ns);
-        assertEquals(pref + ":foo", n.getName());
+        unsupportedNameTest("{" + ns + "}foo", RepositoryException.class);
     }
 
     @Test
-    public void testEnclosedPercent() throws RepositoryException {
+    public void testEnclosedPercent() {
         nameTest("foo%bar");
     }
 
     @Test
-    public void testEnclosedBlank() throws RepositoryException {
+    public void testEnclosedBlank() {
         nameTest("foo bar");
     }
 
-    @Test(expected = RepositoryException.class)
-    public void testEnclosedTab() throws RepositoryException {
-        nameTest("foo\tbar");
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testEnclosedLf() throws RepositoryException {
-        nameTest("foo\nbar");
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testEnclosedCr() throws RepositoryException {
-        nameTest("foo\rbar");
+    @Test
+    public void testEnclosedTab() {
+        unsupportedNameTest("foo\tbar", RepositoryException.class);
     }
 
     @Test
-    public void testEnclosedNonBreakingSpace() throws RepositoryException {
+    public void testEnclosedLf() {
+        unsupportedNameTest("foo\nbar", RepositoryException.class);
+    }
+
+    @Test
+    public void testEnclosedCr() {
+        unsupportedNameTest("foo\rbar", RepositoryException.class);
+    }
+
+    @Test
+    public void testEnclosedNonBreakingSpace() {
         nameTest("foo\u00a0bar");
     }
 
     // OAK-4587
-    @Test(expected = RepositoryException.class)
-    public void testEnclosedIdeographicSpace() throws RepositoryException {
-        nameTest("foo\u3000bar");
+    @Test
+    public void testEnclosedIdeographicSpace() {
+        unsupportedNameTest("foo\u3000bar", RepositoryException.class);
     }
 
     @Test
-    public void testUnpairedSurrogate() throws RepositoryException {
+    public void testUnpairedHighSurrogateEnd() {
         // see OAK-5506
         org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
-        nameTest("foo\ud800");
+        nameTest("foo" + SURROGATE_PAIR[0]);
     }
 
     @Test
-    public void testSurrogate() throws RepositoryException {
-        nameTest("foo\uD83D\uDCA9");
+    public void testUnpairedLowSurrogateStart() {
+        // see OAK-5506
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
+        nameTest(SURROGATE_PAIR[1] + "foo");
     }
 
-    private Node nameTest(String nodeName) throws RepositoryException {
-        Node n = testNode.addNode(nodeName);
-        testNode.getSession().save();
+    @Test
+    public void testUnpairedSurrogateInside() {
+        // see OAK-5506
+        org.junit.Assume.assumeFalse(super.fixture.toString().toLowerCase().contains("segment"));
+        nameTest("foo" + SURROGATE_PAIR[0] + "bar");
+        nameTest("foo" + SURROGATE_PAIR[1] + "bar");
+    }
+
+    @Test
+    public void testSurrogate() {
+        nameTest("foo" + new String(SURROGATE_PAIR));
+    }
+
+    private Node nameTest(String nodeName) {
         try {
-            return testNode.getSession().getNode(n.getPath());
+            Node n = testNode.addNode(nodeName);
+            testNode.getSession().save();
+            Node p = testNode.getSession().getNode(n.getPath());
+            assertTrue("nodes should be the same", p.isSame(n));
+            assertEquals("paths should be equal", p.getPath(), n.getPath());
+            return p;
         } catch (RepositoryException ex) {
             fail(ex.getMessage());
             return null;
         }
     }
 
-    private Repository createRepository(NodeStoreFixture fixture)
-            throws RepositoryException {
+    private void unsupportedNameTest(String nodeName, Class<? extends RepositoryException> clazz) {
+        try {
+            testNode.addNode(nodeName);
+            testNode.getSession().save();
+            fail("should have failed with " + clazz);
+        }
+        catch (RepositoryException ex) {
+            assertTrue("should have failed with " + clazz + ", but got " + ex.getClass(), clazz.isAssignableFrom(ex.getClass()));
+        }
+    }
+
+    private Repository createRepository(NodeStoreFixture fixture) throws RepositoryException
+            {
         NodeStore ns = null;
         for (Map.Entry<NodeStoreFixture, NodeStore> e : STORES.entrySet()) {
             if (e.getKey().getClass().equals(fixture.getClass())) {
