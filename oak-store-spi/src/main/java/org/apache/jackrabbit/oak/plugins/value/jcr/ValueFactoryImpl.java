@@ -78,12 +78,16 @@ public class ValueFactoryImpl implements JackrabbitValueFactory {
     private final NamePathMapper namePathMapper;
 
     @NotNull
+    //private final BlobAccessProvider blobAccessProvider;
     private static BlobAccessProvider blobAccessProvider = new DefaultBlobAccessProvider();
 
     public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper,
                             @Nullable BlobAccessProvider blobAccessProvider) {
         this.root = checkNotNull(root);
         this.namePathMapper = checkNotNull(namePathMapper);
+//        this.blobAccessProvider = blobAccessProvider == null
+//                ? new DefaultBlobAccessProvider()
+//                : blobAccessProvider;
         if (null != blobAccessProvider) {
             ValueFactoryImpl.blobAccessProvider = blobAccessProvider;
         }
