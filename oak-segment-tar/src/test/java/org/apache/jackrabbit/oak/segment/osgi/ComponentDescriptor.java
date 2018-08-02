@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.osgi;
 
 import java.io.InputStream;
 
+import javax.print.attribute.HashPrintServiceAttributeSet;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -45,6 +46,10 @@ class ComponentDescriptor {
 
     private static boolean hasAttribute(Element element, String name, String value) {
         return element.hasAttribute(name) && element.getAttribute(name).equals(value);
+    }
+
+    private static boolean hasNoAttribute(Element element, String name) {
+        return !element.hasAttribute(name);
     }
 
     boolean hasName(String name) {
@@ -182,6 +187,8 @@ class ComponentDescriptor {
 
         private String unbind;
 
+        private String field;
+
         private HasReference(String name) {
             this.name = name;
         }
@@ -246,6 +253,11 @@ class ComponentDescriptor {
             return this;
         }
 
+        HasReference withField(String field) {
+            this.field = field;
+            return this;
+        }
+
         boolean check() {
             NodeList references = root.getElementsByTagName("reference");
             for (int i = 0; i < references.getLength(); i++) {
@@ -254,10 +266,10 @@ class ComponentDescriptor {
                     if (iface != null && !hasAttribute(reference, "interface", iface)) {
                         return false;
                     }
-                    if (cardinality != null && !hasAttribute(reference, "cardinality", cardinality)) {
+                    if (cardinality != null && !hasValidCardinality(reference)) {
                         return false;
                     }
-                    if (policy != null && !hasAttribute(reference, "policy", policy)) {
+                    if (policy != null && !hasValidPolicy(reference)) {
                         return false;
                     }
                     if (policyOption != null && !hasAttribute(reference, "policy-option", policyOption)) {
@@ -272,10 +284,27 @@ class ComponentDescriptor {
                     if (unbind != null && !hasAttribute(reference, "unbind", unbind)) {
                         return false;
                     }
+                    if (field != null && !hasAttribute(reference, "field", field)) {
+                        return false;
+                    }
                     return true;
                 }
             }
             return false;
+        }
+
+        private boolean hasValidCardinality(Element reference) {
+            if (cardinality.equals("1..1") && hasNoAttribute(reference, "cardinality")) {
+                return true;
+            }
+            return hasAttribute(reference, "cardinality", cardinality);
+        }
+
+        private boolean hasValidPolicy(Element reference) {
+            if (policy.equals("static") && hasNoAttribute(reference, "policy")) {
+                return true;
+            }
+            return hasAttribute(reference, "policy", policy);
         }
 
     }
