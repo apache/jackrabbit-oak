@@ -53,6 +53,7 @@ import javax.jcr.Session;
 
 import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
@@ -227,6 +228,23 @@ public class HttpBinaryIT extends AbstractHttpBinaryIT {
         Assert.assertTrue(writeBinary instanceof BinaryDownload);
 
         URI downloadURI = ((BinaryDownload) writeBinary).getURI(BinaryDownloadOptions.DEFAULT);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
+        assertEquals(content, writer.toString());
+    }
+
+    @Test
+    public void testGetBinaryFromPristineReference() throws Exception {
+        getConfigurableHttpDataRecordProvider()
+                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
+
+        String content = getRandomString(1024*20);
+        createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
+
+        Binary binary = adminSession.getNode(FILE_PATH+"/"+JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_DATA).getBinary();
+        assertTrue(binary instanceof BinaryDownload);
+
+        URI downloadURI = ((BinaryDownload) binary).getURI(BinaryDownloadOptions.DEFAULT);
         StringWriter writer = new StringWriter();
         IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
         assertEquals(content, writer.toString());
