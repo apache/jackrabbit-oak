@@ -41,7 +41,10 @@
                     <instructions>
                         <Import-Package>
                           <!-- OAK-7182 -->${guava.osgi.import},
+                            !org.apache.jackrabbit.oak.segment,
                             !org.apache.jackrabbit.oak.segment.compaction,
+                            !org.apache.jackrabbit.oak.segment.file,
+                            !org.apache.jackrabbit.oak.segment.tool,
                             *
                         </Import-Package>
                         <Export-Package />
