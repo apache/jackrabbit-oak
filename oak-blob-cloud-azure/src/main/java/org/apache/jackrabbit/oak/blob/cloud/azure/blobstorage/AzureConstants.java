@@ -31,6 +31,11 @@ public final class AzureConstants {
     public static final String AZURE_STORAGE_ACCOUNT_KEY = "secretKey";
 
     /**
+     * Azure connection string (overrides {@link #AZURE_SAS} and {@link #AZURE_BLOB_ENDPOINT}).
+     */
+    public static final String AZURE_CONNECTION_STRING = "azureConnectionString";
+
+    /**
      * Azure shared access signature token
      */
     public static final String AZURE_SAS = "azureSas";
