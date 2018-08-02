@@ -42,6 +42,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.blob,
               org.apache.jackrabbit.oak.plugins.blob.datastore,
+              org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess
             </Export-Package>
           </instructions>
         </configuration>
