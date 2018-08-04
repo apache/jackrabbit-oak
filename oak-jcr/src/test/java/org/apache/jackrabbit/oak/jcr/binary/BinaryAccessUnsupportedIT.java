@@ -18,33 +18,28 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.SECONDS;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.createFileWithBinary;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getRandomString;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.storeBinaryAndRetrieve;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
-
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.FileDataStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.DocumentMemoryNodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.SegmentMemoryNodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.util.Content;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
+
+import com.google.common.collect.Lists;
 
 /**
  * Test binary upload / download capabilities of the {@link JackrabbitValueFactory} interface when the underlying
@@ -53,7 +48,6 @@ import org.junit.runners.Parameterized;
  * features are supported.
  */
 public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
-    private Session session;
     private JackrabbitValueFactory uploadProvider;
 
     @Parameterized.Parameters(name = "{0}")
@@ -64,8 +58,8 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
         // it should be a valid real-world example of how the API should behave when the implementation doesn't
         // have the feature support.
         FileDataStoreFixture fds = new FileDataStoreFixture();
-        fixtures.add(new AbstractHttpBinaryIT.SegmentMemoryNodeStoreFixture(fds));
-        fixtures.add(new AbstractHttpBinaryIT.DocumentMemoryNodeStoreFixture(fds));
+        fixtures.add(new SegmentMemoryNodeStoreFixture(fds));
+        fixtures.add(new DocumentMemoryNodeStoreFixture(fds));
 
         return fixtures;
     }
@@ -76,15 +70,7 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
-        session = getAdminSession();
-        uploadProvider = (JackrabbitValueFactory) session.getValueFactory();
-    }
-
-    protected static class FileDataStoreFixture implements AbstractHttpBinaryIT.DataStoreFixture {
-        @Override
-        public DataStore createDataStore() {
-            return new FileDataStore();
-        }
+        uploadProvider = (JackrabbitValueFactory) getAdminSession().getValueFactory();
     }
 
     @Test
@@ -101,13 +87,14 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
 
     @Test
     public void testGetDownloadURIUnsupportedReturnsNull() throws Exception {
-        String content = getRandomString(1024*20);
-        InputStream stream = new ByteArrayInputStream(content.getBytes());
-        Binary writeBinary = createFileWithBinary(session, "/my_path", stream);
+        Content content = Content.createRandom(1024*20);
+        Binary binary = storeBinaryAndRetrieve(getAdminSession(), "/my_path", content);
 
-        assertTrue(writeBinary instanceof BinaryDownload);
-
-        URI downloadURI = ((BinaryDownload) writeBinary).getURI(BinaryDownloadOptions.DEFAULT);
-        assertNull(downloadURI);
+        // the returned binary could not be implementing BinaryDownload...
+        if (binary instanceof BinaryDownload) {
+            // ...or implement it but return null on getURI()
+            URI downloadURI = ((BinaryDownload) binary).getURI(BinaryDownloadOptions.DEFAULT);
+            assertNull(downloadURI);
+        }
     }
 }
