@@ -55,7 +55,7 @@
                         <configuration>
                           <!--
                             This is required as classes present in this module
-                            were part of oak-core. This should be removed
+                            were part of oak-lucene. This should be removed
                             post 1.10 release
                           -->
                           <comparisonArtifactId>oak-lucene</comparisonArtifactId>
