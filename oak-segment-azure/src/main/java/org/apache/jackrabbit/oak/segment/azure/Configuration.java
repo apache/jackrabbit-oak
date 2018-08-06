@@ -52,8 +52,8 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
     String rootPath() default AzureSegmentStoreService.DEFAULT_ROOT_PATH;
 
     @AttributeDefinition(
-            name = "Azure connection URL (optional)",
-            description = "Connection URL to be used to connect to the Azure Storage. " +
-                    "Setting it will override the accountName, containerName and accessKey properties.")
+            name = "Azure connection string (optional)",
+            description = "Connection string to be used to connect to the Azure Storage. " +
+                    "Setting it will override the accountName and accessKey properties.")
     String connectionURL() default "";
 }

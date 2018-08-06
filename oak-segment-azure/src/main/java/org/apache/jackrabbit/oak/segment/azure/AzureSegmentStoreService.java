@@ -36,7 +36,6 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
-
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,
         configurationPid = {Configuration.PID})
@@ -70,14 +69,14 @@ public class AzureSegmentStoreService {
     private static SegmentNodeStorePersistence createAzurePersistence(Configuration configuration) throws IOException {
         try {
             StringBuilder connectionString = new StringBuilder();
-            if (configuration.connectionURL() != null && !configuration.connectionURL().isEmpty()) {
-                connectionString.append(configuration.connectionURL());
-            } else {
+            if (configuration.connectionURL() == null || configuration.connectionURL().trim().isEmpty()) {
                 connectionString.append("DefaultEndpointsProtocol=https;");
                 connectionString.append("AccountName=").append(configuration.accountName()).append(';');
                 connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
+            } else {
+                connectionString.append(configuration.connectionURL());
             }
-            log.info("Connection string: {}", connectionString.toString());
+            log.info("Connection string: '{}'", connectionString.toString());
             CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString.toString());
             CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(configuration.containerName());
             container.createIfNotExists();
