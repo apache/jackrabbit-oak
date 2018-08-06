@@ -55,5 +55,5 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
             name = "Azure connection URL (optional)",
             description = "Connection URL to be used to connect to the Azure Storage. " +
                     "Setting it will override the accountName, containerName and accessKey properties.")
-    String connectionURL();
+    String connectionURL() default "";
 }
