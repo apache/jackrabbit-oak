@@ -242,23 +242,6 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         assertNotNull("HTTP download URI is null", downloadURI);
     }
 
-    @Test
-    public void testGetBinaryFromPristineReference() throws Exception {
-        getConfigurableHttpDataRecordProvider()
-                .setDirectDownloadURIExpirySeconds(REGULAR_READ_EXPIRY);
-
-        String content = getRandomString(1024*20);
-        createFileWithBinary(adminSession, FILE_PATH, new ByteArrayInputStream(content.getBytes()));
-
-        Binary binary = adminSession.getNode(FILE_PATH+"/"+JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_DATA).getBinary();
-        assertTrue(binary instanceof BinaryDownload);
-
-        URI downloadURI = ((BinaryDownload) binary).getURI(BinaryDownloadOptions.DEFAULT);
-        StringWriter writer = new StringWriter();
-        IOUtils.copy(httpGet(downloadURI), writer, "utf-8");
-        assertEquals(content, writer.toString());
-    }
-
     // F9 - GET Binary for binary after write using direct PUT
     @Test
     public void testGetBinaryAfterPut() throws Exception {
