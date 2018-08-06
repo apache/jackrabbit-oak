@@ -240,8 +240,8 @@ Apache Jackrabbit Oak ${project.version}. The release is available for download 
      http://jackrabbit.apache.org/downloads.html
 
 See the full release notes below for details about this release:
-
-
+${line.separator}
+${line.separator}
                     </echo>
                     <concat destfile="${basedir}/target/announcement.txt" append="true">
                       <filelist files="RELEASE-NOTES.txt" />
