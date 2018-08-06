@@ -41,7 +41,11 @@
                     <instructions>
                         <Import-Package>
                           <!-- OAK-7182 -->${guava.osgi.import},
-                          *
+                            !org.apache.jackrabbit.oak.segment,
+                            !org.apache.jackrabbit.oak.segment.compaction,
+                            !org.apache.jackrabbit.oak.segment.file,
+                            !org.apache.jackrabbit.oak.segment.tool,
+                            *
                         </Import-Package>
                         <Export-Package />
                         <Embed-Dependency>
@@ -159,7 +163,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>

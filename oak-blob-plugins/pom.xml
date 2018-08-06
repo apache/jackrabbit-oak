@@ -42,7 +42,7 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.blob,
               org.apache.jackrabbit.oak.plugins.blob.datastore,
-              org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess,
+              org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess
             </Export-Package>
           </instructions>
         </configuration>
@@ -178,7 +178,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>

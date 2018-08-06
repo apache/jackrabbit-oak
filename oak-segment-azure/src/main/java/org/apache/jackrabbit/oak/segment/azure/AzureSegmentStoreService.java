@@ -70,7 +70,7 @@ public class AzureSegmentStoreService {
     private static SegmentNodeStorePersistence createAzurePersistence(Configuration configuration) throws IOException {
         try {
             StringBuilder connectionString = new StringBuilder();
-            if (configuration.connectionURL() != null) {
+            if (configuration.connectionURL() != null && !configuration.connectionURL().isEmpty()) {
                 connectionString.append(configuration.connectionURL());
             } else {
                 connectionString.append("DefaultEndpointsProtocol=https;");

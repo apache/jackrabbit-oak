@@ -185,7 +185,7 @@
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
                 <!-- Set the comparisonVersion to last release from stable branch-->
-                <comparisonVersion>1.8.4</comparisonVersion>
+                <comparisonVersion>1.8.6</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
                   <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
@@ -556,6 +556,11 @@
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
         <version>3.4</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>2.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -1024,7 +1029,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.11</version>
+          <version>8.0.12</version>
         </dependency>
       </dependencies>
     </profile>

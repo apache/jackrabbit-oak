@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.osgi;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
  * detected problem and hinting at a possible solution.
  */
 @Component(
-        policy = ConfigurationPolicy.REQUIRE,
-        configurationPid = "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService"
+    configurationPolicy = ConfigurationPolicy.REQUIRE,
+    configurationPid = "org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService"
 )
 public class StandbyStoreServiceDeprecationError {
 

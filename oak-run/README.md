@@ -12,6 +12,7 @@ The following runmodes are currently available:
     * console         : Start an interactive console.
     * datastorecacheupgrade : Upgrades the JR2 DataStore cache
     * datastorecheck  : Consistency checker for data store 
+    * datastore       : Maintenance operations for the for data store 
     * debug           : Print status information about an Oak repository.
     * explore         : Starts a GUI browser based on java swing.
     * garbage         : Identifies blob garbage on a DocumentMK repository
@@ -485,6 +486,60 @@ The command to be executed for S3DataStore
         --s3ds <s3ds_config> \
         --dump <dump_path>
         --repoHome <repo_home>
+
+The config files should be formatted according to the OSGi configuration admin specification
+
+    E.g.
+    cat > org.apache.jackrabbit.oak.plugins.S3DataStore.config << EOF 
+    accessKey="XXXXXXXXX"
+    secretKey="YYYYYY"
+    s3Bucket="bucket1"
+    s3Region="region1"
+    EOF
+    
+    cat > org.apache.jackrabbit.oak.plugins.FileDataStore.config << EOF 
+    path="/data/datastore"
+    EOF        
+    
+    
+Oak DataStore
+-------------------
+
+Maintenance commands for for the DataStore:
+* Data store garbage collection
+* Data store consistency check
+
+
+    $ java -jar oak-run-*.jar datastore [--check-consistency|--collect-garbage [true]] \
+            [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <path>] \
+            [--out-dir <output path>] \
+            [--work-dir <temporary path>] \
+            [--max-age <seconds>] \
+            [--verbose] \
+            [<path>|<mongo_uri>]
+
+The following operations are available:
+    
+    --collect-garbage       - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
+    --check-consistency     - List all the missing blobs by doing a consistency check.
+
+The following options are available:
+
+    --work-dir       - Path to use for temporary files and directoriesw(Optional). Otherwise, files will be dumped in the user temp directory.
+    --out-dir        - Path where to dump the files (Optional). Otherwise, files will be dumped in the current directory.
+    --s3ds           - Path to the S3DataStore configuration file.
+    --azureds        - Path to the AzureDataStore configuration file.
+    --fds            - Path to the FileDataStore configuration file ('path' property is mandatory).
+    --fake-ds-path   - To check for misconfigured external references when no data store should be there.
+    --max-age        - Corresponds to the OSGi 'maxBlobGcAgeInSecs' property and specifies the time interval from now with only older blobs being deleted.
+    --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
+                       This options would typically be a slower option since, it requires the whole repo traversal.  
+                       Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
+    <path|mongo_uri> - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
+
+Note:
+
+Data Store and node store configuration is mandatory.
 
 The config files should be formatted according to the OSGi configuration admin specification
 

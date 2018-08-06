@@ -104,6 +104,11 @@ public final class Utils {
 
         String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
         String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
+        String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
+
+        if (!connectionString.isEmpty()) {
+            return connectionString;
+        }
 
         if (!sasUri.isEmpty()) {
             return getConnectionStringForSas(sasUri, blobEndpoint);
