@@ -53,12 +53,12 @@
                         </goals>
                         <phase>pre-integration-test</phase>
                         <configuration>
-                            <!--
-                              This is required because there's no prior (stable) version of oak-search.
-                              This should be removed post 1.8 release
-                              Anyway nothing is exported therefore it shouldn't be a problem
-                            -->
-                            <skip>true</skip>
+                          <!--
+                            This is required as classes present in this module
+                            were part of oak-core. This should be removed
+                            post 1.10 release
+                          -->
+                          <comparisonArtifactId>oak-lucene</comparisonArtifactId>
                         </configuration>
                     </execution>
                 </executions>
