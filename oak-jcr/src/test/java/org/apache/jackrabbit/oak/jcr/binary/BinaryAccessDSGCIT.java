@@ -19,70 +19,82 @@
 
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.createFileWithBinary;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getBinary;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.getRandomString;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.httpGet;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.httpPut;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.isSuccessfulHttpPut;
-import static org.apache.jackrabbit.oak.jcr.binary.BinaryAccessTestUtils.putBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.getBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpGet;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.isSuccessfulHttpPut;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.putBinary;
+import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.storeBinaryAndRetrieve;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.AzureDataStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.S3DataStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.SegmentMemoryNodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.util.Content;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
-public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
     private static final String TEST_ROOT = "testroot";
-    private static long BINARY_SIZE = 1024*1024;
+    private static final long BINARY_SIZE = 1024*1024;
 
     private static final String TRADITIONAL_UPLOAD_1 = "tu1";
     private static final String TRADITIONAL_UPLOAD_2 = "tu2";
     private static final String DIRECT_UPLOAD_1 = "du1";
     private static final String DIRECT_UPLOAD_2 = "du2";
 
-    public BinaryAccessDSGCIT(NodeStoreFixture fixture) { super(fixture); }
+    @Parameterized.Parameters(name = "{0}")
+    public static Iterable<?> dataStoreFixtures() {
+        Collection<NodeStoreFixture> fixtures = new ArrayList<>();
+        fixtures.add(new SegmentMemoryNodeStoreFixture(new S3DataStoreFixture()));
+        fixtures.add(new SegmentMemoryNodeStoreFixture(new AzureDataStoreFixture()));
+        return fixtures;
+    }
+
+    public BinaryAccessDSGCIT(NodeStoreFixture fixture) {
+        // reuse NodeStore (and DataStore) across all tests in this class
+        super(fixture, true);
+    }
 
     private Session session;
     private JackrabbitValueFactory directUploader;
@@ -103,11 +115,6 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
 
         getConfigurableHttpDataRecordProvider().setDirectUploadURIExpirySeconds(60*5);
         getConfigurableHttpDataRecordProvider().setDirectDownloadURIExpirySeconds(60*5);
-    }
-
-    @Before
-    public void ignoreIfUsingDocumentNodeStore() {
-        assumeFalse(fixture instanceof DocumentMemoryNodeStoreFixture);
     }
 
     // For debugging.
@@ -132,50 +139,36 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         return "/" + TEST_ROOT + "/" + leaf;
     }
 
-    private Binary createSessionBinary(String nodeName, String content) throws RepositoryException {
-        return createFileWithBinary(
-                session, nodeName, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))
-        );
-    }
-
-    private Binary createDirectBinary(String nodeName, String content) throws RepositoryException, IOException {
-        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
-        long size = contentBytes.length;
-
-        BinaryUpload upload = directUploader.initiateBinaryUpload(size, 1); // multi-part not needed for this
+    private Binary createDirectBinary(String path, Content content) throws RepositoryException, IOException {
+        BinaryUpload upload = directUploader.initiateBinaryUpload(content.size(), 1); // multi-part not needed for this
         assertNotNull(upload);
 
-        int code = httpPut(upload.getUploadURIs().iterator().next(), size, new ByteArrayInputStream(contentBytes));
+        int code = content.httpPUT(upload.getUploadURIs().iterator().next());
         assertTrue(isSuccessfulHttpPut(code, getConfigurableHttpDataRecordProvider()));
 
         Binary binary = directUploader.completeBinaryUpload(upload.getUploadToken());
-        putBinary(session, nodeName, binary);
+        putBinary(session, path, binary);
 
-        return binary;
+        return getBinary(session, path);
     }
 
     private void verifyBinariesExistViaSession(Session session,
                                                Map<String, Binary> binaries,
-                                               Map<String, String> binaryContent)
+                                               Map<String, Content> binaryContent)
             throws RepositoryException, IOException {
         for (Map.Entry<String, Binary> entry : binaries.entrySet()) {
             Binary b = getBinary(session, toAbsolutePath(entry.getKey()));
             assertEquals(b, entry.getValue());
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(b.getStream(), writer, StandardCharsets.UTF_8);
-            assertEquals(binaryContent.get(entry.getKey()), writer.toString());
-
+            binaryContent.get(entry.getKey()).assertEqualsWith(b.getStream());
         }
     }
 
-    private void verifyBinariesExistDirectly(Map<String, Binary> binaries, Map<String, String> binaryContent)
+    private void verifyBinariesExistDirectly(Map<String, Binary> binaries, Map<String, Content> binaryContent)
             throws RepositoryException, IOException {
         for (Map.Entry<String, Binary> entry : binaries.entrySet()) {
             assertTrue(entry.getValue() instanceof BinaryDownload);
             URI uri = ((BinaryDownload) entry.getValue()).getURI(BinaryDownloadOptions.DEFAULT);
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(httpGet(uri), writer, StandardCharsets.UTF_8);
-            assertEquals(binaryContent.get(entry.getKey()), writer.toString());
+            binaryContent.get(entry.getKey()).assertEqualsWith(httpGet(uri));
         }
     }
 
@@ -187,22 +180,21 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         }
     }
 
-    private void compactFileStore(NodeStoreFixture fixture) throws IOException {
-        FileStore fileStore = ((FileStoreHolder) fixture).getFileStore();
+    private void compactFileStore() {
+        FileStore fileStore = getNodeStoreComponent(FileStore.class);
         for (int i=0; i<SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
             fileStore.compactFull();
         }
     }
 
-    private MarkSweepGarbageCollector getGarbageCollector(NodeStoreFixture fixture)
+    private MarkSweepGarbageCollector getGarbageCollector()
             throws DataStoreException, IOException {
-        DataStoreBlobStore blobStore = (DataStoreBlobStore) ((BlobStoreHolder) fixture).getBlobStore();
-        NodeStore nodeStore = ((NodeStoreHolder) fixture).getNodeStore();
-        FileStore fileStore = ((FileStoreHolder) fixture).getFileStore();
-        File fileStoreRoot = ((FileStoreHolder) fixture).getFileStoreRoot();
-
+        DataStoreBlobStore blobStore = (DataStoreBlobStore) getNodeStoreComponent(BlobStore.class);
+        FileStore fileStore = getNodeStoreComponent(FileStore.class);
+        File fileStoreRoot = getNodeStoreComponent(FileStore.class.getName() + ":root");
+        
         if (null == garbageCollector) {
-            String repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
+            String repoId = ClusterRepositoryInfo.getOrCreateId(getNodeStore());
             blobStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                     REPOSITORY.getNameFromId(repoId));
             if (null == executor) {
@@ -221,8 +213,8 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         return garbageCollector;
     }
 
-    private int getBlobCount(NodeStoreFixture fixture) throws Exception {
-        DataStoreBlobStore ds = (DataStoreBlobStore) ((BlobStoreHolder) fixture).getBlobStore();
+    private int getBlobCount() throws Exception {
+        GarbageCollectableBlobStore ds = (GarbageCollectableBlobStore) getNodeStoreComponent(BlobStore.class);
         Set<String> chunks = Sets.newHashSet();
         Iterator<String> chunkIds = ds.getAllChunkIds(0);
         while (chunkIds.hasNext()) {
@@ -233,23 +225,23 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
 
     @Test
     public void testGC() throws Exception {
-        Map<String, String> binaryContent = Maps.newHashMap();
+        Map<String, Content> binaryContent = Maps.newHashMap();
         Map<String, Binary> binaries = Maps.newHashMap();
 
         for (String key : Lists.newArrayList(TRADITIONAL_UPLOAD_1, TRADITIONAL_UPLOAD_2)) {
-            String content = getRandomString(BINARY_SIZE);
+            Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
-            binaries.put(key, createSessionBinary(toAbsolutePath(key), content));
+            binaries.put(key, storeBinaryAndRetrieve(session, toAbsolutePath(key), content));
         }
         for (String key : Lists.newArrayList(DIRECT_UPLOAD_1, DIRECT_UPLOAD_2)) {
-            String content = getRandomString(BINARY_SIZE);
+            Content content = Content.createRandom(BINARY_SIZE);
             binaryContent.put(key, content);
             binaries.put(key, createDirectBinary(toAbsolutePath(key), content));
         }
         session.save();
 
         // Test that all four binaries can be accessed
-        assertEquals(4, getBlobCount(fixture));
+        assertEquals(4, getBlobCount());
         //  - Download all four via repo
         verifyBinariesExistViaSession(session, binaries, binaryContent);
         //  - Download directly
@@ -271,16 +263,16 @@ public class BinaryAccessDSGCIT extends AbstractHttpBinaryIT {
         }
 
         // Verify that all four binaries are still in data store
-        assertEquals(4, getBlobCount(fixture));
+        assertEquals(4, getBlobCount());
 
 
         // Run DSGC
-        compactFileStore(fixture);
-        MarkSweepGarbageCollector garbageCollector = getGarbageCollector(fixture);
+        compactFileStore();
+        MarkSweepGarbageCollector garbageCollector = getGarbageCollector();
         garbageCollector.collectGarbage(false);
 
         // Verify that only two binaries remain in data store
-        assertEquals(2, getBlobCount(fixture));
+        assertEquals(2, getBlobCount());
 
         // Verify that the two binaries remaining can still be accessed
         Map<String, Binary> deletedBinaries = Maps.newHashMap();
