@@ -71,14 +71,6 @@
                             <goal>baseline</goal>
                         </goals>
                         <phase>pre-integration-test</phase>
-                        <configuration>
-                            <!--
-                              This is required because there's no prior (stable) version of oak-search-mt.
-                              This should be removed post 1.8 release
-                              Anyway nothing is exported therefore it shouldn't be a problem
-                            -->
-                            <skip>true</skip>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
