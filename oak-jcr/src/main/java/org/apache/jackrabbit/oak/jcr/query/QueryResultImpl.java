@@ -30,6 +30,7 @@ import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -39,7 +40,8 @@ import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +59,13 @@ public class QueryResultImpl implements QueryResult {
 
     private final SessionDelegate sessionDelegate;
 
+    private final PartialValueFactory valueFactory;
+
     public QueryResultImpl(SessionContext sessionContext, Result result) {
         this.sessionContext = sessionContext;
         this.sessionDelegate = sessionContext.getSessionDelegate();
         this.result = result;
+        this.valueFactory = new PartialValueFactory(sessionContext);
     }
 
     @Override
@@ -234,7 +239,11 @@ public class QueryResultImpl implements QueryResult {
         if (value == null) {
             return null;
         }
-        return ValueFactoryImpl.createValue(value, sessionContext);
+        PropertyState state = PropertyValues.create(value);
+        if (state == null) {
+            throw new IllegalArgumentException("Failed to convert the specified property value to a property state.");
+        }
+        return valueFactory.createValue(state);
     }
 
 }

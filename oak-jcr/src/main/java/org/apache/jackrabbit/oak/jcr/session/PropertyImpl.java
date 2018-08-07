@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -249,8 +249,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public Value perform() throws RepositoryException {
-                return ValueFactoryImpl.createValue(
-                        property.getSingleState(), sessionContext);
+                return new PartialValueFactory(sessionContext)
+                        .createValue(property.getSingleState());
             }
         });
     }
@@ -262,8 +262,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public List<Value> perform() throws RepositoryException {
-                return ValueFactoryImpl.createValues(
-                        property.getMultiState(), sessionContext);
+                return new PartialValueFactory(sessionContext)
+                        .createValues(property.getMultiState());
             }
         }).toArray(NO_VALUES);
     }
