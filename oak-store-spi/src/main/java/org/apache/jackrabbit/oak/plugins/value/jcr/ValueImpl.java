@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
@@ -54,6 +55,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
     private final Type<?> type;
     private final int index;
     private final NamePathMapper namePathMapper;
+    private final BlobAccessProvider blobAccessProvider;
 
     private InputStream stream = null;
 
@@ -63,16 +65,20 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @param index  The index
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
+     * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper)
+    private ValueImpl(@NotNull PropertyState property, int index,
+                      @NotNull NamePathMapper namePathMapper,
+                      @NotNull BlobAccessProvider blobAccessProvider)
             throws RepositoryException {
         checkArgument(index < property.count());
         this.propertyState = checkNotNull(property);
         this.type = getType(property);
         this.index = index;
         this.namePathMapper = checkNotNull(namePathMapper);
+        this.blobAccessProvider = checkNotNull(blobAccessProvider);
     }
 
     /**
@@ -80,12 +86,15 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @param property  The property state this instance is based on
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
+     * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      * @throws RepositoryException if the underlying node state cannot be accessed
      */
-    ValueImpl(@NotNull PropertyState property, @NotNull NamePathMapper namePathMapper)
+    ValueImpl(@NotNull PropertyState property,
+              @NotNull NamePathMapper namePathMapper,
+              @NotNull BlobAccessProvider blobAccessProvider)
             throws RepositoryException {
-        this(checkSingleValued(property), 0, namePathMapper);
+        this(checkSingleValued(property), 0, namePathMapper, checkNotNull(blobAccessProvider));
     }
 
     private static PropertyState checkSingleValued(PropertyState property) {
@@ -99,12 +108,15 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @param index  The index
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
+     * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code index < propertyState.count()}
      */
     @NotNull
-    static Value newValue(@NotNull PropertyState property, int index, @NotNull NamePathMapper namePathMapper) {
+    static Value newValue(@NotNull PropertyState property, int index,
+                          @NotNull NamePathMapper namePathMapper,
+                          @NotNull BlobAccessProvider blobAccessProvider) {
         try {
-            return new ValueImpl(property, index, namePathMapper);
+            return new ValueImpl(property, index, namePathMapper, blobAccessProvider);
         } catch (RepositoryException e) {
             return new ErrorValue(e);
         }
@@ -115,12 +127,15 @@ class ValueImpl implements JackrabbitValue, OakValue {
      * @param property  The property state this instance is based on
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
+     * @param blobAccessProvider The blob access provider
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     @NotNull
-    static Value newValue(@NotNull PropertyState property, @NotNull NamePathMapper namePathMapper) {
+    static Value newValue(@NotNull PropertyState property,
+                          @NotNull NamePathMapper namePathMapper,
+                          @NotNull BlobAccessProvider blobAccessProvider) {
         try {
-            return new ValueImpl(property, 0, namePathMapper);
+            return new ValueImpl(property, 0, namePathMapper, blobAccessProvider);
         } catch (RepositoryException e) {
             return new ErrorValue(e);
         }
@@ -352,7 +367,7 @@ class ValueImpl implements JackrabbitValue, OakValue {
     public int hashCode() {
         try {
             if (getType() == PropertyType.BINARY) {
-                    return getValue(Type.BINARY, index).hashCode();
+                return getValue(Type.BINARY, index).hashCode();
             } else {
                 return getValue(Type.STRING, index).hashCode();
             }
@@ -381,9 +396,9 @@ class ValueImpl implements JackrabbitValue, OakValue {
         }
     }
 
-    private Type<?> getType(PropertyState property) throws RepositoryException {
+    private static Type<?> getType(PropertyState property) throws RepositoryException {
         try {
-            return propertyState.getType();
+            return property.getType();
         } catch (IllegalRepositoryStateException e) {
             throw new RepositoryException(e);
         }

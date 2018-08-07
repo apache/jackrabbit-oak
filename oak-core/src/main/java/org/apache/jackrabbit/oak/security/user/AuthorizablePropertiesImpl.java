@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -102,10 +102,10 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         PropertyState property = getAuthorizableProperty(tree, getLocation(tree, oakPath), true);
         if (property != null) {
             if (property.isArray()) {
-                List<Value> vs = ValueFactoryImpl.createValues(property, namePathMapper);
+                List<Value> vs = new PartialValueFactory(namePathMapper).createValues(property);
                 values = vs.toArray(new Value[vs.size()]);
             } else {
-                values = new Value[]{ValueFactoryImpl.createValue(property, namePathMapper)};
+                values = new Value[]{new PartialValueFactory(namePathMapper).createValue(property)};
             }
         }
         return values;

@@ -40,7 +40,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
@@ -70,7 +71,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
             @Override
             public Calendar perform() throws RepositoryException {
                 PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
-                return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext).getDate();
+                return Conversions.convert(dlg.getDate()).toCalendar();
             }
         });
     }
@@ -114,7 +115,7 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     }
 
     private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
-        return ValueFactoryImpl.createValues(p.getMultiState(), sessionContext);
+        return new PartialValueFactory(sessionContext).createValues(p.getMultiState());
     }
 
     @Override
