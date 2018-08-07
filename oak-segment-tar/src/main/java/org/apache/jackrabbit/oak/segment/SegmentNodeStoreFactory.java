@@ -79,10 +79,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The different secondaries are distinguished by their role attribute.
  */
-@Component(
-    configurationPolicy = ConfigurationPolicy.REQUIRE,
-    factory = "org.apache.jackrabbit.oak.segment.SegmentNodeStoreFactory"
-)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(factory = true, ocd = SegmentNodeStoreFactory.Configuration.class)
 public class SegmentNodeStoreFactory {
 
