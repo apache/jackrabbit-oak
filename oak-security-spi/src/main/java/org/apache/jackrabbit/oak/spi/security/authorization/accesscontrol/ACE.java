@@ -31,7 +31,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
@@ -49,6 +49,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
     private final NamePathMapper namePathMapper;
+    private final PartialValueFactory valueFactory;
 
     private int hashCode;
 
@@ -63,6 +64,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.isAllow = isAllow;
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
+        this.valueFactory = new PartialValueFactory(namePathMapper);
     }
 
     //--------------------------------------------------------------------------
@@ -107,13 +109,13 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
                 if (restriction.getDefinition().getRequiredType().isArray()) {
-                    List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                    List<Value> values = valueFactory.createValues(restriction.getProperty());
                     switch (values.size()) {
                         case 1: return values.get(0);
                         default : throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
                     }
                 } else {
-                    return ValueFactoryImpl.createValue(restriction.getProperty(), namePathMapper);
+                    return valueFactory.createValue(restriction.getProperty());
                 }
             }
         }
@@ -126,7 +128,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         for (Restriction restriction : restrictions) {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
-                List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                List<Value> values = valueFactory.createValues(restriction.getProperty());
                 return values.toArray(new Value[values.size()]);
             }
         }

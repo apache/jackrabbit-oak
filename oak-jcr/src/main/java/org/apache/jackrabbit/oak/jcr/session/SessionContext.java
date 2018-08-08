@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -63,7 +64,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -106,6 +106,7 @@ public class SessionContext implements NamePathMapper {
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
+    private BlobAccessProvider blobAccessProvider;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
     private final Set<String> openScopedLocks = newTreeSet();
@@ -130,7 +131,7 @@ public class SessionContext implements NamePathMapper {
             @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
-            MountInfoProvider mountInfoProvider, BlobAccessProvider blobAccessProvider,
+            MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
             boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
@@ -141,6 +142,7 @@ public class SessionContext implements NamePathMapper {
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
+        this.blobAccessProvider = blobAccessProvider == null ? PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
@@ -299,6 +301,11 @@ public class SessionContext implements NamePathMapper {
                 whiteboard, observationQueueLength, commitRateLimiter);
         }
         return observationManager;
+    }
+
+    @NotNull
+    public BlobAccessProvider getBlobAccessProvider() {
+        return blobAccessProvider;
     }
 
     public boolean hasEventListeners(){

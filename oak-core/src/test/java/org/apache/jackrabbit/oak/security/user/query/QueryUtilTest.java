@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -30,8 +32,7 @@ import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -43,6 +44,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
 public class QueryUtilTest {
+
+    private PartialValueFactory valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
 
     private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping, @NotNull ConfigurationParameters params) {
         for (AuthorizableType type : mapping.keySet()) {
@@ -149,36 +152,37 @@ public class QueryUtilTest {
     @Test
     public void testFormatString() throws Exception {
         String value = "'string\\value";
-        assertEquals("'"+QueryUtils.escapeForQuery(value)+"'", QueryUtil.format(ValueFactoryImpl.createValue(PropertyValues.newString(value), NamePathMapper.DEFAULT)));
+        assertEquals("'"+QueryUtils.escapeForQuery(value)+"'", QueryUtil.format(valueFactory.createValue(value)));
     }
 
     @Test
     public void testFormatBoolean() throws Exception {
-        assertEquals("'"+Boolean.TRUE.toString()+"'", QueryUtil.format(ValueFactoryImpl.createValue(PropertyValues.newBoolean(true), NamePathMapper.DEFAULT)));
+        assertEquals("'"+Boolean.TRUE.toString()+"'", QueryUtil.format(valueFactory.createValue(true)));
 
     }
 
     @Test
     public void testFormatLong() throws Exception {
-        Value longV = ValueFactoryImpl.createValue(PropertyValues.newLong(Long.MAX_VALUE), NamePathMapper.DEFAULT);
+        Value longV = valueFactory.createValue(Long.MAX_VALUE);
         assertEquals(String.valueOf(Long.MAX_VALUE), QueryUtil.format(longV));
     }
 
     @Test
     public void testFormatDouble() throws Exception {
-        Value doubleV = ValueFactoryImpl.createValue(PropertyValues.newDouble(Double.valueOf(2.3)), NamePathMapper.DEFAULT);
+        Value doubleV = valueFactory.createValue(2.3);
         assertEquals(String.valueOf(2.3), QueryUtil.format(doubleV));
     }
 
     @Test
     public void testFormatDate() throws Exception {
-        Value dateV = ValueFactoryImpl.createValue(PropertyValues.newDate("dateString"), NamePathMapper.DEFAULT);
-        assertEquals("xs:dateTime('dateString')", QueryUtil.format(dateV));
+        Value dateV = valueFactory.createValue(Calendar.getInstance());
+        String dateString = dateV.getString();
+        assertEquals("xs:dateTime('" + dateString + "')", QueryUtil.format(dateV));
     }
 
     @Test(expected = RepositoryException.class)
     public void testFormatOtherTypes() throws Exception {
-        Value nameValue = ValueFactoryImpl.createValue(PropertyValues.newName(JcrConstants.JCR_CREATED), NamePathMapper.DEFAULT);
+        Value nameValue = valueFactory.createValue(JcrConstants.JCR_CREATED, PropertyType.NAME);
         QueryUtil.format(nameValue);
     }
 

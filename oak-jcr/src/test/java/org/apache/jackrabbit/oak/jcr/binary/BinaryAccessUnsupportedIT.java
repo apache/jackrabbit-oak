@@ -20,26 +20,35 @@ package org.apache.jackrabbit.oak.jcr.binary;
 
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.storeBinaryAndRetrieve;
 import static org.junit.Assert.assertNull;
+
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
+
 import javax.jcr.Binary;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.FileDataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.DocumentMemoryNodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.SegmentMemoryNodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.Content;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
-
-import com.google.common.collect.Lists;
 
 /**
  * Test binary upload / download capabilities of the {@link JackrabbitValueFactory} interface when the underlying
@@ -71,6 +80,20 @@ public class BinaryAccessUnsupportedIT extends AbstractRepositoryTest {
     @Before
     public void setup() throws RepositoryException {
         uploadProvider = (JackrabbitValueFactory) getAdminSession().getValueFactory();
+    }
+
+    @Override
+    protected Repository createRepository(NodeStore nodeStore) {
+        Whiteboard wb = new DefaultWhiteboard();
+
+        BlobStore blobStore = getNodeStoreComponent(BlobStore.class);
+        if (blobStore != null && blobStore instanceof BlobAccessProvider) {
+            wb.register(BlobAccessProvider.class, (BlobAccessProvider) blobStore,
+                    Collections.emptyMap());
+
+        }
+
+        return initJcr(new Jcr(nodeStore).with(wb)).createRepository();
     }
 
     @Test
