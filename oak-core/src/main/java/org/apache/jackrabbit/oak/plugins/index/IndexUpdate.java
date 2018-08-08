@@ -274,7 +274,16 @@ public class IndexUpdate implements Editor, PathSource {
                 Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
                         rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
                 if (editor == null) {
-                    rootState.missingProvider.onMissingIndex(type, definition, indexPath);
+                    // if this isn't an async cycle AND definition has "async" property
+                    // (and implicitly isIncluded method allows async def in non-async cycle only for nrt/sync defs)
+                    // then we don't need to handle missing handler
+                    if (definition.hasProperty(ASYNC_PROPERTY_NAME) && rootState.async == null) {
+                        log.warn("Missing provider for nrt/sync index: {} (rootState.async: {}). " +
+                                "Please note, it means that index data should be trusted only after this index " +
+                                "is processed in an async indexing cycle.", definition, rootState.async);
+                    } else {
+                        rootState.missingProvider.onMissingIndex(type, definition, indexPath);
+                    }
                 } else if (shouldReindex) {
                     if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
                             && definition.getString(ASYNC_PROPERTY_NAME) == null) {
