@@ -101,8 +101,16 @@ public class PartialValueFactory {
     }
 
     @NotNull
-    public BlobAccessProvider getBlobAccessProvider() {
+    BlobAccessProvider getBlobAccessProvider() {
         return blobAccessProvider;
+    }
+
+    /**
+     * @return the {@link NamePathMapper} used by this value factory.
+     */
+    @NotNull
+    public NamePathMapper getNamePathMapper() {
+        return namePathMapper;
     }
 
     /**
