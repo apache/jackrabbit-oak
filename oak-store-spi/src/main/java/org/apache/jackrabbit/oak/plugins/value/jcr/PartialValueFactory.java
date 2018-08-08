@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
+
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,7 +34,6 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -54,9 +56,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.value.jcr.ValueImpl.newValue;
-
 /**
  * A partial value factory implementation that only deals with in-memory values
  * and can wrap a {@link Value} around a {@link PropertyState}.
@@ -66,6 +65,7 @@ public class PartialValueFactory {
     /**
      * This default blob access provider is a no-op implementation.
      */
+    @NotNull
     public static final BlobAccessProvider DEFAULT_BLOB_ACCESS_PROVIDER = new DefaultBlobAccessProvider();
 
     @NotNull
@@ -114,6 +114,7 @@ public class PartialValueFactory {
      * @throws IllegalArgumentException if {@code property.isArray()} is
      *         {@code true}.
      */
+    @NotNull
     public Value createValue(@NotNull PropertyState property) {
         return newValue(property, namePathMapper, blobAccessProvider);
     }
@@ -125,6 +126,7 @@ public class PartialValueFactory {
      * @param property The property state
      * @return A list of new {@code Value} instances
      */
+    @NotNull
     public List<Value> createValues(@NotNull PropertyState property) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
@@ -135,31 +137,38 @@ public class PartialValueFactory {
 
     //-------------------------------------------------------< ValueFactory >---
 
-    public Value createValue(String value) {
+    @NotNull
+    public Value createValue(@NotNull String value) {
         return newValue(StringPropertyState.stringProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
+    @NotNull
     public Value createValue(long value) {
         return newValue(LongPropertyState.createLongProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
+    @NotNull
     public Value createValue(double value) {
         return newValue(DoublePropertyState.doubleProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
-    public Value createValue(Calendar value) {
+    @NotNull
+    public Value createValue(@NotNull Calendar value) {
         return newValue(PropertyStates.createProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
+    @NotNull
     public Value createValue(boolean value) {
         return newValue(BooleanPropertyState.booleanProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
-    public Value createValue(Node value) throws RepositoryException {
+    @NotNull
+    public Value createValue(@NotNull Node value) throws RepositoryException {
         return createValue(value, false);
     }
 
-    public Value createValue(Node value, boolean weak) throws RepositoryException {
+    @NotNull
+    public Value createValue(@NotNull Node value, boolean weak) throws RepositoryException {
         if (!value.isNodeType(NodeType.MIX_REFERENCEABLE)) {
             throw new ValueFormatException(
                     "Node is not referenceable: " + value.getPath());
@@ -169,10 +178,12 @@ public class PartialValueFactory {
                 : newValue(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper, getBlobAccessProvider());
     }
 
-    public Value createValue(BigDecimal value) {
+    @NotNull
+    public Value createValue(@NotNull BigDecimal value) {
         return newValue(DecimalPropertyState.decimalProperty("", value), namePathMapper, getBlobAccessProvider());
     }
 
+    @NotNull
     public Value createValue(String value, int type) throws ValueFormatException {
         if (value == null) {
             throw new ValueFormatException("null");
