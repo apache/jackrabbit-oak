@@ -61,7 +61,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     @Before
     public void before() throws Exception {
         super.before();
-        userMgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+        userMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
         mp = userMgr.getMembershipProvider();
         // set the threshold low for testing
         mp.setMembershipSizeThreshold(SIZE_TH);

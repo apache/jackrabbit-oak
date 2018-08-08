@@ -39,10 +39,13 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -260,6 +263,40 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
         Value afterValue = (Value) events[0].getInfo().get("afterValue");
         assertNotNull(afterValue);
         Binary binary = afterValue.getBinary();
+        content.assertEqualsWith(binary.getStream());
+
+        assertTrue(binary instanceof BinaryDownload);
+
+        BinaryDownload binaryDownload = (BinaryDownload) binary;
+        URI uri = binaryDownload.getURI(BinaryDownloadOptions.DEFAULT);
+
+        assertNotNull(uri);
+        assertEquals(expectedDownloadURI(), uri);
+    }
+
+    @Test
+    public void testAuthorizableProperty() throws Exception {
+        assertTrue(getAdminSession() instanceof JackrabbitSession);
+        JackrabbitSession session = (JackrabbitSession) getAdminSession();
+        UserManager userMgr = session.getUserManager();
+        ValueFactory vf = session.getValueFactory();
+
+        Content content = Content.createRandom(SEGMENT_INLINE_SIZE * 2);
+        Binary binary = BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
+
+        Authorizable auth = userMgr.getAuthorizable(session.getUserID());
+        assertNotNull(auth);
+
+        auth.setProperty("avatar", vf.createValue(binary));
+        if (!userMgr.isAutoSave()) {
+            session.save();
+        }
+
+        Value[] values = auth.getProperty("avatar");
+        assertNotNull(values);
+        assertEquals(1, values.length);
+        binary = values[0].getBinary();
+
         content.assertEqualsWith(binary.getStream());
 
         assertTrue(binary instanceof BinaryDownload);
