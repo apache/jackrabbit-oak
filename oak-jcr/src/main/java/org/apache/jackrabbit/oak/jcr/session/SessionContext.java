@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.session;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -142,14 +142,14 @@ public class SessionContext implements NamePathMapper {
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
-        this.blobAccessProvider = blobAccessProvider == null ? PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
+        this.blobAccessProvider = blobAccessProvider == null ? DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
         this.namePathMapper = new NamePathMapperImpl(
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot(), namePathMapper, blobAccessProvider);
+                delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.fastQueryResultSize = fastQueryResultSize;
     }
 
