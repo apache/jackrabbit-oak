@@ -28,16 +28,22 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
 import javax.jcr.Binary;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.observation.Event;
+import javax.jcr.observation.ObservationManager;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
@@ -50,13 +56,15 @@ import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.SegmentMemoryNode
 import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils;
 import org.apache.jackrabbit.oak.jcr.binary.util.Content;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.test.LogPrintWriter;
+import org.apache.jackrabbit.test.api.observation.EventResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a unit test for the direct binary access JCR API extension.
@@ -67,6 +75,8 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class BinaryAccessTest extends AbstractRepositoryTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(BinaryAccessTest.class);
 
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
@@ -113,9 +123,9 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
      */
     @Override
     protected Repository createRepository(NodeStore nodeStore) {
-        Whiteboard wb = new DefaultWhiteboard();
-        wb.register(BlobAccessProvider.class, new MockBlobAccessProvider(), Collections.emptyMap());
-        return initJcr(new Jcr(nodeStore).with(wb)).createRepository();
+        Oak oak = new Oak(nodeStore);
+        oak.getWhiteboard().register(BlobAccessProvider.class, new MockBlobAccessProvider(), Collections.emptyMap());
+        return initJcr(new Jcr(oak)).createRepository();
     }
 
     private class MockBlobAccessProvider implements BlobAccessProvider {
@@ -230,5 +240,34 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
         binary = BinaryAccessTestUtils.getBinary(getAdminSession(), FILE_PATH);
         content.assertEqualsWith(binary.getStream());
+    }
+
+    @Test
+    public void testEvent() throws Exception {
+        BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, Content.createRandom(0));
+
+        ObservationManager obsMgr = getAdminSession().getWorkspace().getObservationManager();
+        EventResult result = new EventResult(new LogPrintWriter(LOG));
+        obsMgr.addEventListener(result, Event.PROPERTY_CHANGED, FILE_PATH, true, null, null, false);
+
+        Content content = Content.createRandom(SEGMENT_INLINE_SIZE * 2);
+        BinaryAccessTestUtils.storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
+
+        Event[] events = result.getEvents(TimeUnit.SECONDS.toMillis(5));
+        assertEquals(1, events.length);
+
+        assertEquals(Event.PROPERTY_CHANGED, events[0].getType());
+        Value afterValue = (Value) events[0].getInfo().get("afterValue");
+        assertNotNull(afterValue);
+        Binary binary = afterValue.getBinary();
+        content.assertEqualsWith(binary.getStream());
+
+        assertTrue(binary instanceof BinaryDownload);
+
+        BinaryDownload binaryDownload = (BinaryDownload) binary;
+        URI uri = binaryDownload.getURI(BinaryDownloadOptions.DEFAULT);
+
+        assertNotNull(uri);
+        assertEquals(expectedDownloadURI(), uri);
     }
 }
