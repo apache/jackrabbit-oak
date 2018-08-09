@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -286,12 +287,6 @@ public class RepositorySidegrade {
         }
     }
 
-    private void removeCheckpointReferences(NodeBuilder builder) throws CommitFailedException {
-        // removing references to the checkpoints,
-        // which don't exist in the new repository
-        builder.setChildNode(":async");
-    }
-
     private void copyState() throws CommitFailedException, RepositoryException, IOException {
         boolean migrateCheckpoints = true;
         if (!isCompleteMigration() && !forceCheckpoints) {
@@ -415,7 +410,6 @@ public class RepositorySidegrade {
         NodeState sourceRoot = wrapNodeState(source.getRoot(), true, false);
         NodeBuilder targetRoot = target.getRoot().builder();
         copyWorkspace(sourceRoot, targetRoot);
-        removeCheckpointReferences(targetRoot);
         if (!versionCopyConfiguration.isCopyAll()) {
             NodeBuilder versionStorage = VersionHistoryUtil.getVersionStorage(targetRoot);
             if (!versionStorage.exists()) { // it's possible that this is a new repository and the version storage
@@ -453,17 +447,17 @@ public class RepositorySidegrade {
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes;
-        if (versionCopyConfiguration.isCopyAll()) {
-            excludes = copyOf(this.excludePaths);
-        } else {
-            excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
+        ImmutableSet.Builder<String> excludes = new ImmutableSet.Builder<>();
+        excludes.addAll(excludePaths);
+        if (!versionCopyConfiguration.isCopyAll()) {
+            excludes.add("/jcr:system/jcr:versionStorage");
         }
-        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+        excludes.add("/:async");
 
+        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
         NodeStateCopier.builder()
             .include(includes)
-            .exclude(excludes)
+            .exclude(excludes.build())
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 
