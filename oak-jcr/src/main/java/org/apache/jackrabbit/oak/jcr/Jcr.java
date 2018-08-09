@@ -98,7 +98,7 @@ public class Jcr {
         this.oak = oak;
 
         if (initialize) {
-            OakDefaultComponents defs = OakDefaultComponents.INSTANCE;
+            OakDefaultComponents defs = new OakDefaultComponents();
             with(defs.securityProvider());
             for (CommitHook ch : defs.commitHooks()) {
                 with(ch);
