@@ -74,7 +74,7 @@ public class RDBStatementWrapper implements Statement {
             String l = sql.toLowerCase(Locale.ENGLISH).trim();
             if (l.startsWith("alter table ") && l.contains(" add ")) {
                 if (!l.contains(" constraint ")) {
-                    throw new SQLException("table alter statement rejected: " + sql);
+                    throw new SQLException("table alter statement rejected: " + sql, "ABCDE", 17);
                 }
             }
         }

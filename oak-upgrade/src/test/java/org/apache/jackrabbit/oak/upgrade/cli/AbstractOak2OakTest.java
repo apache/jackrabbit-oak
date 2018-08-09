@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import static java.util.Collections.singletonMap;
-import static junit.framework.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -166,8 +165,6 @@ public abstract class AbstractOak2OakTest {
         verifyBlob(session);
         if (supportsCheckpointMigration()) {
             verifyCheckpoint();
-        } else {
-            verifyEmptyAsync();
         }
     }
 
@@ -256,12 +253,6 @@ public abstract class AbstractOak2OakTest {
         } else {
             return null;
         }
-    }
-
-    // OAK-2869
-    protected void verifyEmptyAsync() {
-        NodeState state = destination.getRoot().getChildNode(":async");
-        assertFalse(state.hasProperty("test"));
     }
 
     protected boolean supportsCheckpointMigration() {

@@ -698,13 +698,15 @@ public class DocumentNodeStoreService {
             }
         }
 
-        addRegistration(
-                registerMBean(whiteboard,
-                        CheckpointMBean.class,
-                        new DocumentCheckpointMBean(store),
-                        CheckpointMBean.TYPE,
-                        "Document node store checkpoint management")
-        );
+        if (!isNodeStoreProvider()) {
+            addRegistration(
+                    registerMBean(whiteboard,
+                            CheckpointMBean.class,
+                            new DocumentCheckpointMBean(store),
+                            CheckpointMBean.TYPE,
+                            "Document node store checkpoint management")
+            );
+        }
 
         addRegistration(
                 registerMBean(whiteboard,

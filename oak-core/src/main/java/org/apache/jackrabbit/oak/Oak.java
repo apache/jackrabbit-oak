@@ -934,6 +934,10 @@ public class Oak {
 
     public static class OakDefaultComponents {
 
+        /**
+         * @deprecated create a new instance of {@link OakDefaultComponents} instead.
+         */
+        @Deprecated
         public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
 
         private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
@@ -954,7 +958,7 @@ public class Oak {
 
         private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();
 
-        private OakDefaultComponents() {
+        public OakDefaultComponents() {
         }
 
         public Iterable<CommitHook> commitHooks() {

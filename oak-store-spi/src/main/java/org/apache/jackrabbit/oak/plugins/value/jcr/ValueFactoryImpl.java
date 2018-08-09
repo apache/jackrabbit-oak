@@ -28,6 +28,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
@@ -54,6 +55,8 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
 
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
+
+    @NotNull
     private final Root root;
 
     /**
@@ -99,6 +102,7 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
      * @deprecated use {@link PartialValueFactory#createValue(PropertyState)} instead.
      */
     @Deprecated
+    @NotNull
     public static Value createValue(@NotNull PropertyState property,
                                     @NotNull NamePathMapper namePathMapper) {
         return new PartialValueFactory(namePathMapper).createValue(property);
@@ -144,14 +148,17 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
      * @deprecated use {@link PartialValueFactory#createValues(PropertyState)} instead.
      */
     @Deprecated
-    public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
+    @NotNull
+    public static List<Value> createValues(@NotNull PropertyState property,
+                                           @NotNull NamePathMapper namePathMapper) {
         return new PartialValueFactory(namePathMapper).createValues(property);
     }
 
     //-------------------------------------------------------< ValueFactory >---
 
     @Override
-    public Value createValue(InputStream value) {
+    @NotNull
+    public Value createValue(@NotNull InputStream value) {
         try {
             return createBinaryValue(value);
         } catch (IOException e) {
@@ -162,7 +169,8 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     }
 
     @Override
-    public Value createValue(Binary value) {
+    @NotNull
+    public Value createValue(@NotNull Binary value) {
         try {
             if (value instanceof BinaryImpl) {
                 // No need to create the value again if we have it already underlying the binary
@@ -174,7 +182,11 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
                     return createBinaryValue(blob);
                 }
             }
-            return createBinaryValue(value.getStream());
+            InputStream stream = value.getStream();
+            if (stream == null) {
+                throw new ValueFormatException("null");
+            }
+            return createBinaryValue(stream);
         } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         } catch (IOException e) {
@@ -183,7 +195,8 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     }
 
     @Override
-    public Binary createBinary(InputStream stream) throws RepositoryException {
+    @NotNull
+    public Binary createBinary(@NotNull InputStream stream) throws RepositoryException {
         try {
             return new BinaryImpl(createBinaryValue(stream));
         } catch (IOException e) {
@@ -229,14 +242,16 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
                 getBlobAccessProvider().completeBlobUpload(uploadToken));
     }
 
-    private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
+    @NotNull
+    private ValueImpl createBinaryValue(@NotNull InputStream value) throws IOException, RepositoryException {
         long start = binOpsLogger.start();
         Blob blob = root.createBlob(value);
         binOpsLogger.end(start, -1, "Created binary property of size [{}]", blob.length());
         return createBinaryValue(blob);
     }
 
-    private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
+    @NotNull
+    private ValueImpl createBinaryValue(@NotNull Blob blob) throws RepositoryException {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, getBlobAccessProvider());
     }
 
