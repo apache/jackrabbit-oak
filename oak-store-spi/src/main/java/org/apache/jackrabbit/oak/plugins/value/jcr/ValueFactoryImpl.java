@@ -252,7 +252,8 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
 
     @NotNull
     private ValueImpl createBinaryValue(@NotNull Blob blob) throws RepositoryException {
-        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, getBlobAccessProvider());
+        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob),
+                getNamePathMapper(), getBlobAccessProvider());
     }
 
     @Nullable

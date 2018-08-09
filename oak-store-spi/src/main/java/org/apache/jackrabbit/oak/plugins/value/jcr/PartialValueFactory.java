@@ -69,7 +69,7 @@ public class PartialValueFactory {
     public static final BlobAccessProvider DEFAULT_BLOB_ACCESS_PROVIDER = new DefaultBlobAccessProvider();
 
     @NotNull
-    protected final NamePathMapper namePathMapper;
+    private final NamePathMapper namePathMapper;
 
     @NotNull
     private final BlobAccessProvider blobAccessProvider;
