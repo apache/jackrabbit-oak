@@ -335,6 +335,34 @@ cachePath
 
 _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
 
+accessKey
+: AWS access key to be used for accessing the S3 bucket. Not required if IAM roles configured.
+
+secretKey
+: AWS secret key to be used for accessing the S3 bucket. Not required if IAM roles configured.
+
+s3Bucket/container
+: Default - `us-standard`
+: S3 Bucket name to be used for storing the binaries/blobs.
+
+s3Region
+: Region where the S3 bucket is located or to be created if not present.
+
+s3EndPoint
+: S3 rest API endpoint. Can help reduce latency of redirection from standard endpoint if a different region configured.
+
+connectionTimeout
+: S3 connection timeout. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
+
+socketTimeout
+: S3 socket timeout. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
+
+maxConnections
+: Maximum connections to S3. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
+
+maxErrorRetry
+: Max error retries. See [AWS S3 documentation](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/section-client-configuration.html).
+
 maxCachedBinarySize
 : Default - 17408 (17 KB)
 : Size in bytes. Binaries with size less than or equal to this size would be stored in in memory cache
@@ -344,7 +372,7 @@ cacheSizeInMB
 : Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
   helps in better performance when lots of small binaries are accessed frequently.
 
-#### Oak - SharedS3DataStore (Since Oak 1.2.0)
+#### Oak - SharedS3DataStore (Oak 1.2.x & Oak 1.4.x)
 
 Supports shared S3 DataStore
 
@@ -366,6 +394,9 @@ All the above data stores enable local file system caching with the following pa
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore`_
 * _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore`_
+
+path
+: The local file system path used to cache binaries and stage binaries for asynchronous uploads.
 
 cacheSize
 : Default - 68719476736
