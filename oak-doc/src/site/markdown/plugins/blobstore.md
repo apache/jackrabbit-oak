@@ -396,6 +396,18 @@ the steps:
 * Remove other files corresponding to the particular repositoryId e.g. `markedTimestamp-[repositoryId]` or 
 `references-[repositoryId]`.
 
+##### Reset Repository ID
+If any of the repositories sharing a DataStore is cloned then it would have the same `repositoryId` 
+registered in the datastore as the repository from which cloned and running a shared DSGC would lead to data loss/missing blobs.
+So, care must be taken to reset the `repositoryId`. 
+
+[oak-run](http://mvnrepository.com/artifact/org.apache.jackrabbit/oak-run/) 
+cli utility has a `resetclusterid` command to reset the repository id.
+The command can be executed as below and more details can be found at the [readme](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
+for oak-run:
+
+`java -jar oak-run.jar resetclusterid < repository path | Mongo URI >`  
+
 <a name="consistency-check"></a>  
 #### Consistency Check
 The data store consistency check will report any data store binaries that are missing but are still referenced. The 
