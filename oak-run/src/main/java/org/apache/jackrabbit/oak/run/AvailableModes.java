@@ -59,5 +59,6 @@ public final class AvailableModes {
             .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put("server", new ServerCommand())
             .put(DataStoreCommand.NAME, new DataStoreCommand())
+            .put("segment-copy", new SegmentCopyCommand())
             .build());
 }
