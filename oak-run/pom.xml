@@ -36,6 +36,7 @@
     <!--
       Size History:
       + 51 MB AWS java sdk update (OAK-7536)
+      + 49 MB MongoDB Java driver 3.6.3 is bigger (OAK-7359)
       + 48 MB Transitive dependencies needed for aws-java-sdk (OAK-6899)
       + 47 MB release profile build slightly bigger jar (OAK-6252)
       + 46 MB re-introduced the ServerCommand and required dependencies (OAK-6252)
