@@ -15,29 +15,43 @@
 
 sudo: false
 env:
-  - MODULE=oak-jcr
-  - MODULE=oak-store-document
-  - MODULE=oak-it
-  - MODULE=oak-lucene
-  - MODULE=oak-run
-  - MODULE=oak-it-osgi
-  - MODULE=oak-pojosr
-  - MODULE=oak-upgrade
-install:  mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
-script:   mvn --batch-mode clean verify -Dbaseline.skip=true -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
+  global:
+    - MONGODB=3.6.6
+  matrix:
+    - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
+    - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-store-document PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-lucene PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-it PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-run PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-upgrade PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-pojosr PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+    - MODULE=oak-it-osgi PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+install:
+  - wget -N http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz -P $HOME/.mongodb
+  - tar --skip-old-files -C $HOME/.mongodb -xf $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}.tgz
+  - mkdir -p target/mongodb/data
+  - cd target/mongodb
+  - virtualenv mtools
+  - source mtools/bin/activate
+  - pip install --upgrade pip
+  - pip install python-dateutil psutil pymongo mtools
+  - mlaunch init ${MONGODB_MODE} --binarypath $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}/bin --dir ${TRAVIS_BUILD_DIR}/target/mongodb/data
+  - cd $TRAVIS_BUILD_DIR
+  - mvn --batch-mode -DskipTests -Dbaseline.skip=true install -pl :${MODULE} -am -nsu
+script:   mvn --batch-mode clean verify -DtrimStackTrace=false -Dbaseline.skip=true ${UT} ${PROFILE} -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
   - oraclejdk8
 cache:
   directories:
     - $HOME/.m2
+    - $HOME/.mongodb
 addons:
   apt:
-    sources:
-      - mongodb-3.4-trusty
     packages:
-      - mongodb-org-server
-services:
-  - mongodb
+      - python
+      - python-pip
+      - python-virtualenv
 notifications:
   email: false
