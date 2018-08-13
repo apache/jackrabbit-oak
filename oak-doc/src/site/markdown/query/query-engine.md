@@ -216,7 +216,7 @@ This only works with the Lucene `compatVersion=2` right now,
 so even if enabled, getSize may still return -1 if the index used does not support the feature.
 Example code to show how this work (where `test` is a common word in the index):
 
-    String query = "//element(*, cq:Page)[jcr:contains(., 'test')]";
+    String qs = "//element(*, cq:Page)[jcr:contains(., 'test')]";
     Query query = queryManager.createQuery(qs, "xpath");
     QueryResult result = query.execute();
     long size = result.getRows().getSize();
