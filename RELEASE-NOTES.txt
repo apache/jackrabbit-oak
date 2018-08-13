@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.7
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.6 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.7 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,69 +15,105 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.6
+Changes in Oak 1.9.7
 --------------------
 
 Sub-task
 
-    [OAK-7626] - Strict lease check mode
-    [OAK-7628] - Prevent commits after lease end
-    [OAK-7636] - Replace usage of deprecated
-    DocumentNodeStoreBuilder.setLeaseCheck()
+    [OAK-7654] - Remove usage of deprecated MongoDB Java driver 2.x
+    API
+    [OAK-7655] - Replace fongo dependency with custom test wrapper
 
 Technical task
 
-    [OAK-7632] - remove JSR 305 annotations in Groovy code
+    [OAK-6770] - Convert oak-segment-tar to OSGi R6 annotations
+    [OAK-7603] - [DirectBinaryAccess][DISCUSS] Oak API extensions
+    [OAK-7662] - Allow MarkSweepGarbageCollector to retain output
+    files
+    [OAK-7663] - Make oak-run LoggingInitializer generic
+    [OAK-7664] - Add a get method to ClusterRepositoryInfo for read
+    only cases
+    [OAK-7665] - Add a datastore read-write option to BlobStoreOptions
+    when NodeStore read only
+    [OAK-7670] - RDB*Store: update postgresql JDBC driver reference to
+    42.2.4
+    [OAK-7673] - RDB*Store: update mysql driver reference to 8.0.12
+    [OAK-7690] - RDB*Store: update SQLServer JDBC dependency to
+    7.0.0.jre*
+    [OAK-7692] - [DirectBinaryAccess] Upload token HMAC signature must
+    be base64 encoded
+    [OAK-7704] - RDB*Store: log message after failed DB upgrade too
+    verbose
 
 Bug
 
-    [OAK-7564] - Commit fails when forced journal push throws
-    exception
-    [OAK-7610] - Active blob deletion fails on composite setups
-    [OAK-7630] - Suggest directory update doesn't close
-    AnalyzingInfixSuggester after building
-    [OAK-7638] - Race condition when simultaneous request to stage
-    file for async upload
+    [OAK-7652] - Node.getMixinNodeTypes can revive deleted node mixins
+    (again)
+    [OAK-7686] - Partial migration doesn't update Lucene indexing data
+    [OAK-7687] - :async node is being removed during the partial
+    migration
+    [OAK-7694] - Oak.OakDefaultComponents.INSTANCE is mutable
+
+Epic
+
+    [OAK-7190] - Oak should compile & test on Java 10
 
 New Feature
 
-    [OAK-7604] - Add FileStoreStatsMBean#getSegmentCount for
-    monitoring the number of segments
-    [OAK-7617] - Metric for DocumentNodeStore lease update
+    [OAK-7623] - SegmentNodeStore - sidegrade support between
+    TarPersistence and AzurePersistence
+    [OAK-7649] - oak-run command to execute datastore garbage
+    collection
 
 Improvement
 
-    [OAK-3883] - Avoid commit from too far in the future (due to clock
-    skews) to go through
-    [OAK-7180] - The error message "postings highlighting failed"
-    should be warn or debug
-    [OAK-7316] - Greedy ClusterNodeInfo
-    [OAK-7334] - Transform CacheWeightEstimator into a unit test
-    [OAK-7615] - Speed up site generation
-    [OAK-7621] - Metric for background read lag
-    [OAK-7627] - Update the dependency on biz.aQute.bndlib
-    [OAK-7629] - Lucene index: hide the settings COR and COW
+    [OAK-7246] - Improve cleanup of locally copied index files
+    [OAK-7367] - Unify mockito versions and update to latest
+    [OAK-7459] - oak-run compact should support Azure Segment Store
+    [OAK-7640] - Prevent commits in the past
+    [OAK-7647] - Replace usage of deprecated junit.framework.Assert
+    [OAK-7672] - Introduce oak-run segment-copy for moving around
+    segments in different storages
+    [OAK-7688] - Replace usage of static ValueFactoryImpl methods
+    [OAK-7699] - Active blob deletion fails on composite setups
+    (follow up of OAK-7610)
 
 Test
 
-    [OAK-7620] - Update to Mockito 2.x
+    [OAK-7646] - UploadStagingCacheTest#testConcurrentSameAddRequest
+    fails intermittently
 
 Task
 
-    [OAK-7257] - oak-examples: update Tomcat dependency
-    [OAK-7609] - Update jackson dependencies to 2.9.6
-    [OAK-7614] - Update Oak trunk to Jackrabbit 2.17.4
-    [OAK-7622] - Update httpcomponent dependencies to 4.4.10/4.5.6
-    (and declare the versions globally)
-    [OAK-7624] - Add "org.apache.jackrabbit.oak.plugins.document.spi"
-    to package export filter
-    [OAK-7625] - remove @Nonnegative annotation in NodeDocumentCache
-    [OAK-7641] - various internal APIs missing in package export
-    filter
+    [OAK-7511] - get rid of JSR 305 dependency - use jetbrains
+    nullability annotations instead
+    [OAK-7577] - Update maven plugins from org.apache.maven.plugins
+    [OAK-7581] - oak-examples: remove special case for failsafe plugin
+    [OAK-7607] - Update 7.0.* Tomcat dependencies once 7.0.90 is
+    released
+    [OAK-7644] - Remove strategy to optimize secondary reads
+    [OAK-7650] - upgrade to mockito version compatible with java 11
+    [OAK-7651] - oak-solr-core test failures with java 11
+    [OAK-7667] - Update Oak 1.8 to Jackrabbit 2.16.3
+    [OAK-7674] - Allow to specify the connection string for
+    AzureBlobStore
+    [OAK-7675] - oak-pojosr: replace mockito-all by mockito-core
+    [OAK-7677] - Announcement mail template lacks line feeds in front
+    of release notes
+    [OAK-7678] - Update to default mockito version (defined in
+    oak-parent)
+    [OAK-7679] - oak-core: update Mockito version and fix test case to
+    be compatible with it
+    [OAK-7681] - enable baseline check for oak-search-mt
+    [OAK-7682] - fix comparisonVersion for baseline check
+    [OAK-7685] - Update easymock dependency to 3.6
+    [OAK-7689] - Update maven plugins from org.apache.maven.plugins
 
 Documentation
 
-    [OAK-7616] - Document metrics
+    [OAK-5923] - Document S3 datastore
+    [OAK-7705] - Document the requirement to reset repository id for
+    cloned systems
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
