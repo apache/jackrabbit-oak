@@ -68,7 +68,7 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
             indexPath) throws IOException {
         ImmutableList.Builder<LuceneIndexReader> readers = ImmutableList.builder();
         LuceneIndexReader reader = createReader(mountInfoProvider.getDefaultMount(), definition, defnState, indexPath);
-        //Default mount is the first entry. This ensures that suggester, spellcheck can work on that untill they
+        //Default mount is the first entry. This ensures that suggester, spellcheck can work on that until they
         //support multiple readers
         if (reader != null) {
             readers.add(reader);

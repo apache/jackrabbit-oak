@@ -240,7 +240,7 @@ public class LuceneIndexProviderService {
             boolValue = PROP_DISABLE_DEFN_STORAGE_DEFAULT,
             label = "Disable index definition storage",
             description = "By default index definitions would be stored at time of reindexing to ensure that future " +
-                    "modifications to it are not effective untill index is reindex. Set this to true would disable " +
+                    "modifications to it are not effective until index is reindex. Set this to true would disable " +
                     "this feature"
     )
     private static final String PROP_DISABLE_STORED_INDEX_DEFINITION = "disableStoredIndexDefinition";

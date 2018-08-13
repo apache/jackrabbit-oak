@@ -148,7 +148,7 @@ public class DocumentStoreStatsTest {
         enableLevel(logName, Level.INFO);
         customLogs.starting();
 
-        //No logs untill debug enabled
+        //No logs until debug enabled
         stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
         assertEquals(0, customLogs.getLogs().size());
 

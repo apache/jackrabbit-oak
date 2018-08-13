@@ -213,7 +213,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         try {
             long start = PERF_LOGGER.start();
 
-            //Loop untill queue finished or IndexCopier
+            //Loop until queue finished or IndexCopier
             //found to be closed. Doing it with timeout to
             //prevent any bug causing the thread to wait indefinitely
             while (!copyDone.await(10, TimeUnit.SECONDS)) {

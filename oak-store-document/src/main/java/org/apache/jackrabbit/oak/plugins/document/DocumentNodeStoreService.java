@@ -667,7 +667,7 @@ public class DocumentNodeStoreService {
         //If we exposed our BlobStore then unregister it *after*
         //NodeStore service. This ensures that if any other component
         //like SecondaryStoreCache depends on this then it remains active
-        //untill DocumentNodeStore get deactivated
+        //until DocumentNodeStore get deactivated
         if (blobStoreReg != null){
             blobStoreReg.unregister();
             blobStoreReg = null;

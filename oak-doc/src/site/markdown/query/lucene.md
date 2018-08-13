@@ -873,7 +873,7 @@ way and that would start affecting the query execution leading to inconsistent r
 
 Since Oak 1.6 the index definitions are cloned upon reindexing and stored in a hidden structure.
 For further incremental indexing and for query plan calculation the stored index definition is used.
-So any changes done post reindex to index definition would not be applicable untill a reindex is done.
+So any changes done post reindex to index definition would not be applicable until a reindex is done.
 
 There would be some cases where changes in index definition does not require a reindex. For e.g. if a new property
 is being introduced in content model and no prior content exist with such a property then its safe to index such
