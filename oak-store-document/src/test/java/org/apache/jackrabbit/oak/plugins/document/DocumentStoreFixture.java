@@ -233,7 +233,11 @@ public abstract class DocumentStoreFixture {
             } catch (Exception ignore) {
             }
             for (MongoConnection c : connections) {
-                c.close();
+                try {
+                    c.close();
+                } catch (IllegalStateException e) {
+                    // may happen when connection is already closed (OAK-7447)
+                }
             }
             connections.clear();
         }
