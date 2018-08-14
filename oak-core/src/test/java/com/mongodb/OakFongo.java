@@ -120,13 +120,14 @@ public class OakFongo extends Fongo {
 
         @Override
         public synchronized FongoDBCollection doGetCollection(String name,
-                                                              boolean idIsNotUniq) {
+                                                              boolean idIsNotUniq,
+                                                              boolean validateOnInsert) {
             if (name.startsWith("system.")) {
-                return super.doGetCollection(name, idIsNotUniq);
+                return super.doGetCollection(name, idIsNotUniq, validateOnInsert);
             }
             FongoDBCollection coll = collMap.get(name);
             if (coll == null) {
-                coll = new OakFongoDBCollection(this, name, idIsNotUniq);
+                coll = new OakFongoDBCollection(this, name, idIsNotUniq, validateOnInsert);
                 collMap.put(name, coll);
             }
             return coll;
@@ -148,8 +149,9 @@ public class OakFongo extends Fongo {
 
         public OakFongoDBCollection(FongoDB db,
                                     String name,
-                                    boolean idIsNotUniq) {
-            super(db, name, idIsNotUniq);
+                                    boolean idIsNotUniq,
+                                    boolean validateOnInsert) {
+            super(db, name, idIsNotUniq, validateOnInsert);
         }
 
         @Override

@@ -45,9 +45,6 @@ public class MongoConnection {
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
-    private static boolean SO_KEEP_ALIVE =
-            Boolean.getBoolean("oak.mongo.socketKeepAlive");
-
     /**
      * Constructs a new connection using the specified MongoDB connection string.
      * See also http://docs.mongodb.org/manual/reference/connection-string/
@@ -122,7 +119,6 @@ public class MongoConnection {
         return new MongoClientOptions.Builder()
                 .description("MongoConnection for Oak DocumentMK")
                 .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .socketKeepAlive(SO_KEEP_ALIVE)
                 .threadsAllowedToBlockForConnectionMultiplier(100);
     }
 

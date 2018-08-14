@@ -90,17 +90,17 @@ public class MongoConnectionTest {
     public void socketKeepAlive() throws Exception {
         assumeTrue(MongoUtils.isAvailable());
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.socketKeepAlive(true);
+        options.socketKeepAlive(false);
         MongoConnection c = new MongoConnection(MongoUtils.URL, options);
         try {
-            assertTrue(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+            assertFalse(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
         } finally {
             c.close();
         }
-        // default is without keep-alive
+        // default is with keep-alive (starting with 3.6 driver)
         c = new MongoConnection(MongoUtils.URL);
         try {
-            assertFalse(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
+            assertTrue(c.getDB().getMongo().getMongoOptions().isSocketKeepAlive());
         } finally {
             c.close();
         }
