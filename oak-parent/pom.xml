@@ -50,7 +50,7 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
     <solr.version>5.5.5</solr.version>
-    <mongo.driver.version>3.4.0</mongo.driver.version>
+    <mongo.driver.version>3.6.3</mongo.driver.version>
     <!-- Note that we're using SLF4J API version 1.7 when compiling     -->
     <!-- core Oak components but more recent SLF4J and Logback versions -->
     <!-- when compiling and running test cases and the oak-run jar.     -->
