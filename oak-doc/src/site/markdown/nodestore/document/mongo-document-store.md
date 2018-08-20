@@ -36,7 +36,7 @@ Oak Release | MongoDB version
 1.2.x | 3.2.x
 1.4.x | 3.2.x
 1.6.x | 3.2.x
-1.8.x | 3.4.x
+1.8.x | 3.6.x
 
 For production deployments use a replica-set with at least three mongod
 instances and a majority write concern. Fewer than three instances (e.g. two

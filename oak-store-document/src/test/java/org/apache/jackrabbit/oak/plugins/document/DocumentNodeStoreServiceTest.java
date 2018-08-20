@@ -335,6 +335,7 @@ public class DocumentNodeStoreServiceTest {
         Map<String, Object> config = Maps.newHashMap();
         config.put("repository.home", repoHome);
         config.put("db", MongoUtils.DB);
+        config.put("mongouri", MongoUtils.URL);
         return config;
     }
 }

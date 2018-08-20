@@ -25,6 +25,7 @@
     * [Online Garbage Collection](#online-garbage-collection)
 * [Monitoring](#monitoring)            
 * [Tools](#tools)
+    * [Segment-Copy](#segment-copy)
     * [Backup](#backup)
     * [Restore](#restore)
     * [Check](#check)
@@ -670,6 +671,24 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 **Connection Instructions**:
 
 * **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
+
+### <a name="segment-copy"/> Segment-Copy
+```
+java -jar oak-run.jar segment-copy [--verbose] SOURCE DESTINATION
+```
+
+The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
+Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../../migration.md)) which includes only the current head state, this translation includes __all previous revisions persisted in the Segment Store__, therefore retaining the entire history.
+
+`SOURCE` must be a valid path/uri to an existing Segment Store. 
+`DESTINATION` must be a valid path/uri for the resulting Segment Store. 
+Both are specified as `PATH | cloud-prefix:URI`. 
+Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
+
+If the `--verbose` option is specified, the command will print detailed progress information messages. 
+These include individual segments being transfered from `SOURCE` to `DESTINATION` at a certain point in time.
+If not specified, progress information messages will be disabled.
+
 
 ### <a name="backup"/> Backup
 

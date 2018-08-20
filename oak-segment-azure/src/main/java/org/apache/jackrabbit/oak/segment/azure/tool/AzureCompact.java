@@ -20,42 +20,28 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Stopwatch;
+import com.google.common.io.Files;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.io.Files;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Perform an offline compaction of an existing Azure Segment Store.
@@ -153,11 +139,6 @@ public class AzureCompact {
             checkNotNull(path);
             return new AzureCompact(this);
         }
-
-    }
-
-    private static String printableStopwatch(Stopwatch s) {
-        return String.format("%s (%ds)", s, s.elapsed(TimeUnit.SECONDS));
     }
 
     private final String path;
@@ -177,23 +158,8 @@ public class AzureCompact {
 
     public int run() {
         Stopwatch watch = Stopwatch.createStarted();
-        CloudBlobDirectory cloudBlobDirectory = null;
-        try {
-            cloudBlobDirectory = createCloudBlobDirectory();
-        } catch (URISyntaxException | StorageException e1) {
-            throw new IllegalArgumentException(
-                    "Could not connect to the Azure Storage. Please verify the path provided!");
-        }
-
-        SegmentNodeStorePersistence persistence = new AzurePersistence(cloudBlobDirectory);
-        SegmentArchiveManager archiveManager = null;
-        try {
-            archiveManager = persistence.createArchiveManager(false, new IOMonitorAdapter(),
-                    new FileStoreMonitorAdapter());
-        } catch (IOException e) {
-            throw new IllegalArgumentException(
-                    "Could not access the Azure Storage. Please verify the path provided!");
-        }
+        SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path);
+        SegmentArchiveManager archiveManager = createArchiveManager(persistence);
 
         System.out.printf("Compacting %s\n", path);
         System.out.printf("    before\n");
@@ -207,14 +173,15 @@ public class AzureCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(persistence)) {
+        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
+                gcLogInterval)) {
             if (!store.compactFull()) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }
             System.out.printf("    -> cleaning up\n");
             store.cleanup();
-            JournalFile journal = new AzureJournalFile(cloudBlobDirectory, "journal.log");
+            JournalFile journal = persistence.getJournalFile();
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
                 head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
@@ -249,28 +216,5 @@ public class AzureCompact {
         for (String a : archives) {
             s.printf("        %s\n", a);
         }
-    }
-
-    private FileStore newFileStore(SegmentNodeStorePersistence persistence)
-            throws IOException, InvalidFileStoreVersionException, URISyntaxException, StorageException {
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
-                .withCustomPersistence(persistence).withMemoryMapping(false).withStrictVersionCheck(strictVersionCheck)
-                .withSegmentCacheSize(segmentCacheSize)
-                .withGCOptions(defaultGCOptions().setOffline().setGCLogInterval(gcLogInterval));
-
-        return builder.build();
-    }
-
-    private CloudBlobDirectory createCloudBlobDirectory() throws URISyntaxException, StorageException {
-        Map<String, String> config = parseAzureConfigurationFromUri(path);
-
-        String accountName = config.get(KEY_ACCOUNT_NAME);
-        String key = System.getenv("AZURE_SECRET_KEY");
-        StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
-
-        String uri = config.get(KEY_STORAGE_URI);
-        String dir = config.get(KEY_DIR);
-
-        return AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
     }
 }

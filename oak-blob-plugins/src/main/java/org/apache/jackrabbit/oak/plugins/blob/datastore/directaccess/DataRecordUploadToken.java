@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -27,8 +28,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.google.common.base.Joiner;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
-import org.apache.jackrabbit.util.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -93,22 +95,22 @@ public class DataRecordUploadToken {
      */
     public static DataRecordUploadToken fromEncodedToken(@NotNull String encoded, @NotNull byte[] secret)
             throws IllegalArgumentException {
-        String[] parts = encoded.split("#", 2);
+        final String[] parts = encoded.split("#", 2);
         if (parts.length < 2) {
-            throw new IllegalArgumentException("Encoded string is missing the signature");
+            throw new IllegalArgumentException("Invalid upload token");
         }
 
-        String toBeDecoded = parts[0];
-        String expectedSig = Base64.decode(parts[1]);
-        String actualSig = getSignedString(toBeDecoded, secret);
+        final String toBeDecoded = parts[0];
+        final String expectedSig = parts[1];
+        final String actualSig = getSignedString(toBeDecoded, secret);
         if (!expectedSig.equals(actualSig)) {
-            throw new IllegalArgumentException("Upload token signature does not match");
+            throw new IllegalArgumentException("Invalid upload token");
         }
 
-        String decoded = Base64.decode(toBeDecoded);
+        String decoded = decodeBase64(toBeDecoded);
         String decodedParts[] = decoded.split("#");
         if (decodedParts.length < 2) {
-            throw new IllegalArgumentException("Not all upload token parts provided");
+            throw new IllegalArgumentException("Invalid upload token");
         }
 
         return new DataRecordUploadToken(decodedParts[0], decodedParts.length > 2 ? decodedParts[2] : null);
@@ -133,24 +135,37 @@ public class DataRecordUploadToken {
         String toBeEncoded = uploadId.isPresent() ?
                 Joiner.on("#").join(blobId, now, uploadId.get()) :
                 Joiner.on("#").join(blobId, now);
-        String toBeSigned = Base64.encode(toBeEncoded);
+        String toBeSigned = encodeBase64(toBeEncoded);
 
         String sig = getSignedString(toBeSigned, secret);
         return sig != null ? Joiner.on("#").join(toBeSigned, sig) : toBeSigned;
     }
 
+    /** Returns the base64 encoded HMAC signature */
     private static String getSignedString(String toBeSigned, byte[] secret) {
         try {
             final String algorithm = "HmacSHA1";
             Mac mac = Mac.getInstance(algorithm);
             mac.init(new SecretKeySpec(secret, algorithm));
-            byte[] hash = mac.doFinal(toBeSigned.getBytes());
-            return new String(hash);
+            byte[] hash = mac.doFinal(toBeSigned.getBytes(StandardCharsets.UTF_8));
+            return encodeBase64(hash);
         }
         catch (NoSuchAlgorithmException | InvalidKeyException e) {
             LOG.warn("Could not sign upload token", e);
         }
         return null;
+    }
+
+    private static String encodeBase64(String string) {
+        return Base64.encodeBase64String(string.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String encodeBase64(byte[] bytes) {
+        return Base64.encodeBase64String(bytes);
+    }
+
+    private static String decodeBase64(String encodedString) {
+        return new String(Base64.decodeBase64(encodedString), StandardCharsets.UTF_8);
     }
 
     /**
