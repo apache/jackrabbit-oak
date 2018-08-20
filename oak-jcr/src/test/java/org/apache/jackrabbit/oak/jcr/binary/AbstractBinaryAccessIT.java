@@ -72,7 +72,7 @@ public abstract class AbstractBinaryAccessIT extends AbstractRepositoryTest {
         BlobStore blobStore = getNodeStoreComponent(BlobStore.class);
         if (blobStore != null && blobStore instanceof BlobAccessProvider) {
             wb.register(BlobAccessProvider.class, (BlobAccessProvider) blobStore,
-                Collections.emptyMap());
+                    Collections.emptyMap());
 
         }
 

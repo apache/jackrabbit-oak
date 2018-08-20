@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>7.0.84</tomcat.version>
+    <tomcat.version>7.0.90</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -206,7 +206,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.2</version>
       </plugin>
       <plugin>
          <groupId>org.eclipse.jetty</groupId>

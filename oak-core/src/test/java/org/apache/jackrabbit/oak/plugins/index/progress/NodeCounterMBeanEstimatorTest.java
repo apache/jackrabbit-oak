@@ -74,7 +74,7 @@ public class NodeCounterMBeanEstimatorTest {
         when(counter.getEstimatedNodeCount(anyString())).then((invocation -> {
             String path = (String) invocation.getArguments()[0];
             if (counts.containsKey(path)) {
-                return counts.get(path);
+                return (long)counts.get(path);
             }
             return -1;
         }));

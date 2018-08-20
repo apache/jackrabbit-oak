@@ -26,6 +26,7 @@ import java.util.NoSuchElementException;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
@@ -50,12 +51,13 @@ class EventQueue implements EventIterator {
     private long position = 0;
 
     public EventQueue(
-            @NotNull NamePathMapper mapper, CommitInfo info,
+            @NotNull NamePathMapper mapper,
+            @NotNull BlobAccessProvider blobAccessProvider, CommitInfo info,
             @NotNull NodeState before, @NotNull NodeState after,
             @NotNull Iterable<String> basePaths, @NotNull EventFilter filter,
             @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
-        EventFactory factory = new EventFactory(mapper, info);
+        EventFactory factory = new EventFactory(mapper, blobAccessProvider, info);
         EventHandler handler = new FilteredHandler(
                 filter, new QueueingHandler(this, factory, aggregator, before, after));
         for (String path : basePaths) {

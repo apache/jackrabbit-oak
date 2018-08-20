@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -146,6 +146,8 @@ public class TypeEditor extends DefaultEditor {
 
     private static final Logger log = LoggerFactory.getLogger(TypeEditor.class);
 
+    private final PartialValueFactory valueFactory;
+
     private final Set<String> typesToCheck;
 
     private boolean checkThisNode;
@@ -168,6 +170,7 @@ public class TypeEditor extends DefaultEditor {
             ConstraintViolationCallback callback, Set<String> typesToCheck, NodeState types,
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
+        this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
         this.callback = checkNotNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
@@ -187,7 +190,8 @@ public class TypeEditor extends DefaultEditor {
             @Nullable String primary, @NotNull Iterable<String> mixins, @NotNull NodeBuilder builder,
             boolean validate)
             throws CommitFailedException {
-        this.callback= parent.callback;
+        this.valueFactory = parent.valueFactory;
+        this.callback = parent.callback;
         this.typesToCheck = parent.typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
@@ -205,6 +209,7 @@ public class TypeEditor extends DefaultEditor {
      * Test constructor.
      */
     TypeEditor(EffectiveType effective) {
+        this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
         this.callback = TypeEditor.THROW_ON_CONSTRAINT_VIOLATION;
         this.typesToCheck = null;
         this.checkThisNode = true;
@@ -421,7 +426,7 @@ public class TypeEditor extends DefaultEditor {
 
         for (String constraint : constraints.getValue(STRINGS)) {
             Predicate<Value> predicate = valueConstraint(requiredType, constraint);
-            for (Value v : ValueFactoryImpl.createValues(property, NamePathMapper.DEFAULT)) {
+            for (Value v : valueFactory.createValues(property)) {
                 if (predicate.apply(v)) {
                     return;
                 }

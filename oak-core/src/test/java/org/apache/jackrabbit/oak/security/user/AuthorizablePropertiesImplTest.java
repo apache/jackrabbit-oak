@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -57,7 +58,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         super.before();
 
         User user = getTestUser();
-        emptyProperties = new AuthorizablePropertiesImpl((AuthorizableImpl) user, getNamePathMapper());
+        emptyProperties = new AuthorizablePropertiesImpl((AuthorizableImpl) user, getPartialValueFactory());
 
         String id2 = "user2" + UUID.randomUUID().toString();
         user2 = getUserManager(root).createUser(id2, null, new PrincipalImpl(id2), PathUtils.getAncestorPath(user.getPath(), 1));
@@ -73,7 +74,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         user2.setProperty("relPath/mvProp", vArr);
         root.commit();
 
-        properties = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, getNamePathMapper());
+        properties = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, getPartialValueFactory());
     }
 
     @Override
@@ -116,7 +117,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testGetNamesMissingResolutionToOakPath() throws Exception {
-        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
+        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
+                new PartialValueFactory(new NamePathMapper.Default() {
             @Override
             public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
@@ -126,7 +128,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
             public String getOakPath(String jcrPath) {
                 return null;
             }
-        });
+        }));
         props.getNames("relPath");
     }
 
@@ -210,7 +212,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testSetMissingResolutionToOakPath() throws Exception {
-        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
+        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
+                new PartialValueFactory(new NamePathMapper.Default() {
             @Override
             public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
@@ -220,7 +223,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
             public String getOakPath(String jcrPath) {
                 return null;
             }
-        });
+        }));
         props.setProperty("relPath/prop", vf.createValue("value"));
     }
 
@@ -279,7 +282,8 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
 
     @Test(expected = RepositoryException.class)
     public void testRemoveMissingResolutionToOakPath() throws Exception {
-        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2, new NamePathMapper.Default() {
+        AuthorizableProperties props = new AuthorizablePropertiesImpl((AuthorizableImpl) user2,
+                new PartialValueFactory(new NamePathMapper.Default() {
             @Override
             public String getOakNameOrNull(@NotNull String jcrName) {
                 return null;
@@ -289,7 +293,7 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
             public String getOakPath(String jcrPath) {
                 return null;
             }
-        });
+        }));
         props.removeProperty("relPath/prop");
     }
 

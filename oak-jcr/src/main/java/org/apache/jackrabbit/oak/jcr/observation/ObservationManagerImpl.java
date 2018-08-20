@@ -49,6 +49,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
@@ -97,6 +98,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
     private final PermissionProviderFactory permissionProviderFactory;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * Create a new instance based on a {@link ContentSession} that needs to implement
@@ -120,6 +122,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         this.statisticManager = sessionContext.getStatisticManager();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.blobAccessProvider = sessionContext.getBlobAccessProvider();
         this.permissionProviderFactory = new PermissionProviderFactory() {
             Set<Principal> principals = sessionDelegate.getAuthInfo().getPrincipals();
             @NotNull
@@ -161,7 +164,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             // session. See OAK-1368.
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
                     tracker, filterProvider, statisticManager, queueLength,
-                    commitRateLimiter);
+                    commitRateLimiter, blobAccessProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
