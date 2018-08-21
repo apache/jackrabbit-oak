@@ -63,11 +63,7 @@ public class MongoConnection {
     public MongoConnection(String uri, MongoClientOptions.Builder builder)
             throws MongoException {
         mongoURI = new MongoClientURI(uri, builder);
-        try {
-            mongo = new MongoClient(mongoURI);
-        } catch (UnknownHostException e) {
-            throw new MongoException(e.getMessage(), e);
-        }
+        mongo = new MongoClient(mongoURI);
     }
 
     /**
