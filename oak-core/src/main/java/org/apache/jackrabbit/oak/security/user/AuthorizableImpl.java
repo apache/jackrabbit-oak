@@ -230,7 +230,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     private AuthorizableProperties getAuthorizableProperties() {
         if (properties == null) {
-            properties = new AuthorizablePropertiesImpl(this, userManager.getNamePathMapper());
+            properties = new AuthorizablePropertiesImpl(this, userManager.getPartialValueFactory());
         }
         return properties;
     }

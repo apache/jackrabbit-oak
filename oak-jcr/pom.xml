@@ -334,6 +334,19 @@
       <artifactId>jackrabbit-jcr-commons</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
+    
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>com.google.guava</groupId>

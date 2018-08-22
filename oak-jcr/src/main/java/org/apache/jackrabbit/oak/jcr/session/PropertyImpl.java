@@ -249,7 +249,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public Value perform() throws RepositoryException {
-                return new PartialValueFactory(sessionContext)
+                return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
                         .createValue(property.getSingleState());
             }
         });
@@ -262,7 +262,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @NotNull
             @Override
             public List<Value> perform() throws RepositoryException {
-                return new PartialValueFactory(sessionContext)
+                return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
                         .createValues(property.getMultiState());
             }
         }).toArray(NO_VALUES);

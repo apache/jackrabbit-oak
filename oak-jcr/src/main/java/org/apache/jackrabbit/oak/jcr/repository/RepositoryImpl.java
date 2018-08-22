@@ -49,6 +49,7 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -109,6 +110,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
     private final Registration gcMonitorRegistration;
     private final MountInfoProvider mountInfoProvider;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -157,6 +159,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
         this.fastQueryResultSize = fastQueryResultSize;
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
+        this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -348,7 +351,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, fastQueryResultSize);
+                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider, fastQueryResultSize);
     }
 
     /**

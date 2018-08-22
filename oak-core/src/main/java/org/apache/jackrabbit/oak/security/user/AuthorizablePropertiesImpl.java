@@ -30,7 +30,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -53,11 +52,12 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     private static final Logger log = LoggerFactory.getLogger(AuthorizablePropertiesImpl.class);
 
     private final AuthorizableImpl authorizable;
-    private final NamePathMapper namePathMapper;
+    private final PartialValueFactory valueFactory;
 
-    AuthorizablePropertiesImpl(@NotNull AuthorizableImpl authorizable, @NotNull NamePathMapper namePathMapper) {
+    AuthorizablePropertiesImpl(@NotNull AuthorizableImpl authorizable,
+                               @NotNull PartialValueFactory valueFactory) {
         this.authorizable = authorizable;
-        this.namePathMapper = namePathMapper;
+        this.valueFactory = valueFactory;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
@@ -73,7 +73,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             for (PropertyState property : parent.getProperties()) {
                 String propName = property.getName();
                 if (isAuthorizableProperty(tree, location.getChild(propName), false)) {
-                    l.add(namePathMapper.getJcrName(propName));
+                    l.add(valueFactory.getNamePathMapper().getJcrName(propName));
                 }
             }
             return l.iterator();
@@ -102,10 +102,10 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         PropertyState property = getAuthorizableProperty(tree, getLocation(tree, oakPath), true);
         if (property != null) {
             if (property.isArray()) {
-                List<Value> vs = new PartialValueFactory(namePathMapper).createValues(property);
+                List<Value> vs = valueFactory.createValues(property);
                 values = vs.toArray(new Value[vs.size()]);
             } else {
-                values = new Value[]{new PartialValueFactory(namePathMapper).createValue(property)};
+                values = new Value[]{valueFactory.createValue(property)};
             }
         }
         return values;
@@ -298,7 +298,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relPath);
         }
-        String oakPath = namePathMapper.getOakPath(relPath);
+        String oakPath = valueFactory.getNamePathMapper().getOakPath(relPath);
         if (oakPath == null) {
             throw new RepositoryException("Failed to resolve relative path: " + relPath);
         }

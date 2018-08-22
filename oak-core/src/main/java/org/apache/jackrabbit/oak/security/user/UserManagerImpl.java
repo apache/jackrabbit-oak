@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -68,6 +69,7 @@ public class UserManagerImpl implements UserManager {
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     private final Root root;
+    private final PartialValueFactory valueFactory;
     private final NamePathMapper namePathMapper;
     private final SecurityProvider securityProvider;
 
@@ -79,10 +81,12 @@ public class UserManagerImpl implements UserManager {
     private UserQueryManager queryManager;
     private ReadOnlyNodeTypeManager ntMgr;
 
-    public UserManagerImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper,
+    public UserManagerImpl(@NotNull Root root,
+                           @NotNull PartialValueFactory valueFactory,
                            @NotNull SecurityProvider securityProvider) {
         this.root = root;
-        this.namePathMapper = namePathMapper;
+        this.valueFactory = valueFactory;
+        this.namePathMapper = valueFactory.getNamePathMapper();
         this.securityProvider = securityProvider;
 
         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
@@ -374,6 +378,11 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     NamePathMapper getNamePathMapper() {
         return namePathMapper;
+    }
+
+    @NotNull
+    PartialValueFactory getPartialValueFactory() {
+        return valueFactory;
     }
 
     @NotNull

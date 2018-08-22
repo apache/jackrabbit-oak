@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.Calendar;
 
 import javax.jcr.Binary;
@@ -32,16 +33,19 @@ import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.JackrabbitValue;
+import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -383,6 +387,21 @@ class ValueImpl implements JackrabbitValue, OakValue {
             return getValue(Type.STRING, index);
         } catch (RepositoryException e) {
             return e.toString();
+        }
+    }
+
+    @Nullable
+    URI getDownloadURI(@NotNull Blob blob, @NotNull BinaryDownloadOptions downloadOptions) {
+        if (blobAccessProvider == null) {
+            return null;
+        } else {
+            return blobAccessProvider.getDownloadURI(blob,
+                    new BlobDownloadOptions(
+                            downloadOptions.getMediaType(),
+                            downloadOptions.getCharacterEncoding(),
+                            downloadOptions.getFileName(),
+                            downloadOptions.getDispositionType())
+                    );
         }
     }
 
