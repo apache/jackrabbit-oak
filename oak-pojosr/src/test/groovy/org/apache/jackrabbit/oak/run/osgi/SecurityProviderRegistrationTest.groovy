@@ -314,13 +314,24 @@ class SecurityProviderRegistrationTest extends AbstractRepositoryFactoryTest {
         // If a service is registered, and if the PID of the service matches the
         // precondition, the SecurityProvider is registered again.
 
-        def registration = registry.registerService(serviceClass.name, service, dict("service.pid": "test.Required" + serviceClass.simpleName))
+        def registration;
+        awaitServiceEvent({
+                    registration = registry.registerService(serviceClass.name, service, dict("service.pid": "test.Required" + serviceClass.simpleName))
+                },
+                "(objectClass=org.apache.jackrabbit.oak.spi.security.SecurityProvider)",
+                ServiceEvent.REGISTERED
+        )
         assert securityProviderServiceReferences != null
 
         // If the service is unregistered, but the precondition is still in
         // place, the SecurityProvider unregisters again.
 
-        registration.unregister()
+        awaitServiceEvent({
+                    registration.unregister()
+                },
+                "(objectClass=org.apache.jackrabbit.oak.spi.security.SecurityProvider)",
+                ServiceEvent.UNREGISTERING
+        )
         assert securityProviderServiceReferences == null
 
         // Removing the precondition allows the SecurityProvider to register.
