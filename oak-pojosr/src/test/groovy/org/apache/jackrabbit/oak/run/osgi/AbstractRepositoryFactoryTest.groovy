@@ -27,11 +27,14 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import org.osgi.framework.BundleContext
+import org.osgi.framework.ServiceEvent
+import org.osgi.framework.ServiceListener
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
 import org.osgi.util.tracker.ServiceTracker
 
 import javax.jcr.*
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
@@ -153,5 +156,71 @@ abstract class AbstractRepositoryFactoryTest{
         }
 
         fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds" + (message ?: (":" + message)));
+    }
+
+    /**
+     * Convenience method to be used in conjunction with {@link #awaitServiceEvent}. It creates a filter that matches
+     * the given {@code className} to one of the following properties: {@code objectClass}, {@code service.pid} or
+     * {@code service.factoryPid}.
+     *
+     * @param className The class name to match.
+     * @return The filter expression.
+     */
+    protected static String classNameFilter(String className) {
+        return "(|(objectClass=${className})(service.pid=${className})(service.factoryPid=${className}))"
+    }
+
+    /**
+     * Execute a change in a closure and wait for a ServiceEvent to happen. The method only returns once
+     * an appropriate event is matched. If no event matches within the specified timeout, an AssertionError
+     * is thrown. The error message describes any non-matching events that may have happened for debugging
+     * purposes.
+     *
+     * @param closure The closure that effects a change that should cause the expected ServiceEvent.
+     * @param serviceFilter A filter expression following the syntax of {@link org.osgi.framework.Filter} (default: (objectClass=*))
+     * @param eventTypes An integer bitmap of accepted ServiceEvent types (default: any).
+     * @param timeout A timeout value; the maximum time to wait for the service event. The unit depends on the {@code timeUnit} argument.
+     * @param timeUnit The unit for the timeout value.
+     */
+    protected void awaitServiceEvent(
+            Closure closure,
+            String serviceFilter = "(objectClass=*)",
+            int eventTypes = ServiceEvent.MODIFIED | ServiceEvent.REGISTERED | ServiceEvent.UNREGISTERING | ServiceEvent.MODIFIED_ENDMATCH,
+            long timeout = 1000,
+            TimeUnit timeUnit = TimeUnit.MILLISECONDS) {
+        def filter = registry.bundleContext.createFilter(serviceFilter)
+        def latch = new CountDownLatch(1)
+        def events = []
+        def listener = new ServiceListener() {
+            @Override
+            void serviceChanged(final ServiceEvent event) {
+                events.add([eventType: event.type, serviceProperties: asMap(event.serviceReference)])
+                if ((eventTypes & event.type) > 0 && filter.match(event.serviceReference)) {
+                    latch.countDown()
+                }
+            }
+
+            private static asMap(final ServiceReference<?> serviceReference) {
+                def map = new HashMap<String, Object>()
+                serviceReference.getPropertyKeys().each { key ->
+                    map.put(key, serviceReference.getProperty(key))
+                }
+                return map
+            }
+        }
+
+        try {
+            registry.addServiceListener(listener)
+
+            closure.run()
+
+            if (!latch.await(timeout, timeUnit)) {
+                throw new AssertionError("Exceeded timeout waiting for service event matching " +
+                        "[eventTypes: ${eventTypes}, filter: ${serviceFilter}], " +
+                        "got ${events.size()} non matching events: [${events}]")
+            }
+        } finally {
+            registry.removeServiceListener(listener)
+        }
     }
 }
