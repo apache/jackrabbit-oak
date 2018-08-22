@@ -215,18 +215,18 @@ public class S3Backend extends AbstractSharedBackend {
 
             // settings around pre-signing
 
-            String putExpiry = properties.getProperty(S3Constants.PRESIGNED_PUT_EXPIRY_SEC);
+            String putExpiry = properties.getProperty(S3Constants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
             if (putExpiry != null) {
                 setHttpUploadURIExpirySeconds(Integer.parseInt(putExpiry));
             }
 
-            String getExpiry = properties.getProperty(S3Constants.PRESIGNED_GET_EXPIRY_SEC);
+            String getExpiry = properties.getProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS);
             if (getExpiry != null) {
                 final int getExpirySeconds = Integer.parseInt(getExpiry);
                 setHttpDownloadURIExpirySeconds(getExpirySeconds);
 
                 int cacheMaxSize = 0; // off by default
-                String cacheMaxSizeStr = properties.getProperty(S3Constants.PRESIGNED_GET_URI_CACHE_MAX_SIZE);
+                String cacheMaxSizeStr = properties.getProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE);
                 if (cacheMaxSizeStr != null) {
                     cacheMaxSize = Integer.parseInt(cacheMaxSizeStr);
                 }
