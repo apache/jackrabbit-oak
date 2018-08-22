@@ -51,7 +51,9 @@ under the License.
         <item href="nodestore/segment/overview.html" name="Segment NodeStore" />
         <item href="nodestore/compositens.html" name="Composite NodeStore" />
       </item>
-      <item href="plugins/blobstore.html" name="Blob Storage" />
+      <item href="plugins/blobstore.html" name="Blob Storage" collapse="false">
+          <item href="features/direct-binary-access.html" name="Direct Binary Access" />
+      </item>
       <item href="query/query.html" name="Query" collapse="false">
         <item href="query/query-engine.html" name="Query Engine" />
         <item href="query/grammar-xpath.html" name="XPath Grammar" />
