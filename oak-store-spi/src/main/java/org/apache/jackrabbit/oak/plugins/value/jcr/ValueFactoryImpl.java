@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 
 import javax.jcr.Binary;
@@ -29,24 +30,28 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
+import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link ValueFactory} interface.
  */
-public class ValueFactoryImpl extends PartialValueFactory implements ValueFactory {
+public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitValueFactory {
 
     private static final PerfLogger binOpsLogger = new PerfLogger(
             LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.binary.perf"));
@@ -199,6 +204,44 @@ public class ValueFactoryImpl extends PartialValueFactory implements ValueFactor
         }
     }
 
+    @Override
+    @Nullable
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) {
+        BlobUpload upload = getBlobAccessProvider().initiateBlobUpload(maxSize, maxParts);
+        if (null == upload) {
+            return null;
+        }
+
+        return new BinaryUpload() {
+            @Override
+            @NotNull
+            public Iterable<URI> getUploadURIs() {
+                return upload.getUploadURIs();
+            }
+
+            @Override
+            public long getMinPartSize() {
+                return upload.getMinPartSize();
+            }
+
+            @Override
+            public long getMaxPartSize() {
+                return upload.getMaxPartSize();
+            }
+
+            @Override
+            @NotNull
+            public String getUploadToken() { return upload.getUploadToken(); }
+        };
+    }
+
+    @Override
+    @Nullable
+    public Binary completeBinaryUpload(@NotNull String uploadToken) throws RepositoryException {
+        return createBinary(
+                getBlobAccessProvider().completeBlobUpload(uploadToken));
+    }
+
     @NotNull
     private ValueImpl createBinaryValue(@NotNull InputStream value) throws IOException, RepositoryException {
         long start = binOpsLogger.start();
@@ -209,6 +252,20 @@ public class ValueFactoryImpl extends PartialValueFactory implements ValueFactor
 
     @NotNull
     private ValueImpl createBinaryValue(@NotNull Blob blob) throws RepositoryException {
-        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper, getBlobAccessProvider());
+        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob),
+                getNamePathMapper(), getBlobAccessProvider());
+    }
+
+    @Nullable
+    public Binary createBinary(Blob blob) throws RepositoryException {
+        return null != blob ? createBinaryValue(blob).getBinary() : null;
+    }
+
+    @Nullable
+    public Blob getBlob(Binary binary) throws RepositoryException {
+        if (binary instanceof BinaryImpl) {
+            return ((BinaryImpl) binary).getBinaryValue().getBlob();
+        }
+        return null;
     }
 }

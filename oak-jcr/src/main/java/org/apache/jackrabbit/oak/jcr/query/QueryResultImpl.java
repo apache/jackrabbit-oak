@@ -65,7 +65,7 @@ public class QueryResultImpl implements QueryResult {
         this.sessionContext = sessionContext;
         this.sessionDelegate = sessionContext.getSessionDelegate();
         this.result = result;
-        this.valueFactory = new PartialValueFactory(sessionContext);
+        this.valueFactory = new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider());
     }
 
     @Override

@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -80,6 +81,7 @@ public abstract class AbstractSecurityTest {
     private User testUser;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
+    protected PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
     protected SecurityProvider securityProvider;
     protected ContentSession adminSession;
     protected Root root;
@@ -177,6 +179,10 @@ public abstract class AbstractSecurityTest {
 
     protected NamePathMapper getNamePathMapper() {
         return namePathMapper;
+    }
+
+    protected PartialValueFactory getPartialValueFactory() {
+        return valueFactory;
     }
 
     protected UserConfiguration getUserConfiguration() {

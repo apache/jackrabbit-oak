@@ -115,7 +115,8 @@ public class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     }
 
     private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
-        return new PartialValueFactory(sessionContext).createValues(p.getMultiState());
+        return new PartialValueFactory(sessionContext, sessionContext.getBlobAccessProvider())
+                .createValues(p.getMultiState());
     }
 
     @Override

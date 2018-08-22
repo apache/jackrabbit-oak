@@ -40,6 +40,7 @@ import javax.jcr.observation.EventListener;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -172,6 +173,7 @@ class ChangeProcessor implements FilteringAwareObserver {
     private final TimeSeriesMax maxQueueLengthRecorder;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * Lazy initialization via the {@link #start(Whiteboard)} method
@@ -206,7 +208,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             FilterProvider filter,
             StatisticManager statisticManager,
             int queueLength,
-            CommitRateLimiter commitRateLimiter) {
+            CommitRateLimiter commitRateLimiter,
+            BlobAccessProvider blobAccessProvider) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
@@ -217,6 +220,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         this.maxQueueLengthRecorder = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.blobAccessProvider = blobAccessProvider;
     }
 
     /**
@@ -492,7 +496,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             // FIXME don't rely on toString for session id
             if (provider.includeCommit(contentSession.toString(), info)) {
                 EventFilter filter = provider.getFilter(before, after);
-                EventIterator events = new EventQueue(namePathMapper, info, before, after,
+                EventIterator events = new EventQueue(namePathMapper,
+                        blobAccessProvider, info, before, after,
                         provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
                         provider.getEventAggregator());
 
