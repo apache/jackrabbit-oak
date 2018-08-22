@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -291,10 +293,17 @@ class PropertyIndexEditor implements IndexEditor {
                 String properties = definition.getString(PROPERTY_NAMES);
                 boolean uniqueIndex = keysToCheckForUniqueness != null;
                 for (IndexStoreStrategy strategy : getStrategies(uniqueIndex)) {
-                    Supplier<NodeBuilder> index = memoize(() -> definition.child(strategy.getIndexNodeName()));
+                    String indexNodeName = strategy.getIndexNodeName();
+                    Supplier<NodeBuilder> index = memoize(() -> definition.child(indexNodeName));
                     if (uniqueIndex) {
+                        Supplier<NodeBuilder> roBuilder;
+                        if (definition.hasChildNode(indexNodeName)) {
+                            roBuilder = index;
+                        } else {
+                            roBuilder = () -> EMPTY_NODE.builder();
+                        }
                         keysToCheckForUniqueness.addAll(getExistingKeys(
-                                afterKeys, index, strategy));
+                                afterKeys, roBuilder, strategy));
                     }
                     strategy.update(index, getPath(), properties, definition,
                             beforeKeys, afterKeys);
