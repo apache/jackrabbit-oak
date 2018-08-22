@@ -343,7 +343,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             return null;
         }
         final SimpleCredentials creds = (SimpleCredentials) credentials;
-        final ExternalUser user = getUser(creds.getUserID());
+        final LdapUser user = (LdapUser)getUser(creds.getUserID());
         if (user != null) {
             // OAK-2078: check for non-empty passwords to avoid anonymous bind on weakly configured servers
             // see http://tools.ietf.org/html/rfc4513#section-5.1.1 for details.
@@ -361,7 +361,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                     connection = userPool.getConnection();
                 }
                 timer.mark("connect");
-                connection.bind(user.getExternalId().getId(), new String(creds.getPassword()));
+                connection.bind(user.getEntry().getDn(), new String(creds.getPassword()));
+                //connection.bind(user.getExternalId().getId(), new String(creds.getPassword()));
                 timer.mark("bind");
                 if (log.isDebugEnabled()) {
                     log.debug("authenticate({}) {}", user.getId(), timer.getString());
@@ -394,11 +395,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
      * @param ref reference to the identity
      * @return map of identities where the key is the DN of the LDAP entity
      */
-    Map<String, ExternalIdentityRef> getDeclaredGroupRefs(ExternalIdentityRef ref) throws ExternalIdentityException {
+    Map<String, ExternalIdentityRef> getDeclaredGroupRefs(ExternalIdentityRef ref, String dn) throws ExternalIdentityException {
         if (!isMyRef(ref)) {
             return Collections.emptyMap();
         }
-        String searchFilter = config.getMemberOfSearchFilter(ref.getId());
+        String searchFilter = config.getMemberOfSearchFilter(dn);
 
         LdapConnection connection = null;
         SearchCursor searchCursor = null;
@@ -458,7 +459,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
      * @return map of identity refers
      * @throws ExternalIdentityException if an error occurs
      */
-    Map<String, ExternalIdentityRef> getDeclaredMemberRefs(ExternalIdentityRef ref) throws ExternalIdentityException {
+    Map<String, ExternalIdentityRef> getDeclaredMemberRefs(ExternalIdentityRef ref, String dn) throws ExternalIdentityException {
         if (!isMyRef(ref)) {
             return Collections.emptyMap();
         }
@@ -468,7 +469,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             DebugTimer timer = new DebugTimer();
             connection = connect();
             timer.mark("connect");
-            Entry entry = connection.lookup(ref.getId());
+            Entry entry = connection.lookup(dn);
             timer.mark("lookup");
             Attribute attr = entry.get(config.getGroupMemberAttribute());
             if (attr == null) {
@@ -790,9 +791,21 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     @Nonnull
     private ExternalUser createUser(@Nonnull Entry entry, @CheckForNull String id)
             throws LdapInvalidAttributeValueException {
-        ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
+        return (ExternalUser) createIdentity(entry, id, false);
+    }
+
+    @Nonnull
+    private ExternalGroup createGroup(@Nonnull Entry entry, @CheckForNull String id)
+            throws LdapInvalidAttributeValueException {
+        return (ExternalGroup) createIdentity(entry, id, true);
+    }
+
+    @Nonnull
+    private ExternalIdentity createIdentity(@Nonnull Entry entry, @CheckForNull String id, boolean isGroup)
+            throws LdapInvalidAttributeValueException {
+        LdapProviderConfig.Identity cfg = isGroup ? config.getGroupConfig() : config.getUserConfig();
         if (id == null) {
-            String idAttribute = config.getUserConfig().getIdAttribute();
+            String idAttribute = cfg.getIdAttribute();
             Attribute attr = entry.get(idAttribute);
             if (attr == null) {
                 throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
@@ -800,36 +813,16 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             }
             id = attr.getString();
         }
-        String path = config.getUserConfig().makeDnPath()
+        String extId = config.getUseUidForExtId() ? id : entry.getDn().getName();
+        ExternalIdentityRef ref = new ExternalIdentityRef(extId, this.getName());
+        String path = cfg.makeDnPath()
                 ? createDNPath(entry.getDn())
                 : null;
-        LdapUser user = new LdapUser(this, ref, id, path);
-        Map<String, Object> props = user.getProperties();
+        LdapIdentity identity = isGroup ? new LdapGroup(this, ref, id, path, entry)
+                                        : new LdapUser(this, ref, id, path, entry);
+        Map<String, Object> props = identity.getProperties();
         applyAttributes(props, entry);
-        return user;
-    }
-
-    @Nonnull
-    private ExternalGroup createGroup(@Nonnull Entry entry, @CheckForNull String name)
-            throws LdapInvalidAttributeValueException {
-        ExternalIdentityRef ref = new ExternalIdentityRef(entry.getDn().getName(), this.getName());
-        if (name == null) {
-            String idAttribute = config.getGroupConfig().getIdAttribute();
-            Attribute attr = entry.get(idAttribute);
-            if (attr == null) {
-                throw new LdapInvalidAttributeValueException(ResultCodeEnum.CONSTRAINT_VIOLATION,
-                        "no value found for attribute '" + idAttribute + "' for entry " + entry);
-            }
-            name = attr.getString();
-        }
-        String path = config.getGroupConfig().makeDnPath()
-                ? createDNPath(entry.getDn())
-                : null;
-        LdapGroup group = new LdapGroup(this, ref, name, path);
-        Map<String, Object> props = group.getProperties();
-        applyAttributes(props, entry);
-        return group;
-
+        return identity;
     }
 
     private void applyAttributes(Map<String, Object> props, Entry entry)
