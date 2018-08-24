@@ -43,6 +43,14 @@
   <logger name="org.apache.jackrabbit.core.data" level="INFO">
     <appender-ref ref="STDOUT" />
   </logger>
+  <logger name="org.apache.jackrabbit.oak.run" level="INFO">
+    <appender-ref ref="STDOUT" />
+  </logger>
+
+  <logger name="org.apache.jackrabbit.oak.spi.cluster" level="INFO">
+    <appender-ref ref="STDOUT" />
+  </logger>
+
 
   <root level="INFO">
     <appender-ref ref="datastore" />
