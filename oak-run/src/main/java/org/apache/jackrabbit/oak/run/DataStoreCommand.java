@@ -99,13 +99,13 @@ public class DataStoreCommand implements Command {
         opts.parseAndConfigure(parser, args);
 
         dataStoreOpts = opts.getOptionBean(DataStoreOptions.class);
-        logCliArgs(args);
 
         //Clean up before setting up NodeStore as the temp
         //directory might be used by NodeStore for cache stuff like persistentCache
         setupDirectories(dataStoreOpts);
         setupLogging(dataStoreOpts);
 
+        logCliArgs(args);
 
         boolean success = false;
         try (Closer closer = Closer.create()) {
@@ -263,8 +263,6 @@ public class DataStoreCommand implements Command {
                 traverseChildren(c.getNodeState(), PathUtils.concat(path, c.getName()), collector);
             }
         }
-
-
 
         @Override public void collectReferences(ReferenceCollector collector) throws IOException {
             log.info("Starting dump of blob references by traversing");
