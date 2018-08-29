@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(Parameterized.class)
@@ -87,8 +88,9 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Override
     protected ContentRepository createRepository() {
-        adbc = new ActiveDeletedBlobCollectorImpl(clock,
-                new File(blobCollectionRoot.getRoot(), "deleted-blobs"), executorService);
+        File deletedBlobsDir = new File(blobCollectionRoot.getRoot(), "deleted-blobs");
+        assertTrue(deletedBlobsDir.mkdirs());
+        adbc = new ActiveDeletedBlobCollectorImpl(clock, deletedBlobsDir, executorService);
 
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, null,
@@ -155,10 +157,10 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
         long secondGCNumChunks = blobStore.numChunks;
 
-        Assert.assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
-        Assert.assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
-        Assert.assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
-        Assert.assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
+        assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
+        assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
+        assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
     }
 
 }
