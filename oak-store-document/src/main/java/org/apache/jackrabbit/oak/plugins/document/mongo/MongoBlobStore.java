@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.MongoException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.slf4j.Logger;
@@ -33,7 +34,6 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.DuplicateKeyException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
@@ -78,18 +78,29 @@ public class MongoBlobStore extends CachingBlobStore {
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        // Check if it already exists?
-        MongoBlob mongoBlob = new MongoBlob();
-        mongoBlob.setId(id);
-        mongoBlob.setData(data);
-        mongoBlob.setLevel(level);
-        mongoBlob.setLastMod(System.currentTimeMillis());
-        // TODO check the return value
-        // TODO verify insert is fast if the entry already exists
+
+        // Create the mongo blob object
+        BasicDBObject mongoBlob = new BasicDBObject(MongoBlob.KEY_ID, id);
+        mongoBlob.append(MongoBlob.KEY_DATA, data);
+        mongoBlob.append(MongoBlob.KEY_LEVEL, level);
+
+        // If update only the lastMod needs to be modified
+        BasicDBObject updateBlob =new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis());
+
+        BasicDBObject upsert = new BasicDBObject();
+        upsert.append("$setOnInsert", mongoBlob)
+            .append("$set", updateBlob);
+
         try {
-            getBlobCollection().insert(mongoBlob);
-        } catch (DuplicateKeyException e) {
-            // the same block was already stored before: ignore
+            DBObject query = getBlobQuery(id, -1);
+            WriteResult update = getBlobCollection().update(query, upsert, true, false);
+            if (update != null && update.isUpdateOfExisting()) {
+                LOG.trace("Block with id [{}] updated", id);
+            } else {
+                LOG.trace("Block with id [{}] created", id);
+            }
+        } catch (MongoException e) {
+            throw new IOException(e.getMessage(), e);
         }
     }
 
