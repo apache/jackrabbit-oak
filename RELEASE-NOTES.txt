@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.7
 
 Introduction
 ------------
@@ -7,36 +7,52 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.6 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.7 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.6
+Changes in Oak 1.8.7
 ---------------------
+
+Technical task
+
+    [OAK-7359] - Update to MongoDB Java driver 3.6
+    [OAK-7625] - remove @Nonnegative annotation in NodeDocumentCache
+    [OAK-7632] - remove JSR 305 annotations in Groovy code
 
 Bug
 
-    [OAK-7414] - oak-it-osgi fails on Java 10
-    [OAK-7630] - Suggest directory update doesn't close AnalyzingInfixSuggester after building
+    [OAK-7389] - Mongo/FileBlobStore does not update timestamp for
+    already existing blobs
+    [OAK-7428] - LdapIdentityProvider doesn't support creating
+    external ids from the uid attribute
+    [OAK-7447] - Sporadic test failures when connection is closed
+    twice
+    [OAK-7540] - Unique property index update fails in composite
+    NodeStore setup
+    [OAK-7686] - Partial migration doesn't update Lucene indexing data
+    [OAK-7687] - :async node is being removed during the partial
+    migration
+    [OAK-7707] - DocumentNodeStoreServiceTest always connects to
+    localhost
+    [OAK-7713] - Test failure:
+    SecurityProviderRegistrationTest.testRequiredUserAuthenticationFactoryNotAvailable()
 
-Test
+Improvement
 
-    [OAK-7620] - Update to Mockito 2.x
+    [OAK-7706] - Update to MongoDB Java driver 3.6.4
 
 Task
 
-    [OAK-7257] - oak-examples: update Tomcat dependency
-    [OAK-7320] - Upgrade surefire and failsafe plugins to 2.21.0
-    [OAK-7366] - update to mockito version compatible with jdk 10
-    [OAK-7407] - oak-solr-core test failures with java 10
-    [OAK-7556] - Update failsafe and surefire plugin versions to 2.22.0
-    [OAK-7596] - define jackson version globally
-    [OAK-7609] - Update jackson dependencies to 2.9.6
-    [OAK-7650] - upgrade to mockito version compatible with java 11
-    [OAK-7651] - oak-solr-core test failures with java 11
+    [OAK-7435] - Run travis build on MongoDB 3.6
+    [OAK-7512] - RestoreTest.testRestoreNameJcr2 occasionally failing
+    [OAK-7607] - Update 7.0.* Tomcat dependencies once 7.0.90 is
+    released
+    [OAK-7677] - Announcement mail template lacks line feeds in front
+    of release notes
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
