@@ -446,6 +446,28 @@ public abstract class AbstractBlobStoreTest {
     }
 
     @Test
+    public void deleteUpdatedBlob() throws Exception {
+        String id = store.writeBlob(randomStream(0, getArtifactSize()));
+        Thread.sleep(100);
+
+        long beforeUpdateTime = System.currentTimeMillis();
+
+        Thread.sleep(1000);
+
+        // Should update the timestamp
+        String id2 = store.writeBlob(randomStream(0, getArtifactSize()));
+        assertEquals(id, id2);
+
+        Set<String> chunks = Sets.newHashSet();
+        Iterator<String> iter = store.resolveChunks(id.toString());
+        while (iter.hasNext()) {
+            chunks.add(iter.next());
+        }
+        long count = store.countDeleteChunks(Lists.newArrayList(chunks), beforeUpdateTime);
+        assertEquals("Deleted updated blobs", 0, count);
+    }
+
+    @Test
     public void uploadCallback() throws Exception {
         assumeTrue(supportsStatsCollection());
         TestCollector collector = new TestCollector();
