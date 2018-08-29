@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.blob;
 
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
@@ -405,7 +406,7 @@ public abstract class AbstractBlobStoreTest {
             ids.remove(iter.next());
         }
 
-        assertTrue(ids.isEmpty());
+        assertTrue("unexpected ids in store: " + ids, ids.isEmpty());
     }
 
     @Test
@@ -421,6 +422,28 @@ public abstract class AbstractBlobStoreTest {
         }
 
         assertTrue(ret.toString(), ret.isEmpty());
+    }
+
+    @Test
+    public void deleteUpdatedBlob() throws Exception {
+        String id = store.writeBlob(randomStream(0, getArtifactSize()));
+        Thread.sleep(100);
+
+        long beforeUpdateTime = System.currentTimeMillis();
+
+        Thread.sleep(1000);
+
+        // Should update the timestamp
+        String id2 = store.writeBlob(randomStream(0, getArtifactSize()));
+        assertEquals(id, id2);
+
+        Set<String> chunks = Sets.newHashSet();
+        Iterator<String> iter = store.resolveChunks(id.toString());
+        while (iter.hasNext()) {
+            chunks.add(iter.next());
+        }
+        boolean deleted = store.deleteChunks(Lists.newArrayList(chunks), beforeUpdateTime);
+        assertFalse("Deleted updated blobs", deleted);
     }
 
     private Set<String> createArtifacts() throws Exception {
@@ -441,5 +464,11 @@ public abstract class AbstractBlobStoreTest {
         byte[] data = new byte[size];
         r.nextBytes(data);
         return new ByteArrayInputStream(data);
+    }
+
+    private static void assertCollectedSize(long collectedSize, long expectedSize){
+        if (collectedSize < expectedSize) {
+            fail(String.format("Collected size %d is less that expected size %d", collectedSize, expectedSize));
+        }
     }
 }

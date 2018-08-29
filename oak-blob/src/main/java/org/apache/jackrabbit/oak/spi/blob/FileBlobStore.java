@@ -109,6 +109,7 @@ public class FileBlobStore extends AbstractBlobStore {
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         File f = getFile(digest, false);
         if (f.exists()) {
+            FileUtils.touch(f);
             return;
         }
         File parent = f.getParentFile();
