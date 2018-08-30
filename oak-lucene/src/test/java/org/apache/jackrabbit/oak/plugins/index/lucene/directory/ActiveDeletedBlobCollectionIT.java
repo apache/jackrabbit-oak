@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -123,6 +125,13 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
                 .with((Observer) provider)
                 .with(editorProvider)
                 .createContentRepository();
+    }
+
+    @After
+    public void dispose() {
+        String dbName = mongoConnection.getDB().getName();
+        ((DocumentNodeStore) nodeStore).dispose();
+        MongoUtils.dropCollections(dbName);
     }
 
     @Test
