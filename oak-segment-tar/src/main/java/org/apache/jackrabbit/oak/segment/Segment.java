@@ -33,8 +33,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -45,6 +44,8 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -52,9 +53,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.segment.SegmentDump.Dumper;
 
 /**
  * A list of records.
@@ -623,63 +622,35 @@ public class Segment {
 
     @Override
     public String toString() {
-        StringWriter string = new StringWriter();
-        try (PrintWriter writer = new PrintWriter(string)) {
-            int length = data.remaining();
+        return SegmentDump.dumpSegment(
+            id,
+            data.remaining(),
+            info,
+            getGcGeneration(),
+            segmentReferences,
+            recordNumbers,
+            new Dumper() {
 
-            writer.format("Segment %s (%d bytes)%n", id, length);
-            String segmentInfo = getSegmentInfo();
-            if (segmentInfo != null) {
-                writer.format("Info: %s, Generation: %d%n", segmentInfo, getGcGeneration());
-            }
-            if (id.isDataSegmentId()) {
-                writer.println("--------------------------------------------------------------------------");
+                @Override
+                public void dump(OutputStream stream) {
+                    byte[] buffer;
 
-                int i = 1;
-
-                for (SegmentId segmentId : segmentReferences) {
-                    writer.format("reference %02x: %s%n", i++, segmentId);
-                }
-
-                for (Entry entry : recordNumbers) {
-                    writer.format("%10s record %08x: %08x%n",
-                            entry.getType(), entry.getRecordNumber(), entry.getOffset());
-                }
-            }
-            writer.println("--------------------------------------------------------------------------");
-            int pos = data.limit() - ((length + 15) & ~15);
-            while (pos < data.limit()) {
-                writer.format("%04x: ", (MAX_SEGMENT_SIZE - data.limit() + pos) >> RECORD_ALIGN_BITS);
-                for (int i = 0; i < 16; i++) {
-                    if (i > 0 && i % 4 == 0) {
-                        writer.append(' ');
-                    }
-                    if (pos + i >= data.position()) {
-                        byte b = data.get(pos + i);
-                        writer.format("%02x ", b & 0xff);
+                    if (data.hasArray()) {
+                        buffer = data.array();
                     } else {
-                        writer.append("   ");
+                        buffer = new byte[data.remaining()];
+                        data.duplicate().get(buffer);
+                    }
+
+                    try {
+                        HexDump.dump(buffer, 0, stream, 0);
+                    } catch (IOException e) {
+                        e.printStackTrace(new PrintStream(stream));
                     }
                 }
-                writer.append(' ');
-                for (int i = 0; i < 16; i++) {
-                    if (pos + i >= data.position()) {
-                        byte b = data.get(pos + i);
-                        if (b >= ' ' && b < 127) {
-                            writer.append((char) b);
-                        } else {
-                            writer.append('.');
-                        }
-                    } else {
-                        writer.append(' ');
-                    }
-                }
-                writer.println();
-                pos += 16;
+
             }
-            writer.println("--------------------------------------------------------------------------");
-            return string.toString();
-        }
+        );
     }
 
     public void writeTo(OutputStream stream) throws IOException {
