@@ -28,7 +28,9 @@ import static org.mockito.Mockito.mock;
 import java.io.File;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -100,6 +102,7 @@ public class SegmentNodeStoreServiceTest {
 
         registerSegmentNodeStoreService(true);
         assertServiceActivated();
+        assertNotNull(context.getService(BlobGCMBean.class));
 
         unregisterSegmentNodeStoreService();
         unregisterBlobStore();
@@ -158,7 +161,7 @@ public class SegmentNodeStoreServiceTest {
     private ServiceRegistration blobStore;
 
     private void registerBlobStore() {
-        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), mock(BlobStore.class), null);
+        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), mock(GarbageCollectableBlobStore.class), null);
     }
 
     private void unregisterBlobStore() {

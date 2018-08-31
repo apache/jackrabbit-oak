@@ -397,7 +397,7 @@ class SegmentNodeStoreRegistrar {
             }
         }
 
-        if (cfg.isPrimarySegmentStore() && cfg.getBlobStore() instanceof GarbageCollectableBlobStore) {
+        if (!cfg.isSecondarySegmentStore() && cfg.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store),
                 (GarbageCollectableBlobStore) cfg.getBlobStore(),
