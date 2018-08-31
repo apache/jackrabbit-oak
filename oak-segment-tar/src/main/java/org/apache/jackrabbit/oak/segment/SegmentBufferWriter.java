@@ -30,6 +30,7 @@ import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
+import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.SEGMENT_REFERENCE_SIZE;
@@ -38,9 +39,11 @@ import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -175,7 +178,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * The segment meta data is guaranteed to be the first string record in a segment.
      */
     private void newSegment(SegmentStore store) throws IOException {
-        buffer = new byte[Segment.MAX_SEGMENT_SIZE];
+        buffer = new byte[MAX_SEGMENT_SIZE];
         buffer[0] = '0';
         buffer[1] = 'a';
         buffer[2] = 'K';
@@ -283,6 +286,24 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         dirty = true;
     }
 
+    private String dumpSegmentBuffer() {
+        return SegmentDump.dumpSegment(
+            segment != null ? segment.getSegmentId() : null,
+            length,
+            segment != null ? segment.getSegmentInfo() : null,
+            gcGeneration,
+            segmentReferences,
+            recordNumbers,
+            stream -> {
+                try {
+                    HexDump.dump(buffer, 0, stream, 0);
+                } catch (IOException e) {
+                    e.printStackTrace(new PrintStream(stream));
+                }
+            }
+        );
+    }
+
     /**
      * Adds a segment header to the buffer and writes a segment to the segment
      * store. This is done automatically (called from prepare) when there is not
@@ -302,6 +323,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
+                LOG.warn("Segment buffer corruption detected\n{}", dumpSegmentBuffer());
                 throw new IllegalStateException(String.format(
                         "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
                         segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
