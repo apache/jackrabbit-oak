@@ -55,17 +55,14 @@ Oak releases, please see the Oak issue tracker at
 Release Contents
 ----------------
 
-This release consists of a single source archive packaged as a zip
-file.
-The archive can be unpacked with the jar tool from your JDK
-installation.
+This release consists of a single source archive packaged as a zip file.
+The archive can be unpacked with the jar tool from your JDK installation.
 See the README.md file for instructions on how to build this release.
 
-The source archive is accompanied by SHA1 and MD5 checksums and a PGP
-signature that you can use to verify the authenticity of your
-download.
-The public key used for the PGP signature can be found at
-http://www.apache.org/dist/jackrabbit/KEYS.
+The source archive is accompanied by SHA1 and SHA512 checksums and a
+PGP signature that you can use to verify the authenticity of your
+download. The public key used for the PGP signature can be found at
+https://www.apache.org/dist/jackrabbit/KEYS.
 
 About Apache Jackrabbit Oak
 ---------------------------
@@ -74,7 +71,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project.
+The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 For more information, visit http://jackrabbit.apache.org/oak
@@ -82,15 +79,11 @@ For more information, visit http://jackrabbit.apache.org/oak
 About The Apache Software Foundation
 ------------------------------------
 
-Established in 1999, The Apache Software Foundation provides
-organizational,
+Established in 1999, The Apache Software Foundation provides organizational,
 legal, and financial support for more than 140 freely-available,
-collaboratively-developed Open Source projects. The pragmatic Apache
-License
-enables individual and commercial users to easily deploy Apache
-software;
-the Foundation's intellectual property framework limits the legal
-exposure
+collaboratively-developed Open Source projects. The pragmatic Apache License
+enables individual and commercial users to easily deploy Apache software;
+the Foundation's intellectual property framework limits the legal exposure
 of its 3,800+ contributors.
 
 For more information, visit http://www.apache.org/
