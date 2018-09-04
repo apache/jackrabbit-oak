@@ -426,17 +426,36 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
+        // If the resulting segment buffer would be too big we need to allocate
+        // additional space. Allocating additional space is a recursive
+        // operation guarded by the `dirty` flag. The recursion can iterate at
+        // most two times. The base case happens when the `dirty` flag is
+        // `false`: the current buffer is empty, the record is too big to fit in
+        // an empty segment, and we fail with an `IllegalArgumentException`. The
+        // recursive step happens when the `dirty` flag is `true`:
+        // the current buffer is non-empty, we flush it, allocate a new buffer
+        // for an empty segment, and invoke `prepare()` once more.
+
         if (segmentSize > buffer.length) {
-            LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
+            if (dirty) {
+                LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
                     segment.getSegmentId(), headerSize, recordSize, length, segmentSize);
-            flush(store);
+                flush(store);
+                return prepare(type, size, ids, store);
+            }
+            throw new IllegalArgumentException(String.format(
+                "Record too big: type=%s, size=%s, recordIds=%s, total=%s",
+                type,
+                size,
+                ids.size(),
+                recordSize
+            ));
         }
 
         statistics.recordCount++;
 
         length += recordSize;
         position = buffer.length - length;
-        checkState(position >= 0);
 
         int recordNumber = recordNumbers.addRecord(type, position);
         return new RecordId(segment.getSegmentId(), recordNumber);
