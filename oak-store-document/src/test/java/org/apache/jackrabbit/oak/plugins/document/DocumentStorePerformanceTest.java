@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +46,13 @@ public class DocumentStorePerformanceTest extends AbstractMultiDocumentStoreTest
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStorePerformanceTest.class);
     private static final boolean ENABLED = Boolean.getBoolean(DocumentStorePerformanceTest.class.getSimpleName());
 
+    @BeforeClass
+    public static void assumeEnabled() {
+        assumeTrue(ENABLED);
+    }
+
     public DocumentStorePerformanceTest(DocumentStoreFixture dsf) {
         super(dsf);
-        assumeTrue(ENABLED);
     }
 
     @Test
