@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -93,6 +94,45 @@ public class SegmentBufferWriterTest {
         }
 
         assertNotEquals(before, after);
+    }
+
+    @Test
+    public void tooBigRecord() throws Exception {
+
+        // See OAK-7721 to understand why this test exists.
+
+        try (FileStore store = openFileStore()) {
+
+            // Please don't change anything from the following statement yet.
+            // Read the next comment to understand why.
+
+            SegmentBufferWriter writer = new SegmentBufferWriter(
+                store,
+                store.getTracker().getSegmentCounter(),
+                store.getReader(),
+                "t",
+                store.getRevisions().getHead().getSegment().getGcGeneration()
+            );
+
+            // The size of the record is chosen with the precise intention to
+            // fool `writer` into having enough space to write the record. In
+            // particular, at the end of `prepare()`, `writer` will have
+            // `this.length = 262144`, which is `MAX_SEGMENT_SIZE`, and
+            // `this.position = 0`. This result is particularly sensitive to the
+            // initial content of the segment, which in turn is influenced by
+            // the segment info. Try to change the writer ID in the constructor
+            // of `SegmentBufferWriter` to a longer string, and you will have
+            // `prepare()` throw ISEs because the writer ID is embedded in the
+            // segment info.
+
+            IllegalArgumentException error = null;
+            try {
+                writer.prepare(RecordType.BLOCK, 262101, new ArrayList<RecordId>());
+            } catch (IllegalArgumentException e) {
+                error = e;
+            }
+            assertEquals("Record too big: type=BLOCK, size=262101, recordIds=0, total=262104", error != null ? error.getMessage() : null);
+        }
     }
 
 }
