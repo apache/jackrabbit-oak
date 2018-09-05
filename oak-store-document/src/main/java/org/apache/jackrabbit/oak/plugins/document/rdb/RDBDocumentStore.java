@@ -1346,7 +1346,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private boolean upgradeTable(Connection con, String tableName, int level) throws SQLException {
         boolean wasChanged = false;
-        
+
         for (String statement : this.dbInfo.getTableUpgradeStatements(tableName, level)) {
             Statement upgradeStatement = null;
             try {
@@ -1358,8 +1358,14 @@ public class RDBDocumentStore implements DocumentStore {
                 wasChanged = true;
             } catch (SQLException exup) {
                 con.rollback();
-                LOG.info("Attempted to upgrade " + tableName + " to DB level " + level + " using '" + statement
-                        + "', but failed - will continue without.", exup);
+                String message = String.format(
+                        "Attempted to upgrade %s to DB level %d using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
+                        tableName, level, statement, exup.getMessage(), exup.getErrorCode(), exup.getSQLState());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(message, exup);
+                } else {
+                    LOG.info(message);
+                }
             } finally {
                 closeStatement(upgradeStatement);
             }
@@ -1378,12 +1384,18 @@ public class RDBDocumentStore implements DocumentStore {
             upgradeStatement.execute(statement);
             upgradeStatement.close();
             con.commit();
-            LOG.info("Added modified index to " + tableName + " using '" + statement + "'");
+            LOG.info("Added 'modified' index to " + tableName + " using '" + statement + "'");
             wasChanged = true;
         } catch (SQLException exup) {
             con.rollback();
-            LOG.info("Attempted to add modified index to " + tableName + " using '" + statement
-                    + "', but failed - will continue without.", exup);
+            String message = String.format(
+                    "Attempted to add 'modified' index to %s using '%s', but failed with SQLException '%s' (code: %d/state: %s) - will continue without.",
+                    tableName, statement, exup.getMessage(), exup.getErrorCode(), exup.getSQLState());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(message, exup);
+            } else {
+                LOG.info(message);
+            }
         } finally {
             closeStatement(upgradeStatement);
         }
