@@ -185,7 +185,7 @@
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
                 <!-- Set the comparisonVersion to last release from stable branch-->
-                <comparisonVersion>1.8.6</comparisonVersion>
+                <comparisonVersion>1.8.7</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
                   <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
