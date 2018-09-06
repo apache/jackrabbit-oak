@@ -116,6 +116,11 @@ public class SegmentTarManager implements SegmentArchiveManager {
     }
 
     @Override
+    public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
+        return open(archiveName);
+    }
+
+    @Override
     public SegmentArchiveWriter create(String archiveName) {
         return new SegmentTarWriter(new File(segmentstoreDir, archiveName), fileStoreMonitor, ioMonitor);
     }

@@ -58,7 +58,9 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.split.SplitPersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -116,6 +118,8 @@ class SegmentNodeStoreRegistrar {
 
         File getSegmentDirectory();
 
+        File getSplitPersistenceDirectory();
+
         int getSegmentCacheSize();
 
         int getStringCacheSize();
@@ -135,6 +139,8 @@ class SegmentNodeStoreRegistrar {
         boolean hasCustomBlobStore();
 
         boolean hasCustomSegmentStore();
+
+        boolean hasSplitPersistence();
 
         boolean registerDescriptors();
 
@@ -228,8 +234,17 @@ class SegmentNodeStoreRegistrar {
         }
 
         if (cfg.hasCustomSegmentStore() && cfg.getSegmentNodeStorePersistence() != null) {
-            cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]", cfg.getSegmentNodeStorePersistence());
-            builder.withCustomPersistence(cfg.getSegmentNodeStorePersistence());
+            if (cfg.hasSplitPersistence()) {
+                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}] and local writes", cfg.getSegmentNodeStorePersistence());
+                cfg.getSplitPersistenceDirectory().mkdirs();
+                SegmentNodeStorePersistence roPersistence = cfg.getSegmentNodeStorePersistence();
+                SegmentNodeStorePersistence rwPersistence = new TarPersistence(cfg.getSplitPersistenceDirectory());
+                SegmentNodeStorePersistence persistence = new SplitPersistence(roPersistence, rwPersistence);
+                builder.withCustomPersistence(persistence);
+            } else {
+                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]", cfg.getSegmentNodeStorePersistence());
+                builder.withCustomPersistence(cfg.getSegmentNodeStorePersistence());
+            }
         }
 
         if (cfg.isStandbyInstance()) {

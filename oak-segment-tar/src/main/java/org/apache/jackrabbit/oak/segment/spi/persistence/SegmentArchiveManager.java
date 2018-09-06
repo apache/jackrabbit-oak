@@ -47,10 +47,21 @@ public interface SegmentArchiveManager {
      * Opens a given archive for reading.
      *
      * @param archiveName
-     * @return the archive reader or null if the archive doesn't exist
+     * @return the archive reader or null if the archive doesn't exist or doesn't
+     * have a valid index
      */
     @Nullable
     SegmentArchiveReader open(@NotNull String archiveName) throws IOException;
+
+    /**
+     * Opens an archive that wasn't closed correctly.
+     *
+     * @param archiveName
+     * @return the archive reader or null if the implementation doesn't support
+     * opening an unclosed archive
+     */
+    @Nullable
+    SegmentArchiveReader forceOpen(String archiveName) throws IOException;
 
     /**
      * Creates a new archive.
