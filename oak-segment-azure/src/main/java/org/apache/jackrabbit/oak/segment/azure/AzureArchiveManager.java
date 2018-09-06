@@ -98,6 +98,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
+    public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
+        CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
+        return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
+    }
+
+    @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
         return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor);
     }

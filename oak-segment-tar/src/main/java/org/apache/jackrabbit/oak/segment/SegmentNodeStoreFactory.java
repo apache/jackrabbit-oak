@@ -248,6 +248,12 @@ public class SegmentNodeStoreFactory {
         boolean customSegmentStore() default false;
 
         @AttributeDefinition(
+                name = "Split persistence",
+                description = "Boolean value indicating that the writes should be done locally when using the custom segment store"
+        )
+        boolean splitPersistence() default false;
+
+        @AttributeDefinition(
             name = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
                 "Defaults to 'repository.home/segmentstore-backup'."
@@ -467,6 +473,11 @@ public class SegmentNodeStoreFactory {
             }
 
             @Override
+            public File getSplitPersistenceDirectory() {
+                return new File(getRepositoryHome(), appendRole("segmentstore-split"));
+            }
+
+            @Override
             public int getSegmentCacheSize() {
                 return getCacheSize("segmentCache.size", configuration.segmentCache_size());
             }
@@ -514,6 +525,11 @@ public class SegmentNodeStoreFactory {
             @Override
             public boolean hasCustomSegmentStore() {
                 return configuration.customSegmentStore();
+            }
+
+            @Override
+            public boolean hasSplitPersistence() {
+                return configuration.splitPersistence();
             }
 
             @Override
