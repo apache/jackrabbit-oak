@@ -23,6 +23,7 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.jetbrains.annotations.NotNull;
@@ -116,7 +117,12 @@ class TokenAuthentication implements Authentication {
         }
 
         if (tokenInfo.matches(tokenCredentials)) {
-            tokenInfo.resetExpiration(loginTime);
+            if (tokenCredentials.getAttribute(TokenConstants.TOKEN_SKIP_REFRESH) == null) {
+                boolean reset = tokenInfo.resetExpiration(loginTime);
+                log.debug("Token reset={}", reset);
+            } else {
+                log.debug("Token reset skipped.");
+            }
             return true;
         }
 
