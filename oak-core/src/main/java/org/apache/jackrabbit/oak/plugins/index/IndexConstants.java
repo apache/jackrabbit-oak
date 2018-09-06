@@ -139,5 +139,12 @@ public interface IndexConstants {
      * Boolean flag indicating that old indexes need to be disabled
      */
     String DISABLE_INDEXES_ON_NEXT_CYCLE = ":disableIndexesOnNextCycle";
+    
+    /**
+     * The property of an index. If the given node or property exists, then the
+     * index is used for queries; otherwise, it is not used (returns infinite
+     * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
+     */
+    String USE_IF_EXISTS = "useIfExists";
 
 }
