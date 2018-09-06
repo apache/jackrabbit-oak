@@ -21,14 +21,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -40,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 
 /**
@@ -100,7 +94,7 @@ class PropertyIndex implements QueryIndex {
     /**
      * Cached property index plan
      */
-    private PropertyIndexPlan plan;
+    private PropertyIndexPlan cachedPlan;
 
     PropertyIndex(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
@@ -111,12 +105,12 @@ class PropertyIndex implements QueryIndex {
         // string because it would not be possible to use its equals method since the preparing flag would be different
         // and creating a separate isSimilar method is not worth the effort since it would not be used anymore once the
         // PropertyIndex has been refactored to an AdvancedQueryIndex (which will make the plan cache obsolete).
-        PropertyIndexPlan plan = this.plan;
+        PropertyIndexPlan plan = this.cachedPlan;
         if (plan != null && plan.getFilter().toString().equals(filter.toString())) {
             return plan;
         } else {
             plan = createPlan(root, filter, mountInfoProvider);
-            this.plan = plan;
+            this.cachedPlan = plan;
             return plan;
         }
     }
@@ -130,7 +124,7 @@ class PropertyIndex implements QueryIndex {
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState definition = entry.getNodeState();
-            if (wrongIndex(entry, filter)) {
+            if (wrongIndex(entry, filter, root)) {
                 continue;
             }
             if (PROPERTY.equals(definition.getString(TYPE_PROPERTY_NAME))
@@ -154,9 +148,13 @@ class PropertyIndex implements QueryIndex {
         return bestPlan;
     }
     
-    private static boolean wrongIndex(ChildNodeEntry entry, Filter filter) {
+    private static boolean wrongIndex(ChildNodeEntry entry, Filter filter, NodeState root) {
         // REMARK: similar code is used in oak-lucene, IndexPlanner
         // skip index if "option(index ...)" doesn't match
+        NodeState definition = entry.getNodeState();
+        if (!isEnabled(definition, root)) {
+            return true;
+        }
         PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
         boolean wrong = false;
         if (indexName != null && indexName.first != null) {
@@ -171,7 +169,6 @@ class PropertyIndex implements QueryIndex {
         PropertyRestriction indexTag = filter.getPropertyRestriction(IndexConstants.INDEX_TAG_OPTION);
         if (indexTag != null && indexTag.first != null) {
             // index tag specified
-            NodeState definition = entry.getNodeState();
             String[] tags = getOptionalStrings(definition, IndexConstants.INDEX_TAGS);
             if (tags == null) {
                 // no tag
@@ -189,6 +186,24 @@ class PropertyIndex implements QueryIndex {
         }
         // no tag specified
         return wrong;
+    }
+    
+    private static boolean isEnabled(NodeState definition, NodeState root) {
+        String useIfExists = definition.getString(IndexConstants.USE_IF_EXISTS);
+        if (useIfExists == null) {
+            return true;
+        }
+        NodeState nodeState = root;
+        for (String element : PathUtils.elements(useIfExists)) {
+            if (element.startsWith("@")) {
+                return nodeState.hasProperty(element.substring(1));
+            }
+            nodeState = nodeState.getChildNode(element);
+            if (!nodeState.exists()) {
+                return false;
+            }
+        }
+        return true;
     }
     
     private static String[] getOptionalStrings(NodeState defn, String propertyName) {
@@ -225,7 +240,6 @@ class PropertyIndex implements QueryIndex {
             // not an appropriate index for no property restrictions & selector constraints
             return Double.POSITIVE_INFINITY;
         }
-
         PropertyIndexPlan plan = getPlan(root, filter);
         if (plan != null) {
             return plan.getCost();
