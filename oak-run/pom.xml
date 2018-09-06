@@ -357,12 +357,10 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpcore-osgi</artifactId>
-      <version>4.4.5</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient-osgi</artifactId>
-      <version>4.5.2</version>
     </dependency>
     <dependency>
       <groupId>joda-time</groupId>
