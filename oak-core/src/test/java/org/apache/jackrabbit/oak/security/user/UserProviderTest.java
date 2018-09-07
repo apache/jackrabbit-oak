@@ -29,8 +29,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
@@ -42,9 +44,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -64,7 +66,7 @@ public class UserProviderTest {
 
     @Before
     public void setUp() throws Exception {
-        root = new Oak()
+        root = new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
                 .with(new OpenSecurityProvider())
                 .with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())

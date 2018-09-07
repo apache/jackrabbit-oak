@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.service.component.annotations.Component;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
 
 /**
  * Validator service that checks that all node and property names as well
@@ -37,9 +37,10 @@ public class NameValidatorProvider extends ValidatorProvider {
     @Override
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
+        boolean initPhase = !before.hasChildNode(JCR_SYSTEM);
         return new NameValidator(after
                 .getChildNode(JCR_SYSTEM)
-                .getChildNode(REP_NAMESPACES));
+                .getChildNode(REP_NAMESPACES), initPhase);
     }
 
 }

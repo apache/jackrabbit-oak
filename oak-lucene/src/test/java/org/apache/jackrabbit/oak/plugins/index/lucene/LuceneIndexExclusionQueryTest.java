@@ -34,7 +34,8 @@ import java.util.List;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -61,7 +62,7 @@ public class LuceneIndexExclusionQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        return new Oak().with(new InitialContent())
+        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)

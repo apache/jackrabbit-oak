@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -193,9 +194,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
         provider = new LuceneIndexProvider(copier);
         queryIndexProvider = new ResultCountingIndexProvider(provider);
-        nodeStore = new MemoryNodeStore();
+        nodeStore = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
         return new Oak(nodeStore)
-                .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with(queryIndexProvider)
                 .with((Observer) provider)

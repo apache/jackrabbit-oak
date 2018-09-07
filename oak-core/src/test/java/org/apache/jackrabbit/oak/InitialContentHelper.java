@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
-
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * {@code InitialContent} helper for tests
@@ -30,9 +32,11 @@ public class InitialContentHelper {
     public static final NodeState INITIAL_CONTENT = createInitialContent();
 
     private static NodeState createInitialContent() {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        new InitialContent().initialize(builder);
-        return squeeze(builder.getNodeState());
+        NodeStore store = new MemoryNodeStore();
+        EditorHook hook = new EditorHook(
+                new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+        OakInitializer.initialize(store, new InitialContent(), hook);
+        return store.getRoot();
     }
 
     private InitialContentHelper() {}
