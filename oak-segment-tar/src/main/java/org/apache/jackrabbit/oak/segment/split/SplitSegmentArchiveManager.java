@@ -63,15 +63,20 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
     @Override
     public @Nullable SegmentArchiveReader open(@NotNull String archiveName) throws IOException {
+        SegmentArchiveReader reader = null;
         if (roArchiveList.contains(archiveName)) {
             try {
-                return roArchiveManager.open(archiveName);
+                reader = roArchiveManager.open(archiveName);
             } catch (IOException e) {
-                return roArchiveManager.forceOpen(archiveName);
+                // ignore
+            }
+            if (reader == null) {
+                reader = roArchiveManager.forceOpen(archiveName);
             }
         } else {
-            return rwArchiveManager.open(archiveName);
+            reader = rwArchiveManager.open(archiveName);
         }
+        return reader;
     }
 
     @Override
