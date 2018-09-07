@@ -125,7 +125,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
         }
         
         private static void functionBasedIndex(NodeBuilder props, String function) {
-            props.child(function).
+            props.child(function.replace('[', '_').replace(']', '_')).
                 setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME).
                 setProperty(LuceneIndexConstants.PROP_FUNCTION, function);
         }

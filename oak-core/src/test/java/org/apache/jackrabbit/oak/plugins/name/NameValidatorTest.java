@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class NameValidatorTest {
 
-    private final Validator validator = new NameValidator(newNamespaceNode("valid"));
+    private final Validator validator = new NameValidator(newNamespaceNode("valid"), false);
 
     @Test(expected = CommitFailedException.class)
     public void testCurrentPath() throws CommitFailedException {
@@ -49,8 +49,15 @@ public class NameValidatorTest {
         validator.childNodeAdded(":name", EMPTY_NODE);
     }
 
+    @Test
+    public void testInvalidPrefixInitial() throws CommitFailedException {
+        Validator validator = new NameValidator(newNamespaceNode("valid"), true);
+        validator.childNodeAdded("invalid:name", EMPTY_NODE);
+    }
+
     @Test(expected = CommitFailedException.class)
     public void testInvalidPrefix() throws CommitFailedException {
+        Validator validator = new NameValidator(newNamespaceNode("valid"), false);
         validator.childNodeAdded("invalid:name", EMPTY_NODE);
     }
 
@@ -120,7 +127,7 @@ public class NameValidatorTest {
         NodeBuilder builder = newNamespaceNode("valid").builder();
         builder.setProperty("testNVT", "testuri");
 
-        Validator validator = new NameValidator(builder.getNodeState());
+        Validator validator = new NameValidator(builder.getNodeState(), false);
         validator.childNodeAdded("testNVT:test", EMPTY_NODE);
     }
 

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.io.IOException;
-import java.io.InputStream;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -25,7 +23,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_INIT;
 
-import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,21 +33,19 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} the creates
@@ -122,10 +119,7 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         // squeeze node state before it is passed to store (OAK-2411)
         NodeState base = squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
-        registerBuiltIn(RootFactory.createSystemRoot(
-                store, new EditorHook(new CompositeEditorProvider(
-                        new NamespaceEditorProvider(),
-                        new TypeEditorProvider())), null, null, null));
+        registerBuiltIn(RootFactory.createSystemRoot(store, null, null, null, null));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }

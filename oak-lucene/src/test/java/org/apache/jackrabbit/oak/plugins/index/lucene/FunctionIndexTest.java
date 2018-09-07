@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -68,9 +68,8 @@ public class FunctionIndexTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         editorProvider = new LuceneIndexEditorProvider();
         LuceneIndexProvider provider = new LuceneIndexProvider();
-        nodeStore = new MemoryNodeStore();
+        nodeStore = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
         return new Oak(nodeStore)
-                .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)

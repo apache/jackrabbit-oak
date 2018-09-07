@@ -109,6 +109,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -504,19 +505,6 @@ public class Oak {
     @NotNull
     public Oak with(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = checkNotNull(securityProvider);
-        if (securityProvider instanceof WhiteboardAware) {
-            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
-        }
-        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
-            RepositoryInitializer ri = sc.getRepositoryInitializer();
-            if (ri != RepositoryInitializer.DEFAULT) {
-                initializers.add(ri);
-            }
-
-            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
-                with(tch);
-            }
-        }
         return this;
     }
 
@@ -573,9 +561,6 @@ public class Oak {
     @NotNull
     public Oak with(@NotNull Whiteboard whiteboard) {
         this.whiteboard = checkNotNull(whiteboard);
-        if (securityProvider instanceof WhiteboardAware) {
-            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
-        }
         QueryEngineSettings queryEngineSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
         if (queryEngineSettings != null) {
             this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
@@ -678,20 +663,56 @@ public class Oak {
         return contentRepository;
     }
 
+    private void initialContent(IndexEditorProvider indexEditors, QueryIndexProvider indexProvider) {
+        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
+        initHooks.add(0, ResetCommitAttributeHook.INSTANCE);
+        initHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors)));
+
+        CommitHook initHook = CompositeHook.compose(initHooks);
+        OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+
+        // FIXME: OAK-810 move to proper workspace initialization
+        // initialize default workspace
+        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+                new Function<SecurityConfiguration, WorkspaceInitializer>() {
+                    @Override
+                    public WorkspaceInitializer apply(SecurityConfiguration sc) {
+                        WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                        if (wi instanceof QueryIndexProviderAware) {
+                            ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
+                        }
+                        return wi;
+                    }
+                });
+        OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
+    }
+
     private ContentRepository createNewContentRepository() {
+        if (securityProvider instanceof WhiteboardAware) {
+            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
+        }
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
+            RepositoryInitializer ri = sc.getRepositoryInitializer();
+            if (ri != RepositoryInitializer.DEFAULT) {
+                initializers.add(ri);
+            }
+            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
+                with(tch);
+            }
+        }
+
         final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
         IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
-        OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
-
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 
+        // force serialize editors
+        withEditorHook();
         commitHooks.add(repoStateCheckHook);
-        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
-        initHooks.add(new EditorHook(CompositeEditorProvider
-                .compose(editorProviders)));
+
+        initialContent(indexEditors, indexProvider);
 
         if (asyncTasks != null) {
             IndexMBeanRegistration indexRegistration = new IndexMBeanRegistration(
@@ -726,26 +747,8 @@ public class Oak {
         regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
                 queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
-        // FIXME: OAK-810 move to proper workspace initialization
-        // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers =
-                Iterables.transform(securityProvider.getConfigurations(),
-                        new Function<SecurityConfiguration, WorkspaceInitializer>() {
-                            @Override
-                            public WorkspaceInitializer apply(SecurityConfiguration sc) {
-                                WorkspaceInitializer wi = sc.getWorkspaceInitializer();
-                                if (wi instanceof QueryIndexProviderAware){
-                                    ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
-                                }
-                                return wi;
-                            }
-                        });
-        OakInitializer.initialize(
-                workspaceInitializers, store, defaultWorkspaceName, indexEditors);
-
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        with(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider));
-        withEditorHook();
+        commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {
