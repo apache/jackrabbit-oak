@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
+import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -101,7 +102,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
     final CompositionContext ctx;
 
-    private final List<Observer> observers = new CopyOnWriteArrayList<>();
+    private final ChangeDispatcher dispatcher;
 
     private final Lock mergeLock;
 
@@ -114,6 +115,14 @@ public class CompositeNodeStore implements NodeStore, Observable {
         this.ctx = new CompositionContext(mip, globalStore, nonDefaultStore, nodeStateMonitor, nodeBuilderMonitor);
         this.ignoreReadOnlyWritePaths = new TreeSet<>(ignoreReadOnlyWritePaths);
         this.mergeLock = new ReentrantLock();
+        this.dispatcher = new ChangeDispatcher(getRoot());
+
+        // setup observation proxy mechanism for underlying store for events not dispatched from within our
+        // merge
+        if (globalStore instanceof Observable) {
+            Observable globalStoreObservable = (Observable) globalStore;
+            globalStoreObservable.addObserver(new MountedNodeStoreObserver());
+        }
     }
 
     @Override
@@ -167,9 +176,6 @@ public class CompositeNodeStore implements NodeStore, Observable {
             }
 
             CompositeNodeState newRoot = ctx.createRootNodeState(resultStates);
-            for (Observer observer : observers) {
-                observer.contentChanged(newRoot, info);
-            }
             return newRoot;
         } finally {
             mergeLock.unlock();
@@ -440,14 +446,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
     @Override
     public Closeable addObserver(final Observer observer) {
-        observer.contentChanged(getRoot(), CommitInfo.EMPTY_EXTERNAL);
-        observers.add(observer);
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                observers.remove(observer);
-            }
-        };
+        return dispatcher.addObserver(observer);
     }
 
     private Set<String> getIgnoredPaths(Set<String> paths) {
@@ -541,6 +540,18 @@ public class CompositeNodeStore implements NodeStore, Observable {
             checkArgument(buildMountCount == mipMountCount,
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
+        }
+    }
+
+    private class MountedNodeStoreObserver implements Observer {
+        @Override
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+            for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
+                nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
+            }
+            nodeStates.put(ctx.getGlobalStore(), root);
+            dispatcher.contentChanged(ctx.createRootNodeState(nodeStates), info);
         }
     }
 }
