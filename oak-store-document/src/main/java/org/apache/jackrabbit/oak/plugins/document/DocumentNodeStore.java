@@ -719,19 +719,28 @@ public final class DocumentNodeStore
                 backgroundUpdateThread,
                 backgroundSweepThread);
 
+        DocumentStoreException ex = null;
+
         // create a tombstone commit revision after isDisposed is set to true.
         // commits created earlier than this revision will be able to finish
         // and we'll get a headOfQueue() callback when they are done
         // after this call there are no more pending trunk commits and
         // the commit queue is empty and stays empty
-        Revision tombstone = commitQueue.createRevision();
-        commitQueue.done(tombstone, new CommitQueue.Callback() {
-            @Override
-            public void headOfQueue(@NotNull Revision revision) {
-                setRoot(getHeadRevision().update(revision));
-                unsavedLastRevisions.put(ROOT_PATH, revision);
+        if (!readOnlyMode) {
+            try {
+                Revision tombstone = commitQueue.createRevision();
+                commitQueue.done(tombstone, new CommitQueue.Callback() {
+                    @Override
+                    public void headOfQueue(@NotNull Revision revision) {
+                        setRoot(getHeadRevision().update(revision));
+                        unsavedLastRevisions.put(ROOT_PATH, revision);
+                    }
+                });
+            } catch (DocumentStoreException e) {
+                LOG.error("dispose: a DocumentStoreException happened during dispose's attempt to commit a tombstone: " + e, e);
+                ex = e;
             }
-        });
+        }
 
         try {
             bundlingConfigHandler.close();
@@ -739,7 +748,6 @@ public final class DocumentNodeStore
             LOG.warn("Error closing bundlingConfigHandler", bundlingConfigHandler, e);
         }
 
-        DocumentStoreException ex = null;
         // do a final round of background operations after
         // the background thread stopped
         if (!readOnlyMode) {

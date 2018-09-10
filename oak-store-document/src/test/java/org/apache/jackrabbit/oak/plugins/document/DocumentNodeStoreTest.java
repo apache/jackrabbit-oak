@@ -762,6 +762,41 @@ public class DocumentNodeStoreTest {
         assertTrue(store2.getRoot().getChildNode("test").getChildNode("node").exists());
     }
 
+    // verify that the dispose method does a best effort in releasing resources (see OAK-7709)
+    @Test
+    public void disposeAfterLeaseFailure() throws Exception {
+        try {
+            final AtomicBoolean documentStoreDisposeWasReached = new AtomicBoolean(false);
+            Clock clock = new Clock.Virtual();
+            clock.waitUntil(System.currentTimeMillis());
+
+            MemoryDocumentStore docStore = new MemoryDocumentStore() {
+                @Override
+                public void dispose() {
+                    documentStoreDisposeWasReached.set(true);
+                }
+            };
+
+            DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).clock(clock)
+                    .setClusterId(1).getNodeStore();
+
+            ClusterNodeInfo.setClock(clock);
+            // wait until lease expires
+            clock.waitUntil(clock.getTime() + store1.getClusterInfo().getLeaseTime() + 1000);
+
+            assertFalse(documentStoreDisposeWasReached.get());
+            try {
+                store1.dispose();
+                fail("expected lease failure exception; test setup may be incorrect");
+            } catch (DocumentStoreException expected) {
+                // due to lease update failure
+            }
+            assertTrue("The DocumentStore instance's dispose() method was not called", documentStoreDisposeWasReached.get());
+        } finally {
+            ClusterNodeInfo.resetClockToDefault();
+        }
+    }
+
     // OAK-2336
     @Test
     public void readBranchCommit() throws Exception {
