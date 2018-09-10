@@ -225,12 +225,4 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         assertEquals(2L, foo.get("_ds1"));
         assertEquals(1L, foo.get("_ds2"));
     }
-
-    private static long letTimeElapse() {
-        long ts = System.currentTimeMillis();
-        while (System.currentTimeMillis() == ts) {
-            // busy wait
-        }
-        return System.currentTimeMillis();
-    }
 }
