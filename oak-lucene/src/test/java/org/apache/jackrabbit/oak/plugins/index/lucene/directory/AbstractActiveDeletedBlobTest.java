@@ -24,12 +24,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -70,7 +70,7 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder fileDataStoreRoot = new TemporaryFolder(new File("target"));
 
-    protected ExecutorService executorService = Executors.newFixedThreadPool(2);
+    protected ExecutorService executorService = MoreExecutors.sameThreadExecutor();
 
     protected CountingBlobStore blobStore = null;
 
