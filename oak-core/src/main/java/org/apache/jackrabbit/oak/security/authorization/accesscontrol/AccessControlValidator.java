@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
@@ -32,7 +34,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -66,8 +68,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final PrivilegeManager privilegeManager;
     private final RestrictionProvider restrictionProvider;
 
-    private final TypePredicate isRepoAccessControllable;
-    private final TypePredicate isAccessControllable;
+    private final Predicate<NodeState> isRepoAccessControllable;
+    private final Predicate<NodeState> isAccessControllable;
 
     AccessControlValidator(@NotNull NodeState parentAfter,
                            @NotNull PrivilegeManager privilegeManager,
@@ -79,8 +81,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         this.privilegeBitsProvider = privilegeBitsProvider;
         this.privilegeManager = privilegeManager;
         this.restrictionProvider = restrictionProvider;
-        this.isRepoAccessControllable = new TypePredicate(parentAfter, MIX_REP_REPO_ACCESS_CONTROLLABLE);
-        this.isAccessControllable = new TypePredicate(parentAfter, MIX_REP_ACCESS_CONTROLLABLE);
+        this.isRepoAccessControllable = TypePredicates.getNodeTypePredicate(parentAfter, MIX_REP_REPO_ACCESS_CONTROLLABLE);
+        this.isAccessControllable = TypePredicates.getNodeTypePredicate(parentAfter, MIX_REP_ACCESS_CONTROLLABLE);
     }
 
     private AccessControlValidator(AccessControlValidator parent, Tree parentAfter) {
@@ -207,13 +209,13 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private static void checkValidAccessControlledNode(@NotNull Tree accessControlledTree,
-                                                       @NotNull TypePredicate requiredMixin,
+                                                       @NotNull Predicate<NodeState> requiredMixin,
                                                        @NotNull TreeProvider treeProvider) throws CommitFailedException {
         if (AC_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(accessControlledTree))) {
             throw accessViolation(5, "Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
 
-        if (!requiredMixin.apply(treeProvider.asNodeState(accessControlledTree))) {
+        if (!requiredMixin.test(treeProvider.asNodeState(accessControlledTree))) {
             String msg = "Isolated policy node (" + accessControlledTree.getPath() + "). Parent is not of type " + requiredMixin;
             throw accessViolation(6, msg);
         }

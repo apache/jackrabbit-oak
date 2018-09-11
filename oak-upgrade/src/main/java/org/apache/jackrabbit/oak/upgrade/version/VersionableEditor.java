@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.upgrade.version;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
@@ -67,9 +68,9 @@ public class VersionableEditor extends DefaultEditor {
 
     private final NodeBuilder versionStorage;
 
-    private final TypePredicate isReferenceable;
+    private final Predicate<NodeState> isReferenceable;
 
-    private final TypePredicate isVersionable;
+    private final Predicate<NodeState> isVersionable;
 
     private final VersionCopier versionCopier;
 
@@ -83,8 +84,8 @@ public class VersionableEditor extends DefaultEditor {
         this.vMgr = new ReadWriteVersionManager(versionStorage, rootBuilder);
 
         this.provider = provider;
-        this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
-        this.isReferenceable = new TypePredicate(rootBuilder.getNodeState(), MIX_REFERENCEABLE);
+        this.isVersionable = TypePredicates.getNodeTypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
+        this.isReferenceable = TypePredicates.getNodeTypePredicate(rootBuilder.getNodeState(), MIX_REFERENCEABLE);
         this.versionCopier = new VersionCopier(rootBuilder, getVersionStorage(provider.sourceRoot), versionStorage);
         this.path = "/";
 
@@ -122,7 +123,7 @@ public class VersionableEditor extends DefaultEditor {
         this.path = path;
 
         final VersionCopyConfiguration c = provider.config;
-        if (isVersionable.apply(after)) {
+        if (isVersionable.test(after)) {
             final String versionableUuid = getProperty(after, JCR_UUID, Type.STRING);
             if (c.isCopyVersions() && c.skipOrphanedVersionsCopy()) {
                 copyVersionHistory(after);
@@ -139,7 +140,7 @@ public class VersionableEditor extends DefaultEditor {
             } else {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
                 removeVersionProperties(versionableBuilder, isReferenceable);
-                if (isVersionable.apply(versionableBuilder.getNodeState())) {
+                if (isVersionable.test(versionableBuilder.getNodeState())) {
                     logger.warn("Node {} is still versionable. Creating empty version history.", path);
                     createEmptyHistory(versionableBuilder);
                 }

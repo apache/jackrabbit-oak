@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.plugins.identifier;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -29,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class IdentifierTracker {
 
-    private final TypePredicate referenceable;
+    private final Predicate<NodeState> referenceable;
 
     private final IdentifierTracker parent;
 
@@ -38,12 +40,12 @@ public class IdentifierTracker {
     private String identifier;
 
     public IdentifierTracker(NodeState root) {
-        this.referenceable = new TypePredicate(root, MIX_REFERENCEABLE);
+        this.referenceable = TypePredicates.getNodeTypePredicate(root, MIX_REFERENCEABLE);
         this.parent = null;
         this.name = null;
 
         String uuid = root.getString(JCR_UUID);
-        if (uuid != null && referenceable.apply(root)) {
+        if (uuid != null && referenceable.test(root)) {
             this.identifier = uuid;
         } else {
             this.identifier = "/";
@@ -60,7 +62,7 @@ public class IdentifierTracker {
 
     public IdentifierTracker getChildTracker(String name, NodeState state) {
         String uuid = state.getString(JCR_UUID);
-        if (uuid != null && !referenceable.apply(state)) {
+        if (uuid != null && !referenceable.test(state)) {
             uuid = null; // discard jcr:uuid value of a non-referenceable node
         }
         return new IdentifierTracker(this, name, uuid);

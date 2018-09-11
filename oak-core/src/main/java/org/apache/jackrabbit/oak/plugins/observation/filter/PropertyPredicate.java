@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  * the node has a property of the given {@code name} and the given
  * {@code propertyPredicate} holds on that property.
  */
-public class PropertyPredicate implements Predicate<NodeState> {
+public class PropertyPredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
     private final String name;
     private final Predicate<PropertyState> propertyPredicate;
 
@@ -45,9 +45,21 @@ public class PropertyPredicate implements Predicate<NodeState> {
         this.propertyPredicate = checkNotNull(propertyPredicate);
     }
 
+    @Deprecated
+    public PropertyPredicate(
+            @NotNull String name, @NotNull com.google.common.base.Predicate<PropertyState> propertyPredicate) {
+        this(name, FilterBuilder.asJdkPredicate(propertyPredicate));
+    }
+
+    @Deprecated
     @Override
     public boolean apply(NodeState node) {
+        return test(node);
+    }
+
+    @Override
+    public boolean test(NodeState node) {
         PropertyState property = node.getProperty(name);
-        return property != null && propertyPredicate.apply(property);
+        return property != null && propertyPredicate.test(property);
     }
 }

@@ -22,8 +22,9 @@ import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_RESTRICTIONS;
 
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -33,11 +34,11 @@ public class RestrictionEditor extends DefaultEditor {
 
     private final NodeBuilder builder;
 
-    private final TypePredicate isACE;
+    private final Predicate<NodeState> isACE;
 
     private PropertyState glob = null;
 
-    public RestrictionEditor(NodeBuilder builder, TypePredicate isACE) {
+    public RestrictionEditor(NodeBuilder builder, Predicate<NodeState> isACE) {
         this.builder = builder;
         this.isACE = isACE;
     }
@@ -50,7 +51,7 @@ public class RestrictionEditor extends DefaultEditor {
     @Override
     public void leave(NodeState before, NodeState after) {
         if (glob != null
-                && isACE.apply(after)
+                && isACE.test(after)
                 && !builder.hasChildNode(REP_RESTRICTIONS)) {
             NodeBuilder restrictions = builder.setChildNode(REP_RESTRICTIONS);
             restrictions.setProperty(JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, NAME);

@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.version;
 
-import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
-
 import java.util.Calendar;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
@@ -39,19 +36,13 @@ import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVe
  */
 public class VersionCopier {
 
-    private final TypePredicate isVersion;
-
     private final NodeState sourceVersionStorage;
 
     private final NodeBuilder targetVersionStorage;
 
-    private final NodeBuilder targetRoot;
-
     public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage) {
-        this.isVersion = new TypePredicate(targetRoot.getNodeState(), NT_VERSION);
         this.sourceVersionStorage = sourceVersionStorage;
         this.targetVersionStorage = targetVersionStorage;
-        this.targetRoot = targetRoot;
     }
 
     public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config) {

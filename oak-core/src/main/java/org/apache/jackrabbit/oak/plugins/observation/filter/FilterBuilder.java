@@ -34,17 +34,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -298,6 +298,23 @@ public final class FilterBuilder {
     }
 
     /**
+     * A condition that holds when the property predicate matches.
+     * @param selector  selector selecting the node to check the condition on
+     * @param name      the name of the property to check the predicate on
+     * @param predicate the predicate to check on the named property
+     * @return property condition
+     */
+    @Deprecated
+    @NotNull
+    public Condition property(@NotNull Selector selector, @NotNull String name,
+            @NotNull com.google.common.base.Predicate<PropertyState> predicate) {
+
+        return new UniversalCondition(
+                checkNotNull(selector),
+                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
+    }
+
+    /**
      * A condition that holds when the predicate matches.
      * @param selector  selector selecting the node to check the condition on
      * @param predicate the predicate to check on the selected node
@@ -306,6 +323,18 @@ public final class FilterBuilder {
     @NotNull
     public Condition universal(@NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
         return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
+    }
+
+    /**
+     * A condition that holds when the predicate matches.
+     * @param selector  selector selecting the node to check the condition on
+     * @param predicate the predicate to check on the selected node
+     * @return universal condition
+     */
+    @Deprecated
+    @NotNull
+    public Condition universal(@NotNull Selector selector, @NotNull com.google.common.base.Predicate<NodeState> predicate) {
+        return universal(selector, asJdkPredicate(predicate));
     }
 
     /**
@@ -548,7 +577,7 @@ public final class FilterBuilder {
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            TypePredicate predicate = new TypePredicate(
+            Predicate<NodeState> predicate = TypePredicates.getNodeTypePredicate(
                     after.exists() ? after : before, ntNames);
             return new UniversalFilter(before, after, selector, predicate);
         }
@@ -668,4 +697,13 @@ public final class FilterBuilder {
         }
     }
 
+    static <T> Predicate<T> asJdkPredicate(@NotNull com.google.common.base.Predicate<T> p) {
+        checkNotNull(p);
+        return new Predicate<T>() {
+            @Override
+            public boolean test(T t) {
+                return p.apply(t);
+            }
+        };
+    }
 }

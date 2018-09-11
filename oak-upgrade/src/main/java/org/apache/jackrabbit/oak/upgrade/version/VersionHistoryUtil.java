@@ -39,10 +39,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -111,7 +112,7 @@ public class VersionHistoryUtil {
         return vs;
     }
 
-    public static List<String> getVersionableNodes(NodeState root, TypePredicate isVersionable, Calendar olderThan) {
+    public static List<String> getVersionableNodes(NodeState root, Predicate<NodeState> isVersionable, Calendar olderThan) {
         List<String> paths = new ArrayList<>();
         NodeState versionStorage = getVersionStorage(root);
         getVersionableNodes(root, versionStorage, isVersionable, olderThan, PathUtils.ROOT_PATH, paths);
@@ -119,8 +120,8 @@ public class VersionHistoryUtil {
     }
 
 
-    private static void getVersionableNodes(NodeState node, NodeState versionStorage, TypePredicate isVersionable, Calendar olderThan, String path, List<String> paths) {
-        if (isVersionable.apply(node)) {
+    private static void getVersionableNodes(NodeState node, NodeState versionStorage, Predicate<NodeState> isVersionable, Calendar olderThan, String path, List<String> paths) {
+        if (isVersionable.test(node)) {
             if (olderThan == null) {
                 paths.add(path);
             } else {
@@ -151,14 +152,14 @@ public class VersionHistoryUtil {
         return youngest;
     }
 
-    public static void removeVersionProperties(NodeBuilder versionableBuilder, TypePredicate isReferenceable) {
+    public static void removeVersionProperties(NodeBuilder versionableBuilder, Predicate<NodeState> isReferenceable) {
         assert versionableBuilder.exists();
 
         removeMixin(versionableBuilder, MIX_VERSIONABLE);
 
         // we don't know if the UUID is otherwise referenced,
         // so make sure the node remains referencable
-        if (!isReferenceable.apply(versionableBuilder.getNodeState())) {
+        if (!isReferenceable.test(versionableBuilder.getNodeState())) {
             addMixin(versionableBuilder, MIX_REFERENCEABLE);
         }
 
@@ -195,7 +196,7 @@ public class VersionHistoryUtil {
     public static NodeBuilder removeVersions(NodeState root,
                                List<String> toRemove) {
         NodeBuilder rootBuilder = root.builder();
-        TypePredicate isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
+        Predicate<NodeState> isReferenceable = TypePredicates.getNodeTypePredicate(root, MIX_REFERENCEABLE);
         NodeBuilder versionStorage = getVersionStorage(rootBuilder);
         for (String p : toRemove) {
             LOG.info("Removing version history for {}", p);

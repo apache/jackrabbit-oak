@@ -53,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -78,7 +79,7 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -111,15 +112,15 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final String workspaceName;
 
-    private final TypePredicate isReferenceable;
+    private final Predicate<NodeState> isReferenceable;
 
-    private final TypePredicate isOrderable;
+    private final Predicate<NodeState> isOrderable;
 
-    private final TypePredicate isVersionable;
+    private final Predicate<NodeState> isVersionable;
 
-    private final TypePredicate isVersionHistory;
+    private final Predicate<NodeState> isVersionHistory;
 
-    private final TypePredicate isFrozenNode;
+    private final Predicate<NodeState> isFrozenNode;
 
     private final boolean skipOnError;
 
@@ -214,11 +215,11 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.path = path;
         this.loader = new BundleLoader(source);
         this.workspaceName = workspaceName;
-        this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
-        this.isOrderable = TypePredicate.isOrderable(root);
-        this.isVersionable = new TypePredicate(root, MIX_VERSIONABLE);
-        this.isVersionHistory = new TypePredicate(root, NT_VERSIONHISTORY);
-        this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
+        this.isReferenceable = TypePredicates.getNodeTypePredicate(root, MIX_REFERENCEABLE);
+        this.isOrderable = TypePredicates.isOrderable(root);
+        this.isVersionable = TypePredicates.getNodeTypePredicate(root, MIX_VERSIONABLE);
+        this.isVersionHistory = TypePredicates.getNodeTypePredicate(root, NT_VERSIONHISTORY);
+        this.isFrozenNode = TypePredicates.getNodeTypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
         this.mountPoints = mountPoints;
         final int cacheSize = 50; // cache size 50 results in > 25% cache hits during version copy
@@ -357,7 +358,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private void setChildOrder() {
-        if (isOrderable.apply(this)) {
+        if (isOrderable.test(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
                     OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
         }
@@ -425,7 +426,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         }
 
         if (bundle.isReferenceable()
-                || isReferenceable.apply(primary, mixins)) {
+                || testTypePredicate(isReferenceable, primary, mixins)) {
             properties.put(JCR_UUID, PropertyStates.createProperty(
                     JCR_UUID, bundle.getId().toString()));
         }
@@ -439,7 +440,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         PropertyState frozenUuid = properties.get(JCR_FROZENUUID);
         if (frozenUuid != null
                 && frozenUuid.getType() == STRING
-                && isFrozenNode.apply(this)) {
+                && isFrozenNode.test(this)) {
             String frozenPrimary = NT_BASE;
             Set<String> frozenMixins = newHashSet();
 
@@ -452,7 +453,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 addAll(frozenMixins, property.getValue(NAMES));
             }
 
-            if (!isReferenceable.apply(frozenPrimary, frozenMixins)) {
+            if (!testTypePredicate(isReferenceable, frozenPrimary, frozenMixins)) {
                 String parentFrozenUuid = parent.getString(JCR_FROZENUUID);
                 if (parentFrozenUuid != null) {
                     frozenUuid = PropertyStates.createProperty(
@@ -461,6 +462,13 @@ class JackrabbitNodeState extends AbstractNodeState {
                 }
             }
         }
+    }
+
+    private static boolean testTypePredicate(Predicate<NodeState> isReferenceable, String primary, Set<String> mixins) {
+        NodeBuilder b = EmptyNodeState.EMPTY_NODE.builder();
+        b.setProperty(JCR_PRIMARYTYPE, primary, Type.NAME);
+        b.setProperty(JCR_MIXINTYPES, mixins, Type.NAMES);
+        return isReferenceable.test(b.getNodeState());
     }
 
     private org.apache.jackrabbit.oak.api.PropertyState createProperty(

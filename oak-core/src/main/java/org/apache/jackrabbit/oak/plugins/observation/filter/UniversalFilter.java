@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -57,6 +57,21 @@ public class UniversalFilter implements EventFilter {
         this.afterState = checkNotNull(after);
         this.predicate = checkNotNull(predicate);
         this.selector = checkNotNull(selector);
+    }
+
+    /**
+     * Create a new instance of an universal filter rooted at the passed trees.
+     *
+     * @param before          before state
+     * @param after           after state
+     * @param selector        selector for selecting the tree to match the predicate against
+     * @param predicate       predicate for determining whether to include or to exclude an event
+     */
+    @Deprecated
+    public UniversalFilter(
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull Selector selector, @NotNull com.google.common.base.Predicate<NodeState> predicate) {
+        this(before, after, selector, FilterBuilder.asJdkPredicate(predicate));
     }
 
     /**
@@ -111,37 +126,37 @@ public class UniversalFilter implements EventFilter {
 
     @Override
     public boolean includeAdd(PropertyState after) {
-        return predicate.apply(selector.select(this, null, after));
+        return predicate.test(selector.select(this, null, after));
     }
 
     @Override
     public boolean includeChange(PropertyState before, PropertyState after) {
-        return predicate.apply(selector.select(this, before, after));
+        return predicate.test(selector.select(this, before, after));
     }
 
     @Override
     public boolean includeDelete(PropertyState before) {
-        return predicate.apply(selector.select(this, before, null));
+        return predicate.test(selector.select(this, before, null));
     }
 
     @Override
     public boolean includeAdd(String name, NodeState after) {
-        return predicate.apply(selector.select(this, name, MISSING_NODE, after));
+        return predicate.test(selector.select(this, name, MISSING_NODE, after));
     }
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return predicate.apply(selector.select(this, name, before, MISSING_NODE));
+        return predicate.test(selector.select(this, name, before, MISSING_NODE));
     }
 
     @Override
     public boolean includeMove(String sourcePath, String name, NodeState moved) {
-        return predicate.apply(selector.select(this, name, MISSING_NODE, moved));
+        return predicate.test(selector.select(this, name, MISSING_NODE, moved));
     }
 
     @Override
     public boolean includeReorder(String destName, String name, NodeState reordered) {
-        return predicate.apply(selector.select(this, name, MISSING_NODE, reordered));
+        return predicate.test(selector.select(this, name, MISSING_NODE, reordered));
     }
 
     @Override

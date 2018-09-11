@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.lock.LockConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -45,6 +45,8 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_CREATEDBY;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_CREATED;
 
+import java.util.function.Predicate;
+
 /**
  * Validator implementation that checks for sufficient permission for all
  * write operations executed by a given content session.
@@ -57,8 +59,8 @@ class PermissionValidator extends DefaultValidator {
     private final PermissionProvider permissionProvider;
     private final PermissionValidatorProvider provider;
 
-    private final TypePredicate isReferenceable;
-    private final TypePredicate isCreated;
+    private final Predicate<NodeState> isReferenceable;
+    private final Predicate<NodeState> isCreated;
 
     private final long permission;
 
@@ -73,8 +75,8 @@ class PermissionValidator extends DefaultValidator {
         this.permissionProvider = permissionProvider;
         this.provider = provider;
 
-        this.isReferenceable = new TypePredicate(rootAfter, MIX_REFERENCEABLE);
-        this.isCreated = new TypePredicate(rootAfter, MIX_CREATED);
+        this.isReferenceable = TypePredicates.getNodeTypePredicate(rootAfter, MIX_REFERENCEABLE);
+        this.isCreated = TypePredicates.getNodeTypePredicate(rootAfter, MIX_CREATED);
 
         permission = Permissions.getPermission(PermissionUtil.getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
     }
@@ -321,11 +323,11 @@ class PermissionValidator extends DefaultValidator {
         // doesn't reveal if a given property is expected to be never modified
         // after creation.
         NodeState parentNs = provider.getTreeProvider().asNodeState(parent);
-        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentNs)) {
+        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.test(parentNs)) {
             return true;
         } else {
             return (JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                    && isCreated.apply(parentNs);
+                    && isCreated.test(parentNs);
         }
     }
 

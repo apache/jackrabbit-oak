@@ -29,15 +29,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 
 /**
  * This editor check if same name sibling nodes are allowed under a given
@@ -60,7 +60,7 @@ public class SameNameSiblingsEditor extends DefaultEditor {
 
     private static final Predicate<NodeState> NO_SNS_PROPERTY = new Predicate<NodeState>() {
         @Override
-        public boolean apply(NodeState input) {
+        public boolean test(NodeState input) {
             return !input.getBoolean(JCR_SAMENAMESIBLINGS);
         }
     };
@@ -128,7 +128,7 @@ public class SameNameSiblingsEditor extends DefaultEditor {
         NodeState types = root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
         for (ChildNodeEntry typeEntry : types.getChildNodeEntries()) {
             NodeState type = typeEntry.getNodeState();
-            TypePredicate typePredicate = new TypePredicate(root, typeEntry.getName());
+            Predicate<NodeState> typePredicate = TypePredicates.getNodeTypePredicate(root, typeEntry.getName());
             defs.addAll(parseResidualChildNodeDefs(root, type, typePredicate));
             defs.addAll(parseNamedChildNodeDefs(root, type, typePredicate));
         }
@@ -136,12 +136,12 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     private static List<ChildTypeDef> parseNamedChildNodeDefs(NodeState root, NodeState parentType,
-            TypePredicate parentTypePredicate) {
+            Predicate<NodeState> parentTypePredicate) {
         List<ChildTypeDef> defs = new ArrayList<ChildTypeDef>();
         NodeState namedChildNodeDefinitions = parentType.getChildNode(REP_NAMED_CHILD_NODE_DEFINITIONS);
         for (ChildNodeEntry childName : namedChildNodeDefinitions.getChildNodeEntries()) {
             for (String childType : filterChildren(childName.getNodeState(), NO_SNS_PROPERTY)) {
-                TypePredicate childTypePredicate = new TypePredicate(root, childType);
+                Predicate<NodeState> childTypePredicate = TypePredicates.getNodeTypePredicate(root, childType);
                 defs.add(new ChildTypeDef(parentTypePredicate, childName.getName(), childTypePredicate));
             }
         }
@@ -149,11 +149,11 @@ public class SameNameSiblingsEditor extends DefaultEditor {
     }
 
     private static List<ChildTypeDef> parseResidualChildNodeDefs(NodeState root, NodeState parentType,
-            TypePredicate parentTypePredicate) {
+            Predicate<NodeState> parentTypePredicate) {
         List<ChildTypeDef> defs = new ArrayList<ChildTypeDef>();
         NodeState resChildNodeDefinitions = parentType.getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
         for (String childType : filterChildren(resChildNodeDefinitions, NO_SNS_PROPERTY)) {
-            TypePredicate childTypePredicate = new TypePredicate(root, childType);
+            Predicate<NodeState> childTypePredicate = TypePredicates.getNodeTypePredicate(root, childType);
             defs.add(new ChildTypeDef(parentTypePredicate, childTypePredicate));
         }
         return defs;
@@ -167,10 +167,10 @@ public class SameNameSiblingsEditor extends DefaultEditor {
      * @return a list of names of children accepting the predicate
      */
     private static Iterable<String> filterChildren(NodeState parent, final Predicate<NodeState> predicate) {
-        return transform(filter(parent.getChildNodeEntries(), new Predicate<ChildNodeEntry>() {
+        return transform(filter(parent.getChildNodeEntries(), new com.google.common.base.Predicate<ChildNodeEntry>() {
             @Override
             public boolean apply(ChildNodeEntry input) {
-                return predicate.apply(input.getNodeState());
+                return predicate.test(input.getNodeState());
             }
         }), new Function<ChildNodeEntry, String>() {
             @Override
@@ -259,27 +259,27 @@ public class SameNameSiblingsEditor extends DefaultEditor {
      */
     private static class ChildTypeDef {
 
-        private final TypePredicate parentType;
+        private final Predicate<NodeState> parentType;
 
         private final String childNameConstraint;
 
-        private final TypePredicate childType;
+        private final Predicate<NodeState> childType;
 
-        public ChildTypeDef(TypePredicate parentType, String childName, TypePredicate childType) {
+        public ChildTypeDef(Predicate<NodeState> parentType, String childName, Predicate<NodeState> childType) {
             this.parentType = parentType;
             this.childNameConstraint = childName;
             this.childType = childType;
         }
 
-        public ChildTypeDef(TypePredicate parentType, TypePredicate childType) {
+        public ChildTypeDef(Predicate<NodeState> parentType, Predicate<NodeState> childType) {
             this(parentType, null, childType);
         }
 
         public boolean applies(NodeState parent, String childName) {
             boolean result = true;
-            result &= parentType.apply(parent);
+            result &= parentType.test(parent);
             result &= childNameConstraint == null || childName.startsWith(this.childNameConstraint + '[');
-            result &= childType.apply(parent.getChildNode(childName));
+            result &= childType.test(parent.getChildNode(childName));
             return result;
         }
 
