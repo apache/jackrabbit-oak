@@ -103,7 +103,6 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
     }
 
     // OAK-6504
-    @Ignore("OAK-7205")
     @Test
     public void syncActiveDeletionWithBlobTracker() throws Exception {
         createIndex("test1", of("propa"));
