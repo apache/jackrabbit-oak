@@ -688,6 +688,11 @@
         <artifactId>httpmime</artifactId>
         <version>4.5.6</version>
       </dependency>
+      <dependency>
+        <groupId>com.arakelian</groupId>
+        <artifactId>docker-junit-rule</artifactId>
+        <version>2.1.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
