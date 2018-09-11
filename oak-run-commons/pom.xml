@@ -147,5 +147,10 @@
             <version>1.3</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.arakelian</groupId>
+            <artifactId>docker-junit-rule</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
