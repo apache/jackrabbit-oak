@@ -16,10 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 
 /**
@@ -27,6 +37,10 @@ import com.mongodb.client.MongoDatabase;
  * and clean a test database.
  */
 public class MongoUtils {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoUtils.class);
+
+    protected static Map<String, Exception> exceptions = new ConcurrentHashMap<>();
 
     protected static final String HOST =
             System.getProperty("mongo.host", "127.0.0.1");
@@ -37,18 +51,43 @@ public class MongoUtils {
     public static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
+    public static final String VERSION =
+            System.getProperty("mongo.version", "3.6");
+
+    private static final String OPTIONS = "connectTimeoutMS=3000&serverSelectionTimeoutMS=3000";
+
     public static final String URL = createMongoURL();
 
     private static String createMongoURL() {
+        // first try configured URL
         String mongoUrl = System.getProperty("mongo.url");
         if (mongoUrl == null || mongoUrl.isEmpty()) {
-            mongoUrl = "mongodb://" + HOST + ":" + PORT + "/" + DB +
-                    "?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000";
+            mongoUrl = "mongodb://" + HOST + ":" + PORT + "/" + DB + "?" + OPTIONS;
+        }
+        // check if we can connect
+        MongoConnection c = getConnectionByURL(mongoUrl);
+        if (c != null) {
+            c.close();
+            return mongoUrl;
+        }
+        // fallback to docker based MongoDB if available
+        MongoDockerRule dockerRule = new MongoDockerRule();
+        if (dockerRule.isDockerAvailable()) {
+            AtomicInteger port = new AtomicInteger();
+            try {
+                dockerRule.apply(new Statement() {
+                    @Override
+                    public void evaluate() {
+                        port.set(dockerRule.getPort());
+                    }
+                }, Description.EMPTY).evaluate();
+                mongoUrl = "mongodb://localhost:" + port.get() + "/" + DB + "?" + OPTIONS;
+            } catch (Throwable t) {
+                LOG.warn("Unable to get MongoDB port from Docker", t);
+            }
         }
         return mongoUrl;
     }
-
-    protected static Exception exception;
 
     /**
      * Get a connection if available. If not available, null is returned.
@@ -66,7 +105,22 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection(String dbName) {
-        return getConnectionByURL("mongodb://" + HOST + ":" + PORT + "/" + dbName);
+        MongoClientURI clientURI;
+        try {
+            clientURI = new MongoClientURI(URL);
+        } catch (IllegalArgumentException e) {
+            // configured URL is invalid
+            return null;
+        }
+        StringBuilder uri = new StringBuilder("mongodb://");
+        String separator = "";
+        for (String host : clientURI.getHosts()) {
+            uri.append(separator);
+            separator = ",";
+            uri.append(host);
+        }
+        uri.append("/").append(dbName).append("?").append(OPTIONS);
+        return getConnectionByURL(uri.toString());
     }
 
     /**
@@ -156,7 +210,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     private static MongoConnection getConnectionByURL(String url) {
-        if (exception != null) {
+        if (exceptions.get(url) != null) {
             return null;
         }
         MongoConnection mongoConnection;
@@ -165,7 +219,7 @@ public class MongoUtils {
             mongoConnection.getDatabase().runCommand(new BasicDBObject("ping", 1));
             // dropCollections(mongoConnection.getDB());
         } catch (Exception e) {
-            exception = e;
+            exceptions.put(url, e);
             mongoConnection = null;
         }
         return mongoConnection;
