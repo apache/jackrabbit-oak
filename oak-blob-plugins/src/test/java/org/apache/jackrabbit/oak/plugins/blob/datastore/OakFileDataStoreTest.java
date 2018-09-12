@@ -19,28 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Function;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
@@ -48,12 +37,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class OakFileDataStoreTest {
     @Rule
@@ -110,236 +95,6 @@ public class OakFileDataStoreTest {
         noop.put("a","b");
         noop.remove("foo");
         assertTrue(noop.isEmpty());
-    }
-
-
-    // AddMetadataRecord (Backend)
-
-    @Test
-    public void testBackendAddMetadataRecordsFromInputStream() throws Exception {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
-            String prefix = String.format("%s.META.", getClass().getSimpleName());
-            for (int count : Lists.newArrayList(1, 3)) {
-                Map<String, String> records = Maps.newHashMap();
-                for (int i = 0; i < count; i++) {
-                    String recordName = String.format("%sname.%d", prefix, i);
-                    String data = String.format("testData%d", i);
-                    records.put(recordName, data);
-
-                    if (fromInputStream) {
-                        fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), recordName);
-                    }
-                    else {
-                        File testFile = folder.newFile();
-                        copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
-                        fds.addMetadataRecord(testFile, recordName);
-                    }
-                }
-
-                assertEquals(count, fds.getAllMetadataRecords(prefix).size());
-
-                for (Map.Entry<String, String> entry : records.entrySet()) {
-                    DataRecord record = fds.getMetadataRecord(entry.getKey());
-                    StringWriter writer = new StringWriter();
-                    IOUtils.copy(record.getStream(), writer);
-                    fds.deleteMetadataRecord(entry.getKey());
-                    assertTrue(writer.toString().equals(entry.getValue()));
-                }
-
-                assertEquals(0, fds.getAllMetadataRecords(prefix).size());
-            }
-        }
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException() throws IOException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        File testFile = folder.newFile();
-        copyInputStreamToFile(randomStream(0, 10), testFile);
-        testFile.delete();
-        try {
-            fds.addMetadataRecord(testFile, "name");
-            fail();
-        }
-        catch (DataStoreException e) {
-            assertTrue(e.getCause() instanceof FileNotFoundException);
-        }
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordNullInputStreamThrowsNullPointerException() throws DataStoreException {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("input should not be null");
-
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-        fds.addMetadataRecord((InputStream)null, "name");
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordNullFileThrowsNullPointerException() throws DataStoreException {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("input should not be null");
-
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        fds.addMetadataRecord((File)null, "name");
-    }
-
-    @Test
-    public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws DataStoreException, IOException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        final String data = "testData";
-        for (boolean fromInputStream : Lists.newArrayList(false, true)) {
-            for (String name : Lists.newArrayList(null, "")) {
-                try {
-                    if (fromInputStream) {
-                        fds.addMetadataRecord(new ByteArrayInputStream(data.getBytes()), name);
-                    } else {
-                        File testFile = folder.newFile();
-                        copyInputStreamToFile(new ByteArrayInputStream(data.getBytes()), testFile);
-                        fds.addMetadataRecord(testFile, name);
-                    }
-                    fail();
-                } catch (IllegalArgumentException e) {
-                    assertTrue("name should not be empty".equals(e.getMessage()));
-                }
-            }
-        }
-    }
-
-    // GetMetadataRecord (Backend)
-
-    @Test
-    public void testBackendGetMetadataRecordInvalidName() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        fds.addMetadataRecord(randomStream(0, 10), "testRecord");
-        assertNull(fds.getMetadataRecord("invalid"));
-        for (String name : Lists.newArrayList("", null)) {
-            try {
-                fds.getMetadataRecord(name);
-                fail("Expect to throw");
-            } catch(Exception e) {}
-        }
-
-        fds.deleteMetadataRecord("testRecord");
-    }
-
-    // GetAllMetadataRecords (Backend)
-
-    @Test
-    public void testBackendGetAllMetadataRecordsPrefixMatchesAll() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        assertEquals(0, fds.getAllMetadataRecords("").size());
-
-        String prefixAll = "prefix1";
-        String prefixSome = "prefix1.prefix2";
-        String prefixOne = "prefix1.prefix3";
-        String prefixNone = "prefix4";
-
-        fds.addMetadataRecord(randomStream(1, 10), String.format("%s.testRecord1", prefixAll));
-        fds.addMetadataRecord(randomStream(2, 10), String.format("%s.testRecord2", prefixSome));
-        fds.addMetadataRecord(randomStream(3, 10), String.format("%s.testRecord3", prefixSome));
-        fds.addMetadataRecord(randomStream(4, 10), String.format("%s.testRecord4", prefixOne));
-        fds.addMetadataRecord(randomStream(5, 10), "prefix5.testRecord5");
-
-        assertEquals(5, fds.getAllMetadataRecords("").size());
-        assertEquals(4, fds.getAllMetadataRecords(prefixAll).size());
-        assertEquals(2, fds.getAllMetadataRecords(prefixSome).size());
-        assertEquals(1, fds.getAllMetadataRecords(prefixOne).size());
-        assertEquals(0, fds.getAllMetadataRecords(prefixNone).size());
-
-        fds.deleteAllMetadataRecords("");
-        assertEquals(0, fds.getAllMetadataRecords("").size());
-    }
-
-    @Test
-    public void testBackendGetAllMetadataRecordsNullPrefixThrowsNullPointerException() {
-        expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("prefix should not be null");
-
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-        fds.getAllMetadataRecords(null);
-    }
-
-    // DeleteMetadataRecord (Backend)
-
-    @Test
-    public void testBackendDeleteMetadataRecord() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        fds.addMetadataRecord(randomStream(0, 10), "name");
-        for (String name : Lists.newArrayList("", null)) {
-            if (Strings.isNullOrEmpty(name)) {
-                try {
-                    fds.deleteMetadataRecord(name);
-                }
-                catch (IllegalArgumentException e) { }
-            }
-            else {
-                fds.deleteMetadataRecord(name);
-                fail();
-            }
-        }
-        assertTrue(fds.deleteMetadataRecord("name"));
-    }
-
-    // DeleteAllMetadataRecords (Backend)
-
-    @Test
-    public void testBackendDeleteAllMetadataRecordsPrefixMatchesAll() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        String prefixAll = "prefix1";
-        String prefixSome = "prefix1.prefix2";
-        String prefixOne = "prefix1.prefix3";
-        String prefixNone = "prefix4";
-
-        Map<String, Integer> prefixCounts = Maps.newHashMap();
-        prefixCounts.put(prefixAll, 4);
-        prefixCounts.put(prefixSome, 2);
-        prefixCounts.put(prefixOne, 1);
-        prefixCounts.put(prefixNone, 0);
-
-        for (Map.Entry<String, Integer> entry : prefixCounts.entrySet()) {
-            fds.addMetadataRecord(randomStream(1, 10), String.format("%s.testRecord1", prefixAll));
-            fds.addMetadataRecord(randomStream(2, 10), String.format("%s.testRecord2", prefixSome));
-            fds.addMetadataRecord(randomStream(3, 10), String.format("%s.testRecord3", prefixSome));
-            fds.addMetadataRecord(randomStream(4, 10), String.format("%s.testRecord4", prefixOne));
-
-            int preCount = fds.getAllMetadataRecords("").size();
-
-            fds.deleteAllMetadataRecords(entry.getKey());
-
-            int deletedCount = preCount - fds.getAllMetadataRecords("").size();
-            assertEquals(entry.getValue().intValue(), deletedCount);
-
-            fds.deleteAllMetadataRecords("");
-        }
-    }
-
-    @Test
-    public void testBackendDeleteAllMetadataRecordsNoRecordsNoChange() {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
-        assertEquals(0, fds.getAllMetadataRecords("").size());
-
-        fds.deleteAllMetadataRecords("");
-
-        assertEquals(0, fds.getAllMetadataRecords("").size());
-    }
-
-    @Test
-    public void testBackendDeleteAllMetadataRecordsNullPrefixThrowsNullPointerException() {
-        expectedEx.expect(IllegalArgumentException.class);
-
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-        fds.deleteAllMetadataRecords(null);
     }
 
     private static OakFileDataStore datastore(String path) {
