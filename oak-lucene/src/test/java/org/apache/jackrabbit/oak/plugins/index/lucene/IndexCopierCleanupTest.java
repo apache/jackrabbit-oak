@@ -352,6 +352,98 @@ public class IndexCopierCleanupTest {
                 Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
+    @Test
+    public void remoteOnlyFilesDontAvoidDeletion() throws Exception {
+        writeFile(remote, "a");
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            writeFile(remote, name);
+        }
+        remote.close();
+
+        // get files to get locally copied
+        copier.getCoRDir().close();
+
+        remote.deleteFile("a");
+        writeFile(remote, "b");
+        remote.close();
+
+        assertTrue(existsLocally("a"));
+
+        copier.getCoRDir().close();
+
+        assertFalse(existsLocally("a"));
+        assertTrue(existsLocally("b"));
+    }
+
+    @Test
+    public void remoteOnlyFilesIfExistingGetDeleted() throws Exception {
+        Directory cow = copier.getCoWDir();
+        writeFile(cow, "a");
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            writeFile(cow, name);
+        }
+        cow.close();
+
+        remote.deleteFile("a");
+        writeFile(remote, "b");
+        remote.close();
+
+        assertTrue(existsLocally("a"));
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            assertTrue(existsLocally(name));
+        }
+
+        copier.getCoRDir().close();
+
+        assertFalse(existsLocally("a"));
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            assertFalse(existsLocally(name));
+        }
+        assertTrue(existsLocally("b"));
+    }
+
+    @Test
+    public void remoteOnlyFilesNotCleanedIfUpdatedRecently() throws Exception {
+        // Create remote_only files (and a normal one)
+        Directory cow = copier.getCoWDir();
+        writeFile(cow, "a");
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            writeFile(cow, name);
+        }
+        cow.close();
+
+        // delete all existing files and create a new normal one
+        remote.deleteFile("a");
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            remote.deleteFile(name);
+        }
+        writeFile(remote, "b");
+        remote.close();
+
+        // get a CoR at this state (only sees "b" in list of files)
+        Directory cor = copier.getCoRDir();
+
+        // re-create remote_only files
+        cow = copier.getCoWDir();
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            writeFile(cow, name);
+        }
+        cow.close();
+
+        assertTrue(existsLocally("a"));
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            assertTrue(existsLocally(name));
+        }
+
+        cor.close();
+
+        assertFalse(existsLocally("a"));
+        for (String name : IndexCopier.REMOTE_ONLY) {
+            assertTrue(existsLocally(name));
+        }
+        assertTrue(existsLocally("b"));
+    }
+
     private boolean existsLocally(String fileName) {
         return new File(localFSDir, fileName).exists();
     }
