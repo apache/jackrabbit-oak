@@ -26,7 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import com.google.common.base.Function;
@@ -42,25 +44,76 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.CACHING_FDS;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.FDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class OakFileDataStoreTest {
+@RunWith(Parameterized.class)
+public class SharedDataStoreTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
+
+
+    private DATA_STORE type;
+
+    @Parameterized.Parameters(name="{index}: ({0})")
+    public static List<Object[]> fixtures() {
+        return FixtureHelper.get();
+    }
+
+    static class FixtureHelper {
+        enum DATA_STORE {
+            CACHING_FDS, FDS
+        }
+
+        static List<Object[]> get() {
+            return Lists.newArrayList(new Object[] {CACHING_FDS}, new Object[] {FDS});
+        }
+    }
+
+    public SharedDataStoreTest(DATA_STORE type) {
+        this.type = type;
+    }
+
+    @Before
+    public void setup() throws Exception {
+        if (type == CACHING_FDS) {
+            CachingFileDataStore ds = new CachingFileDataStore();
+
+            Properties props = new Properties();
+            props.setProperty("fsBackendPath", folder.newFolder().getAbsolutePath());
+            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+            ds.setProperties(props);
+            ds.init(folder.newFolder().getAbsolutePath());
+            dataStore = ds;
+        } else {
+            OakFileDataStore ds = new OakFileDataStore();
+            ds.init(folder.newFolder().getAbsolutePath());
+            dataStore = ds;
+        }
+    }
+
+    protected SharedDataStore dataStore;
 
     @Test
     public void testGetAllIdentifiersRelative1() throws Exception {
@@ -104,20 +157,11 @@ public class OakFileDataStoreTest {
         FileUtils.cleanDirectory(testDir);
     }
 
-    @Test
-    public void testNoOpMap() throws Exception{
-        Map<String, String> noop = new OakFileDataStore.NoOpMap<String, String>();
-        noop.put("a","b");
-        noop.remove("foo");
-        assertTrue(noop.isEmpty());
-    }
-
-
     // AddMetadataRecord (Backend)
 
     @Test
     public void testBackendAddMetadataRecordsFromInputStream() throws Exception {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         for (boolean fromInputStream : Lists.newArrayList(false, true)) {
             String prefix = String.format("%s.META.", getClass().getSimpleName());
@@ -155,7 +199,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendAddMetadataRecordFileNotFoundThrowsDataStoreException() throws IOException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         File testFile = folder.newFile();
         copyInputStreamToFile(randomStream(0, 10), testFile);
@@ -174,7 +218,7 @@ public class OakFileDataStoreTest {
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("input should not be null");
 
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
         fds.addMetadataRecord((InputStream)null, "name");
     }
 
@@ -183,14 +227,13 @@ public class OakFileDataStoreTest {
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("input should not be null");
 
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
-
+        SharedDataStore fds = dataStore;
         fds.addMetadataRecord((File)null, "name");
     }
 
     @Test
     public void testBackendAddMetadataRecordNullEmptyNameThrowsIllegalArgumentException() throws DataStoreException, IOException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         final String data = "testData";
         for (boolean fromInputStream : Lists.newArrayList(false, true)) {
@@ -215,7 +258,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendGetMetadataRecordInvalidName() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "testRecord");
         assertNull(fds.getMetadataRecord("invalid"));
@@ -233,7 +276,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendGetAllMetadataRecordsPrefixMatchesAll() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         assertEquals(0, fds.getAllMetadataRecords("").size());
 
@@ -263,7 +306,7 @@ public class OakFileDataStoreTest {
         expectedEx.expect(IllegalArgumentException.class);
         expectedEx.expectMessage("prefix should not be null");
 
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
         fds.getAllMetadataRecords(null);
     }
 
@@ -271,7 +314,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendDeleteMetadataRecord() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Lists.newArrayList("", null)) {
@@ -293,7 +336,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendDeleteAllMetadataRecordsPrefixMatchesAll() throws DataStoreException {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         String prefixAll = "prefix1";
         String prefixSome = "prefix1.prefix2";
@@ -325,7 +368,7 @@ public class OakFileDataStoreTest {
 
     @Test
     public void testBackendDeleteAllMetadataRecordsNoRecordsNoChange() {
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
 
         assertEquals(0, fds.getAllMetadataRecords("").size());
 
@@ -338,14 +381,7 @@ public class OakFileDataStoreTest {
     public void testBackendDeleteAllMetadataRecordsNullPrefixThrowsNullPointerException() {
         expectedEx.expect(IllegalArgumentException.class);
 
-        OakFileDataStore fds = datastore(folder.getRoot().getAbsolutePath());
+        SharedDataStore fds = dataStore;
         fds.deleteAllMetadataRecords(null);
-    }
-
-    private static OakFileDataStore datastore(String path) {
-        OakFileDataStore fds = new OakFileDataStore();
-        fds.setPath(path);
-        fds.init(null);
-        return fds;
     }
 }
