@@ -65,6 +65,14 @@ public interface SharedDataStore {
     DataRecord getMetadataRecord(String name);
 
     /**
+     * Checks if the metadata record with the name exists
+     *
+     * @param name
+     * @return
+     */
+    boolean metadataRecordExists(String name);
+
+    /**
      * Gets the all root records.
      * 
      * @return the all root records

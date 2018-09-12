@@ -194,6 +194,27 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     }
 
     @Override
+    public boolean metadataRecordExists(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
+        File root = new File(getPath());
+
+        for (File file : FileFilterUtils.filterList(
+            FileFilterUtils.nameFileFilter(name),
+            root.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                if (!file.exists()) {
+                    LOG.debug("File does not exist {} ",
+                        new Object[] {file.getAbsolutePath()});
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         checkArgument(null != prefix, "prefix should not be null");
 

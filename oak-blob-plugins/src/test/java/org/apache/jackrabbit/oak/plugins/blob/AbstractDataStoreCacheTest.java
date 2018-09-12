@@ -391,6 +391,10 @@ public class AbstractDataStoreCacheTest {
         @Override public void deleteAllMetadataRecords(String prefix) {
         }
 
+        @Override public boolean metadataRecordExists(String name) {
+            return false;
+        }
+
         @Override public void init() throws DataStoreException {
 
         }

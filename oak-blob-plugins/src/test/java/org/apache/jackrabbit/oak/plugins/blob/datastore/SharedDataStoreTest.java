@@ -61,6 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.ra
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.CACHING_FDS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE.FDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -383,5 +384,25 @@ public class SharedDataStoreTest {
 
         SharedDataStore fds = dataStore;
         fds.deleteAllMetadataRecords(null);
+    }
+
+    // MetadataRecordExists (Backend)
+    @Test
+    public void testBackendMetadataRecordExists() throws DataStoreException {
+        SharedDataStore fds = dataStore;
+
+        fds.addMetadataRecord(randomStream(0, 10), "name");
+        for (String name : Lists.newArrayList("invalid", "", null)) {
+            if (Strings.isNullOrEmpty(name)) {
+                try {
+                    fds.metadataRecordExists(name);
+                }
+                catch (IllegalArgumentException e) { }
+            }
+            else {
+                assertFalse(fds.metadataRecordExists(name));
+            }
+        }
+        assertTrue(fds.metadataRecordExists("name"));
     }
 }

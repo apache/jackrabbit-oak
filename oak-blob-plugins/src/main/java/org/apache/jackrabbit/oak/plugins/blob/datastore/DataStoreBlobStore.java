@@ -487,6 +487,11 @@ public class DataStoreBlobStore
     }
 
     @Override
+    public boolean metadataRecordExists(String name) {
+        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).metadataRecordExists(name);
+    }
+
+    @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         if (delegate instanceof SharedDataStore) {
             return ((SharedDataStore) delegate).getAllMetadataRecords(prefix);

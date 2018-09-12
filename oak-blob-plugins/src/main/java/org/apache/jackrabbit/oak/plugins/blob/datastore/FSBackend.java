@@ -270,6 +270,22 @@ public class FSBackend extends AbstractSharedBackend {
     }
 
     @Override
+    public boolean metadataRecordExists(String name) {
+        for (File file : FileFilterUtils
+            .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                if (!file.exists()) {
+                    LOG.debug("File does not exist {} ",
+                        new Object[] {file.getAbsolutePath()});
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
         return Files.fileTreeTraverser().postOrderTraversal(fsPathDir)

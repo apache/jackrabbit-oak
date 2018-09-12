@@ -568,6 +568,10 @@ public class BlobGCTest {
             return metadata.get(name);
         }
 
+        @Override public boolean metadataRecordExists(String name) {
+            return metadata.containsKey(name);
+        }
+
         @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
             List<DataRecord> recs = Lists.newArrayList();
             Iterator<Map.Entry<String, DataRecord>> iter = metadata.entrySet().iterator();

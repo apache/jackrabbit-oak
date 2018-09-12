@@ -415,6 +415,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     @Override
+    public boolean metadataRecordExists(String name) {
+        return backend.metadataRecordExists(name);
+    }
+
+    @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         return backend.getAllMetadataRecords(prefix);
     }
