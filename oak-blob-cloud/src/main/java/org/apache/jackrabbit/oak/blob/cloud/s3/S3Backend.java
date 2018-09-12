@@ -17,9 +17,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import static com.google.common.collect.Iterables.filter;
-import static java.lang.Thread.currentThread;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -94,6 +91,10 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -464,6 +465,9 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public void addMetadataRecord(final InputStream input, final String name) throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
@@ -484,6 +488,9 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -503,6 +510,8 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
@@ -519,6 +528,8 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be null");
+
         List<DataRecord> metadataList = new ArrayList<DataRecord>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -542,6 +553,8 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(
@@ -557,6 +570,8 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be empty");
+
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(

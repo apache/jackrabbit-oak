@@ -34,10 +34,10 @@ import java.util.Set;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -145,6 +146,9 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     @Override
     public void addMetadataRecord(InputStream input, String name)
             throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         try {
             File file = new File(getPath(), name);
             FileOutputStream os = new FileOutputStream(file);
@@ -163,6 +167,9 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         try {
             File file = new File(getPath(), name);
             FileUtils.copyFile(input, file);
@@ -175,6 +182,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         File root = new File(getPath());
         for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name), root.listFiles())) {
             if (!file.isDirectory()) {
@@ -186,6 +195,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be null");
+
         File root = new File(getPath());
         List<DataRecord> rootRecords = new ArrayList<DataRecord>();
         for (File file : FileFilterUtils.filterList(
@@ -201,6 +212,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         File root = new File(getPath());
 
         for (File file : FileFilterUtils.filterList(
@@ -220,6 +233,8 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be empty");
+
         File root = new File(getPath());
 
         for (File file : FileFilterUtils.filterList(
