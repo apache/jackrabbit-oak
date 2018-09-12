@@ -65,7 +65,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Test for gc in a shared data store among hetrogeneous oak node stores.
+ * Test for gc in a shared data store among heterogeneous oak node stores.
  */
 public class SharedBlobStoreGCTest {
     private static final Logger log = LoggerFactory.getLogger(SharedBlobStoreGCTest.class);
@@ -76,6 +76,7 @@ public class SharedBlobStoreGCTest {
     protected Cluster cluster1;
     protected Cluster cluster2;
     private Clock clock;
+    protected boolean retryCreation = false;
 
     @Before
     public void setUp() throws Exception {
@@ -283,7 +284,29 @@ public class SharedBlobStoreGCTest {
                 }
             }
             for (int i = 0; i < number; i++) {
-                Blob b = ds.createBlob(randomStream(i + seed, 16516));
+                Blob b = null;
+                // Simple retry
+                if (retryCreation) {
+                    for (int retry = 0; retry < 5; retry++) {
+                        try {
+                            b = ds.createBlob(randomStream(i + seed, 16516));
+                            if (b != null) {
+                                break;
+                            }
+                        } catch (Exception e) {
+                            if (retry >= 5) {
+                                log.warn("Error in writing record", e);
+                                throw e;
+                            } else {
+                                log.warn("Error in writing record...retrying", e);
+                                Thread.sleep(100);
+                            }
+                        }
+                    }
+                } else {
+                    b = ds.createBlob(randomStream(i + seed, 16516));
+                }
+
                 if (!deletes.contains(i)) {
                     Iterator<String> idIter =
                             ((GarbageCollectableBlobStore) ds.getBlobStore())
