@@ -22,7 +22,6 @@ import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -40,7 +39,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.commons.io.IOUtils;
@@ -63,7 +61,6 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -282,18 +279,12 @@ public class RepositoryImpl implements JackrabbitRepository {
                 throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
             }
             boolean relaxedLocking = getRelaxedLocking(attributes);
-
-            RefreshPredicate predicate = new RefreshPredicate();
-            RefreshStrategy refreshStrategy = refreshInterval == null
-                ? new RefreshStrategy.ConditionalRefreshStrategy(new RefreshStrategy.LogOnce(60), predicate)
-                : new RefreshStrategy.Timed(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
+            SessionDelegate sessionDelegate = createSessionDelegate(refreshInterval, contentSession);
             SessionContext context = createSessionContext(
                     statisticManager, securityProvider,
                     createAttributes(refreshInterval, relaxedLocking),
                     sessionDelegate, observationQueueLength, commitRateLimiter);
-            predicate.setSessionContext(context);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -301,11 +292,16 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     private SessionDelegate createSessionDelegate(
-            RefreshStrategy refreshStrategy,
+            Long refreshInterval,
             ContentSession contentSession) {
 
+        RefreshStrategy refreshStrategy;
         final RefreshOnGC refreshOnGC = new RefreshOnGC(gcMonitor);
-        refreshStrategy = Composite.create(refreshStrategy, refreshOnGC);
+        if (refreshInterval == null) {
+            refreshStrategy = refreshOnGC;
+        } else {
+            refreshStrategy = Composite.create(new RefreshStrategy.Timed(refreshInterval), refreshOnGC);
+        }
 
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
@@ -514,26 +510,6 @@ public class RepositoryImpl implements JackrabbitRepository {
         @Override
         public String toString() {
             return "Refresh on revision garbage collection";
-        }
-    }
-
-    /**
-     * Predicate which ensures that refresh strategy is invoked only
-     * if there is no event listeners registered with the session
-     */
-    private static class RefreshPredicate implements Predicate<Long>{
-        private SessionContext sessionContext;
-
-        @Override
-        public boolean apply(@Nullable Long input) {
-            if (sessionContext == null){
-                return true;
-            }
-            return !sessionContext.hasEventListeners();
-        }
-
-        public void setSessionContext(SessionContext sessionContext) {
-            this.sessionContext = sessionContext;
         }
     }
 
