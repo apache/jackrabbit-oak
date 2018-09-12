@@ -519,11 +519,15 @@ public class S3Backend extends AbstractSharedBackend {
             ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
             return new S3DataRecord(this, s3service, bucket, new DataIdentifier(name),
                 meta.getLastModified().getTime(), meta.getContentLength(), true);
-        } finally {
+        } catch(Exception e) {
+            LOG.error("Error getting metadata record for {}", name, e);
+        }
+        finally {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
         }
+        return null;
     }
 
     @Override
@@ -647,7 +651,7 @@ public class S3Backend extends AbstractSharedBackend {
             } else {
                 byte[] key;
                 // Try reading from the metadata folder if it exists
-                if (metadataExists(REF_KEY)) {
+                if (metadataRecordExists(REF_KEY)) {
                     key = readMetadataBytes(REF_KEY);
                 } else {
                     // Create a new key and then retrieve it to use it
@@ -674,7 +678,8 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    private boolean metadataExists(String name) {
+    @Override
+    public boolean metadataRecordExists(String name) {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(

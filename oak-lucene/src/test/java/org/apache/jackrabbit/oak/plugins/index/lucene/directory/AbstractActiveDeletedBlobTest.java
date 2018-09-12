@@ -246,6 +246,13 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             return null;
         }
 
+        @Override public boolean metadataRecordExists(String name) {
+            if (delegate instanceof BlobTrackingStore) {
+                return ((BlobTrackingStore) delegate).metadataRecordExists(name);
+            }
+            return false;
+        }
+
         @Override public List<DataRecord> getAllMetadataRecords(String prefix) {
             if (delegate instanceof BlobTrackingStore) {
                 return ((BlobTrackingStore) delegate).getAllMetadataRecords(prefix);

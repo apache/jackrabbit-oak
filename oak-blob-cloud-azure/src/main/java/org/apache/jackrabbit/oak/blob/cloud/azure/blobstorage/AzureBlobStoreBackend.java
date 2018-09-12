@@ -688,6 +688,28 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         }
     }
 
+    @Override
+    public boolean metadataRecordExists(String name) {
+        long start = System.currentTimeMillis();
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+            CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(addMetaKeyPrefix(name));
+            boolean exists = blob.exists();
+            LOG.debug("Metadata record {} exists {}. duration={}", name, exists, (System.currentTimeMillis() - start));
+            return exists;
+        }
+        catch (DataStoreException | StorageException | URISyntaxException e) {
+            LOG.debug("Error checking existence of metadata record = {}", name, e);
+        }
+        finally {
+            if (contextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Get key from data identifier. Object is stored with key in ADS.

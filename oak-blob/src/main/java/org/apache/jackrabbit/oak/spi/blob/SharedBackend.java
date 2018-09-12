@@ -156,6 +156,14 @@ public interface SharedBackend {
     void deleteAllMetadataRecords(String prefix);
 
     /**
+     * Checks if the metadata record with the specified name exists.
+     *
+     * @param name the name of the record
+     * @return whether record exists
+     */
+    boolean metadataRecordExists(String name);
+
+    /**
      * Initialize
      */
     void init() throws DataStoreException;

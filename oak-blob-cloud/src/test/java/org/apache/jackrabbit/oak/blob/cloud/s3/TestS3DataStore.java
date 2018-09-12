@@ -55,6 +55,7 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Data
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -312,6 +313,27 @@ public class TestS3DataStore {
 
         S3DataStore s3ds = getDataStore();
         s3ds.getAllMetadataRecords(null);
+    }
+
+    // MetadataRecordExists (Backend)
+    @Test
+    public void testBackendMetadataRecordExists() throws Exception {
+        assumeTrue(isS3Configured());
+        S3DataStore s3ds = getDataStore();
+
+        s3ds.addMetadataRecord(randomStream(0, 10), "name");
+        for (String name : Lists.newArrayList("invalid", "", null)) {
+            if (Strings.isNullOrEmpty(name)) {
+                try {
+                    s3ds.metadataRecordExists(name);
+                }
+                catch (IllegalArgumentException e) { }
+            }
+            else {
+                assertFalse(s3ds.metadataRecordExists(name));
+            }
+        }
+        assertTrue(s3ds.metadataRecordExists("name"));
     }
 
     // DeleteMetadataRecord (Backend)
