@@ -20,14 +20,8 @@ package org.apache.jackrabbit.oak.jcr.session;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
-
-import com.google.common.base.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementations of this interface determine whether a session needs
@@ -37,7 +31,6 @@ import org.slf4j.LoggerFactory;
  *
  * @see Composite
  * @see Timed
- * @see LogOnce
  */
 public interface RefreshStrategy {
 
@@ -155,83 +148,4 @@ public interface RefreshStrategy {
             return "Refresh every " + interval + " seconds";
         }
     }
-
-    /**
-     * This refresh strategy never refreshed the session but logs
-     * a warning if a session has been idle for more than a given time.
-     *
-     * TODO replace logging with JMX monitoring. See OAK-941
-     */
-    class LogOnce extends Timed {
-
-        private static final Logger log =
-                LoggerFactory.getLogger(RefreshStrategy.class);
-
-        private final Exception initStackTrace =
-                new Exception("The session was created here:");
-
-        private boolean warnIfIdle = true;
-
-        /**
-         * @param interval  Interval in seconds after which a warning is logged if there was no
-         *                  activity.
-         */
-        public LogOnce(long interval) {
-            super(interval);
-        }
-
-        /**
-         * Log once
-         * @param secondsSinceLastAccess seconds since last access
-         * @return {@code false}
-         */
-        @Override
-        public boolean needsRefresh(long secondsSinceLastAccess) {
-            if (super.needsRefresh(secondsSinceLastAccess) && warnIfIdle) {
-                log.warn("This session has been idle for "
-                        + MINUTES.convert(secondsSinceLastAccess, SECONDS)
-                        + " minutes and might be out of date. " +
-                        "Consider using a fresh session or explicitly refresh the session.",
-                        initStackTrace);
-            }
-            return false;
-        }
-
-        @Override
-        public void refreshed() {
-            warnIfIdle = false;
-        }
-
-        @Override
-        public String toString() {
-            return "Never refresh but log warning after more than " + interval + " seconds of inactivity";
-        }
-    }
-
-    /**
-     * This strategy conditionally invokes the delegated strategy based on the passed predicate
-     */
-    class ConditionalRefreshStrategy implements RefreshStrategy {
-        private final RefreshStrategy delegate;
-        private final Predicate<Long> condition;
-
-        public ConditionalRefreshStrategy(RefreshStrategy delegate, Predicate<Long> condition) {
-            this.delegate = delegate;
-            this.condition = condition;
-        }
-
-        @Override
-        public boolean needsRefresh(long secondsSinceLastAccess) {
-            if (condition.apply(secondsSinceLastAccess)){
-                return delegate.needsRefresh(secondsSinceLastAccess);
-            }
-            return false;
-        }
-
-        @Override
-        public void refreshed() {
-            delegate.refreshed();
-        }
-    }
-
 }
