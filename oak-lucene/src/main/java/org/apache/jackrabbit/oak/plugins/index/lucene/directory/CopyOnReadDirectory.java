@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static java.util.Arrays.stream;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
@@ -306,7 +307,9 @@ public class CopyOnReadDirectory extends FilterDirectory {
     }
 
     private void removeDeletedFiles() throws IOException {
-        Set<String> remoteFiles = ImmutableSet.copyOf(remote.listAll());
+        Set<String> remoteFiles = stream(remote.listAll())
+                .filter(name -> !IndexCopier.REMOTE_ONLY.contains(name))
+                .collect(Collectors.toSet());
 
         long maxTS = IndexCopier.getNewestLocalFSTimestampFor(remoteFiles, local);
         if (maxTS == -1) {
