@@ -108,6 +108,8 @@ public class DataStoreCheckTest {
             Properties props = S3DataStoreUtils.getS3Config();
             props.setProperty("cacheSize", "0");
             container = props.getProperty(S3Constants.S3_BUCKET);
+            container = container + "-" + String.valueOf(System.currentTimeMillis());
+            props.setProperty(S3Constants.S3_BUCKET, container);
             DataStore ds = S3DataStoreUtils.getS3DataStore(S3DataStoreUtils.getFixtures().get(0),
                 props,
                 temporaryFolder.newFolder().getAbsolutePath());
