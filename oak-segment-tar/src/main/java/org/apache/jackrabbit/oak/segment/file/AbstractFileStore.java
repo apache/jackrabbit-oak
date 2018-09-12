@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -270,4 +271,17 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return new Segment(tracker, segmentReader, id, buffer);
     }
 
+    /**
+     * Finds all external blob references that are currently accessible
+     * in this repository and adds them to the given collector. Useful
+     * for collecting garbage in an external data store.
+     * <p>
+     * Note that this method only collects blob references that are already
+     * stored in the repository (at the time when this method is called), so
+     * the garbage collector will need some other mechanism for tracking
+     * in-memory references and references stored while this method is
+     * running.
+     * @param collector  reference collector called back for each blob reference found
+     */
+    public abstract void collectBlobReferences(Consumer<String> collector) throws IOException;
 }

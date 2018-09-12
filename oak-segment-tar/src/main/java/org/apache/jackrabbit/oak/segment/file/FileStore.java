@@ -397,6 +397,7 @@ public class FileStore extends AbstractFileStore {
      * running.
      * @param collector  reference collector called back for each blob reference found
      */
+    @Override
     public void collectBlobReferences(Consumer<String> collector) throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             garbageCollector.collectBlobReferences(collector);
