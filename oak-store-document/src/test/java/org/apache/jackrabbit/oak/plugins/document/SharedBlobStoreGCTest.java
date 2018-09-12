@@ -227,8 +227,12 @@ public class SharedBlobStoreGCTest {
     @After
     public void tearDown() throws Exception {
         DataStoreUtils.time = -1;
-        cluster1.getDocumentNodeStore().dispose();
-        cluster2.getDocumentNodeStore().dispose();
+        if (cluster1 != null) {
+            cluster1.getDocumentNodeStore().dispose();
+        }
+        if (cluster2 != null) {
+            cluster2.getDocumentNodeStore().dispose();
+        }
     }
 
     protected DataStoreBlobStore getBlobStore(File root) throws Exception {
