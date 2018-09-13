@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.lock;
 import static java.lang.Boolean.TRUE;
 import static org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl.RELAXED_LOCKING;
 
+import java.text.MessageFormat;
 import java.util.Set;
 
 import javax.jcr.InvalidItemStateException;
@@ -184,7 +185,11 @@ public class LockManagerImpl implements LockManager {
                     sessionContext.getOpenScopedLocks().remove(path);
                     session.refresh(true);
                 } else {
-                    throw new LockException("Not an owner of the lock " + path);
+					String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+					String error = MessageFormat.format(
+							"Not an owner of the lock {0}. Lock owner is {1}, but attempted user is: {2} ",
+							path, node.getLockOwner(), user);
+					throw new LockException(error);
                 }
             }
         });
