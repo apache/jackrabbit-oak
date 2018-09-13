@@ -25,7 +25,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -81,7 +80,7 @@ public class SharedDataStoreUtils {
                         return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
                     }
                 }).keySet(),
-                FluentIterable.from(refs).uniqueIndex(
+                FluentIterable.from(refs).index(
                         new Function<DataRecord, String>() {
                             @Override
                             @Nullable
@@ -111,14 +110,29 @@ public class SharedDataStoreUtils {
         }
 
         public String getIdFromName(String name) {
-            return Splitter.on(DELIIM).limit(2).splitToList(name).get(1);
+            return Splitter.on("_").limit(2).splitToList(
+                Splitter.on(DELIM).limit(2).splitToList(name).get(1)).get(0);
         }
 
         public String getNameFromId(String id) {
-            return Joiner.on(DELIIM).join(getType(), id);
+            return Joiner.on(DELIM).join(getType(), id);
         }
 
-        static final String DELIIM = "-";
+        /**
+         * Creates name from id and prefix. The format returned is of the form
+         * references-id_prefix.
+         *
+         * @param id
+         * @param prefix
+         * @return
+         */
+        public String getNameFromIdPrefix(String id, String prefix) {
+            return Joiner.on("_").join(
+                Joiner.on(DELIM).join(getType(), id),
+                prefix);
+        }
+
+        static final String DELIM = "-";
     }
 }
 

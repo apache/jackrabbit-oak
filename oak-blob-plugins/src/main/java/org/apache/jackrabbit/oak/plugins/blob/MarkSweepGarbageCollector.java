@@ -793,8 +793,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             @Override
             void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
                     String repoId) throws DataStoreException, IOException {
-                ((SharedDataStore) blobStore)
-                    .addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+                boolean exists = ((SharedDataStore) blobStore)
+                    .metadataRecordExists(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+                if (exists) {
+                    LOG.info("References for repository id {} already exists. Creating a duplicate one. "
+                        + "Please check for inadvertent sharing of repository id by different repositories", repoId);
+                }
+
+                ((SharedDataStore) blobStore).addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES
+                    .getNameFromIdPrefix(repoId, String.valueOf(System.currentTimeMillis())));
             }
             
             @Override
