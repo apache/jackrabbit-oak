@@ -217,14 +217,6 @@ public class DataStoreCommand implements Command {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        DataStoreCommand cmd = new DataStoreCommand();
-        cmd.execute(
-            "--fds", "/Users/amjain/installs/org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore.config",
-            "--read-write",
-            "/Users/amjain/installs/cq640/crx-quickstart/repository/segmentstore");
-    }
-
     /**
      * {@link BlobReferenceRetriever} instance which iterates over the whole node store to find
      * blobs being referred. Useful when path of those blobs needed and the underlying {@link NodeStore}
