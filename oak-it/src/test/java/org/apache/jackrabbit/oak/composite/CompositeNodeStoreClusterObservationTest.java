@@ -92,7 +92,37 @@ public class CompositeNodeStoreClusterObservationTest {
         remote.runBackgroundOperations();
         globalStore.runBackgroundOperations();
 
-        assertTrue("Node added event not observed for local change", observer.added.containsKey("/test"));
+        assertTrue("Node added event not observed for remote change", observer.added.containsKey("/test"));
+    }
+
+    @Test
+    public void mixedObservation() throws CommitFailedException {
+        store.addObserver(observer);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").child("test1").setProperty("foo", "bar");
+        merge(store, builder);
+
+        // public local changes
+        globalStore.runBackgroundOperations();
+        remote.runBackgroundOperations();
+
+        builder = remote.getRoot().builder();
+        builder.getChildNode("test").child("test2").setProperty("foo", "bar");
+        merge(remote, builder);
+
+        // read in remote changes
+        remote.runBackgroundOperations();
+        globalStore.runBackgroundOperations();
+
+        builder = store.getRoot().builder();
+        builder.getChildNode("test").child("test3").setProperty("foo", "bar");
+        merge(store, builder);
+
+        assertTrue("Node added event not observed for local change before remote change", observer.added.containsKey("/test"));
+        assertTrue("Node added event not observed for local change before remote change", observer.added.containsKey("/test/test1"));
+        assertTrue("Node added event not observed for remote change", observer.added.containsKey("/test/test2"));
+        assertTrue("Node added event not observed for local change after remote change", observer.added.containsKey("/test/test3"));
     }
 
     private static void merge(NodeStore store, NodeBuilder builder)
