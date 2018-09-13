@@ -109,6 +109,7 @@ public class DataStoreCommand implements Command {
 
         boolean success = false;
         try (Closer closer = Closer.create()) {
+            opts.setTempDirectory(dataStoreOpts.getWorkDir().getAbsolutePath());
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
             closer.register(fixture);
 
