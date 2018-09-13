@@ -29,10 +29,12 @@ import java.io.IOException;
 
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -44,8 +46,17 @@ class SegmentTarFixtureProvider {
             throws IOException, InvalidFileStoreVersionException {
         StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
 
-        String path = options.getOptionBean(CommonOptions.class).getStoreArg();
-        FileStoreBuilder builder = fileStoreBuilder(new File(path)).withMaxFileSize(256);
+        String pathOrUri = options.getOptionBean(CommonOptions.class).getStoreArg();
+        ToolUtils.SegmentStoreType segmentStoreType = ToolUtils.storeTypeFromPathOrUri(pathOrUri);
+
+        FileStoreBuilder builder;
+        if (segmentStoreType == ToolUtils.SegmentStoreType.AZURE) {
+            SegmentNodeStorePersistence segmentNodeStorePersistence =
+                ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri);
+            builder = fileStoreBuilder(new File(options.getTempDirectory())).withCustomPersistence(segmentNodeStorePersistence);
+        } else {
+            builder = fileStoreBuilder(new File(pathOrUri)).withMaxFileSize(256);
+        }
 
         FileStoreTarBuilderCustomizer customizer = getService(wb, FileStoreTarBuilderCustomizer.class);
         if (customizer != null) {

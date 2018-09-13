@@ -45,6 +45,7 @@ public class Options {
     private String summary;
     private String connectionString;
     private final Whiteboard whiteboard = new DefaultWhiteboard();
+    private String tempDirectory;
 
     public Options(){
         this.oakRunOptions = EnumSet.allOf(OptionBeans.class);
@@ -118,6 +119,15 @@ public class Options {
         return this;
     }
 
+    public Options setTempDirectory(String directory) {
+        this.tempDirectory = directory;
+        return this;
+    }
+
+    public String getTempDirectory() {
+        return tempDirectory;
+    }
+
     public CommonOptions getCommonOpts(){
         return getOptionBean(CommonOptions.class);
     }
@@ -154,4 +164,5 @@ public class Options {
             System.exit(code);
         }
     }
+
 }
