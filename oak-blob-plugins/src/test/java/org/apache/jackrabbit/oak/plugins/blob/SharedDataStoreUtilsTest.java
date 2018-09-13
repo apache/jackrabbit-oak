@@ -18,15 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static com.google.common.collect.Sets.newHashSet;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -35,25 +32,30 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import junit.framework.Assert;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.collect.Sets.newHashSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test for SharedDataUtils to test addition, retrieval and deletion of root records.
@@ -84,7 +86,6 @@ public class SharedDataStoreUtilsTest {
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
         DataRecord repo2 = dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
-        
         // Add reference marker record for repo1
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                                        SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
@@ -161,20 +162,159 @@ public class SharedDataStoreUtilsTest {
 
         dataStore.addMetadataRecord(new FileInputStream(f),
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
+        assertTrue(dataStore.metadataRecordExists(SharedStoreRecordType.REFERENCES.getNameFromId(repoId)));
         DataRecord rec = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
         Set<String> refsReturned = FileIOUtils.readStringsAsSet(rec.getStream(), false);
-        Assert.assertEquals(refs, refsReturned);
-        dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
-
-        dataStore.addMetadataRecord(f,
-            SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
-        rec = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
-        refsReturned = FileIOUtils.readStringsAsSet(rec.getStream(), false);
-        Assert.assertEquals(refs, refsReturned);
+        assertEquals(refs, refsReturned);
         assertEquals(
             SharedStoreRecordType.REFERENCES.getIdFromName(rec.getIdentifier().toString()),
             repoId);
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+    }
+
+    @Test
+    public void testAddMetadataWithExtraSuffix() throws Exception {
+        addMultipleMetadata(true);
+    }
+
+    @Test
+    public void testAddMetadataWithConditionalExtraSuffix() throws Exception {
+        addMultipleMetadata(false);
+    }
+
+    @Test
+    public void testRefsAvailableAllRepos() throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+
+        loadData(true);
+
+        // check if All the references from registered repositories are available
+        Assert.assertTrue(SharedDataStoreUtils
+            .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+                dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).isEmpty());
+    }
+
+    @Test
+    public void testRefsNotAvailableAllRepos() throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+
+        Data data = loadData(true);
+        // Delete one of the references file
+        String expectedMissingRepoId = data.repoIds.get(data.repoIds.size() - 1);
+        dataStore.deleteAllMetadataRecords(
+            SharedStoreRecordType.REFERENCES.getNameFromId(expectedMissingRepoId));
+
+        // check if All the references from registered repositories are available
+        Set<String> missingRepoIds = SharedDataStoreUtils
+            .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+                dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()));
+        assertEquals(Sets.newHashSet(expectedMissingRepoId), missingRepoIds);
+    }
+
+    private void addMultipleMetadata(boolean extended) throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+
+        Data data = loadData(extended);
+
+        // Retrieve all records
+        List<DataRecord> recs =
+            dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+
+        Set<String> returnedRefs = Sets.newHashSet();
+        for (DataRecord retRec : recs) {
+            assertTrue(data.repoIds.contains(SharedStoreRecordType.REFERENCES.getIdFromName(retRec.getIdentifier().toString())));
+            returnedRefs.addAll(FileIOUtils.readStringsAsSet(retRec.getStream(), false));
+        }
+        assertEquals(data.refs, returnedRefs);
+
+        // Delete all references records
+        dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+        for (int i = 0; i < data.repoIds.size(); i++) {
+            assertFalse(
+                dataStore.metadataRecordExists(getName(extended, data.repoIds.get(i), data.suffixes.get(i + 1))));
+
+            if (i == 0) {
+                assertFalse(
+                    dataStore.metadataRecordExists(getName(extended, data.repoIds.get(i), data.suffixes.get(i))));
+            }
+        }
+    }
+
+    private Data loadData(boolean extended) throws Exception {
+        Data data = new Data();
+        String repoId1 = UUID.randomUUID().toString();
+        data.repoIds.add(repoId1);
+        dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
+
+        Set<String> refs = Sets.newHashSet("1_1", "1_2");
+        data.refs.addAll(refs);
+        File f = folder.newFile();
+        FileIOUtils.writeStrings(refs.iterator(), f, false);
+
+        Set<String> refs2 = Sets.newHashSet("2_1", "2_2");
+        data.refs.addAll(refs2);
+        File f2 = folder.newFile();
+        FileIOUtils.writeStrings(refs2.iterator(), f2, false);
+
+        String repoId2 = UUID.randomUUID().toString();
+        data.repoIds.add(repoId2);
+        dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
+
+        Set<String> refs3 = Sets.newHashSet("3_1", "3_2");
+        data.refs.addAll(refs3);
+        File f3 = folder.newFile();
+        FileIOUtils.writeStrings(refs3.iterator(), f3, false);
+
+        String suffix1 = String.valueOf(System.currentTimeMillis());
+        data.suffixes.add(suffix1);
+        dataStore.addMetadataRecord(new FileInputStream(f), getName(extended, repoId1, suffix1));
+
+        // Checks for the presence of existing record
+        assertTrue(dataStore.metadataRecordExists(getName(extended, repoId1, suffix1)));
+
+        DataRecord rec = dataStore.getMetadataRecord(getName(extended, repoId1, suffix1));
+        assertEquals(refs, FileIOUtils.readStringsAsSet(rec.getStream(), false));
+
+        // Add a duplicate
+        TimeUnit.MILLISECONDS.sleep(100);
+        String suffix2 = String.valueOf(System.currentTimeMillis());
+        data.suffixes.add(suffix2);
+        dataStore.addMetadataRecord(f2, getName(true, repoId1, suffix2));
+
+        // Check presence of the duplicate
+        assertTrue(
+            dataStore.metadataRecordExists(getName(extended, repoId1, suffix2)));
+
+        // Add a separate record
+        TimeUnit.MILLISECONDS.sleep(100);
+        String suffix3 = String.valueOf(System.currentTimeMillis());
+        data.suffixes.add(suffix3);
+        dataStore.addMetadataRecord(f3, getName(extended, repoId2, suffix3));
+
+        // Check presence of the separate
+        assertTrue(
+            dataStore.metadataRecordExists(getName(extended, repoId2, suffix3)));
+
+        return data;
+    }
+
+    class Data {
+        List<String> suffixes = Lists.newArrayList();
+        List<String> repoIds = Lists.newArrayList();
+        Set<String> refs = Sets.newHashSet();
+    }
+
+    private static String getName(boolean extended, String repoId, String suffix) {
+        if (!extended) {
+            return SharedStoreRecordType.REFERENCES.getNameFromId(repoId);
+        } else {
+            return SharedStoreRecordType.REFERENCES.getNameFromIdPrefix(repoId, suffix);
+        }
     }
 
     @Test
