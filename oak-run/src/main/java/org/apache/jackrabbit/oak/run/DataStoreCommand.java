@@ -53,7 +53,7 @@ import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -180,7 +180,7 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.isVerbose()) {
                 retriever = new NodeTraverserReferenceRetriever(fixture.getStore());
             } else {
-                FileStore fileStore = getService(fixture.getWhiteboard(), FileStore.class);
+                ReadOnlyFileStore fileStore = getService(fixture.getWhiteboard(), ReadOnlyFileStore.class);
                 retriever = new SegmentBlobReferenceRetriever(fileStore);
             }
         }

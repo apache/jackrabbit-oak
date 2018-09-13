@@ -137,11 +137,8 @@ public class DataStoreCommandTest {
     public void setup() throws Exception {
         setupDataStore = blobFixture.init(temporaryFolder);
         store = storeFixture.init(setupDataStore, temporaryFolder.newFolder());
-        if (store instanceof SegmentNodeStore) {
-            additionalParams = "--read-write";
-        } else {
-            additionalParams = "--ds-read-write";
-        }
+        additionalParams = "--ds-read-write";
+
         String repoId = ClusterRepositoryInfo.getOrCreateId(store);
         setupDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             REPOSITORY.getNameFromId(repoId));
