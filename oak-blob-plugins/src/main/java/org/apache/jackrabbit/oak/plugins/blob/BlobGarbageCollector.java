@@ -50,7 +50,7 @@ public interface BlobGarbageCollector {
      * @throws Exception
      */
     List<GarbageCollectionRepoStats> getStats() throws Exception;
-    
+
     /**
      * Checks for consistency in the blob store and reporting the number of missing blobs.
      * 
@@ -66,4 +66,12 @@ public interface BlobGarbageCollector {
      * @throws Exception
      */
     OperationsStatsMBean getOperationStats() throws Exception;
+
+    /**
+     * Returns consistency operation statistics
+     *
+     * @return stats object
+     * @throws Exception
+     */
+    OperationsStatsMBean getConsistencyOperationStats();
 }
