@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -822,7 +823,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 ((SharedDataStore) blobStore).addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES
-                    .getNameFromIdPrefix(repoId, String.valueOf(System.currentTimeMillis())));
+                    .getNameFromIdPrefix(repoId, UUID.randomUUID().toString()));
             }
             
             @Override
