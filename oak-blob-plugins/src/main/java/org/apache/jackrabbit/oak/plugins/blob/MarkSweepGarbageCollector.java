@@ -830,8 +830,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {
                 try {
                     ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                                                                       SharedStoreRecordType.MARKED_START_MARKER
-                                                                           .getNameFromId(repoId));
+                        SharedStoreRecordType.MARKED_START_MARKER
+                            .getNameFromIdPrefix(repoId, UUID.randomUUID().toString()));
                 } catch (DataStoreException e) {
                     LOG.debug("Error creating marked time marker for repo : {}", repoId);
                 }
