@@ -47,4 +47,22 @@ public interface OperationsStatsMBean {
      * @return
      */
     long duration();
+
+    /**
+     * Returns the duration of the mark operation
+     * @return
+     */
+    long markDuration();
+
+    /**
+     * Returns the number deleted.
+     * @return
+     */
+    long numDeleted();
+
+    /**
+     * Returns the size deleted.
+     * @return
+     */
+    long sizeDeleted();
 }

@@ -133,6 +133,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     private final OperationStatsCollector statsCollector;
 
+    /** Operation consistency stats object **/
+    private final GarbageCollectionOperationStats consistencyStats;
+
+    private final OperationStatsCollector consistencyStatsCollector;
+
     private boolean traceOutput;
 
     /**
@@ -181,6 +186,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
         this.stats = new GarbageCollectionOperationStats(statisticsProvider);
         this.statsCollector = stats.getCollector();
+        this.consistencyStats =
+            new GarbageCollectionOperationStats(statisticsProvider, GarbageCollectionOperationStats.CONSISTENCY_NAME);
+        this.consistencyStatsCollector = consistencyStats.getCollector();
     }
 
     public MarkSweepGarbageCollector(
@@ -290,6 +298,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     @Override
     public OperationsStatsMBean getOperationStats() {
         return stats;
+    }
+
+    @Override
+    public OperationsStatsMBean getConsistencyOperationStats() {
+        return consistencyStats;
     }
 
     /**
@@ -625,10 +638,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     @Override
     public long checkConsistency() throws Exception {
+        consistencyStatsCollector.start();
+        Stopwatch sw = Stopwatch.createStarted();
+
         boolean threw = true;
         GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         long candidates = 0;
-        
+
         try {
             LOG.info("Starting blob consistency check");
     
@@ -639,7 +655,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     
             // Mark all used blob references
             iterateNodeTree(fs, true);
-            
+            consistencyStatsCollector.updateMarkDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+
             try {
                 blobIdRetriever.get();
             } catch (ExecutionException e) {
@@ -662,11 +679,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             if (candidates > 0) {
                 LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
                             blobStore, fs.getGcCandidates().getAbsolutePath());
+                consistencyStatsCollector.finishFailure();
+                consistencyStatsCollector.updateNumDeleted(candidates);
             }
         } finally {
             if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
                 Closeables.close(fs, threw);
             }
+            sw.stop();
+            consistencyStatsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         }
         return candidates;
     }
@@ -998,6 +1019,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     class GarbageCollectionOperationStats implements OperationsStatsMBean {
         static final String NAME = "DataStoreGarbageCollection";
+        static final String CONSISTENCY_NAME = "DataStoreConsistencyCheck";
         static final String START = "COUNTER";
         static final String FINISH_FAILURE = "FAILURE";
         static final String DURATION = "ACTIVE_TIMER";
@@ -1006,6 +1028,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         static final String NUM_BLOBS_DELETED = "NUM_BLOBS_DELETED";
         static final String TOTAL_SIZE_DELETED = "TOTAL_SIZE_DELETED";
         static final String NUM_CANDIDATES = "NUM_CANDIDATES";
+
+        private final String typeName;
 
         private CounterStats startCounter;
         private CounterStats finishFailureCounter;
@@ -1017,7 +1041,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         private final TimerStats sweepDuration;
         private final OperationStatsCollector collector;
 
-        GarbageCollectionOperationStats(StatisticsProvider sp) {
+        GarbageCollectionOperationStats(StatisticsProvider sp, String typeName) {
+            this.typeName = typeName;
+
             this.startCounter = sp.getCounterStats(getMetricName(START), StatsOptions.METRICS_ONLY);
             this.finishFailureCounter = sp.getCounterStats(getMetricName(FINISH_FAILURE), StatsOptions.METRICS_ONLY);
             this.numDeletedCounter = sp.getCounterStats(getMetricName(NUM_BLOBS_DELETED), StatsOptions.METRICS_ONLY);
@@ -1068,6 +1094,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             };
         }
 
+
+        GarbageCollectionOperationStats(StatisticsProvider sp) {
+            this(sp, NAME);
+        }
+
         private String getMetricName(String name) {
             return getName() + "." + name;
         }
@@ -1077,7 +1108,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         }
 
         @Override public String getName() {
-            return TYPE + "." + NAME;
+            return TYPE + "." + typeName;
         }
 
         @Override public long getStartCount() {
@@ -1090,6 +1121,18 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         @Override public long duration() {
             return duration.getCount();
+        }
+
+        @Override public long markDuration() {
+            return markDuration.getCount();
+        }
+
+        @Override public long numDeleted() {
+            return numDeletedCounter.getCount();
+        }
+
+        @Override public long sizeDeleted() {
+            return totalSizeDeletedCounter.getCount();
         }
     }
 }
