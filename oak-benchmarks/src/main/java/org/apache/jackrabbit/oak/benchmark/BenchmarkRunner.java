@@ -253,7 +253,9 @@ public class BenchmarkRunner {
                         fdsCache.value(options), vgcMaxAge.value(options)),
                 OakRepositoryFixture.getCompositeStore(base.value(options), 256, cacheSize,
                         mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
-                OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options))
+                OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options)),
+                OakRepositoryFixture.getCompositeMongoStore(uri, cacheSize * MB,
+                        dropDBAfterTest.value(options), mounts.value(options), pathsPerMount.value(options))
         };
 
         Benchmark[] allBenchmarks = new Benchmark[] {
