@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +51,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMemoryFixture;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeMongoFixture;
+import static org.apache.jackrabbit.oak.fixture.CompositeStoreFixture.newCompositeSegmentFixture;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 
 public abstract class OakFixture {
@@ -73,6 +75,7 @@ public abstract class OakFixture {
 
     public static final String OAK_COMPOSITE_STORE = "Oak-Composite-Store";
     public static final String OAK_COMPOSITE_MEMORY_STORE = "Oak-Composite-Memory-Store";
+    public static final String OAK_COMPOSITE_MONGO_STORE = "Oak-Composite-Mongo-Store";
 
 
     private final String name;
@@ -362,12 +365,22 @@ public abstract class OakFixture {
     public static OakFixture getCompositeStore(final String name, final File base,
                                                final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
                                                final int mounts, final int pathsPerMount) {
-        return new CompositeStoreFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
+        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
     }
 
     public static OakFixture getCompositeMemoryStore(final String name, final int mounts, final int pathsPerMount) {
-        return new CompositeStoreFixture(name, mounts, pathsPerMount);
+        return newCompositeMemoryFixture(name, mounts, pathsPerMount);
     }
+
+    public static OakFixture getCompositeMongoStore(String name,
+                                                    String uri,
+                                                    long cacheSize,
+                                                    boolean dropDBAfterTest,
+                                                    int mounts,
+                                                    int pathsPerMount) {
+        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize, mounts, pathsPerMount);
+    }
+
 
     public static class MongoFixture extends OakFixture {
 

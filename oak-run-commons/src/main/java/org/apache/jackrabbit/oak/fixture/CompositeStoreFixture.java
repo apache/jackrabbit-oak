@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.fixture;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -31,48 +33,98 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import java.io.File;
 import java.io.IOException;
 
+import com.mongodb.MongoClientURI;
+
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
-class CompositeStoreFixture extends OakFixture {
-
-    private final File base;
-
-    private final int maxFileSizeMB;
-
-    private final int cacheSizeMB;
-
-    private final boolean memoryMapping;
+abstract class CompositeStoreFixture extends OakFixture {
 
     private final int mounts;
 
     private final int pathsPerMount;
 
-    private final boolean inMemory;
-
-    private FileStore fileStore;
-
-    public CompositeStoreFixture(String name, int mounts, int pathsPerMount) {
+    private CompositeStoreFixture(String name, int mounts, int pathsPerMount) {
         super(name);
-        this.inMemory = true;
         this.mounts = mounts;
         this.pathsPerMount = pathsPerMount;
-
-        this.base = null;
-        this.maxFileSizeMB = -1;
-        this.cacheSizeMB = -1;
-        this.memoryMapping = false;
     }
 
-    public CompositeStoreFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                                 boolean memoryMapping, int mounts, int pathsPerMount) {
-        super(name);
-        this.base = base;
-        this.maxFileSizeMB = maxFileSizeMB;
-        this.cacheSizeMB = cacheSizeMB;
-        this.memoryMapping = memoryMapping;
-        this.mounts = mounts;
-        this.pathsPerMount = pathsPerMount;
-        this.inMemory = false;
+    static OakFixture newCompositeMemoryFixture(String name, int mounts, int pathsPerMount) {
+        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+            @Override
+            protected NodeStore getNodeStore() {
+                return new MemoryNodeStore();
+            }
+
+            @Override
+            public void tearDownCluster() {
+                // nothing to do
+            }
+        };
+    }
+
+    static OakFixture newCompositeSegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
+                                                 boolean memoryMapping, int mounts, int pathsPerMount) {
+        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+
+            private FileStore fileStore;
+
+            @Override
+            protected NodeStore getNodeStore()
+                    throws IOException, InvalidFileStoreVersionException {
+                FileStoreBuilder fsBuilder = fileStoreBuilder(new File(base, unique))
+                        .withMaxFileSize(maxFileSizeMB)
+                        .withSegmentCacheSize(cacheSizeMB)
+                        .withMemoryMapping(memoryMapping);
+                fileStore = fsBuilder.build();
+                return SegmentNodeStoreBuilders.builder(fileStore).build();
+            }
+
+            @Override
+            public void tearDownCluster() {
+                if (fileStore != null) {
+                    fileStore.close();
+                }
+            }
+        };
+    }
+
+    static OakFixture newCompositeMongoFixture(String name,
+                                               String uri,
+                                               boolean dropDBAfterTest,
+                                               long cacheSize,
+                                               int mounts,
+                                               int pathsPerMount) {
+        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+
+            private String database = new MongoClientURI(uri).getDatabase();
+            private DocumentNodeStore ns;
+
+            @Override
+            protected NodeStore getNodeStore() {
+                ns = newMongoDocumentNodeStoreBuilder()
+                        .memoryCacheSize(cacheSize)
+                        .setMongoDB(uri, database, 0)
+                        .build();
+                return ns;
+            }
+
+            @Override
+            public void tearDownCluster() {
+                if (ns != null) {
+                    ns.dispose();
+                }
+                if (dropDBAfterTest) {
+                    MongoConnection c = new MongoConnection(uri);
+                    try {
+                        c.getDatabase(database).drop();
+                    } finally {
+                        c.close();
+                    }
+                }
+            }
+        };
     }
 
     @Override
@@ -93,17 +145,7 @@ class CompositeStoreFixture extends OakFixture {
         return new Oak(builder.build());
     }
 
-    private NodeStore getNodeStore() throws IOException, InvalidFileStoreVersionException {
-        if (inMemory) {
-            return new MemoryNodeStore();
-        }
-        FileStoreBuilder fsBuilder = fileStoreBuilder(new File(base, unique))
-                .withMaxFileSize(maxFileSizeMB)
-                .withSegmentCacheSize(cacheSizeMB)
-                .withMemoryMapping(memoryMapping);
-        fileStore = fsBuilder.build();
-        return SegmentNodeStoreBuilders.builder(fileStore).build();
-    }
+    protected abstract NodeStore getNodeStore() throws IOException, InvalidFileStoreVersionException;
 
     @Override
     public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
@@ -111,12 +153,5 @@ class CompositeStoreFixture extends OakFixture {
             throw new IllegalArgumentException();
         }
         return new Oak[] { getOak(1) };
-    }
-
-    @Override
-    public void tearDownCluster() {
-        if (fileStore != null) {
-            fileStore.close();
-        }
     }
 }

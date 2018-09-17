@@ -131,6 +131,15 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return new OakRepositoryFixture(OakFixture.getCompositeMemoryStore(OakFixture.OAK_COMPOSITE_MEMORY_STORE, mounts, pathsPerMount));
     }
 
+    public static RepositoryFixture getCompositeMongoStore(String uri, long cacheSize, boolean dropDBAfterTest,
+                                                           int mounts, int pathsPerMount) {
+        return new OakRepositoryFixture(OakFixture.getCompositeMongoStore(
+                OakFixture.OAK_COMPOSITE_MONGO_STORE,
+                uri, cacheSize, dropDBAfterTest,
+                mounts, pathsPerMount)
+        );
+    }
+
     private final OakFixture oakFixture;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private Repository[] cluster;
