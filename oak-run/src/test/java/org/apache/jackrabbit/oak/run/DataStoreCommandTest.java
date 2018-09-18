@@ -950,13 +950,11 @@ public class DataStoreCommandTest {
 
     static class FixtureHelper {
         static List<StoreFixture> getStoreFixtures() {
-            //return ImmutableList.of(StoreFixture.MONGO, StoreFixture.SEGMENT);
-            return ImmutableList.of(StoreFixture.SEGMENT_AZURE);
+            return ImmutableList.of(StoreFixture.MONGO, StoreFixture.SEGMENT, StoreFixture.SEGMENT_AZURE);
         }
 
         static List<DataStoreFixture> getDataStoreFixtures() {
-            //return ImmutableList.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
-            return ImmutableList.of(DataStoreFixture.AZURE);
+            return ImmutableList.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
         }
 
         static List<Object[]> get() {
