@@ -69,9 +69,12 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -84,6 +87,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -101,6 +105,7 @@ import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.DAS
 import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.HASH;
 import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.filterFiles;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -314,7 +319,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 100, false);
+        testGc(dump, data, 10000, false);
     }
 
     @Test
@@ -323,7 +328,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 100, true);
+        testGc(dump, data, 10000, true);
     }
 
     @Test
@@ -609,7 +614,7 @@ public class DataStoreCommandTest {
 
         StoreFixture MONGO = new MongoStoreFixture();
         StoreFixture SEGMENT = new SegmentStoreFixture();
-
+        StoreFixture SEGMENT_AZURE = new AzureSegmentStoreFixture();
 
         class MongoStoreFixture implements StoreFixture {
             private final Clock.Virtual clock;
@@ -671,10 +676,10 @@ public class DataStoreCommandTest {
         }
 
         class SegmentStoreFixture implements StoreFixture {
-            private FileStore fileStore;
-            private SegmentNodeStore store;
-            private SegmentGCOptions gcOptions = defaultGCOptions();
-            private String storePath;
+            protected FileStore fileStore;
+            protected SegmentNodeStore store;
+            protected SegmentGCOptions gcOptions = defaultGCOptions();
+            protected String storePath;
 
             @Override public NodeStore init(DataStoreBlobStore blobStore, File storeFile)
                 throws Exception {
@@ -726,6 +731,73 @@ public class DataStoreCommandTest {
                     }
                 }
                 store.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            }
+        }
+
+
+        /**
+         * Requires 'AZURE_SECRET_KEY' to be set as an environment variable as well
+         */
+        class AzureSegmentStoreFixture extends SegmentStoreFixture {
+            private static final String AZURE_DIR = "repository";
+            private String container;
+
+            @Override public NodeStore init(DataStoreBlobStore blobStore, File storeFile) throws Exception {
+                Properties props = AzureDataStoreUtils.getAzureConfig();
+                String accessKey = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
+                String secretKey = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
+                container = props.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
+                container = container + System.currentTimeMillis();
+                // Create the azure segment container
+                String connectionString = getAzureConnectionString(accessKey, secretKey, container, AZURE_DIR);
+                AzureUtilities.cloudBlobDirectoryFrom(connectionString, container, AZURE_DIR);
+
+                // get the azure uri expected by the command
+                storePath = getAzureUri(accessKey, container, AZURE_DIR);
+
+                // initialize azure segment for test setup
+                SegmentNodeStorePersistence segmentNodeStorePersistence =
+                    ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, storePath);
+                fileStore = fileStoreBuilder(storeFile).withBlobStore(blobStore)
+                    .withCustomPersistence(segmentNodeStorePersistence).build();
+
+                store = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+                return store;
+            }
+
+            protected String getAzureUri(String accountName, String container, String directory) {
+                StringBuilder uri = new StringBuilder("az:");
+                uri.append("https://").append(accountName).append(".blob.core.windows.net/");
+                uri.append(container).append("/");
+                uri.append(directory);
+
+                return uri.toString();
+            }
+
+            protected String getAzureConnectionString(String accountName, String secret, String container, String directory) {
+                StringBuilder builder = new StringBuilder();
+                builder.append("AccountName=").append(accountName).append(";");
+                builder.append("DefaultEndpointsProtocol=https;");
+                builder.append("BlobEndpoint=https://").append(accountName).append(".blob.core.windows.net").append(";");
+                builder.append("ContainerName=").append(container).append(";");
+                builder.append("Directory=").append(directory).append(";");
+                builder.append("AccountKey=").append(secret);
+
+                return builder.toString();
+            }
+
+            @Override
+            public void after() {
+                try {
+                    AzureDataStoreUtils.deleteContainer(container);
+                } catch(Exception e) {
+                    log.error("Error in cleaning the container {}", container, e);
+                }
+            }
+
+            @Override public boolean isAvailable() {
+                return AzureDataStoreUtils.isAzureConfigured();
             }
         }
     }
@@ -878,11 +950,13 @@ public class DataStoreCommandTest {
 
     static class FixtureHelper {
         static List<StoreFixture> getStoreFixtures() {
-            return ImmutableList.of(StoreFixture.MONGO, StoreFixture.SEGMENT);
+            //return ImmutableList.of(StoreFixture.MONGO, StoreFixture.SEGMENT);
+            return ImmutableList.of(StoreFixture.SEGMENT_AZURE);
         }
 
         static List<DataStoreFixture> getDataStoreFixtures() {
-            return ImmutableList.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
+            //return ImmutableList.of(DataStoreFixture.S3, DataStoreFixture.AZURE, DataStoreFixture.FDS);
+            return ImmutableList.of(DataStoreFixture.AZURE);
         }
 
         static List<Object[]> get() {
