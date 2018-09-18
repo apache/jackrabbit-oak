@@ -20,11 +20,14 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 
 /**
  * A wrapper around either memory mapped files or random access files, to allow
@@ -88,9 +91,11 @@ abstract class FileAccess {
     static class Random extends FileAccess {
 
         private final RandomAccessFile file;
+        private final FileChannel channel;
 
         Random(RandomAccessFile file) {
             this.file = file;
+            this.channel = file.getChannel();
         }
 
         @Override
@@ -109,8 +114,10 @@ abstract class FileAccess {
         public synchronized ByteBuffer read(int position, int length)
                 throws IOException {
             ByteBuffer entry = ByteBuffer.allocate(length);
-            file.seek(position);
-            file.readFully(entry.array());
+            if (readFully(channel, position, entry) < length) {
+                throw new EOFException();
+            }
+            entry.flip();
             return entry;
         }
 
