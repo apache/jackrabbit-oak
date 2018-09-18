@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -138,7 +140,9 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         }
         checkState(channel != null); // implied by entry != null
         ByteBuffer data = ByteBuffer.allocate(indexEntry.getLength());
-        channel.read(data, indexEntry.getPosition());
+        if (readFully(channel, indexEntry.getPosition(), data) < indexEntry.getLength()) {
+            throw new EOFException();
+        }
         data.rewind();
         return data;
     }
