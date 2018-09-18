@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ValidatorProvider} used to assure that the system maintained properties
@@ -53,13 +52,13 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
     private final boolean isSystem;
     private final boolean protectedExternalIds;
 
-    ExternalIdentityValidatorProvider(@Nonnull Set<Principal> principals, boolean protectExternalIds) {
+    ExternalIdentityValidatorProvider(@NotNull Set<Principal> principals, boolean protectExternalIds) {
         isSystem = principals.contains(SystemPrincipal.INSTANCE);
         this.protectedExternalIds = protectExternalIds;
 
     }
 
-    private void checkAddModifyProperties(@Nonnull NodeState parent, @Nonnull String name, @Nonnull PropertyState propertyState, boolean isModify) throws CommitFailedException {
+    private void checkAddModifyProperties(@NotNull NodeState parent, @NotNull String name, @NotNull PropertyState propertyState, boolean isModify) throws CommitFailedException {
         if (RESERVED_PROPERTY_NAMES.contains(name)) {
             Type<?> type = propertyState.getType();
             if (REP_EXTERNAL_PRINCIPAL_NAMES.equals(name)) {
@@ -84,7 +83,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
         }
     }
 
-    private void checkRemoveProperties(@Nonnull NodeState parent, @Nonnull String name) throws CommitFailedException {
+    private void checkRemoveProperties(@NotNull NodeState parent, @NotNull String name) throws CommitFailedException {
         if (RESERVED_PROPERTY_NAMES.contains(name)) {
             if (REP_EXTERNAL_ID.equals(name)) {
                 if (parent.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
@@ -101,8 +100,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
     }
 
     @Override
-    protected Validator getRootValidator(@Nonnull NodeState before, @Nonnull NodeState after,
-                                         @Nonnull CommitInfo info) {
+    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         return new ExternalIdentityValidator(after, true);
     }
 
@@ -111,7 +109,7 @@ class ExternalIdentityValidatorProvider extends ValidatorProvider implements Ext
         private final NodeState parent;
         private final boolean modifiedParent;
 
-        private ExternalIdentityValidator(@Nonnull NodeState parent, boolean modifiedParent) {
+        private ExternalIdentityValidator(@NotNull NodeState parent, boolean modifiedParent) {
             this.parent = parent;
             this.modifiedParent = modifiedParent;
         }

@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.core.SimpleCommitContext;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -45,9 +44,11 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderF
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -64,7 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPat
 import static org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserverTest.NOOP_EXECUTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -152,7 +153,7 @@ public class DocumentQueueTest {
 
         List<NRTIndex> indexes = indexFactory.getIndexes("/oak:index/fooIndex");
         NRTIndex index = indexes.get(indexes.size() - 1);
-        assertEquals(1, index.getPrimaryReader().getReader().numDocs());
+        assertEquals(1, index.getPrimaryReaderForTest().numDocs());
     }
 
     @Test
@@ -248,7 +249,7 @@ public class DocumentQueueTest {
     public void benchMarkIndexWriter() throws Exception{
         Executor executor = Executors.newFixedThreadPool(5);
         IndexCopier indexCopier = new IndexCopier(executor, temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         tracker = new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory
@@ -323,7 +324,7 @@ public class DocumentQueueTest {
 
     private IndexTracker createTracker() throws IOException {
         IndexCopier indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
-        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta));
+        indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         return new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),
                 indexFactory

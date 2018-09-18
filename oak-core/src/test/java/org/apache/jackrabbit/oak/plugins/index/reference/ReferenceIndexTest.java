@@ -24,9 +24,9 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -37,23 +37,30 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newReference;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newReference;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 public class ReferenceIndexTest {
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Test
     public void basicReferenceHandling() throws Exception{
@@ -97,7 +104,7 @@ public class ReferenceIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a")
                 .build();
 
@@ -118,9 +125,51 @@ public class ReferenceIndexTest {
         assertFilter(f2, referenceIndex, indexed, of("/c", "/a/y"));
     }
 
+    @Test
+    public void removeReferencedNode() throws Exception{
+        NodeState root = INITIAL_CONTENT;
 
-    //TODO Integrity check - Add node with id=1 and add a reference to that and then remove the node
-    //Removal
+        NodeBuilder builder = root.builder();
+        NodeState before = builder.getNodeState();
+
+        builder.child("a").setProperty(createProperty(JCR_UUID, "u1", Type.STRING));
+        builder.child("b").setProperty(createProperty("foo", "u1", Type.REFERENCE));
+
+        NodeState after = builder.getNodeState();
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new ReferenceEditorProvider()));
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder = indexed.builder();
+        builder.getChildNode("a").remove();
+
+        thrown.expect(CommitFailedException.class);
+        thrown.expectMessage("OakIntegrity0001: Unable to delete referenced node");
+        hook.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+    }
+
+    @Test
+    public void removeWeaklyReferencedNode() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        NodeBuilder builder = root.builder();
+        NodeState before = builder.getNodeState();
+
+        builder.child("a").setProperty(createProperty(JCR_UUID, "u1", Type.STRING));
+        builder.child("b").setProperty(createProperty("foo", "u1", Type.WEAKREFERENCE));
+
+        NodeState after = builder.getNodeState();
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new ReferenceEditorProvider()));
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        builder = indexed.builder();
+        builder.getChildNode("a").remove();
+
+        hook.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+    }
 
     @SuppressWarnings("Duplicates")
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {

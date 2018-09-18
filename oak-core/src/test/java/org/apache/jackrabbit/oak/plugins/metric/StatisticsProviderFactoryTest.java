@@ -55,7 +55,7 @@ public class StatisticsProviderFactoryTest {
         assertTrue(context.getService(StatisticsProvider.class) instanceof MetricStatisticsProvider);
         assertNotNull(context.getService(MetricRegistry.class));
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
         assertNull(context.getService(StatisticsProvider.class));
     }
 

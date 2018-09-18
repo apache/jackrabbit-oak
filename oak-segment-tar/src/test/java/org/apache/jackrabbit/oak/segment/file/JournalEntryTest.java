@@ -32,6 +32,7 @@ import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -73,14 +74,16 @@ public class JournalEntryTest {
         assertFalse(lines.isEmpty());
 
         String line = lines.get(0);
-        List<String> journalEntry = journalParts(line);
-        assertEquals(3, journalEntry.size());
+        List<String> parts = journalParts(line);
+        assertEquals(3, parts.size());
 
-        long entryTime = Long.valueOf(journalEntry.get(2));
+        long entryTime = Long.valueOf(parts.get(2));
         assertTrue(entryTime >= startTime);
 
-        JournalReader jr = new JournalReader(journal);
-        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), jr.next());
+        JournalReader jr = new JournalReader(new LocalJournalFile(journal));
+        JournalEntry journalEntry = jr.next();
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), journalEntry.getRevision());
+        assertEquals(journalParts(lines.get(lines.size() - 1)).get(2), String.valueOf(journalEntry.getTimestamp()));
         jr.close();
     }
 

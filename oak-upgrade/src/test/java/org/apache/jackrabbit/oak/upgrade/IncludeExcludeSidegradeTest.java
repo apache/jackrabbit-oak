@@ -73,7 +73,8 @@ public class IncludeExcludeSidegradeTest extends IncludeExcludeUpgradeTest {
             final RepositorySidegrade sidegrade = new RepositorySidegrade(segmentNodeStore, target);
             sidegrade.setIncludes(
                     "/content/foo/en",
-                    "/content/assets/foo"
+                    "/content/assets/foo",
+                    "/content/other"
             );
             sidegrade.setExcludes(
                     "/content/assets/foo/2013",

@@ -17,40 +17,47 @@
 package org.apache.jackrabbit.oak.security.internal;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
-class ConfigurationInitializer {
+final class ConfigurationInitializer {
 
     private ConfigurationInitializer() {}
 
-    @Nonnull
-    static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration) {
-        return initializeConfiguration(securityProvider, configuration, ConfigurationParameters.EMPTY);
+    @NotNull
+    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration, @NotNull SecurityProvider securityProvider, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+        return initializeConfiguration(configuration, securityProvider, ConfigurationParameters.EMPTY, rootProvider, treeProvider);
     }
 
-    @Nonnull
-    static <T extends SecurityConfiguration> T initializeConfiguration(@Nonnull SecurityProvider securityProvider, @Nonnull T configuration, @Nonnull ConfigurationParameters parameters) {
+    @NotNull
+    static <T extends SecurityConfiguration> T initializeConfiguration(@NotNull T configuration, @NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters parameters, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         if (configuration instanceof ConfigurationBase) {
             ConfigurationBase base = (ConfigurationBase) configuration;
             base.setSecurityProvider(securityProvider);
+            base.setRootProvider(rootProvider);
+            base.setTreeProvider(treeProvider);
             base.setParameters(ConfigurationParameters.of(base.getParameters(), parameters));
         }
         return configuration;
     }
 
-    static void initializeConfigurations(@Nonnull SecurityProvider securityProvider,
-                                         @Nonnull CompositeConfiguration configuration,
-                                         @Nonnull ConfigurationParameters parameters) {
+    static <T extends SecurityConfiguration> void initializeConfigurations(@NotNull CompositeConfiguration<T> configuration, @NotNull SecurityProvider securityProvider,
+                                         @NotNull ConfigurationParameters parameters,
+                                         @NotNull RootProvider rootProvider,
+                                         @NotNull TreeProvider treeProvider) {
         configuration.setSecurityProvider(securityProvider);
-        List<? extends SecurityConfiguration> configs = configuration.getConfigurations();
-        for (SecurityConfiguration config : configs) {
-            initializeConfiguration(securityProvider, config, parameters);
+        configuration.setRootProvider(rootProvider);
+        configuration.setTreeProvider(treeProvider);
+
+        List<T> configs = configuration.getConfigurations();
+        for (T config : configs) {
+            initializeConfiguration(config, securityProvider, parameters, rootProvider, treeProvider);
         }
     }
 }

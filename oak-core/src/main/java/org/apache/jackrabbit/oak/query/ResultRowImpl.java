@@ -25,8 +25,8 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
-import org.apache.jackrabbit.oak.query.fulltext.SimpleExcerptProvider;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 /**
  * A query result row that keeps all data (for this row only) in memory.
@@ -108,13 +108,13 @@ public class ResultRowImpl implements ResultRow {
         // OAK-318:
         // somebody might call rep:excerpt(text)
         // even though the query doesn't contain that column
-        if (columnName.startsWith(QueryImpl.REP_EXCERPT)) {
-            int columnIndex = query.getColumnIndex(QueryImpl.REP_EXCERPT);
+        if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+            int columnIndex = query.getColumnIndex(QueryConstants.REP_EXCERPT);
             PropertyValue indexExcerptValue = null;
             if (columnIndex >= 0) {
                 indexExcerptValue = values[columnIndex];
                 if (indexExcerptValue != null) {
-                    if (QueryImpl.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.equals(columnName)) {
+                    if (QueryConstants.REP_EXCERPT.equals(columnName) || SimpleExcerptProvider.REP_EXCERPT_FN.equals(columnName)) {
                         return SimpleExcerptProvider.getExcerpt(indexExcerptValue);
                     }
                 }

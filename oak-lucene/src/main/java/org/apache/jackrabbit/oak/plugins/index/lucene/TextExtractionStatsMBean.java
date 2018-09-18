@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import aQute.bnd.annotation.ProviderType;
+import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface TextExtractionStatsMBean {
@@ -38,4 +38,6 @@ public interface TextExtractionStatsMBean {
     String getExtractedTextSize();
 
     String getBytesRead();
+
+    int getTimeoutCount();
 }

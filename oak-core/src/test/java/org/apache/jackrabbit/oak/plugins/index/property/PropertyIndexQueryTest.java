@@ -26,19 +26,20 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -61,9 +62,9 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
      * 
      * @return
      */
-    @Nonnull
+    @NotNull
     Oak getOakRepositoryInstance() {
-        return new Oak().with(new InitialContent())
+        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
             .with(new OpenSecurityProvider())
             .with(new PropertyIndexProvider())
             .with(new PropertyIndexEditorProvider());
@@ -88,7 +89,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
                 .with(new RepositoryInitializer(){
 
                     @Override
-                    public void initialize(@Nonnull NodeBuilder builder) {
+                    public void initialize(@NotNull NodeBuilder builder) {
                         createIndexDefinition(
                                 builder.child(INDEX_DEFINITIONS_NAME),
                                 "foo",

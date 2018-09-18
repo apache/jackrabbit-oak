@@ -26,11 +26,10 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,14 +56,14 @@ public class ChangeSetFilterImpl implements ChangeSetFilter {
                 parentNodeTypes+", propertyNames="+propertyNames+"]";
     }
 
-    public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep,
+    public ChangeSetFilterImpl(@NotNull Set<String> includedParentPaths, boolean isDeep,
             @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
             Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames) {
         this(includedParentPaths, isDeep, additionalIncludedParentPaths, excludedParentPaths, parentNodeNames, parentNodeTypes, propertyNames,
                 MAX_EXCLUDED_PATHS);
     }
 
-    public ChangeSetFilterImpl(@Nonnull Set<String> includedParentPaths, boolean isDeep,
+    public ChangeSetFilterImpl(@NotNull Set<String> includedParentPaths, boolean isDeep,
             @Nullable Set<String> additionalIncludedParentPaths, Set<String> excludedParentPaths,
             Set<String> parentNodeNames, Set<String> parentNodeTypes, Set<String> propertyNames,
             int maxExcludedPaths) {

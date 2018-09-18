@@ -80,6 +80,9 @@ public class LogCustomizer {
         private final String name;
         private Level enableLevel;
         private Level filterLevel;
+        private String matchExactMessage;
+        private String matchContainsMessage;
+        private String matchRegexMessage;
 
         private LogCustomizerBuilder(String name) {
             this.name = name;
@@ -95,8 +98,23 @@ public class LogCustomizer {
             return this;
         }
 
+        public LogCustomizerBuilder exactlyMatches(String message) {
+            this.matchExactMessage = message;
+            return this;
+        }
+
+        public LogCustomizerBuilder contains(String message) {
+            this.matchContainsMessage = message;
+            return this;
+        }
+
+        public LogCustomizerBuilder matchesRegex(String message) {
+            this.matchRegexMessage = message;
+            return this;
+        }
+
         public LogCustomizer create() {
-            return new LogCustomizer(name, enableLevel, filterLevel);
+            return new LogCustomizer(name, enableLevel, filterLevel, matchExactMessage, matchContainsMessage, matchRegexMessage);
         }
     }
 
@@ -109,7 +127,8 @@ public class LogCustomizer {
     private final Appender<ILoggingEvent> customLogger;
 
     private LogCustomizer(String name, Level enableLevel,
-            final Level filterLevel) {
+                          final Level filterLevel,
+                          final String matchExactMessage, final String matchContainsMessage, final String matchRegexMessage) {
         this.logger = getLogger(name);
         if (enableLevel != null) {
             this.enableLevel = enableLevel;
@@ -122,10 +141,32 @@ public class LogCustomizer {
         customLogger = new AppenderBase<ILoggingEvent>() {
             @Override
             protected void append(ILoggingEvent e) {
+                boolean logLevelOk = false;
                 if (filterLevel == null) {
-                    logs.add(e.getFormattedMessage());
+                    logLevelOk = true;
                 } else if (e.getLevel().isGreaterOrEqual(filterLevel)) {
-                    logs.add(e.getFormattedMessage());
+                    logLevelOk = true;
+                }
+
+                if(logLevelOk) {
+                    boolean messageMatchOk = true;
+                    String message = e.getFormattedMessage();
+
+                    if (messageMatchOk && matchExactMessage != null && !matchExactMessage.equals(message)) {
+                        messageMatchOk = false;
+                    }
+
+                    if (messageMatchOk && matchContainsMessage != null && !message.contains(matchContainsMessage)) {
+                        messageMatchOk = false;
+                    }
+
+                    if (messageMatchOk && matchRegexMessage != null && !message.matches(matchRegexMessage)) {
+                        messageMatchOk = false;
+                    }
+
+                    if (messageMatchOk) {
+                        logs.add(e.getFormattedMessage());
+                    }
                 }
             }
         };

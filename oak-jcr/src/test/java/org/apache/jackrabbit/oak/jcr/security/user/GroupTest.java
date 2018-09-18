@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -491,8 +492,8 @@ public class GroupTest extends AbstractUserTest {
             newGroup2.addMember(auth);
             superuser.save();
 
-            java.security.acl.Group ngPrincipal = (java.security.acl.Group) newGroup.getPrincipal();
-            java.security.acl.Group ng2Principal = (java.security.acl.Group) newGroup2.getPrincipal();
+            GroupPrincipal ngPrincipal = (GroupPrincipal) newGroup.getPrincipal();
+            GroupPrincipal ng2Principal = (GroupPrincipal) newGroup2.getPrincipal();
 
             assertFalse(ng2Principal.isMember(ngPrincipal));
 
@@ -644,8 +645,10 @@ public class GroupTest extends AbstractUserTest {
 
     private static void assertCyclicCommitFailed(RepositoryException e) {
         Throwable th = e.getCause();
-        assertTrue(th instanceof CommitFailedException);
-        assertEquals(31, ((CommitFailedException) th).getCode());
+        if (th != null) {
+            assertTrue(th instanceof CommitFailedException);
+            assertEquals(31, ((CommitFailedException) th).getCode());
+        }
     }
 
     @Test

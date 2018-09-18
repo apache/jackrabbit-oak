@@ -29,14 +29,12 @@ import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
 import java.util.Arrays;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -53,6 +51,8 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
@@ -72,18 +72,18 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
 
     private String primaryItemOakName = null; // not defined by default
 
-    @Nonnull
+    @NotNull
     private String[] superTypeOakNames = new String[0];
 
     private List<PropertyDefinitionTemplateImpl> propertyDefinitionTemplates = null;
 
     private List<NodeDefinitionTemplateImpl> nodeDefinitionTemplates = null;
 
-    NodeTypeTemplateImpl(@Nonnull NameMapper mapper) {
+    NodeTypeTemplateImpl(@NotNull NameMapper mapper) {
         super(mapper);
     }
 
-    NodeTypeTemplateImpl(@Nonnull NameMapper mapper, @Nonnull NodeTypeDefinition definition)
+    NodeTypeTemplateImpl(@NotNull NameMapper mapper, @NotNull NodeTypeDefinition definition)
             throws ConstraintViolationException {
         super(mapper, definition.getName());
 
@@ -129,7 +129,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
      * @return The node type tree.
      * @throws RepositoryException if this type could not be written
      */
-    Tree writeTo(@Nonnull Tree parent, boolean allowUpdate) throws RepositoryException {
+    Tree writeTo(@NotNull Tree parent, boolean allowUpdate) throws RepositoryException {
         String oakName = getOakName();
         if (oakName == null) {
             throw new RepositoryException("Cannot register node type: name is missing.");
@@ -178,8 +178,8 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
         return type;
     }
 
-    private static void writeItemDefinitions(@Nonnull Tree nodeTypeTree, @CheckForNull List<? extends ItemDefinitionTemplate> itemDefTemplates,
-                                             @Nonnull String nodeName, @Nonnull String primaryTypeName) throws RepositoryException {
+    private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
+                                             @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
         for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName))) {
             t.remove();

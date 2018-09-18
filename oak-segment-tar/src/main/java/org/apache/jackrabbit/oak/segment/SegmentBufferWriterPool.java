@@ -31,18 +31,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
  * which it passes to its {@link #execute(WriteOperation) execute} method.
  * <p>
- * Instances of this class are thread safe. See also the class comment of
- * {@link SegmentWriter}.
+ * Instances of this class are thread safe.
  */
 public class SegmentBufferWriterPool implements WriteOperationHandler {
 
@@ -68,39 +67,34 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      */
     private final Set<SegmentBufferWriter> disposed = newHashSet();
 
-    @Nonnull
-    private final SegmentStore store;
+    @NotNull
+    private final SegmentIdProvider idProvider;
 
-    @Nonnull
-    private final SegmentTracker tracker;
-
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
-    private final Supplier<Integer> gcGeneration;
+    @NotNull
+    private final Supplier<GCGeneration> gcGeneration;
 
-    @Nonnull
+    @NotNull
     private final String wid;
 
     private short writerId = -1;
 
     public SegmentBufferWriterPool(
-            @Nonnull SegmentStore store,
-            @Nonnull SegmentTracker tracker,
-            @Nonnull SegmentReader reader,
-            @Nonnull String wid,
-            @Nonnull Supplier<Integer> gcGeneration) {
-        this.store = checkNotNull(store);
-        this.tracker = checkNotNull(tracker);
+            @NotNull SegmentIdProvider idProvider,
+            @NotNull SegmentReader reader,
+            @NotNull String wid,
+            @NotNull Supplier<GCGeneration> gcGeneration) {
+        this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = checkNotNull(wid);
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
         SegmentBufferWriter writer = borrowWriter(currentThread());
         try {
             return writeOperation.execute(writer);
@@ -110,7 +104,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     }
 
     @Override
-    public void flush() throws IOException {
+    public void flush(@NotNull SegmentStore store) throws IOException {
         List<SegmentBufferWriter> toFlush = newArrayList();
         List<SegmentBufferWriter> toReturn = newArrayList();
 
@@ -145,7 +139,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         // Call flush from outside the pool monitor to avoid potential
         // deadlocks of that method calling SegmentStore.writeSegment
         for (SegmentBufferWriter writer : toFlush) {
-            writer.flush();
+            writer.flush(store);
         }
     }
 
@@ -153,7 +147,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      * Create a {@code Guard} that is satisfied if and only if {@link #disposed}
      * contains all items in {@code toReturn}
      */
-    @Nonnull
+    @NotNull
     private Guard allReturned(final List<SegmentBufferWriter> toReturn) {
         return new Guard(poolMonitor) {
 
@@ -191,17 +185,15 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
                 writer = new SegmentBufferWriter(
-                        store,
-                        tracker.getSegmentCounter(),
+                        idProvider,
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()
                 );
-            } else if (writer.getGeneration() != gcGeneration.get()) {
+            } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
                 disposed.add(writer);
                 writer = new SegmentBufferWriter(
-                        store,
-                        tracker.getSegmentCounter(),
+                        idProvider,
                         reader,
                         getWriterId(wid),
                         gcGeneration.get()

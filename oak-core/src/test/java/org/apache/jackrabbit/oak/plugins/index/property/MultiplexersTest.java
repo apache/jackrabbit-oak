@@ -24,27 +24,34 @@ import static org.apache.jackrabbit.oak.plugins.index.property.Multiplexers.getI
 import static org.apache.jackrabbit.oak.plugins.index.property.Multiplexers.getNodeForMount;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.junit.Before;
 import org.junit.Test;
 
 public class MultiplexersTest {
 
+	private MountInfoProvider mip;
+
+	@Before
+	public void setUp() {
+        mip = Mounts.defaultMountInfoProvider();
+	}
+	
     @Test
     public void defaultSetup() throws Exception {
-        assertEquals(
+		assertEquals(
                 INDEX_CONTENT_NODE_NAME,
-                getIndexNodeName(Mounts.defaultMountInfoProvider(), "/foo",
+                getIndexNodeName(mip, "/foo",
                         INDEX_CONTENT_NODE_NAME));
         assertEquals(INDEX_CONTENT_NODE_NAME,
-                getNodeForMount(Mounts.defaultMount(), INDEX_CONTENT_NODE_NAME));
+                getNodeForMount(mip.getDefaultMount(), INDEX_CONTENT_NODE_NAME));
     }
 
     @Test
     public void customNodeName() throws Exception {
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/b").build();
 
         Mount m = mip.getMountByName("foo");

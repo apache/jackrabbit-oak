@@ -26,7 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PREFI
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_INCREMENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -46,11 +46,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -69,6 +66,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,11 +107,31 @@ public class AtomicCounterEditorTest {
         public String getInstanceId() {
             return "1";
         }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
+        }
     };
     private static final Clusterable CLUSTER_2 = new Clusterable() {
         @Override
         public String getInstanceId() {
             return "2";
+        }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
         }
     };
     private static final EditorHook HOOK_NO_CLUSTER = new EditorHook(
@@ -168,7 +187,7 @@ public class AtomicCounterEditorTest {
      * 
      * @param properties
      */
-    private static void assertNoCounters(@Nonnull final Iterable<? extends PropertyState> properties) {
+    private static void assertNoCounters(@NotNull final Iterable<? extends PropertyState> properties) {
         checkNotNull(properties);
         
         for (PropertyState p : properties) {
@@ -182,7 +201,7 @@ public class AtomicCounterEditorTest {
      * 
      * @param properties
      */
-    private static void assertTotalCountersValue(@Nonnull final Iterable<? extends PropertyState> properties,
+    private static void assertTotalCountersValue(@NotNull final Iterable<? extends PropertyState> properties,
                                             int expected) {
         int total = 0;
         for (PropertyState p : checkNotNull(properties)) {
@@ -194,13 +213,13 @@ public class AtomicCounterEditorTest {
         assertEquals("the total amount of :oak-counter properties does not match", expected, total);
     }
     
-    private static NodeBuilder setMixin(@Nonnull final NodeBuilder builder) {
+    private static NodeBuilder setMixin(@NotNull final NodeBuilder builder) {
         return checkNotNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
     }
     
     
-    private static void assertCounterNodeState(@Nonnull NodeBuilder builder, 
-                                               @Nonnull Set<String> hiddenProps, 
+    private static void assertCounterNodeState(@NotNull NodeBuilder builder, 
+                                               @NotNull Set<String> hiddenProps, 
                                                long expectedCounter) {
         checkNotNull(builder);
         checkNotNull(hiddenProps);
@@ -226,7 +245,7 @@ public class AtomicCounterEditorTest {
             .getValue(LONG).longValue());
     }
 
-    private static NodeBuilder incrementBy(@Nonnull NodeBuilder builder, @Nonnull PropertyState increment) {
+    private static NodeBuilder incrementBy(@NotNull NodeBuilder builder, @NotNull PropertyState increment) {
         return checkNotNull(builder).setProperty(checkNotNull(increment));
     }
     
@@ -450,7 +469,7 @@ public class AtomicCounterEditorTest {
             throw new UnsupportedOperationException("Not implemented");
         }
 
-        private synchronized void addToQueue(@SuppressWarnings("rawtypes") @Nonnull ScheduledFuture future) {
+        private synchronized void addToQueue(@SuppressWarnings("rawtypes") @NotNull ScheduledFuture future) {
             fifo.add(future);
         }
         
@@ -538,7 +557,7 @@ public class AtomicCounterEditorTest {
          * @throws InterruptedException
          * @throws ExecutionException
          */
-        @CheckForNull
+        @Nullable
         public Object execute() throws InterruptedException, ExecutionException {
             ScheduledFuture<?> f = getFromQueue();
             if (f == null) {

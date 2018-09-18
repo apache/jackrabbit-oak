@@ -23,10 +23,10 @@ import static com.google.common.collect.Lists.newLinkedList;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.EventAggregator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Queue of JCR Events generated from a given content change
@@ -49,12 +51,13 @@ class EventQueue implements EventIterator {
     private long position = 0;
 
     public EventQueue(
-            @Nonnull NamePathMapper mapper, CommitInfo info,
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter,
-            @Nonnull EventAggregator aggregator) {
+            @NotNull NamePathMapper mapper,
+            @NotNull BlobAccessProvider blobAccessProvider, CommitInfo info,
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull Iterable<String> basePaths, @NotNull EventFilter filter,
+            @Nullable EventAggregator aggregator) {
         this.generator = new EventGenerator();
-        EventFactory factory = new EventFactory(mapper, info);
+        EventFactory factory = new EventFactory(mapper, blobAccessProvider, info);
         EventHandler handler = new FilteredHandler(
                 filter, new QueueingHandler(this, factory, aggregator, before, after));
         for (String path : basePaths) {

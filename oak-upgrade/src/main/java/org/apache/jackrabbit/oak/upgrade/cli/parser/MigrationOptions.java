@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,8 @@ public class MigrationOptions {
     private static final Logger log = LoggerFactory.getLogger(MigrationOptions.class);
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    private static final boolean ADD_SECONDARY_METADATA = Boolean.getBoolean("oak.upgrade.addSecondaryMetadata");
 
     private final boolean copyBinaries;
 
@@ -47,8 +50,6 @@ public class MigrationOptions {
 
     private final String[] mergePaths;
 
-    private final boolean includeIndex;
-
     private final boolean failOnError;
 
     private final boolean earlyShutdown;
@@ -62,6 +63,10 @@ public class MigrationOptions {
     private final boolean verify;
 
     private final boolean onlyVerify;
+
+    private final boolean skipCheckpoints;
+
+    private final boolean forceCheckpoints;
 
     private final String srcUser;
 
@@ -89,7 +94,7 @@ public class MigrationOptions {
 
     private final Boolean srcExternalBlobs;
 
-    public MigrationOptions(MigrationCliArguments args) {
+    public MigrationOptions(MigrationCliArguments args) throws CliArgumentException {
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
         if (args.hasOption(OptionParserFactory.CACHE_SIZE)) {
@@ -110,10 +115,9 @@ public class MigrationOptions {
         } else {
             this.copyOrphanedVersions = epoch;
         }
-        this.includePaths = args.getOptionList(OptionParserFactory.INCLUDE_PATHS);
-        this.excludePaths = args.getOptionList(OptionParserFactory.EXCLUDE_PATHS);
-        this.mergePaths = args.getOptionList(OptionParserFactory.MERGE_PATHS);
-        this.includeIndex = args.hasOption(OptionParserFactory.INCLUDE_INDEX);
+        this.includePaths = checkPaths(args.getOptionList(OptionParserFactory.INCLUDE_PATHS));
+        this.excludePaths = checkPaths(args.getOptionList(OptionParserFactory.EXCLUDE_PATHS));
+        this.mergePaths = checkPaths(args.getOptionList(OptionParserFactory.MERGE_PATHS));
         this.failOnError = args.hasOption(OptionParserFactory.FAIL_ON_ERROR);
         this.earlyShutdown = args.hasOption(OptionParserFactory.EARLY_SHUTDOWN);
         this.skipInitialization = args.hasOption(OptionParserFactory.SKIP_INIT);
@@ -121,6 +125,8 @@ public class MigrationOptions {
         this.ignoreMissingBinaries = args.hasOption(OptionParserFactory.IGNORE_MISSING_BINARIES);
         this.verify = args.hasOption(OptionParserFactory.VERIFY);
         this.onlyVerify = args.hasOption(OptionParserFactory.ONLY_VERIFY);
+        this.skipCheckpoints = args.hasOption(OptionParserFactory.SKIP_CHECKPOINTS);
+        this.forceCheckpoints = args.hasOption(OptionParserFactory.FORCE_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
         this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
@@ -138,8 +144,7 @@ public class MigrationOptions {
         this.dstS3Config = args.getOption(OptionParserFactory.DST_S3_CONFIG);
 
         if (args.hasOption(OptionParserFactory.SRC_EXTERNAL_BLOBS)) {
-            this.srcExternalBlobs = Boolean
-                    .valueOf(OptionParserFactory.SRC_EXTERNAL_BLOBS);
+            this.srcExternalBlobs = args.getBooleanOption(OptionParserFactory.SRC_EXTERNAL_BLOBS);
         } else {
             this.srcExternalBlobs = null;
         }
@@ -193,10 +198,6 @@ public class MigrationOptions {
         return skipNameCheck;
     }
 
-    public boolean isIncludeIndex() {
-        return includeIndex;
-    }
-
     public boolean isIgnoreMissingBinaries() {
         return ignoreMissingBinaries;
     }
@@ -208,6 +209,16 @@ public class MigrationOptions {
     public boolean isOnlyVerify() {
         return onlyVerify;
     }
+
+    public boolean isSkipCheckpoints() {
+        return skipCheckpoints;
+    }
+
+    public boolean isForceCheckpoints() {
+        return forceCheckpoints;
+    }
+
+    public boolean isAddSecondaryMetadata() { return ADD_SECONDARY_METADATA; }
 
     public String getSrcUser() {
         return srcUser;
@@ -330,16 +341,24 @@ public class MigrationOptions {
             log.info("Test for long-named nodes will be disabled");
         }
 
-        if (includeIndex) {
-            log.info("Index data for the paths {} will be copied", (Object) includePaths);
-        }
-
         if (ignoreMissingBinaries) {
             log.info("Missing binaries won't break the migration");
         }
 
         if (srcExternalBlobs != null) {
             log.info("Source DataStore external blobs: {}", srcExternalBlobs);
+        }
+
+        if (skipCheckpoints) {
+            log.info("Checkpoints won't be migrated");
+        }
+
+        if (forceCheckpoints) {
+            log.info("Checkpoints will be migrated even with the custom paths specified");
+        }
+
+        if (ADD_SECONDARY_METADATA) {
+            log.info("Secondary metadata will be added");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);
@@ -367,6 +386,18 @@ public class MigrationOptions {
 
     public Boolean getSrcExternalBlobs() {
         return srcExternalBlobs;
+    }
+
+    private static String[] checkPaths(String[] paths) throws CliArgumentException {
+        if (paths == null) {
+            return paths;
+        }
+        for (String p : paths) {
+            if (!PathUtils.isValid(p)) {
+                throw new CliArgumentException("Following path is not valid: " + p, 1);
+            }
+        }
+        return paths;
     }
 
 }

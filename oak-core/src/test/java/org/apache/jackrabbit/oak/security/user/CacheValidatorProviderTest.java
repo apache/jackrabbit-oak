@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
@@ -38,10 +37,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -75,11 +75,11 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         }
     }
 
-    private Tree getAuthorizableTree(@Nonnull Authorizable authorizable) throws RepositoryException {
+    private Tree getAuthorizableTree(@NotNull Authorizable authorizable) throws RepositoryException {
         return root.getTree(authorizable.getPath());
     }
 
-    private Tree getCache(@Nonnull Authorizable authorizable) throws Exception {
+    private Tree getCache(@NotNull Authorizable authorizable) throws Exception {
         ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
             @Override
             public ContentSession run() throws LoginException, NoSuchWorkspaceException {

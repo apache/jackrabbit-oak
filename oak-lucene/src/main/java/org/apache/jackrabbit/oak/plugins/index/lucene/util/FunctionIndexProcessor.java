@@ -25,6 +25,7 @@ import java.util.Deque;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,7 +42,9 @@ public class FunctionIndexProcessor {
             LoggerFactory.getLogger(FunctionIndexProcessor.class);
     
     private String remaining;
-    
+
+    private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
+
     private FunctionIndexProcessor(String function) {
         this.remaining = function;
     }
@@ -83,12 +86,13 @@ public class FunctionIndexProcessor {
                 ps = calculateFunction(token, stack);
             }
             if (ps == null) {
-                // currently, all operations involving null return null
-                return null;
+                ps = EMPTY_PROPERTY_STATE;
             }
             stack.push(ps);
         }
-        return stack.pop();
+
+        PropertyState ret = stack.pop();
+        return ret==EMPTY_PROPERTY_STATE ? null : ret;
     }
     
     /**
@@ -107,6 +111,18 @@ public class FunctionIndexProcessor {
     private static PropertyState calculateFunction(String functionName, 
             Deque<PropertyState> stack) {
         PropertyState ps = stack.pop();
+        if ("coalesce".equals(functionName)) {
+            // coalesce (a, b) => (a != null ? a : b)
+            // we pop stack again to consume the second parameter
+            // also, if ps is EMPTY_PROPERTY_STATE, then newly popped value is to be used
+            PropertyState ps2 = stack.pop();
+            if (ps == EMPTY_PROPERTY_STATE) {
+                ps = ps2;
+            }
+        }
+        if (ps == EMPTY_PROPERTY_STATE) {
+            return ps;
+        }
         Type<?> type = null;
         ArrayList<Object> values = new ArrayList<Object>(ps.count());
         for (int i = 0; i < ps.count(); i++) {
@@ -114,6 +130,9 @@ public class FunctionIndexProcessor {
             Object x;
             if ("lower".equals(functionName)) {
                 x = s.toLowerCase();
+                type = Type.STRING;
+            } else if ("coalesce".equals(functionName)) {
+                x = s;
                 type = Type.STRING;
             } else if ("upper".equals(functionName)) {
                 x = s.toUpperCase();
@@ -197,18 +216,37 @@ public class FunctionIndexProcessor {
         if (match("fn:lower-case(") || match("lower(")) {
             return "lower*" + parse() + read(")");
         }
+        if (match("fn:coalesce(") || match("coalesce(")) {
+            return "coalesce*" + parse() + readCommaAndWhitespace() + parse() + read(")");
+        }
         if (match("fn:string-length(") || match("length(")) {
             return "length*" + parse() + read(")");
         }
-        int end = remaining.indexOf(')');
-        if (end >= 0) {
-            remaining = remaining.substring(0, end);
-        }
-        if (remaining.startsWith("[")) {
-            return property(remaining.substring(1, remaining.lastIndexOf(']')).replaceAll("]]", "]"));
-        }
+
         // property name
-        return property(remaining.replaceAll("@", ""));
+        if (match("[")) {
+            String prop = remaining;
+            int indexOfComma = remaining.indexOf(",");
+            if (indexOfComma > 0) {
+                prop = remaining.substring(0, indexOfComma);
+            }
+            prop = prop.substring(0, prop.lastIndexOf(']'));
+            remaining = remaining.substring(prop.length() + 1);
+            return property(prop.replaceAll("]]", "]"));
+        } else {
+            String prop = remaining;
+            int paren = remaining.indexOf(')');
+            int comma = remaining.indexOf(',');
+            int end = comma;
+            if (paren >=0) {
+                end = (end < 0) ? paren : Math.min(end, paren);
+            }
+            if (end >= 0) {
+                prop = remaining.substring(0, end);
+            }
+            remaining = remaining.substring(prop.length());
+            return property(prop.replaceAll("@", ""));
+        }
     }
     
     String property(String p) {
@@ -218,6 +256,16 @@ public class FunctionIndexProcessor {
     private String read(String string) {
         match(string);
         return "";
+    }
+
+    private String
+    readCommaAndWhitespace() {
+        while (match(" ")) {
+        }
+        match(",");
+        while (match(" ")) {
+        }
+        return "*";
     }
     
     private boolean match(String string) {

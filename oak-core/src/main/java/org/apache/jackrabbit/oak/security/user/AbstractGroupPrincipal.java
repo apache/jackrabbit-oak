@@ -19,32 +19,34 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Iterator;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Base class for {@code Group} principals.
  */
-abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java.security.acl.Group {
+abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements GroupPrincipal, java.security.acl.Group {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGroupPrincipal.class);
 
-    AbstractGroupPrincipal(@Nonnull String principalName, @Nonnull Tree groupTree, @Nonnull NamePathMapper namePathMapper) {
+    AbstractGroupPrincipal(@NotNull String principalName, @NotNull Tree groupTree, @NotNull NamePathMapper namePathMapper) {
         super(principalName, groupTree, namePathMapper);
     }
 
-    AbstractGroupPrincipal(@Nonnull String principalName, @Nonnull String groupPath, @Nonnull NamePathMapper namePathMapper) {
+    AbstractGroupPrincipal(@NotNull String principalName, @NotNull String groupPath, @NotNull NamePathMapper namePathMapper) {
         super(principalName, groupPath, namePathMapper);
     }
 
@@ -52,9 +54,9 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements java
 
     abstract boolean isEveryone() throws RepositoryException;
 
-    abstract boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException;
+    abstract boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException;
 
-    @Nonnull
+    @NotNull
     abstract Iterator<Authorizable> getMembers() throws RepositoryException;
 
     //--------------------------------------------------------------< Group >---

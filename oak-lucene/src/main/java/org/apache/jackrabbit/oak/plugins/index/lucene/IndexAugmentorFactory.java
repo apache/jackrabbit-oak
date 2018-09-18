@@ -30,23 +30,22 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.References;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 @SuppressWarnings("UnusedDeclaration")
 @Component
 @Service(value = IndexAugmentorFactory.class)
@@ -83,13 +82,13 @@ public class IndexAugmentorFactory {
         resetState();
     }
 
-    @Nonnull
+    @NotNull
     public IndexFieldProvider getIndexFieldProvider(String nodeType) {
         IndexFieldProvider provider = indexFieldProviderMap.get(nodeType);
         return (provider != null) ? provider : IndexFieldProvider.DEFAULT;
     }
 
-    @Nonnull
+    @NotNull
     public FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
         FulltextQueryTermsProvider provider = fulltextQueryTermsProviderMap.get(nodeType);
         return (provider != null) ? provider : FulltextQueryTermsProvider.DEFAULT;
@@ -182,7 +181,7 @@ public class IndexAugmentorFactory {
             this.providers = ImmutableList.copyOf(providers);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<Field> getAugmentedFields(final String path,
                                               final NodeState document, final NodeState indexDefinition) {
@@ -199,7 +198,7 @@ public class IndexAugmentorFactory {
             return fields;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return Collections.singleton(nodeType);
@@ -244,7 +243,7 @@ public class IndexAugmentorFactory {
             return ret;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return Collections.singleton(nodeType);

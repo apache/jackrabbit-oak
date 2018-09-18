@@ -75,6 +75,13 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
                 DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
         });
         params.add(new Object[]{
+                "Copy references, no blobstores defined, segment -> segment-tar",
+                new SegmentNodeStoreContainer(blob),
+                new SegmentTarNodeStoreContainer(blob),
+                asList(),
+                DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
+        });
+        params.add(new Object[]{
                 "Copy references, no blobstores defined, document -> segment-tar",
                 new JdbcNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
@@ -164,7 +171,7 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
     @Override
     protected String[] getArgs() {
         List<String> result = new ArrayList<>(args);
-        result.addAll(asList("--disable-mmap", source.getDescription(), destination.getDescription()));
+        result.addAll(asList("--disable-mmap", "--skip-checkpoints", source.getDescription(), destination.getDescription()));
         return result.toArray(new String[result.size()]);
     }
 
@@ -203,7 +210,6 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
         if (blobMigrationCase == DatastoreArguments.BlobMigrationCase.UNSUPPORTED) {
             return;
         }
-        verifyContent(session);
-        verifyBlob(session);
+        super.validateMigration();
     }
 }

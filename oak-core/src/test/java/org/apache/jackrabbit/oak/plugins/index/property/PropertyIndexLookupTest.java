@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -58,7 +58,7 @@ public class PropertyIndexLookupTest {
     @Before
     public void setup() throws Exception {
         root = EmptyNodeState.EMPTY_NODE;
-        rootBuilder = InitialContent.INITIAL_CONTENT.builder();
+        rootBuilder = InitialContentHelper.INITIAL_CONTENT.builder();
         commit();
     }
 

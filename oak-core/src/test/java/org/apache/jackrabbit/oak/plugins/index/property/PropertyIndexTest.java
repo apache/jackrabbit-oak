@@ -24,27 +24,33 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_EXCLUDED_PATHS;
-import static org.apache.jackrabbit.oak.plugins.index.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -54,14 +60,17 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -455,6 +464,154 @@ public class PropertyIndexTest {
             // expected: no index for "pqr"
         }
     }
+    
+    @Test
+    public void valuePattern() throws Exception {
+        NodeState root = EMPTY_NODE;
+
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        indexDef.setProperty(IndexConstants.VALUE_PATTERN, "(a.*|b)");
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("a")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a");
+        builder.child("a1")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a1");
+        builder.child("b")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "b");
+        builder.child("c")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "c");
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+
+        // expected: no index for "is not null"
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        
+        ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("c"));
+        f.restrictPropertyAsList("foo", list);
+        // expected: no index for value c
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+
+        f = createFilter(after, NT_UNSTRUCTURED);
+        list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("a"));
+        f.restrictPropertyAsList("foo", list);
+        // expected: no index for value a
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+
+    }    
+    
+    @Test
+    public void valuePatternExclude() throws Exception {
+        NodeState root = EMPTY_NODE;
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        indexDef.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, "test");
+        valuePatternExclude0(builder);
+    }
+
+    @Test
+    public void valuePatternExclude2() throws Exception {
+        NodeState root = EMPTY_NODE;
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder indexDef = createIndexDefinition(
+                index, "fooIndex", true, false,
+                ImmutableSet.of("foo"), null);
+        PropertyState ps = PropertyStates.createProperty(
+                IndexConstants.VALUE_EXCLUDED_PREFIXES,
+                Arrays.asList("test"),
+                Type.STRINGS);
+        indexDef.setProperty(ps);
+        valuePatternExclude0(builder);
+    }
+
+    private void valuePatternExclude0(NodeBuilder builder) throws CommitFailedException {
+        NodeState before = builder.getNodeState();
+        
+        // Add some content and process it through the property index hook
+        builder.child("a")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a");
+        builder.child("a1")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "a1");
+        builder.child("b")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "b");
+        builder.child("c")
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "c");
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
+
+        // Query the index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        PropertyIndex pIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
+        assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "a", f));
+        assertEquals(ImmutableSet.of("a1"), find(lookup, "foo", "a1", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "b", f));
+
+        // expected: no index for "is not null", "= 'test'", "like 't%'"
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("test"));
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        f.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("t%"));
+        assertTrue(pIndex.getCost(f, indexed) == Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        
+        
+        // expected: index for "like 'a%'"
+        f.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("a"));
+        f.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("a0"));
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+        f = createFilter(after, NT_UNSTRUCTURED);
+        
+        // expected: index for value c
+        ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("c"));
+        f.restrictPropertyAsList("foo", list);
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+
+        // expected: index for value a
+        f = createFilter(after, NT_UNSTRUCTURED);
+        list = new ArrayList<PropertyValue>();
+        list.add(PropertyValues.newString("a"));
+        f.restrictPropertyAsList("foo", list);
+        assertTrue(pIndex.getCost(f, indexed) < Double.POSITIVE_INFINITY);
+    }    
 
     @Test(expected = CommitFailedException.class)
     public void testUnique() throws Exception {
@@ -757,7 +914,7 @@ public class PropertyIndexTest {
 
         NodeState after = builder.getNodeState();
 
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a", "/m/n")
                 .build();
 
@@ -802,6 +959,81 @@ public class PropertyIndexTest {
 
     }
 
+    @Test
+    public void mountWithCommitInWritableMount() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("content").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("foo",  "/readOnly")
+                .build();
+
+        CompositeHook hook = new CompositeHook(
+                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+                new EditorHook(new ValidatorProvider(){
+                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+                        return new PrivateStoreValidator("/", mip);
+                    }
+                })
+        );
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        Mount defMount = mip.getDefaultMount();
+        assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
+    }
+
+    @Test
+    public void mountWithCommitInWritableMountForUniqueIndex() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, true, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("content").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("foo",  "/readOnly")
+                .build();
+
+        CompositeHook hook = new CompositeHook(
+                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+                new EditorHook(new ValidatorProvider(){
+                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+                        return new PrivateStoreValidator("/", mip);
+                    }
+                })
+        );
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        Mount defMount = mip.getDefaultMount();
+        NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
+        assertTrue(indexedState.exists());
+        Iterable<String> values = indexedState.getStrings("entry");
+        assertEquals(1, Iterables.size(values));
+        assertEquals("/content", Iterables.getFirst(values, null));
+
+        Mount roMount = mip.getMountByName("foo");
+        assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());
+    }
+
     @Test(expected = CommitFailedException.class)
     public void mountAndUniqueIndexes() throws Exception {
         NodeState root = INITIAL_CONTENT;
@@ -813,7 +1045,7 @@ public class PropertyIndexTest {
         index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
-        MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+        MountInfoProvider mip = Mounts.newBuilder()
                 .mount("foo", "/a")
                 .build();
 
@@ -905,6 +1137,42 @@ public class PropertyIndexTest {
             } else {
                 return FilterReply.DENY;
             }
+        }
+    }
+
+    private class PrivateStoreValidator extends DefaultValidator {
+        private final String path;
+        private final MountInfoProvider mountInfoProvider;
+
+        public PrivateStoreValidator(String path, MountInfoProvider mountInfoProvider) {
+            this.path = path;
+            this.mountInfoProvider = mountInfoProvider;
+        }
+
+        public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+            return checkPrivateStoreCommit(getCommitPath(name));
+        }
+
+        private Validator checkPrivateStoreCommit(String commitPath) throws CommitFailedException {
+            Mount mountInfo = mountInfoProvider.getMountByPath(commitPath);
+            if (mountInfo.isReadOnly()) {
+                    throw new CommitFailedException(CommitFailedException.UNSUPPORTED, 0,
+                            "Unsupported commit to a read-only store "+ commitPath);
+            }
+
+            return new PrivateStoreValidator(commitPath, mountInfoProvider);
+        }
+
+        private String getCommitPath(String changeNodeName) {
+            return PathUtils.concat(path, changeNodeName);
         }
     }
 }

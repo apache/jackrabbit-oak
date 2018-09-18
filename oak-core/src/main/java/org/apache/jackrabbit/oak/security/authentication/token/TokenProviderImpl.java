@@ -18,18 +18,15 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
@@ -46,22 +43,25 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
@@ -97,6 +97,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
     /**
+     * Optional configuration parameter to define the number of token nodes that
+     * when exceeded will trigger a cleanup of expired tokens upon creation.
+     */
+    static final String PARAM_TOKEN_CLEANUP_THRESHOLD = "tokenCleanupThreshold";
+
+    /**
+     * Default value indicating that tokens should never be cleaned up (i.e.
+     * backwards compatible behavior).
+     */
+    static final long NO_TOKEN_CLEANUP = 0;
+
+    /**
      * Default expiration time in ms for login tokens is 2 hours.
      */
     static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
@@ -111,12 +123,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
     private final long tokenExpiration;
     private final UserManager userManager;
     private final IdentifierManager identifierManager;
+    private final long cleanupThreshold;
 
-    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration) {
+    TokenProviderImpl(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration) {
         this(root, options, userConfiguration, SimpleCredentialsSupport.getInstance());
     }
 
-    TokenProviderImpl(@Nonnull Root root, @Nonnull ConfigurationParameters options, @Nonnull UserConfiguration userConfiguration, @Nonnull CredentialsSupport credentialsSupport) {
+    TokenProviderImpl(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration, @NotNull CredentialsSupport credentialsSupport) {
         this.root = root;
         this.options = options;
         this.credentialsSupport = credentialsSupport;
@@ -124,6 +137,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
+        this.cleanupThreshold = options.getConfigValue(PARAM_TOKEN_CLEANUP_THRESHOLD, NO_TOKEN_CLEANUP);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -140,13 +154,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * empty value; {@code false} otherwise.
      */
     @Override
-    public boolean doCreateToken(@Nonnull Credentials credentials) {
+    public boolean doCreateToken(@NotNull Credentials credentials) {
         Credentials creds = extractCredentials(credentials);
         if (creds == null) {
             return false;
         } else {
             Object attr = credentialsSupport.getAttributes(creds).get(TOKEN_ATTRIBUTE);
-            return (attr != null && "".equals(attr.toString()));
+            return (attr != null && attr.toString().isEmpty());
         }
     }
 
@@ -160,9 +174,9 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @return A new {@code TokenInfo} or {@code null} if the token could not
      *         be created.
      */
-    @CheckForNull
+    @Nullable
     @Override
-    public TokenInfo createToken(@Nonnull Credentials credentials) {
+    public TokenInfo createToken(@NotNull Credentials credentials) {
         Credentials creds = extractCredentials(credentials);
         String uid = (creds != null) ? credentialsSupport.getUserId(creds) : null;
 
@@ -194,14 +208,14 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         be created.
      */
     @Override
-    public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+    public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         String error = "Failed to create login token. {}";
         User user = getUser(userId);
-        NodeUtil tokenParent = getTokenParent(user);
-        if (tokenParent != null && user != null) {
+        Tree tokenParent = (user == null) ? null : getTokenParent(user);
+        if (tokenParent != null) {
             try {
                 String id = user.getID();
-                long creationTime = new Date().getTime();
+                long creationTime = System.currentTimeMillis();
                 long exp;
                 if (attributes.containsKey(PARAM_TOKEN_EXPIRATION)) {
                     exp = Long.parseLong(attributes.get(PARAM_TOKEN_EXPIRATION).toString());
@@ -213,7 +227,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
                 TokenInfo tokenInfo;
                 try {
-                    String tokenName = generateTokenName(creationTime);
+                    String tokenName = uuid;
                     tokenInfo = createTokenNode(tokenParent, tokenName, expTime, uuid, id, attributes);
                     root.commit(CommitMarker.asCommitAttributes());
                 } catch (CommitFailedException e) {
@@ -223,17 +237,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     tokenInfo = createTokenNode(tokenParent, UUID.randomUUID().toString(), expTime, uuid, id, attributes);
                     root.commit(CommitMarker.asCommitAttributes());
                 }
+                cleanupExpired(userId, tokenParent, creationTime, tokenInfo.getToken());
                 return tokenInfo;
-            } catch (NoSuchAlgorithmException e) {
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
                 // error while generating login token
                 log.error(error, e.getMessage());
-            } catch (UnsupportedEncodingException e) {
-                // error while generating login token
-                log.error(error, e.getMessage());
-            } catch (CommitFailedException e) {
+            } catch (CommitFailedException | RepositoryException e) {
                 // conflict while committing changes
-                log.warn(error, e.getMessage());
-            } catch (RepositoryException e) {
                 log.warn(error, e.getMessage());
             }
         } else {
@@ -253,16 +263,22 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         associated with a valid user.
      */
     @Override
-    public TokenInfo getTokenInfo(@Nonnull String token) {
+    public TokenInfo getTokenInfo(@NotNull String token) {
         int pos = token.indexOf(DELIM);
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
-        String userId = getUserId(tokenTree);
-        if (userId == null || !isValidTokenTree(tokenTree)) {
-            return null;
-        } else {
-            return new TokenInfoImpl(new NodeUtil(tokenTree), token, userId);
+        if (isValidTokenTree(tokenTree)) {
+            try {
+                User user = getUser(tokenTree);
+                if (user != null) {
+                    return new TokenInfoImpl(tokenTree, token, user.getID(), user.getPrincipal());
+                }
+            } catch (RepositoryException e) {
+                log.debug("Cannot determine userID/principal from token: {}", e.getMessage());
+            }
         }
+        // invalid token tree or failed to extract user or it's id/principal
+        return null;
     }
 
     //--------------------------------------------------------------------------
@@ -270,12 +286,22 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return creationTime + tokenExpiration;
     }
 
-    private static long getExpirationTime(NodeUtil tokenNode, long defaultValue) {
-        return tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
+    private static long getExpirationTime(@NotNull Tree tokenTree, long defaultValue) {
+        return TreeUtil.getLong(tokenTree, TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
     }
 
-    @CheckForNull
-    private Credentials extractCredentials(@Nonnull Credentials credentials) {
+    private static boolean isExpired(long expirationTime, long loginTime) {
+        return expirationTime < loginTime;
+    }
+
+    private static void setExpirationTime(@NotNull Tree tree, long time) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(time);
+        tree.setProperty(TOKEN_ATTRIBUTE_EXPIRY, ISO8601.format(calendar), DATE);
+    }
+
+    @Nullable
+    private Credentials extractCredentials(@NotNull Credentials credentials) {
         Credentials creds = credentials;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
@@ -288,7 +314,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
     }
 
-    @Nonnull
+    @NotNull
     private static String generateKey(int size) {
         SecureRandom random = new SecureRandom();
         byte key[] = new byte[size];
@@ -302,12 +328,12 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return res.toString();
     }
 
-    @Nonnull
-    private static String getKeyValue(@Nonnull String key, @Nonnull String userId) {
+    @NotNull
+    private static String getKeyValue(@NotNull String key, @NotNull String userId) {
         return key + userId;
     }
 
-    private static boolean isValidTokenTree(@CheckForNull Tree tokenTree) {
+    private static boolean isValidTokenTree(@Nullable Tree tokenTree) {
         if (tokenTree == null || !tokenTree.exists()) {
             return false;
         } else {
@@ -316,40 +342,24 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
     }
 
-    @Nonnull
-    private static String generateTokenName(long creationTime) {
-        Calendar creation = GregorianCalendar.getInstance();
-        creation.setTimeInMillis(creationTime);
-        return Text.replace(ISO8601.format(creation), ":", ".");
+    @NotNull
+    private Tree getTokenTree(@NotNull TokenInfoImpl tokenInfo) {
+        return root.getTree(tokenInfo.tokenPath);
     }
 
-    @CheckForNull
-    private Tree getTokenTree(@Nonnull TokenInfo tokenInfo) {
-        if (tokenInfo instanceof TokenInfoImpl) {
-            return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
+    @Nullable
+    private User getUser(@NotNull Tree tokenTree) throws RepositoryException {
+        String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
+        Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
+        if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
+            return (User) authorizable;
         } else {
             return null;
         }
     }
 
-    @CheckForNull
-    private String getUserId(@CheckForNull Tree tokenTree) {
-        if (tokenTree != null && tokenTree.exists()) {
-            try {
-                String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
-                Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
-                if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
-                    return authorizable.getID();
-                }
-            } catch (RepositoryException e) {
-                log.debug("Cannot determine userID from token: {}", e.getMessage());
-            }
-        }
-        return null;
-    }
-
-    @CheckForNull
-    private User getUser(@Nonnull String userId) {
+    @Nullable
+    private User getUser(@NotNull String userId) {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
@@ -364,19 +374,16 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         return null;
     }
 
-    @CheckForNull
-    private NodeUtil getTokenParent(@CheckForNull User user) {
-        if (user == null) {
-            return null;
-        }
-        NodeUtil tokenParent = null;
+    @Nullable
+    private Tree getTokenParent(@NotNull User user) {
+        Tree tokenParent = null;
         String parentPath = null;
         try {
             String userPath = user.getPath();
             parentPath = userPath + '/' + TOKENS_NODE_NAME;
 
-            NodeUtil userNode = new NodeUtil(root.getTree(userPath));
-            tokenParent = userNode.getOrAddChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
+            Tree userNode = root.getTree(userPath);
+            tokenParent = TreeUtil.getOrAddChild(userNode, TOKENS_NODE_NAME, TOKENS_NT_NAME);
 
             root.commit();
         } catch (RepositoryException e) {
@@ -389,7 +396,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             root.refresh();
             Tree parentTree = root.getTree(parentPath);
             if (parentTree.exists()) {
-                tokenParent = new NodeUtil(parentTree);
+                tokenParent = parentTree;
             } else {
                 tokenParent = null;
             }
@@ -410,41 +417,99 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * new token node.
      *
      */
-    private TokenInfo createTokenNode(@Nonnull NodeUtil parent, @Nonnull String tokenName,
-                                      long expTime, @Nonnull String uuid,
-                                      @Nonnull String id, Map<String, ?> attributes)
+    private TokenInfo createTokenNode(@NotNull Tree parent, @NotNull String tokenName,
+                                      long expTime, @NotNull String uuid,
+                                      @NotNull String id, Map<String, ?> attributes)
             throws AccessDeniedException, UnsupportedEncodingException, NoSuchAlgorithmException {
 
-        NodeUtil tokenNode = parent.addChild(tokenName, TOKEN_NT_NAME);
-        tokenNode.setString(JcrConstants.JCR_UUID, uuid);
+        Tree tokenNode = TreeUtil.addChild(parent, tokenName, TOKEN_NT_NAME);
+        tokenNode.setProperty(JcrConstants.JCR_UUID, uuid);
 
         String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
-        String nodeId = getIdentifier(tokenNode.getTree());
+        String nodeId = getIdentifier(tokenNode);
         String token = nodeId + DELIM + key;
 
         String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, id), options);
-        tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
-        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+        tokenNode.setProperty(TOKEN_ATTRIBUTE_KEY, keyHash);
+        setExpirationTime(tokenNode, expTime);
 
         for (String name : attributes.keySet()) {
             if (!RESERVED_ATTRIBUTES.contains(name)) {
                 String attr = attributes.get(name).toString();
-                tokenNode.setString(name, attr);
+                tokenNode.setProperty(name, attr);
             }
         }
-        return new TokenInfoImpl(tokenNode, token, id);
+        return new TokenInfoImpl(tokenNode, token, id, null);
     }
 
-    //--------------------------------------------------------------------------
+    /**
+     * Remove expired token nodes if the configured threshold (i.e. number of
+     * token nodes) is matched/exceeded. By default (i.e. unless configured with
+     * a value bigger than {@link #NO_TOKEN_CLEANUP}) no cleanup is performed
+     * and this method returns without looking at the token nodes; this makes
+     * this addition optional and will not affect existing configurations.
+     *
+     * @param parent
+     *            The token parent node.
+     * @param currentTime
+     *            The time to be used for analysing expiration of existing
+     *            tokens.
+     * @param token
+     *            The token info used as random data to skip cleanup.
+     */
+    private void cleanupExpired(@NotNull String userId, @NotNull Tree parent, long currentTime, @NotNull String token) {
+        if (cleanupThreshold > NO_TOKEN_CLEANUP && shouldRunCleanup(token)) {
+            long start = System.currentTimeMillis();
+            long active = 0;
+            long expired = 0;
+            try {
+                if (parent.getChildrenCount(cleanupThreshold) >= cleanupThreshold) {
+                    for (Tree child : parent.getChildren()) {
+                        if (isExpired(getExpirationTime(child, Long.MIN_VALUE), currentTime)) {
+                            expired++;
+                            child.remove();
+                        } else {
+                            active++;
+                        }
+                    }
+                }
+                if (root.hasPendingChanges()) {
+                    root.commit(CommitMarker.asCommitAttributes());
+                }
+            } catch (CommitFailedException e) {
+                log.debug("Failed to cleanup expired token nodes", e);
+                root.refresh();
+            } finally {
+                if (log.isDebugEnabled() && active + expired > 0) {
+                    log.debug("Token cleanup completed in {} ms: removed {}/{} tokens for {}.",
+                            System.currentTimeMillis() - start, expired, active + expired, userId);
+                }
+            }
+        }
+    }
+
+    /**
+     * Method that determines if the cleanup should run or not based on the
+     * randomly generated token's first char, this decreases the chances to 1/8.
+     *
+     * @param tkn
+     * @return true if the cleanup should run
+     */
+    static boolean shouldRunCleanup(@NotNull String token) {
+        return token.charAt(0) < '2';
+    }
+
+    // --------------------------------------------------------------------------
 
     /**
      * TokenInfo
      */
-    private final class TokenInfoImpl implements TokenInfo {
+    final class TokenInfoImpl implements TokenInfo {
 
         private final String token;
         private final String tokenPath;
         private final String userId;
+        private final Principal principal;
 
         private final long expirationTime;
         private final String key;
@@ -452,18 +517,18 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         private final Map<String, String> mandatoryAttributes;
         private final Map<String, String> publicAttributes;
 
-
-        private TokenInfoImpl(NodeUtil tokenNode, String token, String userId) {
+        private TokenInfoImpl(@NotNull Tree tokenTree, @NotNull String token, @NotNull String userId, @Nullable Principal principal) {
             this.token = token;
-            this.tokenPath = tokenNode.getTree().getPath();
+            this.tokenPath = tokenTree.getPath();
             this.userId = userId;
+            this.principal = principal;
 
-            expirationTime = getExpirationTime(tokenNode, Long.MIN_VALUE);
-            key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
+            expirationTime = getExpirationTime(tokenTree, Long.MIN_VALUE);
+            key = TreeUtil.getString(tokenTree, TOKEN_ATTRIBUTE_KEY);
 
-            mandatoryAttributes = new HashMap<String, String>();
-            publicAttributes = new HashMap<String, String>();
-            for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
+            mandatoryAttributes = new HashMap();
+            publicAttributes = new HashMap();
+            for (PropertyState propertyState : tokenTree.getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
                 if (RESERVED_ATTRIBUTES.contains(name)) {
@@ -478,15 +543,20 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             }
         }
 
+        @Nullable
+        Principal getPrincipal() {
+            return principal;
+        }
+
         //------------------------------------------------------< TokenInfo >---
 
-        @Nonnull
+        @NotNull
         @Override
         public String getUserId() {
             return userId;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getToken() {
             return token;
@@ -494,7 +564,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
 
         @Override
         public boolean isExpired(long loginTime) {
-            return expirationTime < loginTime;
+            return TokenProviderImpl.isExpired(expirationTime, loginTime);
         }
 
         @Override
@@ -502,8 +572,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             // for backwards compatibility use true as default value for the 'tokenRefresh' configuration
             if (options.getConfigValue(PARAM_TOKEN_REFRESH, true)) {
                 Tree tokenTree = getTokenTree(this);
-                if (tokenTree != null && tokenTree.exists()) {
-                    NodeUtil tokenNode = new NodeUtil(tokenTree);
+                if (tokenTree.exists()) {
                     if (isExpired(loginTime)) {
                         log.debug("Attempt to reset an expired token.");
                         return false;
@@ -512,7 +581,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                     if (expirationTime - loginTime <= tokenExpiration / 2) {
                         try {
                             long expTime = createExpirationTime(loginTime, tokenExpiration);
-                            tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+                            setExpirationTime(tokenTree, expTime);
                             root.commit(CommitMarker.asCommitAttributes());
                             log.debug("Successfully reset token expiration time.");
                             return true;
@@ -529,7 +598,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         @Override
         public boolean remove() {
             Tree tokenTree = getTokenTree(this);
-            if (tokenTree != null && tokenTree.exists()) {
+            if (tokenTree.exists()) {
                 try {
                     if (tokenTree.remove()) {
                         root.commit(CommitMarker.asCommitAttributes());
@@ -543,7 +612,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         }
 
         @Override
-        public boolean matches(TokenCredentials tokenCredentials) {
+        public boolean matches(@NotNull TokenCredentials tokenCredentials) {
             String tk = tokenCredentials.getToken();
             int pos = tk.lastIndexOf(DELIM);
             if (pos > -1) {
@@ -574,13 +643,13 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, String> getPrivateAttributes() {
             return Collections.unmodifiableMap(mandatoryAttributes);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Map<String, String> getPublicAttributes() {
             return Collections.unmodifiableMap(publicAttributes);
@@ -594,8 +663,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
          * @return {@code true} if the specified {@code attributeName}
          *         starts with or equals {@link #TOKEN_ATTRIBUTE}.
          */
-        private boolean isMandatoryAttribute(String attributeName) {
-            return attributeName != null && attributeName.startsWith(TOKEN_ATTRIBUTE);
+        private boolean isMandatoryAttribute(@NotNull String attributeName) {
+            return attributeName.startsWith(TOKEN_ATTRIBUTE);
         }
 
         /**
@@ -608,7 +677,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
          * @return {@code true} if the specified property name doesn't seem
          *         to represent repository internal information.
          */
-        private boolean isInfoAttribute(String attributeName) {
+        private boolean isInfoAttribute(@NotNull String attributeName) {
             String prefix = Text.getNamespacePrefix(attributeName);
             return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
         }

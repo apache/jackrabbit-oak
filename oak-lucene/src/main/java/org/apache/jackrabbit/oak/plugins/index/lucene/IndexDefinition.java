@@ -22,15 +22,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
@@ -48,25 +46,33 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
 import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.TieredMergePolicy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,13 +95,13 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public final class IndexDefinition implements Aggregate.AggregateMapper {
     /**
      * Name of the internal property that contains the child order defined in
-     * org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants
+     * org.apache.jackrabbit.oak.plugins.tree.TreeConstants
      */
     private static final String OAK_CHILD_ORDER = ":childOrder";
 
@@ -104,16 +110,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private static boolean disableStoredIndexDefinition;
 
     /**
-     * Default number of seconds after which to delete actively. Default is -1, meaning disabled.
-     * The plan is to use 3600 (1 hour) in the future.
-     */
-    static final int DEFAULT_ACTIVE_DELETE = -1; // 60 * 60;
-
-    /**
      * Blob size to use by default. To avoid issues in OAK-2105 the size should not
      * be power of 2.
      */
-    static final int DEFAULT_BLOB_SIZE = 1024 * 1024 - 1024;
+    public static final int DEFAULT_BLOB_SIZE = 1024 * 1024 - 1024;
 
     /**
      * Default entry count to keep estimated entry count low.
@@ -136,17 +136,24 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * Hidden node under index definition which is used to store the index definition
      * nodestate as it was at time of reindexing
      */
-    static final String INDEX_DEFINITION_NODE = ":index-definition";
+    public static final String INDEX_DEFINITION_NODE = ":index-definition";
 
     /**
      * Hidden node under index definition which is used to store meta info
      */
-    static final String STATUS_NODE = ":status";
+    public static final String STATUS_NODE = ":status";
+
+    /**
+     * Property on status node which refers to the date when the index was lastUpdated
+     * This may not be the same time as when index was closed but the time of checkpoint
+     * upto which index is upto date (OAK-6194)
+     */
+    static final String STATUS_LAST_UPDATED = "lastUpdated";
 
     /**
      * Meta property which provides the unique id
      */
-    static final String PROP_UID = "uid";
+    public static final String PROP_UID = "uid";
 
     private static String TYPES_ALLOW_ALL_NAME = "all";
 
@@ -178,8 +185,6 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String funcName;
 
-    private final int activeDelete;
-    
     private final int blobSize;
 
     private final Codec codec;
@@ -223,6 +228,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean hasCustomTikaConfig;
 
+    private final Map<String, String> customTikaMimeTypeMappings;
+
     private final int maxFieldLength;
 
     private final int maxExtractLength;
@@ -253,8 +260,17 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean nrtIndexMode;
     private final boolean syncIndexMode;
 
+    private final boolean nodeTypeIndex;
+
     @Nullable
     private final String uid;
+
+    @Nullable
+    private final String[] indexTags;
+
+    private final boolean syncPropertyIndexes;
+
+    private final String useIfExists;
 
     //~--------------------------------------------------------< Builder >
 
@@ -326,12 +342,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.definition = defn;
         this.indexPath = checkNotNull(indexPath);
         this.indexName = indexPath;
+        this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+        this.nodeTypeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
-        this.activeDelete = getOptionalValue(defn, ACTIVE_DELETE, DEFAULT_ACTIVE_DELETE);
         this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
 
-        this.aggregates = collectAggregates(defn);
+        this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
         NodeState rulesState = defn.getChildNode(LuceneIndexConstants.INDEX_RULES);
         if (!rulesState.exists()){
@@ -368,13 +385,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+        this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
         this.maxExtractLength = determineMaxExtractLength();
         this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
                 DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
         this.scorerProviderName = getOptionalValue(defn, LuceneIndexConstants.PROP_SCORER_PROVIDER, null);
         this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
         this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
-        this.queryPaths = getQueryPaths(defn);
+        this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
@@ -391,6 +409,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.spellcheckEnabled = evaluateSpellcheckEnabled();
         this.nrtIndexMode = supportsNRTIndexing(defn);
         this.syncIndexMode = supportsSyncIndexing(defn);
+        this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
+        this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -417,9 +437,15 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return blobSize;
     }
 
-    @CheckForNull
+    @Nullable
     public Codec getCodec() {
         return codec;
+    }
+
+    @NotNull
+    public MergePolicy getMergePolicy() {
+        // MP is not cached to avoid complaining about multiple IWs with multiplexing writers
+        return createMergePolicy();
     }
 
     public long getReindexCount(){
@@ -492,8 +518,16 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
     }
 
+    public String getTikaMappedMimeType(String type) {
+        return customTikaMimeTypeMappings.getOrDefault(type, type);
+    }
+
     public String getIndexName() {
         return indexName;
+    }
+
+    public String[] getIndexTags() {
+        return indexTags;
     }
 
     public int getMaxExtractLength() {
@@ -517,7 +551,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return queryPaths;
     }
 
-    @CheckForNull
+    @Nullable
     public String getUniqueId() {
         return uid;
     }
@@ -528,6 +562,14 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean isSyncIndexingEnabled() {
         return syncIndexMode;
+    }
+
+    public boolean hasSyncPropertyDefinitions() {
+        return syncPropertyIndexes;
+    }
+
+    public boolean isPureNodeTypeIndex() {
+        return nodeTypeIndex;
     }
 
     /**
@@ -551,6 +593,30 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public static void setDisableStoredIndexDefinition(boolean disableStoredIndexDefinitionDefault) {
         IndexDefinition.disableStoredIndexDefinition = disableStoredIndexDefinitionDefault;
+    }
+
+    public Set<String> getRelativeNodeNames(){
+        //Can be computed lazily as required only for oak-run indexing for now
+        Set<String> names = new HashSet<>();
+        for (IndexingRule r : definedRules) {
+            for (Aggregate.Include i : r.aggregate.getIncludes()) {
+                for (int d = 0; d < i.maxDepth(); d++) {
+                    if (!i.isPattern(d)) {
+                        names.add(i.getElementNameIfNotAPattern(d));
+                    }
+                }
+            }
+        }
+        return names;
+    }
+
+    public boolean indexesRelativeNodes(){
+        for (IndexingRule r : definedRules) {
+            if (!r.aggregate.getIncludes().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -601,7 +667,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~---------------------------------------------------< Aggregates >
 
-    @CheckForNull
+    @Nullable
     public Aggregate getAggregate(String nodeType){
         Aggregate agg = aggregates.get(nodeType);
         return agg != null ? agg : null;
@@ -646,7 +712,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return definedRules;
     }
 
-    @CheckForNull
+    @Nullable
     public IndexingRule getApplicableIndexingRule(String primaryNodeType) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
@@ -676,7 +742,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
      * @param state a node state.
      * @return the indexing rule or <code>null</code> if none applies.
      */
-    @CheckForNull
+    @Nullable
     public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
@@ -846,6 +912,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         private final List<PropertyDefinition> functionRestrictions;
         private final List<PropertyDefinition> notNullCheckEnabledProperties;
         private final List<PropertyDefinition> nodeScopeAnalyzedProps;
+        private final List<PropertyDefinition> syncProps;
+        private final List<PropertyDefinition> similarityProperties;
         private final boolean indexesAllNodesOfMatchingType;
         private final boolean nodeNameIndexed;
 
@@ -860,6 +928,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         final Aggregate propAggregate;
 
 
+
         IndexingRule(String nodeTypeName, NodeState config) {
             this.nodeTypeName = nodeTypeName;
             this.baseNodeType = nodeTypeName;
@@ -872,9 +941,11 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             List<PropertyDefinition> functionRestrictions = newArrayList();
             List<PropertyDefinition> existentProperties = newArrayList();
             List<PropertyDefinition> nodeScopeAnalyzedProps = newArrayList();
+            List<PropertyDefinition> syncProps = newArrayList();
+            List<PropertyDefinition> similarityProperties = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
-                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions);
+                    existentProperties, nodeScopeAnalyzedProps, functionRestrictions, syncProps, similarityProperties);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
@@ -883,11 +954,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.functionRestrictions = ImmutableList.copyOf(functionRestrictions);
             this.notNullCheckEnabledProperties = ImmutableList.copyOf(existentProperties);
+            this.similarityProperties = ImmutableList.copyOf(similarityProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || anyNodeScopeIndexedProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = evaluateNodeNameIndexed(config);
+            this.syncProps = ImmutableList.copyOf(syncProps);
             validateRuleDefinition();
         }
 
@@ -917,6 +990,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             this.nodeFullTextIndexed = aggregate.hasNodeAggregates() || original.nodeFullTextIndexed;
             this.indexesAllNodesOfMatchingType = areAlMatchingNodeByTypeIndexed();
             this.nodeNameIndexed = original.nodeNameIndexed;
+            this.syncProps = original.syncProps;
+            this.similarityProperties = original.similarityProperties;
         }
 
         /**
@@ -951,7 +1026,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
         }
-        
+
         public List<PropertyDefinition> getFunctionRestrictions() {
             return functionRestrictions;
         }
@@ -962,6 +1037,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
         public List<PropertyDefinition> getNodeScopeAnalyzedProps() {
             return nodeScopeAnalyzedProps;
+        }
+
+        public List<PropertyDefinition> getSimilarityProperties() {
+            return similarityProperties;
         }
 
         @Override
@@ -1037,7 +1116,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
          *         indexing rule does not contain a configuration for the given
          *         property.
          */
-        @CheckForNull
+        @Nullable
         public PropertyDefinition getConfig(String propertyName) {
             PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
             if (config != null) {
@@ -1078,23 +1157,44 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
             return JcrConstants.NT_BASE.equals(baseNodeType);
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, 
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config,
                                                                    List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate,
                                                                    List<PropertyDefinition> nonExistentProperties,
                                                                    List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps, 
-                                                                   List<PropertyDefinition> functionRestrictions) {
+                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps,
+                                                                   List<PropertyDefinition> functionRestrictions,
+                                                                   List<PropertyDefinition> syncProps,
+                                                                   List<PropertyDefinition> similarityProperties) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
-            if (!propNode.exists()){
-                return Collections.emptyMap();
-            }
-
-            if (!hasOrderableChildren(propNode)){
+            if (propNode.exists() && !hasOrderableChildren(propNode)){
                 log.warn("Properties node for [{}] does not have orderable " +
                 "children in [{}]", this, IndexDefinition.this);
+            }
+
+            //In case of a pure nodetype index we just index primaryType and mixins
+            //and ignore any other property definition
+            if (nodeTypeIndex) {
+                boolean sync = getOptionalValue(config, LuceneIndexConstants.PROP_SYNC, false);
+                PropertyDefinition pdpt =  createNodeTypeDefinition(this, JcrConstants.JCR_PRIMARYTYPE, sync);
+                PropertyDefinition pdmixin =  createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, sync);
+
+                propDefns.put(pdpt.name.toLowerCase(Locale.ENGLISH), pdpt);
+                propDefns.put(pdmixin.name.toLowerCase(Locale.ENGLISH), pdmixin);
+
+                if (sync) {
+                    syncProps.add(pdpt);
+                    syncProps.add(pdmixin);
+                }
+
+                if (propNode.getChildNodeCount(1) > 0) {
+                    log.warn("Index at [{}] has {} enabled and cannot support other property " +
+                            "definitions", indexPath, LuceneIndexConstants.PROP_INDEX_NODE_TYPE);
+                }
+
+                return ImmutableMap.copyOf(propDefns);
             }
 
             //Include all immediate child nodes to 'properties' node by default
@@ -1140,9 +1240,33 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                             && !pd.isRegexp){
                         nodeScopeAnalyzedProps.add(pd);
                     }
+
+                    if (pd.sync) {
+                        syncProps.add(pd);
+                    }
+                    if (pd.useInSimilarity) {
+                        similarityProperties.add(pd);
+                    }
                 }
             }
+            ensureNodeTypeIndexingIsConsistent(propDefns, syncProps);
             return ImmutableMap.copyOf(propDefns);
+        }
+
+        /**
+         * If jcr:primaryType is indexed but jcr:mixinTypes is not indexed
+         * then ensure that jcr:mixinTypes is also indexed
+         */
+        private void ensureNodeTypeIndexingIsConsistent(Map<String, PropertyDefinition> propDefns,
+                                                        List<PropertyDefinition> syncProps) {
+            PropertyDefinition pd_pr = propDefns.get(JcrConstants.JCR_PRIMARYTYPE.toLowerCase(Locale.ENGLISH));
+            PropertyDefinition pd_mixin = propDefns.get(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH));
+
+            if (pd_pr != null && pd_pr.propertyIndex && pd_mixin == null) {
+                pd_mixin =  createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, pd_pr.sync);
+                syncProps.add(pd_mixin);
+                propDefns.put(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH), pd_mixin);
+            }
         }
 
         private boolean hasAnyFullTextEnabledProperty() {
@@ -1194,6 +1318,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         private boolean areAlMatchingNodeByTypeIndexed(){
+            if (nodeTypeIndex) {
+                return true;
+            }
+
             if (nodeFullTextIndexed){
                 return true;
             }
@@ -1408,13 +1536,13 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
                 if (propName.equals(includeAllProp)){
                     prop.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
-                }
-
-                //Copy over the property configuration
-                NodeState propDefNode  = getPropDefnNode(defn, propName);
-                if (propDefNode != null){
-                    for (PropertyState ps : propDefNode.getProperties()){
-                        prop.setProperty(ps);
+                } else {
+                    //Copy over the property configuration
+                    NodeState propDefNode  = getPropDefnNode(defn, propName);
+                    if (propDefNode != null){
+                        for (PropertyState ps : propDefNode.getProperties()){
+                            prop.setProperty(ps);
+                        }
                     }
                 }
             }
@@ -1488,6 +1616,50 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return codec;
     }
 
+    private MergePolicy createMergePolicy() {
+        String mmp = System.getProperty("oak.lucene.cmmp");
+        if (mmp != null) {
+            return new CommitMitigatingTieredMergePolicy();
+        }
+
+        String mergePolicyName = getOptionalValue(definition, LuceneIndexConstants.MERGE_POLICY_NAME, null);
+        MergePolicy mergePolicy = null;
+        if (mergePolicyName != null) {
+            if (mergePolicyName.equalsIgnoreCase("no")) {
+                mergePolicy = NoMergePolicy.COMPOUND_FILES;
+            } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
+                mergePolicy = new CommitMitigatingTieredMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {
+                mergePolicy = new TieredMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("logbyte")) {
+                mergePolicy = new LogByteSizeMergePolicy();
+            } else if (mergePolicyName.equalsIgnoreCase("logdoc")) {
+                mergePolicy = new LogDocMergePolicy();
+            }
+        }
+        if (mergePolicy == null) {
+            mergePolicy = new TieredMergePolicy();
+        }
+        return mergePolicy;
+    }
+
+    public boolean isEnabled() {
+        if (useIfExists == null) {
+            return true;
+        }
+        NodeState nodeState = root;
+        for (String element : PathUtils.elements(useIfExists)) {
+            if (element.startsWith("@")) {
+                return nodeState.hasProperty(element.substring(1));
+            }
+            nodeState = nodeState.getChildNode(element);
+            if (!nodeState.exists()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
@@ -1521,7 +1693,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
                 return TreeUtil.getTree(root,NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return NamePathMapper.DEFAULT;
@@ -1657,9 +1829,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return result;
     }
 
-    private String[] getQueryPaths(NodeState defn) {
-        PropertyState ps = defn.getProperty(IndexConstants.QUERY_PATHS);
-        if (ps != null){
+    private static String[] getOptionalStrings(NodeState defn, String propertyName) {
+        PropertyState ps = defn.getProperty(propertyName);
+        if (ps != null) {
             return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
         }
         return null;
@@ -1673,13 +1845,9 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
     }
 
-    @CheckForNull
+    @Nullable
     private static String determineUniqueId(NodeState defn) {
         return defn.getChildNode(STATUS_NODE).getString(PROP_UID);
-    }
-
-    public boolean getActiveDeleteEnabled() {
-        return activeDelete >= 0;
     }
 
     private static double getDefaultCostPerEntry(IndexFormatVersion version) {
@@ -1714,6 +1882,33 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         }
         NodeState storedState = defn.getChildNode(INDEX_DEFINITION_NODE);
         return storedState.exists() ? storedState : defn;
+    }
+
+    private static Map<String, String> buildMimeTypeMap(NodeState node) {
+        ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
+        for (ChildNodeEntry child : node.getChildNodeEntries()) {
+            for (ChildNodeEntry subChild : child.getNodeState().getChildNodeEntries()) {
+                StringBuilder typeBuilder = new StringBuilder(child.getName())
+                        .append('/')
+                        .append(subChild.getName());
+                PropertyState property = subChild.getNodeState().getProperty(TIKA_MAPPED_TYPE);
+                if (property != null) {
+                    map.put(typeBuilder.toString(), property.getValue(Type.STRING));
+                }
+            }
+        }
+        return map.build();
+    }
+
+    private static PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        //A nodetype index just required propertyIndex and sync flags to be set
+        builder.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        if (sync) {
+            builder.setProperty(LuceneIndexConstants.PROP_SYNC, sync);
+        }
+        builder.setProperty(LuceneIndexConstants.PROP_NAME, name);
+        return new PropertyDefinition(rule, name, builder.getNodeState());
     }
 
 }

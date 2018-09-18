@@ -20,9 +20,8 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.ReaderCache.CacheKey;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.cache.Weigher;
 
@@ -55,7 +54,7 @@ public final class CacheWeights {
     public static class OneWeigher<K, V> implements Weigher<K, V> {
 
         @Override
-        public int weigh(@Nonnull Object key, @Nonnull Object value) {
+        public int weigh(@NotNull Object key, @NotNull Object value) {
             return 1;
         }
     }
@@ -67,21 +66,22 @@ public final class CacheWeights {
         return (Weigher<K, V>) NOOP_WEIGHER;
     }
 
+    static int segmentWeight(Segment segment) {
+        return SEGMENT_CACHE_OVERHEAD + segment.estimateMemoryUsage();
+    }
+
     public static class SegmentCacheWeigher implements
             Weigher<SegmentId, Segment> {
         @Override
-        public int weigh(@Nonnull SegmentId id, @Nonnull Segment segment) {
-            int size = SEGMENT_CACHE_OVERHEAD;
-            // segmentId weight estimation is included in segment
-            size += segment.estimateMemoryUsage();
-            return size;
+        public int weigh(@NotNull SegmentId id, @NotNull Segment segment) {
+            return segmentWeight(segment);
         }
     }
 
     public static class NodeCacheWeigher implements Weigher<String, RecordId> {
 
         @Override
-        public int weigh(@Nonnull String key, @Nonnull RecordId value) {
+        public int weigh(@NotNull String key, @NotNull RecordId value) {
             int size = PRIORITY_CACHE_OVERHEAD;
             size += estimateMemoryUsage(key);
             size += value.estimateMemoryUsage();
@@ -92,7 +92,7 @@ public final class CacheWeights {
     public static class StringCacheWeigher implements Weigher<String, RecordId> {
 
         @Override
-        public int weigh(@Nonnull String key, @Nonnull RecordId value) {
+        public int weigh(@NotNull String key, @NotNull RecordId value) {
             int size = RECORD_CACHE_OVERHEAD;
             size += estimateMemoryUsage(key);
             size += value.estimateMemoryUsage();
@@ -104,7 +104,7 @@ public final class CacheWeights {
             Weigher<Template, RecordId> {
 
         @Override
-        public int weigh(@Nonnull Template key, @Nonnull RecordId value) {
+        public int weigh(@NotNull Template key, @NotNull RecordId value) {
             int size = RECORD_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += value.estimateMemoryUsage();
@@ -116,7 +116,7 @@ public final class CacheWeights {
             Weigher<CacheKey, Template> {
 
         @Override
-        public int weigh(@Nonnull CacheKey key, @Nonnull Template value) {
+        public int weigh(@NotNull CacheKey key, @NotNull Template value) {
             int size = LIRS_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += value.estimateMemoryUsage();
@@ -128,7 +128,7 @@ public final class CacheWeights {
             Weigher<CacheKey, String> {
 
         @Override
-        public int weigh(@Nonnull CacheKey key, @Nonnull String value) {
+        public int weigh(@NotNull CacheKey key, @NotNull String value) {
             int size = LIRS_CACHE_OVERHEAD;
             size += key.estimateMemoryUsage();
             size += estimateMemoryUsage(value);

@@ -28,7 +28,7 @@ read [Using the Access Control Management API](accesscontrol/editing.html) for
 a comprehensive list of method calls as well as examples that may be used to
 edit the access control content of the repository.
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR API
 
 Access Control Management is an optional feature defined by [JSR 283] consisting of
@@ -102,7 +102,7 @@ Oak 1.0 defines a dedicated restriction management API. See
 [Restriction Management](authorization/restriction.html) for details and further
 information regarding extensibility and pluggability.
 
-<a href="utilities"/>
+<a name="utilities"/>
 ### Utilities
 
 The jcr-commons module present with Jackrabbit provide some access control related
@@ -124,7 +124,7 @@ the complete list of methods.
     acMgr.setPolicy(path, acl);
     session.save();
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Characteristics of the Default Implementation
 
 The behavior of the default access control implementation is described in sections 

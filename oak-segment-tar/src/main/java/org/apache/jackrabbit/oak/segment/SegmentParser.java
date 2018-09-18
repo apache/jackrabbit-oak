@@ -19,28 +19,30 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.SegmentBlob.readBlobId;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.segment.Template.ZERO_CHILD_NODES;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code SegmentParser} serves as a base class for parsing segments.
@@ -257,10 +259,10 @@ public class SegmentParser {
         }
     }
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    public SegmentParser(@Nonnull SegmentReader reader) {
+    public SegmentParser(@NotNull SegmentReader reader) {
         this.reader = checkNotNull(reader);
     }
 
@@ -674,8 +676,13 @@ public class SegmentParser {
             size += (8 + RECORD_ID_BYTES + length);
             blobType = BlobType.LONG;
         } else if ((head & 0xf0) == 0xe0) {
-            // 1110 xxxx: external value
-            int length = (head & 0x0f) << 8 | (segment.readByte(blobId.getRecordNumber(), 1) & 0xff);
+            // 1110 xxxx: external value, short blob ID
+            int length = UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
+            size += (2 + length);
+            blobType = BlobType.EXTERNAL;
+        } else if ((head & 0xf8) == 0xf0) {
+            // 1111 0xxx: external value, long blob ID
+            int length = UTF_8.encode(requireNonNull(readBlobId(segment, blobId.getRecordNumber()))).limit();
             size += (2 + length);
             blobType = BlobType.EXTERNAL;
         } else {

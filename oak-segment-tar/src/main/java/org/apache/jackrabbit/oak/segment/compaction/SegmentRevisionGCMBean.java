@@ -20,31 +20,36 @@
 package org.apache.jackrabbit.oak.segment.compaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETAINED_GENERATIONS_DEFAULT;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentRevisionGCMBean
         extends AnnotatedStandardMBean
         implements SegmentRevisionGC {
 
-    @Nonnull
+    private static final Logger log = LoggerFactory.getLogger(SegmentRevisionGCMBean.class);
+
+    @NotNull
     private final FileStore fileStore;
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
 
-    @Nonnull
+    @NotNull
     private final FileStoreGCMonitor fileStoreGCMonitor;
 
     public SegmentRevisionGCMBean(
-            @Nonnull FileStore fileStore,
-            @Nonnull SegmentGCOptions gcOptions,
-            @Nonnull FileStoreGCMonitor fileStoreGCMonitor) {
+            @NotNull FileStore fileStore,
+            @NotNull SegmentGCOptions gcOptions,
+            @NotNull FileStoreGCMonitor fileStoreGCMonitor) {
         super(SegmentRevisionGC.class);
         this.fileStore = checkNotNull(fileStore);
         this.gcOptions = checkNotNull(gcOptions);
@@ -90,7 +95,14 @@ public class SegmentRevisionGCMBean
 
     @Override
     public void setRetainedGenerations(int retainedGenerations) {
-        gcOptions.setRetainedGenerations(retainedGenerations);
+        if (retainedGenerations != RETAINED_GENERATIONS_DEFAULT) {
+            log.warn(
+                "The number of retained generations defaults to {} and can't be " +
+                    "changed. This configuration option is considered deprecated " +
+                    "and will be removed in the future.",
+                RETAINED_GENERATIONS_DEFAULT
+            );
+        }
     }
 
     @Override
@@ -111,6 +123,16 @@ public class SegmentRevisionGCMBean
     @Override
     public void setEstimationDisabled(boolean disabled)  {
         gcOptions.setEstimationDisabled(disabled);
+    }
+
+    @Override
+    public String getGCType() {
+        return gcOptions.getGCType().toString();
+    }
+
+    @Override
+    public void setGCType(String gcType) {
+        gcOptions.setGCType(GCType.valueOf(gcType));
     }
 
     @Override
@@ -143,19 +165,19 @@ public class SegmentRevisionGCMBean
         return fileStoreGCMonitor.getLastReclaimedSize();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getLastError() {
         return fileStoreGCMonitor.getLastError();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public String getLastLogMessage() {
         return fileStoreGCMonitor.getLastLogMessage();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public String getStatus() {
         return fileStoreGCMonitor.getStatus();
@@ -173,31 +195,31 @@ public class SegmentRevisionGCMBean
 
     @Override
     public boolean isRevisionGCRunning() {
-        return gcOptions.getGCNodeWriteMonitor().isCompactionRunning();
+        return fileStore.getGCNodeWriteMonitor().isCompactionRunning();
     }
 
     @Override
     public long getCompactedNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getCompactedNodes();
+        return fileStore.getGCNodeWriteMonitor().getCompactedNodes();
     }
 
     @Override
     public long getEstimatedCompactableNodes() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedTotal();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedTotal();
     }
 
     @Override
     public int getEstimatedRevisionGCCompletion() {
-        return gcOptions.getGCNodeWriteMonitor().getEstimatedPercentage();
+        return fileStore.getGCNodeWriteMonitor().getEstimatedPercentage();
     }
 
     @Override
     public long getRevisionGCProgressLog() {
-        return gcOptions.getGCNodeWriteMonitor().getGcProgressLog();
+        return fileStore.getGCNodeWriteMonitor().getGcProgressLog();
     }
 
     @Override
     public void setRevisionGCProgressLog(long gcProgressLog) {
-        gcOptions.getGCNodeWriteMonitor().setGcProgressLog(gcProgressLog);
+        gcOptions.setGCLogInterval(gcProgressLog);
     }
 }

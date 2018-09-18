@@ -17,9 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.jmx;
 
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.commons.jmx.Description;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.jetbrains.annotations.NotNull;
 
 public interface StandbyStatusMBean {
     String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
@@ -30,7 +29,7 @@ public interface StandbyStatusMBean {
     String STATUS_CLOSING = "closing";
     String STATUS_CLOSED = "closed";
 
-    @Nonnull
+    @NotNull
     @Description("primary or standby")
     String getMode();
 

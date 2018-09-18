@@ -17,10 +17,10 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 final class PreAuthCredentials implements Credentials {
 
@@ -34,17 +34,17 @@ final class PreAuthCredentials implements Credentials {
         this.userId = userId;
     }
 
-    @CheckForNull
+    @Nullable
     String getUserId() {
         return userId;
     }
 
-    @CheckForNull
+    @Nullable
     String getMessage() {
         return msg;
     }
 
-    void setMessage(@Nonnull String message) {
+    void setMessage(@NotNull String message) {
         msg = message;
     }
 }

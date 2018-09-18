@@ -46,7 +46,6 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
         JcrUtils.getOrCreateByPath("/content/assets/foo/2011", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010", "nt:folder", session);
         JcrUtils.getOrCreateByPath("/content/assets/foo/2010/12", "nt:folder", session);
-        JcrUtils.getOrCreateByPath("/content/assets/foo/2010/11", "nt:folder", session);
         session.save();
     }
 
@@ -58,7 +57,8 @@ public class IncludeExcludeUpgradeTest extends AbstractRepositoryUpgradeTest {
             final RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
             upgrade.setIncludes(
                     "/content/foo/en",
-                    "/content/assets/foo"
+                    "/content/assets/foo",
+                    "/content/other"
             );
             upgrade.setExcludes(
                     "/content/assets/foo/2013",

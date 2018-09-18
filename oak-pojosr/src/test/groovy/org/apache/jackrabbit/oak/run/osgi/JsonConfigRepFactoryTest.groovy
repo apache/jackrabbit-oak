@@ -40,7 +40,7 @@ class JsonConfigRepFactoryTest extends AbstractRepositoryFactoryTest{
     @Test
     public void testRepositoryTar() throws Exception {
         config[REPOSITORY_CONFIG] = [
-                'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
         ]
 
         repository = repositoryFactory.getRepository(config);

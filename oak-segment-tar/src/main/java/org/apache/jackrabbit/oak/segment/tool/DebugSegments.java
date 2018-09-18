@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Print debugging information about segments, node records and node record
  * ranges.
  */
-public class DebugSegments implements Runnable {
+public class DebugSegments {
 
     private static final Pattern SEGMENT_REGEX = Pattern.compile("([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
 
@@ -112,7 +112,7 @@ public class DebugSegments implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public DebugSegments build() {
             checkNotNull(path);
             checkArgument(!segments.isEmpty());
             return new DebugSegments(this);
@@ -129,12 +129,13 @@ public class DebugSegments implements Runnable {
         this.segments = new ArrayList<>(builder.segments);
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
             debugSegments(store);
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
@@ -154,7 +155,7 @@ public class DebugSegments implements Runnable {
 
         if (matcher.group(1) != null) {
             UUID uuid = UUID.fromString(matcher.group(1));
-            SegmentId id = store.newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits());
+            SegmentId id = store.getSegmentIdProvider().newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits());
             System.out.println(id.getSegment());
             return;
         }
@@ -163,9 +164,9 @@ public class DebugSegments implements Runnable {
         RecordId id2 = null;
 
         if (matcher.group(2) != null) {
-            id1 = fromString(store, matcher.group(3));
+            id1 = fromString(store.getSegmentIdProvider(), matcher.group(3));
             if (matcher.group(4) != null) {
-                id2 = fromString(store, matcher.group(5));
+                id2 = fromString(store.getSegmentIdProvider(), matcher.group(5));
             }
         }
 

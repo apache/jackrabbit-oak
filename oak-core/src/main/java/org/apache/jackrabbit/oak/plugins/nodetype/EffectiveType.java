@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.addAll;
@@ -42,19 +42,19 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MANDATORY_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MANDATORY_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_MANDATORY_CHILD_NODES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_MANDATORY_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 class EffectiveType {
 
     private final List<NodeState> types;
 
-    EffectiveType(@Nonnull List<NodeState> types) {
+    EffectiveType(@NotNull List<NodeState> types) {
         this.types = checkNotNull(types);
     }
 
@@ -65,7 +65,7 @@ class EffectiveType {
      * @return {@code true} if the named type is included,
      *         {@code false} otherwise
      */
-    boolean isNodeType(@Nonnull String name) {
+    boolean isNodeType(@NotNull String name) {
         for (NodeState type : types) {
             if (name.equals(type.getName(JCR_NODETYPENAME))
                     || contains(type.getNames(REP_SUPERTYPES), name)) {
@@ -75,20 +75,20 @@ class EffectiveType {
         return false;
     }
 
-    boolean isMandatoryProperty(@Nonnull String name) {
+    boolean isMandatoryProperty(@NotNull String name) {
         return nameSetContains(REP_MANDATORY_PROPERTIES, name);
     }
 
-    @Nonnull
+    @NotNull
     Set<String> getMandatoryProperties() {
         return getNameSet(REP_MANDATORY_PROPERTIES);
     }
 
-    boolean isMandatoryChildNode(@Nonnull String name) {
+    boolean isMandatoryChildNode(@NotNull String name) {
         return nameSetContains(REP_MANDATORY_CHILD_NODES, name);
     }
 
-    @Nonnull
+    @NotNull
     Set<String> getMandatoryChildNodes() {
         return getNameSet(REP_MANDATORY_CHILD_NODES);
     }
@@ -99,8 +99,8 @@ class EffectiveType {
      * @param property modified property
      * @return matching property definition, or {@code null}
      */
-    @CheckForNull
-    NodeState getDefinition(@Nonnull PropertyState property) {
+    @Nullable
+    NodeState getDefinition(@NotNull PropertyState property) {
         String propertyName = property.getName();
         Type<?> propertyType = property.getType();
 
@@ -178,7 +178,7 @@ class EffectiveType {
      * @return {@code true} if there's a matching child node definition,
      *         {@code false} otherwise
      */
-    boolean isValidChildNode(@Nonnull String nameWithIndex, @Nonnull EffectiveType effective) {
+    boolean isValidChildNode(@NotNull String nameWithIndex, @NotNull EffectiveType effective) {
         String name = dropIndexFromName(nameWithIndex);
         boolean sns = !name.equals(nameWithIndex);
         Set<String> typeNames = effective.getTypeNames();
@@ -231,8 +231,8 @@ class EffectiveType {
      * @param nameWithIndex child node name, possibly with an SNS index
      * @return default type, or {@code null} if not found
      */
-    @CheckForNull
-    String getDefaultType(@Nonnull String nameWithIndex) {
+    @Nullable
+    String getDefaultType(@NotNull String nameWithIndex) {
         String name = dropIndexFromName(nameWithIndex);
         boolean sns = !name.equals(nameWithIndex);
 
@@ -257,7 +257,7 @@ class EffectiveType {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     Set<String> getTypeNames() {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
@@ -266,16 +266,20 @@ class EffectiveType {
         }
         return names;
     }
+    
+    List<String> getDirectTypeNames() {
+        List<String> names = newArrayListWithCapacity(types.size());
+        for (NodeState type : types) {
+            names.add(type.getName(JCR_NODETYPENAME));
+        }
+        return names;
+    }
 
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
-        List<String> names = newArrayListWithCapacity(types.size());
-        for (NodeState type : types) {
-            names.add(type.getName(JCR_NODETYPENAME));
-        }
-        return names.toString();
+        return getDirectTypeNames().toString();
     }
 
     //-----------------------------------------------------------< private >--
@@ -287,11 +291,11 @@ class EffectiveType {
      * @param sns SNS flag, {@code true} if processing an SNS node
      * @param definition child node definition
      */
-    private boolean snsMatch(boolean sns, @Nonnull NodeState definition) {
+    private boolean snsMatch(boolean sns, @NotNull NodeState definition) {
         return !sns || definition.getBoolean(JCR_SAMENAMESIBLINGS);
     }
 
-    private boolean nameSetContains(@Nonnull String set, @Nonnull String name) {
+    private boolean nameSetContains(@NotNull String set, @NotNull String name) {
         for (NodeState type : types) {
             if (contains(type.getNames(set), name)) {
                 return true;
@@ -300,8 +304,8 @@ class EffectiveType {
         return false;
     }
 
-    @Nonnull
-    private Set<String> getNameSet(@Nonnull String set) {
+    @NotNull
+    private Set<String> getNameSet(@NotNull String set) {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
             addAll(names, type.getNames(set));

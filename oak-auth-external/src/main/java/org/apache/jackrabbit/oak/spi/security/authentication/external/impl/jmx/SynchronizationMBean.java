@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import javax.annotation.Nonnull;
-
-import aQute.bnd.annotation.ProviderType;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Provides utilities to manage synchronized external identities.
@@ -52,7 +51,7 @@ public interface SynchronizationMBean {
      *
      * @return the name of the sync handler.
      */
-    @Nonnull
+    @NotNull
     String getSyncHandlerName();
 
     /**
@@ -61,7 +60,7 @@ public interface SynchronizationMBean {
      *
      * @return the name of the IDP.
      */
-    @Nonnull
+    @NotNull
     String getIDPName();
 
     /**
@@ -70,8 +69,8 @@ public interface SynchronizationMBean {
      * @param purge if {@code true} users that don't exist in the IDP are deleted.
      * @return result messages.
      */
-    @Nonnull
-    String[] syncUsers(@Nonnull String[] userIds, boolean purge);
+    @NotNull
+    String[] syncUsers(@NotNull String[] userIds, boolean purge);
 
     /**
      * Synchronizes all local users with the given user ids. Note that this can be an expensive operation since all
@@ -80,7 +79,7 @@ public interface SynchronizationMBean {
      * @param purge if {@code true} users that don't exist in the IDP are deleted.
      * @return result messages.
      */
-    @Nonnull
+    @NotNull
     String[] syncAllUsers(boolean purge);
 
     /**
@@ -88,8 +87,8 @@ public interface SynchronizationMBean {
      * @param externalIds the external id
      * @return result messages.
      */
-    @Nonnull
-    String[] syncExternalUsers(@Nonnull String[] externalIds);
+    @NotNull
+    String[] syncExternalUsers(@NotNull String[] externalIds);
 
     /**
      * Synchronizes all the external users, i.e. basically imports the entire IDP. Note that this can be an expensive
@@ -97,7 +96,7 @@ public interface SynchronizationMBean {
      *
      * @return result messages.
      */
-    @Nonnull
+    @NotNull
     String[] syncAllExternalUsers();
 
     /**
@@ -105,7 +104,7 @@ public interface SynchronizationMBean {
      * expensive operation since all potential users need to be examined.
      * @return a list of the user ids of orphaned users.
      */
-    @Nonnull
+    @NotNull
     String[] listOrphanedUsers();
 
     /**
@@ -114,6 +113,6 @@ public interface SynchronizationMBean {
      *
      * @return result messages.
      */
-    @Nonnull
+    @NotNull
     String[] purgeOrphanedUsers();
 }

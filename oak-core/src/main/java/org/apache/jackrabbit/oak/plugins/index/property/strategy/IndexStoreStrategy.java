@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import java.util.Set;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,7 +33,7 @@ public interface IndexStoreStrategy {
     /**
      * Updates the index for the given path.
      * 
-     * @param index the index node
+     * @param index the index node supplier
      * @param path path stored in the index
      * @param indexName the name of the index. May be null.
      * @param indexMeta the definition of the index. May be null.
@@ -40,18 +41,18 @@ public interface IndexStoreStrategy {
      * @param afterKeys keys that now do apply to the path
      */
     void update(
-        NodeBuilder index, String path,
-        String indexName, NodeBuilder indexMeta,
-        Set<String> beforeKeys, Set<String> afterKeys) throws CommitFailedException;
+            Supplier<NodeBuilder> index, String path,
+            String indexName, NodeBuilder indexMeta,
+            Set<String> beforeKeys, Set<String> afterKeys) throws CommitFailedException;
 
     /**
      * Check whether an entry for the given key exists.
      * 
-     * @param index the index
+     * @param index the index node supplier
      * @param key the key
      * @return true if at least one entry exists
      */
-    boolean exists(NodeBuilder index, String key);
+    boolean exists(Supplier<NodeBuilder> index, String key);
 
     /**
      * Search for a given set of values.

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlList;
@@ -39,7 +38,8 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -49,8 +49,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import static org.junit.Assert.assertTrue;
 
@@ -137,7 +137,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
+            securityProvider = CugSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters());
         }
         return securityProvider;
     }
@@ -147,8 +147,8 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         return ConfigurationParameters.of(AuthorizationConfiguration.NAME, CUG_CONFIG);
     }
 
-    CugPermissionProvider createCugPermissionProvider(@Nonnull Set<String> supportedPaths, @Nonnull Principal... principals) {
-        return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext());
+    CugPermissionProvider createCugPermissionProvider(@NotNull Set<String> supportedPaths, @NotNull Principal... principals) {
+        return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
     }
 
     void setupCugsAndAcls() throws Exception {
@@ -190,7 +190,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         root.commit();
     }
 
-    void createCug(@Nonnull String absPath, @Nonnull Principal principal) throws RepositoryException {
+    void createCug(@NotNull String absPath, @NotNull Principal principal) throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         AccessControlPolicyIterator it = acMgr.getApplicablePolicies(absPath);
         while (it.hasNext()) {
@@ -204,7 +204,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         throw new IllegalStateException("Unable to create CUG at " + absPath);
     }
 
-    static void createCug(@Nonnull Root root, @Nonnull String path, @Nonnull String principalName) throws RepositoryException {
+    static void createCug(@NotNull Root root, @NotNull String path, @NotNull String principalName) throws RepositoryException {
         Tree tree = root.getTree(path);
         Preconditions.checkState(tree.exists());
 
@@ -226,7 +226,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         return login(new SimpleCredentials(TEST_USER2_ID, TEST_USER2_ID.toCharArray()));
     }
 
-    static void assertCugPermission(@Nonnull TreePermission tp, boolean isSupportedPath) {
+    static void assertCugPermission(@NotNull TreePermission tp, boolean isSupportedPath) {
         if (isSupportedPath) {
             assertTrue(tp instanceof CugTreePermission);
         } else {
@@ -234,9 +234,9 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         }
     }
 
-    static TreePermission getTreePermission(@Nonnull Root root,
-                                            @Nonnull String path,
-                                            @Nonnull PermissionProvider pp) {
+    static TreePermission getTreePermission(@NotNull Root root,
+                                            @NotNull String path,
+                                            @NotNull PermissionProvider pp) {
         Tree t = root.getTree("/");
         TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
         for (String segm : PathUtils.elements(path)) {

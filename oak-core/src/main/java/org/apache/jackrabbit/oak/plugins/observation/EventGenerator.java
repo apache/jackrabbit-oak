@@ -23,7 +23,7 @@ import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
@@ -31,12 +31,11 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -86,8 +85,8 @@ public class EventGenerator {
      * Creates a new generator instance for processing the given changes.
      */
     public EventGenerator(
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull EventHandler handler) {
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull EventHandler handler) {
         continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 

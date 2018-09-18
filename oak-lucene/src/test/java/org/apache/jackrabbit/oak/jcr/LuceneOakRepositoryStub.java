@@ -30,18 +30,18 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import java.util.Properties;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
@@ -61,7 +61,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
                 .with(new LuceneIndexEditorProvider());
     }
 
-    private static NodeAggregator getNodeAggregator() {
+    private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
             .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
     }
@@ -75,7 +75,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
         }
 
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
                     && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
                 // do nothing
@@ -125,7 +125,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
         }
         
         private static void functionBasedIndex(NodeBuilder props, String function) {
-            props.child(function).
+            props.child(function.replace('[', '_').replace(']', '_')).
                 setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME).
                 setProperty(LuceneIndexConstants.PROP_FUNCTION, function);
         }

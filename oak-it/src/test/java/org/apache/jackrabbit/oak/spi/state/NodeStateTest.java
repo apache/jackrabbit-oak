@@ -42,12 +42,17 @@ import org.junit.Test;
 public class NodeStateTest extends OakBaseTest {
     private NodeState state;
 
+    private long initialCount;
+
     public NodeStateTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
     @Before
     public void setUp() throws CommitFailedException {
+        NodeState root = store.getRoot();
+        initialCount = root.getPropertyCount();
+
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1);
         builder.setProperty("b", 2);
@@ -67,7 +72,7 @@ public class NodeStateTest extends OakBaseTest {
 
     @Test
     public void testGetPropertyCount() {
-        assertEquals(3, state.getPropertyCount());
+        assertEquals(3 + initialCount, state.getPropertyCount());
     }
 
     @Test
@@ -87,6 +92,9 @@ public class NodeStateTest extends OakBaseTest {
         List<String> names = new ArrayList<String>();
         List<Long> values = new ArrayList<Long>();
         for (PropertyState property : state.getProperties()) {
+            if (property.getName().startsWith(":")) {
+                continue;
+            }
             names.add(property.getName());
             values.add(property.getValue(LONG));
         }

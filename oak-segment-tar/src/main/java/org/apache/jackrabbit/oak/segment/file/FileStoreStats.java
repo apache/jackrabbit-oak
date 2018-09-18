@@ -21,15 +21,16 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
 
 public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
@@ -48,6 +49,10 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
         this.writeStats = statisticsProvider.getMeter(SEGMENT_WRITES, StatsOptions.DEFAULT);
         this.repoSize = statisticsProvider.getCounterStats(SEGMENT_REPO_SIZE, StatsOptions.DEFAULT);
         this.journalWriteStats = statisticsProvider.getMeter(JOURNAL_WRITES, StatsOptions.DEFAULT);
+        repoSize.inc(initialSize);
+    }
+
+    public void init(long initialSize) {
         repoSize.inc(initialSize);
     }
 
@@ -81,13 +86,18 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
         return store.readerCount() + 1; //1 for the writer
     }
 
-    @Nonnull
+    @Override
+    public int getSegmentCount() {
+        return store.getSegmentCount();
+    }
+
+    @NotNull
     @Override
     public CompositeData getWriteStats() {
         return asCompositeData(getTimeSeries(SEGMENT_WRITES), SEGMENT_WRITES);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getRepositorySize() {
         return asCompositeData(getTimeSeries(SEGMENT_REPO_SIZE), SEGMENT_REPO_SIZE);

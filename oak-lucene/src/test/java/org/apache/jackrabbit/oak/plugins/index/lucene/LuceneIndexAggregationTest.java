@@ -34,8 +34,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
@@ -43,9 +43,10 @@ import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binar
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
@@ -74,8 +75,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        return new Oak()
-                .with(new InitialContent())
+        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider)provider.with(getNodeAggregator()))
                 .with((Observer) provider)
@@ -93,7 +93,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
      * <code>
      * 
      */
-    private static NodeAggregator getNodeAggregator() {
+    private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
             .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
             .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));

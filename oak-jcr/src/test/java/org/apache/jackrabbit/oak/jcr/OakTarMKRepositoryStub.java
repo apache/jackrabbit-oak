@@ -18,21 +18,21 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
 import java.util.Properties;
+
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 
 /**
  * A repository stub implementation for Oak on TarMK
  * @deprecated Use {@link OakSegmentTarRepositoryStub} instead.
  */
 @Deprecated
-public class OakTarMKRepositoryStub extends OakRepositoryStub {
+public class OakTarMKRepositoryStub extends BaseRepositoryStub {
 
     private final FileStore store;
 
@@ -47,27 +47,16 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
     public OakTarMKRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
-        Session session = null;
         try {
             File directory =
                     new File("target", "tarmk-" + System.currentTimeMillis());
-            this.store = FileStore.builder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
-            Jcr jcr = new Jcr(new Oak(SegmentNodeStore.builder(store).build()));
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            jcr.with(qs);
+            this.store = FileStoreBuilder.fileStoreBuilder(directory).withMaxFileSize(1).withMemoryMapping(false).build();
+            Jcr jcr = new Jcr(new Oak(SegmentNodeStoreBuilders.builder(store).build()));
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();
-
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override
@@ -75,15 +64,6 @@ public class OakTarMKRepositoryStub extends OakRepositoryStub {
                 store.close();
             }
         }));
-    }
-
-    /**
-     * Override in base class and perform additional configuration on the
-     * {@link Jcr} builder before the repository is created.
-     *
-     * @param jcr the builder.
-     */
-    protected void preCreateRepository(Jcr jcr) {
     }
 
     /**

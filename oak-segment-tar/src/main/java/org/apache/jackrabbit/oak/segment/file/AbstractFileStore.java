@@ -18,24 +18,17 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.lang.String.format;
-import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
+import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -47,16 +40,24 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Supplier;
 
 /**
  * The storage implementation for tar files.
@@ -65,30 +66,39 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractFileStore.class);
 
-    private static final String MANIFEST_FILE_NAME = "manifest";
+    /**
+     * The minimum supported store version. It is possible for an implementation
+     * to support in a transparent and backwards-compatible way older versions
+     * of a repository. In this case, the minimum supported store version
+     * identifies the store format that can still be processed by the
+     * implementation. The minimum store version has to be greater than zero and
+     * less than or equal to the maximum store version.
+     */
+    private static final int MIN_STORE_VERSION = 1;
 
     /**
-     * This value can be used as an invalid store version, since the store
-     * version is defined to be strictly greater than zero.
+     * The maximum supported store version. It is possible for an implementation
+     * to support in a transparent and forwards-compatible way newer version of
+     * a repository. In this case, the maximum supported store version
+     * identifies the store format that can still be processed by the
+     * implementation. The maximum supported store version has to be greater
+     * than zero and greater than or equal to the minimum store version.
      */
-    private static final int INVALID_STORE_VERSION = 0;
+    private static final int MAX_STORE_VERSION = 2;
 
-    /**
-     * The store version is an always incrementing number, strictly greater than
-     * zero, that is changed every time there is a backwards incompatible
-     * modification to the format of the segment store.
-     */
-    static final int CURRENT_STORE_VERSION = 1;
+    static ManifestChecker newManifestChecker(SegmentNodeStorePersistence persistence, boolean strictVersionCheck) throws IOException {
+        return ManifestChecker.newManifestChecker(
+                persistence.getManifestFile(),
+                persistence.segmentFilesExist(),
+                strictVersionCheck ? MAX_STORE_VERSION : MIN_STORE_VERSION,
+                MAX_STORE_VERSION
+        );
+    }
 
-    private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
-
-    static final String FILE_NAME_FORMAT = "data%05d%s.tar";
-
-    @Nonnull
+    @NotNull
     final SegmentTracker tracker;
 
-    @Nonnull
+    @NotNull
     final CachingSegmentReader segmentReader;
 
     final File directory;
@@ -97,186 +107,68 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     final boolean memoryMapping;
 
-    @Nonnull
+    @NotNull
     final SegmentCache segmentCache;
 
     final TarRecovery recovery = new TarRecovery() {
 
         @Override
-        public void recoverEntry(UUID uuid, byte[] data, TarWriter writer) throws IOException {
-            writeSegment(uuid, data, writer);
+        public void recoverEntry(UUID uuid, byte[] data, EntryRecovery entryRecovery) throws IOException {
+            writeSegment(uuid, data, entryRecovery);
         }
 
     };
 
-    @Nonnull
-    private final SegmentIdFactory segmentIdFactory = new SegmentIdFactory() {
-
-        @Override
-        @Nonnull
-        public SegmentId newSegmentId(long msb, long lsb) {
-            return new SegmentId(AbstractFileStore.this, msb, lsb);
-        }
-
-    };
+    protected final IOMonitor ioMonitor;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
-        this.tracker = new SegmentTracker();
-        this.blobStore = builder.getBlobStore();
-        this.segmentCache = new SegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(new Supplier<SegmentWriter>() {
-            @Override
-            public SegmentWriter get() {
-                return getWriter();
+        this.tracker = new SegmentTracker(new SegmentIdFactory() {
+            @Override @NotNull
+            public SegmentId newSegmentId(long msb, long lsb) {
+                return new SegmentId(AbstractFileStore.this, msb, lsb, segmentCache::recordHit);
             }
-        }, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
+        });
+        this.blobStore = builder.getBlobStore();
+        this.segmentCache = newSegmentCache(builder.getSegmentCacheSize());
+        this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
+        this.ioMonitor = builder.getIOMonitor();
     }
 
-     File getManifestFile() {
-        return new File(directory, MANIFEST_FILE_NAME);
+    static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
+        if (e.getCause() instanceof SegmentNotFoundException) {
+            return (SegmentNotFoundException) e.getCause();
+        }
+        return new SegmentNotFoundException(id, e);
     }
 
-     Manifest openManifest() throws IOException {
-        File file = getManifestFile();
-
-        if (file.exists()) {
-            return Manifest.load(file);
-        }
-
-        return null;
-    }
-
-     static Manifest checkManifest(Manifest manifest) throws InvalidFileStoreVersionException {
-        if (manifest == null) {
-            throw new InvalidFileStoreVersionException("Using oak-segment-tar, but oak-segment should be used");
-        }
-
-        int storeVersion = manifest.getStoreVersion(INVALID_STORE_VERSION);
-
-        // A store version less than or equal to the highest invalid value means
-        // that something or someone is messing up with the manifest. This error
-        // is not recoverable and is thus represented as an ISE.
-
-        if (storeVersion <= INVALID_STORE_VERSION) {
-            throw new IllegalStateException("Invalid store version");
-        }
-
-        if (storeVersion < CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too recent version of oak-segment-tar");
-        }
-
-        if (storeVersion > CURRENT_STORE_VERSION) {
-            throw new InvalidFileStoreVersionException("Using a too old version of oak-segment tar");
-        }
-
-        return manifest;
-    }
-
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getSegmentCacheStats() {
         return segmentCache.getCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getStringCacheStats() {
         return segmentReader.getStringCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getTemplateCacheStats() {
         return segmentReader.getTemplateCacheStats();
     }
 
-    static Map<Integer, Map<Character, File>> collectFiles(File directory) {
-        Map<Integer, Map<Character, File>> dataFiles = newHashMap();
-        Map<Integer, File> bulkFiles = newHashMap();
-
-        for (File file : listFiles(directory)) {
-            Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
-            if (matcher.matches()) {
-                Integer index = Integer.parseInt(matcher.group(2));
-                if ("data".equals(matcher.group(1))) {
-                    Map<Character, File> files = dataFiles.get(index);
-                    if (files == null) {
-                        files = newHashMap();
-                        dataFiles.put(index, files);
-                    }
-                    Character generation = 'a';
-                    if (matcher.group(4) != null) {
-                        generation = matcher.group(4).charAt(0);
-                    }
-                    checkState(files.put(generation, file) == null);
-                } else {
-                    checkState(bulkFiles.put(index, file) == null);
-                }
-            }
-        }
-
-        if (!bulkFiles.isEmpty()) {
-            log.info("Upgrading TarMK file names in {}", directory);
-
-            if (!dataFiles.isEmpty()) {
-                // first put all the data segments at the end of the list
-                Integer[] indices =
-                        dataFiles.keySet().toArray(new Integer[dataFiles.size()]);
-                Arrays.sort(indices);
-                int position = Math.max(
-                        indices[indices.length - 1] + 1,
-                        bulkFiles.size());
-                for (Integer index : indices) {
-                    Map<Character, File> files = dataFiles.remove(index);
-                    Integer newIndex = position++;
-                    for (Character generation : newHashSet(files.keySet())) {
-                        File file = files.get(generation);
-                        File newFile = new File(
-                                directory,
-                                format(FILE_NAME_FORMAT, newIndex, generation));
-                        log.info("Renaming {} to {}", file, newFile);
-                        file.renameTo(newFile);
-                        files.put(generation, newFile);
-                    }
-                    dataFiles.put(newIndex, files);
-                }
-            }
-
-            // then add all the bulk segments at the beginning of the list
-            Integer[] indices =
-                    bulkFiles.keySet().toArray(new Integer[bulkFiles.size()]);
-            Arrays.sort(indices);
-            int position = 0;
-            for (Integer index : indices) {
-                File file = bulkFiles.remove(index);
-                Integer newIndex = position++;
-                File newFile = new File(
-                        directory, format(FILE_NAME_FORMAT, newIndex, "a"));
-                log.info("Renaming {} to {}", file, newFile);
-                file.renameTo(newFile);
-                dataFiles.put(newIndex, singletonMap('a', newFile));
-            }
-        }
-
-        return dataFiles;
-    }
-
-    @Nonnull
-    private static File[] listFiles(File directory) {
-        File[] files = directory.listFiles();
-        return files == null ? new File[] {} : files;
-    }
-
-    @Nonnull
-    public SegmentTracker getTracker() {
-        return tracker;
-    }
-
-    @Nonnull
+    @NotNull
     public abstract SegmentWriter getWriter();
 
-    @Nonnull
+    @NotNull
     public SegmentReader getReader() {
         return segmentReader;
+    }
+
+    @NotNull
+    public SegmentIdProvider getSegmentIdProvider() {
+        return tracker;
     }
 
     /**
@@ -292,70 +184,72 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * </pre>
      * @return the current head node state
      */
-    @Nonnull
+    @NotNull
     public SegmentNodeState getHead() {
         return segmentReader.readHeadState(getRevisions());
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newSegmentId(long msb, long lsb) {
-        return tracker.newSegmentId(msb, lsb, segmentIdFactory);
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newBulkSegmentId() {
-        return tracker.newBulkSegmentId(segmentIdFactory);
-    }
-
-    @Override
-    @Nonnull
-    public SegmentId newDataSegmentId() {
-        return tracker.newDataSegmentId(segmentIdFactory);
     }
 
     /**
      * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
-    @CheckForNull
+    @Nullable
     public BlobStore getBlobStore() {
         return blobStore;
     }
 
-    private void writeSegment(UUID id, byte[] data, TarWriter w) throws IOException {
+    private void writeSegment(UUID id, byte[] data, EntryRecovery w) throws IOException {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
         ByteBuffer buffer = ByteBuffer.wrap(data);
-        int generation = Segment.getGcGeneration(buffer, id);
-        w.writeEntry(msb, lsb, data, 0, data.length, generation);
+        GCGeneration generation = SegmentId.isDataSegmentId(lsb)
+                ? Segment.getGcGeneration(newSegmentData(buffer), id)
+                : GCGeneration.NULL;
+        w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
-            Segment segment = new Segment(this, segmentReader, newSegmentId(msb, lsb), buffer);
+            Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
             populateTarGraph(segment, w);
             populateTarBinaryReferences(segment, w);
         }
     }
 
-    static void populateTarGraph(Segment segment, TarWriter w) {
+    private static void populateTarGraph(Segment segment, EntryRecovery w) {
         UUID from = segment.getSegmentId().asUUID();
         for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-            w.addGraphEdge(from, segment.getReferencedSegmentId(i));
+            w.recoverGraphEdge(from, segment.getReferencedSegmentId(i));
         }
     }
 
-    static void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
-        final int generation = segment.getGcGeneration();
+    private static void populateTarBinaryReferences(final Segment segment, final EntryRecovery w) {
+        final GCGeneration generation = segment.getGcGeneration();
         final UUID id = segment.getSegmentId().asUUID();
+        segment.forEachRecord((number, type, offset) -> {
+            if (type == RecordType.BLOB_ID) {
+                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+            }
+        });
+    }
+
+    static Set<UUID> readReferences(Segment segment) {
+        Set<UUID> references = new HashSet<>();
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            references.add(segment.getReferencedSegmentId(i));
+        }
+        return references;
+    }
+
+    static Set<String> readBinaryReferences(final Segment segment) {
+        final Set<String> binaryReferences = new HashSet<>();
         segment.forEachRecord(new RecordConsumer() {
 
             @Override
             public void consume(int number, RecordType type, int offset) {
                 if (type == RecordType.BLOB_ID) {
-                    w.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+                    binaryReferences.add(SegmentBlob.readBlobId(segment, number));
                 }
             }
 
         });
+        return binaryReferences;
     }
 
     static void closeAndLogOnFail(Closeable closeable) {
@@ -369,4 +263,25 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         }
     }
 
+    Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
+        ByteBuffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        if (buffer == null) {
+            throw new SegmentNotFoundException(id);
+        }
+        return new Segment(tracker, segmentReader, id, buffer);
+    }
+
+    /**
+     * Finds all external blob references that are currently accessible
+     * in this repository and adds them to the given collector. Useful
+     * for collecting garbage in an external data store.
+     * <p>
+     * Note that this method only collects blob references that are already
+     * stored in the repository (at the time when this method is called), so
+     * the garbage collector will need some other mechanism for tracking
+     * in-memory references and references stored while this method is
+     * running.
+     * @param collector  reference collector called back for each blob reference found
+     */
+    public abstract void collectBlobReferences(Consumer<String> collector) throws IOException;
 }

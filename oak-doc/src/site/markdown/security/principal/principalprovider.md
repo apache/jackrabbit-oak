@@ -75,8 +75,8 @@ can only be retrieved using Jackrabbit Principal Management API but not with
 User Management calls.
 
 For performance reasons the `ExternalGroupPrincipalProvider` doesn't lookup 
-principals on the IDP but relies on a persisted cache inside the repository where
-the names of these external principals are synchronized to based on a configurable
+principals on the IDP but relies data persisted inside the repository where
+the names of these external principals are synchronized based on a configurable
 expiration time.
 
 See section [User and Group Synchronization : The Default Implementation](../authentication/external/defaultusersync.html)
@@ -85,7 +85,7 @@ for additional details.
 Since Oak 1.5.3
 
 <!-- references -->
-[PrincipalProviderImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/principal/PrincipalProviderImpl.html
+[PrincipalProviderImpl]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/principal/PrincipalProviderImpl.java
 [CompositePrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/CompositePrincipalProvider.html
-[UserPrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/user/UserPrincipalProvider.html
-[ExternalGroupPrincipalProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.html
+[UserPrincipalProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/user/UserPrincipalProvider.java
+[ExternalGroupPrincipalProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-auth-external/src/main/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalGroupPrincipalProvider.java

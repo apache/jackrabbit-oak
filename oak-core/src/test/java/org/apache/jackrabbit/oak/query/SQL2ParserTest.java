@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -30,9 +33,21 @@ import org.junit.Test;
  */
 public class SQL2ParserTest {
 
-    private final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
+    private static final NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(INITIAL_CONTENT);
 
-    private final SQL2Parser p = new SQL2Parser(null, nodeTypes, new QueryEngineSettings());
+    private static final SQL2Parser p = createTestSQL2Parser();
+    
+    public static SQL2Parser createTestSQL2Parser() {
+        return createTestSQL2Parser(NamePathMapper.DEFAULT, nodeTypes, new QueryEngineSettings());
+    }
+    
+    public static SQL2Parser createTestSQL2Parser(NamePathMapper mappings, NodeTypeInfoProvider nodeTypes2,
+            QueryEngineSettings qeSettings) {
+        QueryStatsData data = new QueryStatsData("", "");
+        return new SQL2Parser(mappings, nodeTypes2, new QueryEngineSettings(), 
+                data.new QueryExecutionStats());
+    }
+
 
     @Test
     public void testIgnoreSqlComment() throws ParseException {
@@ -69,5 +84,62 @@ public class SQL2ParserTest {
         String token = "and b.[type] in('t1', 't2', 't3')";
         assertTrue(q.contains(token));
     }
-    
+
+    @Test
+    public void testCoalesce() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([j:c/m/d:t], [j:c/j:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t])='a'");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/m/d:t], name()), [j:c/j:t]) in ('a', 'b')");
+
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE(COALESCE([j:c/a], [b]), COALESCE([c], [c:d])) = 'a'");
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(j:c/m/@d:t, j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(fn:coalesce(j:c/m/@d:t, fn:name()), j:c/@j:t) = 'a']"));
+
+        p.parse(new XPathToSQL2Converter()
+                .convert("//*[fn:coalesce(fn:coalesce(j:c/@a, b), fn:coalesce(c, c:d)) = 'a']"));
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithNoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE()='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithOneParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a])='a'");
+    }
+
+    @Test(expected = ParseException.class)
+    public void coalesceFailsWithMoreThanTwoParam() throws ParseException {
+        p.parse("SELECT * FROM [nt:base] WHERE COALESCE([a], [b], [c])='a'");
+    }
+
+    @Ignore("OAK-7131")
+    @Test
+    public void orderingWithUnionOfNodetype() throws Exception {
+        XPathToSQL2Converter c = new XPathToSQL2Converter();
+
+        String xpath;
+
+        xpath = "//(element(*, type1) | element(*, type2)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2) | element(*, type3)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2) | element(*, type3) | element(*, type4)) order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2))[@a='b'] order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+
+        xpath = "//(element(*, type1) | element(*, type2))[@a='b' or @c='d'] order by @foo";
+        assertTrue("Converted xpath " + xpath + "doesn't end with 'order by [foo]'", c.convert(xpath).endsWith("order by [foo]"));
+    }
 }

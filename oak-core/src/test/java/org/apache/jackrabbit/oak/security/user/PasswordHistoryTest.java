@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.lang.reflect.Field;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
@@ -33,7 +32,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -58,8 +58,8 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
         return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, CONFIG));
     }
 
-    @Nonnull
-    private List<String> getHistory(@Nonnull User user) throws RepositoryException {
+    @NotNull
+    private List<String> getHistory(@NotNull User user) throws RepositoryException {
         return ImmutableList.copyOf(TreeUtil.getStrings(
                 root.getTree(user.getPath()).getChild(REP_PWD),
                 REP_PWD_HISTORY)).reverse();
@@ -68,7 +68,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
     /**
      * Use reflection to access the private fields stored in the PasswordHistory
      */
-    private static Integer getMaxSize(@Nonnull PasswordHistory history) throws Exception {
+    private static Integer getMaxSize(@NotNull PasswordHistory history) throws Exception {
         Field maxSize = history.getClass().getDeclaredField("maxSize");
         maxSize.setAccessible(true);
         return (Integer) maxSize.get(history);
@@ -77,7 +77,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
     /**
      * Use reflection to access the private fields stored in the PasswordHistory
      */
-    private static boolean isEnabled(@Nonnull PasswordHistory history) throws Exception {
+    private static boolean isEnabled(@NotNull PasswordHistory history) throws Exception {
         Field isEnabled = history.getClass().getDeclaredField("isEnabled");
         isEnabled.setAccessible(true);
         return (Boolean) isEnabled.get(history);

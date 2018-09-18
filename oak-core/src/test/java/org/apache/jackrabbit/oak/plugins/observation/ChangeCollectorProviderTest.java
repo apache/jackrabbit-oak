@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -47,17 +46,18 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.SimpleCommitContext;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class ChangeCollectorProviderTest {
     private ContentRepository contentRepository;
     private ContentSession session;
     private Recorder recorder;
-    private SecurityProviderImpl securityProvider;
+    private SecurityProvider securityProvider;
 
     class ContentChange {
         final NodeState root;
@@ -86,7 +86,7 @@ public class ChangeCollectorProviderTest {
         List<ContentChange> changes = new LinkedList<ContentChange>();
 
         @Override
-        public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
             changes.add(new ContentChange(root, info));
         }
 
@@ -94,7 +94,7 @@ public class ChangeCollectorProviderTest {
 
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new SecurityProviderImpl(ConfigurationParameters.EMPTY);
+            securityProvider = SecurityProviderBuilder.newBuilder().build();
         }
         return securityProvider;
     }
@@ -131,7 +131,7 @@ public class ChangeCollectorProviderTest {
         CommitContext commitContext = (CommitContext) recorder.changes.get(0).info.getInfo().get(CommitContext.NAME);
         assertNotNull(commitContext);
         ChangeSet changeSet = (ChangeSet) commitContext
-                .get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+                .get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(changeSet);
         return changeSet;
     }

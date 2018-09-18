@@ -27,16 +27,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -157,8 +157,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         QueryEngineSettings settings = context.getSettings();
+        QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
 
-        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings);
+        SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -190,6 +191,11 @@ public abstract class QueryEngineImpl implements QueryEngine {
             }
         } else {
             throw new ParseException("Unsupported language: " + language, 0);
+        }
+        if (q.isInternal()) {
+            stats.setInternal(true);
+        } else {
+            stats.setThreadName(Thread.currentThread().getName());
         }
         
         queries.add(q);
@@ -266,7 +272,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         boolean mdc = false;
         try {
+            long start = System.nanoTime();
             Query query = prepareAndSelect(queries); 
+            query.getQueryExecutionStats().execute(System.nanoTime() - start);
             mdc = setupMDC(query);
             return query.executeQuery();
         } finally {
@@ -284,15 +292,16 @@ public abstract class QueryEngineImpl implements QueryEngine {
      *      If there are multiple, the first one is the original, and the second the alternative.
      * @return the query
      */
-    @Nonnull
-    private Query prepareAndSelect(@Nonnull List<Query> queries) {
+    @NotNull
+    private Query prepareAndSelect(@NotNull List<Query> queries) {
         Query result = null;
         
         if (checkNotNull(queries).size() == 1) {
             // we only have the original query so we prepare and return it.
             result = queries.iterator().next();
             result.prepare();
-            LOG.debug("No alternatives found. Query: {}", result);
+            result.verifyNotPotentiallySlow();
+            LOG.trace("No alternatives found. Query: {}", result);
         } else {
             double bestCost = Double.POSITIVE_INFINITY;
             
@@ -300,8 +309,12 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // it's the default behaviour. That way, we always log the cost and
             // can more easily analyze problems. The querySelectionMode flag can
             // be used to override the cheapest.
+            boolean isPotentiallySlow = true;
             for (Query q : checkNotNull(queries)) {
                 q.prepare();
+                if (!q.isPotentiallySlow()) {
+                    isPotentiallySlow = false;
+                }
                 double cost = q.getEstimatedCost();
                 LOG.debug("cost: {} for query {}", cost, q);
                 if (q.containsUnfilteredFullTextCondition()) {
@@ -328,6 +341,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
             // CHEAPEST is the default behaviour
             case CHEAPEST:
             default:
+            }
+            if (isPotentiallySlow) {
+                result.verifyNotPotentiallySlow();
             }
         }
         
@@ -363,7 +379,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
      * 
      * @param querySelectionMode cannot be null
      */
-    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+    protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
         this.querySelectionMode = querySelectionMode;
     }
 }

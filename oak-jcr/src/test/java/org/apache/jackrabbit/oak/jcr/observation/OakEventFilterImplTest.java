@@ -33,17 +33,20 @@ public class OakEventFilterImplTest {
         assertMatches(new String[] {}, "/");
         
         assertMatches(new String[] {"/*"}, "/*");
-        assertMatches(new String[] {"/*"}, "/**");
-        assertMatches(new String[] {"/*"}, "/a");
-        assertMatches(new String[] {"/*", "/a/*"}, "/a/b");
-        assertMatches(new String[] {"/*", "/a/*"}, "/a/*");
-        assertMatches(new String[] {"/*", "/a/*"}, "/a/**");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*"}, "/a/b/c");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*"}, "/a/b/*");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*"}, "/a/b/**");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*", "/a/b/c/*"}, "/a/b/c/d");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*", "/a/b/c/*"}, "/a/b/c/*");
-        assertMatches(new String[] {"/*", "/a/*", "/a/b/*", "/a/b/c/*"}, "/a/b/c/**");
+        assertMatches(new String[] {"/**"}, "/**");
+        assertMatches(new String[] {"/a"}, "/a");
+        assertMatches(new String[] {"/a", "/a/b"}, "/a/b");
+        assertMatches(new String[] {"/a", "/a/*"}, "/a/*");
+        assertMatches(new String[] {"/a", "/a/**"}, "/a/**");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/c"}, "/a/b/c");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/*"}, "/a/b/*");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/**"}, "/a/b/**/d/**/f");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/d"}, "/a/b/c/d");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/*"}, "/a/b/c/*");
+        assertMatches(new String[] {"/a", "/a/b", "/a/b/c", "/a/b/c/**"}, "/a/b/c/**");
     }
 
     private void assertMatches(String[] expectedPaths, String globPath) {

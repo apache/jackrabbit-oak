@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The external identity synchronization management.
@@ -32,6 +32,6 @@ public interface SyncManager {
      * @param name the name of the sync handler or {@code null}
      * @return the sync handler
      */
-    @CheckForNull
-    SyncHandler getSyncHandler(@Nonnull String name);
+    @Nullable
+    SyncHandler getSyncHandler(@NotNull String name);
 }

@@ -18,12 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.TYPE;
 
-import javax.annotation.Nonnull;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -32,18 +26,21 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
-@Component
-@Service(IndexEditorProvider.class)
-@Property(name = IndexConstants.TYPE_PROPERTY_NAME , value = NodeReferenceConstants.TYPE, propertyPrivate = true)
+@Component(
+        service = IndexEditorProvider.class,
+        property = IndexConstants.TYPE_PROPERTY_NAME + "=" + NodeReferenceConstants.TYPE)
 public class ReferenceEditorProvider implements IndexEditorProvider {
 
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     @Override
-    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-            @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+            @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
         if (TYPE.equals(type)) {
             return new ReferenceEditor(definition, root, mountInfoProvider);
         }

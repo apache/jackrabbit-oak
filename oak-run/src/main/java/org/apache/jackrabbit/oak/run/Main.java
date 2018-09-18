@@ -16,87 +16,36 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static java.util.Arrays.copyOfRange;
-import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.run.commons.Utils;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Locale;
-import java.util.Properties;
+
+import static java.util.Arrays.copyOfRange;
+import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
 
 public final class Main {
-
     private Main() {
         // Prevent instantiation.
     }
 
     public static void main(String[] args) throws Exception {
-        printProductInfo(args);
+        Utils.printProductInfo(
+            args,
+            Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
 
-        Mode mode = Mode.SERVER;
+        Command command = MODES.getCommand("help");
 
         if (args.length > 0) {
-            mode = getMode(args[0]);
+            command = MODES.getCommand(args[0].toLowerCase(Locale.ENGLISH));
 
-            if (mode == null) {
-                mode = Mode.HELP;
+            if (command == null) {
+                command = MODES.getCommand("help");
             }
 
             args = copyOfRange(args, 1, args.length);
         }
 
-        mode.execute(args);
+        command.execute(args);
     }
-
-    public static String getProductInfo(){
-        String version = getProductVersion();
-
-        if (version == null) {
-            return "Apache Jackrabbit Oak";
-        }
-
-        return "Apache Jackrabbit Oak " + version;
-    }
-
-    private static String getProductVersion() {
-        InputStream stream = Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties");
-
-        try {
-            if (stream == null) {
-                return null;
-            } else {
-                return getProductVersion(stream);
-            }
-        } finally {
-            closeQuietly(stream);
-        }
-    }
-
-    private static String getProductVersion(InputStream stream) {
-        Properties properties = new Properties();
-
-        try {
-            properties.load(stream);
-        } catch (IOException e) {
-            return null;
-        }
-
-        return properties.getProperty("version");
-    }
-
-    private static void printProductInfo(String[] args) {
-        if(!Arrays.asList(args).contains("--quiet")) {
-            System.out.println(getProductInfo());
-        }
-    }
-
-    private static Mode getMode(String name) {
-        try {
-            return Mode.valueOf(name.toUpperCase(Locale.ENGLISH));
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
 }

@@ -21,29 +21,27 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
-import static org.apache.jackrabbit.oak.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
 public class SegmentBlob extends Record implements Blob {
 
-    @CheckForNull
+    @Nullable
     private final BlobStore blobStore;
 
     public static Iterable<SegmentId> getBulkSegmentIds(Blob blob) {
@@ -54,18 +52,16 @@ public class SegmentBlob extends Record implements Blob {
         }
     }
 
-    SegmentBlob(@Nullable BlobStore blobStore, @Nonnull RecordId id) {
+    SegmentBlob(@Nullable BlobStore blobStore, @NotNull RecordId id) {
         super(id);
         this.blobStore = blobStore;
     }
 
     private InputStream getInlineStream(Segment segment, int offset, int length) {
-        byte[] inline = new byte[length];
-        segment.readBytes(getRecordNumber(), offset, inline, 0, length);
-        return new SegmentStream(getRecordId(), inline);
+        return new SegmentStream(getRecordId(), segment.readBytes(getRecordNumber(), offset, length), length);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public InputStream getNewStream() {
         Segment segment = getSegment();
         byte head = segment.readByte(getRecordNumber());
@@ -120,7 +116,7 @@ public class SegmentBlob extends Record implements Blob {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public String getReference() {
         String blobId = getBlobId();
         if (blobId != null) {
@@ -151,13 +147,13 @@ public class SegmentBlob extends Record implements Blob {
         return (head & 0xf0) == 0xe0 || (head & 0xf8) == 0xf0;
     }
 
-    @CheckForNull
+    @Nullable
     public String getBlobId() {
         return readBlobId(getSegment(), getRecordNumber());
     }
 
-    @CheckForNull
-    public static String readBlobId(@Nonnull Segment segment, int recordNumber) {
+    @Nullable
+    public static String readBlobId(@NotNull Segment segment, int recordNumber) {
         byte head = segment.readByte(recordNumber);
         if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value, small blob ID
@@ -202,9 +198,7 @@ public class SegmentBlob extends Record implements Blob {
 
     private static String readShortBlobId(Segment segment, int recordNumber, byte head) {
         int length = (head & 0x0f) << 8 | (segment.readByte(recordNumber, 1) & 0xff);
-        byte[] bytes = new byte[length];
-        segment.readBytes(recordNumber, 2, bytes, 0, length);
-        return new String(bytes, UTF_8);
+        return UTF_8.decode(segment.readBytes(recordNumber, 2, length)).toString();
     }
 
     private static String readLongBlobId(Segment segment, int recordNumber) {

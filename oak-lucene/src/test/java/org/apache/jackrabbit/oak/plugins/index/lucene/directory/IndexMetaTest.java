@@ -42,4 +42,17 @@ public class IndexMetaTest {
         assertEquals(m.creationTime, m2.creationTime);
     }
 
+    @Test
+    public void mapping() throws Exception{
+        IndexMeta m = new IndexMeta("/a/b", 100);
+        File f = temporaryFolder.newFile();
+        m.addDirectoryMapping(":hidden-data", "hiddendata");
+
+        assertEquals(":hidden-data", m.getJcrNameFromFSName("hiddendata"));
+        m.writeTo(f);
+        IndexMeta m2 = new IndexMeta(f);
+        assertEquals(":hidden-data", m2.getJcrNameFromFSName("hiddendata"));
+        assertEquals("hiddendata", m2.getFSNameFromJCRName(":hidden-data"));
+    }
+
 }

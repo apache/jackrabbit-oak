@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,7 +33,7 @@ public class VersionStorage {
 
     private final Root root;
 
-    public VersionStorage(@Nonnull Root versionStorageRoot) {
+    public VersionStorage(@NotNull Root versionStorageRoot) {
         this.root = versionStorageRoot;
     }
 
@@ -66,7 +65,7 @@ public class VersionStorage {
      * @param workspaceRoot the root of the workspace.
      * @return the version storage tree.
      */
-    private static Tree getVersionStorageTree(@Nonnull Root workspaceRoot) {
+    private static Tree getVersionStorageTree(@NotNull Root workspaceRoot) {
         // TODO: this assumes the version store is in the same workspace.
         return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
     }

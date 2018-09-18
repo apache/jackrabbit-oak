@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -63,6 +63,7 @@
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
+              <!-- OAK-7182 -->${guava.osgi.import},
               *;resolution:=optional
             </Import-Package>
             <Export-Package>
@@ -72,10 +73,6 @@
             </DynamicImport-Package>
           </instructions>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-scr-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
@@ -89,12 +86,17 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-jcr</artifactId>
+      <artifactId>oak-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-security-spi</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -109,6 +111,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-authorization-cug</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-api</artifactId>
       <version>${jackrabbit.version}</version>
     </dependency>
@@ -118,15 +125,14 @@
       <version>${jackrabbit.version}</version>
     </dependency>
 
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
 
     <!-- OSGi -->
     <dependency>
-      <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.scr.annotations</artifactId>
       <scope>provided</scope>
@@ -134,12 +140,6 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
-      <version>0.0.2</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -165,27 +165,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jul-to-slf4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
       <version>${jackrabbit.version}</version>
@@ -193,9 +172,15 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-commons</artifactId>
+      <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -207,58 +192,14 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-core</artifactId>
+      <artifactId>oak-segment-tar</artifactId>
       <version>${project.version}</version>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-core</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<classifier>tests</classifier>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-core</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-data</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<classifier>tests</classifier>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.jackrabbit</groupId>-->
-    <!--<artifactId>jackrabbit-jcr-server</artifactId>-->
-    <!--<version>${jackrabbit.version}</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
     <dependency>
-      <groupId>org.apache.geronimo.specs</groupId>
-      <artifactId>geronimo-jta_1.0.1B_spec</artifactId>
-      <version>1.0.1</version>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
       <scope>test</scope>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>org.apache.commons</groupId>-->
-    <!--<artifactId>commons-math3</artifactId>-->
-    <!--<version>3.2</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>com.googlecode.json-simple</groupId>-->
-    <!--<artifactId>json-simple</artifactId>-->
-    <!--<version>1.1.1</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.sling</groupId>-->
-    <!--<artifactId>org.apache.sling.testing.osgi-mock</artifactId>-->
-    <!--</dependency>-->
   </dependencies>
 </project>

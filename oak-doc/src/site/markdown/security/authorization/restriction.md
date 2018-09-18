@@ -82,7 +82,7 @@ repository internal permission evaluation:
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
@@ -178,6 +178,10 @@ implementation:
 
 - implement `RestrictionProvider` interface exposing your custom restriction(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
+
+Please make sure to consider the following recommendations when implementing a custom `RestrictionProvider`:
+- restrictions are part of the overall permission evaluation and thus may heavily impact overall read/write performance
+- the hashCode generation of the base implementation (`RestrictionImpl.hashCode`) relies on `PropertyStateValue.hashCode`, which includes the internal String representation, which is not optimal for binaries (see also [OAK-5784])
 
 ##### Examples
 
@@ -277,7 +281,7 @@ The time-based `RestrictionPattern` used by the example provider above.
     RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new MyRestrictionProvider(), ...);
     Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(PARAM_RESTRICTION_PROVIDER, rProvider);
     ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->
@@ -285,3 +289,4 @@ The time-based `RestrictionPattern` used by the example provider above.
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html
 [RestrictionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionProvider.html
+[OAK-5784]: https://issues.apache.org/jira/browse/OAK-5784

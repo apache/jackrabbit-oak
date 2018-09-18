@@ -27,9 +27,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
+import org.apache.jackrabbit.oak.query.ValueConverter;
+import org.apache.jackrabbit.oak.spi.query.fulltext.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
  * A comparison operation (including "like").
@@ -123,7 +124,7 @@ public class ComparisonImpl extends ConstraintImpl {
     
     private PropertyValue convertToType(PropertyValue v, int targetType) {
         try {
-            return PropertyValues.convert(v, targetType, query.getNamePathMapper());
+            return ValueConverter.convert(v, targetType, query.getNamePathMapper());
         } catch (IllegalArgumentException e) {
             // not possible to convert
             return v;
@@ -143,8 +144,8 @@ public class ComparisonImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         PropertyValue v = operand2.currentValue();
-        if (!PropertyValues.canConvert(
-                operand2.getPropertyType(), 
+        if (!ValueConverter.canConvert(
+                operand2.getPropertyType(),
                 operand1.getPropertyType())) {
             throw new IllegalArgumentException(
                     "Unsupported conversion from property type " + 

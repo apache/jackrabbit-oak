@@ -23,10 +23,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 public class LuceneInitializerHelper implements RepositoryInitializer {
 
@@ -87,13 +86,13 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
      * @param async
      * @return
      */
-    public LuceneInitializerHelper async(@Nonnull final String async) {
+    public LuceneInitializerHelper async(@NotNull final String async) {
         this.async = checkNotNull(async);
         return this;
     }
     
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)
                 && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
             // do nothing

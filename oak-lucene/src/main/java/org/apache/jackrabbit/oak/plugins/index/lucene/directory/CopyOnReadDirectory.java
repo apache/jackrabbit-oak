@@ -27,12 +27,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
@@ -42,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static java.util.Arrays.stream;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
@@ -51,18 +56,18 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 public class CopyOnReadDirectory extends FilterDirectory {
     private static final Logger log = LoggerFactory.getLogger(CopyOnReadDirectory.class);
     private static final PerfLogger PERF_LOGGER = new PerfLogger(LoggerFactory.getLogger(log.getName() + ".perf"));
+
+    public static final String DELETE_MARGIN_MILLIS_NAME = "oak.lucene.delete.margin";
+    public final long DELETE_MARGIN_MILLIS = Long.getLong(DELETE_MARGIN_MILLIS_NAME, TimeUnit.MINUTES.toMillis(5));
+
     private final IndexCopier indexCopier;
     private final Directory remote;
     private final Directory local;
     private final String indexPath;
     private final Executor executor;
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
-    /**
-     * Set of fileNames bound to current local dir. It is updated with any new file
-     * which gets added by this directory
-     */
-    private final Set<String> localFileNames = Sets.newConcurrentHashSet();
 
     public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean prefetch,
                                String indexPath, Executor executor) throws IOException {
@@ -72,10 +77,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
         this.remote = remote;
         this.local = local;
         this.indexPath = indexPath;
-
-        this.localFileNames.addAll(Arrays.asList(local.listAll()));
-        //Remove files which are being worked upon by COW
-        this.localFileNames.removeAll(indexCopier.getIndexFilesBeingWritten(indexPath));
 
         if (prefetch) {
             prefetchIndexFiles();
@@ -267,6 +268,9 @@ public class CopyOnReadDirectory extends FilterDirectory {
      */
     @Override
     public void close() throws IOException {
+        if (!closed.compareAndSet(false, true)){
+            return;
+        }
         //Always remove old index file on close as it ensures that
         //no other IndexSearcher are opened with previous revision of Index due to
         //way IndexTracker closes IndexNode. At max there would be only two IndexNode
@@ -303,11 +307,29 @@ public class CopyOnReadDirectory extends FilterDirectory {
     }
 
     private void removeDeletedFiles() throws IOException {
-        //Files present in dest but not present in source have to be deleted
-        Set<String> filesToBeDeleted = Sets.difference(
-                ImmutableSet.copyOf(localFileNames),
-                ImmutableSet.copyOf(remote.listAll())
-        );
+        Set<String> remoteFiles = stream(remote.listAll())
+                .filter(name -> !IndexCopier.REMOTE_ONLY.contains(name))
+                .collect(Collectors.toSet());
+
+        long maxTS = IndexCopier.getNewestLocalFSTimestampFor(remoteFiles, local);
+        if (maxTS == -1) {
+            log.warn("Couldn't compute safe timestamp to delete files from {}", local);
+            return;
+        }
+
+        // subtract DELETE_MARGIN_MILLIS from maxTS for safety (you can never be too careful with time)
+        final long deleteBeforeTS = maxTS - DELETE_MARGIN_MILLIS;
+
+        Set<String> filesToBeDeleted =
+                // Files present locally
+                ImmutableSet.copyOf(local.listAll()).stream()
+                // but not in my view
+                .filter(name -> !remoteFiles.contains(name))
+                // and also older than a safe timestamp (deleteBeforeTS)
+                .filter(name -> IndexCopier.isFileModifiedBefore(name, local, deleteBeforeTS))
+                // can be deleted
+                .collect(Collectors.toSet())
+        ;
 
         Set<String> failedToDelete = Sets.newHashSet();
 
@@ -346,7 +368,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         void markValid(){
             this.valid = true;
-            localFileNames.add(name);
         }
     }
 }

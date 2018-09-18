@@ -230,9 +230,29 @@ public class XPathToSQL2Converter {
                             read(")");
                         }
                     } else if ("rep:excerpt".equals(identifier)) {
-                        readOpenDotClose(false);
-                        rewindSelector();
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        Expression.Property p;
+
+                        if (readIf(")")) {
+                            rewindSelector();
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        } else if (readIf(".")) {
+                            rewindSelector();
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                            read(")");
+                        } else {
+                            // this will also deal with relative properties
+                            Expression e = parseExpression();
+                            if (!(e instanceof Expression.Property)) {
+                                throw getSyntaxError();
+                            }
+                            Expression.Property prop = (Expression.Property) e;
+                            String property = prop.getColumnAliasName();
+                            rewindSelector();
+                            p = new Expression.Property(currentSelector,
+                                    "rep:excerpt(" + property + ")", false);
+                            read(")");
+                        }
+
                         statement.addSelectColumn(p);
                     } else {
                         throw getSyntaxError();
@@ -253,8 +273,27 @@ public class XPathToSQL2Converter {
                         Expression.Property p = readProperty();
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:excerpt")) {
-                        readOpenDotClose(true);
-                        Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        Expression.Property p;
+
+                        read("(");
+                        if (readIf(")")) {
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                        } else if (readIf(".")) {
+                            p = new Expression.Property(currentSelector, "rep:excerpt", false);
+                            read(")");
+                        } else {
+                            // this will also deal with relative properties
+                            Expression e = parseExpression();
+                            if (!(e instanceof Expression.Property)) {
+                                throw getSyntaxError();
+                            }
+                            Expression.Property prop = (Expression.Property) e;
+                            String property = prop.getColumnAliasName();
+                            p = new Expression.Property(currentSelector,
+                                    "rep:excerpt(" + property + ")", false);
+                            read(")");
+                        }
+
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:spellcheck")) {
                         // only rep:spellcheck() is currently supported
@@ -265,6 +304,21 @@ public class XPathToSQL2Converter {
                     } else if (readIf("rep:suggest")) {
                         readOpenDotClose(true);
                         Expression.Property p = new Expression.Property(currentSelector, "rep:suggest()", false);
+                        statement.addSelectColumn(p);
+                    } else if (readIf("rep:facet")) {
+                        // this will also deal with relative properties
+                        // (functions and so on are also working, but this is probably not needed)
+                        read("(");
+                        Expression e = parseExpression();
+                        if (!(e instanceof Expression.Property)) {
+                            throw getSyntaxError();
+                        }
+                        Expression.Property prop = (Expression.Property) e;
+                        String property = prop.getColumnAliasName();
+                        read(")");
+                        rewindSelector();
+                        Expression.Property p = new Expression.Property(currentSelector,
+                                "rep:facet(" + property + ")", false);
                         statement.addSelectColumn(p);
                     }
                 } while (readIf("|"));
@@ -329,12 +383,24 @@ public class XPathToSQL2Converter {
                 statement.addOrderBy(order);
             } while (readIf(","));
         }
-        QueryOptions options = new QueryOptions();
+        QueryOptions options = null;
         if (readIf("option")) {
             read("(");
-            if (readIf("traversal")) {
-                String type = readIdentifier().toUpperCase(Locale.ENGLISH);
-                options.traversal = Traversal.valueOf(type);
+            options = new QueryOptions();
+            while (true) {
+                if (readIf("traversal")) {
+                    String type = readIdentifier().toUpperCase(Locale.ENGLISH);
+                    options.traversal = Traversal.valueOf(type);
+                } else if (readIf("index")) {
+                    if (readIf("name")) {
+                        options.indexName = readIdentifier();
+                    } else if (readIf("tag")) {
+                        options.indexTag = readIdentifier();
+                    }
+                } else {
+                    break;
+                }
+                readIf(",");
             }
             read(")");
         }
@@ -656,6 +722,13 @@ public class XPathToSQL2Converter {
             Expression.Cast c = new Expression.Cast(expr, "date");
             read(")");
             return c;
+        } else if ("fn:coalesce".equals(functionName)) {
+            Expression.Function f = new Expression.Function("coalesce");
+            f.params.add(parseExpression());
+            read(",");
+            f.params.add(parseExpression());
+            read(")");
+            return f;
         } else if ("fn:lower-case".equals(functionName)) {
             Expression.Function f = new Expression.Function("lower");
             f.params.add(parseExpression());
@@ -980,6 +1053,7 @@ public class XPathToSQL2Converter {
             readDecimal(i - 1, i);
             return;
         case CHAR_STRING:
+            currentTokenQuoted = true;
             if (chars[i - 1] == '\'') {
                 readString(i, '\'');
             } else {
@@ -1113,24 +1187,30 @@ public class XPathToSQL2Converter {
         parts.add(or);        
         String end = partList.substring(parseIndex);
         Statement result = null;
+        ArrayList<Order> orderList = null;
+        QueryOptions queryOptions = null;
         for(String p : parts) {
             String q = begin + p + end;
             converter = new XPathToSQL2Converter();
             Statement stat = converter.convertToStatement(q);
-            if (result == null) {
-                result = stat;
-            } else {
-                UnionStatement union = new UnionStatement(result, stat);
-                union.orderList = stat.orderList;
-                union.queryOptions = stat.queryOptions;
-                result = union;
-            }
+            orderList = stat.orderList;
+            queryOptions = stat.queryOptions;
             // reset fields that are used in the union,
             // but no longer in the individual statements
             // (can not use clear, because it is shared)
             stat.orderList = new ArrayList<Order>();
-            stat.queryOptions = new QueryOptions();
+            stat.queryOptions = null;
+            if (result == null) {
+                result = stat;
+            } else {
+                UnionStatement union = new UnionStatement(result, stat);
+                result = union;
+            }
         }
+        result.orderList = orderList;
+        result.queryOptions = queryOptions;
+        result.setExplain(statement.explain);
+        result.setMeasure(statement.measure);
         return result;
     }
 

@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dummy implementation of {@link CredentialsSupport} that only supports
@@ -41,19 +43,19 @@ public class TestCredentialsSupport implements CredentialsSupport {
         this.uid = null;
     }
 
-    TestCredentialsSupport(@Nonnull String uid) {
+    TestCredentialsSupport(@NotNull String uid) {
         this.uid = uid;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<Class> getCredentialClasses() {
         return ImmutableSet.<Class>of(Creds.class);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getUserId(@Nonnull Credentials credentials) {
+    public String getUserId(@NotNull Credentials credentials) {
         if (credentials instanceof Creds) {
             return uid;
         } else {
@@ -61,32 +63,32 @@ public class TestCredentialsSupport implements CredentialsSupport {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+    public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof Creds) {
             return ((Creds) credentials).attributes;
         } else {
-            throw new IllegalArgumentException();
+            return ImmutableMap.of();
         }
     }
 
     @Override
-    public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+    public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
         if (credentials instanceof Creds) {
             ((Creds) credentials).attributes.putAll(attributes);
             return true;
         } else {
-            throw new IllegalArgumentException();
+            return false;
         }
     }
 
     static final class Creds implements Credentials {
 
-        private final Map attributes;
+        private final Map<String, Object> attributes;
 
         Creds() {
-            attributes = new HashMap();
+            attributes = Maps.newHashMap();
             attributes.put(TokenConstants.TOKEN_ATTRIBUTE, "");
         }
     }

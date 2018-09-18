@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
@@ -47,6 +45,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,9 +70,9 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         super.before();
 
         syncMgr = new SyncManager() {
-            @CheckForNull
+            @Nullable
             @Override
-            public SyncHandler getSyncHandler(@Nonnull String name) {
+            public SyncHandler getSyncHandler(@NotNull String name) {
                 if (SYNC_NAME.equals(name)) {
                     return new DefaultSyncHandler(syncConfig);
                 } else if (ThrowingSyncHandler.NAME.equals(name)) {
@@ -85,9 +85,9 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             }
         };
         idpMgr = new ExternalIdentityProviderManager() {
-            @CheckForNull
+            @Nullable
             @Override
-            public ExternalIdentityProvider getProvider(@Nonnull String name) {
+            public ExternalIdentityProvider getProvider(@NotNull String name) {
                 if (name.equals(idp.getName())) {
                     return idp;
                 } else {
@@ -114,7 +114,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         return expected;
     }
 
-    private SyncMBeanImpl createSyncMBeanImpl(@Nonnull String syncHandlerName, @Nonnull String idpName) {
+    private SyncMBeanImpl createSyncMBeanImpl(@NotNull String syncHandlerName, @NotNull String idpName) {
         return new SyncMBeanImpl(getContentRepository(), getSecurityProvider(), syncMgr, syncHandlerName, idpMgr, idpName);
     }
 
@@ -763,44 +763,44 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
             this.allowsListIdentities = allowsListIdentities;
         };
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return allowsListIdentities ? NAME_ALLOWS_IDENTITY_LISTING : NAME;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) throws SyncException {
+        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) throws SyncException {
             return new DefaultSyncContext(syncConfig, idp, userManager, valueFactory) {
-                @Nonnull
+                @NotNull
                 @Override
-                public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+                public SyncResult sync(@NotNull ExternalIdentity identity) throws SyncException {
                     throw new SyncException("sync " + identity);
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public SyncResult sync(@Nonnull String id) throws SyncException {
+                public SyncResult sync(@NotNull String id) throws SyncException {
                     throw new SyncException("sync " + id);
                 }
             };
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException {
+        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException {
             throw new RepositoryException("findIdentity");
         }
 
         @Override
-        public boolean requiresSync(@Nonnull SyncedIdentity identity) {
+        public boolean requiresSync(@NotNull SyncedIdentity identity) {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
+        public Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException {
             if (!allowsListIdentities) {
                 throw new RepositoryException("listIdentities");
             } else {

@@ -26,32 +26,25 @@ import static org.junit.Assert.assertNull;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
-import org.junit.Ignore;
-import org.junit.Test;
 
 public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
     private SegmentNodeStoreFactory segmentNodeStoreFactory;
 
-    @Test
-    @Ignore
-    public void nodeStoreProvider() throws Exception {
-    }
-
     @Override
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {
         Map<String, Object> properties = newHashMap();
 
-        properties.put(SegmentNodeStoreFactory.ROLE, "some-role");
-        properties.put(SegmentNodeStoreFactory.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put("role", "some-role");
+        properties.put("customBlobStore", customBlobStore);
+        properties.put("repository.home", folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
     }
 
     @Override
     protected void unregisterSegmentNodeStoreService() {
-        deactivate(segmentNodeStoreFactory);
+        deactivate(segmentNodeStoreFactory, context.bundleContext());
     }
 
     @Override

@@ -159,10 +159,12 @@ public class NestedGroupTest extends AbstractUserTest {
 
     private static void assertCyclicMembershipError(Exception e) {
         Throwable th = e.getCause();
-        assertTrue(th instanceof CommitFailedException);
-        CommitFailedException ce = (CommitFailedException) th;
-        assertEquals(CommitFailedException.CONSTRAINT, ce.getType());
-        assertEquals(31, ce.getCode());
+        if (th != null) {
+            assertTrue(th instanceof CommitFailedException);
+            CommitFailedException ce = (CommitFailedException) th;
+            assertEquals(CommitFailedException.CONSTRAINT, ce.getType());
+            assertEquals(31, ce.getCode());
+        }
     }
 
     @Test

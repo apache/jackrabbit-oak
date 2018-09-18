@@ -23,26 +23,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -71,7 +71,11 @@ public class AsyncIndexerServiceTest {
 
         AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
 
-        MockOsgi.deactivate(service);
+        IndexStatsMBean mbean = context.getService(IndexStatsMBean.class);
+        assertNotNull(mbean);
+        assertEquals("async", mbean.getName());
+
+        MockOsgi.deactivate(service, context.bundleContext());
         assertNull(context.getService(Runnable.class));
         assertTrue(indexUpdate.isClosed());
     }
@@ -114,7 +118,7 @@ public class AsyncIndexerServiceTest {
 
         CommitContext commitContext = (CommitContext) infoCollector.infos.get(0).getInfo().get(CommitContext.NAME);
         assertNotNull(commitContext);
-        ChangeSet changeSet = (ChangeSet) commitContext.get(ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+        ChangeSet changeSet = (ChangeSet) commitContext.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
         assertNotNull(changeSet);
     }
 
@@ -139,9 +143,9 @@ public class AsyncIndexerServiceTest {
         assertEquals("async", configs.get(0).name);
         assertEquals(15, configs.get(0).timeIntervalInSecs);
 
-        configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo:23"});
+        configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo-async:23"});
         assertEquals(2, configs.size());
-        assertEquals("foo", configs.get(1).name);
+        assertEquals("foo-async", configs.get(1).name);
         assertEquals(23, configs.get(1).timeIntervalInSecs);
     }
 
@@ -171,10 +175,20 @@ public class AsyncIndexerServiceTest {
     }
 
     private static class FakeClusterableMemoryNodeStore extends MemoryNodeStore implements Clusterable {
-        @Nonnull
+        @NotNull
         @Override
         public String getInstanceId() {
             return "foo";
+        }
+
+        @Override
+        public String getVisibilityToken() {
+            return "";
+        }
+
+        @Override
+        public boolean isVisible(String visibilityToken, long maxWaitMillis) throws InterruptedException {
+            return true;
         }
     }
 }

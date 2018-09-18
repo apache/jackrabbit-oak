@@ -21,8 +21,8 @@ import static com.google.common.collect.ImmutableList.of;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ALTERNATIVE;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.CHEAPEST;
 import static org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode.ORIGINAL;
@@ -36,7 +36,6 @@ import static org.junit.Assert.assertTrue;
 import java.text.ParseException;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -44,14 +43,15 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -157,10 +157,10 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertOrToUnionResults(expected, original, optimised, cheapest);
     }
     
-    private static void assertOrToUnionResults(@Nonnull List<String> expected, 
-                                               @Nonnull List<String> original,
-                                               @Nonnull List<String> optimised,
-                                               @Nonnull List<String> cheapest) {
+    private static void assertOrToUnionResults(@NotNull List<String> expected, 
+                                               @NotNull List<String> original,
+                                               @NotNull List<String> optimised,
+                                               @NotNull List<String> cheapest) {
         // checks that all the three list are the expected content
         assertThat(checkNotNull(original), is(checkNotNull(expected)));        
         assertThat(checkNotNull(optimised), is(expected));
@@ -172,8 +172,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertThat(cheapest, is(original));
     }
 
-    private static Tree addChildWithProperty(@Nonnull Tree father, @Nonnull String name,
-                                             @Nonnull String propName, @Nonnull String propValue) {
+    private static Tree addChildWithProperty(@NotNull Tree father, @NotNull String name,
+                                             @NotNull String propName, @NotNull String propValue) {
         Tree t = checkNotNull(father).addChild(checkNotNull(name));
         t.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
         t.setProperty(checkNotNull(propName), checkNotNull(propValue));
@@ -187,7 +187,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
      */
     @Test
     public void optimise() throws ParseException {
-        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+        SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
+                getMappings(), getNodeTypes(), qeSettings);
         String statement;
         Query original, optimised;
 
@@ -261,7 +262,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
     }
     
     private void optimiseAndOrAnd(String statement, String expected) throws ParseException {
-        SQL2Parser parser = new SQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+        SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
+                getMappings(), getNodeTypes(), qeSettings);
         Query original;
         original = parser.parse(statement, false);
         assertNotNull(original);

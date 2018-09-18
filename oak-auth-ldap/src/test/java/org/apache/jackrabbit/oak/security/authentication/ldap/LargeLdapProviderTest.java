@@ -95,8 +95,10 @@ public class LargeLdapProviderTest {
         if (!USE_COMMON_LDAP_FIXTURE) {
             LDAP_SERVER.tearDown();
         }
-        idp.close();
-        idp = null;
+        if (idp != null) {
+            idp.close();
+            idp = null;
+        }
     }
 
     protected LdapIdentityProvider createIDP() {

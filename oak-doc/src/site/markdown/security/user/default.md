@@ -220,7 +220,7 @@ The corresponding errors are all of type `Constraint` with the following codes:
 | 0028              | Attempt to create outside of configured scope            |
 | 0029              | Intermediate folders not rep:AuthorizableFolder          |
 | 0030              | Missing uuid for group (check for cyclic membership)     |
-| 0031              | Cyclic group membership                                  |
+| <s>0031</s>        | <s>Cyclic group membership</s> (see [OAK-6072])         |
 | 0032              | Attempt to set password with system user                 |
 | 0033              | Attempt to add rep:pwd node to a system user             |
 
@@ -275,10 +275,10 @@ Within the default user management implementation the following parts can be
 modified or extended at runtime by providing corresponding OSGi services or passing
 appropriate configuration parameters exposing the custom implementations:
 
-- `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](user/authorizableaction.html).
+- `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](authorizableaction.html).
 - `AuthorizableNodeName`: Defines the generation of the authorizable node names
   in case the user management implementation stores user information in the repository.
-  See [Authorizable Node Name Generation](user/authorizablenodename.html).
+  See [Authorizable Node Name Generation](authorizablenodename.html).
 - `UserAuthenticationFactory`: see below
    
 #### UserAuthenticationFactory : Authenticating Users
@@ -327,3 +327,4 @@ implementation.
 [UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
+[OAK-6072]: https://issues.apache.org/jira/browse/OAK-6072

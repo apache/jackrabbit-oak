@@ -87,7 +87,7 @@ import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
@@ -1224,6 +1224,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("newValue", p3.getString());
     }
 
+    // OAK-6410
+    @Test
+    public void setInexistentProperty() throws RepositoryException {
+        Node node = getNode(TEST_PATH);
+        node.addMixin(JcrConstants.MIX_VERSIONABLE);
+        node.getSession().save();
+        node.getSession().getWorkspace().getVersionManager().checkin(TEST_PATH);
+        node.setProperty("inexistent", (Value) null);
+    }
+
     @Test
     public void setDoubleNaNProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
@@ -1872,7 +1882,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-5229")
     public void setPrimaryTypeShouldFail() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
@@ -1888,6 +1897,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             fail("Changing the primary type to nt:folder should fail.");
         } catch (RepositoryException e) {
             // ok
+            getAdminSession().refresh(false);
         }
 
         Session session2 = createAnonymousSession();

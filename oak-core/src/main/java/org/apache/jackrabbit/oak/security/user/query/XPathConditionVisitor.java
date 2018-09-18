@@ -111,7 +111,7 @@ class XPathConditionVisitor implements ConditionVisitor {
             statement.append('@')
                     .append(QueryUtil.escapeForQuery(UserConstants.REP_IMPERSONATORS, namePathMapper))
                     .append("='")
-                    .append(QueryUtil.escapeForQuery(condition.getName()))
+                    .append(condition.getName())
                     .append('\'');
         }
     }

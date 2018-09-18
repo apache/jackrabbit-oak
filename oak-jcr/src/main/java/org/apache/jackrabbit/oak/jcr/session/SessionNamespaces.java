@@ -24,13 +24,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Maps;
 
@@ -42,7 +42,7 @@ import com.google.common.collect.Maps;
  */
 public class SessionNamespaces extends LocalNameMapper {
 
-    public SessionNamespaces(@Nonnull Root root) {
+    public SessionNamespaces(@NotNull Root root) {
         super(root, Maps.<String, String>newHashMap());
     }
 

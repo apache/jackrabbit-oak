@@ -29,10 +29,10 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -60,11 +60,11 @@ public class SolrQueryIndexProviderService {
     @Reference
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY,
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
-    private volatile NodeAggregator nodeAggregator;
+    private volatile QueryIndex.NodeAggregator nodeAggregator;
 
     @Property(boolValue = QUERY_TIME_AGGREGATION_DEFAULT, label = "query time aggregation",
             description = "enable query time aggregation for Solr index")

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 
@@ -35,8 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
@@ -45,7 +43,7 @@ import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.*;
 
 public class NodeStateCopyUtilsTest {
@@ -131,6 +129,27 @@ public class NodeStateCopyUtilsTest {
         test = session.getNode("/test");
         assertEquals("y", test.getProperty("a/foo").getString());
         assertEquals("z", test.getProperty("b/foo").getString());
+    }
+
+    @Test
+    public void copyToJcrAndHiddenProps() throws Exception{
+        repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
+
+        Tree srcTree = TreeFactory.createTree(builder);
+        srcTree.addChild("a").setProperty("foo", "y");
+        srcTree.addChild("a").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        builder.child(":hidden-node").setProperty("x", "y");
+        builder.setProperty(":hidden-prop", "y");
+
+        Session session = repository.login(null, null);
+        Node node = session.getRootNode();
+        Node test = node.addNode("test", NT_OAK_UNSTRUCTURED);
+
+        NodeStateCopyUtils.copyToNode(builder.getNodeState(), test);
+        session.save();
+
+        test = session.getNode("/test");
+        assertEquals("y", test.getProperty("a/foo").getString());
     }
 
     @Test

@@ -20,24 +20,23 @@ package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.NodeCounterRoot;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
-@Component
-@Service(IndexEditorProvider.class)
+@Component(service = IndexEditorProvider.class)
 public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     public static final String TYPE = "counter";
@@ -46,11 +45,14 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
 
     public static final String SEED = "seed";
 
+    @Reference
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
+
     @Override
-    @CheckForNull
-    public Editor getIndexEditor(@Nonnull String type,
-            @Nonnull NodeBuilder definition, @Nonnull NodeState root,
-            @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+    @Nullable
+    public Editor getIndexEditor(@NotNull String type,
+            @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }
@@ -73,9 +75,20 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
                 definition.setProperty(SEED, seed);
             }
         }
-        NodeCounterRoot rootData = new NodeCounterRoot(
-                resolution, seed, definition, root, callback);
-        return new NodeCounterEditor(rootData, null, "/", null);
+
+        if (NodeCounter.USE_OLD_COUNTER) {
+            NodeCounterEditorOld.NodeCounterRoot rootData = new NodeCounterEditorOld.NodeCounterRoot(
+                    resolution, seed, definition, root, callback);
+            return new NodeCounterEditorOld(rootData, null, "/", null);
+        } else {
+            NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
+                    resolution, seed, definition, root, callback);
+            return new NodeCounterEditor(rootData, mountInfoProvider);
+        }
     }
 
+    public NodeCounterEditorProvider with(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+        return this;
+    }
 }

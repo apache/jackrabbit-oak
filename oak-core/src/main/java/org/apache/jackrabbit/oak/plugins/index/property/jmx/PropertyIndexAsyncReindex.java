@@ -19,18 +19,18 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.oak.management.ManagementOperation;
+import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Default implementation of {@link PropertyIndexAsyncReindexMBean} based on a
@@ -51,13 +51,13 @@ public class PropertyIndexAsyncReindex implements
      * @param executor
      *            executor for running the garbage collection task
      */
-    public PropertyIndexAsyncReindex(@Nonnull AsyncIndexUpdate async,
-            @Nonnull Executor executor) {
+    public PropertyIndexAsyncReindex(@NotNull AsyncIndexUpdate async,
+            @NotNull Executor executor) {
         this.async = checkNotNull(async);
         this.executor = checkNotNull(executor);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startPropertyIndexAsyncReindex() {
         if (arOp.isDone()) {
@@ -78,7 +78,7 @@ public class PropertyIndexAsyncReindex implements
         return getPropertyIndexAsyncReindexStatus();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getPropertyIndexAsyncReindexStatus() {
         return arOp.getStatus().toCompositeData();

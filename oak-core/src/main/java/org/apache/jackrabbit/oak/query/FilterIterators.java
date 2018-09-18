@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,10 @@ import org.slf4j.LoggerFactory;
  */
 public class FilterIterators {
     
-    private static final Logger LOG = LoggerFactory.getLogger(FilterIterators.class);    
+    private static final Logger LOG = LoggerFactory.getLogger(FilterIterators.class);
+
+    private FilterIterators() {
+    }
 
     /**
      * Verify the number of in-memory nodes is below the limit.
@@ -38,7 +42,7 @@ public class FilterIterators {
      * @param settings the query engine settings
      * @throws UnsupportedOperationException if the limit was exceeded
      */
-    public static void checkMemoryLimit(long count, QueryEngineSettings settings) {
+    public static void checkMemoryLimit(long count, QueryLimits settings) {
         long maxMemoryEntries = settings.getLimitInMemory();
         if (count > maxMemoryEntries) {
             String message = "The query read more than " + 
@@ -58,7 +62,7 @@ public class FilterIterators {
      * @param settings the query engine settings
      * @throws UnsupportedOperationException if the limit was exceeded
      */
-    public static void checkReadLimit(long count, QueryEngineSettings settings) {
+    public static void checkReadLimit(long count, QueryLimits settings) {
         long maxReadEntries = settings.getLimitReads();
         if (count > maxReadEntries) {
             String message = "The query read or traversed more than " + 
@@ -73,7 +77,7 @@ public class FilterIterators {
 
     public static <K> Iterator<K> newCombinedFilter(
             Iterator<K> it, boolean distinct, long limit, long offset, 
-            Comparator<K> orderBy, QueryEngineSettings settings) {
+            Comparator<K> orderBy, QueryLimits settings) {
         if (distinct) {
             it = FilterIterators.newDistinct(it, settings);
         }
@@ -93,7 +97,7 @@ public class FilterIterators {
         return it;
     }
     
-    public static <K> DistinctIterator<K> newDistinct(Iterator<K> it, QueryEngineSettings settings) {
+    public static <K> DistinctIterator<K> newDistinct(Iterator<K> it, QueryLimits settings) {
         return new DistinctIterator<K>(it, settings);
     }
     
@@ -105,7 +109,7 @@ public class FilterIterators {
         return new OffsetIterator<K>(it, offset);
     }
     
-    public static <K> Iterator<K> newSort(Iterator<K> it, Comparator<K> orderBy, int max, QueryEngineSettings settings) {
+    public static <K> Iterator<K> newSort(Iterator<K> it, Comparator<K> orderBy, int max, QueryLimits settings) {
         return new SortIterator<K>(it, orderBy, max, settings);
     }
 
@@ -119,12 +123,12 @@ public class FilterIterators {
     static class DistinctIterator<K> implements Iterator<K> {
 
         private final Iterator<K> source;
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
         private final HashSet<K> distinctSet;
         private K current;
         private boolean end;
 
-        DistinctIterator(Iterator<K> source, QueryEngineSettings settings) {
+        DistinctIterator(Iterator<K> source, QueryLimits settings) {
             this.source = source;
             this.settings = settings;
             distinctSet = new HashSet<K>();
@@ -183,12 +187,12 @@ public class FilterIterators {
     static class SortIterator<K> implements Iterator<K> {
 
         private final Iterator<K> source;
-        private final QueryEngineSettings settings;
+        private final QueryLimits settings;
         private final Comparator<K> orderBy;
         private Iterator<K> result;
         private final int max;
 
-        SortIterator(Iterator<K> source, Comparator<K> orderBy, int max, QueryEngineSettings settings) {
+        SortIterator(Iterator<K> source, Comparator<K> orderBy, int max, QueryLimits settings) {
             this.source = source;
             this.orderBy = orderBy;
             this.max = max;

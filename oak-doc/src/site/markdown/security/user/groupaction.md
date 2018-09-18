@@ -57,7 +57,7 @@ Oak 1.5 provides the following base implementation for `GroupAction` implementat
 
 ### Pluggability
 
-Refer to [Authorizable Actions | Pluggability ](user/authorizableaction.html#Pluggability) for details on how to plug
+Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on how to plug
 a new group action into the system.
 
 ### XML Import

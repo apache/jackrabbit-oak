@@ -39,8 +39,8 @@ effects:
 
 ##### External Groups
 
-- If enabled the handler will use an alternative [SyncContext] to synchronize external groups ([DynamicSyncContext]).
-- Instead of synchronizing groups into the user management, this [DynamicSyncContext]
+- If enabled the handler will use an alternative [SyncContext] to synchronize external groups (`DynamicSyncContext`).
+- Instead of synchronizing groups into the user management, this `DynamicSyncContext`
   will additionally set the property `rep:externalPrincipalNames` on the synchronized external user
 - `rep:externalPrincipalNames` is a system maintained multivalued property of type 
   'STRING' storing the names of the `java.security.acl.Group`-principals a given 
@@ -48,12 +48,18 @@ effects:
   membership nesting depth)
 - External groups will no longer be synchronised into the repository's user management 
   but will only be available as `Principal`s (see section _User Management_ below).
+  
+Note: as a further improvement the [PrincipalNameResolver] interface was introduced 
+in Oak 1.6.1 to allow for optimized resolution of a principal names from a given 
+`ExternalIdentityRef`. In order to benefit from that shortcut a given implementation 
+of `ExternalIdentityProvider` needs to also implement `PrincipalNameResolver`.
+See also [OAK-5210].
 
 ##### Automatic Membership
 
 - If enabled automatic membership assignment for existing, local groups will not longer be written to the repository
-- Instead the [ExternalPrincipalConfiguration] will keep track of the mapping 
-  between registered [SyncHandler]s (i.e. auto-membership configuration) and [ExternalIdentityProvider]s.
+- Instead the `ExternalPrincipalConfiguration` _("Apache Jackrabbit Oak External PrincipalConfiguration")_ will keep 
+  track of the mapping between registered [SyncHandler]s (i.e. auto-membership configuration) and [ExternalIdentityProvider]s.
   This allows to determine auto-membership based on the `rep:externalId` stored with the user accounts.
 - The `PrincipalProvider` associated with this dedicated principal configuration 
   will expand the collection of `Principal`s generated for the following calls 
@@ -115,8 +121,9 @@ Jackrabbit [User Management API](../../user.html) (see [OAK-2687]).
 
 The authentication setup provided by Oak is not affected by the dynamic membership 
 handling as long as the configured `LoginModule` implementations rely on the 
-`PrincipalProvider` for principal resolution and the [ExternalPrincipalConfiguration]
-is properly registered with the `SecurityProvider` (see section [Configuration](defaultusersync.html#configuration)).
+`PrincipalProvider` for principal resolution and the `ExternalPrincipalConfiguration` 
+_("Apache Jackrabbit Oak External PrincipalConfiguration")_ is properly registered 
+with the `SecurityProvider` (see section [Configuration](defaultusersync.html#configuration)).
 
 ##### Authorization
 
@@ -130,10 +137,10 @@ membership configuration.
 [DefaultSyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncContext.html
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncConfig.html
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
-[ExternalPrincipalConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalPrincipalConfiguration.html
-[DynamicSyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/DynamicSyncContext.html
+[PrincipalNameResolver]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/PrincipalNameResolver.html
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687
 [OAK-4087]: https://issues.apache.org/jira/browse/OAK-4087
 [OAK-5194]: https://issues.apache.org/jira/browse/OAK-5194
 [OAK-5195]: https://issues.apache.org/jira/browse/OAK-5195
+[OAK-5210]: https://issues.apache.org/jira/browse/OAK-5210

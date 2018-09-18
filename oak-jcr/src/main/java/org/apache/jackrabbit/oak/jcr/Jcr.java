@@ -25,44 +25,31 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.Oak.OakDefaultComponents;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.version.VersionHook;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Builder class which encapsulates the details of building a JCR
@@ -95,7 +82,7 @@ public class Jcr {
     private CommitRateLimiter commitRateLimiter;
     private ScheduledExecutorService scheduledExecutor;
     private Executor executor;
-    private QueryEngineSettings queryEngineSettings;
+    private QueryLimits queryEngineSettings;
     private String defaultWorkspaceName;
     private Whiteboard whiteboard;
 
@@ -104,36 +91,30 @@ public class Jcr {
 
     private ContentRepository contentRepository;
     private Repository repository;
-    
+
     private Clusterable clusterable;
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
 
         if (initialize) {
-            with(new InitialContent());
-
-            with(new VersionHook());
-
-            with(new SecurityProviderImpl());
-
-            with(new ItemSaveValidatorProvider());
-            with(new NameValidatorProvider());
-            with(new NamespaceEditorProvider());
-            with(new TypeEditorProvider());
-            with(new ConflictValidatorProvider());
-            with(new ChangeCollectorProvider());
-
-            with(new ReferenceEditorProvider());
-            with(new ReferenceIndexProvider());
-
-            with(new PropertyIndexEditorProvider());
-            with(new NodeCounterEditorProvider());
-
-            with(new PropertyIndexProvider());
-            with(new NodeTypeIndexProvider());
-
-            with(new OrderedPropertyIndexEditorProvider());
+            OakDefaultComponents defs = new OakDefaultComponents();
+            with(defs.securityProvider());
+            for (CommitHook ch : defs.commitHooks()) {
+                with(ch);
+            }
+            for (RepositoryInitializer ri : defs.repositoryInitializers()) {
+                with(ri);
+            }
+            for (EditorProvider ep : defs.editorProviders()) {
+                with(ep);
+            }
+            for (IndexEditorProvider iep : defs.indexEditorProviders()) {
+                with(iep);
+            }
+            for (QueryIndexProvider qip : defs.queryIndexProviders()) {
+                with(qip);
+            }
         }
     }
 
@@ -149,15 +130,15 @@ public class Jcr {
         this(new Oak(store));
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull Clusterable c) {
+    @NotNull
+    public Jcr with(@NotNull Clusterable c) {
         ensureRepositoryIsNotCreated();
         this.clusterable = checkNotNull(c);
         return this;
     }
-    
-    @Nonnull
-    public final Jcr with(@Nonnull RepositoryInitializer initializer) {
+
+    @NotNull
+    public final Jcr with(@NotNull RepositoryInitializer initializer) {
         ensureRepositoryIsNotCreated();
         repositoryInitializers.add(checkNotNull(initializer));
         return this;
@@ -168,126 +149,146 @@ public class Jcr {
         oak.withAtomicCounter();
         return this;
     }
-    
+
     private void ensureRepositoryIsNotCreated() {
         checkState(repository == null && contentRepository == null,
                 "Repository was already created");
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull QueryIndexProvider provider) {
+    @NotNull
+    public final Jcr with(@NotNull QueryIndexProvider provider) {
         ensureRepositoryIsNotCreated();
         queryIndexProviders.add(checkNotNull(provider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull IndexEditorProvider indexEditorProvider) {
+    @NotNull
+    public final Jcr with(@NotNull IndexEditorProvider indexEditorProvider) {
         ensureRepositoryIsNotCreated();
         indexEditorProviders.add(checkNotNull(indexEditorProvider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull CommitHook hook) {
+    @NotNull
+    public final Jcr with(@NotNull CommitHook hook) {
         ensureRepositoryIsNotCreated();
         commitHooks.add(checkNotNull(hook));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull EditorProvider provider) {
+    @NotNull
+    public final Jcr with(@NotNull EditorProvider provider) {
         ensureRepositoryIsNotCreated();
         editorProviders.add(checkNotNull(provider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Editor editor) {
+    @NotNull
+    public final Jcr with(@NotNull Editor editor) {
         ensureRepositoryIsNotCreated();
         editors.add(checkNotNull(editor));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull SecurityProvider securityProvider) {
+    @NotNull
+    public final Jcr with(@NotNull SecurityProvider securityProvider) {
         ensureRepositoryIsNotCreated();
         this.securityProvider = checkNotNull(securityProvider);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull PartialConflictHandler conflictHandler) {
+    /**
+     * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
+     */
+    @Deprecated
+    @NotNull
+    public final Jcr with(@NotNull PartialConflictHandler conflictHandler) {
+        return with(ConflictHandlers.wrap(conflictHandler));
+    }
+
+    @NotNull
+    public final Jcr with(@NotNull ThreeWayConflictHandler conflictHandler) {
         ensureRepositoryIsNotCreated();
         this.conflictHandler.addHandler(checkNotNull(conflictHandler));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull ScheduledExecutorService executor) {
+    @NotNull
+    public final Jcr with(@NotNull ScheduledExecutorService executor) {
         ensureRepositoryIsNotCreated();
         this.scheduledExecutor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Executor executor) {
+    @NotNull
+    public final Jcr with(@NotNull Executor executor) {
         ensureRepositoryIsNotCreated();
         this.executor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Observer observer) {
+    @NotNull
+    public final Jcr with(@NotNull Observer observer) {
         ensureRepositoryIsNotCreated();
         observers.add(checkNotNull(observer));
         return this;
     }
 
-    @Nonnull
+    /**
+     * @deprecated Use {@link #withAsyncIndexing(String, long)} instead
+     */
+    @NotNull
+    @Deprecated
     public Jcr withAsyncIndexing() {
         ensureRepositoryIsNotCreated();
         oak.withAsyncIndexing();
         return this;
     }
 
-    @Nonnull
+    @NotNull
+    public Jcr withAsyncIndexing(@NotNull String name, long delayInSeconds) {
+        ensureRepositoryIsNotCreated();
+        oak.withAsyncIndexing(name, delayInSeconds);
+        return this;
+    }
+
+    @NotNull
     public Jcr withObservationQueueLength(int observationQueueLength) {
         ensureRepositoryIsNotCreated();
         this.observationQueueLength = observationQueueLength;
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull CommitRateLimiter commitRateLimiter) {
+    @NotNull
+    public Jcr with(@NotNull CommitRateLimiter commitRateLimiter) {
         ensureRepositoryIsNotCreated();
         this.commitRateLimiter = checkNotNull(commitRateLimiter);
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull QueryEngineSettings qs) {
+    @NotNull
+    public Jcr with(@NotNull QueryLimits qs) {
         ensureRepositoryIsNotCreated();
         this.queryEngineSettings = checkNotNull(qs);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public Jcr withFastQueryResultSize(boolean fastQueryResultSize) {
         ensureRepositoryIsNotCreated();
         this.fastQueryResultSize = fastQueryResultSize;
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull String defaultWorkspaceName) {
+    @NotNull
+    public Jcr with(@NotNull String defaultWorkspaceName) {
         ensureRepositoryIsNotCreated();
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull Whiteboard whiteboard) {
+    @NotNull
+    public Jcr with(@NotNull Whiteboard whiteboard) {
         ensureRepositoryIsNotCreated();
         this.whiteboard = checkNotNull(whiteboard);
         return this;
@@ -362,13 +363,13 @@ public class Jcr {
         if (defaultWorkspaceName != null) {
             oak.with(defaultWorkspaceName);
         }
-        
+
         if (clusterable != null) {
             oak.with(clusterable);
         }
     }
 
-    @Nonnull
+    @NotNull
     public ContentRepository createContentRepository() {
         if (contentRepository == null) {
             setUpOak();
@@ -377,7 +378,7 @@ public class Jcr {
         return contentRepository;
     }
 
-    @Nonnull
+    @NotNull
     public Repository createRepository() {
         if (repository == null) {
             repository = new RepositoryImpl(

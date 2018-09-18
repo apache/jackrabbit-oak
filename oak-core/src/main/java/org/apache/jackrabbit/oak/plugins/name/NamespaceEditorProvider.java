@@ -17,10 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NAMESPACES;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -28,14 +26,14 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * Validator service that checks that all node and property names as well
  * as any name values are syntactically valid and that any namespace prefixes
  * are properly registered.
  */
-@Component
-@Service(EditorProvider.class)
+@Component(service = EditorProvider.class)
 public class NamespaceEditorProvider implements EditorProvider {
 
     @Override

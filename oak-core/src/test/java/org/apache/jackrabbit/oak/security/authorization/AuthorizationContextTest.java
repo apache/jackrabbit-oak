@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
@@ -28,17 +27,26 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -141,4 +149,84 @@ public class AuthorizationContextTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testGetType() throws Exception {
+        TreeTypeProvider ttp = new TreeTypeProvider(AuthorizationContext.getInstance());
+        for (TypeTest test : TypeTest.createTests(root)) {
+            assertEquals(test.path, test.type, ttp.getType(root.getTree(test.path)));
+        }
+    }
+
+    @Test
+    public void testGetTypeWithParentType() throws Exception {
+        TreeTypeProvider ttp = new TreeTypeProvider(AuthorizationContext.getInstance());
+        for (TypeTest test : TypeTest.createTests(root)) {
+            assertEquals(test.path, test.type, ttp.getType(root.getTree(test.path), test.parentType));
+        }
+    }
+
+    @Test
+    public void testGetTypeWithDefaultParentType() throws Exception {
+        TreeTypeProvider ttp = new TreeTypeProvider(AuthorizationContext.getInstance());
+        for (TypeTest test : TypeTest.createTests(root)) {
+            TreeType typeIfParentDefault = ttp.getType(root.getTree(test.path), TreeType.DEFAULT);
+
+            if (TreeType.DEFAULT == test.parentType) {
+                assertEquals(test.path, test.type, typeIfParentDefault);
+            } else {
+                assertNotEquals(test.path, test.type, typeIfParentDefault);
+            }
+        }
+    }
+
+
+    private static final class TypeTest {
+
+        private final String path;
+        private final TreeType type;
+        private final TreeType parentType;
+
+        private TypeTest(@NotNull String path, TreeType type) {
+            this(path, type, TreeType.DEFAULT);
+        }
+
+        private TypeTest(@NotNull String path, TreeType type, TreeType parentType) {
+            this.path = path;
+            this.type = type;
+            this.parentType = parentType;
+        }
+
+        private static List<TypeTest> createTests(@NotNull Root root) throws Exception {
+            List<TypeTest> tests = new ArrayList();
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:AccessControllable/rep:namedChildNodeDefinitions/rep:policy/rep:Policy", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:ACL/rep:residualChildNodeDefinitions/rep:ACE", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:GrantACE/rep:namedChildNodeDefinitions/rep:restrictions", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:RepoAccessControllable/rep:namedChildNodeDefinitions/rep:repoPolicy", TreeType.DEFAULT));
+            tests.add(new TypeTest(NodeTypeConstants.NODE_TYPES_PATH + "/rep:PermissionStore", TreeType.DEFAULT));
+
+
+            tests.add(new TypeTest(PermissionConstants.PERMISSIONS_STORE_PATH, TreeType.INTERNAL));
+            tests.add(new TypeTest(PermissionConstants.PERMISSIONS_STORE_PATH + "/a/b/child", TreeType.INTERNAL, TreeType.INTERNAL));
+
+            NodeUtil testTree = new NodeUtil(root.getTree("/")).addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            for (String name : AccessControlConstants.POLICY_NODE_NAMES) {
+                NodeUtil acl = testTree.addChild(name, AccessControlConstants.NT_REP_ACL);
+                tests.add(new TypeTest(acl.getTree().getPath(), TreeType.ACCESS_CONTROL));
+
+                NodeUtil ace = acl.addChild("ace", AccessControlConstants.NT_REP_DENY_ACE);
+                tests.add(new TypeTest(ace.getTree().getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+
+                NodeUtil ace2 = acl.addChild("ace2", AccessControlConstants.NT_REP_GRANT_ACE);
+                tests.add(new TypeTest(ace2.getTree().getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+
+                NodeUtil rest = ace2.addChild(AccessControlConstants.REP_RESTRICTIONS, AccessControlConstants.NT_REP_RESTRICTIONS);
+                tests.add(new TypeTest(rest.getTree().getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+
+                NodeUtil invalid = rest.addChild("invalid", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+                tests.add(new TypeTest(invalid.getTree().getPath(), TreeType.ACCESS_CONTROL, TreeType.ACCESS_CONTROL));
+            }
+            return tests;
+        }
+    }
 }

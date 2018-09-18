@@ -17,14 +17,16 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.io.File;
-import java.util.Arrays;
 
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -44,19 +46,21 @@ public class SegmentReferencesTest {
 
             // Write two records, one referencing the other.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
-            RecordId stringId = writer.writeString("test");
-            RecordId listId = writer.writeList(Arrays.asList(stringId, stringId));
+            SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
+            RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+            builder.setChildNode("referred", store.getReader().readNode(a));
+            RecordId b = writer.writeNode(builder.getNodeState());
             writer.flush();
 
             // The two records should be living in the same segment.
 
-            assertEquals(listId.getSegmentId(), stringId.getSegmentId());
+            assertEquals(b.getSegmentId(), a.getSegmentId());
 
             // This inter-segment reference shouldn't generate a reference from
             // this segment to itself.
 
-            assertEquals(0, listId.getSegment().getReferencedSegmentIdCount());
+            assertEquals(0, b.getSegment().getReferencedSegmentIdCount());
         }
     }
 
@@ -66,23 +70,25 @@ public class SegmentReferencesTest {
 
             // Write two records, one referencing the other.
 
-            SegmentWriter writer = SegmentWriterBuilder.segmentWriterBuilder("test").build(store);
+            SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
 
-            RecordId stringId = writer.writeString("test");
+            RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
             writer.flush();
 
-            RecordId listId = writer.writeList(Arrays.asList(stringId, stringId));
+            NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+            builder.setChildNode("referred", store.getReader().readNode(a));
+            RecordId b = writer.writeNode(builder.getNodeState());
             writer.flush();
 
             // The two records should be living in two different segments.
 
-            assertNotEquals(listId.getSegmentId(), stringId.getSegmentId());
+            assertNotEquals(a.getSegmentId(), b.getSegmentId());
 
             // This intra-segment reference should generate a reference from the
             // segment containing the list to the segment containing the string.
 
-            assertEquals(1, listId.getSegment().getReferencedSegmentIdCount());
-            assertEquals(stringId.getSegmentId().asUUID(), listId.getSegment().getReferencedSegmentId(0));
+            assertEquals(1, b.getSegment().getReferencedSegmentIdCount());
+            assertEquals(a.getSegmentId().asUUID(), b.getSegment().getReferencedSegmentId(0));
         }
     }
 

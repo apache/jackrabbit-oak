@@ -269,7 +269,7 @@ until all the hooks have had a chance to process the commit. The resulting
 final node state is then persisted as a new revision and made available to
 other Oak clients.
 
-## Commit editors
+## <a name="commit-editors"/> Commit editors
 
 In practice most commit hooks are interested in the content diff as returned
 by the `compareAgainstBaseState` call mentioned above. This call can be

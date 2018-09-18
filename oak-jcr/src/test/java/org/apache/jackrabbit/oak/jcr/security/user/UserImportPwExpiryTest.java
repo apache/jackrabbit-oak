@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.user;
 
 import java.util.HashMap;
-import javax.annotation.CheckForNull;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -51,7 +51,7 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     protected ConfigurationParameters getConfigurationParameters() {
         HashMap<String, Object> userParams = new HashMap<String, Object>() {{
             put(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);

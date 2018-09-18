@@ -18,29 +18,47 @@
 package org.apache.jackrabbit.oak.segment.standby.server;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class FileStoreUtil {
+public final class FileStoreUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileStoreUtil.class);
+    private static final long DEFAULT_SLEEP_TIME = 125L;
 
     private FileStoreUtil() {
         // Prevent instantiation
     }
 
-    static Segment readSegmentWithRetry(FileStore store, SegmentId id) {
-        for (int i = 0; i < 160; i++) {
-            if (store.containsSegment(id)) {
-                return store.readSegment(id);
+    public static int roundDiv(long x, int y) {
+        return (int) Math.ceil((double) x / (double) y);
+    }
+    
+    static RecordId readPersistedHeadWithRetry(FileStore store, long timeout) {
+        Supplier<RecordId> headSupplier = () -> {
+            return store.getRevisions().getPersistedHead();
+        };
+
+        if (timeout > DEFAULT_SLEEP_TIME) {
+            return readWithRetry(headSupplier, "persisted head", timeout);
+        } else {
+            return headSupplier.get();
+        }
+    }
+    
+    private static <T> T readWithRetry(Supplier<T> supplier, String supplied, long timeout) {
+        for (int i = 0; i < timeout / DEFAULT_SLEEP_TIME; i++) {
+            if (supplier.get() != null) {
+                return supplier.get();
             }
+            
             try {
-                log.trace("Unable to read segment, waiting...");
-                TimeUnit.MILLISECONDS.sleep(125);
+                log.trace("Unable to read {}, waiting...", supplied);
+                TimeUnit.MILLISECONDS.sleep(DEFAULT_SLEEP_TIME);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return null;
@@ -48,5 +66,4 @@ final class FileStoreUtil {
         }
         return null;
     }
-
 }

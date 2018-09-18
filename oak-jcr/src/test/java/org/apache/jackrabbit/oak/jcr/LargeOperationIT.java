@@ -26,7 +26,6 @@ import static javax.jcr.observation.Event.NODE_ADDED;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -49,9 +48,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import com.google.common.collect.Lists;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
 import org.apache.commons.math3.exception.MathInternalError;
@@ -64,9 +60,7 @@ import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.fixture.SegmentFixture;
+import org.apache.jackrabbit.oak.segment.fixture.SegmentTarFixture;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -75,6 +69,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 
 /**
  * Scalability test asserting certain operations scale not worse than {@code O(n log n)}
@@ -134,11 +133,8 @@ public class LargeOperationIT {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws Exception {
-        File file = new File(new File("target"), "tar." + System.nanoTime());
-        SegmentStore segmentStore = FileStore.builder(file).withMaxFileSize(256).withMemoryMapping(true).build();
-
         List<Object[]> fixtures = Lists.newArrayList();
-        SegmentFixture segmentFixture = new SegmentFixture(segmentStore);
+        SegmentTarFixture segmentFixture = new SegmentTarFixture();
         if (segmentFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentFixture, SEGMENT_SCALES});
         }

@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
+import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implements an identity that is provided by the {@link LdapIdentityProvider}.
@@ -37,21 +37,28 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     protected final String path;
 
+    protected final Entry entry;
+
     private Map<String, ExternalIdentityRef> groups;
 
     private final LdapIdentityProperties properties = new LdapIdentityProperties();
 
-    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
+    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
         this.provider = provider;
         this.ref = ref;
         this.id = id;
         this.path = path;
+        this.entry = entry;
+    }
+
+    public Entry getEntry() {
+        return entry;
     }
 
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public ExternalIdentityRef getExternalId() {
         return ref;
@@ -60,7 +67,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getId() {
         return id;
@@ -70,7 +77,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
      * Returns the DN as principal name.
      * @return the DN
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getPrincipalName() {
         return ref.getId();
@@ -87,11 +94,11 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
         if (groups == null) {
-            groups = provider.getDeclaredGroupRefs(ref);
+            groups = provider.getDeclaredGroupRefs(ref, entry.getDn().getName());
         }
         return groups.values();
     }
@@ -99,7 +106,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, Object> getProperties() {
         return properties;

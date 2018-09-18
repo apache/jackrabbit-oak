@@ -21,22 +21,31 @@ import static com.google.common.collect.Iterables.elementsEqual;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
+import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createMask;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.hash;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
+import java.io.File;
+import java.io.InputStream;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import org.apache.commons.io.IOUtils;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ResponseDecoderTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
     @Test
     public void unrecognizedMessagesShouldBeDropped() throws Exception {
@@ -44,31 +53,55 @@ public class ResponseDecoderTest {
         buf.writeInt(1);
         buf.writeByte(-1);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
 
     @Test
-    public void shouldDecodeValidGetBlobResponses() throws Exception {
+    public void shouldDecodeValidOneChunkGetBlobResponses() throws Exception {
         byte[] blobData = new byte[] {1, 2, 3};
 
         String blobId = "blobId";
-        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte mask = createMask(1, 1);
+        ByteBuf buf = createBlobChunkBuffer(Messages.HEADER_BLOB, 3L, blobId, blobData, mask);
 
-        ByteBuf buf = Unpooled.buffer();
-        buf.writeInt(1 + 4 + blobIdBytes.length + 8 + blobData.length);
-        buf.writeByte(Messages.HEADER_BLOB);
-        buf.writeInt(blobIdBytes.length);
-        buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(blobData));
-        buf.writeBytes(blobData);
-
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetBlobResponse response = (GetBlobResponse) channel.readInbound();
         assertEquals("blobId", response.getBlobId());
-        assertArrayEquals(blobData, response.getBlobData());
+        assertEquals(blobData.length, response.getLength());
+        try (InputStream is = response.getInputStream()) {
+            byte[] receivedData = IOUtils.toByteArray(is);
+            assertArrayEquals(blobData, receivedData);
+        }
+    }
+
+    @Test
+    public void shouldDecodeValidTwoChunksGetBlobResponses() throws Exception {
+        byte[] blobData = new byte[] {1, 2, 3, 4};
+        byte[] firstChunkData = new byte[] {1, 2};
+        byte[] secondChunkbData = new byte[] {3, 4};
+
+        String blobId = "blobId";
+        
+        byte firstMask = createMask(1, 2);
+        ByteBuf firstBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData, firstMask);
+        
+        byte secondMask = createMask(2, 2);
+        ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
+
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
+        channel.writeInbound(firstBuf);
+        channel.writeInbound(secondBuf);
+        
+        GetBlobResponse response = (GetBlobResponse) channel.readInbound();
+        assertEquals("blobId", response.getBlobId());
+        assertEquals(blobData.length, response.getLength());
+        try (InputStream is = response.getInputStream()) {
+            byte[] receivedData = IOUtils.toByteArray(is);
+            assertArrayEquals(blobData, receivedData);
+        }
     }
 
     @Test
@@ -77,16 +110,19 @@ public class ResponseDecoderTest {
 
         String blobId = "blobId";
         byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte mask = createMask(1, 1);
 
         ByteBuf buf = Unpooled.buffer();
-        buf.writeInt(1 + 4 + blobIdBytes.length + 8 + blobData.length);
+        buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + blobData.length);
         buf.writeByte(Messages.HEADER_BLOB);
+        buf.writeByte(mask);
+        buf.writeLong(3L);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(blobData) + 1);
+        buf.writeLong(hash(mask, 3L, blobData) + 1);
         buf.writeBytes(blobData);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
@@ -101,7 +137,7 @@ public class ResponseDecoderTest {
         in.writeByte(Messages.HEADER_RECORD);
         in.writeBytes(recordIdBytes);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(in);
         GetHeadResponse response = (GetHeadResponse) channel.readInbound();
         assertEquals(recordId, response.getHeadRecordId());
@@ -120,7 +156,7 @@ public class ResponseDecoderTest {
         buf.writeLong(hash(data));
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetSegmentResponse response = (GetSegmentResponse) channel.readInbound();
         assertEquals(uuid, UUID.fromString(response.getSegmentId()));
@@ -136,7 +172,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -152,7 +188,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }
@@ -166,7 +202,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -182,7 +218,7 @@ public class ResponseDecoderTest {
         buf.writeByte(Messages.HEADER_REFERENCES);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
@@ -202,7 +238,7 @@ public class ResponseDecoderTest {
         buf.writeLong(hash(data) + 1);
         buf.writeBytes(data);
 
-        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder());
+        EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
         channel.writeInbound(buf);
         assertNull(channel.readInbound());
     }

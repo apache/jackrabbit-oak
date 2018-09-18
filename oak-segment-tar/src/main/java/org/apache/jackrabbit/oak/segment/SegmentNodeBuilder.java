@@ -23,11 +23,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,13 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 10000);
 
-    @Nonnull
+    @Nullable
+    private final BlobStore blobStore;
+
+    @NotNull
+    private final SegmentReader reader;
+
+    @NotNull
     private final SegmentWriter writer;
 
     /**
@@ -64,14 +71,27 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
      */
     private long updateCount;
 
-    SegmentNodeBuilder(@Nonnull SegmentNodeState base, @Nonnull SegmentWriter writer) {
+    SegmentNodeBuilder(
+            @NotNull SegmentNodeState base,
+            @Nullable BlobStore blobStore,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer) {
         super(base);
+        this.blobStore = blobStore;
+        this.reader = reader;
         this.writer = checkNotNull(writer);
         this.updateCount = 0;
     }
 
-    private SegmentNodeBuilder(SegmentNodeBuilder parent, String name, @Nonnull SegmentWriter writer) {
+    private SegmentNodeBuilder(
+            @NotNull SegmentNodeBuilder parent,
+            @NotNull String name,
+            @Nullable BlobStore blobStore,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer) {
         super(parent, name);
+        this.blobStore = blobStore;
+        this.reader = reader;
         this.writer = checkNotNull(writer);
         this.updateCount = -1;
     }
@@ -103,15 +123,17 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     //-------------------------------------------------------< NodeBuilder >--
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentNodeState getNodeState() {
         try {
             NodeState state = super.getNodeState();
-            SegmentNodeState sState = writer.writeNode(state);
+            SegmentNodeState sState = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(state));
             if (state != sState) {
                 set(sState);
-                updateCount = 0;
+                if(!isChildBuilder()) {
+                    updateCount = 0;
+                }
             }
             return sState;
         } catch (IOException e) {
@@ -122,12 +144,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     @Override
     protected MemoryNodeBuilder createChildBuilder(String name) {
-        return new SegmentNodeBuilder(this, name, writer);
+        return new SegmentNodeBuilder(this, name, blobStore, reader, writer);
     }
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        return writer.writeStream(stream);
+        return new SegmentBlob(blobStore, writer.writeStream(stream));
     }
 
 }

@@ -20,10 +20,14 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -40,6 +44,12 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  */
 class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
 
+    private final MountInfoProvider mountInfoProvider;
+
+    public AuthorizationInitializer(@NotNull MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
     @Override
     public void initialize(NodeBuilder builder, String workspaceName) {
         // property index for rep:principalName stored in ACEs
@@ -48,9 +58,7 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
             NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
                     ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
-            acPrincipalName.setProperty("info",
-                    "Oak index used by authorization to quickly search a principal by name."
-                    );
+            acPrincipalName.setProperty("info", "Oak index used by authorization to quickly search a principal by name.");
         }
 
         // create the permission store and the root for this workspace.
@@ -61,6 +69,12 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         }
         if (!permissionStore.hasChildNode(workspaceName)) {
             permissionStore.child(workspaceName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+        }
+        for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+            String permissionRootName =  MountPermissionProvider.getPermissionRootName(m, workspaceName);
+            if (!permissionStore.hasChildNode(permissionRootName)) {
+                permissionStore.child(permissionRootName).setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+            }
         }
     }
 

@@ -29,8 +29,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.FluentIterable;
@@ -40,6 +38,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A file blob store.
@@ -109,6 +108,7 @@ public class FileBlobStore extends AbstractBlobStore {
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         File f = getFile(digest, false);
         if (f.exists()) {
+            FileUtils.touch(f);
             return;
         }
         File parent = f.getParentFile();

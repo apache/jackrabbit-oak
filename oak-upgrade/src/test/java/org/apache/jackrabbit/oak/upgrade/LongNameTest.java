@@ -1,186 +1,223 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static com.google.common.collect.Iterables.cycle;
-import static com.google.common.collect.Iterables.limit;
-import static org.junit.Assert.fail;
+import org.apache.jackrabbit.core.RepositoryContext;
+import org.apache.jackrabbit.core.RepositoryImpl;
+import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-
-import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.core.RepositoryImpl;
-import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.fail;
 
+@RunWith(Parameterized.class)
 public class LongNameTest {
 
-    public static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin".toCharArray());
+    private static final Logger LOG = LoggerFactory.getLogger(LongNameTest.class);
 
-    private static final String TOO_LONG_NAME = "this string is an example of a very long node name which is approximately one hundred fifty eight bytes long so too long for the document node store to handle";
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
+        List<Object[]> params = new ArrayList<Object[]>();
 
-    private static final String NOT_TOO_LONG_NAME = "this string despite it is very long as well is not too long for the document node store to handle so it may be migrated succesfully without troubles";
+        params.add(new Object[] { "Short parent, short name", 349, 150, false });
+        params.add(new Object[] { "Short parent, long name", 349, 151, false });
+        params.add(new Object[] { "Long parent, short name", 350, 150, false });
+        params.add(new Object[] { "Long parent, long name", 350, 151, true });
 
-    private static RepositoryConfig sourceRepositoryConfig;
+        return params;
+    }
 
-    private static File crx2RepoDir;
+    private final String parentPath;
 
-    @BeforeClass
-    public static void prepareSourceRepository() throws RepositoryException, IOException, InterruptedException {
-        crx2RepoDir = new File("target", "upgrade-" + Clock.SIMPLE.getTimeIncreasing());
-        FileUtils.deleteQuietly(crx2RepoDir);
+    private final String nodeName;
 
-        sourceRepositoryConfig = createCrx2Config(crx2RepoDir);
-        RepositoryContext ctx = RepositoryContext.create(sourceRepositoryConfig);
-        RepositoryImpl sourceRepository = ctx.getRepository();
-        Session session = sourceRepository.login(CREDENTIALS);
+    private final boolean shouldBeSkipped;
+
+    @Rule
+    public final TemporaryFolder crxRepo = new TemporaryFolder(new File("target"));
+
+    public LongNameTest(String name, int parentPathLength, int nodeNameLength, boolean shouldBeSkipped) {
+        this.parentPath = generatePath(parentPathLength);
+        this.nodeName = generateNodeName(nodeNameLength);
+        this.shouldBeSkipped = shouldBeSkipped;
+    }
+
+    @Test
+    public void testMigrationToDocStore() throws IOException, CommitFailedException, RepositoryException {
+        SegmentNodeStore src = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+        createNodes(src);
+
+        DocumentNodeStore dst = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder().build();
+
+        RepositorySidegrade sidegrade = new RepositorySidegrade(src, dst);
+        sidegrade.setFilterLongNames(true);
+        sidegrade.copy();
+
+        NodeState parent = getParent(dst);
+        Assert.assertTrue("Parent should exists", parent.exists());
+        if (shouldBeSkipped) {
+            Assert.assertFalse("Node shouldn't exists", parent.hasChildNode(nodeName));
+        } else {
+            Assert.assertTrue("Node should exists", parent.hasChildNode(nodeName));
+        }
+    }
+
+    @Test
+    public void testNodeOnDocStore() throws CommitFailedException {
+        DocumentNodeStore docStore = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder().build();
+
         try {
-            Assert.assertTrue(TOO_LONG_NAME.getBytes().length > 150);
-            Assert.assertTrue(NOT_TOO_LONG_NAME.getBytes().length < 150);
+            createNodes(docStore);
+            if (shouldBeSkipped) {
+                fail("It shouldn't be possible to create a node");
+            }
+        } catch (CommitFailedException e) {
+            if (!shouldBeSkipped) {
+                LOG.warn("Unexpected exception", e);
+                fail("It should be possible to create a node");
+            }
+        }
+    }
 
-            Node longNameParent = createParent(session.getRootNode());
-            Assert.assertTrue(longNameParent.getPath().length() >= 350);
-
-            longNameParent.addNode(TOO_LONG_NAME);
-            longNameParent.addNode(NOT_TOO_LONG_NAME);
+    @Test
+    @Ignore
+    public void testUpgradeToDocStore() throws IOException, CommitFailedException, RepositoryException {
+        File root = crxRepo.newFolder();
+        File source = new File(root, "source");
+        source.mkdirs();
+        RepositoryImpl sourceRepository = RepositoryContext.create(RepositoryConfig.install(source)).getRepository();
+        Session session = sourceRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        try {
+            Node node = session.getRootNode();
+            for (String s : PathUtils.elements(parentPath)) {
+                node = node.addNode(s);
+            }
+            node.addNode(nodeName);
             session.save();
-
-            Assert.assertTrue(longNameParent.hasNode(TOO_LONG_NAME));
-            Assert.assertTrue(longNameParent.hasNode(NOT_TOO_LONG_NAME));
-
         } finally {
             session.logout();
         }
         sourceRepository.shutdown();
-    }
 
-    private static RepositoryConfig createCrx2Config(File crx2RepoDir) throws RepositoryException, IOException {
-        File source = new File(crx2RepoDir, "source");
-        source.mkdirs();
-        return RepositoryConfig.install(source);
-    }
-
-    @Test
-    public void longNameShouldBeSkipped() throws RepositoryException, IOException {
-        DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
+        DocumentNodeStore dst = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder().build();
+        RepositoryContext ctx = RepositoryContext.create(RepositoryConfig.install(source));
+        RepositoryUpgrade upgrade = new RepositoryUpgrade(ctx, dst);
+        upgrade.setCheckLongNames(true);
         try {
-            upgrade(nodeStore, false, true);
-
-            NodeState parent = getParent(nodeStore.getRoot());
-            Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
-            Assert.assertEquals(1, parent.getChildNodeCount(10));
-
-            // The following throws an DocumentStoreException:
-            // Assert.assertFalse(parent.hasChildNode(TOO_LONG_NAME));
-        } finally {
-            nodeStore.dispose();
-        }
-    }
-
-    @Test
-    public void assertNoLongNamesTest() throws IOException, RepositoryException {
-        RepositoryConfig config = createCrx2Config(crx2RepoDir);
-        RepositoryContext context = RepositoryContext.create(config);
-        try {
-            RepositoryUpgrade upgrade = new RepositoryUpgrade(context, new MemoryNodeStore());
-            try {
-                upgrade.assertNoLongNames();
-                fail("Exception should be thrown");
-            } catch (RepositoryException e) {
-                // that's fine
-            }
-        } finally {
-            context.getRepository().shutdown();
-        }
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void longNameOnDocumentStoreThrowsAnException() throws RepositoryException, IOException {
-        DocumentNodeStore nodeStore = new DocumentMK.Builder().getNodeStore();
-        try {
-            upgrade(nodeStore, false, false);
-        } finally {
-            nodeStore.dispose();
-        }
-    }
-
-    @Test
-    public void longNameOnSegmentStoreWorksFine() throws RepositoryException, IOException {
-        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        upgrade(nodeStore, false, false);
-
-        NodeState parent = getParent(nodeStore.getRoot());
-        Assert.assertTrue(parent.hasChildNode(NOT_TOO_LONG_NAME));
-        Assert.assertTrue(parent.hasChildNode(TOO_LONG_NAME));
-    }
-
-    private static void upgrade(NodeStore target, boolean skipNameCheck, boolean filterLongNames) throws RepositoryException, IOException {
-        RepositoryConfig config = createCrx2Config(crx2RepoDir);
-        RepositoryContext context = RepositoryContext.create(config);
-        try {
-            RepositoryUpgrade upgrade = new RepositoryUpgrade(context, target);
-            upgrade.setCheckLongNames(skipNameCheck);
-            upgrade.setFilterLongNames(filterLongNames);
             upgrade.copy(null);
-        } finally {
-            context.getRepository().shutdown();
+            if (shouldBeSkipped) {
+                fail("Jackrabbit2 Lucene index should be used to inform about the node with long name");
+            }
+        } catch (Exception e) {
+            if (!shouldBeSkipped) {
+                LOG.warn("Unexpected exception", e);
+                fail("Upgrade should be successful");
+            }
+        }
+
+        ctx.getRepository().shutdown();
+        ctx = RepositoryContext.create(RepositoryConfig.install(source));
+        upgrade = new RepositoryUpgrade(ctx, dst);
+        upgrade.setCheckLongNames(false);
+        upgrade.copy(null);
+
+        NodeState parent = getParent(dst);
+        Assert.assertTrue("Parent should exists", parent.exists());
+        if (shouldBeSkipped) {
+            Assert.assertFalse("Node shouldn't exists", parent.hasChildNode(nodeName));
+        } else {
+            Assert.assertTrue("Node should exists", parent.hasChildNode(nodeName));
         }
     }
 
-    private static Node createParent(Node root) throws RepositoryException {
-        Node current = root;
-        for (String segment : getParentSegments()) {
-            current = current.addNode(segment);
+    private void createNodes(NodeStore ns) throws CommitFailedException {
+        NodeBuilder root = ns.getRoot().builder();
+        NodeBuilder nb = root;
+        for (String s : PathUtils.elements(parentPath)) {
+            nb = nb.child(s);
         }
-        return current;
+        nb.child(nodeName);
+        ns.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static NodeState getParent(NodeState root) throws RepositoryException {
-        NodeState current = root;
-        for (String segment : getParentSegments()) {
-            current = current.getChildNode(segment);
+    private static String generatePath(int length) {
+        if (length == 1) {
+            return "/";
         }
-        return current;
+
+        Random random = new Random();
+        StringBuilder path = new StringBuilder();
+        while (path.length() < length) {
+            int remaining = length - path.length();
+            if (remaining == 1) {
+                path.append(generateNodeName(1));
+            } else {
+                path.append('/');
+                remaining--;
+                path.append(generateNodeName(1 + random.nextInt(Math.min(remaining, 150))));
+            }
+        }
+        return path.toString();
     }
 
-    private static Iterable<String> getParentSegments() {
-        return limit(cycle("this", "is", "a", "path"), 100); // total path
-                                                             // length
-                                                             // = 350
+    private static String generateNodeName(int length) {
+        Random random = new Random();
+        StringBuilder nodeName = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            nodeName.append((char) ('a' + random.nextInt('z' - 'a')));
+        }
+        return nodeName.toString();
+    }
+
+    private NodeState getParent(NodeStore ns) {
+        NodeState node = ns.getRoot();
+        for (String s : PathUtils.elements(parentPath)) {
+            node = node.getChildNode(s);
+        }
+        return node;
     }
 }

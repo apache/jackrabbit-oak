@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -36,10 +35,13 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -96,10 +98,8 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             // success
             assertTrue(e instanceof AccountNotFoundException);
         } finally {
-            if (g != null) {
-                g.remove();
-                root.commit();
-            }
+            g.remove();
+            root.commit();
         }
     }
 
@@ -189,6 +189,39 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
         assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, new TestAuthInfo())));
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserIdBeforeLogin() {
+       authentication.getUserId();
+    }
+
+    @Test
+    public void testGetUserId() throws LoginException {
+        authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertEquals(userId, authentication.getUserId());
+    }
+
+    @Test
+    public void testGetUserIdCasedLoginId() throws LoginException {
+        String loginId = userId.toLowerCase();
+
+        UserAuthentication auth = new UserAuthentication(getUserConfiguration(), root, loginId);
+        assertTrue(auth.authenticate(new SimpleCredentials(loginId, userId.toCharArray())));
+
+        assertNotEquals(loginId, auth.getUserId());
+        assertEquals(userId, auth.getUserId());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetUserPrincipalBeforeLogin() {
+        authentication.getUserPrincipal();
+    }
+
+    @Test
+    public void testGetUserPrincipal() throws Exception {
+        authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+        assertEquals(getTestUser().getPrincipal(), authentication.getUserPrincipal());
+    }
+
     //--------------------------------------------------------------------------
 
     private final class TestAuthInfo implements AuthInfo {
@@ -197,7 +230,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             public String getUserID() {
                 return userId;
             }
-            @Nonnull
+            @NotNull
             @Override
             public String[] getAttributeNames() {
                 return new String[0];
@@ -206,7 +239,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             public Object getAttribute(String attributeName) {
                 return null;
             }
-            @Nonnull
+            @NotNull
             @Override
             public Set<Principal> getPrincipals() {
                 return null;

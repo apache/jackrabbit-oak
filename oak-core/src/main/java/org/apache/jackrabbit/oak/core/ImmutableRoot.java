@@ -24,19 +24,19 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -44,15 +44,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * passed to the constructor. This root implementation provides a query engine
  * with index support limited to the {@link PropertyIndexProvider}.
  */
-public final class ImmutableRoot implements Root {
+public final class ImmutableRoot implements Root, ReadOnly {
 
     private final ImmutableTree rootTree;
 
-    public ImmutableRoot(@Nonnull NodeState rootState) {
+    public ImmutableRoot(@NotNull NodeState rootState) {
         this(new ImmutableTree(rootState));
     }
 
-    public ImmutableRoot(@Nonnull Root root) {
+    public ImmutableRoot(@NotNull Root root) {
         if (root instanceof MutableRoot) {
             rootTree = new ImmutableTree(((MutableRoot) root).getBaseState());
         } else if (root instanceof ImmutableRoot) {
@@ -62,12 +62,12 @@ public final class ImmutableRoot implements Root {
         }
     }
 
-    public ImmutableRoot(@Nonnull ImmutableTree rootTree) {
+    public ImmutableRoot(@NotNull ImmutableTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
     }
 
-    public static ImmutableRoot getInstance(@Nonnull Root root) {
+    public static ImmutableRoot getInstance(@NotNull Root root) {
         if (root instanceof ImmutableRoot) {
             return (ImmutableRoot) root;
         } else {
@@ -77,9 +77,9 @@ public final class ImmutableRoot implements Root {
 
     //---------------------------------------------------------------< Root >---
 
-    @Nonnull
+    @NotNull
     @Override
-    public ImmutableTree getTree(@Nonnull String path) {
+    public ImmutableTree getTree(@NotNull String path) {
         checkArgument(PathUtils.isAbsolute(path));
         ImmutableTree child = rootTree;
         for (String name : elements(path)) {
@@ -104,7 +104,7 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit(@Nonnull Map<String, Object> info) {
+    public void commit(@NotNull Map<String, Object> info) {
         throw new UnsupportedOperationException();
     }
 
@@ -118,7 +118,7 @@ public final class ImmutableRoot implements Root {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public QueryEngine getQueryEngine() {
         return new QueryEngineImpl() {
@@ -132,17 +132,17 @@ public final class ImmutableRoot implements Root {
         };
     }
 
-    @Override @Nonnull
-    public Blob createBlob(@Nonnull InputStream stream) {
+    @Override @NotNull
+    public Blob createBlob(@NotNull InputStream stream) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ContentSession getContentSession() {
         throw new UnsupportedOperationException();

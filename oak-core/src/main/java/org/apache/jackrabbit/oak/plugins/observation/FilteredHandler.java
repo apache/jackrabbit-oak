@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Filtered event handler. This decorator class applies an {@link EventFilter}
@@ -51,7 +50,7 @@ public class FilteredHandler extends DefaultEventHandler {
         handler.leave(before, after);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public EventHandler getChildHandler(
             String name, NodeState before, NodeState after) {
         EventFilter f = filter.create(name, before, after);

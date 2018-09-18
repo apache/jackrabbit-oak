@@ -17,19 +17,19 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import static java.util.Collections.singletonMap;
-import static junit.framework.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -38,13 +38,14 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -55,8 +56,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
-import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -77,8 +78,6 @@ public abstract class AbstractOak2OakTest {
     protected Session session;
 
     private RepositoryImpl repository;
-
-    private String checkpointReference;
 
     protected abstract NodeStoreContainer getSourceContainer();
 
@@ -142,13 +141,22 @@ public abstract class AbstractOak2OakTest {
         }
 
         NodeBuilder builder = target.getRoot().builder();
+        builder.setProperty("binary-prop", getRandomBlob(target));
         builder.setProperty("checkpoint-state", "before");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        checkpointReference = target.checkpoint(60000, singletonMap("key", "123"));
+        target.checkpoint(60000, singletonMap("key", "123"));
 
         builder.setProperty("checkpoint-state", "after");
+        builder.setProperty("binary-prop", getRandomBlob(target));
         builder.child(":async").setProperty("test", "123");
         target.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private Blob getRandomBlob(NodeStore target) throws IOException {
+        Random r = new Random();
+        byte[] buff = new byte[512 * 1024];
+        r.nextBytes(buff);
+        return target.createBlob(new ByteArrayInputStream(buff));
     }
 
     @Test
@@ -157,8 +165,6 @@ public abstract class AbstractOak2OakTest {
         verifyBlob(session);
         if (supportsCheckpointMigration()) {
             verifyCheckpoint();
-        } else {
-            verifyEmptyAsync();
         }
     }
 
@@ -203,8 +209,19 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
-    private void verifyCheckpoint() {
+    protected void verifyCheckpoint() {
         assertEquals("after", destination.getRoot().getString("checkpoint-state"));
+
+        String checkpointReference = null;
+
+        for (String c : destination.checkpoints()) {
+            if (destination.checkpointInfo(c).containsKey("key")) {
+                checkpointReference = c;
+                break;
+            }
+        }
+
+        assertNotNull(checkpointReference);
 
         Map<String, String> info = destination.checkpointInfo(checkpointReference);
         assertEquals("123", info.get("key"));
@@ -231,15 +248,11 @@ public abstract class AbstractOak2OakTest {
             return ((SegmentNodeState) node).getRecordId().toString();
         } else if (node instanceof org.apache.jackrabbit.oak.segment.SegmentNodeState) {
             return ((org.apache.jackrabbit.oak.segment.SegmentNodeState) node).getRecordId().toString();
+        } else if (node instanceof DocumentNodeState) {
+            return ((DocumentNodeState) node).getLastRevision().toString();
         } else {
             return null;
         }
-    }
-
-    // OAK-2869
-    private void verifyEmptyAsync() {
-        NodeState state = destination.getRoot().getChildNode(":async");
-        assertFalse(state.hasProperty("test"));
     }
 
     protected boolean supportsCheckpointMigration() {

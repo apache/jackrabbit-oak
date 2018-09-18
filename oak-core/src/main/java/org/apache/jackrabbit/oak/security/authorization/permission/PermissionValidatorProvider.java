@@ -18,23 +18,23 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ValidatorProvider} implementation for permission evaluation associated
@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class PermissionValidatorProvider extends ValidatorProvider {
 
-    private final SecurityProvider securityProvider;
     private final AuthorizationConfiguration acConfig;
     private final long jr2Permissions;
 
@@ -50,12 +49,15 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private final Set<Principal> principals;
     private final MoveTracker moveTracker;
 
+    private final ProviderCtx providerCtx;
+
     private Context acCtx;
     private Context userCtx;
 
-    public PermissionValidatorProvider(SecurityProvider securityProvider, String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
-        this.securityProvider = securityProvider;
-        this.acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+    public PermissionValidatorProvider(@NotNull String workspaceName,
+                                       @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker,
+                                       @NotNull ProviderCtx providerCtx) {
+        this.acConfig = providerCtx.getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
 
         ConfigurationParameters params = acConfig.getParameters();
         String compatValue = params.getConfigValue(PermissionConstants.PARAM_PERMISSIONS_JR2, null, String.class);
@@ -64,14 +66,16 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         this.workspaceName = workspaceName;
         this.principals = principals;
         this.moveTracker = moveTracker;
+
+        this.providerCtx = providerCtx;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
 
-    @Override @Nonnull
+    @Override @NotNull
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        PermissionProvider pp = acConfig.getPermissionProvider(RootFactory.createReadOnlyRoot(before), workspaceName, principals);
+        PermissionProvider pp = acConfig.getPermissionProvider(createReadOnlyRoot(before), workspaceName, principals);
         if (moveTracker.isEmpty()) {
             return new PermissionValidator(before, after, pp, this);
         } else {
@@ -90,14 +94,25 @@ public class PermissionValidatorProvider extends ValidatorProvider {
 
     Context getUserContext() {
         if (userCtx == null) {
-            UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+            UserConfiguration uc = providerCtx.getSecurityProvider().getConfiguration(UserConfiguration.class);
             userCtx = uc.getContext();
         }
         return userCtx;
+    }
+
+    TreeProvider getTreeProvider() {
+        return providerCtx.getTreeProvider();
     }
 
     boolean requiresJr2Permissions(long permission) {
         return Permissions.includes(jr2Permissions, permission);
     }
 
+    Root createReadOnlyRoot(@NotNull NodeState nodeState) {
+        return providerCtx.getRootProvider().createReadOnlyRoot(nodeState);
+    }
+
+    Tree createReadOnlyTree(@NotNull NodeState nodeState) {
+        return providerCtx.getTreeProvider().createReadOnlyTree(nodeState);
+    }
 }

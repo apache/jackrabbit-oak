@@ -101,7 +101,7 @@ to the user configuration as follows:
     Map<String, Object> userParams = new HashMap<String, Object>();
     userParams.put(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new UUIDNodeName());
     ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->

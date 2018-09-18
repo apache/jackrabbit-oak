@@ -18,17 +18,26 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -39,13 +48,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class AccessControlValidatorTest extends AbstractAccessControlTest implements AccessControlConstants {
+public class AccessControlValidatorTest extends AbstractSecurityTest implements AccessControlConstants {
 
     private final String testName = "testRoot";
     private final String testPath = '/' + testName;
@@ -62,7 +72,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
         root.commit();
 
-        testPrincipal = getTestPrincipal();
+        testPrincipal = getTestUser().getPrincipal();
     }
 
     @After
@@ -80,6 +90,11 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     private NodeUtil getTestRoot() {
         return new NodeUtil(root.getTree(testPath));
+    }
+
+    private AccessControlValidatorProvider createValidatorProvider() {
+        CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) getConfig(AuthorizationConfiguration.class);
+        return new AccessControlValidatorProvider((AuthorizationConfigurationImpl) cac.getDefaultConfig());
     }
 
     private NodeUtil createAcl() throws AccessDeniedException {
@@ -356,7 +371,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     @Test
     public void testDuplicateAce() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.getAccessControlList(acMgr, testPath);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
         acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
         acMgr.setPolicy(testPath, acl);
 
@@ -376,8 +391,30 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     }
 
     @Test
+    public void testAceDifferentByRestrictionValue() throws Exception {
+        ValueFactory vf = getValueFactory(root);
+
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
+                ImmutableMap.<String, Value>of(),
+                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_OAK_UNSTRUCTURED, PropertyType.NAME)}));
+
+        // add ac-entry that only differs by the value of the restriction
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), true,
+                ImmutableMap.<String, Value>of(),
+                ImmutableMap.of(AccessControlConstants.REP_NT_NAMES, new Value[] {vf.createValue(NodeTypeConstants.NT_UNSTRUCTURED, PropertyType.NAME)}));
+        assertEquals(2, acl.getAccessControlEntries().length);
+
+        acMgr.setPolicy(testPath, acl);
+
+        // persisting changes must succeed; the 2 ac-entries must not be treated as equal.
+        root.commit();
+    }
+
+    @Test
     public void hiddenNodeAdded() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeState root = store.getRoot();
         NodeBuilder builder = root.builder();
@@ -396,7 +433,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     @Test
     public void hiddenNodeChanged() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");
@@ -418,7 +455,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     @Test
     public void hiddenNodeDeleted() throws CommitFailedException {
-        AccessControlValidatorProvider provider = new AccessControlValidatorProvider(getSecurityProvider());
+        AccessControlValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");

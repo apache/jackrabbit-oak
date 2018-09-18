@@ -34,8 +34,6 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -43,7 +41,6 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
@@ -56,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -121,16 +119,13 @@ public class ExternalBlobIT {
         cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        final List<String> refrences = Lists.newArrayList();
-        store.collectBlobReferences(new ReferenceCollector() {
-            @Override
-            public void addReference(String reference, String nodeId) {
+        final List<String> references = Lists.newArrayList();
+        store.collectBlobReferences(reference -> {
                 assertNotNull(reference);
-                refrences.add(reference);
-            }
+                references.add(reference);
         });
 
-        assertEquals(noOfBlobs + 2, refrences.size());
+        assertEquals(noOfBlobs + 2, references.size());
     }
 
     private Blob testCreateAndRead(Blob blob) throws Exception {
@@ -234,12 +229,12 @@ public class ExternalBlobIT {
         }
 
         @Override
-        public String getBlobId(@Nonnull String reference) {
+        public String getBlobId(@NotNull String reference) {
             return reference;
         }
 
         @Override
-        public String getReference(@Nonnull String blobId) {
+        public String getReference(@NotNull String blobId) {
             return blobId;
         }
     }
@@ -292,7 +287,7 @@ public class ExternalBlobIT {
                 .withGCOptions(gcOptions).build();
         assertTrue(store.getStats().getApproximateSize() < 10 * 1024);
 
-        store.compact();
+        store.compactFull();
         store.cleanup();
 
     }

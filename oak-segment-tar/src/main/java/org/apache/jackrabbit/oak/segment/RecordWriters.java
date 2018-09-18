@@ -66,8 +66,8 @@ final class RecordWriters {
             this(type, size, Collections.<RecordId> emptyList());
         }
 
-        public final RecordId write(SegmentBufferWriter writer) throws IOException {
-            RecordId id = writer.prepare(type, size, ids);
+        public final RecordId write(SegmentBufferWriter writer, SegmentStore store) throws IOException {
+            RecordId id = writer.prepare(type, size, ids, store);
             return writeRecordContent(id, writer);
         }
 
@@ -291,7 +291,6 @@ final class RecordWriters {
 
     /**
      * Block record writer.
-     * @see SegmentWriter#writeBlock
      * @see RecordType#BLOCK
      */
     private static class BlockWriter extends RecordWriter {
@@ -504,7 +503,7 @@ final class RecordWriters {
             if (stableId == null) {
                 // Write this node's record id to indicate that the stable id is not
                 // explicitly stored.
-                writer.writeRecordId(id, false);
+                writer.writeRecordId(id);
             } else {
                 writer.writeRecordId(stableId);
             }

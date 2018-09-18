@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -37,6 +35,9 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +57,9 @@ import org.slf4j.LoggerFactory;
  *     is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.</li>
  * </ul>
  */
-@Component
-@Service(RestrictionProvider.class)
+@Component(
+        service = RestrictionProvider.class,
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl")
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
@@ -78,9 +80,9 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
 
     //------------------------------------------------< RestrictionProvider >---
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(String oakPath, @Nonnull Tree tree) {
+    public RestrictionPattern getPattern(String oakPath, @NotNull Tree tree) {
         if (oakPath == null) {
             return RestrictionPattern.EMPTY;
         } else {
@@ -106,9 +108,9 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
         if (oakPath == null || restrictions.isEmpty()) {
             return RestrictionPattern.EMPTY;
         } else {
@@ -132,7 +134,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
+    public void validateRestrictions(String oakPath, @NotNull Tree aceTree) throws AccessControlException {
         super.validateRestrictions(oakPath, aceTree);
 
         Tree restrictionsTree = getRestrictionsTree(aceTree);

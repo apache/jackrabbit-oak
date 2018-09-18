@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer.isSolrIndexNode;
@@ -35,13 +37,16 @@ import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitial
  * Lookup for Solr indexes to be used for a given {@link Filter}.
  */
 class SolrIndexLookup {
+
+    private static final Logger log = LoggerFactory.getLogger(SolrIndexLookup.class);
+
     private final NodeState root;
 
-    public SolrIndexLookup(NodeState root) {
+    SolrIndexLookup(NodeState root) {
         this.root = root;
     }
 
-    public Collection<String> collectIndexNodePaths(Filter filter) {
+    Collection<String> collectIndexNodePaths(Filter filter) {
         return collectIndexNodePaths(filter, true);
     }
 
@@ -68,7 +73,9 @@ class SolrIndexLookup {
         NodeState state = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             if (isSolrIndexNode(entry.getNodeState())) {
-                paths.add(createIndexNodePath(parentPath, entry.getName()));
+                String indexNodePath = createIndexNodePath(parentPath, entry.getName());
+                log.debug("found Solr index node at {}", indexNodePath);
+                paths.add(indexNodePath);
             }
         }
     }

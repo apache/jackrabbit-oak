@@ -16,17 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An Oak {@link org.apache.solr.client.solrj.SolrServer}, caching a {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
@@ -37,7 +37,7 @@ public class OakSolrServer extends SolrServer {
     private final SolrServerConfiguration solrServerConfiguration;
     private final SolrServerProvider solrServerProvider;
 
-    public OakSolrServer(@Nonnull SolrServerConfigurationProvider solrServerConfigurationProvider) {
+    public OakSolrServer(@NotNull SolrServerConfigurationProvider solrServerConfigurationProvider) {
         this.solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
         try {
             this.solrServerProvider = solrServerConfiguration.getProvider();
@@ -47,10 +47,10 @@ public class OakSolrServer extends SolrServer {
     }
 
     @Override
-    public NamedList<Object> request(SolrRequest request) throws SolrServerException, IOException {
+    public NamedList<Object> request(SolrRequest request, String collection) throws SolrServerException, IOException {
         try {
 
-            SolrServer server = getServer(request);
+            SolrClient server = getServer(request);
             return server.request(request);
 
         } catch (Exception e) {
@@ -58,10 +58,10 @@ public class OakSolrServer extends SolrServer {
         }
     }
 
-    private synchronized SolrServer getServer(SolrRequest request) throws Exception {
+    private synchronized SolrClient getServer(SolrRequest request) throws Exception {
         boolean isIndex = request.getPath().contains("/update");
         SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
-        SolrServer solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
+        SolrClient solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
             if (solrServerConfiguration instanceof EmbeddedSolrServerConfiguration) {
                 solrServer = solrServerProvider.getSolrServer();
@@ -85,5 +85,13 @@ public class OakSolrServer extends SolrServer {
         } catch (IOException e) {
             // do nothing
         }
+    }
+
+    @Override
+    public String toString() {
+        return "OakSolrServer{" +
+            "solrServerConfiguration=" + solrServerConfiguration +
+            ", solrServerProvider=" + solrServerProvider +
+            '}';
     }
 }

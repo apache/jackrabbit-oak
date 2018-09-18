@@ -16,23 +16,27 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -115,26 +119,26 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
     public void testGetPrincipalProvider4() {
         PrincipalConfigurationImpl pc3 = new PrincipalConfigurationImpl();
         final SecurityProvider sp = new SecurityProvider() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters(@Nullable String name) {
                 return ConfigurationParameters.EMPTY;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<? extends SecurityConfiguration> getConfigurations() {
                 return ImmutableList.of();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+            public <T> T getConfiguration(@NotNull Class<T> configClass) {
                 if (configClass.equals(UserConfiguration.class)) {
                     return (T) new UserConfigurationImpl(this) {
                         @Nullable
                         @Override
-                        public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+                        public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
                             return null;
                         }
                     };
@@ -147,5 +151,36 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
 
         PrincipalProvider pp = pc3.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertTrue(pp instanceof PrincipalProviderImpl);
+    }
+
+    @Test
+    public void testGetPrincipalProvider5() {
+        PrincipalProvider pp = EmptyPrincipalProvider.INSTANCE;
+
+        PrincipalConfigurationImpl pc = new PrincipalConfigurationImpl() {
+
+            @Override
+            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+                return pp;
+            }
+        };
+
+        ConfigurationParameters params = ConfigurationParameters.EMPTY;
+        pc.setParameters(params);
+        SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params).build();
+
+        CompositeConfiguration<PrincipalConfiguration> composite = (CompositeConfiguration) securityProvider
+                .getConfiguration(PrincipalConfiguration.class);
+        PrincipalConfiguration defConfig = composite.getDefaultConfig();
+
+        pc.setSecurityProvider(securityProvider);
+        pc.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+        pc.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+
+        composite.addConfiguration(pc);
+        composite.addConfiguration(defConfig);
+
+        PrincipalProvider ppt = pc.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+        assertEquals(pp, ppt);
     }
 }

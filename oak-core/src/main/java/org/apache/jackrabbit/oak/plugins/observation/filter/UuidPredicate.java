@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A predicate for matching against a list of UUIDs. This predicate holds
@@ -41,7 +40,7 @@ public class UuidPredicate implements Predicate<NodeState> {
     /**
      * @param uuids    uuids
      */
-    public UuidPredicate(@Nonnull String[] uuids) {
+    public UuidPredicate(@NotNull String[] uuids) {
         this.uuids = checkNotNull(uuids);
     }
 

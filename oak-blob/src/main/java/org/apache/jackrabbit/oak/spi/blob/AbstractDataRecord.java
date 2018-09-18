@@ -29,7 +29,7 @@ public abstract class AbstractDataRecord implements DataRecord {
     /**
      * The data store that contains this record.
      */
-    private final AbstractSharedBackend backend;
+    protected final AbstractSharedBackend backend;
 
     /**
      * The binary identifier;

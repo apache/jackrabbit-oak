@@ -19,14 +19,29 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class holds configuration options for segment store revision gc.
  */
 public class SegmentGCOptions {
+
+    /**
+     * The gc type.
+     */
+    public enum GCType {
+
+        /**
+         * Full gc: compaction will compact the full head state.
+         */
+        FULL,
+
+        /**
+         * Tail gc: compaction will compact the diff between the head state created by
+         * the previous compaction run and the current head state.
+         */
+        TAIL
+    }
 
     /**
      * Default value for {@link #isPaused()}
@@ -81,26 +96,22 @@ public class SegmentGCOptions {
 
     private int retainedGenerations = RETAINED_GENERATIONS_DEFAULT;
 
+    @NotNull
+    private GCType gcType = GCType.FULL;
+
     private boolean offline = false;
 
     private int memoryThreshold = MEMORY_THRESHOLD_DEFAULT;
-
-    private boolean ocBinDeduplication = Boolean
-            .getBoolean("oak.segment.compaction.binaryDeduplication");
-
-    private long ocBinMaxSize = Long.getLong(
-            "oak.segment.compaction.binaryDeduplicationMaxSize",
-            100 * 1024 * 1024);
 
     private long gcSizeDeltaEstimation = Long.getLong(
             "oak.segment.compaction.gcSizeDeltaEstimation",
             SIZE_DELTA_ESTIMATION_DEFAULT);
 
     /**
-     * Responsible for monitoring progress of the online compaction, and
-     * providing progress tracking.
+     * Number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
      */
-    private GCNodeWriteMonitor gcNodeWriteMonitor = GCNodeWriteMonitor.EMPTY;
+    private long gcLogInterval = -1;
 
     public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
@@ -183,7 +194,6 @@ public class SegmentGCOptions {
 
     /**
      * Number of segment generations to retain.
-     * @see #setRetainedGenerations(int)
      * @return  number of gc generations.
      */
     public int getRetainedGenerations() {
@@ -200,10 +210,24 @@ public class SegmentGCOptions {
      * @throws IllegalArgumentException if {@code retainGenerations < 2}
      */
     public SegmentGCOptions setRetainedGenerations(int retainedGenerations) {
-        checkArgument(retainedGenerations > 1,
-                "RetainedGenerations must not be below 2. Got %s", retainedGenerations);
         this.retainedGenerations = retainedGenerations;
         return this;
+    }
+
+    /**
+     * @return the currently set gc type.
+     */
+    @NotNull
+    public GCType getGCType() {
+        return gcType;
+    }
+
+    /**
+     * Set the gc type.
+     * @param gcType  the type of gc to run.
+     */
+    public void setGCType(@NotNull GCType gcType) {
+        this.gcType = gcType;
     }
 
     @Override
@@ -211,9 +235,7 @@ public class SegmentGCOptions {
         if (offline) {
             return getClass().getSimpleName() + "{" +
                     "offline=" + offline +
-                    ", retainedGenerations=" + retainedGenerations +
-                    ", ocBinDeduplication=" + ocBinDeduplication +
-                    ", ocBinMaxSize=" + ocBinMaxSize + "}";
+                    ", retainedGenerations=" + retainedGenerations + "}";
         } else {
             return getClass().getSimpleName() + "{" +
                     "paused=" + paused +
@@ -222,7 +244,7 @@ public class SegmentGCOptions {
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
                     ", retainedGenerations=" + retainedGenerations +
-                    ", gcSizeDeltaEstimation=" + gcSizeDeltaEstimation + "}";
+                    ", gcType=" + gcType + "}";
         }
     }
 
@@ -253,37 +275,6 @@ public class SegmentGCOptions {
         this.offline = true;
         this.retainedGenerations = 1;
         return this;
-    }
-
-    /**
-     * Offline compaction only. Enables content based de-duplication of
-     * binaries. Involves a fair amount of I/O when reading/comparing
-     * potentially equal blobs. set via the
-     * 'oak.segment.compaction.binaryDeduplication' system property
-     * @return this instance.
-     */
-    public SegmentGCOptions withBinaryDeduplication() {
-        this.ocBinDeduplication = true;
-        return this;
-    }
-
-    public boolean isBinaryDeduplication() {
-        return this.ocBinDeduplication;
-    }
-
-    /**
-     * Offline compaction only. Set the upper bound for the content based
-     * de-duplication checks.
-     * @param binMaxSize
-     * @return this instance
-     */
-    public SegmentGCOptions setBinaryDeduplicationMaxSize(long binMaxSize) {
-        this.ocBinMaxSize = binMaxSize;
-        return this;
-    }
-
-    public long getBinaryDeduplicationMaxSize() {
-        return this.ocBinMaxSize;
     }
 
     public long getGcSizeDeltaEstimation() {
@@ -332,18 +323,22 @@ public class SegmentGCOptions {
     }
 
     /**
-     * Enables the GcWriteMonitor with the given params.
-     * @param gcProgressLog
-     *            Enables compaction progress logging at each set of compacted nodes, disabled if set to
-     *            {@code -1}
+     * Set the number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
+     * @param gcLogInterval  update interval
      * @return this instance
      */
-    public SegmentGCOptions withGCNodeWriteMonitor(long gcProgressLog) {
-        this.gcNodeWriteMonitor = new GCNodeWriteMonitor(gcProgressLog);
+    public SegmentGCOptions setGCLogInterval(long gcLogInterval) {
+        this.gcLogInterval = gcLogInterval;
         return this;
     }
 
-    public GCNodeWriteMonitor getGCNodeWriteMonitor() {
-        return gcNodeWriteMonitor;
+    /**
+     * @return Number of nodes after which an update about the compaction process is logged.
+     * -1 for never.
+     */
+    public long getGcLogInterval() {
+        return gcLogInterval;
     }
+
 }

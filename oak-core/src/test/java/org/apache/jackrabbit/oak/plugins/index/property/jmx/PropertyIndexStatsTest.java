@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -64,7 +64,7 @@ public class PropertyIndexStatsTest {
 
         assertNotNull(context.getService(PropertyIndexStatsMBean.class));
 
-        MockOsgi.deactivate(mbean);
+        MockOsgi.deactivate(mbean, context.bundleContext());
         assertNull(context.getService(PropertyIndexStatsMBean.class));
     }
 

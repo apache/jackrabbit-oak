@@ -20,20 +20,22 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.Closeable;
-
-import javax.annotation.CheckForNull;
+import java.io.IOException;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 
 public interface LuceneIndexReader extends Closeable{
 
     IndexReader getReader();
 
-    @CheckForNull
+    @Nullable
     AnalyzingInfixSuggester getLookup();
 
-    @CheckForNull
+    @Nullable
     Directory getSuggestDirectory();
+
+    long getIndexSize() throws IOException;
 }

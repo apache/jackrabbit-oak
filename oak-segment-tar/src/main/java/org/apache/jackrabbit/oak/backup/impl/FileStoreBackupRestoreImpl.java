@@ -21,24 +21,24 @@ package org.apache.jackrabbit.oak.backup.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.formatTime;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
 
 import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.api.jmx.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.backup.FileStoreRestore;
-import org.apache.jackrabbit.oak.management.ManagementOperation;
+import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a
@@ -74,11 +74,11 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
      * @param executor executor for running the back up or restore operation
      */
     public FileStoreBackupRestoreImpl(
-            @Nonnull SegmentNodeStore store,
-            @Nonnull Revisions revisions,
-            @Nonnull SegmentReader reader,
-            @Nonnull File file,
-            @Nonnull Executor executor
+            @NotNull SegmentNodeStore store,
+            @NotNull Revisions revisions,
+            @NotNull SegmentReader reader,
+            @NotNull File file,
+            @NotNull Executor executor
     ) {
         this.store = checkNotNull(store);
         this.revisions = checkNotNull(revisions);
@@ -91,7 +91,7 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public synchronized CompositeData startBackup() {
         if (backupOp.isDone()) {
             backupOp = newManagementOperation("Backup", new Callable<String>() {
@@ -111,13 +111,13 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public synchronized CompositeData getBackupStatus() {
         return backupOp.getStatus().toCompositeData();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public synchronized CompositeData startRestore() {
         if (restoreOp.isDone()) {
             restoreOp = newManagementOperation("Restore", new Callable<String>() {
@@ -137,13 +137,13 @@ public class FileStoreBackupRestoreImpl implements FileStoreBackupRestoreMBean {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public synchronized CompositeData getRestoreStatus() {
         return restoreOp.getStatus().toCompositeData();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String checkpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }

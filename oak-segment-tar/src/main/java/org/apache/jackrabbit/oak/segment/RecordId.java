@@ -22,17 +22,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.parseInt;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The record id. This includes the segment id and the offset within the
  * segment.
  */
 public final class RecordId implements Comparable<RecordId> {
+
+    /**
+     * A {@code null} record id not identifying any record.
+     */
+    public static final RecordId NULL = new RecordId(SegmentId.NULL, 0);
 
     private static final Pattern PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
@@ -42,11 +48,11 @@ public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
-    public static RecordId fromString(SegmentStore factory, String id) {
+    public static RecordId fromString(SegmentIdProvider idProvider, String id) {
         Matcher matcher = PATTERN.matcher(id);
         if (matcher.matches()) {
             UUID uuid = UUID.fromString(matcher.group(1));
-            SegmentId segmentId = factory.newSegmentId(
+            SegmentId segmentId = idProvider.newSegmentId(
                     uuid.getMostSignificantBits(),
                     uuid.getLeastSignificantBits());
 
@@ -87,7 +93,7 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId.asUUID();
     }
 
-    @Nonnull
+    @NotNull
     public Segment getSegment() {
         return segmentId.getSegment();
     }
@@ -96,19 +102,19 @@ public final class RecordId implements Comparable<RecordId> {
      * Serialise this record id into an array of bytes: {@code (msb, lsb, offset >> 2)}
      * @return  this record id as byte array
      */
-    @Nonnull
-    byte[] getBytes() {
+    @NotNull
+    ByteBuffer getBytes() {
         byte[] buffer = new byte[SERIALIZED_RECORD_ID_BYTES];
         BinaryUtils.writeLong(buffer, 0, segmentId.getMostSignificantBits());
         BinaryUtils.writeLong(buffer, 8, segmentId.getLeastSignificantBits());
         BinaryUtils.writeInt(buffer, 16, offset);
-        return buffer;
+        return ByteBuffer.wrap(buffer);
     }
 
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(@Nonnull RecordId that) {
+    public int compareTo(@NotNull RecordId that) {
         checkNotNull(that);
         int diff = segmentId.compareTo(that.segmentId);
         if (diff == 0) {

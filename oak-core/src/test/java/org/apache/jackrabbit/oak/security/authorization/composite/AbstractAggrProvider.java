@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 abstract class AbstractAggrProvider implements AggregatedPermissionProvider {
 
@@ -49,7 +48,7 @@ abstract class AbstractAggrProvider implements AggregatedPermissionProvider {
 
     //---------------------------------------< AggregatedPermissionProvider >---
 
-    @Nonnull
+    @NotNull
     @Override
     public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
         return (privilegeBits == null) ? pbp.getBits(PrivilegeConstants.JCR_ALL) : privilegeBits;
@@ -61,18 +60,18 @@ abstract class AbstractAggrProvider implements AggregatedPermissionProvider {
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+    public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
         return permissions;
     }
 
     @Override
-    public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         return permissions;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
         return getTreePermission(tree, parentPermission);
     }
 }

@@ -21,22 +21,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.UUID;
 
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub implementation for the RDB document store.
  */
-public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
+public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
 
@@ -60,28 +57,21 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
     public OakDocumentRDBRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
-        Session session = null;
         final DocumentNodeStore m;
         try {
-            String prefix = "T" + UUID.randomUUID().toString().replace("-",  "");
+            String prefix = "T" + Long.toHexString(System.currentTimeMillis());
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
             m = new DocumentMK.Builder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
                     setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
                     getNodeStore();
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(m).with(qs).createRepository();
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            Jcr jcr = new Jcr(m);
+            preCreateRepository(jcr);
+            this.repository = jcr.createRepository();
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override

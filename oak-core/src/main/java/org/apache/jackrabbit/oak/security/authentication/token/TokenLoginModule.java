@@ -22,9 +22,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -40,6 +37,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProvi
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,6 +119,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
     private String userId;
+    private Principal principal;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -136,7 +136,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
-                userId = tokenInfo.getUserId();
+                userId = authentication.getUserId();
+                principal = authentication.getUserPrincipal();
 
                 log.debug("Login: adding login name to shared state.");
                 sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
@@ -150,7 +151,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (tokenCredentials != null && userId != null) {
-            Set<? extends Principal> principals = getPrincipals(userId);
+            Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(userId);
             updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
             return true;
         }
@@ -192,7 +193,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     }
 
     //------------------------------------------------< AbstractLoginModule >---
-    @Nonnull
+    @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return Collections.<Class>singleton(TokenCredentials.class);
@@ -213,7 +214,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * Retrieve the token provider
      * @return the token provider or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     private TokenProvider getTokenProvider() {
         TokenProvider provider = null;
         SecurityProvider securityProvider = getSecurityProvider();
@@ -243,8 +244,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @param tokenInfo The tokenInfo to retrieve attributes from.
      * @return The {@code AuthInfo} resulting from the successful login.
      */
-    @CheckForNull
-    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @Nonnull Set<? extends Principal> principals) {
+    @Nullable
+    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
         if (tokenInfo != null) {
             Map<String, Object> attributes = new HashMap<String, Object>();
             Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();
@@ -257,7 +258,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         }
     }
 
-    private void updateSubject(@Nonnull TokenCredentials tc, @Nullable AuthInfo authInfo,
+    private void updateSubject(@NotNull TokenCredentials tc, @Nullable AuthInfo authInfo,
                                @Nullable Set<? extends Principal> principals) {
         if (!subject.isReadOnly()) {
             subject.getPublicCredentials().add(tc);

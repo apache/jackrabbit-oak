@@ -24,8 +24,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility methods to parse a path.
@@ -102,7 +102,7 @@ public final class PathUtils {
      * @param path the path
      * @return the parent path
      */
-    @Nonnull
+    @NotNull
     public static String getParentPath(String path) {
         return getAncestorPath(path, 1);
     }
@@ -118,7 +118,7 @@ public final class PathUtils {
      *             calculated.
      * @return the ancestor path
      */
-    @Nonnull
+    @NotNull
     public static String getAncestorPath(String path, int nth) {
         assert isValid(path) : "Invalid path ["+path+"]";
 
@@ -150,7 +150,7 @@ public final class PathUtils {
      * @param path the complete path
      * @return the last element
      */
-    @Nonnull
+    @NotNull
     public static String getName(String path) {
         assert isValid(path) : "Invalid path ["+path+"]";
 
@@ -172,8 +172,8 @@ public final class PathUtils {
      * @param name name with a possible SNS index suffix
      * @return name without the SNS index suffix
      */
-    @Nonnull
-    public static String dropIndexFromName(@Nonnull String name) {
+    @NotNull
+    public static String dropIndexFromName(@NotNull String name) {
         Matcher matcher = SNS_PATTERN.matcher(name);
         if (matcher.matches()) {
             return matcher.group(1);
@@ -217,7 +217,7 @@ public final class PathUtils {
      * @param path the path
      * @return an Iterable for the path elements
      */
-    @Nonnull
+    @NotNull
     public static Iterable<String> elements(final String path) {
         assert isValid(path) : "Invalid path ["+path+"]";
 
@@ -272,7 +272,7 @@ public final class PathUtils {
      * @param relativePaths the relative path elements to add
      * @return the concatenated path
      */
-    @Nonnull
+    @NotNull
     public static String concat(String parentPath, String... relativePaths) {
         assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
         int parentLen = parentPath.length();
@@ -303,7 +303,7 @@ public final class PathUtils {
      * @param subPath    the subPath path to add
      * @return the concatenated path
      */
-    @Nonnull
+    @NotNull
     public static String concat(String parentPath, String subPath) {
         assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
         assert isValid(subPath) : "Invalid sub path ["+subPath+"]";
@@ -330,7 +330,7 @@ public final class PathUtils {
      * @param relativePaths relative paths
      * @return the concatenated path or {@code null} if the resulting path is empty.
      */
-    @CheckForNull
+    @Nullable
     public static String concatRelativePaths(String... relativePaths) {
         StringBuilder result = new StringBuilder();
         for (String path : relativePaths) {
@@ -386,7 +386,7 @@ public final class PathUtils {
      * @param path       path to relativize
      * @return relativized path
      */
-    @Nonnull
+    @NotNull
     public static String relativize(String parentPath, String path) {
         assert isValid(parentPath) : "Invalid parent path ["+parentPath+"]";
         assert isValid(path) : "Invalid path ["+path+"]";

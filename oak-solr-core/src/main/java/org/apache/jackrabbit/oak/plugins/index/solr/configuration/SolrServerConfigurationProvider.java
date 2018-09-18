@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link org.apache.solr.client.solrj.SolrServer} configuration provider.
+ * {@link org.apache.solr.client.solrj.SolrClient} configuration provider.
  */
 public interface SolrServerConfigurationProvider<S extends SolrServerProvider> {
 
     /**
      * Provide a {@link SolrServerConfiguration} to be used to initialize a specific
-     * {@link org.apache.solr.client.solrj.SolrServer} implementation.
+     * {@link org.apache.solr.client.solrj.SolrClient} implementation.
      *
      * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
      */
-    @Nonnull
+    @NotNull
     SolrServerConfiguration<S> getSolrServerConfiguration();
 }

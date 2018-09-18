@@ -30,17 +30,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_MIXIN_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_UUID;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_DECLARING_NODE_TYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_MIXIN_TYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_UUID;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -53,8 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -76,12 +74,14 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,7 +185,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      *
      * @return declared property definitions
      */
-    @Override @Nonnull
+    @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = newTreeMap();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE)) {
@@ -199,7 +199,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
      *
      * @return declared child node definitions
      */
-    @Override @Nonnull
+    @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = newTreeMap();
         for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE)) {
@@ -332,8 +332,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         }
 
         try {
-            EffectiveNodeType effective =
-                    new EffectiveNodeType(this, getManager());
+            EffectiveNodeTypeImpl effective =
+                    new EffectiveNodeTypeImpl(this, getManager());
             PropertyDefinition def = effective.getPropertyDefinition(
                     propertyName, false, value.getType(), false);
             return !def.isProtected() &&
@@ -353,8 +353,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
         try {
             int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
-            EffectiveNodeType effective =
-                    new EffectiveNodeType(this, getManager());
+            EffectiveNodeTypeImpl effective =
+                    new EffectiveNodeTypeImpl(this, getManager());
             PropertyDefinition def = effective.getPropertyDefinition(
                     propertyName, true, type, false);
             return !def.isProtected() &&
@@ -485,7 +485,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private ReadOnlyNodeTypeManager getManager() {
         final Tree types = definition.getParent();
         return new ReadOnlyNodeTypeManager() {
-            @Override @CheckForNull
+            @Override @Nullable
             protected Tree getTypes() {
                 return types;
             }
@@ -626,7 +626,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                 }
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
-                    return IdentifierManager.isValidUUID(value.getString());
+                    return UUIDUtils.isValidUUID(value.getString());
                 case PropertyType.URI:
                     new URI(value.getString());
                     return true;
@@ -687,7 +687,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         return true;
     }
 
-    private static int getIndex(@Nonnull Tree tree) {
+    private static int getIndex(@NotNull Tree tree) {
         String name = tree.getName();
         int i = name.lastIndexOf('[');
         return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
@@ -707,7 +707,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
         private final String primaryTypeName;
 
-        private PrimaryTypePredicate(@Nonnull String primaryTypeName) {
+        private PrimaryTypePredicate(@NotNull String primaryTypeName) {
             this.primaryTypeName = primaryTypeName;
         }
 

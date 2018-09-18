@@ -17,22 +17,26 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ItemNamePatternTest extends AbstractSecurityTest {
 
-    private ItemNamePattern pattern = new ItemNamePattern(ImmutableSet.of("a", "b", "c"));
+    private final Set<String> names = ImmutableSet.of("a", "b", "c");
+    private final ItemNamePattern pattern = new ItemNamePattern(names);
 
     @Test
     public void testMatchesItem() throws Exception {
@@ -45,6 +49,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
             assertTrue(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+
+            testTree.remove();
         }
 
         List<String> notMatching = ImmutableList.of("d", "b/d", "d/e/f", "c/b/abc");
@@ -54,6 +60,8 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
             assertFalse(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+
+            testTree.remove();
         }
     }
 
@@ -73,5 +81,27 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
     @Test
     public void testMatchesNull() {
         assertFalse(pattern.matches());
+    }
+
+    @Test
+    public void testToString() {
+        assertEquals(names.toString(), pattern.toString());
+    }
+
+    @Test
+    public void testHashCode() {
+        assertEquals(names.hashCode(), pattern.hashCode());
+    }
+
+    @Test
+    public void testEquals() {
+        assertEquals(pattern, pattern);
+        assertEquals(pattern, new ItemNamePattern(names));
+    }
+
+    @Test
+    public void testNotEquals() {
+        assertNotEquals(pattern, new ItemNamePattern(ImmutableSet.of("a", "b")));
+        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
     }
 }

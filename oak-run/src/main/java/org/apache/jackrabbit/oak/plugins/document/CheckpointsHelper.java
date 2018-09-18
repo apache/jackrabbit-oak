@@ -82,4 +82,12 @@ public abstract class CheckpointsHelper {
         return r;
     }
 
+    public static int setInfoProperty(DocumentNodeStore store, String rev, String key, String value) {
+        try {
+            store.getCheckpoints().setInfoProperty(rev, key, value);
+        } catch (IllegalArgumentException e) {
+            return 0;
+        }
+        return 1;
+    }
 }

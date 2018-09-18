@@ -16,26 +16,39 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+final class CugSecurityProvider {
 
-final class CugSecurityProvider extends SecurityProviderImpl {
-    public CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-        super(configuration);
+    private CugSecurityProvider() {}
 
-        AuthorizationConfiguration authorizationConfiguration = getConfiguration(AuthorizationConfiguration.class);
-        if (!(authorizationConfiguration instanceof CompositeAuthorizationConfiguration)) {
+    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration) {
+        CugConfiguration cugConfiguration = new CugConfiguration();
+
+        ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
+        cugConfiguration.setParameters(params);
+
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
+        SecurityProviderHelper.updateConfig(sp, cugConfiguration, AuthorizationConfiguration.class);
+        return sp;
+    }
+
+    public static CugConfiguration getCugConfiguration(@NotNull SecurityProvider securityProvider) {
+        AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        if (!(ac instanceof CompositeAuthorizationConfiguration)) {
             throw new IllegalStateException();
-        } else {
-            AuthorizationConfiguration defConfig = checkNotNull(((CompositeAuthorizationConfiguration) authorizationConfiguration).getDefaultConfig());
-            bindAuthorizationConfiguration(new CugConfiguration(this));
-            bindAuthorizationConfiguration(defConfig);
         }
+        for (AuthorizationConfiguration config : ((CompositeAuthorizationConfiguration) ac).getConfigurations()) {
+            if (config instanceof CugConfiguration) {
+                return (CugConfiguration) config;
+            }
+        }
+        throw new IllegalStateException();
     }
 }

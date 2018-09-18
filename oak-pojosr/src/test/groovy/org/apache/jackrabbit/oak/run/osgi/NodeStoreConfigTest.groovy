@@ -20,8 +20,7 @@
 package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService
-import org.apache.jackrabbit.oak.plugins.segment.SegmentStore
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore
 import org.apache.jackrabbit.oak.spi.blob.BlobStore
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
 import org.apache.jackrabbit.oak.spi.state.NodeStore
@@ -35,13 +34,12 @@ class NodeStoreConfigTest extends  AbstractRepositoryFactoryTest{
         registry.registerService(BlobStore.class.name, new MemoryBlobStore(), null)
 
         createConfig([
-                'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [:]
+                'org.apache.jackrabbit.oak.segment.SegmentNodeStoreService' : [:]
         ])
 
-        SegmentNodeStoreService ns = getServiceWithWait(NodeStore.class)
+        SegmentNodeStore ns = getServiceWithWait(NodeStore.class)
         //NodeStore is of type SegmentNodeStoreService
-        SegmentStore segStore = ns.getSegmentStore()
-        assert segStore.blobStore == null , "BlobStore should not be picked up unless 'customBlobStore " +
+        assert ns.blobStore == null , "BlobStore should not be picked up unless 'customBlobStore " +
                 "is set to true"
     }
 

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,7 +27,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,10 +39,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
-class PropertyDefinition {
+public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
+
+    private static final String[] EMPTY_ANCESTORS = new String[0];
+
     /**
      * The default boost: 1.0f.
      */
@@ -53,7 +58,7 @@ class PropertyDefinition {
      * property etc then it should be defined via 'name' property in NodeState.
      * In such case NodeState name can be set to anything
      */
-    final String name;
+    public final String name;
 
     private final int propertyType;
     /**
@@ -93,28 +98,39 @@ class PropertyDefinition {
 
     final boolean excludeFromAggregate;
 
+    final int weight;
+
     /**
      * Property name excluding the relativePath. For regular expression based definition
      * its set to null
      */
-    @CheckForNull
+    @Nullable
     final String nonRelativeName;
 
     /**
      * For function-based indexes: the function name, in Polish notation.
-     */    
+     */
     final String function;
-    
+
     /**
      * For function-based indexes: the function code, as tokens.
-     */    
+     */
     final String[] functionCode;
 
-    public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
+    public final ValuePattern valuePattern;
+
+    public final boolean sync;
+
+    public final boolean unique;
+
+    public boolean useInSimilarity;
+
+  public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, IndexPlanner.DEFAULT_PROPERTY_WEIGHT);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
@@ -128,8 +144,6 @@ class PropertyDefinition {
             this.analyzed = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ANALYZED, false);
         }
 
-        //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         this.ordered = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
@@ -139,6 +153,7 @@ class PropertyDefinition {
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
         this.useInSuggest = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.useInSimilarity = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_USE_IN_SIMILARITY, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
@@ -148,6 +163,12 @@ class PropertyDefinition {
         this.function = FunctionIndexProcessor.convertToPolishNotation(
                 getOptionalValue(defn, LuceneIndexConstants.PROP_FUNCTION, null));
         this.functionCode = FunctionIndexProcessor.getFunctionCode(this.function);
+        this.valuePattern = new ValuePattern(defn);
+        this.unique = getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_UNIQUE, false);
+        this.sync = unique || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_SYNC, false);
+
+        //If some property is set to sync then propertyIndex mode is always enabled
+        this.propertyIndex = sync || getOptionalValueIfIndexed(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         validate();
     }
 
@@ -212,11 +233,14 @@ class PropertyDefinition {
                 ", useInSuggest=" + useInSuggest+
                 ", nullCheckEnabled=" + nullCheckEnabled +
                 ", notNullCheckEnabled=" + notNullCheckEnabled +
+                ", function=" + function +
                 '}';
     }
 
     static boolean isRelativeProperty(String propertyName){
-        return !isAbsolute(propertyName) && PathUtils.getNextSlash(propertyName, 0) > 0;
+        return !isAbsolute(propertyName)
+                && !LuceneIndexConstants.REGEX_ALL_PROPS.equals(propertyName)
+                && PathUtils.getNextSlash(propertyName, 0) > 0;
     }
 
     //~---------------------------------------------< internal >
@@ -249,8 +273,12 @@ class PropertyDefinition {
         return PathUtils.getName(name);
     }
 
-    private static String[] computeAncestors(String parentPath) {
-        return toArray(copyOf(elements(PathUtils.getParentPath(parentPath))), String.class);
+    private static String[] computeAncestors(String path) {
+        if (LuceneIndexConstants.REGEX_ALL_PROPS.equals(path)) {
+            return EMPTY_ANCESTORS;
+        } else {
+            return toArray(copyOf(elements(PathUtils.getParentPath(path))), String.class);
+        }
     }
 
 

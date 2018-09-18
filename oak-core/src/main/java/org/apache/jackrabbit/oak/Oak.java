@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -40,8 +40,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
@@ -50,7 +50,7 @@ import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
@@ -63,39 +63,61 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexMBeanRegistration;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterMBean;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounterOld;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.itemsave.ItemSaveValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.QueryEngineSettingsMBeanImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
-import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
@@ -109,7 +131,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-import org.apache.jackrabbit.oak.util.AggregatingDescriptors;
+import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +156,7 @@ public class Oak {
     
     private final List<RepositoryInitializer> initializers = newArrayList();
 
-    private QueryEngineSettingsMBeanImpl queryEngineSettings = new QueryEngineSettingsMBeanImpl();
+    private AnnotatedQueryEngineSettings queryEngineSettings = new AnnotatedQueryEngineSettings();
 
     private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
 
@@ -144,6 +167,8 @@ public class Oak {
     private final List<Observer> observers = Lists.newArrayList();
 
     private List<EditorProvider> editorProviders = newArrayList();
+
+    private CompositeConflictHandler conflictHandler;
 
     private SecurityProvider securityProvider;
 
@@ -168,7 +193,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 return thread;
@@ -195,7 +220,7 @@ public class Oak {
             private final AtomicInteger counter = new AtomicInteger();
 
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);
@@ -353,8 +378,8 @@ public class Oak {
      * @param c
      * @return
      */
-    @Nonnull
-    public Oak with(@Nonnull Clusterable c) {
+    @NotNull
+    public Oak with(@NotNull Clusterable c) {
         this.clusterable = checkNotNull(c);
         return this;
     }
@@ -367,21 +392,26 @@ public class Oak {
      * @param defaultWorkspaceName The name of the default workspace.
      * @return this builder.
      */
-    @Nonnull
-    public Oak with(@Nonnull String defaultWorkspaceName) {
+    @NotNull
+    public Oak with(@NotNull String defaultWorkspaceName) {
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull RepositoryInitializer initializer) {
+    @NotNull
+    public Oak with(@NotNull RepositoryInitializer initializer) {
         initializers.add(checkNotNull(initializer));
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull QueryEngineSettings queryEngineSettings) {
-        this.queryEngineSettings = new QueryEngineSettingsMBeanImpl(queryEngineSettings);
+    @NotNull
+    public Oak with(@NotNull QueryLimits settings) {
+        QueryEngineSettings s = new QueryEngineSettings();
+        s.setFailTraversal(settings.getFailTraversal());
+        s.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
+        s.setLimitInMemory(settings.getLimitInMemory());
+        s.setLimitReads(settings.getLimitReads());
+        this.queryEngineSettings = new AnnotatedQueryEngineSettings(s);
         return this;
     }
 
@@ -392,8 +422,8 @@ public class Oak {
      * @param provider query index provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull QueryIndexProvider provider) {
+    @NotNull
+    public Oak with(@NotNull QueryIndexProvider provider) {
         queryIndexProviders.add(checkNotNull(provider));
         return this;
     }
@@ -405,8 +435,8 @@ public class Oak {
      * @param provider index hook provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull IndexEditorProvider provider) {
+    @NotNull
+    public Oak with(@NotNull IndexEditorProvider provider) {
         indexEditorProviders.add(checkNotNull(provider));
         return this;
     }
@@ -417,8 +447,8 @@ public class Oak {
      * @param hook commit hook
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull CommitHook hook) {
+    @NotNull
+    public Oak with(@NotNull CommitHook hook) {
         checkNotNull(hook);
         withEditorHook();
         commitHooks.add(hook);
@@ -447,8 +477,8 @@ public class Oak {
      * @param provider editor provider
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull EditorProvider provider) {
+    @NotNull
+    public Oak with(@NotNull EditorProvider provider) {
         editorProviders.add(checkNotNull(provider));
         return this;
     }
@@ -459,11 +489,11 @@ public class Oak {
      * @param editor editor
      * @return this builder
      */
-    @Nonnull
-    public Oak with(@Nonnull final Editor editor) {
+    @NotNull
+    public Oak with(@NotNull final Editor editor) {
         checkNotNull(editor);
         return with(new EditorProvider() {
-            @Override @Nonnull
+            @Override @NotNull
             public Editor getRootEditor(
                     NodeState before, NodeState after,
                     NodeBuilder builder, CommitInfo info) {
@@ -472,18 +502,9 @@ public class Oak {
         });
     }
 
-    @Nonnull
-    public Oak with(@Nonnull SecurityProvider securityProvider) {
+    @NotNull
+    public Oak with(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = checkNotNull(securityProvider);
-        if (securityProvider instanceof WhiteboardAware) {
-            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
-        }
-        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
-            RepositoryInitializer ri = sc.getRepositoryInitializer();
-            if (ri != RepositoryInitializer.DEFAULT) {
-                initializers.add(ri);
-            }
-        }
         return this;
     }
 
@@ -492,48 +513,63 @@ public class Oak {
      *
      * @param conflictHandler conflict handler
      * @return this builder
+     * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
      */
-    @Nonnull
-    public Oak with(@Nonnull ConflictHandler conflictHandler) {
+    @Deprecated
+    @NotNull
+    public Oak with(@NotNull ConflictHandler conflictHandler) {
+        return with(ConflictHandlers.wrap(conflictHandler));
+    }
+
+    @NotNull
+    public Oak with(@NotNull ThreeWayConflictHandler conflictHandler) {
         checkNotNull(conflictHandler);
         withEditorHook();
-        commitHooks.add(new ConflictHook(conflictHandler));
+
+        if (this.conflictHandler == null) {
+            if (conflictHandler instanceof CompositeConflictHandler) {
+                this.conflictHandler = (CompositeConflictHandler) conflictHandler;
+            } else {
+                this.conflictHandler = new CompositeConflictHandler();
+                this.conflictHandler.addHandler(conflictHandler);
+            }
+            commitHooks.add(new ConflictHook(conflictHandler));
+        } else {
+            this.conflictHandler.addHandler(conflictHandler);
+        }
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull ScheduledExecutorService scheduledExecutor) {
+    @NotNull
+    public Oak with(@NotNull ScheduledExecutorService scheduledExecutor) {
         this.scheduledExecutor = checkNotNull(scheduledExecutor);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Executor executor) {
+    @NotNull
+    public Oak with(@NotNull Executor executor) {
         this.executor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull MBeanServer mbeanServer) {
+    @NotNull
+    public Oak with(@NotNull MBeanServer mbeanServer) {
         this.mbeanServer = checkNotNull(mbeanServer);
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Whiteboard whiteboard) {
+    @NotNull
+    public Oak with(@NotNull Whiteboard whiteboard) {
         this.whiteboard = checkNotNull(whiteboard);
-        if (securityProvider instanceof WhiteboardAware) {
-            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
-        }
         QueryEngineSettings queryEngineSettings = WhiteboardUtils.getService(whiteboard, QueryEngineSettings.class);
         if (queryEngineSettings != null) {
-            this.queryEngineSettings = new QueryEngineSettingsMBeanImpl(queryEngineSettings);
+            this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
         }
         return this;
     }
 
-    @Nonnull
-    public Oak with(@Nonnull Observer observer) {
+    @NotNull
+    public Oak with(@NotNull Observer observer) {
         observers.add(checkNotNull(observer));
         return this;
     }
@@ -598,16 +634,16 @@ public class Oak {
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
      * </p>
      */
-    public Oak withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+    public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         if (this.asyncTasks == null) {
             asyncTasks = new HashMap<String, Long>();
         }
         checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
-        asyncTasks.put(checkNotNull(name), delayInSeconds);
+        asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public Whiteboard getWhiteboard() {
         return this.whiteboard;
     }
@@ -627,20 +663,56 @@ public class Oak {
         return contentRepository;
     }
 
+    private void initialContent(IndexEditorProvider indexEditors, QueryIndexProvider indexProvider) {
+        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
+        initHooks.add(0, ResetCommitAttributeHook.INSTANCE);
+        initHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors)));
+
+        CommitHook initHook = CompositeHook.compose(initHooks);
+        OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+
+        // FIXME: OAK-810 move to proper workspace initialization
+        // initialize default workspace
+        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+                new Function<SecurityConfiguration, WorkspaceInitializer>() {
+                    @Override
+                    public WorkspaceInitializer apply(SecurityConfiguration sc) {
+                        WorkspaceInitializer wi = sc.getWorkspaceInitializer();
+                        if (wi instanceof QueryIndexProviderAware) {
+                            ((QueryIndexProviderAware) wi).setQueryIndexProvider(indexProvider);
+                        }
+                        return wi;
+                    }
+                });
+        OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, initHook);
+    }
+
     private ContentRepository createNewContentRepository() {
+        if (securityProvider instanceof WhiteboardAware) {
+            ((WhiteboardAware) securityProvider).setWhiteboard(whiteboard);
+        }
+        for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
+            RepositoryInitializer ri = sc.getRepositoryInitializer();
+            if (ri != RepositoryInitializer.DEFAULT) {
+                initializers.add(ri);
+            }
+            for (ThreeWayConflictHandler tch : sc.getConflictHandlers()) {
+                with(tch);
+            }
+        }
+
         final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         final List<Registration> regs = Lists.newArrayList();
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
         IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
-        OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
-
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 
+        // force serialize editors
+        withEditorHook();
         commitHooks.add(repoStateCheckHook);
-        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
-        initHooks.add(new EditorHook(CompositeEditorProvider
-                .compose(editorProviders)));
+
+        initialContent(indexEditors, indexProvider);
 
         if (asyncTasks != null) {
             IndexMBeanRegistration indexRegistration = new IndexMBeanRegistration(
@@ -661,32 +733,26 @@ public class Oak {
                     PropertyIndexAsyncReindexMBean.TYPE, "async"));
         }
 
-        regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
-                new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        if (NodeCounter.USE_OLD_COUNTER) {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounterOld(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        } else {
+            regs.add(registerMBean(whiteboard, NodeCounterMBean.class,
+                    new NodeCounter(store), NodeCounterMBean.TYPE, "nodeCounter"));
+        }
 
         regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
 
-        // FIXME: OAK-810 move to proper workspace initialization
-        // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers =
-                Iterables.transform(securityProvider.getConfigurations(),
-                        new Function<SecurityConfiguration, WorkspaceInitializer>() {
-                            @Override
-                            public WorkspaceInitializer apply(SecurityConfiguration sc) {
-                                return sc.getWorkspaceInitializer();
-                            }
-                        });
-        OakInitializer.initialize(
-                workspaceInitializers, store, defaultWorkspaceName, indexEditors);
+        regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
+                queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        with(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider));
-        withEditorHook();
+        commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {
-            regs.add(registerObserver(whiteboard, observer));
+            regs.add(whiteboard.register(Observer.class, observer, emptyMap()));
         }
 
         RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
@@ -771,7 +837,7 @@ public class Oak {
     private static class RepoStateCheckHook implements CommitHook, Closeable {
         private volatile boolean closed;
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
             if (closed){
@@ -784,6 +850,142 @@ public class Oak {
         @Override
         public void close() throws IOException {
             this.closed = true;
+        }
+    }
+
+    /**
+     * Settings of the query engine. This instance is an AnnotatedStandardMBean.
+     */
+    private static final class AnnotatedQueryEngineSettings extends AnnotatedStandardMBean implements QueryEngineSettingsMBean {
+
+        private final QueryEngineSettings settings;
+
+        /**
+         * Create a new query engine settings object. Creating the object is
+         * relatively slow, and at runtime, as few such objects as possible should
+         * be created (ideally, only one per Oak instance). Creating new instances
+         * also means they can not be configured using JMX, as one would expect.
+         */
+        private AnnotatedQueryEngineSettings(QueryEngineSettings settings) {
+            super(QueryEngineSettingsMBean.class);
+            this.settings = settings;
+        }
+
+        /**
+         * Create a new query engine settings object. Creating the object is
+         * relatively slow, and at runtime, as few such objects as possible should
+         * be created (ideally, only one per Oak instance). Creating new instances
+         * also means they can not be configured using JMX, as one would expect.
+         */
+        private AnnotatedQueryEngineSettings() {
+            this(new QueryEngineSettings());
+        }
+
+        @Override
+        public long getLimitInMemory() {
+            return settings.getLimitInMemory();
+        }
+
+        @Override
+        public void setLimitInMemory(long limitInMemory) {
+            settings.setLimitInMemory(limitInMemory);
+        }
+
+        @Override
+        public long getLimitReads() {
+            return settings.getLimitReads();
+        }
+
+        @Override
+        public void setLimitReads(long limitReads) {
+            settings.setLimitReads(limitReads);
+        }
+
+        @Override
+        public boolean getFailTraversal() {
+            return settings.getFailTraversal();
+        }
+
+        @Override
+        public void setFailTraversal(boolean failQueriesWithoutIndex) {
+            settings.setFailTraversal(failQueriesWithoutIndex);
+        }
+
+        @Override
+        public boolean isFastQuerySize() {
+            return settings.isFastQuerySize();
+        }
+
+        @Override
+        public void setFastQuerySize(boolean fastQuerySize) {
+            settings.setFastQuerySize(fastQuerySize);
+        }
+
+        public QueryStatsMBean getQueryStats() {
+            return settings.getQueryStats();
+        }
+
+        public QueryEngineSettings unwrap() {
+            return settings;
+        }
+
+        @Override
+        public String toString() {
+            return settings.toString();
+        }
+    }
+
+    public static class OakDefaultComponents {
+
+        /**
+         * @deprecated create a new instance of {@link OakDefaultComponents} instead.
+         */
+        @Deprecated
+        public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
+
+        private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
+
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = ImmutableList
+                .of(new InitialContent());
+
+        private  final Iterable<EditorProvider> editorProviders = ImmutableList.of(
+                new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
+                new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
+
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
+                new OrderedPropertyIndexEditorProvider());
+
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
+                .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
+
+        private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();
+
+        public OakDefaultComponents() {
+        }
+
+        public Iterable<CommitHook> commitHooks() {
+            return commitHooks;
+        }
+
+        public Iterable<RepositoryInitializer> repositoryInitializers() {
+            return repositoryInitializers;
+        }
+
+        public Iterable<EditorProvider> editorProviders() {
+            return editorProviders;
+        }
+
+        public Iterable<IndexEditorProvider> indexEditorProviders() {
+            return indexEditorProviders;
+        }
+
+        public Iterable<QueryIndexProvider> queryIndexProviders() {
+            return queryIndexProviders;
+        }
+
+        public SecurityProvider securityProvider() {
+            return securityProvider;
         }
     }
 

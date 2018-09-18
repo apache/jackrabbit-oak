@@ -23,13 +23,14 @@ import groovy.transform.TypeCheckingMode
 import jline.Terminal
 import jline.TerminalFactory
 import jline.console.history.FileHistory
+import org.apache.jackrabbit.oak.run.commons.Utils
 import org.apache.jackrabbit.oak.console.commands.*
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
-import org.apache.jackrabbit.oak.run.Main
 import org.codehaus.groovy.runtime.StackTraceUtils
 import org.codehaus.groovy.tools.shell.*
 import org.codehaus.groovy.tools.shell.Command as ShellCommand
 import org.codehaus.groovy.tools.shell.commands.*
+import org.codehaus.groovy.tools.shell.util.Logger
 import org.codehaus.groovy.tools.shell.util.Preferences
 import org.fusesource.jansi.Ansi
 import org.fusesource.jansi.AnsiConsole
@@ -41,11 +42,16 @@ import org.fusesource.jansi.AnsiRenderer
 @CompileStatic
 class GroovyConsole {
     static {
-        // Install the system adapters
-        AnsiConsole.systemInstall()
+        try {
+            // Install the system adapters
+            AnsiConsole.systemInstall()
 
-        // Register jline ansi detector
-        Ansi.setDetector(new AnsiDetector())
+            // Register jline ansi detector
+            Ansi.setDetector(new AnsiDetector())
+        } catch (UnsatisfiedLinkError e){
+            Logger.create(GroovyConsole.class).warn("Error loading console support. Some console features might not work properly. See " +
+                    "https://issues.apache.org/jira/browse/OAK-5961 for details", e)
+        }
     }
 
     private final ConsoleSession session
@@ -121,7 +127,8 @@ class GroovyConsole {
                 new RefreshCommand(shell),
                 new RetrieveCommand(shell),
                 new LuceneCommand(shell),
-                new ExportRelevantDocumentsCommand(shell)
+                new ExportRelevantDocumentsCommand(shell),
+                new ExportCommand(shell)
         ])
 
         if(session.store instanceof DocumentNodeStore){
@@ -248,7 +255,7 @@ class GroovyConsole {
                             width = 80
                         }
 
-                        io.out.println("@|green Jackrabbit Oak Shell|@ (${Main.getProductInfo()}, " +
+                        io.out.println("@|green Jackrabbit Oak Shell|@ (${getProductInfo()}, " +
                                 "JVM: ${System.properties['java.version']})")
                         io.out.println("Type '@|bold :help|@' or '@|bold :h|@' for help.")
                         io.out.println('-' * (width - 1))
@@ -277,5 +284,10 @@ class GroovyConsole {
             return code
         }
 
+    }
+
+    private static String getProductInfo(){
+        return Utils.getProductInfo(
+                GroovyConsole.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run/pom.properties"));
     }
 }

@@ -22,8 +22,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_ONPARENTVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
@@ -33,7 +31,9 @@ import javax.jcr.version.OnParentVersionAction;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Base class for the node and property definition template implementations
@@ -105,7 +105,7 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
      *
      * @return JCR name, "*", or {@code null}
      */
-    @Override @CheckForNull
+    @Override @Nullable
     public String getName() {
         if (residual) {
             return NodeTypeConstants.RESIDUAL_NAME;
@@ -122,7 +122,7 @@ abstract class ItemDefinitionTemplate extends NamedTemplate
      * @throws ConstraintViolationException if the name is invalid
      */
     @Override
-    public void setName(@Nonnull String jcrName)
+    public void setName(@NotNull String jcrName)
             throws ConstraintViolationException {
         residual = NodeTypeConstants.RESIDUAL_NAME.equals(jcrName);
         if (!residual) {

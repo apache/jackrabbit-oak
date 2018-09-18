@@ -20,15 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 public class MultiplexersLuceneTest {
-    private MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+    private MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
     private Mount fooMount = mip.getMountByName("foo");
     private Mount defaultMount = mip.getDefaultMount();

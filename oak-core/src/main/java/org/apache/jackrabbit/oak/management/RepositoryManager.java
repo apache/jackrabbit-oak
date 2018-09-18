@@ -21,16 +21,18 @@ package org.apache.jackrabbit.oak.management;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.fromCompositeData;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.toTabularData;
-import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.unavailable;
+import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.fromCompositeData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.toTabularData;
+import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.unavailable;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
@@ -44,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncRe
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Default implementation of the {@link RepositoryManagementMBean} based
@@ -55,7 +58,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 public class RepositoryManager extends AnnotatedStandardMBean implements RepositoryManagementMBean {
     private final Whiteboard whiteboard;
 
-    public RepositoryManager(@Nonnull Whiteboard whiteboard) {
+    public RepositoryManager(@NotNull Whiteboard whiteboard) {
         super(RepositoryManagementMBean.class);
         this.whiteboard = checkNotNull(whiteboard);
     }
@@ -65,7 +68,16 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     }
 
     private <T> Status execute(Class<T> serviceType, Function<T, Status> operation) {
-        Tracker<T> tracker = whiteboard.track(serviceType);
+        return execute(serviceType, operation, Collections.emptyMap());
+    }
+
+    private <T> Status execute(Class<T> serviceType, Function<T, Status> operation, Map<String, String> filter) {
+        Tracker<T> tracker;
+        if (filter.isEmpty()) {
+            tracker = whiteboard.track(serviceType);
+        } else {
+            tracker = whiteboard.track(serviceType, filter);
+        }
         try {
             List<T> services = tracker.getServices();
             if (services.size() == 1) {
@@ -100,7 +112,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData startBackup() {
         return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(FileStoreBackupRestoreMBean fileStoreBackupRestoreMBean) {
                 return fromCompositeData(fileStoreBackupRestoreMBean.startBackup());
@@ -111,7 +123,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData getBackupStatus() {
         return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(FileStoreBackupRestoreMBean backupService) {
                 return fromCompositeData(backupService.getBackupStatus());
@@ -122,7 +134,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData startRestore() {
         return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(FileStoreBackupRestoreMBean backupService) {
                 return fromCompositeData(backupService.startRestore());
@@ -133,7 +145,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData getRestoreStatus() {
         return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(FileStoreBackupRestoreMBean backupService) {
                 return fromCompositeData(backupService.getRestoreStatus());
@@ -144,7 +156,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData startDataStoreGC(final boolean markOnly) {
         return execute(BlobGCMBean.class, new Function<BlobGCMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(BlobGCMBean blobGCService) {
                 return fromCompositeData(blobGCService.startBlobGC(markOnly));
@@ -155,7 +167,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     @Override
     public CompositeData getDataStoreGCStatus() {
         return execute(BlobGCMBean.class, new Function<BlobGCMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(BlobGCMBean blobGCService) {
                 return fromCompositeData(blobGCService.getBlobGCStatus());
@@ -165,42 +177,59 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
 
     @Override
     public CompositeData startRevisionGC() {
+        return startRevisionGCForRole(null);
+    }
+
+    @Override
+    public CompositeData startRevisionGCForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.startRevisionGC());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData cancelRevisionGC() {
+        return cancelRevisionGCForRole(null);
+    }
+
+    @NotNull
+    @Override
+    public CompositeData cancelRevisionGCForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.cancelRevisionGC());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override
     public CompositeData getRevisionGCStatus() {
+        return getRevisionGCStatusForRole(null);
+    }
+
+    @NotNull
+    @Override
+    public CompositeData getRevisionGCStatusForRole(String role) {
         return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(RevisionGCMBean revisionGCService) {
                 return fromCompositeData(revisionGCService.getRevisionGCStatus());
             }
-        }).toCompositeData();
+        }, singletonMap("role", role)).toCompositeData();
     }
 
     @Override
     public String checkpoint(final long lifetime) {
         Status status = execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
-            @Nonnull
+            @NotNull
             @Override
             public Status apply(FileStoreBackupRestoreMBean backupService) {
                 String checkpoint = backupService.checkpoint(lifetime);
@@ -217,7 +246,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     public CompositeData startPropertyIndexAsyncReindex() {
         return execute(PropertyIndexAsyncReindexMBean.class,
                 new Function<PropertyIndexAsyncReindexMBean, Status>() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
                         return fromCompositeData(reindexer
@@ -230,7 +259,7 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
     public CompositeData getPropertyIndexAsyncReindexStatus() {
         return execute(PropertyIndexAsyncReindexMBean.class,
                 new Function<PropertyIndexAsyncReindexMBean, Status>() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
                         return fromCompositeData(reindexer

@@ -18,30 +18,21 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newTreeSet;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.SegmentTestConstants;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -82,7 +73,7 @@ public class FileStoreIT {
         store.close();
 
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(memoryMapping).build();
-        store.gc();
+        store.fullGC();
         store.flush();
         store.close();
 
@@ -100,6 +91,8 @@ public class FileStoreIT {
 
         SegmentNodeState base = store.getHead();
         SegmentNodeBuilder builder = base.builder();
+        ArrayBasedBlob blob = new ArrayBasedBlob(new byte[SegmentTestConstants.MEDIUM_LIMIT]);
+        builder.setProperty("blob", blob);
         builder.setProperty("step", "a");
         store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
         store.flush();
@@ -133,64 +126,6 @@ public class FileStoreIT {
         store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
         assertFalse(store.getHead().hasProperty("step"));
         store.close();
-    }
-
-    @Test
-    public void testRearrangeOldData() throws IOException {
-        new FileOutputStream(new File(getFileStoreFolder(), "data00000.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "data00010a.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "data00030.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "bulk00002.tar")).close();
-        new FileOutputStream(new File(getFileStoreFolder(), "bulk00005a.tar")).close();
-
-        Map<Integer, ?> files = FileStore.collectFiles(getFileStoreFolder());
-        assertEquals(
-                newArrayList(0, 1, 31, 32, 33),
-                newArrayList(newTreeSet(files.keySet())));
-
-        assertTrue(new File(getFileStoreFolder(), "data00000a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00001a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00031a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00032a.tar").isFile());
-        assertTrue(new File(getFileStoreFolder(), "data00033a.tar").isFile());
-
-        files = FileStore.collectFiles(getFileStoreFolder());
-        assertEquals(
-                newArrayList(0, 1, 31, 32, 33),
-                newArrayList(newTreeSet(files.keySet())));
-    }
-
-    @Test  // See OAK-2049
-    public void segmentOverflow() throws Exception {
-        for (int n = 1; n < 255; n++) {  // 255 = ListRecord.LEVEL_SIZE
-            FileStore store = fileStoreBuilder(getFileStoreFolder()).withMaxFileSize(1).withMemoryMapping(false).build();
-            SegmentWriter writer = store.getWriter();
-            // writer.length == 32  (from the root node)
-
-            // adding 15 strings with 16516 bytes each
-            for (int k = 0; k < 15; k++) {
-                // 16516 = (Segment.MEDIUM_LIMIT - 1 + 2 + 3)
-                // 1 byte per char, 2 byte to store the length and 3 bytes for the
-                // alignment to the integer boundary
-                writer.writeString(Strings.repeat("abcdefghijklmno".substring(k, k + 1),
-                        Segment.MEDIUM_LIMIT - 1));
-            }
-
-            // adding 14280 bytes. 1 byte per char, and 2 bytes to store the length
-            RecordId x = writer.writeString(Strings.repeat("x", 14278));
-            // writer.length == 262052
-
-            // Adding 765 bytes (255 recordIds)
-            // This should cause the current segment to flush
-            List<RecordId> list = Collections.nCopies(n, x);
-            writer.writeList(list);
-
-            writer.flush();
-
-            // Don't close the store in a finally clause as if a failure happens
-            // this will also fail an cover up the earlier exception
-            store.close();
-        }
     }
 
     @Test

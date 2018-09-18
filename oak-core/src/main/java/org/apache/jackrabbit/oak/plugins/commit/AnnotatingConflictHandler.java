@@ -20,8 +20,8 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_OURS;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
@@ -36,15 +36,15 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This {@link ConflictHandler} implementation resolves conflicts to
- * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#THEIRS} and in addition marks nodes where a
+ * This {@link ThreeWayConflictHandler} implementation resolves conflicts to
+ * {@link org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution#THEIRS} and in addition marks nodes where a
  * conflict occurred with the mixin {@code rep:MergeConflict}:
  *
  * <pre>
@@ -59,7 +59,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *
  * @see ConflictValidator
  */
-public class AnnotatingConflictHandler implements ConflictHandler {
+public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
     @Override
     public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
@@ -69,30 +69,31 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours) {
+    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
+            PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_CHANGED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs) {
+    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs, PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, DELETE_CHANGED_PROPERTY).setProperty(theirs);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours) {
+    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
-        createChild(marker, DELETE_DELETED_PROPERTY).setProperty(ours);
+        createChild(marker, DELETE_DELETED_PROPERTY).setProperty(base);
         return Resolution.THEIRS;
     }
 
@@ -104,21 +105,21 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     }
 
     @Override
-    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
+    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours, NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs) {
+    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs, NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_CHANGED_NODE), name);
         return Resolution.THEIRS;
     }
 
     @Override
-    public Resolution deleteDeletedNode(NodeBuilder parent, String name) {
+    public Resolution deleteDeletedNode(NodeBuilder parent, String name, NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_DELETED_NODE), name);
         return Resolution.THEIRS;

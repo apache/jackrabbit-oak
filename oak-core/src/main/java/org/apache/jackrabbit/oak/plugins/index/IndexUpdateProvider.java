@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -26,6 +23,8 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IndexUpdateProvider implements EditorProvider {
 
@@ -56,19 +55,19 @@ public class IndexUpdateProvider implements EditorProvider {
     }
 
     public IndexUpdateProvider(
-            @Nonnull IndexEditorProvider provider, @CheckForNull String async, boolean failOnMissingIndexProvider) {
+            @NotNull IndexEditorProvider provider, @Nullable String async, boolean failOnMissingIndexProvider) {
         this.provider = provider;
         this.async = async;
         this.missingStrategy = new MissingIndexProviderStrategy();
         this.missingStrategy.setFailOnMissingIndexProvider(failOnMissingIndexProvider);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
 
-        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, info, corruptIndexHandler)
+        IndexUpdate editor = new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK, NodeTraversalCallback.NOOP, info, corruptIndexHandler)
                 .withMissingProviderStrategy(missingStrategy);
         editor.setIgnoreReindexFlags(ignoreReindexFlags);
         return VisibleEditor.wrap(editor);

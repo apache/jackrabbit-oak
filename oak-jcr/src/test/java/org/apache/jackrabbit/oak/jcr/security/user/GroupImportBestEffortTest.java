@@ -23,12 +23,11 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.Value;
-import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -168,13 +167,11 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         doImport(getTargetPath(), xml);
 
         /*
-        now try to import the 'g' group that has a circular group
-        membership references.
+        now try to import the 'g' group that has a circular group membership references.
         expected:
         - group is imported
-        - circular membership is ignored (OR fails upon save)
-        - g is member of g1
-        - g1 isn't member of g  (circular membership detected) OR saving changes fails
+        - circular membership is not spotted due to best-effort optimization
+        - circular membership is spotted upon resolution of members
         */
         doImport(getTargetPath() + "/gFolder", xml2);
 
@@ -185,19 +182,11 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         assertNotNull("'g1' was not imported as Group.", g1);
 
         assertTrue(g1.isDeclaredMember(g));
-        if (g.isDeclaredMember(g1)) {
-            // circular membership created during import
-            try {
-                getImportSession().save();
-                fail("Circular membership must be detected upon save.");
-            } catch (ConstraintViolationException e) {
-                Throwable th = e.getCause();
-                assertTrue(th instanceof CommitFailedException);
-                assertEquals(31, ((CommitFailedException) th).getCode());
-            }
-        } else {
-            assertNotDeclaredMember(g, g1Id, getImportSession());
-        }
+        assertTrue(g.isDeclaredMember(g1));
+
+        // circular membership created during import -> must be spotted upon member-access
+        assertEquals(1, Iterators.size(g1.getMembers()));
+        assertEquals(1, Iterators.size(g.getMembers()));
     }
 
     @Test

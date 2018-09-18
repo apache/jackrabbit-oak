@@ -18,17 +18,15 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import java.io.File;
 import java.io.IOException;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.junit.Assert.assertTrue;
 
@@ -40,11 +38,13 @@ public class TestUtils
 
     static final String SOLR_HOME_PATH = "/solr";
 
-    public static SolrServer createSolrServer() {
-        EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
-                TestUtils.class.getResource(SOLR_HOME_PATH).getFile(), "oak");
-        EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
+    public static SolrClient createSolrServer() {
         try {
+            File file = new File(TestUtils.class.getResource(SOLR_HOME_PATH).toURI());
+            EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
+                    file.getAbsolutePath(), "oak");
+            EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
+
             return provider.getSolrServer();
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -61,7 +61,7 @@ public class TestUtils
 
     public static OakSolrConfiguration getTestConfiguration() {
         return new DefaultSolrConfiguration() {
-            @Nonnull
+            @NotNull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;
@@ -84,29 +84,29 @@ public class TestUtils
         };
     }
 
-    private final SolrServer solrServer = createSolrServer();
+    private final SolrClient solrServer = createSolrServer();
 
     private final OakSolrConfiguration configuration = getTestConfiguration();
 
-    @CheckForNull
+    @Nullable
     @Override
-    public SolrServer getSolrServer() {
+    public SolrClient getSolrServer() {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return solrServer;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public OakSolrConfiguration getConfiguration() {
         return configuration;

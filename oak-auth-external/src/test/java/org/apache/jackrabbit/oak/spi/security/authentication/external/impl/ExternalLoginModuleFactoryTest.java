@@ -35,9 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.easymock.EasyMock;
-import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -46,9 +44,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
-
-    @Rule
-    public final OsgiContext context = new OsgiContext();
 
     @Override
     protected Oak withEditors(Oak oak) {

@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.facet.FacetsConfig;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 

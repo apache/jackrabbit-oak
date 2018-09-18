@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
 import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
@@ -47,16 +48,27 @@ public class FacetTest extends AbstractQueryTest {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        if (!superuser.itemExists(FACET_CONFING_PROP_PATH)) {
-            Node node = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties/allProps");
-            node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
-            markIndexForReindex();
-            superuser.save();
-            superuser.refresh(true);
+        if (superuser.itemExists(FACET_CONFING_PROP_PATH)) {
+            superuser.getItem(FACET_CONFING_PROP_PATH).remove();
         }
 
+        Node props = superuser.getNode("/oak:index/luceneGlobal/indexRules/nt:base/properties");
+        if (props.hasNode("relative")) {
+            props.getNode("relative").remove();
+        }
+
+        Node node = props.addNode("relative");
+        node.setProperty("name", "jc/text");
+        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        node.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        node = props.getNode("allProps");
+        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        markIndexForReindex();
+        superuser.save();
+        superuser.refresh(true);
+
         if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
-            Node node = superuser.getNode(INDEX_CONFING_NODE_PATH);
+            node = superuser.getNode(INDEX_CONFING_NODE_PATH);
             node.addNode(LuceneIndexConstants.FACETS);
             markIndexForReindex();
             superuser.save();
@@ -66,8 +78,16 @@ public class FacetTest extends AbstractQueryTest {
 
     @After
     protected void tearDown() throws Exception {
+        assertTrue(superuser.nodeExists("/oak:index/luceneGlobal/facets"));
+
         if (superuser.nodeExists(FACET_CONFING_PROP_PATH)) {
             superuser.getProperty(LuceneIndexConstants.PROP_FACETS).remove();
+            superuser.save();
+            superuser.refresh(true);
+        }
+
+        if (superuser.nodeExists("/oak:index/luceneGlobal/indexRules/nt:base/properties/relative")) {
+            superuser.removeItem("/oak:index/luceneGlobal/indexRules/nt:base/properties/relative");
             superuser.save();
             superuser.refresh(true);
         }
@@ -125,6 +145,121 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals(1, facetResult.getDimensions().size());
         assertTrue(facetResult.getDimensions().contains("text"));
         List<FacetResult.Facet> facets = facetResult.getFacets("text");
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("hello", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        assertEquals("oh hallo", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
+    }
+
+    public void testFacetRetrievalXPath() throws Exception {
+        Session session = superuser;
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "hello");
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("text", "hallo");
+        Node n3 = testRootNode.addNode("node3");
+        n3.setProperty("text", "oh hallo");
+        session.save();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String xpath = "//*[jcr:contains(@text, 'hello OR hallo')]/(rep:facet(text)) order by jcr:path";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("text"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("text");
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("hello", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        assertEquals("oh hallo", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
+    }
+
+    public void testFacetRetrievalRelativeProperty() throws Exception {
+        Session session = superuser;
+        Node n1 = testRootNode.addNode("node1");
+        n1.addNode("jc").setProperty("text", "hello");
+        Node n2 = testRootNode.addNode("node2");
+        n2.addNode("jc").setProperty("text", "hallo");
+        Node n3 = testRootNode.addNode("node3");
+        n3.addNode("jc").setProperty("text", "oh hallo");
+        session.save();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String sql2 = "select [jcr:path], [rep:facet(jc/text)] from [nt:base] " +
+                "where contains([jc/text], 'hello OR hallo') order by [jcr:path]";
+        Query q = qm.createQuery(sql2, Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("jc/text"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("jc/text");
+        assertNotNull(facets);
+        assertEquals("hallo", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount(), 0);
+        assertEquals("hello", facets.get(1).getLabel());
+        assertEquals(1, facets.get(1).getCount(), 0);
+        assertEquals("oh hallo", facets.get(2).getLabel());
+        assertEquals(1, facets.get(2).getCount(), 0);
+
+        NodeIterator nodes = result.getNodes();
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertTrue(nodes.hasNext());
+        assertNotNull(nodes.nextNode());
+        assertFalse(nodes.hasNext());
+    }
+
+    public void testFacetRetrievalRelativePropertyXPath() throws Exception {
+        Session session = superuser;
+        Node n1 = testRootNode.addNode("node1");
+        n1.addNode("jc").setProperty("text", "hello");
+        Node n2 = testRootNode.addNode("node2");
+        n2.addNode("jc").setProperty("text", "hallo");
+        Node n3 = testRootNode.addNode("node3");
+        n3.addNode("jc").setProperty("text", "oh hallo");
+        session.save();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String xpath = "//*[jcr:contains(jc/@text, 'hello OR hallo')]/(rep:facet(jc/text)) order by jcr:path";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertNotNull(facetResult.getDimensions());
+        assertEquals(1, facetResult.getDimensions().size());
+        assertTrue(facetResult.getDimensions().contains("jc/text"));
+        List<FacetResult.Facet> facets = facetResult.getFacets("jc/text");
         assertNotNull(facets);
         assertEquals("hallo", facets.get(0).getLabel());
         assertEquals(1, facets.get(0).getCount(), 0);
@@ -466,6 +601,35 @@ public class FacetTest extends AbstractQueryTest {
         List<FacetResult.Facet> facets = facetResult.getFacets(pn);
         assertNotNull(facets);
         assertEquals(7, facets.size());
+    }
+
+    // OAK-7078
+    public void testFacetsOfResultSetThatDoesntContainDim() throws Exception {
+        Node content = testRootNode.addNode("absentDimFacets");
+
+        // create a document with a simple/tags property
+        Node foo = content.addNode("foo");
+        Node fooSimple = foo.addNode("jc");
+        foo.setProperty("text", "lorem lorem");
+        fooSimple.setProperty("text", new String[]{"tag1", "tag2"});
+        // now create a document without simple/tags property
+        Node bar = content.addNode("bar");
+        bar.setProperty("text", "lorem ipsum");
+
+        superuser.save();
+
+        String query = "select [rep:facet(jc/text)] from [nt:base] where contains(*, 'ipsum')";
+
+        Query q = qm.createQuery(query, Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+        assertNotNull(facetResult);
+        assertTrue(facetResult.getDimensions().isEmpty());
+
+        RowIterator rows = result.getRows();
+        assertTrue(rows.hasNext());
+        assertEquals(bar.getPath(), rows.nextRow().getPath());
+        assertFalse(rows.hasNext());
     }
 
     private void markIndexForReindex() throws RepositoryException {

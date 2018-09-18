@@ -20,10 +20,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -61,7 +60,7 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
         return raw.toString().trim();
     }
 
-    private static boolean isKeyword(@Nonnull String term) {
+    private static boolean isKeyword(@NotNull String term) {
         return KEYWORDS.contains(checkNotNull(term).toLowerCase());
     }
     

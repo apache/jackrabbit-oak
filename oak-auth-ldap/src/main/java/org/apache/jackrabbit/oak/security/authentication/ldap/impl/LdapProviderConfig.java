@@ -17,14 +17,15 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.apache.directory.api.util.Strings;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Configuration of the ldap provider.
@@ -403,6 +404,21 @@ public class LdapProviderConfig {
     public static final String PARAM_GROUP_MEMBER_ATTRIBUTE = "group.memberAttribute";
 
     /**
+     * @see #getUseUidForExtId()
+     */
+    public static final boolean PARAM_USE_UID_FOR_EXT_ID_DEFAULT = false;
+
+    /**
+     * @see #getUseUidForExtId()
+     */
+    @Property(
+            label = "Use user id for external ids",
+            description = "If enabled, the value of the user id (resp. group name) attribute will be used to create external identifiers. Leave disabled to use the DN instead.",
+            boolValue = PARAM_USE_UID_FOR_EXT_ID_DEFAULT
+    )
+    public static final String PARAM_USE_UID_FOR_EXT_ID = "useUidForExtId";
+
+    /**
      * @see Identity#getCustomAttributes()
      */
     public static final String[] PARAM_CUSTOM_ATTRIBUTES_DEFAULT = {};
@@ -441,7 +457,7 @@ public class LdapProviderConfig {
          * Configures the base DN for searches of this kind of identity
          * @return the base DN
          */
-        @Nonnull
+        @NotNull
         public String getBaseDN() {
             return baseDN;
         }
@@ -452,8 +468,8 @@ public class LdapProviderConfig {
          * @return {@code this}
          * @see #getBaseDN()
          */
-        @Nonnull
-        public Identity setBaseDN(@Nonnull String baseDN) {
+        @NotNull
+        public Identity setBaseDN(@NotNull String baseDN) {
             this.baseDN = baseDN;
             return this;
         }
@@ -463,7 +479,7 @@ public class LdapProviderConfig {
          * @return an array of object classes
          * @see #getSearchFilter(String) for more detail about searching and filtering
          */
-        @Nonnull
+        @NotNull
         public String[] getObjectClasses() {
             return objectClasses;
         }
@@ -474,8 +490,8 @@ public class LdapProviderConfig {
          * @return {@code this}
          * @see #getObjectClasses()
          */
-        @Nonnull
-        public Identity setObjectClasses(@Nonnull String ... objectClasses) {
+        @NotNull
+        public Identity setObjectClasses(@NotNull String ... objectClasses) {
             this.objectClasses = objectClasses;
             filterTemplate = null;
             memberOfFilterTemplate = null;
@@ -489,7 +505,7 @@ public class LdapProviderConfig {
          * @return the id attribute name
          * @see #getSearchFilter(String) for more detail about searching and filtering
          */
-        @Nonnull
+        @NotNull
         public String getIdAttribute() {
             return idAttribute;
         }
@@ -500,8 +516,8 @@ public class LdapProviderConfig {
          * @return {@code this}
          * @see #getIdAttribute()
          */
-        @Nonnull
-        public Identity setIdAttribute(@Nonnull String idAttribute) {
+        @NotNull
+        public Identity setIdAttribute(@NotNull String idAttribute) {
             this.idAttribute = idAttribute;
             filterTemplate = null;
             memberOfFilterTemplate = null;
@@ -514,7 +530,7 @@ public class LdapProviderConfig {
          *
          * @return the extra filter
          */
-        @CheckForNull
+        @Nullable
         public String getExtraFilter() {
             return extraFilter;
         }
@@ -525,7 +541,7 @@ public class LdapProviderConfig {
          * @return {@code this}
          * @see #getExtraFilter()
          */
-        @Nonnull
+        @NotNull
         public Identity setExtraFilter(@Nullable String extraFilter) {
             this.extraFilter = extraFilter;
             filterTemplate = null;
@@ -548,7 +564,7 @@ public class LdapProviderConfig {
          * @return {@code this}
          * @see #makeDnPath()
          */
-        @Nonnull
+        @NotNull
         public Identity setMakeDnPath(boolean makeDnPath) {
             this.makeDnPath = makeDnPath;
             return this;
@@ -567,8 +583,8 @@ public class LdapProviderConfig {
          * @param id the id value
          * @return the search filter
          */
-        @Nonnull
-        public String getSearchFilter(@Nonnull String id) {
+        @NotNull
+        public String getSearchFilter(@NotNull String id) {
             if (filterTemplate == null) {
                 StringBuilder filter = new StringBuilder("(&(")
                         .append(idAttribute)
@@ -629,9 +645,10 @@ public class LdapProviderConfig {
          * Sets the cap on the number of objects that can be allocated by the pool.
          *
          * @see #getMaxActive
+         * @param maxActive the new upper limit of the pool size
          * @return this
          */
-        @Nonnull
+        @NotNull
         public PoolConfig setMaxActive(int maxActive) {
             this.maxActiveSize = maxActive;
             return this;
@@ -641,7 +658,7 @@ public class LdapProviderConfig {
          * Defines if the lookup on validate flag is enabled. If enable a connection that taken from the
          * pool are validated before used. currently this is done by performing a lookup to the ROOT DSE, which
          * might not be allowed on all LDAP servers.
-
+         *
          * @return {@code true} if the flag is enabled.
          */
         public boolean lookupOnValidate() {
@@ -652,9 +669,10 @@ public class LdapProviderConfig {
          * Sets the lookup on validate flag.
          *
          * @see #lookupOnValidate()
+         * @param lookupOnValidate the new value of the lookup on validate flag
          * @return this
          */
-        @Nonnull
+        @NotNull
         public PoolConfig setLookupOnValidate(boolean lookupOnValidate) {
             this.lookupOnValidate = lookupOnValidate;
             return this;
@@ -686,7 +704,8 @@ public class LdapProviderConfig {
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT))
-                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT));
+                .setCustomAttributes(params.getConfigValue(PARAM_CUSTOM_ATTRIBUTES, PARAM_CUSTOM_ATTRIBUTES_DEFAULT))
+                .setUseUidForExtId(params.getConfigValue(PARAM_USE_UID_FOR_EXT_ID, PARAM_USE_UID_FOR_EXT_ID_DEFAULT));
 
         ConfigurationParameters.Milliseconds ms = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT));
         if (ms != null) {
@@ -738,6 +757,8 @@ public class LdapProviderConfig {
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
+    private boolean useUidForExtId = PARAM_USE_UID_FOR_EXT_ID_DEFAULT;
+
     private String memberOfFilterTemplate;
 
     private String[] customAttributes = PARAM_CUSTOM_ATTRIBUTES_DEFAULT;
@@ -768,7 +789,7 @@ public class LdapProviderConfig {
      *
      * @return the name.
      */
-    @Nonnull
+    @NotNull
     public String getName() {
         return name;
     }
@@ -779,8 +800,8 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getName()
      */
-    @Nonnull
-    public LdapProviderConfig setName(@Nonnull String name) {
+    @NotNull
+    public LdapProviderConfig setName(@NotNull String name) {
         this.name = name;
         return this;
     }
@@ -791,7 +812,7 @@ public class LdapProviderConfig {
      *
      * @return the hostname
      */
-    @Nonnull
+    @NotNull
     public String getHostname() {
         return hostname;
     }
@@ -802,8 +823,8 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getHostname()
      */
-    @Nonnull
-    public LdapProviderConfig setHostname(@Nonnull String hostname) {
+    @NotNull
+    public LdapProviderConfig setHostname(@NotNull String hostname) {
         this.hostname = hostname;
         return this;
     }
@@ -824,7 +845,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getPort()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setPort(int port) {
         this.port = port;
         return this;
@@ -846,7 +867,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #useSSL()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setUseSSL(boolean useSSL) {
         this.useSSL = useSSL;
         return this;
@@ -868,7 +889,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #useTLS()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
         return this;
@@ -890,7 +911,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #noCertCheck()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setNoCertCheck(boolean noCertCheck) {
         this.noCertCheck = noCertCheck;
         return this;
@@ -901,7 +922,7 @@ public class LdapProviderConfig {
      * anonymous connections are used.
      * @return the bind DN or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     public String getBindDN() {
         return bindDN;
     }
@@ -912,7 +933,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getBindDN()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setBindDN(@Nullable String bindDN) {
         this.bindDN = bindDN;
         return this;
@@ -922,7 +943,7 @@ public class LdapProviderConfig {
      * Configures the password that is used to bind to the LDAP server. This value is not used for anonymous binds.
      * @return the password.
      */
-    @CheckForNull
+    @Nullable
     public String getBindPassword() {
         return bindPassword;
     }
@@ -933,7 +954,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getBindPassword()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setBindPassword(@Nullable String bindPassword) {
         this.bindPassword = bindPassword;
         return this;
@@ -955,7 +976,7 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getSearchTimeout()
      */
-    @Nonnull
+    @NotNull
     public LdapProviderConfig setSearchTimeout(long searchTimeout) {
         this.searchTimeout = searchTimeout;
         return this;
@@ -967,7 +988,7 @@ public class LdapProviderConfig {
      *
      * @return the group member attribute
      */
-    @Nonnull
+    @NotNull
     public String getGroupMemberAttribute() {
         return groupMemberAttribute;
     }
@@ -978,9 +999,32 @@ public class LdapProviderConfig {
      * @return {@code this}
      * @see #getGroupMemberAttribute()
      */
-    @Nonnull
-    public LdapProviderConfig setGroupMemberAttribute(@Nonnull String groupMemberAttribute) {
+    @NotNull
+    public LdapProviderConfig setGroupMemberAttribute(@NotNull String groupMemberAttribute) {
         this.groupMemberAttribute = groupMemberAttribute;
+        return this;
+    }
+
+    /**
+     * If true, the value of the user id (resp. group name) attribute will be used to create external identifiers. Otherwise the DN will be used, which is the default.
+     *
+     * @return true iff the value of the user id (resp. group name) attribute will be used to create external identifiers
+     */
+    @NotNull
+    public boolean getUseUidForExtId() {
+        return useUidForExtId;
+    }
+
+    /**
+     * Sets the flag that controls if the user id (resp. gruop name) will be used instead of the DN to create external ids.
+     *
+     * @see #getUseUidForExtId()
+     * @param useUidForExtId the new value of #useUidForExtId
+     * @return {@code this}
+     */
+    @NotNull
+    public LdapProviderConfig setUseUidForExtId(boolean useUidForExtId) {
+        this.useUidForExtId = useUidForExtId;
         return this;
     }
 
@@ -990,7 +1034,7 @@ public class LdapProviderConfig {
      *
      * @return an array of attribute names. The empty array indicates that all attributes will be retrieved.
      */
-    @Nonnull
+    @NotNull
     public String[] getCustomAttributes() {
         return customAttributes;
     }
@@ -1001,9 +1045,9 @@ public class LdapProviderConfig {
      * @param customAttributes an array of attribute names
      * @return the Identity instance
      */
-    @Nonnull
-    public LdapProviderConfig setCustomAttributes(@Nonnull String[] customAttributes) {
-        this.customAttributes = customAttributes;
+    @NotNull
+    public LdapProviderConfig setCustomAttributes(@NotNull String[] customAttributes) {
+        this.customAttributes = this.removeEmptyStrings(customAttributes);
         return this;
     }
 
@@ -1021,7 +1065,7 @@ public class LdapProviderConfig {
      * @param dn the dn of the identity to search for
      * @return the search filter
      */
-    public String getMemberOfSearchFilter(@Nonnull String dn) {
+    public String getMemberOfSearchFilter(@NotNull String dn) {
         if (memberOfFilterTemplate == null) {
             StringBuilder filter = new StringBuilder("(&(")
                     .append(groupMemberAttribute)
@@ -1044,7 +1088,7 @@ public class LdapProviderConfig {
      * Returns the user specific configuration.
      * @return the user config.
      */
-    @Nonnull
+    @NotNull
     public Identity getUserConfig() {
         return userConfig;
     }
@@ -1053,7 +1097,7 @@ public class LdapProviderConfig {
      * Returns the group specific configuration.
      * @return the groups config.
      */
-    @Nonnull
+    @NotNull
     public Identity getGroupConfig() {
         return groupConfig;
     }
@@ -1062,7 +1106,7 @@ public class LdapProviderConfig {
      * Returns the admin connection pool configuration.
      * @return admin pool config
      */
-    @Nonnull
+    @NotNull
     public PoolConfig getAdminPoolConfig() {
         return adminPoolConfig;
     }
@@ -1071,7 +1115,7 @@ public class LdapProviderConfig {
      * Returns the user connection pool configuration.
      * @return user pool config
      */
-    @Nonnull
+    @NotNull
     public PoolConfig getUserPoolConfig() {
         return userPoolConfig;
     }
@@ -1128,6 +1172,20 @@ public class LdapProviderConfig {
         return (sb == null ? value : sb.toString());
     }
 
+    //OAK-5490
+    private String[] removeEmptyStrings(@NotNull String[] params) {
+        List<String> list = Arrays.asList(params);
+        if (!list.contains(Strings.EMPTY_STRING)) {
+            return params;
+        }
+        List<String> resultList = new LinkedList<>(list);
+        while (resultList.contains(Strings.EMPTY_STRING)) {
+            resultList.remove(Strings.EMPTY_STRING);
+        }
+        String[] result = new String[resultList.size()];
+        return resultList.toArray(result);
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("LdapProviderConfig{");
@@ -1141,6 +1199,7 @@ public class LdapProviderConfig {
         sb.append(", bindPassword='***'");
         sb.append(", searchTimeout=").append(searchTimeout);
         sb.append(", groupMemberAttribute='").append(groupMemberAttribute).append('\'');
+        sb.append(", useUidForExtId='").append(useUidForExtId).append('\'');
         sb.append(", memberOfFilterTemplate='").append(memberOfFilterTemplate).append('\'');
         sb.append(", adminPoolConfig=").append(adminPoolConfig);
         sb.append(", userPoolConfig=").append(userPoolConfig);

@@ -18,7 +18,7 @@
 Privilege Management
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR API
 
 As of JSR 283 the API contains the following privilege related interfaces and methods:
@@ -77,7 +77,7 @@ utility methods:
     - `privilegesFromNames(Session session, String... privilegeNames)`
     - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Oak Privilege Management Implementation
 
 The behavior of the default privilege management implementation is described in section 

@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.jetbrains.annotations.NotNull;
 
 class GroupImpl extends AuthorizableImpl implements Group {
 
@@ -76,7 +76,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public Set<String> addMembers(@Nonnull String... memberIds) throws RepositoryException {
+    public Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException {
         try {
             return getDelegate().addMembers(memberIds);
         } finally {
@@ -98,7 +98,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public Set<String> removeMembers(@Nonnull String... memberIds) throws RepositoryException {
+    public Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException {
         try {
             return getDelegate().removeMembers(memberIds);
         } finally {

@@ -31,6 +31,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
 class ServerCommand implements Command {
 
@@ -116,22 +117,15 @@ class ServerCommand implements Command {
                         host.value(options), port.value(options),
                         db, false, cacheSize * MB);
             }
-
-        } else if (fix.equals(OakFixture.OAK_TAR)) {
-            File baseFile = base.value(options);
-            if (baseFile == null) {
-                throw new IllegalArgumentException("Required argument base missing.");
-            }
-            oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_SEGMENT_TAR)) {
             File baseFile = base.value(options);
             if (baseFile == null) {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
-            oakFixture = OakFixture.getSegmentTar(OakFixture.OAK_SEGMENT_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
+            oakFixture = OakFixture.getVanillaSegmentTar(baseFile, 256, cacheSize, mmap.value(options));
         } else if (fix.equals(OakFixture.OAK_RDB)) {
             oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize);
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize, -1);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }

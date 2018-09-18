@@ -19,18 +19,13 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Throwables.propagate;
-import static com.google.common.base.Throwables.propagateIfInstanceOf;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.concurrent.TimeUnit.DAYS;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -38,73 +33,76 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * This implementation of {@code Revisions} is backed by a
- * {@link #JOURNAL_FILE_NAME journal} file where the current head is persisted
- * by calling {@link #flush(Callable)}.
+ * {@link TarPersistence#JOURNAL_FILE_NAME journal} file where the current head is persisted
+ * by calling {@link #tryFlush(Flusher)}.
  * <p>
  * The {@link #setHead(Function, Option...)} method supports a timeout
  * {@link Option}, which can be retrieved through factory methods of this class.
  * <p>
- * Instance of this class must be {@link #bind(SegmentStore, Supplier) bound} to
+ * Instance of this class must be {@link #bind(SegmentStore, SegmentIdProvider, Supplier)} bound} to
  * a {@code SegmentStore} otherwise its method throw {@code IllegalStateException}s.
  */
 public class TarRevisions implements Revisions, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(TarRevisions.class);
-
-    public static final String JOURNAL_FILE_NAME = "journal.log";
 
     /**
      * The lock protecting {@link #journalFile}.
      */
     private final Lock journalFileLock = new ReentrantLock();
 
-    @Nonnull
+    @NotNull
     private final AtomicReference<RecordId> head;
 
-    @Nonnull
-    private final File directory;
+    private final SegmentNodeStorePersistence persistence;
+
+    private final JournalFile journalFile;
 
     /**
-     * The journal file. It is protected by {@link #journalFileLock}. It becomes
+     * The journal file writer. It is protected by {@link #journalFileLock}. It becomes
      * {@code null} after it's closed.
      */
-    private RandomAccessFile journalFile;
+    private volatile JournalFileWriter journalFileWriter;
 
     /**
      * The persisted head of the root journal, used to determine whether the
      * latest {@link #head} value should be written to the disk.
      */
-    @Nonnull
+    @NotNull
     private final AtomicReference<RecordId> persistedHead;
 
-    @Nonnull
+    @NotNull
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock(true);
 
     private static class TimeOutOption implements Option {
         private final long time;
 
-        @Nonnull
+        @NotNull
         private final TimeUnit unit;
 
-        TimeOutOption(long time, @Nonnull TimeUnit unit) {
+        TimeOutOption(long time, @NotNull TimeUnit unit) {
             this.time = time;
             this.unit = unit;
         }
 
-        @Nonnull
-        public static TimeOutOption from(@CheckForNull Option option) {
+        @NotNull
+        public static TimeOutOption from(@Nullable Option option) {
             if (option instanceof TimeOutOption) {
                 return (TimeOutOption) option;
             } else {
@@ -139,51 +137,37 @@ public class TarRevisions implements Revisions, Closeable {
     /**
      * Create a new instance placing the journal log file into the passed
      * {@code directory}.
-     * @param directory     directory of the journal file
+     * @param persistence object representing the segment persistence
      * @throws IOException
      */
-    public TarRevisions(@Nonnull File directory) throws IOException {
-        this.directory = checkNotNull(directory);
-        this.journalFile = new RandomAccessFile(new File(directory,
-                JOURNAL_FILE_NAME), "rw");
-        this.journalFile.seek(journalFile.length());
+    public TarRevisions(SegmentNodeStorePersistence persistence) throws IOException {
+        this.journalFile = persistence.getJournalFile();
+        this.journalFileWriter = journalFile.openJournalWriter();
         this.head = new AtomicReference<>(null);
         this.persistedHead = new AtomicReference<>(null);
+        this.persistence = persistence;
     }
 
     /**
      * Bind this instance to a store.
      * @param store              store to bind to
+     * @param idProvider         {@code SegmentIdProvider} of the {@code store}
      * @param writeInitialNode   provider for the initial node in case the journal is empty.
      * @throws IOException
      */
-    synchronized void bind(@Nonnull SegmentStore store,
-                           @Nonnull Supplier<RecordId> writeInitialNode)
+    synchronized void bind(@NotNull SegmentStore store,
+                           @NotNull SegmentIdProvider idProvider,
+                           @NotNull Supplier<RecordId> writeInitialNode)
     throws IOException {
-        if (head.get() == null) {
-            RecordId persistedId = null;
-            try (JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME))) {
-                while (persistedId == null && journalReader.hasNext()) {
-                    String entry = journalReader.next();
-                    try {
-                        RecordId id = RecordId.fromString(store, entry);
-                        if (store.containsSegment(id.getSegmentId())) {
-                            persistedId = id;
-                        } else {
-                            LOG.warn("Unable to access revision {}, rewinding...", id);
-                        }
-                    } catch (IllegalArgumentException ignore) {
-                        LOG.warn("Skipping invalid record id {}", entry);
-                    }
-                }
-            }
-
-            if (persistedId == null) {
-                head.set(writeInitialNode.get());
-            } else {
-                persistedHead.set(persistedId);
-                head.set(persistedId);
-            }
+        if (head.get() != null) {
+            return;
+        }
+        RecordId persistedId = findPersistedRecordId(store, idProvider, journalFile);
+        if (persistedId == null) {
+            head.set(writeInitialNode.get());
+        } else {
+            persistedHead.set(persistedId);
+            head.set(persistedId);
         }
     }
 
@@ -192,52 +176,82 @@ public class TarRevisions implements Revisions, Closeable {
     }
 
     /**
-     * Flush the id of the current head to the journal after a call to
-     * {@code persisted}. This method does nothing and returns immediately if
-     * called concurrently and a call is already in progress.
-     * @param persisted     call back for upstream dependencies to ensure
-     *                      the current head state is actually persisted before
-     *                      its id is written to the head state.
-     * @throws IOException
+     * Flush the id of the current head to the journal after a call to {@code
+     * persisted}. Differently from {@link #tryFlush(Flusher)}, this method
+     * does not return early if a concurrent call is in progress. Instead, it
+     * blocks the caller until the requested flush operation is performed.
+     *
+     * @param flusher call back for upstream dependencies to ensure the current
+     *                head state is actually persisted before its id is written
+     *                to the head state.
      */
-    public void flush(@Nonnull Callable<Void> persisted) throws IOException {
+    void flush(Flusher flusher) throws IOException {
         if (head.get() == null) {
+            LOG.debug("No head available, skipping flush");
+            return;
+        }
+        journalFileLock.lock();
+        try {
+            doFlush(flusher);
+        } finally {
+            journalFileLock.unlock();
+        }
+    }
+
+    /**
+     * Flush the id of the current head to the journal after a call to {@code
+     * persisted}. This method does nothing and returns immediately if called
+     * concurrently and a call is already in progress.
+     *
+     * @param flusher call back for upstream dependencies to ensure the current
+     *                head state is actually persisted before its id is written
+     *                to the head state.
+     */
+    void tryFlush(Flusher flusher) throws IOException {
+        if (head.get() == null) {
+            LOG.debug("No head available, skipping flush");
             return;
         }
         if (journalFileLock.tryLock()) {
             try {
-                if (journalFile == null) {
-                    return;
-                }
-                doFlush(persisted);
+                doFlush(flusher);
             } finally {
                 journalFileLock.unlock();
             }
+        } else {
+            LOG.debug("Unable to lock the journal, skipping flush");
         }
     }
 
-    private void doFlush(Callable<Void> persisted) throws IOException {
-        try {
-            RecordId before = persistedHead.get();
-            RecordId after = getHead();
-            if (!after.equals(before)) {
-                persisted.call();
-                LOG.debug("TarMK journal update {} -> {}", before, after);
-                journalFile.writeBytes(after.toString10() + " root " + System.currentTimeMillis() + "\n");
-                journalFile.getChannel().force(false);
-                persistedHead.set(after);
-            }
-        } catch (Exception e) {
-            propagateIfInstanceOf(e, IOException.class);
-            propagate(e);
+    private void doFlush(Flusher flusher) throws IOException {
+        if (journalFileWriter == null) {
+            LOG.debug("No journal file available, skipping flush");
+            return;
         }
+        RecordId before = persistedHead.get();
+        RecordId after = getHead();
+        if (after.equals(before)) {
+            LOG.debug("Head state did not change, skipping flush");
+            return;
+        }
+        flusher.flush();
+        LOG.debug("TarMK journal update {} -> {}", before, after);
+        journalFileWriter.writeLine(after.toString10() + " root " + System.currentTimeMillis());
+        persistedHead.set(after);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getHead() {
         checkBound();
         return head.get();
+    }
+    
+    @NotNull
+    @Override
+    public RecordId getPersistedHead() {
+        checkBound();
+        return persistedHead.get();
     }
 
     /**
@@ -251,9 +265,9 @@ public class TarRevisions implements Revisions, Closeable {
      */
     @Override
     public boolean setHead(
-            @Nonnull RecordId expected,
-            @Nonnull RecordId head,
-            @Nonnull Option... options) {
+            @NotNull RecordId expected,
+            @NotNull RecordId head,
+            @NotNull Option... options) {
         checkBound();
 
         // If the expedite option was specified we acquire the write lock instead of the read lock.
@@ -285,9 +299,9 @@ public class TarRevisions implements Revisions, Closeable {
      * @see #INFINITY
      */
     @Override
-    public boolean setHead(
-            @Nonnull Function<RecordId, RecordId> newHead,
-            @Nonnull Option... options)
+    public RecordId setHead(
+            @NotNull Function<RecordId, RecordId> newHead,
+            @NotNull Option... options)
     throws InterruptedException {
         checkBound();
         TimeOutOption timeout = getTimeout(options);
@@ -296,15 +310,15 @@ public class TarRevisions implements Revisions, Closeable {
                 RecordId after = newHead.apply(getHead());
                 if (after != null) {
                     head.set(after);
-                    return true;
+                    return after;
                 } else {
-                    return false;
+                    return null;
                 }
             } finally {
                 rwLock.writeLock().unlock();
             }
         } else {
-            return false;
+            return null;
         }
     }
 
@@ -318,8 +332,8 @@ public class TarRevisions implements Revisions, Closeable {
         }
     }
 
-    @Nonnull
-    private static TimeOutOption getTimeout(@Nonnull Option[] options) {
+    @NotNull
+    private static TimeOutOption getTimeout(@NotNull Option[] options) {
         if (options.length == 0) {
             return TimeOutOption.from(INFINITY);
         } else if (options.length == 1) {
@@ -337,11 +351,11 @@ public class TarRevisions implements Revisions, Closeable {
     public void close() throws IOException {
         journalFileLock.lock();
         try {
-            if (journalFile == null) {
+            if (journalFileWriter == null) {
                 return;
             }
-            journalFile.close();
-            journalFile = null;
+            journalFileWriter.close();
+            journalFileWriter = null;
         } finally {
             journalFileLock.unlock();
         }

@@ -18,26 +18,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.itemsave;
 
-import javax.annotation.CheckForNull;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * This validator checks that all changes are contained within the subtree
  * rooted at a given path.
  */
-@Component
-@Service(EditorProvider.class)
+@Component(service = EditorProvider.class)
 public class ItemSaveValidatorProvider extends ValidatorProvider {
 
-    @Override  @CheckForNull
+    @Override  @Nullable
     protected Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
         String path = info.getPath();

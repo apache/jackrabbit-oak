@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
@@ -28,6 +27,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implementation of {@code PrivilegeManager} delegates back to a
@@ -47,7 +47,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
     @Override
     public Privilege[] getRegisteredPrivileges() throws RepositoryException {
         return delegate.perform(new SessionOperation<Privilege[]>("getRegisteredPrivileges") {
-            @Nonnull
+            @NotNull
             @Override
             public Privilege[] perform() throws RepositoryException {
                 return pm.getRegisteredPrivileges();
@@ -58,7 +58,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
     @Override
     public Privilege getPrivilege(final String privilegeName) throws AccessControlException, RepositoryException {
         return delegate.perform(new SessionOperation<Privilege>("getPrivilege") {
-            @Nonnull
+            @NotNull
             @Override
             public Privilege perform() throws RepositoryException {
                 return pm.getPrivilege(privilegeName);
@@ -68,8 +68,8 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @Override
     public Privilege registerPrivilege(final String privilegeName, final boolean isAbstract, final String[] declaredAggregateNames) throws AccessDeniedException, NamespaceException, RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege>("registerPrivilege") {
-            @Nonnull
+        return delegate.perform(new SessionOperation<Privilege>("registerPrivilege", true) {
+            @NotNull
             @Override
             public Privilege perform() throws RepositoryException {
                 return pm.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);

@@ -38,18 +38,20 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.multiplex.SimpleMountInfoProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -60,7 +62,8 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -68,6 +71,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -82,7 +88,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -94,7 +100,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
 
     private NodeState initialContent = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private MountInfoProvider mip = SimpleMountInfoProvider.newBuilder()
+    private MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
     private NodeStore nodeStore;
 
@@ -129,27 +135,34 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         IndexDefinition defn = new IndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
 
         //1. Have 2 reader created by writes in 2 diff mounts
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, null, null);
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
+        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
-        writer.updateDocument("/content/en", newDoc("/content/en"));
-        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+        Document doc = newDoc("/content/en");
+        doc.add(new StringField("foo", "bar", Field.Store.NO));
+        writer.updateDocument("/content/en", doc);
+
+        doc = newDoc("/libs/config");
+        doc.add(new StringField("foo", "baz", Field.Store.NO));
+        writer.updateDocument("/libs/config", doc);
+
         writer.close(0);
 
         //2. Construct the readers
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
 
-        IndexNode node = new IndexNode("foo", defn, readers, null);
+        IndexNodeManager node = new IndexNodeManager("foo", defn, readers, null);
 
         //3 Obtain the plan
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
+        IndexPlanner planner = new IndexPlanner(node.acquire(), "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //Count should be sum of both readers
-        assertEquals(2, plan.getEstimatedEntryCount());
+        assertEquals(IndexPlannerTest.documentsPerValue(2), plan.getEstimatedEntryCount());
     }
 
     @Test

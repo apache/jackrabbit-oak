@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * Supplier}. If the {@code Supplier} returns {@code true}, the diffing process
  * will be canceled at the first possible occasion.
  */
-class CancelableDiff implements NodeStateDiff {
+public class CancelableDiff implements NodeStateDiff {
 
     private final NodeStateDiff delegate;
 

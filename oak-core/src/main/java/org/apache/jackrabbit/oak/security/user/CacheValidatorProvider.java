@@ -20,15 +20,11 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -36,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -47,18 +45,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class CacheValidatorProvider extends ValidatorProvider implements CacheConstants {
 
     private final boolean isSystem;
+    private final TreeProvider treeProvider;
 
-    CacheValidatorProvider(@Nonnull Set<Principal> principals) {
+    CacheValidatorProvider(@NotNull Set<Principal> principals, @NotNull TreeProvider treeProvider) {
         super();
         isSystem = principals.contains(SystemPrincipal.INSTANCE);
+        this.treeProvider = treeProvider;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         TypePredicate cachePredicate = new TypePredicate(after, NT_REP_CACHE);
         boolean isValidCommitInfo = CommitMarker.isValidCommitInfo(info);
-        return new CacheValidator(TreeFactory.createReadOnlyTree(before), TreeFactory.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
+        return new CacheValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), cachePredicate, isValidCommitInfo);
     }
 
     //--------------------------------------------------------------------------
@@ -73,14 +73,14 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private static final CommitMarker INSTANCE = new CommitMarker();
 
-        private static boolean isValidCommitInfo(@Nonnull CommitInfo commitInfo) {
+        private static boolean isValidCommitInfo(@NotNull CommitInfo commitInfo) {
             return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
         }
 
         private CommitMarker() {}
     }
 
-    private static CommitFailedException constraintViolation(int code, @Nonnull String message) {
+    private static CommitFailedException constraintViolation(int code, @NotNull String message) {
         return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 
@@ -95,7 +95,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         private final boolean isCache;
 
-        private CacheValidator(@Nullable Tree parentBefore, @Nonnull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
+        private CacheValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, TypePredicate cachePredicate, boolean isValidCommitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
 
@@ -140,7 +140,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
             return new VisibleValidator(new CacheValidator(null, tree, cachePredicate, isValidCommitInfo), true, true);
         }
 
-        private boolean isCache(@CheckForNull Tree tree) {
+        private boolean isCache(@Nullable Tree tree) {
             return tree != null && (REP_CACHE.equals(tree.getName()) || cachePredicate.apply(tree));
         }
 

@@ -85,6 +85,7 @@ The Oak Security Layer
  * [User Management : The Default Implementation](user/default.html)
     * [Group Membership](user/membership.html)
     * [Authorizable Actions](user/authorizableaction.html)
+    * [Group Actions](user/groupaction.html)
     * [Authorizable Node Name Generation](user/authorizablenodename.html)
     * [Password Expiry and Force Initial Password Change](user/expiry.html)
     * [Password History](user/history.html) 

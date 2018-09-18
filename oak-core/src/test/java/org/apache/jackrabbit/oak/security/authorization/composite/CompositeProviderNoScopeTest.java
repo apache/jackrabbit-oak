@@ -30,7 +30,6 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -93,6 +92,20 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     @Override
     @Test
     public void testGetTreePermissionInstance() throws Exception {
+        PermissionProvider pp = createPermissionProviderOR();
+        TreePermission parentPermission = TreePermission.EMPTY;
+
+        for (String path : TP_PATHS) {
+            Tree t = readOnlyRoot.getTree(path);
+            TreePermission tp = pp.getTreePermission(t, parentPermission);
+            assertCompositeTreePermission(t.isRoot(), tp);
+            parentPermission = tp;
+        }
+    }
+
+    @Override
+    @Test
+    public void testGetTreePermissionInstanceOR() throws Exception {
         PermissionProvider pp = createPermissionProvider();
         TreePermission parentPermission = TreePermission.EMPTY;
 
@@ -110,8 +123,25 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = createPermissionProvider().getTreePermission(rootTree, TreePermission.EMPTY);
+        assertCompositeTreePermission(tp);
+
+        for (String cName : childNames) {
+            ns = ns.getChildNode(cName);
+            tp = tp.getChildPermission(cName, ns);
+            assertCompositeTreePermission(false, tp);
+        }
+    }
+
+    @Override
+    @Test
+    public void testTreePermissionGetChildOR() throws Exception {
+        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+
+        Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
+        TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree, TreePermission.EMPTY);
         assertCompositeTreePermission(tp);
 
         for (String cName : childNames) {
@@ -407,7 +437,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
-        NodeState ns = ((ImmutableTree) rootTree).getNodeState();
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
         TreePermission tp = cppTestUser.getTreePermission(rootTree, TreePermission.EMPTY);
         assertEquals(2, ((TreePermission[]) tpField.get(tp)).length);
 

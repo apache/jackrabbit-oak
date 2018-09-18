@@ -22,9 +22,8 @@ import java.util.List;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -62,7 +61,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testGetTreePermission() {
         for (String path : paths) {
-            Tree tree = RootFactory.createReadOnlyRoot(root).getTree(path);
+            Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(path);
             assertTrue(tree.exists());
 
             assertSame(TreePermission.ALL, all.getTreePermission(tree, TreePermission.EMPTY));
@@ -75,7 +74,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testIsGranted() {
         for (String path : paths) {
-            Tree tree = RootFactory.createReadOnlyRoot(root).getTree(path);
+            Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(path);
             assertTrue(tree.exists());
 
             assertTrue(all.isGranted(tree, null, Permissions.ALL));

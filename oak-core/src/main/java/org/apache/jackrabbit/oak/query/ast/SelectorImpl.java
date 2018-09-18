@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -40,18 +38,22 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.QueryOptions;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,7 +199,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching supertypes, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getSupertypes() {
         return supertypes;
     }
@@ -206,7 +208,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching primary subtypes, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getPrimaryTypes() {
         return primaryTypes;
     }
@@ -215,7 +217,7 @@ public class SelectorImpl extends SourceImpl {
      * @return all of the matching mixin types, or empty if the
      *         {@link #matchesAllTypes} flag is set
      */
-    @Nonnull
+    @NotNull
     public Set<String> getMixinTypes() {
         return mixinTypes;
     }
@@ -386,10 +388,12 @@ public class SelectorImpl extends SourceImpl {
         for (ColumnImpl c : query.getColumns()) {
             if (c.getSelector().equals(this)) {
                 String columnName = c.getColumnName();
-                if (columnName.equals(QueryImpl.REP_EXCERPT) || columnName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
+                if (columnName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
                     f.restrictProperty(columnName, Operator.NOT_EQUAL, null);
-                } else if (columnName.startsWith(QueryImpl.REP_FACET)) {
-                    f.restrictProperty(QueryImpl.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
+                } else if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+                    f.restrictProperty(QueryConstants.REP_EXCERPT, Operator.EQUAL, PropertyValues.newString(columnName));
+                } else if (columnName.startsWith(QueryConstants.REP_FACET)) {
+                    f.restrictProperty(QueryConstants.REP_FACET, Operator.EQUAL, PropertyValues.newString(columnName));
                 }
             }
         }
@@ -411,7 +415,17 @@ public class SelectorImpl extends SourceImpl {
         for (ConstraintImpl constraint : selectorConstraints) {
             constraint.restrict(f);
         }
-
+        QueryOptions options = query.getQueryOptions();
+        if (options != null) {
+            if (options.indexName != null) {
+                f.restrictProperty(IndexConstants.INDEX_NAME_OPTION, 
+                        Operator.EQUAL, PropertyValues.newString(options.indexName));
+            }
+            if (options.indexTag != null) {
+                f.restrictProperty(IndexConstants.INDEX_TAG_OPTION, 
+                        Operator.EQUAL, PropertyValues.newString(options.indexTag));
+            }
+        }
         return f;
     }
 
@@ -419,6 +433,7 @@ public class SelectorImpl extends SourceImpl {
     public boolean next() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
+            query.getQueryExecutionStats().scan(1, scanCount);
             currentRow = cursor.next();
             if (isParent) {
                 // we must not check whether the _parent_ is readable
@@ -623,7 +638,9 @@ public class SelectorImpl extends SourceImpl {
             PropertyState s = builder.getPropertyState();
             return PropertyValues.create(s);
         }
-        boolean relative = oakPropertyName.indexOf('/') >= 0;
+        boolean relative = !oakPropertyName.startsWith(QueryConstants.REP_FACET + "(")
+                && !oakPropertyName.startsWith(QueryConstants.REP_EXCERPT + "(")
+                && oakPropertyName.indexOf('/') >= 0;
         Tree t = currentTree();
         if (relative) {
             for (String p : PathUtils.elements(PathUtils.getParentPath(oakPropertyName))) {
@@ -648,7 +665,7 @@ public class SelectorImpl extends SourceImpl {
         if ((t == null || !t.exists()) && (currentRow == null || !currentRow.isVirtualRow())) {
             return null;
         }
-        if (oakPropertyName.equals(QueryImpl.JCR_PATH)) {
+        if (oakPropertyName.equals(QueryConstants.JCR_PATH)) {
             String path = currentPath();
             String local = getLocalPath(path);
             if (local == null) {
@@ -656,17 +673,18 @@ public class SelectorImpl extends SourceImpl {
                 return null;
             }
             result = PropertyValues.newString(local);
-        } else if (oakPropertyName.equals(QueryImpl.JCR_SCORE)) {
-            result = currentRow.getValue(QueryImpl.JCR_SCORE);
-        } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
-            result = currentRow.getValue(QueryImpl.REP_EXCERPT);
-        } else if (oakPropertyName.equals(QueryImpl.OAK_SCORE_EXPLANATION)) {
-            result = currentRow.getValue(QueryImpl.OAK_SCORE_EXPLANATION);
-        } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
-            result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
-        } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {
-            result = currentRow.getValue(QueryImpl.REP_SUGGEST);
-        } else if (oakPropertyName.startsWith(QueryImpl.REP_FACET)) {
+        } else if (oakPropertyName.equals(QueryConstants.JCR_SCORE)) {
+            result = currentRow.getValue(QueryConstants.JCR_SCORE);
+        } else if (oakPropertyName.equals(QueryConstants.REP_EXCERPT)
+                || oakPropertyName.startsWith(QueryConstants.REP_EXCERPT + "(")) {
+            result = currentRow.getValue(oakPropertyName);
+        } else if (oakPropertyName.equals(QueryConstants.OAK_SCORE_EXPLANATION)) {
+            result = currentRow.getValue(QueryConstants.OAK_SCORE_EXPLANATION);
+        } else if (oakPropertyName.equals(QueryConstants.REP_SPELLCHECK)) {
+            result = currentRow.getValue(QueryConstants.REP_SPELLCHECK);
+        } else if (oakPropertyName.equals(QueryConstants.REP_SUGGEST)) {
+            result = currentRow.getValue(QueryConstants.REP_SUGGEST);
+        } else if (oakPropertyName.startsWith(QueryConstants.REP_FACET + "(")) {
             result = currentRow.getValue(oakPropertyName);
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));
@@ -787,9 +805,9 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public long getSize(SizePrecision precision, long max) {
+    public long getSize(NodeState rootState, SizePrecision precision, long max) {
         if (cursor == null) {
-            return -1;
+            execute(rootState);
         }
         return cursor.getSize(precision, max);
     }

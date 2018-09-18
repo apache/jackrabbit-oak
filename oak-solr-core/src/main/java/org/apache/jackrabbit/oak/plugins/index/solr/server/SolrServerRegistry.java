@@ -18,22 +18,22 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A registry for {@link org.apache.solr.client.solrj.SolrServer}s
  */
 public class SolrServerRegistry {
 
-    private static final Map<String, SolrServer> searchingServerRegistry = new HashMap<String, SolrServer>();
-    private static final Map<String, SolrServer> indexingServerRegistry = new HashMap<String, SolrServer>();
+    private static final Map<String, SolrClient> searchingServerRegistry = new HashMap<String, SolrClient>();
+    private static final Map<String, SolrClient> indexingServerRegistry = new HashMap<String, SolrClient>();
 
-    public static void register(@Nonnull SolrServerConfiguration configuration, @Nonnull SolrServer solrServer,
-                                @Nonnull Strategy strategy) {
+    public static void register(@NotNull SolrServerConfiguration configuration, @NotNull SolrClient solrServer,
+                                @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
@@ -48,8 +48,8 @@ public class SolrServerRegistry {
         }
     }
 
-    @CheckForNull
-    public static SolrServer get(@Nonnull SolrServerConfiguration configuration, @Nonnull Strategy strategy) {
+    @Nullable
+    public static SolrClient get(@NotNull SolrServerConfiguration configuration, @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
@@ -63,11 +63,11 @@ public class SolrServerRegistry {
         return null;
     }
 
-    public static void unregister(SolrServerConfiguration configuration, @Nonnull Strategy strategy) {
+    public static void unregister(SolrServerConfiguration configuration, @NotNull Strategy strategy) {
         switch (strategy) {
             case INDEXING:
                 synchronized (indexingServerRegistry) {
-                    SolrServer removed = indexingServerRegistry.remove(configuration.toString());
+                    SolrClient removed = indexingServerRegistry.remove(configuration.toString());
                     try {
                         removed.shutdown();
                     } catch (Exception e) {
@@ -77,7 +77,7 @@ public class SolrServerRegistry {
                 break;
             case SEARCHING:
                 synchronized (searchingServerRegistry) {
-                    SolrServer removed = searchingServerRegistry.remove(configuration.toString());
+                    SolrClient removed = searchingServerRegistry.remove(configuration.toString());
                     try {
                         removed.shutdown();
                     } catch (Exception e) {

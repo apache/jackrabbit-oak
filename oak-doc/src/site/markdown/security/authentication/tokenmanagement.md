@@ -85,7 +85,7 @@ that is able to aggregate multiple `TokenProvider`s:
 
 See section [Pluggability](#pluggability) for an example.
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Characteristics of the Default Implementation
 
 The characteristics of the default token management implementation is

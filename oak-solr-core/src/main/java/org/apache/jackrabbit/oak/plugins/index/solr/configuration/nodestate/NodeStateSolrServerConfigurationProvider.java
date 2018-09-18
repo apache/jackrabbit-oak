@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public class NodeStateSolrServerConfigurationProvider implements SolrServerConfigurationProvider {
 
@@ -57,7 +56,7 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
         return value;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SolrServerConfiguration<SolrServerProvider> getSolrServerConfiguration() {
         String type = getStringValueFor(Properties.SERVER_TYPE, null);
@@ -81,8 +80,11 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
             String solrHttpUrls = getStringValueFor(Properties.HTTP_URL, SolrServerConfigurationDefaults.HTTP_URL);
             int solrShardsNo = getIntValueFor(Properties.SHARDS_NO, SolrServerConfigurationDefaults.SHARDS_NO);
 
+            int socketTimeout = getIntValueFor(Properties.SOCKET_TIMEOUT, SolrServerConfigurationDefaults.SOCKET_TIMEOUT);
+            int connectionTimeout = getIntValueFor(Properties.CONNECTION_TIMEOUT, SolrServerConfigurationDefaults.CONNECTION_TIMEOUT);
+
             return (SolrServerConfiguration) new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
-                    solrReplicationFactor, solrConfDir, solrHttpUrls);
+                    solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrls);
         } else {
             throw new RuntimeException("unexpected Solr server type: " + type);
         }
@@ -107,6 +109,8 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
         public static final String CONFIGURATION_DIRECTORY = "configurationDirectory";
         public static final String HTTP_URL = "httpUrl";
         public static final String SHARDS_NO = "shardsNo";
+        public static final String CONNECTION_TIMEOUT = "connectionTimeout";
+        public static final String SOCKET_TIMEOUT = "socketTimeout";
     }
 
 }

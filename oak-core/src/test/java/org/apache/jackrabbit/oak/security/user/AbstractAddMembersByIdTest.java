@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -31,7 +30,6 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -48,7 +47,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
 
@@ -90,8 +88,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         }
     }
 
-    @Nonnull
-    Iterable<String> getMemberIds(@Nonnull Group group) throws RepositoryException {
+    @NotNull
+    Iterable<String> getMemberIds(@NotNull Group group) throws RepositoryException {
         // test group tree
         Tree groupTree = root.getTree(group.getPath());
         PropertyState membersProp = groupTree.getProperty(UserConstants.REP_MEMBERS);
@@ -99,7 +97,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         return membersProp.getValue(Type.WEAKREFERENCES);
     }
 
-    @Nonnull
+    @NotNull
     Set<String> addNonExistingMember() throws Exception {
         return testGroup.addMembers(NON_EXISTING_IDS);
     }
@@ -237,16 +235,8 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         root.commit();
 
         Set<String> failed = testGroup.addMembers(memberGroup.getID());
-        assertTrue(failed.isEmpty());
-
-        try {
-            root.commit();
-            fail("cyclic group membership must be detected upon commit");
-        } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(31, e.getCode());
-        }
+        assertFalse(failed.isEmpty());
+        assertTrue(failed.contains(memberGroup.getID()));
     }
 
     @Test

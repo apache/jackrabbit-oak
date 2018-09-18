@@ -23,15 +23,11 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -44,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -123,9 +121,10 @@ public class PropertyIndexLookup {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
+        ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,
-                    encode(value)));
+                    encode(value, pattern)));
         }
         return Iterables.concat(iterables);
     }
@@ -143,9 +142,10 @@ public class PropertyIndexLookup {
             return Double.POSITIVE_INFINITY;
         }
         Set<IndexStoreStrategy> strategies = getStrategies(indexMeta);
+        ValuePattern pattern = new ValuePattern(indexMeta);
         double cost = strategies.isEmpty() ? MAX_COST : COST_OVERHEAD;
         for (IndexStoreStrategy s : strategies) {
-            cost += s.count(filter, root, indexMeta, encode(value), MAX_COST);
+            cost += s.count(filter, root, indexMeta, encode(value, pattern), MAX_COST);
         }
         return cost;
     }
@@ -209,7 +209,7 @@ public class PropertyIndexLookup {
         return TYPE;
     }
 
-    @CheckForNull
+    @Nullable
     private static Set<String> getSuperTypes(Filter filter) {
         if (filter != null && !filter.matchesAllTypes()) {
             return filter.getSupertypes();
@@ -217,8 +217,8 @@ public class PropertyIndexLookup {
         return null;
     }
 
-    @Nonnull
-    private static Iterable<String> getNames(@Nonnull NodeState state, @Nonnull String propertyName) {
+    @NotNull
+    private static Iterable<String> getNames(@NotNull NodeState state, @NotNull String propertyName) {
         Iterable<String> ret = state.getNames(propertyName);
         if (ret.iterator().hasNext()) {
             return ret;

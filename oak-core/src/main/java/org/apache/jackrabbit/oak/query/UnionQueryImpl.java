@@ -21,21 +21,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
-import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 
 /**
  * Represents a union query.
@@ -173,14 +173,15 @@ public class UnionQueryImpl implements Query {
     public long getSize(SizePrecision precision, long max) {
         // Note: for "unionAll == false", overlapping entries are counted twice
         // (this can result in a larger reported size, but it is not a security problem)
-        
-        // ensure the queries are both executed, otherwise the cursor is not set,
-        // and so the size would be -1
-        left.executeQuery().getRows().iterator().hasNext();
-        right.executeQuery().getRows().iterator().hasNext();
         long a = left.getSize(precision, max);
+        if (a < 0) {
+            return -1;
+        }
+        if (a >= limit) {
+            return limit;
+        }
         long b = right.getSize(precision, max);
-        if (a < 0 || b < 0) {
+        if (b < 0) {
             return -1;
         }
         long total = QueryImpl.saturatedAdd(a, b);
@@ -394,6 +395,22 @@ public class UnionQueryImpl implements Query {
     public boolean containsUnfilteredFullTextCondition() {
         return left.containsUnfilteredFullTextCondition() || 
                 right.containsUnfilteredFullTextCondition();
+    }
+
+    @Override
+    public boolean isPotentiallySlow() {
+        return left.isPotentiallySlow() || 
+                right.isPotentiallySlow();
+    }
+
+    @Override
+    public void verifyNotPotentiallySlow() {
+        left.verifyNotPotentiallySlow();
+        right.verifyNotPotentiallySlow();
+    }
+    
+    public QueryExecutionStats getQueryExecutionStats() {
+        return left.getQueryExecutionStats();
     }
 
 }

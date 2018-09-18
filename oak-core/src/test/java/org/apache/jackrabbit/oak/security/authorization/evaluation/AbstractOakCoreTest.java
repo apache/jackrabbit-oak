@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import java.security.Principal;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
@@ -28,6 +26,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
@@ -92,7 +92,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
         }
     }
 
-    @Nonnull
+    @NotNull
     protected ContentSession getTestSession() throws Exception {
         if (testSession == null) {
             testSession = createTestSession();
@@ -100,7 +100,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
         return testSession;
     }
 
-    @Nonnull
+    @NotNull
     protected Root getTestRoot() throws Exception {
         return getTestSession().getLatestRoot();
     }
@@ -117,9 +117,9 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
      * @throws Exception If an error occurs.
      */
     protected void setupPermission(@Nullable String path,
-                                   @Nonnull Principal principal,
+                                   @NotNull Principal principal,
                                    boolean isAllow,
-                                   @Nonnull String... privilegeNames) throws Exception {
+                                   @NotNull String... privilegeNames) throws Exception {
         setupPermission(root, path, principal, isAllow, privilegeNames);
     }
 
@@ -133,11 +133,11 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
      * @param privilegeNames The privilege names.
      * @throws Exception If an error occurs.
      */
-    protected void setupPermission(@Nonnull Root root,
+    protected void setupPermission(@NotNull Root root,
                                    @Nullable String path,
-                                   @Nonnull Principal principal,
+                                   @NotNull Principal principal,
                                    boolean isAllow,
-                                   @Nonnull String... privilegeNames) throws Exception {
+                                   @NotNull String... privilegeNames) throws Exception {
     	AccessControlManager acMgr = getAccessControlManager(root);
     	JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
       	acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);

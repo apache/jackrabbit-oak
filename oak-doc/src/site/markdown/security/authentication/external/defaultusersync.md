@@ -167,10 +167,10 @@ The default `SyncHandler` implementations are configured via [DefaultSyncConfig]
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
 | | | |
 
-#### Configuration of the ExternalPrincipalConfiguration
+#### Configuration of the 'Apache Jackrabbit Oak External PrincipalConfiguration'
 
-Please note that the [ExternalPrincipalConfiguration] comes with a dedicated
-`RepositoryInitializer`, which requires the repository to be (re)initialized
+Please note that the `ExternalPrincipalConfiguration` _("Apache Jackrabbit Oak External PrincipalConfiguration")_ 
+comes with a dedicated `RepositoryInitializer`, which requires the repository to be (re)initialized
 once the module `oak-auth-external` is installed.
 
 The recommended way to assert a proper init, is to add 
@@ -178,7 +178,7 @@ The recommended way to assert a proper init, is to add
 as additional value to the `requiredServicePids` configuration option of the 
 `SecurityProviderRegistration` _("Apache Jackrabbit Oak SecurityProvider")_.
 
-See section [Introduction to Oak Security](../introduction.html) for further details on the `SecurityProviderRegistration`.
+See section [Introduction to Oak Security](../../introduction.html) for further details on the `SecurityProviderRegistration`.
 
 The `ExternalPrincipalConfiguration` defines the following configuration options:
      
@@ -195,7 +195,6 @@ The `ExternalPrincipalConfiguration` defines the following configuration options
 [DefaultSyncedIdentity]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/basic/DefaultSyncedIdentity.html
 [DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
 [ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
-[ExternalPrincipalConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/ExternalPrincipalConfiguration.html
 [DynamicSyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/principal/DynamicSyncContext.html
 [OAK-4101]: https://issues.apache.org/jira/browse/OAK-4101
 [OAK-2687]: https://issues.apache.org/jira/browse/OAK-2687

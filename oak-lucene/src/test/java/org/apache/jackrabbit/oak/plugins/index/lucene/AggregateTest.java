@@ -23,8 +23,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
+
+import javax.jcr.PropertyType;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -33,8 +39,17 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.PropertyIncludeResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -45,13 +60,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.hasItems;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class AggregateTest {
 
@@ -84,6 +103,33 @@ public class AggregateTest {
         ag.collectAggregates(nb.getNodeState(), col);
         assertEquals(1, col.getNodePaths().size());
         assertThat(col.getNodePaths(), hasItems("a"));
+    }
+
+    @Test
+    public void noOfChildNodeRead() throws Exception{
+        Aggregate ag = new Aggregate("nt:base", of(ni("a")));
+        NodeBuilder nb = newNode("nt:base");
+        nb.child("a");
+        for (int i = 0; i < 10; i++) {
+            nb.child("a"+i);
+        }
+
+        NodeState state = nb.getNodeState();
+        final AtomicInteger counter = new AtomicInteger();
+        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
+                new Function<ChildNodeEntry, ChildNodeEntry>() {
+            @Override
+            public ChildNodeEntry apply(ChildNodeEntry input) {
+                counter.incrementAndGet();
+                return input;
+            }
+        });
+        NodeState mocked = spy(state);
+        doReturn(countingIterator).when(mocked).getChildNodeEntries();
+        ag.collectAggregates(mocked, col);
+
+        //Here at max a single call should happen for reading child nodes
+        assertThat(counter.get(), is(lessThanOrEqualTo(1)));
     }
 
     @Test
@@ -357,6 +403,32 @@ public class AggregateTest {
         ag.collectAggregates(nb.getNodeState(), col);
         assertEquals(1, col.getPropPaths().size());
         assertThat(col.getPropPaths(), hasItems("a/p1"));
+    }
+
+    @Test
+    public void propOneLevelNamedDirect() throws Exception{
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:folder")
+                .property("jcr:content/a").ordered(PropertyType.TYPENAME_LONG).propertyIndex()
+                .property("jcr:content/b").ordered(PropertyType.TYPENAME_LONG).propertyIndex();
+
+
+        IndexDefinition defn = new IndexDefinition(root, builder.build(), "/foo");
+        Aggregate ag = defn.getApplicableIndexingRule("nt:folder").getAggregate();
+
+        NodeBuilder nb = newNode("nt:folder");
+        nb.child("jcr:content").setProperty("a", 1);
+        nb.child("jcr:content").setProperty("b", 1);
+
+        LuceneDocumentMaker maker = new LuceneDocumentMaker(defn, defn.getApplicableIndexingRule("nt:folder"), "/bar");
+        Document doc = maker.makeDocument(nb.getNodeState());
+
+        DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
+        DefaultIndexWriterFactory writerFactory = new DefaultIndexWriterFactory(Mounts.defaultMountInfoProvider(),
+                directoryFactory, new LuceneIndexWriterConfig());
+        LuceneIndexWriter writer = writerFactory.newInstance(defn, EMPTY_NODE.builder(), false);
+        writer.updateDocument("/bar", doc);
+        writer.close(100);
     }
 
     @Test

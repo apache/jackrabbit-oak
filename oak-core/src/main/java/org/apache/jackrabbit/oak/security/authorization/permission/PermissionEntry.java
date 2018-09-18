@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,6 +24,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 final class PermissionEntry implements Comparable<PermissionEntry>, PermissionConstants {
 
@@ -55,9 +54,9 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
      */
     final RestrictionPattern restriction;
 
-    PermissionEntry(@Nonnull String path, boolean isAllow, int index,
-                    @Nonnull PrivilegeBits privilegeBits,
-                    @Nonnull RestrictionPattern restriction) {
+    PermissionEntry(@NotNull String path, boolean isAllow, int index,
+                    @NotNull PrivilegeBits privilegeBits,
+                    @NotNull RestrictionPattern restriction) {
         this.path = path;
         this.isAllow = isAllow;
         this.index = index;
@@ -65,11 +64,11 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
         this.restriction = restriction;
     }
 
-    boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+    boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
         return restriction == RestrictionPattern.EMPTY || restriction.matches(tree, property);
     }
 
-    boolean matches(@Nonnull String treePath) {
+    boolean matches(@NotNull String treePath) {
         return restriction == RestrictionPattern.EMPTY || restriction.matches(treePath);
     }
 
@@ -77,12 +76,12 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
         return restriction == RestrictionPattern.EMPTY || restriction.matches();
     }
 
-    boolean matchesParent(@Nonnull String parentPath) {
+    boolean matchesParent(@NotNull String parentPath) {
         return Text.isDescendantOrEqual(path, parentPath) && (restriction == RestrictionPattern.EMPTY || restriction.matches(parentPath));
     }
 
     @Override
-    public int compareTo(@Nonnull PermissionEntry pe) {
+    public int compareTo(@NotNull PermissionEntry pe) {
         if (Objects.equal(path, pe.path)) {
             // reverse order
             if (index == pe.index) {

@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -48,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AbstractAuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -85,7 +85,7 @@ public class OakOSGiRepositoryFactoryTest {
         copyConfig("common");
     }
 
-    @Test
+    @Test(timeout = 60 * 1000)
     public void testRepositoryTar() throws Exception {
         copyConfig("tar");
         config.put(BundleActivator.class.getName(), new TestActivator());
@@ -159,9 +159,9 @@ public class OakOSGiRepositoryFactoryTest {
         @Override
         protected void postProcessRegistry(PojoServiceRegistry registry) {
             registry.registerService(AuthorizableActionProvider.class.getName(), new AuthorizableActionProvider() {
-                @Nonnull
+                @NotNull
                 @Override
-                public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+                public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
                     return Collections.singletonList(new TestAction());
                 }
             }, null);
@@ -184,8 +184,8 @@ public class OakOSGiRepositoryFactoryTest {
     private class TestAction extends AbstractAuthorizableAction {
 
         @Override
-        public void onPasswordChange(@Nonnull User user, @Nullable String newPassword,
-                                     @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onPasswordChange(@NotNull User user, @Nullable String newPassword,
+                                     @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             OakOSGiRepositoryFactoryTest.this.newPassword = newPassword;
         }
     }

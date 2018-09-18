@@ -92,8 +92,9 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodesConcurrent() throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
+            MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
+                    .setMongoDB(c.getMongoClient(), c.getDBName())
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
@@ -122,8 +123,9 @@ public class ConcurrentAddNodesClusterIT {
     public void addNodesConcurrent2() throws Exception {
         final Thread mainThread = Thread.currentThread();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
+            MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
+                    .setMongoDB(c.getMongoClient(), c.getDBName())
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
@@ -208,8 +210,9 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodes() throws Exception {
         for (int i = 0; i < 2; i++) {
+            MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
+                    .setMongoDB(c.getMongoClient(), c.getDBName())
                     .setClusterId(i + 1).open();
             mks.add(mk);
         }
@@ -242,8 +245,9 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void addNodes2() throws Exception {
         for (int i = 0; i < 3; i++) {
+            MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
+                    .setMongoDB(c.getMongoClient(), c.getDBName())
                     .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
@@ -321,8 +325,9 @@ public class ConcurrentAddNodesClusterIT {
     @Test
     public void rebaseVisibility() throws Exception {
         for (int i = 0; i < 2; i++) {
+            MongoConnection c = createConnection();
             DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
+                    .setMongoDB(c.getMongoClient(), c.getDBName())
                     .setAsyncDelay(0)
                     .setClusterId(i + 1).open();
             mks.add(mk);
@@ -371,7 +376,7 @@ public class ConcurrentAddNodesClusterIT {
     private static void dropDB() throws Exception {
         MongoConnection con = createConnection();
         try {
-            con.getDB().dropDatabase();
+            con.getDatabase().drop();
         } finally {
             con.close();
         }
@@ -380,7 +385,7 @@ public class ConcurrentAddNodesClusterIT {
     private static void initRepository() throws Exception {
         MongoConnection con = createConnection();
         DocumentMK mk = new DocumentMK.Builder()
-                .setMongoDB(con.getDB())
+                .setMongoDB(con.getMongoClient(), con.getDBName())
                 .setClusterId(1).open();
         Repository repository = new Jcr(mk.getNodeStore()).createRepository();
         Session session = repository.login(

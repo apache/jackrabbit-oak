@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.AbstractFileStore;
 
 /**
  * Implementation of {@link BlobReferenceRetriever} to retrieve blob references from the
@@ -31,15 +31,15 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
  */
 public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
 
-    private final FileStore store;
+    private final AbstractFileStore store;
 
-    public SegmentBlobReferenceRetriever(FileStore store) {
+    public SegmentBlobReferenceRetriever(AbstractFileStore store) {
         this.store = store;
     }
 
     @Override
     public void collectReferences(final ReferenceCollector collector) throws IOException {
-        store.collectBlobReferences(collector);
+        store.collectBlobReferences(s -> collector.addReference(s, null));
     }
 }
 

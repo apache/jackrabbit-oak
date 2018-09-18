@@ -20,23 +20,26 @@
 package org.apache.jackrabbit.oak.segment.standby.client;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
-import com.google.common.base.Supplier;
 import io.netty.channel.nio.NioEventLoopGroup;
+import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.standby.jmx.ClientStandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,8 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
     public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory.getLogger(StandbyClientSync.class);
+
+    private static final AtomicInteger standbyRunCounter = new AtomicInteger();
 
     private final String host;
 
@@ -58,7 +63,15 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private final boolean secure;
 
-    private boolean active = false;
+    private final FileStore fileStore;
+
+    private final NioEventLoopGroup group;
+
+    private final File spoolFolder;
+
+    private final StandbyClientSyncExecution execution;
+
+    private final AtomicBoolean active = new AtomicBoolean(false);
 
     private int failedRequests;
 
@@ -66,19 +79,23 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     private volatile String state;
 
-    private final Object sync = new Object();
-
-    private final FileStore fileStore;
-
-    private final AtomicBoolean running = new AtomicBoolean(true);
+    private volatile boolean running = true;
 
     private long syncStartTimestamp;
 
     private long syncEndTimestamp;
 
-    private final NioEventLoopGroup group;
+    private static String clientId() {
+        String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
 
-    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean) {
+        if (s == null || s.isEmpty()) {
+            return UUID.randomUUID().toString();
+        }
+
+        return s;
+    }
+
+    public StandbyClientSync(String host, int port, FileStore store, boolean secure, int readTimeoutMs, boolean autoClean, File spoolFolder) {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.syncStartTimestamp = -1;
@@ -90,15 +107,14 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         this.readTimeoutMs = readTimeoutMs;
         this.autoClean = autoClean;
         this.fileStore = store;
-        String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
-        this.observer = new CommunicationObserver((s == null || s.isEmpty()) ? UUID.randomUUID().toString() : s);
-        group = new NioEventLoopGroup();
-
-        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+        this.observer = new CommunicationObserver(clientId());
+        this.group = new NioEventLoopGroup(0, new NamedThreadFactory("standby"));
+        this.execution = new StandbyClientSyncExecution(fileStore, () -> running);
+        this.spoolFolder = spoolFolder;
         try {
-            jmxServer.registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
+            ManagementFactory.getPlatformMBeanServer().registerMBean(new StandardMBean(this, ClientStandbyStatusMBean.class), new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can register standby status mbean", e);
+            log.error("cannot register standby status mbean", e);
         }
     }
 
@@ -114,7 +130,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         try {
             jmxServer.unregisterMBean(new ObjectName(this.getMBeanName()));
         } catch (Exception e) {
-            log.error("can unregister standby status mbean", e);
+            log.error("cannot unregister standby status mbean", e);
         }
         closeGroup();
         observer.unregister();
@@ -123,50 +139,58 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     @Override
     public void run() {
-        if (!isRunning()) {
-            // manually stopped
-            return;
-        }
-
-        state = STATUS_STARTING;
-
-        synchronized (sync) {
-            if (active) {
-                return;
-            }
-            state = STATUS_RUNNING;
-            active = true;
-        }
+        String name = Thread.currentThread().getName();
 
         try {
-            long startTimestamp = System.currentTimeMillis();
-            try (StandbyClient client = new StandbyClient(group, observer.getID(), secure, readTimeoutMs)) {
-                client.connect(host, port);
+            Thread.currentThread().setName("standby-run-" + standbyRunCounter.incrementAndGet());
 
-                int genBefore = headGeneration(fileStore);
-                new StandbyClientSyncExecution(fileStore, client, newRunningSupplier()).execute();
-                int genAfter = headGeneration(fileStore);
+            if (!running) {
+                return;
+            }
 
-                if (autoClean && (genAfter > genBefore)) {
+            state = STATUS_STARTING;
+
+            if (!active.compareAndSet(false, true)) {
+                return;
+            }
+
+            state = STATUS_RUNNING;
+
+            try {
+                long startTimestamp = System.currentTimeMillis();
+
+                GCGeneration genBefore = headGeneration(fileStore);
+
+                try (StandbyClient client = new StandbyClient(host, port, group, observer.getID(), secure, readTimeoutMs, spoolFolder)) {
+                    execution.execute(client);
+                }
+
+                fileStore.flush();
+
+                GCGeneration genAfter = headGeneration(fileStore);
+
+                if (autoClean && genAfter.compareWith(genBefore) > 0) {
                     log.info("New head generation detected (prevHeadGen: {} newHeadGen: {}), running cleanup.", genBefore, genAfter);
                     cleanupAndRemove();
                 }
+
+                this.failedRequests = 0;
+                this.syncStartTimestamp = startTimestamp;
+                this.syncEndTimestamp = System.currentTimeMillis();
+                this.lastSuccessfulRequest = syncEndTimestamp / 1000;
+            } catch (Exception e) {
+                this.failedRequests++;
+                log.error("Failed synchronizing state.", e);
+            } finally {
+                active.set(false);
             }
-            this.failedRequests = 0;
-            this.syncStartTimestamp = startTimestamp;
-            this.syncEndTimestamp = System.currentTimeMillis();
-            this.lastSuccessfulRequest = syncEndTimestamp / 1000;
-        } catch (Exception e) {
-            this.failedRequests++;
-            log.error("Failed synchronizing state.", e);
         } finally {
-            synchronized (this.sync) {
-                this.active = false;
-            }
+            Thread.currentThread().setName(name);
         }
     }
 
-    private static int headGeneration(FileStore fileStore) {
+    @NotNull
+    private static GCGeneration headGeneration(FileStore fileStore) {
         return fileStore.getHead().getRecordId().getSegment().getGcGeneration();
     }
 
@@ -174,18 +198,7 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
         fileStore.cleanup();
     }
 
-    private Supplier<Boolean> newRunningSupplier() {
-        return new Supplier<Boolean>() {
-
-            @Override
-            public Boolean get() {
-                return running.get();
-            }
-
-        };
-    }
-
-    @Nonnull
+    @NotNull
     @Override
     public String getMode() {
         return "client: " + this.observer.getID();
@@ -193,18 +206,18 @@ public final class StandbyClientSync implements ClientStandbyStatusMBean, Runnab
 
     @Override
     public boolean isRunning() {
-        return running.get();
+        return running;
     }
 
     @Override
     public void start() {
-        running.set(true);
+        running = true;
         state = STATUS_RUNNING;
     }
 
     @Override
     public void stop() {
-        running.set(false);
+        running = false;
         state = STATUS_STOPPED;
     }
 

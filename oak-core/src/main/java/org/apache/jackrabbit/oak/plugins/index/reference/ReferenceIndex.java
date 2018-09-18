@@ -28,7 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
-import static org.apache.jackrabbit.oak.spi.query.Cursors.newPathCursor;
+import static org.apache.jackrabbit.oak.plugins.index.Cursors.newPathCursor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,7 +121,7 @@ class ReferenceIndex implements QueryIndex {
                 return lookup(root, uuid, name, WEAK_REF_NAME, filter);
             }
         }
-        return newPathCursor(new ArrayList<String>(), filter.getQueryEngineSettings());
+        return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
     }
 
     private Cursor lookup(NodeState root, String uuid,
@@ -129,7 +129,7 @@ class ReferenceIndex implements QueryIndex {
         NodeState indexRoot = root.getChildNode(INDEX_DEFINITIONS_NAME)
                 .getChildNode(NAME);
         if (!indexRoot.exists()) {
-            return newPathCursor(new ArrayList<String>(), filter.getQueryEngineSettings());
+            return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
@@ -152,7 +152,7 @@ class ReferenceIndex implements QueryIndex {
                 return getParentPath(path);
             }
         });
-        return newPathCursor(paths, filter.getQueryEngineSettings());
+        return newPathCursor(paths, filter.getQueryLimits());
     }
 
     private static Set<IndexStoreStrategy> getStrategies(NodeState definition,

@@ -17,40 +17,42 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component
-@Service(IndexEditorProvider.class)
+@Component(service = IndexEditorProvider.class)
 public class OrderedPropertyIndexEditorProvider implements IndexEditorProvider, OrderedIndex {
    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexEditorProvider.class);
-   private static int hits;
+   private int hits;
    private static int threshold = OrderedIndex.TRACK_DEPRECATION_EVERY;
    
    @Override
-   @CheckForNull
-   public Editor getIndexEditor(@Nonnull String type, 
-                                @Nonnull NodeBuilder definition, 
-                                @Nonnull NodeState root, 
-                                @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+   @Nullable
+   public Editor getIndexEditor(@NotNull String type, 
+                                @NotNull NodeBuilder definition, 
+                                @NotNull NodeState root, 
+                                @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (OrderedIndex.TYPE.equals(type)) {
             if (hit() % threshold == 0) {
-                LOG.warn(OrderedIndex.DEPRECATION_MESSAGE);                
+                if (callback instanceof ContextAwareCallback) {
+                    LOG.warn(DEPRECATION_MESSAGE, ((ContextAwareCallback)callback).getIndexingContext().getIndexPath());
+                } else {
+                    LOG.warn(OrderedIndex.DEPRECATION_MESSAGE, definition);
+                }
             }
         }
         return null;
-    }
+   }
    
    private synchronized int hit() {
        return hits++;

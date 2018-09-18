@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
@@ -27,10 +26,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -39,12 +39,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 
-
 public class NestedCugHookTest extends AbstractCugTest {
 
-    protected static void assertNestedCugs(@Nonnull Root root, @Nonnull String cugHoldingPath,
-                                           boolean hasCugPolicy, @Nonnull String... expectedNestedPaths) {
-        Root immutableRoot = RootFactory.createReadOnlyRoot(root);
+    protected static void assertNestedCugs(@NotNull Root root, @NotNull RootProvider rootProvider,
+            @NotNull String cugHoldingPath, boolean hasCugPolicy, @NotNull String... expectedNestedPaths) {
+        Root immutableRoot = rootProvider.createReadOnlyRoot(root);
 
         Tree tree = immutableRoot.getTree(cugHoldingPath);
         if (hasCugPolicy) {
@@ -78,7 +77,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         }
     }
 
-    protected boolean removeCug(@Nonnull String path, boolean doCommit) throws Exception {
+    protected boolean removeCug(@NotNull String path, boolean doCommit) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         for (AccessControlPolicy policy : acMgr.getPolicies(path)) {
             if (policy instanceof CugPolicy) {
@@ -102,8 +101,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         createCug("/content", getTestGroupPrincipal());
         root.commit();
 
-        assertNestedCugs(root, "/", false, "/content");
-        assertNestedCugs(root, "/content", true);
+        assertNestedCugs(root, getRootProvider(), "/", false, "/content");
+        assertNestedCugs(root, getRootProvider(), "/content", true);
     }
 
     @Test
@@ -115,41 +114,41 @@ public class NestedCugHookTest extends AbstractCugTest {
         // - /content2      : allow everyone,  deny testGroup (isolated)
         setupCugsAndAcls();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
-        assertNestedCugs(root, "/content/a", true, "/content/a/b/c");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
+        assertNestedCugs(root, getRootProvider(), "/content/a", true, "/content/a/b/c");
 
         // add CUG at /content after having created CUGs in the subtree
         createCug("/content", EveryonePrincipal.getInstance());
         root.commit();
-        assertNestedCugs(root, ROOT_PATH, false, "/content", "/content2");
-        assertNestedCugs(root, "/content", true, "/content/a", "/content/aa/bb");
-        assertNestedCugs(root, "/content/a", true, "/content/a/b/c");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), "/content", true, "/content/a", "/content/aa/bb");
+        assertNestedCugs(root, getRootProvider(), "/content/a", true, "/content/a/b/c");
     }
 
     @Test
     public void testAddNodeWithCug() throws Exception {
         createCug(SUPPORTED_PATH2, EveryonePrincipal.getInstance());
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH2);
-        assertNestedCugs(root, SUPPORTED_PATH2, true, path);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, path);
     }
 
     @Test
     public void testAddNodeWithCugManually() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(root, path, getTestGroupPrincipal().getName());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH3);
-        assertNestedCugs(root, SUPPORTED_PATH3, true, path);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true, path);
     }
 
     @Test
@@ -159,7 +158,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         createCug(root, unsupportedPath, EveryonePrincipal.NAME);
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, unsupportedPath);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, unsupportedPath);
     }
 
     @Test
@@ -173,7 +172,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         createCug("/content2", EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, true, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, true, "/content", "/content2");
     }
 
     @Test
@@ -184,7 +183,7 @@ public class NestedCugHookTest extends AbstractCugTest {
 
         // remove CUG at /content
         assertTrue(removeCug("/content", true));
-        assertNestedCugs(root, ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
     }
 
     @Test
@@ -199,8 +198,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         // remove CUG at /content/a/b/c
         assertTrue(removeCug("/content/a/b/c", true));
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
-        assertNestedCugs(root, "/content/a", true);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
+        assertNestedCugs(root, getRootProvider(), "/content/a", true);
     }
 
     @Test
@@ -215,7 +214,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         // remove CUG at /content/a
         assertTrue(removeCug("/content/a", true));
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content/aa/bb", "/content2", "/content/a/b/c");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/aa/bb", "/content2", "/content/a/b/c");
         assertFalse(root.getTree("/content/a").hasChild(REP_CUG_POLICY));
     }
 
@@ -232,7 +231,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         assertTrue(removeCug("/content/aa/bb", false));
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content2", "/content/a/b/c");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2", "/content/a/b/c");
     }
 
     @Test
@@ -248,7 +247,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         assertTrue(removeCug("/content/a/b/c", false));
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content/aa/bb", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/aa/bb", "/content2");
     }
 
     @Test
@@ -263,7 +262,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.getTree("/content").remove();
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2");
     }
 
     @Test
@@ -278,7 +277,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.getTree("/content/a").remove();
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content2", "/content/aa/bb");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2", "/content/aa/bb");
     }
 
     @Test
@@ -292,39 +291,39 @@ public class NestedCugHookTest extends AbstractCugTest {
         assertTrue(root.getTree(PathUtils.concat(ROOT_PATH, REP_CUG_POLICY)).remove());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, "/content", "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
 
         assertTrue(removeCug("/content", true));
-        assertNestedCugs(root, ROOT_PATH, false, "/content2");
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2");
 
         assertTrue(removeCug("/content2", true));
-        assertNestedCugs(root, ROOT_PATH, false);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
     }
 
     @Test
     public void testRemoveAndReadd() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH3);
-        assertNestedCugs(root, SUPPORTED_PATH3, true, path);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true, path);
 
         removeCug(path, false);
         createCug(path, EveryonePrincipal.getInstance());
         root.commit();
 
-        assertNestedCugs(root, SUPPORTED_PATH3, true, path);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true, path);
     }
 
     @Test
     public void testMoveToUnsupportedPath() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -333,15 +332,15 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.move(path, destPath);
         root.commit();
 
-        assertNestedCugs(root, SUPPORTED_PATH3, true);
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH3, destPath);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, destPath);
     }
 
     @Test
     public void testMoveToSupportedPath() throws Exception {
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -350,8 +349,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.move(path, destPath);
         root.commit();
 
-        assertNestedCugs(root, SUPPORTED_PATH3, true);
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH3, destPath);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, destPath);
     }
 
     @Test
@@ -359,7 +358,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         createCug(root, SUPPORTED_PATH2, EveryonePrincipal.NAME);
         createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
 
-        Tree newTree = new NodeUtil(root.getTree(SUPPORTED_PATH3)).addChild("child", NT_OAK_UNSTRUCTURED).getTree();
+        Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
         String path = newTree.getPath();
         createCug(path, getTestGroupPrincipal());
         root.commit();
@@ -368,8 +367,8 @@ public class NestedCugHookTest extends AbstractCugTest {
         root.move(path, destPath);
         root.commit();
 
-        assertNestedCugs(root, ROOT_PATH, false, SUPPORTED_PATH3, SUPPORTED_PATH2);
-        assertNestedCugs(root, SUPPORTED_PATH3, true);
-        assertNestedCugs(root, SUPPORTED_PATH2, true, destPath);
+        assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, SUPPORTED_PATH2);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
+        assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, destPath);
     }
 }

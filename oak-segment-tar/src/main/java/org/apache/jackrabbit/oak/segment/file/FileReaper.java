@@ -19,27 +19,31 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Joiner;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Thread-safe class tracking files to be removed.
  */
-class FileReaper {
+public class FileReaper {
 
     private static final Logger logger = LoggerFactory.getLogger(FileReaper.class);
 
-    private final Set<File> files = new HashSet<>();
+    private final Set<String> files = new HashSet<>();
 
     private final Object lock = new Object();
+
+    private final SegmentArchiveManager archiveManager;
+
+    public FileReaper(SegmentArchiveManager archiveManager) {
+        this.archiveManager = archiveManager;
+    }
 
     /**
      * Add files to be removed. The same file can be added more than once.
@@ -47,9 +51,9 @@ class FileReaper {
      *
      * @param files group of files to be removed.
      */
-    void add(Iterable<File> files) {
+    void add(Iterable<String> files) {
         synchronized (lock) {
-            for (File file : files) {
+            for (String file : files) {
                 this.files.add(file);
             }
         }
@@ -59,21 +63,20 @@ class FileReaper {
      * Reap previously added files.
      */
     void reap() {
-        Set<File> reap;
+        Set<String> reap;
 
         synchronized (lock) {
             reap = new HashSet<>(files);
             files.clear();
         }
 
-        Set<File> redo = new HashSet<>();
-        List<File> removed = newArrayList();
-        for (File file : reap) {
-            try {
-                Files.deleteIfExists(file.toPath());
+        Set<String> redo = new HashSet<>();
+        List<String> removed = newArrayList();
+        for (String file : reap) {
+            if (archiveManager.delete(file)) {
                 removed.add(file);
-            } catch (IOException e) {
-                logger.warn(String.format("Unable to remove file %s", file), e);
+            } else {
+                logger.warn("Unable to remove file {}", file);
                 redo.add(file);
             }
         }

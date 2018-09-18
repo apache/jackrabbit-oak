@@ -22,7 +22,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This conflict handler instance takes care of properly merging conflicts
  * occurring by concurrent reorder operations.
  *
- * @see org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants#OAK_CHILD_ORDER
+ * @see TreeConstants#OAK_CHILD_ORDER
  */
 public class ChildOrderConflictHandler implements PartialConflictHandler {
 

@@ -18,19 +18,20 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Interface that allows to exclude certain principals from the CUG evaluation.
  * For the excluded principals the closed user group policies will be ignored.
  */
+@ProviderType
 public interface CugExclude {
 
-    boolean isExcluded(@Nonnull Set<Principal> principals);
+    boolean isExcluded(@NotNull Set<Principal> principals);
 
     /**
      * Default implementation of the {@link CugExclude} interface that excludes
@@ -44,7 +45,7 @@ public interface CugExclude {
     class Default implements CugExclude {
 
         @Override
-        public boolean isExcluded(@Nonnull Set<Principal> principals) {
+        public boolean isExcluded(@NotNull Set<Principal> principals) {
             if (principals.isEmpty()) {
                 return true;
             }

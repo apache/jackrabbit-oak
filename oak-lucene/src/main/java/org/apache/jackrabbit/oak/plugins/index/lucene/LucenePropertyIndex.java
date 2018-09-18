@@ -18,10 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +30,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.jcr.PropertyType;
+
+import com.google.common.base.Joiner;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Chars;
@@ -43,36 +46,40 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PropertyIndexResult;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
@@ -80,12 +87,10 @@ import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -119,11 +124,14 @@ import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -132,15 +140,19 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.ANALYZED_FIELD_PREFIX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCERPT_NODE_FIELD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -192,7 +204,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     /**
      * Batch size for fetching results from Lucene queries.
      */
-    static final int LUCENE_QUERY_BATCH_SIZE = 50;
+    public static final int LUCENE_QUERY_BATCH_SIZE = 50;
 
     protected final IndexTracker tracker;
 
@@ -286,9 +298,33 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (ft != null) {
                 sb.append(" ft:(").append(ft).append(")");
             }
+            addSyncIndexPlan(plan, sb);
             return sb.toString();
         } finally {
             index.release();
+        }
+    }
+
+    private static void addSyncIndexPlan(IndexPlan plan, StringBuilder sb) {
+        PlanResult pr = getPlanResult(plan);
+        if (pr.hasPropertyIndexResult()) {
+            PropertyIndexResult pres = pr.getPropertyIndexResult();
+            sb.append(" sync:(")
+              .append(pres.propertyName);
+
+            if (!pres.propertyName.equals(pres.pr.propertyName)) {
+               sb.append("[").append(pres.pr.propertyName).append("]");
+            }
+
+            sb.append(" ").append(pres.pr);
+            sb.append(")");
+        }
+
+        if (pr.evaluateSyncNodeTypeRestriction()) {
+            sb.append(" sync:(nodeType");
+            sb.append(" primaryTypes : ").append(plan.getFilter().getPrimaryTypes());
+            sb.append(" mixinTypes : ").append(plan.getFilter().getMixinTypes());
+            sb.append(")");
         }
     }
 
@@ -302,7 +338,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
-        QueryEngineSettings settings = filter.getQueryEngineSettings();
+        QueryLimits settings = filter.getQueryLimits();
         Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
@@ -321,7 +357,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return endOfData();
             }
 
-            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,  Facets facets,
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,  Facets facets,
                                                  String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -350,8 +386,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         seenPaths.add(path);
                     }
 
-                    LOG.trace("Matched path {}", path);
-                    return new LuceneResultRow(path, doc.score, excerpt, facets, explanation);
+                    boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
+                    LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
+                    return shouldIncludeForHierarchy? new LuceneResultRow(path, doc.score, excerpts, facets, explanation)
+                            : null;
                 }
                 return null;
             }
@@ -407,10 +445,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
                             PERF_LOGGER.end(f, -1, "facets retrieved");
 
-                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
-                            boolean addExcerpt = restriction != null && restriction.isNotNullRestriction();
+                            Set<String> excerptFields = Sets.newHashSet();
+                            for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+                                if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
+                                    String value = pr.first.getValue(Type.STRING);
+                                    excerptFields.add(value);
+                                }
+                            }
+                            boolean addExcerpt = excerptFields.size() > 0;
 
-                            restriction = filter.getPropertyRestriction(QueryImpl.OAK_SCORE_EXPLANATION);
+                            PropertyRestriction restriction = filter.getPropertyRestriction(QueryConstants.OAK_SCORE_EXPLANATION);
                             boolean addExplain = restriction != null && restriction.isNotNullRestriction();
 
                             Analyzer analyzer = indexNode.getDefinition().getAnalyzer();
@@ -425,9 +469,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             }
 
                             for (ScoreDoc doc : docs.scoreDocs) {
-                                String excerpt = null;
+                                Map<String, String> excerpts = null;
                                 if (addExcerpt) {
-                                    excerpt = getExcerpt(query, analyzer, searcher, doc, mergedFieldInfos);
+                                    excerpts = getExcerpt(query, excerptFields, analyzer, searcher, doc, mergedFieldInfos);
                                 }
 
                                 String explanation = null;
@@ -435,7 +479,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                                     explanation = searcher.explain(query, doc.doc).toString();
                                 }
 
-                                LuceneResultRow row = convertToRow(doc, searcher, excerpt, facets, explanation);
+                                LuceneResultRow row = convertToRow(doc, searcher, excerpts, facets, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
@@ -541,7 +585,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         LOG.debug("Change in index version detected. Query would be performed without offset");
                     }
 
-                    //TODO Add testcase for this scenario
                     indexSearcher = indexNode.getSearcher();
                     indexNodeId = indexNode.getIndexNodeId();
                     lastDoc = null;
@@ -579,6 +622,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return -1;
             }
         };
+
+        if (pr.hasPropertyIndexResult() || pr.evaluateSyncNodeTypeRestriction()) {
+            itr = mergePropertyIndexResult(plan, rootState, itr);
+        }
+
         return new LucenePathCursor(itr, plan, settings, sizeEstimator);
     }
 
@@ -606,9 +654,53 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return query;
     }
 
-    private String getExcerpt(Query query, Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc,
-                              FieldInfos fieldInfos) throws IOException {
-        StringBuilder excerpt = new StringBuilder();
+    private static boolean shouldInclude(String docPath, IndexPlan plan) {
+        String path = getPathRestriction(plan);
+
+        boolean include = true;
+
+        Filter filter = plan.getFilter();
+        switch (filter.getPathRestriction()) {
+            case EXACT:
+                include = path.equals(docPath);
+                break;
+            case DIRECT_CHILDREN:
+                include = PathUtils.getParentPath(docPath).equals(path);
+                break;
+            case ALL_CHILDREN:
+                include = PathUtils.isAncestor(path, docPath);
+                break;
+        }
+
+        return include;
+    }
+
+    private Map<String, String> getExcerpt(Query query, Set<String> excerptFields,
+                              Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc, FieldInfos fieldInfos)
+            throws IOException {
+        Set<String> excerptFieldNames = Sets.newHashSet();
+        Map<String, String> fieldNameToColumnNameMap = Maps.newHashMap();
+        Map<String, String> columnNameToExcerpts = Maps.newHashMap();
+        Set<String> nodeExcerptColumns = Sets.newHashSet();
+
+        excerptFields.forEach(columnName -> {
+            String fieldName;
+            if (REP_EXCERPT.equals(columnName)) {
+                fieldName = EXCERPT_NODE_FIELD_NAME;
+            } else {
+                fieldName = columnName.substring(REP_EXCERPT.length() + 1, columnName.length() - 1);
+            }
+
+            if (!EXCERPT_NODE_FIELD_NAME.equals(fieldName)) {
+                excerptFieldNames.add(fieldName);
+                fieldNameToColumnNameMap.put(fieldName, columnName);
+            } else {
+                nodeExcerptColumns.add(columnName);
+            }
+        });
+
+        final boolean requireNodeLevelExcerpt = nodeExcerptColumns.size() > 0;
+
         int docID = doc.doc;
         List<String> names = new LinkedList<String>();
 
@@ -618,6 +710,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (name.startsWith(ANALYZED_FIELD_PREFIX) && fieldInfos.hasProx() && fieldInfos.hasOffsets()) {
                 names.add(name);
             }
+        }
+
+        if (!requireNodeLevelExcerpt) {
+            names.retainAll(excerptFieldNames);
         }
 
         if (names.size() > 0) {
@@ -631,20 +727,19 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 for (Map.Entry<String, String[]> entry : stringMap.entrySet()) {
                     String value = Arrays.toString(entry.getValue());
                     if (value.contains("<b>")) {
-                        if (excerpt.length() > 0) {
-                            excerpt.append("...");
-                        }
-                        excerpt.append(value);
+                        String fieldName = entry.getKey();
+                        String columnName = fieldNameToColumnNameMap.get(fieldName);
+
+                        columnNameToExcerpts.put(columnName, value);
                     }
                 }
             } catch (Exception e) {
-                LOG.error("postings highlighting failed", e);
+                LOG.debug("postings highlighting failed", e);
             }
         }
 
         // fallback if no excerpt could be retrieved using postings highlighter
-        if (excerpt.length() == 0) {
-
+        if (columnNameToExcerpts.size() == 0) {
             for (IndexableField field : searcher.getIndexReader().document(doc.doc).getFields()) {
                 String name = field.name();
                 // only full text or analyzed fields
@@ -656,12 +751,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         TextFragment[] textFragments = highlighter.getBestTextFragments(tokenStream, text, true, 1);
                         if (textFragments != null && textFragments.length > 0) {
                             for (TextFragment fragment : textFragments) {
-                                if (excerpt.length() > 0) {
-                                    excerpt.append("...");
+                                String columnName = null;
+                                if (name.startsWith(FieldNames.ANALYZED_FIELD_PREFIX)) {
+                                    columnName = fieldNameToColumnNameMap.get(name.substring(FieldNames.ANALYZED_FIELD_PREFIX.length()));
                                 }
-                                excerpt.append(fragment.toString());
+                                if (columnName == null && requireNodeLevelExcerpt) {
+                                    columnName = name;
+                                }
+
+                                if (columnName != null) {
+                                    columnNameToExcerpts.put(columnName, fragment.toString());
+                                }
                             }
-                            break;
+                            if (excerptFieldNames.size() == 0) {
+                                break;
+                            }
                         }
                     } catch (InvalidTokenOffsetsException e) {
                         LOG.error("higlighting failed", e);
@@ -669,7 +773,18 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
             }
         }
-        return excerpt.toString();
+
+        if (requireNodeLevelExcerpt) {
+            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+
+            nodeExcerptColumns.forEach( nodeExcerptColumnName -> {
+                columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt);
+            });
+        }
+
+        columnNameToExcerpts.keySet().retainAll(excerptFields);
+
+        return columnNameToExcerpts;
     }
 
     @Override
@@ -716,10 +831,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return new Sort(fieldsList.toArray(new SortField[0]));
         }
     }
-    
+
     /**
      * Remove all "jcr:score" entries.
-     * 
+     *
      * @param original the original list (is not modified)
      * @return the list with the entries removed
      */
@@ -804,9 +919,20 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {
-                    Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
-                    if (moreLikeThis != null) {
-                        qs.add(moreLikeThis);
+                    List<PropertyDefinition> sp = new LinkedList<>();
+                    for (IndexingRule r : defn.getDefinedRules()) {
+                        sp.addAll(r.getSimilarityProperties());
+                    }
+                    if (sp.isEmpty()) {
+                        Query moreLikeThis = MoreLikeThisHelper.getMoreLikeThis(reader, analyzer, mltQueryString);
+                        if (moreLikeThis != null) {
+                            qs.add(moreLikeThis);
+                        }
+                    } else {
+                        Query similarityQuery = SimSearchUtils.getSimilarityQuery(sp, reader, mltQueryString);
+                        if (similarityQuery != null) {
+                            qs.add(similarityQuery);
+                        }
                     }
                 }
             } else if (query.startsWith("spellcheck?")) {
@@ -841,7 +967,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 PropertyDefinition pd = planResult.getOrderedProperty(i);
                 PropertyRestriction orderRest = new PropertyRestriction();
                 orderRest.propertyName = oe.getPropertyName();
-                Query q = createQuery(orderRest, pd);
+                Query q = createQuery(oe.getPropertyName(), orderRest, pd);
                 if (q != null) {
                     qs.add(q);
                 }
@@ -873,8 +999,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param qs the list of queries. Cannot be null.
      * @return
      */
-    @Nonnull
-    public static LuceneRequestFacade<Query> performAdditionalWraps(@Nonnull List<Query> qs) {
+    @NotNull
+    public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<Query> qs) {
         checkNotNull(qs);
         if (qs.size() == 1) {
             Query q = qs.get(0);
@@ -916,7 +1042,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
      * @return true if there where at least one unwrapped NOT. false otherwise.
      */
-    private static boolean unwrapMustNot(@Nonnull BooleanQuery input, @Nonnull BooleanQuery output) {
+    private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery output) {
         checkNotNull(input);
         checkNotNull(output);
         boolean unwrapped = false;
@@ -924,6 +1050,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {
                 output.add(bc);
                 unwrapped = true;
+            }
+        }
+        if (unwrapped) {
+            // if we have unwrapped "must not" conditions,
+            // then we need to unwrap "must" conditions as well
+            for (BooleanClause bc : input.getClauses()) {
+                if (bc.getOccur() == BooleanClause.Occur.MUST) {
+                    output.add(bc);
+                }
             }
         }
 
@@ -997,8 +1132,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String name = pr.propertyName;
 
-            if (QueryImpl.REP_EXCERPT.equals(name) || QueryImpl.OAK_SCORE_EXPLANATION.equals(name)
-                    || QueryImpl.REP_FACET.equals(name)) {
+            if (QueryConstants.REP_EXCERPT.equals(name) || QueryConstants.OAK_SCORE_EXPLANATION.equals(name)
+                    || QueryConstants.REP_FACET.equals(name)) {
                 continue;
             }
 
@@ -1032,7 +1167,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 continue;
             }
 
-            Query q = createQuery(pr, pd);
+            Query q = createQuery(planResult.getPropertyName(pr), pr, pd);
             if (q != null) {
                 qs.add(q);
             }
@@ -1091,8 +1226,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    @CheckForNull
-    private static Query createQuery(PropertyRestriction pr,
+    @Nullable
+    private static Query createQuery(String propertyName, PropertyRestriction pr,
                                      PropertyDefinition defn) {
         int propType = determinePropertyType(defn, pr);
 
@@ -1113,26 +1248,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newLongRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newLongRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Long dateVal = FieldFactory.dateToLong(value.getValue(Type.DATE));
-                        in.add(NumericRangeQuery.newLongRange(pr.propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newLongRange(propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null. For date lower bound of zero can be used
-                    return NumericRangeQuery.newLongRange(pr.propertyName, 0L, Long.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
                 }
 
                 break;
@@ -1143,26 +1278,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newDoubleRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Double doubleVal = value.getValue(Type.DOUBLE);
-                        in.add(NumericRangeQuery.newDoubleRange(pr.propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newDoubleRange(propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newDoubleRange(pr.propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 }
                 break;
             }
@@ -1172,32 +1307,32 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, first, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, last,
+                    return NumericRangeQuery.newLongRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newLongRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         Long longVal = value.getValue(LONG);
-                        in.add(NumericRangeQuery.newLongRange(pr.propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(NumericRangeQuery.newLongRange(propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newLongRange(pr.propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
+                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 }
                 break;
             }
             default: {
                 if (pr.isLike) {
-                    return createLikeQuery(pr.propertyName, pr.first.getValue(STRING));
+                    return createLikeQuery(propertyName, pr.first.getValue(STRING));
                 }
 
                 //TODO Confirm that all other types can be treated as string
@@ -1206,25 +1341,25 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
-                    return new TermQuery(new Term(pr.propertyName, first));
+                    return new TermQuery(new Term(propertyName, first));
                 } else if (pr.first != null && pr.last != null) {
-                    return TermRangeQuery.newStringRange(pr.propertyName, first, last,
+                    return TermRangeQuery.newStringRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return TermRangeQuery.newStringRange(pr.propertyName, first, null, pr.firstIncluding, true);
+                    return TermRangeQuery.newStringRange(propertyName, first, null, pr.firstIncluding, true);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return TermRangeQuery.newStringRange(pr.propertyName, null, last, true, pr.lastIncluding);
+                    return TermRangeQuery.newStringRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
                     BooleanQuery in = new BooleanQuery();
                     for (PropertyValue value : pr.list) {
                         String strVal = value.getValue(STRING);
-                        in.add(new TermQuery(new Term(pr.propertyName, strVal)), BooleanClause.Occur.SHOULD);
+                        in.add(new TermQuery(new Term(propertyName, strVal)), BooleanClause.Occur.SHOULD);
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    return new TermRangeQuery(pr.propertyName, null, null, true, true);
+                    return new TermRangeQuery(propertyName, null, null, true, true);
                 }
             }
         }
@@ -1509,18 +1644,49 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
+    @SuppressWarnings("Guava")
+    private static Iterator<LuceneResultRow> mergePropertyIndexResult(IndexPlan plan, NodeState rootState,
+                                                                      Iterator<LuceneResultRow> itr) {
+        PlanResult pr = getPlanResult(plan);
+        HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(pr.indexPath,
+                NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
+        PropertyIndexResult pir = pr.getPropertyIndexResult();
+
+        FluentIterable<String> paths = null;
+        if (pir != null) {
+            Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
+            paths = FluentIterable.from(queryResult)
+                    .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
+                    .filter(notNull());
+        } else {
+            checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
+            Filter filter = plan.getFilter();
+            paths = FluentIterable.from(Iterables.concat(
+                    lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
+                    lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
+        }
+
+        //No need for path restriction evaluation as thats taken care by PropertyIndex impl itself
+        //via content mirror strategy
+        FluentIterable<LuceneResultRow> propIndex = paths
+                .transform(path -> new LuceneResultRow(path, 0, null, null, null));
+
+        //Property index itr should come first
+        return Iterators.concat(propIndex.iterator(), itr);
+    }
+
     static class LuceneResultRow {
         final String path;
         final double score;
         final String suggestion;
         final boolean isVirutal;
-        final String excerpt;
+        final Map<String, String> excerpts;
         final String explanation;
         final Facets facets;
 
-        LuceneResultRow(String path, double score, String excerpt, Facets facets, String explanation) {
+        LuceneResultRow(String path, double score, Map<String, String> excerpts, Facets facets, String explanation) {
             this.explanation = explanation;
-            this.excerpt = excerpt;
+            this.excerpts = excerpts;
             this.facets = facets;
             this.isVirutal = false;
             this.path = path;
@@ -1533,7 +1699,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             this.path = "/";
             this.score = weight;
             this.suggestion = suggestion;
-            this.excerpt = null;
+            this.excerpts = null;
             this.facets = null;
             this.explanation = null;
         }
@@ -1554,6 +1720,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      */
     static class LucenePathCursor implements Cursor {
 
+        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+
         private final Cursor pathCursor;
         private final String pathPrefix;
         LuceneResultRow currentRow;
@@ -1561,10 +1729,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         private long estimatedSize;
         private int numberOfFacets;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings, SizeEstimator sizeEstimator) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
+
+                private int readCount;
 
                 @Override
                 public boolean hasNext() {
@@ -1574,6 +1744,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 @Override
                 public String next() {
                     currentRow = it.next();
+                    readCount++;
+                    if (readCount % TRAVERSING_WARNING == 0) {
+                        Cursors.checkReadLimit(readCount, settings);
+                        LOG.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                    }
                     return currentRow.path;
                 }
 
@@ -1627,19 +1802,22 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 @Override
                 public PropertyValue getValue(String columnName) {
                     // overlay the score
-                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                    if (QueryConstants.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                    if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
                         return PropertyValues.newString(currentRow.suggestion);
                     }
-                    if (QueryImpl.OAK_SCORE_EXPLANATION.equals(columnName)) {
+                    if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
                         return PropertyValues.newString(currentRow.explanation);
                     }
-                    if (QueryImpl.REP_EXCERPT.equals(columnName)) {
-                        return PropertyValues.newString(currentRow.excerpt);
+                    if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+                        String excerpt = currentRow.excerpts.get(columnName);
+                        if (excerpt != null) {
+                            return PropertyValues.newString(excerpt);
+                        }
                     }
-                    if (columnName.startsWith(QueryImpl.REP_FACET)) {
+                    if (columnName.startsWith(QueryConstants.REP_FACET)) {
                         String facetFieldName = FacetHelper.parseFacetField(columnName);
                         Facets facets = currentRow.facets;
                         try {
@@ -1674,33 +1852,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 return estimatedSize;
             }
             return estimatedSize = sizeEstimator.getSize();
-        }
-    }
-
-    static class PathStoredFieldVisitor extends StoredFieldVisitor {
-
-        private String path;
-        private boolean pathVisited;
-
-        @Override
-        public Status needsField(FieldInfo fieldInfo) throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                return Status.YES;
-            }
-            return pathVisited ? Status.STOP : Status.NO;
-        }
-
-        @Override
-        public void stringField(FieldInfo fieldInfo, String value)
-                throws IOException {
-            if (PATH.equals(fieldInfo.name)) {
-                path = value;
-                pathVisited = true;
-            }
-        }
-
-        public String getPath() {
-            return path;
         }
     }
 

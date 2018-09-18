@@ -150,8 +150,17 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
                     "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
             tds = new TabularDataSupport(tt);
             List<LeaderBoardData> leaderBoard = Lists.newArrayList();
-            for (EventListenerMBean mbean : eventListeners.values()) {
-                leaderBoard.add(new LeaderBoardData(++id, mbean));
+            for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
+                String listenerId = getListenerId(e.getKey());
+                EventListenerMBean mbean = e.getValue();
+                FilterConfigMBean filterConfigMBean = null;
+                for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
+                    if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                        filterConfigMBean = ef.getValue();
+                        break;
+                    }
+                }
+                leaderBoard.add(new LeaderBoardData(++id, mbean, filterConfigMBean));
             }
             sort(leaderBoard);
             for (LeaderBoardData data : leaderBoard) {
@@ -491,6 +500,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         static final String[] FIELD_NAMES = new String[] {
                 "index",
                 "className",
+                "paths",
                 "processingTime",
                 "delivered",
                 "eventConsumerTimeRatio",
@@ -501,6 +511,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         @SuppressWarnings("rawtypes")
         static final OpenType[] FIELD_TYPES = new OpenType[]{
                 SimpleType.INTEGER,
+                SimpleType.STRING,
                 SimpleType.STRING,
                 SimpleType.LONG,
                 SimpleType.LONG,
@@ -523,31 +534,35 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         }
 
         private final EventListenerMBean mbean;
+        private final FilterConfigMBean filterConfigMBean;
         private final CompositeData producerTime;
         private final CompositeData consumerTime;
         private final int index;
 
-        public LeaderBoardData(int i, EventListenerMBean mbean) {
-            this(i, mbean, mbean.getEventProducerTime(), mbean.getEventConsumerTime());
+        public LeaderBoardData(int i, EventListenerMBean mbean, FilterConfigMBean filterConfigMBean) {
+            this(i, mbean, filterConfigMBean, mbean.getEventProducerTime(), mbean.getEventConsumerTime());
         }
 
         private LeaderBoardData(int i, EventListenerMBean mbean,
+                                FilterConfigMBean filterConfigMBean,
                                 CompositeData producerTime,
                                 CompositeData consumerTime) {
             this.index = i;
             this.mbean = mbean;
+            this.filterConfigMBean = filterConfigMBean;
             this.producerTime = producerTime;
             this.consumerTime = consumerTime;
         }
 
         LeaderBoardData withIndex(int i) {
-            return new LeaderBoardData(i, mbean, producerTime, consumerTime);
+            return new LeaderBoardData(i, mbean, filterConfigMBean, producerTime, consumerTime);
         }
 
         CompositeDataSupport toCompositeData() {
             Object[] values = new Object[]{
                     index,
                     mbean.getClassName(),
+                    filterConfigMBean == null ? "n/a" : Arrays.toString(filterConfigMBean.getPaths()),
                     getProcessingTime(),
                     mbean.getEventsDelivered(),
                     mbean.getEventConsumerTimeRatio(),

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
-import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.facet.Facets;
@@ -50,6 +50,9 @@ public class FacetHelper {
      * IndexPaln Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
+
+    private FacetHelper() {
+    }
 
     public static FacetsConfig getFacetsConfig(NodeBuilder definition) {
         return new NodeStateFacetsConfig(definition);
@@ -86,6 +89,6 @@ public class FacetHelper {
 
 
     public static String parseFacetField(String columnName) {
-        return columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
+        return columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
     }
 }

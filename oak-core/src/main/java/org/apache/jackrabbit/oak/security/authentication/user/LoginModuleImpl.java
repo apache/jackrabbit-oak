@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -111,34 +110,41 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     private Credentials credentials;
     private String userId;
+    private Principal principal;
+    private boolean success;
 
     //--------------------------------------------------------< LoginModule >---
 
     @Override
     public boolean login() throws LoginException {
-        final boolean success;
         credentials = getCredentials();
 
         // check if we have a pre authenticated login from a previous login module
         PreAuthenticatedLogin preAuthLogin = getSharedPreAuthLogin();
-        if (preAuthLogin != null) {
-            userId = preAuthLogin.getUserId();
-            Authentication authentication = getUserAuthentication(userId);
-            success = authentication != null && authentication.authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED);
-        } else {
-            userId = getUserId();
-            Authentication authentication = getUserAuthentication(userId);
-            success = authentication != null && authentication.authenticate(credentials);
-        }
+        String loginName = getLoginId(preAuthLogin);
+        Authentication authentication = getUserAuthentication(loginName);
+        if (authentication != null) {
+            if (preAuthLogin != null) {
+                success = authentication.authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED);
+            } else {
+                success = authentication.authenticate(credentials);
+            }
 
-        if (success) {
-            log.debug("Adding Credentials to shared state.");
-            //noinspection unchecked
-            sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+            if (success) {
+                log.debug("Adding Credentials to shared state.");
+                //noinspection unchecked
+                sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
-            log.debug("Adding login name to shared state.");
-            //noinspection unchecked
-            sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
+                log.debug("Adding login name to shared state.");
+                //noinspection unchecked
+                sharedState.put(SHARED_KEY_LOGIN_NAME, loginName);
+
+                userId = authentication.getUserId();
+                if (userId == null) {
+                    userId = loginName;
+                }
+                principal = authentication.getUserPrincipal();
+            }
         } else {
             // ensure that we don't commit (OAK-2998, OAK-3032)
             credentials = null;
@@ -149,25 +155,30 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     @Override
     public boolean commit() {
-        if (credentials == null) {
+        if (!success) {
             // login attempt in this login module was not successful
             clearState();
             return false;
         } else {
             if (!subject.isReadOnly()) {
-                Set<? extends Principal> principals = getPrincipals(userId);
-                subject.getPrincipals().addAll(principals);
+                Set<Principal> principals = subject.getPrincipals();
+                if (principal != null) {
+                    principals.addAll(getPrincipals(principal));
+                } else if (userId != null) {
+                    principals.addAll(getPrincipals(userId));
+                }
                 subject.getPublicCredentials().add(credentials);
                 setAuthInfo(createAuthInfo(principals), subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
+            clearState();
             return true;
         }
     }
 
     //------------------------------------------------< AbstractLoginModule >---
-    @Nonnull
+    @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;
@@ -179,11 +190,16 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
         credentials = null;
         userId = null;
+        principal = null;
     }
 
     //--------------------------------------------------------------------------
-    @CheckForNull
-    private String getUserId() {
+    @Nullable
+    private String getLoginId(@Nullable PreAuthenticatedLogin preAuthenticatedLogin) {
+        if (preAuthenticatedLogin != null) {
+            return preAuthenticatedLogin.getUserId();
+        }
+
         String uid = null;
         if (credentials != null) {
             if (credentials instanceof SimpleCredentials) {
@@ -224,15 +240,15 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         }
     }
 
-    @CheckForNull
-    private Authentication getUserAuthentication(@Nullable String userId) {
+    @Nullable
+    private Authentication getUserAuthentication(@Nullable String loginName) {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
         if (securityProvider != null && root != null) {
             UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
             UserAuthenticationFactory factory = uc.getParameters().getConfigValue(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, null, UserAuthenticationFactory.class);
             if (factory != null) {
-                return factory.getAuthentication(uc, root, userId);
+                return factory.getAuthentication(uc, root, loginName);
             } else {
                 log.error("No user authentication factory configured in user configuration.");
             }
@@ -240,7 +256,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return null;
     }
 
-    private AuthInfo createAuthInfo(@Nonnull Set<? extends Principal> principals) {
+    private AuthInfo createAuthInfo(@NotNull Set<? extends Principal> principals) {
         Credentials creds;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();

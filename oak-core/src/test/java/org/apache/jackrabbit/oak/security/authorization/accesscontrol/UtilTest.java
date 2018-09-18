@@ -24,8 +24,10 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,6 +48,21 @@ public class UtilTest extends AbstractSecurityTest {
         super.before();
 
         bitsProvider = new PrivilegeBitsProvider(root);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCheckValidPrincipalInvalidBehavior() throws Exception {
+        Util.checkValidPrincipal(() -> "name", getPrincipalManager(root), ImportBehavior.IGNORE-1);
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testCheckValidPrincipalForNull() throws Exception {
+        Util.checkValidPrincipal(null, getPrincipalManager(root));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testCheckValidPrincipalForEmpty() throws Exception {
+        Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root));
     }
 
     @Test

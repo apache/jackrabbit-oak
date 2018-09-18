@@ -97,11 +97,6 @@ public interface LuceneIndexConstants {
     String ORDERED_PROP_NAMES = "orderedProps";
 
     /**
-     * Actively the data store files after this many hours.
-     */
-    String ACTIVE_DELETE = "activeDelete";
-
-    /**
      * Size in bytes used for splitting the index files when storing them in NodeStore
      */
     String BLOB_SIZE = "blobSize";
@@ -117,6 +112,11 @@ public interface LuceneIndexConstants {
      * Name of the codec to be used for indexing
      */
     String CODEC_NAME = "codec";
+
+    /**
+     * Name of the merge policy to be used while indexing
+     */
+    String MERGE_POLICY_NAME = "mergePolicy";
 
     /**
      * Child node name under which property details are provided
@@ -141,6 +141,8 @@ public interface LuceneIndexConstants {
 
     String PROP_USE_IN_EXCERPT = "useInExcerpt";
 
+    String EXCERPT_NODE_FIELD_NAME = ".";
+
     String PROP_NODE_SCOPE_INDEX = "nodeScopeIndex";
 
     String PROP_PROPERTY_INDEX = "propertyIndex";
@@ -152,6 +154,18 @@ public interface LuceneIndexConstants {
     String PROP_ORDERED = "ordered";
 
     String PROP_SCORER_PROVIDER = "scorerProviderName";
+
+    String PROP_WEIGHT = "weight";
+
+    /**
+     * Boolean property in property definition to mark sync properties
+     */
+    String PROP_SYNC = "sync";
+
+    /**
+     * Boolean property in property definition to mark unique properties
+     */
+    String PROP_UNIQUE = "unique";
 
     /**
      * Integer property indicating that LuceneIndex should be
@@ -245,6 +259,16 @@ public interface LuceneIndexConstants {
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 
     /**
+     *  Config node under tika which defines mime type mappings
+     */
+    String TIKA_MIME_TYPES = "mimeTypes";
+
+    /**
+     * Property name within the mime type structure which defines a mime type mapping
+     */
+    String TIKA_MAPPED_TYPE = "mappedType";
+
+    /**
      * The maximum number of terms that will be indexed for a single field in a
      * document.  This limits the amount of memory required for indexing, so that
      * collections with very large files will not crash the indexing process by
@@ -279,6 +303,11 @@ public interface LuceneIndexConstants {
      * whether use this property values for spellchecking
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
+
+    /**
+     * whether use this property values for similarity
+     */
+    String PROP_USE_IN_SIMILARITY = "useInSimilarity";
 
     /**
      * Property definition config indicating that null check support should be
@@ -366,4 +395,10 @@ public interface LuceneIndexConstants {
      * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
      */
     String PROP_REFRESH_DEFN = "refresh";
+
+    /**
+     * Boolean property to indicate that nodes nodetype matching indexRule name
+     * should be indexed
+     */
+    String PROP_INDEX_NODE_TYPE = "nodeTypeIndex";
 }

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
@@ -25,10 +23,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -48,8 +48,10 @@ public class CugValidatorTest extends AbstractCugTest {
 
     @Test
     public void testChangePrimaryType() {
+        node = new NodeUtil(root.getTree(SUPPORTED_PATH2));
         try {
             node.setName(JcrConstants.JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
+            node.setStrings(REP_PRINCIPAL_NAMES, EveryonePrincipal.NAME);
             root.commit();
             fail();
         } catch (CommitFailedException e) {
@@ -145,13 +147,13 @@ public class CugValidatorTest extends AbstractCugTest {
     @Test
     public void testNodeTypeWithCugNames() throws Exception {
         ReadWriteNodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return root;
             }
 
-            @CheckForNull
+            @Nullable
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);

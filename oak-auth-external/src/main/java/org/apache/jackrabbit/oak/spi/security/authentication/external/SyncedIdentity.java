@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a synchronized identity managed by a {@link SyncHandler}.
@@ -29,14 +29,14 @@ public interface SyncedIdentity {
      * Returns the internal id or name of the corresponding authorizable.
      * @return the id.
      */
-    @Nonnull
+    @NotNull
     String getId();
 
     /**
      * Returns the external reference of this identity.
      * @return the reference or {@code null}
      */
-    @CheckForNull
+    @Nullable
     ExternalIdentityRef getExternalIdRef();
 
     /**

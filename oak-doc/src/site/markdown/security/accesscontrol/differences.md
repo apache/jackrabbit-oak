@@ -65,7 +65,7 @@ Restrictions: as of OAK the optional restrictions present with a given
 ##### Principal-based Access Control
 The principal-based access control management as present in Jackrabbit-core is no
 longer present with OAK. The main benefit of the principal-based approach has been
-incorporated with the changes in the default [permission evaluation](differences_permissions.html)).
+incorporated with the changes in the default [permission evaluation](../permission/differences.html)).
 In addition the default access control manager implementation supports all methods
 defined by `JackrabbitAccessControlManager`; i.e. editing access control information
 by principal is possible as long as the editing session has sufficient permission

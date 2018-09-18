@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import com.mongodb.DB;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -27,13 +26,11 @@ import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.net.UnknownHostException;
 
-public class MongoFactory implements NodeStoreFactory {
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
-    private static final long MB = 1024 * 1024;
+public class MongoFactory extends DocumentFactory {
 
     private final MongoClientURI uri;
 
@@ -48,71 +45,52 @@ public class MongoFactory implements NodeStoreFactory {
     }
 
     @Override
-    public NodeStore create(BlobStore blobStore, Closer closer) throws UnknownHostException {
-        DocumentMK.Builder builder = getBuilder(cacheSize);
-        builder.setMongoDB(getDB(closer));
+    public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
+        System.setProperty(DocumentNodeStore.SYS_PROP_DISABLE_JOURNAL, "true");
+        MongoDocumentNodeStoreBuilder builder = baseConfiguration(newMongoDocumentNodeStoreBuilder(), cacheSize);
+        builder.setMongoDB(createClient(closer), getDBName());
         if (blobStore != null) {
             builder.setBlobStore(blobStore);
         }
         if (readOnly) {
             builder.setReadOnlyMode();
         }
-        DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        closer.register(asCloseable(documentNodeStore));
+        DocumentNodeStore documentNodeStore = builder.build();
+
+        // TODO probably we should disable all observers, see OAK-5651
+        documentNodeStore.getBundlingConfigHandler().unregisterObserver();
+
+        closer.register(documentNodeStore::dispose);
         return documentNodeStore;
     }
 
-    private DB getDB(Closer closer) throws UnknownHostException {
+    private MongoClient createClient(Closer closer) {
+        MongoClient client = new MongoClient(uri);
+        closer.register(client::close);
+        return client;
+    }
+
+    private String getDBName() {
         String db;
         if (uri.getDatabase() == null) {
             db = "aem-author"; // assume an author instance
         } else {
             db = uri.getDatabase();
         }
-        MongoClient client = new MongoClient(uri);
-        closer.register(asCloseable(client));
-        return client.getDB(db);
+        return db;
     }
 
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
         Closer closer = Closer.create();
         try {
-            MongoBlobStore mongoBlobStore = new MongoBlobStore(getDB(closer));
+            MongoBlobStore mongoBlobStore = new MongoBlobStore(createClient(closer).getDatabase(getDBName()));
             return !mongoBlobStore.getAllChunkIds(0).hasNext();
         } catch(Throwable e) {
             throw closer.rethrow(e);
         } finally {
             closer.close();
         }
-    }
-
-    static Closeable asCloseable(final DocumentNodeStore documentNodeStore) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                documentNodeStore.dispose();
-            }
-        };
-    }
-
-    private static Closeable asCloseable(final MongoClient client) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                client.close();
-            }
-        };
-    }
-
-    static DocumentMK.Builder getBuilder(int cacheSize) {
-        boolean fastMigration = !Boolean.getBoolean("mongomk.disableFastMigration");
-        DocumentMK.Builder builder = new DocumentMK.Builder();
-        builder.memoryCacheSize(cacheSize * MB);
-        if (fastMigration) {
-            builder.disableBranches();
-        }
-        return builder;
     }
 
     @Override

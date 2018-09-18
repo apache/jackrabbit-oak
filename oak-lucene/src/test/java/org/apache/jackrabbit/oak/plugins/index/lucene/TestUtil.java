@@ -19,12 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 
@@ -46,7 +45,7 @@ import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -57,6 +56,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
@@ -92,7 +96,7 @@ public class TestUtil {
     }
 
     public static NodeBuilder newLuceneIndexDefinitionV2(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes) {
         NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
         useV2(nb);
@@ -196,7 +200,7 @@ public class TestUtil {
         Root root = RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
                         new NamespaceEditorProvider(),
-                        new TypeEditorProvider())), null, null, null, null);
+                        new TypeEditorProvider())), null, null, null);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
@@ -248,6 +252,14 @@ public class TestUtil {
     public static Tree enableIndexingMode(Tree tree, IndexingMode indexingMode){
         tree.setProperty(createAsyncProperty(indexingMode));
         return tree;
+    }
+
+    public static int createFile(Directory dir, String fileName, String content) throws IOException {
+        byte[] data = content.getBytes();
+        IndexOutput o = dir.createOutput(fileName, IOContext.DEFAULT);
+        o.writeBytes(data, data.length);
+        o.close();
+        return data.length;
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {

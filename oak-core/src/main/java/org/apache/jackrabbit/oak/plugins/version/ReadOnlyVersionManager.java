@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -32,9 +30,12 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,20 +54,20 @@ public abstract class ReadOnlyVersionManager {
      *         returned {@code Tree} instance must be up-to-date with the
      *         {@code Root} returned by {@link #getWorkspaceRoot()}.
      */
-    @Nonnull
+    @NotNull
     protected abstract Tree getVersionStorage();
 
     /**
      /**
      * @return the {@code Root} of the workspace.
      */
-    @Nonnull
+    @NotNull
     protected abstract Root getWorkspaceRoot();
 
     /**
      * @return the node type manager of this repository.
      */
-    @Nonnull
+    @NotNull
     protected abstract ReadOnlyNodeTypeManager getNodeTypeManager();
 
     //--------------------------------------------------------------------------
@@ -79,23 +80,23 @@ public abstract class ReadOnlyVersionManager {
      * @param namePathMapper The {@code NamePathMapper} to use.
      * @return a new instance of {@code ReadOnlyVersionManager}.
      */
-    @Nonnull
+    @NotNull
     public static ReadOnlyVersionManager getInstance(final Root root,
                                                      final NamePathMapper namePathMapper) {
         return new ReadOnlyVersionManager() {
-            @Nonnull
+            @NotNull
             @Override
             protected Tree getVersionStorage() {
                 return root.getTree(VersionConstants.VERSION_STORE_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWorkspaceRoot() {
                 return root;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected ReadOnlyNodeTypeManager getNodeTypeManager() {
                 return ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
@@ -110,7 +111,7 @@ public abstract class ReadOnlyVersionManager {
      * @param tree the tree to check.
      * @return whether the tree is checked out or not.
      */
-    public boolean isCheckedOut(@Nonnull Tree tree) {
+    public boolean isCheckedOut(@NotNull Tree tree) {
         if (checkNotNull(tree).exists()) {
             PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
             if (p != null) {
@@ -144,8 +145,8 @@ public abstract class ReadOnlyVersionManager {
      * @throws RepositoryException if an error occurs while checking the node
      *                             type of the tree.
      */
-    @CheckForNull
-    public Tree getVersionHistory(@Nonnull Tree versionable)
+    @Nullable
+    public Tree getVersionHistory(@NotNull Tree versionable)
             throws UnsupportedRepositoryOperationException,
             RepositoryException {
         checkVersionable(versionable);
@@ -159,8 +160,8 @@ public abstract class ReadOnlyVersionManager {
      * @param uuid the uuid of the version tree.
      * @return the version tree or {@code null} if there is none.
      */
-    @CheckForNull
-    public Tree getVersion(@Nonnull String uuid) {
+    @Nullable
+    public Tree getVersion(@NotNull String uuid) {
         return getIdentifierManager().getTree(uuid);
     }
 
@@ -172,8 +173,8 @@ public abstract class ReadOnlyVersionManager {
      * @param uuid the uuid of the versionable node
      * @return the relative path of the version history for the given uuid.
      */
-    @Nonnull
-    public String getVersionHistoryPath(@Nonnull String uuid) {
+    @NotNull
+    public String getVersionHistoryPath(@NotNull String uuid) {
         String relPath = "";
         for (int i = 0; i < 3; i++) {
             String name = uuid.substring(i * 2, i * 2 + 2);
@@ -195,8 +196,8 @@ public abstract class ReadOnlyVersionManager {
      * @throws RepositoryException if an error occurs while checking the node
      *                             type of the tree.
      */
-    @CheckForNull
-    public Tree getBaseVersion(@Nonnull Tree versionable)
+    @Nullable
+    public Tree getBaseVersion(@NotNull Tree versionable)
             throws UnsupportedRepositoryOperationException,
             RepositoryException {
         checkVersionable(versionable);
@@ -217,7 +218,7 @@ public abstract class ReadOnlyVersionManager {
      * @return {@code true} if the target node has {@link VersionConstants#REP_VERSIONSTORAGE}
      * defines as primary node type; {@code false} otherwise.
      */
-    public static boolean isVersionStoreTree(@Nonnull Tree tree) {
+    public static boolean isVersionStoreTree(@NotNull Tree tree) {
         return VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
@@ -252,11 +253,10 @@ public abstract class ReadOnlyVersionManager {
      * versionable path property for the specified workspace is missing or if
      * the given tree is not located within the tree structure defined by a version history.
      *
-     * @see VersionablePathHook
      * @see VersionConstants#MIX_REP_VERSIONABLE_PATHS
      */
-    @CheckForNull
-    public Tree getVersionable(@Nonnull Tree versionTree, @Nonnull String workspaceName) {
+    @Nullable
+    public Tree getVersionable(@NotNull Tree versionTree, @NotNull String workspaceName) {
         Root root = getWorkspaceRoot();
         String relPath = "";
         Tree t = versionTree;
@@ -304,8 +304,8 @@ public abstract class ReadOnlyVersionManager {
      * @throws RepositoryException if an error occurs while checking the node
      *                             type of the tree.
      */
-    @Nonnull
-    protected Tree checkVersionable(@Nonnull Tree tree)
+    @NotNull
+    protected Tree checkVersionable(@NotNull Tree tree)
             throws UnsupportedRepositoryOperationException,
             RepositoryException {
         if (!isVersionable(checkNotNull(tree))) {
@@ -322,7 +322,7 @@ public abstract class ReadOnlyVersionManager {
      * @param tree the tree to check.
      * @return whether the {@code tree} is versionable.
      */
-    protected boolean isVersionable(@Nonnull Tree tree) {
+    protected boolean isVersionable(@NotNull Tree tree) {
         return getNodeTypeManager().isNodeType(
                 checkNotNull(tree), VersionConstants.MIX_VERSIONABLE);
     }

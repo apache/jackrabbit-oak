@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,37 +31,29 @@
   <name>Oak PojoSR</name>
 
   <properties>
-    <skip.deployment>true</skip.deployment>
-    <groovy.version>2.3.1</groovy.version>
-    <tika.version>1.5</tika.version>
+    <groovy.version>2.4.12</groovy.version>
   </properties>
 
   <build>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <version>1.4</version>
-        <!--suppress MavenModelInspection -->
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-          <sourceEncoding>UTF-8</sourceEncoding>
-        </configuration>
+        <groupId>org.codehaus.gmavenplus</groupId>
+        <artifactId>gmavenplus-plugin</artifactId>
+        <version>1.5</version>
         <executions>
           <execution>
             <goals>
-              <goal>generateTestStubs</goal>
+              <goal>addSources</goal>
+              <goal>addTestSources</goal>
+              <goal>generateStubs</goal>
+              <goal>compile</goal>
+              <goal>testGenerateStubs</goal>
               <goal>testCompile</goal>
+              <goal>removeStubs</goal>
+              <goal>removeTestStubs</goal>
             </goals>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-            <version>${groovy.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
       <plugin>
         <groupId>org.apache.rat</groupId>
@@ -77,7 +69,7 @@
             <exclude>**/org.apache.jackrabbit.oak.security.user.UserConfigurationImpl.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider.config</exclude>
             <exclude>**/org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.config</exclude>
-            <exclude>**/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
+            <exclude>**/org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.config</exclude>
             <exclude>**/oak-base-config.json</exclude>
             <exclude>**/oak-tar-config.json</exclude>
           </excludes>
@@ -88,10 +80,35 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-segment</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.osgi</groupId>
+      <artifactId>osgi.core</artifactId>
+      <version>6.0.0</version>
     </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>osgi.cmpn</artifactId>
+      <version>6.0.0</version>
+    </dependency>
+  
+    <!-- Pojo SR -->
+    <!-- Added first to ensure that in an IDE the transitive dependencies of the oak modules
+         don't bring in an older version of the OSGi jars -->
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.connect</artifactId>
+      <version>0.1.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.osgi</groupId>
+          <artifactId>org.osgi.core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.osgi</groupId>
+          <artifactId>org.osgi.compendium</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-segment-tar</artifactId>
@@ -124,32 +141,18 @@
       <version>1.0.4</version>
     </dependency>
 
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
 
-    <!-- Pojo SR -->
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.connect</artifactId>
-      <version>0.1.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.osgi</groupId>
-          <artifactId>org.osgi.core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.osgi</groupId>
-          <artifactId>org.osgi.compendium</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+
+    <!-- OSGi dependencies -->
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.scr</artifactId>
-      <version>1.8.2</version>
+      <version>2.0.12</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.mojo</groupId>
@@ -158,9 +161,14 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.dto</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.configadmin</artifactId>
-      <version>1.8.6</version>
+      <version>1.8.16</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
@@ -181,7 +189,6 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
-      <version>0.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.aries.jmx</groupId>
@@ -248,9 +255,40 @@
       <version>${lucene.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-suggest</artifactId>
+      <version>${lucene.version}</version>
+      <scope>test</scope>
+    </dependency>
 
 
     <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-api</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-composite</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-document</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-store-document</artifactId>
+      <classifier>tests</classifier>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-core</artifactId>
@@ -304,8 +342,17 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <version>1.10.19</version>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.arakelian</groupId>
+      <artifactId>docker-junit-rule</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -20,20 +20,13 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.UUID;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -45,17 +38,20 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Iterators.emptyIterator;
 import static com.google.common.collect.Iterators.filter;
 import static com.google.common.collect.Iterators.singletonIterator;
 import static com.google.common.collect.Iterators.transform;
@@ -69,31 +65,34 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
-    private final ReadOnlyNodeTypeManager nodeTypeManager;
+    private final EffectiveNodeTypeProvider effectiveNodeTypeProvider;
 
     public IdentifierManager(Root root) {
         this.root = root;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        this.effectiveNodeTypeProvider = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
-    @Nonnull
+    /**
+     * @deprecated Use {@link UUIDUtils#generateUUID()}
+     */
+    @NotNull
     public static String generateUUID() {
-        return UUID.randomUUID().toString();
+        return UUIDUtils.generateUUID();
     }
 
-    @Nonnull
+    /**
+     * @deprecated Use {@link UUIDUtils#generateUUID(String)}
+     */
+    @NotNull
     public static String generateUUID(String hint) {
-        UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(Charsets.UTF_8));
-        return uuid.toString();
+        return UUIDUtils.generateUUID(hint);
     }
 
+    /**
+     * @deprecated Use {@link UUIDUtils#isValidUUID(String)} (String)}
+     */
     public static boolean isValidUUID(String uuid) {
-        try {
-            UUID.fromString(uuid);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        return UUIDUtils.isValidUUID(uuid);
     }
 
     /**
@@ -102,7 +101,7 @@ public class IdentifierManager {
      * @param tree  a tree
      * @return  identifier of {@code tree}
      */
-    @Nonnull
+    @NotNull
     public static String getIdentifier(Tree tree) {
         PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
         if (property != null) {
@@ -122,7 +121,7 @@ public class IdentifierManager {
      * @return The tree with the given {@code identifier} or {@code null} if no
      *         such tree exists.
      */
-    @CheckForNull
+    @Nullable
     public Tree getTree(String identifier) {
         if (identifier.startsWith("/")) {
             return root.getTree(identifier);
@@ -132,7 +131,7 @@ public class IdentifierManager {
                     ? identifier
                     : identifier.substring(0, k);
 
-            checkArgument(isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+            checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
 
             String basePath = resolveUUID(uuid);
             if (basePath == null) {
@@ -152,7 +151,7 @@ public class IdentifierManager {
      * @return The path of the tree with the given {@code identifier} or {@code null} if no
      *         such tree exists or if the tree is not accessible.
      */
-    @CheckForNull
+    @Nullable
     public String getPath(String identifier) {
         Tree tree = getTree(identifier);
         return tree != null && tree.exists()
@@ -168,7 +167,7 @@ public class IdentifierManager {
      * @return The tree with the given {@code identifier} or {@code null} if no
      *         such tree exists or isn't accessible to the content session.
      */
-    @CheckForNull
+    @Nullable
     public String getPath(PropertyState referenceValue) {
         int type = referenceValue.getType().tag();
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
@@ -186,7 +185,7 @@ public class IdentifierManager {
      * @return The tree with the given {@code identifier} or {@code null} if no
      *         such tree exists or isn't accessible to the content session.
      */
-    @CheckForNull
+    @Nullable
     public String getPath(PropertyValue referenceValue) {
         int type = referenceValue.getType().tag();
         if (type == PropertyType.REFERENCE || type == PropertyType.WEAKREFERENCE) {
@@ -208,9 +207,9 @@ public class IdentifierManager {
      * @return A set of oak paths of those reference properties referring to the
      *         specified {@code tree} and matching the constraints.
      */
-    @Nonnull
-    public Iterable<String> getReferences(boolean weak, @Nonnull Tree tree, @Nullable final String propertyName) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+    @NotNull
+    public Iterable<String> getReferences(boolean weak, @NotNull Tree tree, @Nullable final String propertyName) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
@@ -231,8 +230,8 @@ public class IdentifierManager {
         }
     }
 
-    @Nonnull
-    private Iterable<String> findPaths(@Nonnull final Result result, @Nonnull final String uuid,
+    @NotNull
+    private Iterable<String> findPaths(@NotNull final Result result, @NotNull final String uuid,
                                        @Nullable final String propertyName, final boolean weak) {
         return new Iterable<String>() {
             @Override
@@ -279,7 +278,7 @@ public class IdentifierManager {
                                 return singletonIterator(PathUtils.concat(rowPath, propertyName));
                             }
                     }
-                    return emptyIterator();
+                    return Collections.emptyIterator();
                 }
             }
         };
@@ -300,10 +299,10 @@ public class IdentifierManager {
      * @return A set of oak paths of those reference properties referring to the
      *         specified {@code tree} and matching the constraints.
      */
-    @Nonnull
-    public Iterable<String> getReferences(@Nonnull Tree tree, @Nonnull final String propertyName,
-                                          @Nonnull String ntName, boolean weak) {
-        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+    @NotNull
+    public Iterable<String> getReferences(@NotNull Tree tree, @NotNull final String propertyName,
+                                          @NotNull String ntName, boolean weak) {
+        if (!effectiveNodeTypeProvider.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
             return Collections.emptySet(); // shortcut
         }
 
@@ -337,7 +336,7 @@ public class IdentifierManager {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public String resolveUUID(String uuid) {
         return resolveUUID(StringPropertyState.stringProperty("", uuid));
     }
@@ -350,7 +349,8 @@ public class IdentifierManager {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + 
+                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id " + 
+                    "OPTION(INDEX NAME [uuid], INDEX TAG [uuid])" +
                     QueryEngine.INTERNAL_SQL2_QUERY, 
                     Query.JCR_SQL2,
                     bindings, NO_MAPPINGS);

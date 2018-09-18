@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * An implementation of a record number to offset table that assumes that a
  * record number is also a valid offset in the segment. This implementation is
@@ -34,6 +36,7 @@ class IdentityRecordNumbers implements RecordNumbers {
         return recordNumber;
     }
 
+    @NotNull
     @Override
     public Iterator<Entry> iterator() {
         throw new UnsupportedOperationException("invalid usage of the record-number-to-offset table");

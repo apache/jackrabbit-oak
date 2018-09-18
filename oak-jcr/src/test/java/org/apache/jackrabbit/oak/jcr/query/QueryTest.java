@@ -46,6 +46,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
@@ -72,36 +73,69 @@ public class QueryTest extends AbstractRepositoryTest {
     public void traversalOption() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
-        try {
-            qm.createQuery("//*[@test] option(traversal fail)", 
-                    "xpath").execute();
-            fail();
-        } catch (InvalidQueryException e) {
-            // expected
-        }
-        try {
-            qm.createQuery("select * from [nt:base] option(traversal fail)", 
-                    Query.JCR_SQL2).execute();
-            fail();
-        } catch (InvalidQueryException e) {
-            // expected
-        }
-        qm.createQuery("//*[@test] option(traversal ok)", 
-                "xpath").execute();
-        qm.createQuery("//*[@test] option(traversal warn)", 
-                "xpath").execute();
-        qm.createQuery("select * from [nt:base] option(traversal ok)", 
-                Query.JCR_SQL2).execute();
-        qm.createQuery("select * from [nt:base] option(traversal warn)", 
-                Query.JCR_SQL2).execute();
-        // the following is not really traversal, it is just listing child nodes:
-        qm.createQuery("/jcr:root/*[@test] option(traversal fail)", 
-                "xpath").execute();
-        // the following is not really traversal; it is just one node:
-        qm.createQuery("/jcr:root/oak:index[@test] option(traversal fail)", 
-                "xpath").execute();
+        
+        // for union queries:
+        // both subqueries use an index
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where ischildnode('/') or [jcr:uuid] = 1 option(traversal fail)"));
+        // no subquery uses an index
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [x] = 1 or [y] = 2 option(traversal fail)"));
+        // first one does not, second one does
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [jcr:uuid] = 1 or [x] = 2 option(traversal fail)"));
+        // first one does, second one does not
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] where [x] = 2 or [jcr:uuid] = 1 option(traversal fail)"));
+        
+        // queries that possibly use traversal (depending on the join order)
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/content//*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/content/*/jcr:content[@jcr:uuid='1'] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(b, a) " + 
+                "where [a].[jcr:uuid] = 1 option(traversal fail)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "where [a].[jcr:uuid] = 1 option(traversal fail)"));
 
-    }    
+        // union with joins
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] as [a] inner join [nt:base] as [b] on ischildnode(a, b) " + 
+                "where ischildnode([a], '/') or [a].[jcr:uuid] = 1 option(traversal fail)"));
+
+        assertFalse(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal fail)"));
+        assertFalse(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal fail)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal ok)"));
+        assertTrue(isValidQuery(qm, "xpath",
+                "//*[@test] option(traversal warn)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal ok)"));
+        assertTrue(isValidQuery(qm, Query.JCR_SQL2,
+                "select * from [nt:base] option(traversal warn)"));
+        
+        // the following is not really traversal, it is just listing child nodes:
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/*[@test] option(traversal fail)"));
+        // the following is not really traversal; it is just one node:
+        assertTrue(isValidQuery(qm, "xpath",
+                "/jcr:root/oak:index[@test] option(traversal fail)"));
+
+    }
+    
+    private static boolean isValidQuery(QueryManager qm, String language, String query) throws RepositoryException {
+        try {
+            qm.createQuery(query, language).execute();
+            return true;
+        } catch (InvalidQueryException e) {
+            assertTrue(e.toString(), e.toString().indexOf("query without index") >= 0);
+            return false;
+        }
+    }
     
     @Test
     public void firstSelector() throws Exception {
@@ -346,22 +380,55 @@ public class QueryTest extends AbstractRepositoryTest {
         assertFalse(it.hasNext());
 
     }
-    
+
+    // OAK-1085
     @Test
     public void relativeNotExistsProperty() throws Exception {
+        String oldCompatValue = System.getProperty("oak.useOldInexistenceCheck");
+        System.setProperty("oak.useOldInexistenceCheck", "true");
+        try {
+            Session session = getAdminSession();
+            Node content = session.getRootNode().addNode("test");
+            content.addNode("one").addNode("child").setProperty("prop", "hello");
+            content.addNode("two").addNode("child");
+            session.save();
+            String query = "//*[not(child/@prop)]";
+            QueryResult r = session.getWorkspace().getQueryManager().createQuery(
+                    query, "xpath").execute();
+            NodeIterator it = r.getNodes();
+            assertTrue(it.hasNext());
+            String path = it.nextNode().getPath();
+            assertEquals("/test/two", path);
+            assertFalse(it.hasNext());
+        } finally {
+            if (oldCompatValue == null) {
+                System.clearProperty("oak.useOldInexistenceCheck");
+            } else {
+                System.setProperty("oak.useOldInexistenceCheck", oldCompatValue);
+            }
+        }
+    }
+
+    //OAK-6838
+    @Test
+    public void relativeNotExistsProperty_New() throws Exception {
         Session session = getAdminSession();
         Node content = session.getRootNode().addNode("test");
         content.addNode("one").addNode("child").setProperty("prop", "hello");
         content.addNode("two").addNode("child");
         session.save();
-        String query = "//*[not(child/@prop)]";
+        String query = "/jcr:root/test//*[not(child/@prop)]";
         QueryResult r = session.getWorkspace().getQueryManager().createQuery(
                 query, "xpath").execute();
         NodeIterator it = r.getNodes();
-        assertTrue(it.hasNext());
-        String path = it.nextNode().getPath();
-        assertEquals("/test/two", path);
-        assertFalse(it.hasNext());
+
+        Set<String> expected = Sets.newHashSet("/test/two", "/test/two/child", "/test/one/child");
+        while (it.hasNext()) {
+            String path = it.nextNode().getPath();
+            assertTrue("Unexpected path " + path, expected.contains(path));
+            expected.remove(path);
+        }
+        assertTrue("These paths not part of result: " + expected, expected.isEmpty());
     }
 
     @Test
@@ -817,8 +884,26 @@ public class QueryTest extends AbstractRepositoryTest {
     @Test
     public void approxCount() throws Exception {
         Session session = createAdminSession();
-        double c = getCost(session, "//*[@x=1]");
+        session.getNode("/oak:index/counter").setProperty("resolution", 100);
+        session.save();
         // *with* the counter index, the estimated cost to traverse is low
+        // but the counter index is not always up to date, so we need a loop
+        for (int i = 0; i < 100; i++) {
+            double c = getCost(session, "//*[@x=1]");
+            if (c > 0 && c < 100000) {
+                break;
+            }
+            // create a few nodes, in case there are not enough nodes
+            // for the node counter index to be available
+            Node testNode = session.getRootNode().addNode("test" + i);
+            for (int j = 0; j < 100; j++) {
+                testNode.addNode("n" + j);
+            }
+            session.save();
+            // wait for async indexing (the node counter index is async)
+            Thread.sleep(100);
+        }
+        double c = getCost(session, "//*[@x=1]");
         assertTrue("cost: " + c, c > 0 && c < 100000);
         
         // *without* the counter index, the estimated cost to traverse is high

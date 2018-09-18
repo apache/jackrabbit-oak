@@ -20,20 +20,23 @@ package org.apache.jackrabbit.oak.explorer;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
-import static java.util.Collections.sort;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,11 +45,15 @@ import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 class SegmentTarExplorerBackend implements ExplorerBackend {
 
@@ -79,7 +86,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public List<String> readRevisions() {
-        File journal = new File(path, "journal.log");
+        JournalFile journal = new LocalJournalFile(path, "journal.log");
 
         if (!journal.exists()) {
             return newArrayList();
@@ -90,9 +97,17 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
         try {
             journalReader = new JournalReader(journal);
-
+            Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                    new Function<JournalEntry, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(JournalEntry entry) {
+                            return entry.getRevision();
+                        }
+                    });
+            
             try {
-                revs = newArrayList(journalReader);
+                revs = newArrayList(revisionIterator);
             } finally {
                 journalReader.close();
             }
@@ -117,17 +132,14 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     }
 
     @Override
-    public Map<UUID, List<UUID>> getTarGraph(String file) throws IOException {
+    public Map<UUID, Set<UUID>> getTarGraph(String file) throws IOException {
         return store.getTarGraph(file);
     }
 
     @Override
     public List<String> getTarFiles() {
-        List<String> files = newArrayList();
-        for (String p : store.getTarReaderIndex().keySet()) {
-            files.add(new File(p).getName());
-        }
-        sort(files, reverseOrder());
+        List<String> files = new ArrayList<>(store.getTarReaderIndex().keySet());
+        files.sort(reverseOrder());
         return files;
     }
 
@@ -142,8 +154,8 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
                 continue;
             }
             for (String f : getTarFiles()) {
-                Map<UUID, List<UUID>> graph = store.getTarGraph(f);
-                for (Entry<UUID, List<UUID>> g : graph.entrySet()) {
+                Map<UUID, Set<UUID>> graph = store.getTarGraph(f);
+                for (Entry<UUID, Set<UUID>> g : graph.entrySet()) {
                     if (g.getValue() != null && g.getValue().contains(uuid)) {
                         UUID uuidP = g.getKey();
                         if (!todos.contains(uuidP)) {
@@ -166,7 +178,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     public Set<UUID> getReferencedSegmentIds() {
         Set<UUID> ids = newHashSet();
 
-        for (SegmentId id : store.getTracker().getReferencedSegmentIds()) {
+        for (SegmentId id : store.getReferencedSegmentIds()) {
             ids.add(id.asUUID());
         }
 
@@ -180,7 +192,7 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
 
     @Override
     public NodeState readNodeState(String recordId) {
-        return store.getReader().readNode(RecordId.fromString(store, recordId));
+        return store.getReader().readNode(RecordId.fromString(store.getSegmentIdProvider(), recordId));
     }
 
     @Override
@@ -363,10 +375,10 @@ class SegmentTarExplorerBackend implements ExplorerBackend {
     }
 
     private String getFile(SegmentId segmentId) {
-        for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
-            for (UUID uuid : path2Uuid.getValue()) {
+        for (Entry<String, Set<UUID>> nameToId : index.entrySet()) {
+            for (UUID uuid : nameToId.getValue()) {
                 if (uuid.equals(segmentId.asUUID())) {
-                    return new File(path2Uuid.getKey()).getName();
+                    return nameToId.getKey();
                 }
             }
         }

@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.commons.junit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.matchers.JUnitMatchers.containsString;
@@ -71,6 +72,90 @@ public class LogCustomizerTest {
 
             List<String> logs = custom.getLogs();
             assertTrue(logs.isEmpty());
+
+        } finally {
+            custom.finished();
+        }
+    }
+
+    @Test
+    public void testExactMatch() {
+        LogCustomizer custom = LogCustomizer
+                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+                .exactlyMatches("Test Message")
+                .create();
+
+        try {
+            custom.starting();
+            LOG.info("test message");
+            LOG.info("test message 1");
+            LOG.info("1 test message");
+
+            List<String> logs = custom.getLogs();
+            assertTrue(logs.isEmpty());
+
+            LOG.info("Test Message");
+            assertEquals(1, logs.size());
+
+        } finally {
+            custom.finished();
+        }
+    }
+
+
+    @Test
+    public void testContainsMatch() {
+        LogCustomizer custom = LogCustomizer
+                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+                .contains("Test Message")
+                .create();
+
+        try {
+            custom.starting();
+            LOG.info("test message");
+            LOG.info("test message 1");
+            LOG.info("1 test message");
+
+            List<String> logs = custom.getLogs();
+            assertTrue(logs.isEmpty());
+
+            LOG.info("Test Message");
+            assertEquals(1, logs.size());
+
+            LOG.info("1Test Message");
+            LOG.info("1Test Message2");
+            LOG.info("1 Test Message");
+            assertEquals(4, logs.size());
+
+        } finally {
+            custom.finished();
+        }
+    }
+
+
+    @Test
+    public void testRegexMatch() {
+        LogCustomizer custom = LogCustomizer
+                .forLogger("org.apache.jackrabbit.oak.commons.junit.LogCustomizerTest")
+                .matchesRegex("^Length is [0-9]* units.$")
+                .create();
+
+        try {
+            custom.starting();
+            LOG.info("test message");
+            LOG.info("test message 1");
+            LOG.info("1 test message");
+            LOG.info("1 Length is 10 units.");
+            LOG.info("Length is 10 units.1");
+            LOG.info("Length is abc units.");
+
+            List<String> logs = custom.getLogs();
+            assertTrue(logs.isEmpty());
+
+            LOG.info("Length is 1 units.");
+            LOG.info("Length is 20 units.");
+            LOG.info("Length is  units.");
+            assertEquals(3, logs.size());
 
         } finally {
             custom.finished();

@@ -21,11 +21,9 @@ package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A mutable {@code Tree} implementation based on an underlying
@@ -46,38 +44,38 @@ public final class NodeBuilderTree extends AbstractMutableTree {
      * @param nodeBuilder {@code NodeBuilder} for the underlying node state
      * @param name        name of the tree
      */
-    public NodeBuilderTree(@Nonnull String name, @Nonnull NodeBuilder nodeBuilder) {
+    public NodeBuilderTree(@NotNull String name, @NotNull NodeBuilder nodeBuilder) {
         this(null, nodeBuilder, name);
     }
 
-    protected NodeBuilderTree(@Nullable NodeBuilderTree parent, @Nonnull NodeBuilder nodeBuilder,
-           @Nonnull String name) {
+    protected NodeBuilderTree(@Nullable NodeBuilderTree parent, @NotNull NodeBuilder nodeBuilder,
+           @NotNull String name) {
         this.parent = parent;
         this.name = name;
         this.nodeBuilder = nodeBuilder;
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     protected AbstractMutableTree getParentOrNull() {
         return parent;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected NodeBuilder getNodeBuilder() {
         return nodeBuilder;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
     }
 
     @Override
-    @Nonnull
-    protected NodeBuilderTree createChild(@Nonnull String name) throws IllegalArgumentException {
+    @NotNull
+    protected NodeBuilderTree createChild(@NotNull String name) throws IllegalArgumentException {
         return new NodeBuilderTree(this, nodeBuilder.getChildNode(checkNotNull(name)), name);
     }
 

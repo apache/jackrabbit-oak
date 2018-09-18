@@ -21,6 +21,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -74,6 +76,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
     public void testGetPrincipal() throws Exception {
         assertEquals(EveryonePrincipal.getInstance(), everyoneGroup.getPrincipal());
         assertEquals(EveryonePrincipal.NAME, everyoneGroup.getPrincipal().getName());
+        assertTrue(everyoneGroup.getPrincipal() instanceof ItemBasedPrincipal);
     }
 
     @Test
@@ -133,6 +136,11 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAddMembers() throws Exception {
+        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.addMembers(getTestUser().getID()));
+    }
+
+    @Test
     public void testRemoveEveryoneFromMembers() throws Exception {
         assertFalse(everyoneGroup.removeMember(everyoneGroup));
     }
@@ -142,6 +150,11 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
         for (Authorizable a : authorizables) {
             assertFalse(everyoneGroup.removeMember(a));
         }
+    }
+
+    @Test
+    public void testRemoveMembers() throws Exception {
+        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
     }
 
     @Test

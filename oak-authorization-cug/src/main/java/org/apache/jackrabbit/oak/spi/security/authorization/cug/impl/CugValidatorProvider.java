@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
 
@@ -48,7 +47,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-    private void validateCugNode(@Nonnull NodeState parent, @Nonnull NodeState nodeState) throws CommitFailedException {
+    private void validateCugNode(@NotNull NodeState parent, @NotNull NodeState nodeState) throws CommitFailedException {
         if (!NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
             throw accessViolation(21, "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
         }
@@ -71,7 +70,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         private final String parentName;
         private final boolean isNodetypeTree;
 
-        private CugValidator(@Nonnull String parentName, @Nonnull NodeState parentAfter, @Nonnull boolean isNodetypeTree) {
+        private CugValidator(@NotNull String parentName, @NotNull NodeState parentAfter, boolean isNodetypeTree) {
             this.parentAfter = parentAfter;
             this.parentName = parentName;
             this.isNodetypeTree = isNodetypeTree;

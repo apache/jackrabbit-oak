@@ -60,6 +60,10 @@ class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCount
     public FacetResult getTopChildren(int topN, String dim, String... path) throws IOException {
         FacetResult topChildren = super.getTopChildren(topN, dim, path);
 
+        if (topChildren == null) {
+            return null;
+        }
+
         LabelAndValue[] labelAndValues = topChildren.labelValues;
 
         for (ScoreDoc scoreDoc : docs.scoreDocs) {

@@ -23,7 +23,7 @@ import com.google.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
@@ -38,7 +38,6 @@ import org.codehaus.groovy.tools.shell.ComplexCommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
-import javax.annotation.Nonnull
 
 import static com.google.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME
@@ -97,7 +96,12 @@ class LuceneCommand extends ComplexCommandSupport {
     }
 
     def do_rmdata = {args ->
-        String idxPath = args && args.size() == 2 ? args[1] : '/oak:index/lucene'
+        if (!args || args.size() != 1) {
+            io.out.println("Please provide a single argument (index-path). Current arg list: ${args}")
+            return
+        }
+
+        String idxPath = args[0]
 
         NodeStore ns = getSession().getStore();
         OakNodeBuilder nb = ns.root.builder()
@@ -147,7 +151,7 @@ class LuceneCommand extends ComplexCommandSupport {
         return (ConsoleSession)variables.session
     }
 
-    private static NodeBuilder getNode(@Nonnull NodeBuilder node, @Nonnull String path) {
+    private static NodeBuilder getNode(NodeBuilder node, String path) {
         for (String name : PathUtils.elements(checkNotNull(path))) {
             node = node.getChildNode(checkNotNull(name));
         }

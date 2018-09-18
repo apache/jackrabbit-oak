@@ -22,12 +22,11 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A selector for selecting a node at a relative path from the node selected by
@@ -44,22 +43,22 @@ public class RelativePathSelector implements Selector {
      * @param path      path to select from
      * @param selector  selector to base {@code path} upon
      */
-    public RelativePathSelector(@Nonnull String path, @Nonnull Selector selector) {
+    public RelativePathSelector(@NotNull String path, @NotNull Selector selector) {
         this.path = elements(checkNotNull(path));
         this.selector = checkNotNull(selector);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState select(@Nonnull UniversalFilter filter,
-            @CheckForNull PropertyState before, @CheckForNull PropertyState after) {
+    public NodeState select(@NotNull UniversalFilter filter,
+            @Nullable PropertyState before, @Nullable PropertyState after) {
         return select(selector.select(filter, before, after));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState select(@Nonnull UniversalFilter filter,
-            @Nonnull String name, @Nonnull NodeState before, @Nonnull NodeState after) {
+    public NodeState select(@NotNull UniversalFilter filter,
+            @NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
         return select(selector.select(filter, name, before, after));
     }
 

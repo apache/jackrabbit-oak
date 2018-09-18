@@ -16,20 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory.BlobFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -38,9 +27,16 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -51,12 +47,43 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
  * except for blob values. Those are written immediately to the store.
  */
 public final class BufferedOakDirectory extends Directory {
+    public static final String ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM = "oak.lucene.enableSingleBlobIndexFiles";
+    private static boolean enableWritingSingleBlobIndexFile = Boolean.parseBoolean(
+            System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true"));
+    public static void setEnableWritingSingleBlobIndexFile (boolean val) {
+        String cliValStr = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+
+        if (cliValStr != null) {
+            boolean cliVal = Boolean.parseBoolean(cliValStr);
+
+            if (cliVal != val) {
+                LOG.warn("Ignoring configuration {} as CLI param overrides with a different value", val);
+                if (cliVal != enableWritingSingleBlobIndexFile) {
+                    enableWritingSingleBlobIndexFile = cliVal;
+                }
+                return;
+            }
+        }
+        enableWritingSingleBlobIndexFile = val;
+    }
+    public static boolean isEnableWritingSingleBlobIndexFile() {
+        return enableWritingSingleBlobIndexFile;
+    }
+    // for test
+    static void reReadCommandLineParam() {
+        String val = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+        if (val != null) {
+            enableWritingSingleBlobIndexFile = Boolean.parseBoolean(val);
+        }
+    }
 
     static final int DELETE_THRESHOLD_UNTIL_REOPEN = 100;
 
     private static final Logger LOG = LoggerFactory.getLogger(BufferedOakDirectory.class);
 
     private final BlobFactory blobFactory;
+
+    private final BlobDeletionCallback blobDeletionCallback;
 
     private final String dataNodeName;
 
@@ -72,17 +99,27 @@ public final class BufferedOakDirectory extends Directory {
 
     private int deleteCount;
 
-    public BufferedOakDirectory(@Nonnull NodeBuilder builder,
-                                @Nonnull String dataNodeName,
-                                @Nonnull IndexDefinition definition,
+
+    public BufferedOakDirectory(@NotNull NodeBuilder builder,
+                                @NotNull String dataNodeName,
+                                @NotNull IndexDefinition definition,
                                 @Nullable BlobStore blobStore) {
+        this(builder, dataNodeName, definition, blobStore, BlobDeletionCallback.NOOP);
+    }
+
+    public BufferedOakDirectory(@NotNull NodeBuilder builder,
+                                @NotNull String dataNodeName,
+                                @NotNull IndexDefinition definition,
+                                @Nullable BlobStore blobStore,
+                                @NotNull BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
-                new OakDirectory.BlobStoreBlobFactory(blobStore) :
-                new OakDirectory.NodeBuilderBlobFactory(builder);
+                BlobFactory.getBlobStoreBlobFactory(blobStore) :
+                BlobFactory.getNodeBuilderBlobFactory(builder);
+        this.blobDeletionCallback = blobDeletionCallback;
         this.dataNodeName = checkNotNull(dataNodeName);
         this.definition = checkNotNull(definition);
         this.base = new OakDirectory(checkNotNull(builder), dataNodeName,
-                definition, false, blobFactory);
+                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
         reopenBuffered();
     }
 
@@ -215,6 +252,6 @@ public final class BufferedOakDirectory extends Directory {
         // those are files that were created and later deleted again
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
-                definition, false, blobFactory);
+                definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
     }
 }

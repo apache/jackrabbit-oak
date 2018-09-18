@@ -35,10 +35,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Event factory for generating JCR event instances that are optimized
@@ -54,6 +56,8 @@ public class EventFactory {
 
     private final NamePathMapper mapper;
 
+    private final PartialValueFactory valueFactory;
+
     private final String userID;
 
     private final String userData;
@@ -62,8 +66,11 @@ public class EventFactory {
 
     private final boolean external;
 
-    EventFactory(NamePathMapper mapper, CommitInfo commitInfo) {
+    EventFactory(@NotNull NamePathMapper mapper,
+                 @NotNull BlobAccessProvider blobAccessProvider,
+                 @NotNull CommitInfo commitInfo) {
         this.mapper = mapper;
+        this.valueFactory = new PartialValueFactory(mapper, blobAccessProvider);
         if (!commitInfo.isExternal()) {
             this.userID = commitInfo.getUserId();
             Object userData = commitInfo.getInfo().get(USER_DATA);
@@ -136,10 +143,10 @@ public class EventFactory {
 
     private Object createValue(PropertyState property) {
         if (property.isArray()) {
-            List<Value> values = ValueFactoryImpl.createValues(property, mapper);
+            List<Value> values = valueFactory.createValues(property);
             return values.toArray(new Value[values.size()]);
         } else {
-            return ValueFactoryImpl.createValue(property, mapper);
+            return valueFactory.createValue(property);
         }
     }
 

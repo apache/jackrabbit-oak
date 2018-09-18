@@ -36,47 +36,58 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
+import java.util.zip.ZipInputStream;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-import org.apache.jackrabbit.oak.benchmark.util.Profiler;
+import org.apache.jackrabbit.oak.commons.Profiler;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.threadDump.ThreadDumpThreadNames;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpCleaner;
 import org.apache.jackrabbit.oak.threadDump.ThreadDumpConverter;
 
 public class ThreadDumpCommand implements Command {
+    public final static String THREADDUMP = "threaddump";
 
     @SuppressWarnings("unchecked")
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec<Void> convertSpec = parser.accepts("convert", 
+        OptionSpec<Void> convertSpec = parser.accepts("convert",
                 "convert the thread dumps to the standard format");
-        OptionSpec<Void> filterSpec = parser.accepts("filter", 
-                "filter the thread dumps, only keep working threads");
-        OptionSpec<Void> profileSpec = parser.accepts("profile", 
+        OptionSpec<Void> filterSpec = parser.accepts("filter",
+                "filter the thread dumps, only keep working (running), interesting threads " +
+                "(for example, threads that read from sockets are ignored, " +
+                "as they are typically waiting for input; " +
+                 "system threads such as GC are also ignored)");
+        OptionSpec<Void> threadNamesSpec = parser.accepts("threadNames",
+                "create a summary of thread names");
+        OptionSpec<Void> profileSpec = parser.accepts("profile",
                 "profile the thread dumps");
-        OptionSpec<Void> profileClassesSpec = parser.accepts("profileClasses", 
+        OptionSpec<Void> profileClassesSpec = parser.accepts("profileClasses",
                 "profile classes");
-        OptionSpec<Void> profileMethodsSpec = parser.accepts("profileMethods", 
+        OptionSpec<Void> profileMethodsSpec = parser.accepts("profileMethods",
                 "profile methods");
-        OptionSpec<Void> profilePackagesSpec = parser.accepts("profilePackages", 
+        OptionSpec<Void> profilePackagesSpec = parser.accepts("profilePackages",
                 "profile packages");
         OptionSpec<?> helpSpec = parser.acceptsAll(
                 asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
         parser.nonOptions(
-                "file or directory containing thread dumps").ofType(File.class);
+                "file or directory containing thread dumps " +
+                "(ensure it does not contain other files, such as binaries)").ofType(File.class);
         if (options.has(helpSpec)
                 || options.nonOptionArguments().isEmpty()) {
-            System.out.println("Mode: " + Mode.THREADDUMP);
+            System.out.println("Mode: " + THREADDUMP);
             System.out.println();
             parser.printHelpOn(System.out);
             return;
         }
         boolean convert = options.has(convertSpec);
         boolean filter = options.has(filterSpec);
+        boolean threadNames = options.has(threadNamesSpec);
         boolean profile = options.has(profileSpec);
         boolean profileClasses = options.has(profileClassesSpec);
         boolean profileMethods = options.has(profileMethodsSpec);
@@ -90,11 +101,19 @@ public class ThreadDumpCommand implements Command {
             if (convert) {
                 file = ThreadDumpConverter.process(file);
                 System.out.println("Converted to " + file.getAbsolutePath());
-                
+
+            }
+            if (threadNames) {
+                File f = ThreadDumpThreadNames.process(file);
+                System.out.println("Thread names written to " + f.getAbsolutePath());
             }
             if (filter) {
                 file = ThreadDumpCleaner.process(file);
                 System.out.println("Filtered into " + file.getAbsolutePath());
+            }
+            if (threadNames) {
+                File f = ThreadDumpThreadNames.process(file);
+                System.out.println("Thread names written to " + f.getAbsolutePath());
             }
             if (profile) {
                 ArrayList<String> list = new ArrayList<String>();
@@ -103,19 +122,19 @@ public class ThreadDumpCommand implements Command {
                 }
                 if (profileMethods) {
                     list.add("-methods");
-                }                
+                }
                 if (profilePackages) {
                     list.add("-packages");
-                }                
+                }
                 list.add(file.getAbsolutePath());
                 Profiler.main(list.toArray(new String[0]));
             }
         }
     }
-    
+
     private static File combineAndExpandFiles(File file) throws IOException {
         if (!file.exists() || !file.isDirectory()) {
-            if (!file.getName().endsWith(".gz")) {
+            if (!file.getName().endsWith(".gz") && !file.getName().endsWith(".zip")) {
                 return file;
             }
         }
@@ -130,7 +149,7 @@ public class ThreadDumpCommand implements Command {
         }
         return target;
     }
-    
+
     private static int processFileOrDirectory(File file, PrintWriter writer)
             throws IOException {
         if (file.isFile()) {
@@ -145,7 +164,7 @@ public class ThreadDumpCommand implements Command {
         }
         return count;
     }
-    
+
     private static int processFile(File file, PrintWriter writer) throws IOException {
         Reader reader = null;
         int count = 0;
@@ -158,10 +177,18 @@ public class ThreadDumpCommand implements Command {
             writer.write("file " + file.getAbsolutePath() + "\n");
             writer.write("lastModified " + fileModifiedTime + "\n");
             if (file.getName().endsWith(".gz")) {
-                System.out.println("Extracting " + file.getAbsolutePath());
+                // System.out.println("Extracting " + file.getAbsolutePath());
                 InputStream fileStream = new FileInputStream(file);
-                InputStream gzipStream = new GZIPInputStream(fileStream);
-                reader = new InputStreamReader(gzipStream);                
+                try {
+                    InputStream gzipStream = new GZIPInputStream(fileStream);
+                    reader = new InputStreamReader(gzipStream);
+                } catch (EOFException e) {
+                    fileStream.close();
+                    return 0;
+                }
+            } else if (file.getName().endsWith(".zip")) {
+                System.out.println("Warning: file skipped. Please extract first: " + file.getName());
+                return 0;
             } else {
                 System.out.println("Reading " + file.getAbsolutePath());
                 reader = new FileReader(file);
@@ -181,7 +208,7 @@ public class ThreadDumpCommand implements Command {
                 }
                 if (s == null) {
                     break;
-                }          
+                }
                 if (s.startsWith("Full thread dump") || s.startsWith("Full Java thread dump")) {
                     fullThreadDumps++;
                 }
@@ -189,7 +216,7 @@ public class ThreadDumpCommand implements Command {
             }
             if (fullThreadDumps > 0) {
                 count++;
-                System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
+                // System.out.println("    (contains " + fullThreadDumps + " full thread dumps; " + fileModifiedTime + ")");
             }
         } finally {
             if(reader != null) {
@@ -197,6 +224,6 @@ public class ThreadDumpCommand implements Command {
             }
         }
         return count;
-    }    
+    }
 
 }

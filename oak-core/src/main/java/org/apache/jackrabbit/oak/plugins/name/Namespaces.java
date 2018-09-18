@@ -16,18 +16,15 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -59,11 +56,26 @@ public class Namespaces implements NamespaceConstants {
     private static final Map<String, String> ENCODED_URIS = newConcurrentMap();
 
     /**
-     * By default node names with non space whitespace chars are not allowed.
+     * By default, item names with non space whitespace chars are not allowed.
      * However initial Oak release did allowed that and this flag is provided
      * to revert back to old behaviour if required for some case temporarily
      */
     private static final boolean allowOtherWhitespaceChars = Boolean.getBoolean("oak.allowOtherWhitespaceChars");
+
+    /**
+     * By default, item names with control characters are not allowed.
+     * Oak releases prior to 1.10 allowed these (in conflict with the JCR
+     * specification), so if required the check can be turned off.
+     * See OAK-7208.
+     */
+    private static final boolean allowOtherControlChars = Boolean.getBoolean("oak.allowOtherControlChars");
+
+    /**
+     * By default, item names with non-ASCII whitespace characters are allowed.
+     * Oak releases prior to 1.10 disallowed these, so if required the check can
+     * be turned on again. See OAK-4857.
+     */
+    private static final boolean disallowNonASCIIWhitespaceChars = Boolean.getBoolean("oak.disallowNonASCIIWhitespaceChars");
 
     private Namespaces() {
     }
@@ -90,6 +102,9 @@ public class Namespaces implements NamespaceConstants {
         // Namespace included in Jackrabbit 2.x
         namespaces.setProperty(PREFIX_SV, NAMESPACE_SV);
         namespaces.setProperty(PREFIX_REP, NAMESPACE_REP);
+
+        // Oak Namespace
+        namespaces.setProperty(PREFIX_OAK, NAMESPACE_OAK);
 
         return namespaces;
     }
@@ -124,24 +139,17 @@ public class Namespaces implements NamespaceConstants {
         // that's not stored along with the other mappings
         Set<String> prefixes = newHashSet("");
         Set<String> uris = newHashSet("");
-        Map<String, String> reverse = new HashMap<String, String>();
-
-        for (PropertyState property : namespaces.getProperties()) {
-            String prefix = property.getName();
-            if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
-                prefixes.add(prefix);
-                String uri = property.getValue(STRING);
-                uris.add(uri);
-                reverse.put(uri, prefix);
-            }
-        }
+        Map<String, String> nsmap = collectNamespaces(namespaces.getProperties());
+        prefixes.addAll(nsmap.keySet());
+        uris.addAll(nsmap.values());
 
         NodeBuilder data = namespaces.setChildNode(REP_NSDATA);
         data.setProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_UNSTRUCTURED, Type.NAME);
         data.setProperty(REP_PREFIXES, prefixes, Type.STRINGS);
         data.setProperty(REP_URIS, uris, Type.STRINGS);
-        for (Entry<String, String> e : reverse.entrySet()) {
-            data.setProperty(encodeUri(e.getKey()), e.getValue());
+        for (Entry<String, String> e : nsmap.entrySet()) {
+            // persist as reverse index
+            data.setProperty(encodeUri(e.getValue()), e.getKey());
         }
     }
 
@@ -150,29 +158,20 @@ public class Namespaces implements NamespaceConstants {
     }
 
     public static Map<String, String> getNamespaceMap(Tree root) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = collectNamespaces(getNamespaceTree(root).getProperties());
         map.put("", ""); // default namespace, not included in tree
+        return map;
+    }
 
-        Tree namespaces = getNamespaceTree(root);
-        for (PropertyState property : namespaces.getProperties()) {
+    static Map<String, String> collectNamespaces(Iterable<? extends PropertyState> properties) {
+        Map<String, String> map = newHashMap();
+        for (PropertyState property : properties) {
             String prefix = property.getName();
             if (STRING.equals(property.getType()) && isValidPrefix(prefix)) {
                 map.put(prefix, property.getValue(STRING));
             }
         }
-
         return map;
-    }
-
-    static String[] getNamespacePrefixes(Tree root) {
-        Set<String> prefSet = getNamespacePrefixesAsSet(root);
-        String[] prefixes = prefSet.toArray(new String[prefSet.size()]);
-        Arrays.sort(prefixes);
-        return prefixes;
-    }
-
-    static Set<String> getNamespacePrefixesAsSet(Tree root) {
-        return safeGet(getNamespaceTree(root).getChild(REP_NSDATA), REP_PREFIXES);
     }
 
     public static String getNamespacePrefix(Tree root, String uri) {
@@ -187,11 +186,6 @@ public class Namespaces implements NamespaceConstants {
         }
 
         return null;
-    }
-
-    static String[] getNamespaceURIs(Tree root) {
-        Set<String> uris = safeGet(getNamespaceTree(root).getChild(REP_NSDATA), REP_URIS);
-        return uris.toArray(new String[uris.size()]);
     }
 
     public static String getNamespaceURI(Tree root, String prefix) {
@@ -229,14 +223,6 @@ public class Namespaces implements NamespaceConstants {
         return encoded;
     }
 
-    static Set<String> safeGet(Tree tree, String name) {
-        PropertyState ps = tree.getProperty(name);
-        if (ps == null) {
-            return Sets.newHashSet();
-        }
-        return Sets.newHashSet(ps.getValue(Type.STRINGS));
-    }
-
     // validation
 
     public static boolean isValidPrefix(String prefix) {
@@ -250,8 +236,18 @@ public class Namespaces implements NamespaceConstants {
         }
 
         for (int i = 0; i < local.length(); i++) {
+
             char ch = local.charAt(i);
-            boolean spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch) : Character.isWhitespace(ch);
+
+            boolean spaceChar;
+            if (disallowNonASCIIWhitespaceChars) {
+                // behavior before OAK-4857 was fixed
+                spaceChar = allowOtherWhitespaceChars ? Character.isSpaceChar(ch) : Character.isWhitespace(ch);
+            } else {
+                // disallow just leading and trailing ' ', plus CR, LF and TAB
+                spaceChar = ch == ' ' || ch == 0x9 || ch == 0xa || ch == 0xd;
+            }
+
             if (spaceChar) {
                 if (i == 0) {
                     return false; // leading whitespace
@@ -260,8 +256,11 @@ public class Namespaces implements NamespaceConstants {
                 } else if (ch != ' ') {
                     return false; // only spaces are allowed as whitespace
                 }
-            } else if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check
+            } else if ("/:[]|*".indexOf(ch) != -1) { // TODO: XMLChar check for unpaired surrogates
                 return false; // invalid name character
+            } else if (!allowOtherControlChars && ch >= 0 && ch < 32 && (ch != 9 && ch != 0xa && ch != 0xd)) {
+                // https://www.w3.org/TR/xml/#NT-Char - disallowed control chars
+                return false;
             }
         }
 

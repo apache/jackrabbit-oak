@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.apache.jackrabbit.oak.api.Root;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The permission store is used to store and provide access control permissions for principals. It is responsible to
@@ -31,21 +31,22 @@ interface PermissionStore {
     long DYNAMIC_ALL_BITS = -1;
 
     /**
-     * Loads the permission entries for the given principal and path. if the given {@code entries} is {@code null}, it
-     * will be created automatically if needed. If a {@code entries} is given, it will reuse it and the same object is
-     * returned. If no entries can be found for the given principal or path, {@code null} is returned.
+     * Loads the permission entries for the given principal and path. If no
+     * entries can be found for the given principal or path, {@code null} is returned.
      *
-     * @param entries the permission entries or {@code null}
      * @param principalName name of the principal
      * @param path access controlled path.
      * @return the given {@code entries}, a new collection or {@code null}
      */
-    @CheckForNull
-    Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path);
+    @Nullable
+    Collection<PermissionEntry> load(@NotNull String principalName, @NotNull String path);
 
-    @Nonnull
-    PrincipalPermissionEntries load(@Nonnull String principalName);
+    @NotNull
+    PrincipalPermissionEntries load(@NotNull String principalName);
 
-    long getNumEntries(@Nonnull String principalName, long max);
+    @NotNull
+    NumEntries getNumEntries(@NotNull String principalName, long max);
+
+    void flush(@NotNull Root root);
 
 }

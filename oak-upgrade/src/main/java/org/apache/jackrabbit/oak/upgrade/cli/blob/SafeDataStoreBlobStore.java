@@ -23,15 +23,14 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -48,7 +47,7 @@ public class SafeDataStoreBlobStore extends DataStoreBlobStore {
     }
 
     @Override
-    public String getReference(@Nonnull String encodedBlobId) {
+    public String getReference(@NotNull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record

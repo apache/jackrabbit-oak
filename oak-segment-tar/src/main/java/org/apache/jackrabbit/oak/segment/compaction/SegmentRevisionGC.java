@@ -19,10 +19,9 @@
 
 package org.apache.jackrabbit.oak.segment.compaction;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This MBean exposes the settings from {@link SegmentGCOptions} and
@@ -103,6 +102,10 @@ public interface SegmentRevisionGC {
      */
     void setEstimationDisabled(boolean disabled);
 
+    String getGCType();
+
+    void setGCType(String gcType);
+
     /**
      * Initiate a revision garbage collection operation
      */
@@ -137,19 +140,19 @@ public interface SegmentRevisionGC {
     /**
      * @return  last error or {@code null} if none.
      */
-    @CheckForNull
+    @Nullable
     String getLastError();
     
     /**
      * @return  last log message or {@code null} if none.
      */
-    @Nonnull
+    @NotNull
     String getLastLogMessage();
 
     /**
      * @return  current status.
      */
-    @Nonnull
+    @NotNull
     String getStatus();
 
     /**

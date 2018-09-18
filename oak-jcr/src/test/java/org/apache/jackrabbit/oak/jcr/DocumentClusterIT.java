@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.Session;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -79,7 +79,7 @@ public abstract class DocumentClusterIT {
         mk.dispose(); // closes connection as well
     }
 
-    protected void dispose(@Nonnull Repository repo) {
+    protected void dispose(@NotNull Repository repo) {
         AbstractRepositoryTest.dispose(checkNotNull(repo));
     }
     
@@ -101,7 +101,7 @@ public abstract class DocumentClusterIT {
      * @param log may be null. If valid Logger it will be logged
      * @throws Exception
      */
-    static void raiseExceptions(@Nonnull final Map<String, Exception> exceptions, 
+    static void raiseExceptions(@NotNull final Map<String, Exception> exceptions, 
                                 @Nullable final Logger log) throws Exception {
         if (exceptions != null) {
             for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
@@ -120,7 +120,7 @@ public abstract class DocumentClusterIT {
      *
      * @param mks the list of {@link DocumentMK} composing the cluster. Cannot be null.
      */
-    static void alignCluster(@Nonnull final List<DocumentMK> mks) {
+    static void alignCluster(@NotNull final List<DocumentMK> mks) {
         // in a first round let all MKs run their background update
         for (DocumentMK mk : mks) {
             mk.getNodeStore().runBackgroundOperations();
@@ -144,9 +144,9 @@ public abstract class DocumentClusterIT {
      * @param repos list of {@link Repository} created on each {@code mks}
      * @throws Exception
      */
-    void setUpCluster(@Nonnull final Class<?> clazz, 
-                             @Nonnull final List<DocumentMK> mks,
-                             @Nonnull final List<Repository> repos) throws Exception {
+    void setUpCluster(@NotNull final Class<?> clazz, 
+                             @NotNull final List<DocumentMK> mks,
+                             @NotNull final List<Repository> repos) throws Exception {
         setUpCluster(clazz, mks, repos, NOT_PROVIDED);
     }
 
@@ -161,24 +161,24 @@ public abstract class DocumentClusterIT {
      *            manual and sync with {@link #alignCluster(List)}.
      * @throws Exception
      */
-    void setUpCluster(@Nonnull final Class<?> clazz, 
-                             @Nonnull final List<DocumentMK> mks,
-                             @Nonnull final List<Repository> repos,
+    void setUpCluster(@NotNull final Class<?> clazz, 
+                             @NotNull final List<DocumentMK> mks,
+                             @NotNull final List<Repository> repos,
                              final int asyncDelay) throws Exception {
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             initRepository(clazz, repos, mks, i + 1, asyncDelay);
         }        
     }
 
-    static MongoConnection createConnection(@Nonnull final Class<?> clazz) throws Exception {
+    static MongoConnection createConnection(@NotNull final Class<?> clazz) throws Exception {
         return OakMongoNSRepositoryStub.createConnection(
                 checkNotNull(clazz).getSimpleName());
     }
 
-    static void dropDB(@Nonnull final Class<?> clazz) throws Exception {
+    static void dropDB(@NotNull final Class<?> clazz) throws Exception {
         MongoConnection con = createConnection(checkNotNull(clazz));
         try {
-            con.getDB().dropDatabase();
+            con.getDatabase().drop();
         } finally {
             con.close();
         }
@@ -194,13 +194,14 @@ public abstract class DocumentClusterIT {
      * @param asyncDelay the async delay to set. For default use {@link #NOT_PROVIDED}
      * @throws Exception
      */
-    protected void initRepository(@Nonnull final Class<?> clazz, 
-                                  @Nonnull final List<Repository> repos, 
-                                  @Nonnull final List<DocumentMK> mks,
+    protected void initRepository(@NotNull final Class<?> clazz, 
+                                  @NotNull final List<Repository> repos, 
+                                  @NotNull final List<DocumentMK> mks,
                                   final int clusterId,
                                   final int asyncDelay) throws Exception {
-        DocumentMK.Builder builder = new DocumentMK.Builder(); 
-        builder.setMongoDB(createConnection(checkNotNull(clazz)).getDB());
+        DocumentMK.Builder builder = new DocumentMK.Builder();
+        MongoConnection c = createConnection(checkNotNull(clazz));
+        builder.setMongoDB(c.getMongoClient(), c.getDBName());
         if (asyncDelay != NOT_PROVIDED) {
             builder.setAsyncDelay(asyncDelay);
         }
@@ -226,7 +227,7 @@ public abstract class DocumentClusterIT {
         checkNotNull(mks).add(mk);
     }
     
-    protected Jcr getJcr(@Nonnull NodeStore store) {
+    protected Jcr getJcr(@NotNull NodeStore store) {
         Jcr j = new Jcr(checkNotNull(store));
         if (store instanceof Clusterable) {
             j.with((Clusterable) store);

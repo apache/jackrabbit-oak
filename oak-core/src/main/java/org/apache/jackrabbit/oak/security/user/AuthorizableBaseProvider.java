@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.generateUUID;
+import static org.apache.jackrabbit.oak.commons.UUIDUtils.generateUUID;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
@@ -40,19 +40,23 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     final Root root;
     final IdentifierManager identifierManager;
 
-    AuthorizableBaseProvider(@Nonnull Root root, @Nonnull ConfigurationParameters config) {
+    private final boolean usercaseMappedProfile;
+
+    AuthorizableBaseProvider(@NotNull Root root, @NotNull ConfigurationParameters config) {
         this.root = checkNotNull(root);
         this.config = checkNotNull(config);
-        this.identifierManager = new IdentifierManager(root);
+
+        identifierManager = new IdentifierManager(root);
+        usercaseMappedProfile = config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
     }
 
-    @CheckForNull
-    Tree getByID(@Nonnull String authorizableId, @Nonnull AuthorizableType authorizableType) {
-        return getByContentID(getContentID(authorizableId, config.getConfigValue(PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE)), authorizableType);
+    @Nullable
+    Tree getByID(@NotNull String authorizableId, @NotNull AuthorizableType authorizableType) {
+        return getByContentID(getContentID(authorizableId), authorizableType);
     }
 
-    @CheckForNull
-    Tree getByContentID(@Nonnull String contentId, @Nonnull AuthorizableType authorizableType) {
+    @Nullable
+    Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(contentId);
         if (UserUtil.isType(tree, authorizableType)) {
             return tree;
@@ -61,27 +65,27 @@ abstract class AuthorizableBaseProvider implements UserConstants {
         }
     }
 
-    @CheckForNull
-    Tree getByPath(@Nonnull String authorizableOakPath) {
+    @Nullable
+    Tree getByPath(@NotNull String authorizableOakPath, @NotNull AuthorizableType type) {
         Tree tree = root.getTree(authorizableOakPath);
-        if (UserUtil.isType(tree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtil.isType(tree, type)) {
             return tree;
         } else {
             return null;
         }
     }
 
-    @Nonnull
-    String getContentID(@Nonnull Tree authorizableTree) {
+    @NotNull
+    String getContentID(@NotNull Tree authorizableTree) {
         return getIdentifier(authorizableTree);
     }
 
-    @Nonnull
-    static String getContentID(@Nonnull String authorizableId, boolean usercaseMappedProfile) {
+    @NotNull
+    String getContentID(@NotNull String authorizableId) {
         String s = authorizableId.toLowerCase();
         if (usercaseMappedProfile) {
             s = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFKC);
         }
-        return generateUUID(s);
+        return UUIDUtils.generateUUID(s);
     }
 }

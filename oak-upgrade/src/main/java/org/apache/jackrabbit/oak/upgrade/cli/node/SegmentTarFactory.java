@@ -16,28 +16,22 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.segment.RecordType;
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
-import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
+
+import com.google.common.io.Closer;
 
 public class SegmentTarFactory implements NodeStoreFactory {
 
@@ -81,12 +75,12 @@ public class SegmentTarFactory implements NodeStoreFactory {
                 final ReadOnlyFileStore fs;
                 fs = builder.buildReadOnly();
                 closer.register(asCloseable(fs));
-                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+                return SegmentNodeStoreBuilders.builder(fs).build();
             } else {
                 final FileStore fs;
                 fs = builder.build();
                 closer.register(asCloseable(fs));
-                return new TarNodeStore(SegmentNodeStoreBuilders.builder(fs).build(), new SegmentTarSuperRootProvider(fs));
+                return new NodeStoreWithFileStore(SegmentNodeStoreBuilders.builder(fs).build(), fs);
             }
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
@@ -104,94 +98,15 @@ public class SegmentTarFactory implements NodeStoreFactory {
         } catch (InvalidFileStoreVersionException e) {
             throw new IOException(e);
         }
-        try {
-            for (SegmentId id : fs.getSegmentIds()) {
-                if (!id.isDataSegmentId()) {
-                    continue;
-                }
-                id.getSegment().forEachRecord(new Segment.RecordConsumer() {
-                    @Override
-                    public void consume(int number, RecordType type, int offset) {
-                        // FIXME the consumer should allow to stop processing
-                        // see java.nio.file.FileVisitor
-                        if (type == RecordType.BLOB_ID) {
-                            throw new ExternalBlobFound();
-                        }
-                    }
-                });
-            }
-            return false;
-        } catch (ExternalBlobFound e) {
-            return true;
-        } finally {
-            fs.close();
-        }
+        return FileStoreUtils.hasExternalBlobReferences(fs);
     }
 
     public File getRepositoryDir() {
         return dir;
     }
 
-    private static Closeable asCloseable(final ReadOnlyFileStore fs) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                fs.close();
-            }
-        };
-    }
-
-    private static Closeable asCloseable(final FileStore fs) {
-        return new Closeable() {
-            @Override
-            public void close() throws IOException {
-                fs.close();
-            }
-        };
-    }
-
     @Override
     public String toString() {
         return String.format("SegmentTarNodeStore[%s]", dir);
-    }
-
-    private static class ExternalBlobFound extends RuntimeException {
-    }
-
-    private static class SegmentTarSuperRootProvider implements TarNodeStore.SuperRootProvider {
-
-        private final ReadOnlyFileStore readOnlyFileStore;
-
-        private final FileStore fileStore;
-
-        public SegmentTarSuperRootProvider(ReadOnlyFileStore readOnlyFileStore) {
-            this.readOnlyFileStore = readOnlyFileStore;
-            this.fileStore = null;
-        }
-
-        public SegmentTarSuperRootProvider(FileStore fileStore) {
-            this.readOnlyFileStore = null;
-            this.fileStore = fileStore;
-        }
-
-        @Override
-        public void setSuperRoot(NodeBuilder builder) {
-            if (fileStore == null) {
-                throw new IllegalStateException("setSuperRoot is not supported for read-only segment-tar");
-            }
-            checkArgument(builder instanceof SegmentNodeBuilder);
-            SegmentNodeBuilder segmentBuilder = (SegmentNodeBuilder) builder;
-            SegmentNodeState lastRoot = (SegmentNodeState) getSuperRoot();
-
-            if (!lastRoot.getRecordId().equals(((SegmentNodeState) segmentBuilder.getBaseState()).getRecordId())) {
-                throw new IllegalArgumentException("The new head is out of date");
-            }
-            fileStore.getRevisions().setHead(lastRoot.getRecordId(), segmentBuilder.getNodeState().getRecordId());
-        }
-
-        @Override
-        public NodeState getSuperRoot() {
-            return fileStore == null ? readOnlyFileStore.getHead() : fileStore.getHead();
-        }
     }
 }

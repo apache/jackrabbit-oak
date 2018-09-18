@@ -27,26 +27,42 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
-import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
+import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.util.InfoStream;
@@ -74,12 +90,23 @@ public class LuceneIndexProviderServiceTest {
 
     private LuceneIndexProviderService service = new LuceneIndexProviderService();
 
+    private Whiteboard wb;
+
+    private MountInfoProvider mip;
+
     @Before
     public void setUp(){
-        context.registerService(MountInfoProvider.class, Mounts.defaultMountInfoProvider());
+        mip = Mounts.newBuilder().build();
+        context.registerService(MountInfoProvider.class, mip);
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(ScorerProviderFactory.class, ScorerProviderFactory.DEFAULT);
-        context.registerService(IndexAugmentorFactory.class, mock(IndexAugmentorFactory.class));
+        context.registerService(IndexAugmentorFactory.class, new IndexAugmentorFactory());
+        context.registerService(NodeStore.class, new MemoryNodeStore());
+        context.registerService(IndexPathService.class, mock(IndexPathService.class));
+        context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
+        context.registerService(CheckpointMBean.class, mock(CheckpointMBean.class));
+
+        wb = new OsgiWhiteboard(context.bundleContext());
         MockOsgi.injectServices(service, context.bundleContext());
     }
 
@@ -99,6 +126,7 @@ public class LuceneIndexProviderServiceTest {
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
         assertNotNull(editorProvider.getIndexCopier());
+        assertNotNull(editorProvider.getIndexingQueue());
 
         IndexCopier indexCopier = service.getIndexCopier();
         assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
@@ -115,7 +143,15 @@ public class LuceneIndexProviderServiceTest {
 
         assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
 
-        MockOsgi.deactivate(service);
+        assertNotNull(context.getService(JournalPropertyService.class));
+        assertNotNull(context.getService(IndexImporterProvider.class));
+
+        assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class, r -> r instanceof PropertyIndexCleaner));
+
+        MockOsgi.deactivate(service, context.bundleContext());
+
+        IndexTracker tracker = (IndexTracker) FieldUtils.readDeclaredField(service, "tracker", true);
+        assertNotNull(tracker.getAsyncIndexInfoService());
     }
 
     @Test
@@ -133,7 +169,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertTrue(context.getService(Observer.class) instanceof LuceneIndexProvider);
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -148,7 +184,53 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(editorProvider);
         assertNotNull(editorProvider.getIndexCopier());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    // OAK-7357
+    @Test
+    public void disableCoRCoW() throws Exception {
+        // inject ds as OAK-7357 revealed ABD bean had a bug - which comes into play only with blob stores
+        CachingFileDataStore ds = DataStoreUtils
+                .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                        folder.newFolder().getAbsolutePath());
+
+        context.registerService(GarbageCollectableBlobStore.class, new DataStoreBlobStore(ds));
+
+        // re-init service and inject references
+        service = new LuceneIndexProviderService();
+        MockOsgi.injectServices(service, context.bundleContext());
+
+        Map<String,Object> config = getDefaultConfig();
+        config.put("enableCopyOnReadSupport", false);
+        config.put("enableCopyOnWriteSupport", false);
+
+        // activation should work
+        MockOsgi.activate(service, context.bundleContext(), config);
+
+        // get lucene index provider
+        LuceneIndexProvider lip = null;
+        for (QueryIndexProvider qip : context.getServices(QueryIndexProvider.class, null)) {
+            if (qip instanceof LuceneIndexProvider) {
+                lip = (LuceneIndexProvider)qip;
+                break;
+            }
+        }
+        assertNotNull(lip);
+        IndexTracker tracker = lip.getTracker();
+
+        // access reader factory with reflection and implicitly assert that it's DefaultIndexReaderFactory
+        Field readerFactorFld = IndexTracker.class.getDeclaredField("readerFactory");
+        readerFactorFld.setAccessible(true);
+        DefaultIndexReaderFactory readerFactory = (DefaultIndexReaderFactory)readerFactorFld.get(tracker);
+
+        Field mipFld = DefaultIndexReaderFactory.class.getDeclaredField("mountInfoProvider");
+        mipFld.setAccessible(true);
+        // OAK-7408: LIPS was using default tracker ctor and hence reader factor used default mounts
+        assertEquals("Reader factory not using configured MountInfoProvider", mip, mipFld.get(readerFactory));
+
+        // de-activation should work
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -160,7 +242,7 @@ public class LuceneIndexProviderServiceTest {
         IndexCopier indexCopier = service.getIndexCopier();
         assertTrue(indexCopier.isPrefetchEnabled());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -170,7 +252,7 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
 
         assertEquals(LoggingInfoStream.INSTANCE, InfoStream.getDefault());
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
     }
 
     @Test
@@ -185,7 +267,7 @@ public class LuceneIndexProviderServiceTest {
 
         assertEquals(11 * FileUtils.ONE_MB, textCache.getCacheStats().getMaxTotalWeight());
 
-        MockOsgi.deactivate(service);
+        MockOsgi.deactivate(service, context.bundleContext());
 
         assertNull(context.getService(CacheStatsMBean.class));
     }
@@ -200,14 +282,14 @@ public class LuceneIndexProviderServiceTest {
 
         //Mock OSGi does not support components
         //context.registerService(PreExtractedTextProvider.class, new DummyProvider());
-        service.bindExtractedTextProvider(new DummyProvider());
+        service.bindExtractedTextProvider(mock(PreExtractedTextProvider.class));
 
         assertNotNull(editorProvider.getExtractedTextCache().getExtractedTextProvider());
     }
 
     @Test
     public void preExtractedProviderBindBeforeActivate() throws Exception{
-        service.bindExtractedTextProvider(new DummyProvider());
+        service.bindExtractedTextProvider(mock(PreExtractedTextProvider.class));
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
@@ -255,22 +337,101 @@ public class LuceneIndexProviderServiceTest {
             .createCachingFDS(folder.newFolder().getAbsolutePath(),
                 folder.newFolder().getAbsolutePath());
 
-        service.bindBlobStore(new DataStoreBlobStore(ds));
+        context.registerService(GarbageCollectableBlobStore.class, new DataStoreBlobStore(ds));
+        reactivate();
 
+        editorProvider =
+                (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
         assertNotNull(editorProvider.getBlobStore());
+    }
+
+    @Test
+    public void executorPoolBehaviour() throws Exception{
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+        ExecutorService executor = service.getExecutorService();
+
+        final CountDownLatch latch1 = new CountDownLatch(1);
+        final CountDownLatch latch2 = new CountDownLatch(1);
+
+        Callable cb1 = new Callable() {
+            @Override
+            public Object call() throws Exception {
+                latch1.await();
+                return null;
+            }
+        };
+
+        Callable cb2 = new Callable() {
+            @Override
+            public Object call() throws Exception {
+                latch2.countDown();
+                return null;
+            }
+        };
+
+        executor.submit(cb1);
+        executor.submit(cb2);
+
+        //Even if one task gets stuck the other task must get completed
+        assertTrue("Second task not executed", latch2.await(1, TimeUnit.MINUTES));
+        latch1.countDown();
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+
+    @Test
+    public void singleBlobPerIndexFileConfig() throws Exception {
+        Map<String, Object> config = getDefaultConfig();
+        config.put("enableSingleBlobIndexFiles", "true");
+        MockOsgi.activate(service, context.bundleContext(), config);
+        assertTrue("Enabling property must reflect in BufferedOakDirectory state",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+        MockOsgi.deactivate(service, context.bundleContext());
+
+        config = getDefaultConfig();
+        config.put("enableSingleBlobIndexFiles", "false");
+        MockOsgi.activate(service, context.bundleContext(), config);
+        assertFalse("Enabling property must reflect in BufferedOakDirectory state",
+                BufferedOakDirectory.isEnableWritingSingleBlobIndexFile());
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void cleanerRegistration() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("propIndexCleanerIntervalInSecs", 142);
+
+        MockOsgi.activate(service, context.bundleContext(), config);
+        ServiceReference[] sr = context.bundleContext().getAllServiceReferences(Runnable.class.getName(),
+                "(scheduler.name="+PropertyIndexCleaner.class.getName()+")");
+        assertEquals(sr.length, 1);
+
+        assertEquals(142L, sr[0].getProperty("scheduler.period"));
+    }
+
+    @Test
+    public void cleanerRegistrationDisabled() throws Exception{
+        Map<String,Object> config = getDefaultConfig();
+        config.put("propIndexCleanerIntervalInSecs", 0);
+
+        MockOsgi.activate(service, context.bundleContext(), config);
+        ServiceReference[] sr = context.bundleContext().getAllServiceReferences(Runnable.class.getName(),
+                "(scheduler.name="+PropertyIndexCleaner.class.getName()+")");
+        assertNull(sr);
+    }
+
+    private void reactivate() {
+        MockOsgi.deactivate(service, context.bundleContext());
+        service = new LuceneIndexProviderService();
+
+        MockOsgi.injectServices(service, context.bundleContext());
+        MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
     }
 
     private Map<String,Object> getDefaultConfig(){
         Map<String,Object> config = new HashMap<String, Object>();
         config.put("localIndexDir", folder.getRoot().getAbsolutePath());
         return config;
-    }
-
-    private static class DummyProvider implements PreExtractedTextProvider {
-
-        @Override
-        public ExtractedText getText(String propertyPath, Blob blob) throws IOException {
-            return null;
-        }
     }
 }

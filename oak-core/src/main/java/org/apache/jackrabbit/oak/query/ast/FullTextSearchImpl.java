@@ -30,25 +30,17 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 
 /**
  * A fulltext "contains(...)" condition.
  */
 public class FullTextSearchImpl extends ConstraintImpl {
-
-    /**
-     * Compatibility for Jackrabbit 2.0 single quoted phrase queries.
-     * (contains(., "word ''hello world'' word") 
-     * These are queries that delimit a phrase with a single quote
-     * instead, as in the spec, using double quotes.
-     */
-    public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
 
     final String selectorName;
     private final String relativePath;

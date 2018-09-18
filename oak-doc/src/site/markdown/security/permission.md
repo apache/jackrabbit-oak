@@ -18,7 +18,7 @@
 Permissions
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"/>
+<a name="jcr_api"/>
 ### JCR and Jackrabbit API
 
 While access control management is a optional feature, a JCR implementation is
@@ -88,7 +88,7 @@ Important: `absPath` refers to the node to be created
          session.save();
     }
 
-<a href="oak_permissions"/>
+<a name="oak_permissions"/>
 ### Oak Permissions
 
 #### General Notes
@@ -231,7 +231,7 @@ Not used in Oak 1.0:
     for nodes and properties. Granting the `jcr:read` privilege will result in a backwards compatible
     read access for nodes and their properties, while specifying `rep:readNodes` or
     `rep:readProperties` privileges allows to grant or deny access to
-    nodes and properties (see also [Privilege Management](../privilege.html) for changes
+    nodes and properties (see also [Privilege Management](privilege.html) for changes
     in the privilege definitions).
     Together with the restrictions this new behavior now allows to individually grant/deny
     access to properties that match a given name/path/nodetype (and as a possible extension even property value).
@@ -328,7 +328,7 @@ defines the following interfaces and classes:
 - [Permissions]: The permissions defined, respected and evaluated by the repository.
 - [PermissionConstants]: Constants used throughout the permission evaluation.
 
-<a href="default_implementation"/>
+<a name="default_implementation"/>
 ### Characteristics of the Permission Evaluation
 
 As explained above permission evaluation is completely separated from the access
@@ -371,6 +371,7 @@ The supported configuration options of the default implementation are described 
 - [Differences wrt Jackrabbit 2.x](permission/differences.html)
 - [Permissions : The Default Implementation](permission/default.html)
 - [Permission Evaluation in Detail](permission/evaluation.html)
+- [Multiplexed PermissionStore](permission/multiplexing.html)
 - [Restriction Management](authorization/restriction.html)
 
 <!-- references -->

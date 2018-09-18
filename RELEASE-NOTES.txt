@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.5.16
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.8
 
 Introduction
 ------------
@@ -7,74 +7,45 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.5.16 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.8 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
-improvements. For production use we recommend the latest stable 1.4.x
+improvements. For production use we recommend the latest stable 1.8.x
 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.5.16
----------------------
+Changes in Oak 1.9.8
+--------------------
 
-Sub-task
+Technical task
 
-    [OAK-5274] - Document CLI tools for oak-segment-tar
-    [OAK-5292] - The README in oak-run should link to the documentation for oak-segment-tar
-    [OAK-5299] - Introduce BlobFactory in OakDirectory
-
+    [OAK-7693] - [DirectBinaryAccess] Documentation
 
 Bug
 
-    [OAK-3328] - checked-in state should only affect properties with OPV!=IGNORE
-    [OAK-4687] - Issue with backgroundOperationLock handling in exception case
-    [OAK-5238] - IndexCopier causes concurrent update on NodeBuilder
-    [OAK-5240] - Test failure: IndexSanityCheckerTest.sizeMismatch()
-    [OAK-5254] - MultiplexingNodeStoreService does not pick up Observers registered through the whiteboard
-    [OAK-5258] - LuceneIndexEditor skips indexing for unknown nodetype due to stale NodeType registry state
-    [OAK-5259] - Better default for size delta estimation
-    [OAK-5297] - Check for null homeDir in DataStoreCacheUpgradeUtils
-    [OAK-5300] - OakDirectory.fileLength() must throw FileNotFoundException if file does not exist
-    [OAK-5305] - NRTIndex link to previous index leads to memory leak
-    [OAK-5327] - Change default query limit configuration, take 2
-    [OAK-5333] - Standalone example does not work with mongo
+    [OAK-7707] - DocumentNodeStoreServiceTest always connects to
+    localhost
+    [OAK-7712] - Configuration property names to manage direct binary
+    access should be consistent
+    [OAK-7713] - Test failure:
+    SecurityProviderRegistrationTest.testRequiredUserAuthenticationFactoryNotAvailable()
+    [OAK-7715] - Fix logging for datastore command
 
+New Feature
 
-Epic
-
-    [OAK-3270] - Improve DocumentMK resilience
-
+    [OAK-7569] - Direct Binary Access
 
 Improvement
 
-    [OAK-3976] - journal should support large(r) entries
-    [OAK-4069] - Use read concern majority when connected to a replica set
-    [OAK-4978] - Expose maintainence related MBeans for Segment NodeStores created via factory
-    [OAK-5060] - Make DocumentNodeStore.alignWithExternalRevisions more chatty
-    [OAK-5186] - ChangeSetFilterImpl: support many includePaths by filtering for 1st path name
-    [OAK-5189] - SegmentRevisionGC should expose unformatted timestamps
-    [OAK-5225] - Online compaction throttling
-    [OAK-5237] - Change default query limit configuration
-    [OAK-5271] - IndexDefinitionBuilder should ignore safe change in "async" for determining reindex flag value
-    [OAK-5295] - Allow chaining of include in building aggregation rule via IndexDefinitionBuilder
-    [OAK-5303] - Improve readability of SegmentNodeStoreService
-    [OAK-5317] - MongoBlobStore creates _id index unnecessarily
-
+    [OAK-7706] - Update to MongoDB Java driver 3.6.4
 
 Task
 
-    [OAK-4452] - Consistently use the term segment-tar
-    [OAK-5198] - Javadoc and Documentation of ExternalGroupRef
-    [OAK-5199] - Test coverage for ExternalGroupRef
-    [OAK-5256] - Add type property to LuceneIndexEditorProvider
-    [OAK-5257] - Pass CommitContext as part of CommitInfo in OakInitializer
-    [OAK-5294] - Update Oak trunk to Jackrabbit 2.13.6
-    [OAK-5319] - Remove ReversedLinesFileReaderTestParamBlockSize
-
+    [OAK-7656] - Update Oak trunk to Jackrabbit 2.17.5
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.5.x release.
+all changes included up to the Apache Jackrabbit Oak 1.7.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
@@ -88,10 +59,10 @@ This release consists of a single source archive packaged as a zip file.
 The archive can be unpacked with the jar tool from your JDK installation.
 See the README.md file for instructions on how to build this release.
 
-The source archive is accompanied by SHA1 and MD5 checksums and a PGP
-signature that you can use to verify the authenticity of your download.
-The public key used for the PGP signature can be found at
-http://www.apache.org/dist/jackrabbit/KEYS.
+The source archive is accompanied by SHA1 and SHA512 checksums and a
+PGP signature that you can use to verify the authenticity of your
+download. The public key used for the PGP signature can be found at
+https://www.apache.org/dist/jackrabbit/KEYS.
 
 About Apache Jackrabbit Oak
 ---------------------------
@@ -100,7 +71,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project.
+The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 For more information, visit http://jackrabbit.apache.org/oak

@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This provides the 'clusterView' repository descriptors
@@ -44,24 +44,24 @@ class SegmentDiscoveryLiteDescriptors implements Descriptors {
         this.store = store;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] getKeys() {
         return new String[] {OAK_DISCOVERYLITE_CLUSTERVIEW};
     }
 
     @Override
-    public boolean isStandardDescriptor(@Nonnull String key) {
+    public boolean isStandardDescriptor(@NotNull String key) {
         return OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key);
     }
 
     @Override
-    public boolean isSingleValueDescriptor(@Nonnull String key) {
+    public boolean isSingleValueDescriptor(@NotNull String key) {
         return OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key);
     }
 
     @Override
-    public Value getValue(@Nonnull String key) {
+    public Value getValue(@NotNull String key) {
         if (!OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key)) {
             return null;
         }
@@ -69,7 +69,7 @@ class SegmentDiscoveryLiteDescriptors implements Descriptors {
     }
 
     @Override
-    public Value[] getValues(@Nonnull String key) {
+    public Value[] getValues(@NotNull String key) {
         if (!OAK_DISCOVERYLITE_CLUSTERVIEW.equals(key)) {
             return null;
         }

@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -38,28 +38,41 @@
   <modules>
     <module>oak-parent</module>
     <module>oak-commons</module>
+    <module>oak-api</module>
+    <module>oak-core-spi</module>
+    <module>oak-store-spi</module>
+    <module>oak-query-spi</module>
+    <module>oak-security-spi</module>
+    <module>oak-store-composite</module>
+    <module>oak-store-document</module>
+
+    <module>oak-blob-plugins</module>
     <module>oak-blob</module>
     <module>oak-blob-cloud</module>
+    <module>oak-blob-cloud-azure</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
+
     <module>oak-upgrade</module>
     <module>oak-http</module>
+    <module>oak-search</module>
     <module>oak-lucene</module>
     <module>oak-solr-core</module>
     <module>oak-solr-osgi</module>
+    <module>oak-search-mt</module>
     <module>oak-auth-external</module>
     <module>oak-auth-ldap</module>
-    <module>oak-tarmk-standby</module>
+    <module>oak-run-commons</module>
     <module>oak-run</module>
     <module>oak-it-osgi</module>
     <module>oak-pojosr</module>
     <module>oak-authorization-cug</module>
-    <module>oak-remote</module>
     <module>oak-exercise</module>
     <module>oak-examples</module>
     <module>oak-it</module>
-    <module>oak-segment</module>
     <module>oak-segment-tar</module>
+    <module>oak-segment-azure</module>
+    <module>oak-benchmarks</module>
   </modules>
 
   <scm>
@@ -91,21 +104,12 @@
     </plugins>
   </build>
 
-  <reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.4.0</version>
-      </plugin>
-    </plugins>
-  </reporting>
-
   <profiles>
     <profile>
       <id>doc</id>
       <modules>
         <module>oak-doc</module>
+        <module>oak-doc-railroad-macro</module>
       </modules>
     </profile>
     <profile>
@@ -115,6 +119,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>aggregate</id>
@@ -142,6 +147,7 @@
         <plugins>
           <plugin>
             <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.1.0</version>
             <executions>
               <execution>
                 <goals>
@@ -165,6 +171,7 @@
           <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
+            <version>1.8</version>
             <executions>
               <execution>
                 <goals>
@@ -180,12 +187,12 @@
                         <include name="target/*-src.zip*" />
                       </fileset>
                     </copy>
-                    <checksum algorithm="MD5" fileext=".md5">
+                    <checksum algorithm="SHA1" fileext=".sha1">
                       <fileset dir="${basedir}/target/${project.version}">
                         <include name="*.zip" />
                       </fileset>
                     </checksum>
-                    <checksum algorithm="SHA1" fileext=".sha">
+                    <checksum algorithm="SHA-512" fileext=".sha512">
                       <fileset dir="${basedir}/target/${project.version}">
                         <include name="*.zip" />
                       </fileset>
@@ -212,6 +219,7 @@ A staged Maven repository is available for review at:
 
 The command for running automated checks against this release candidate is:
 
+    # run in SVN checkout of https://dist.apache.org/repos/dist/dev/jackrabbit
     $ sh check-release.sh oak ${project.version} ${checksum}
 
 Please vote on releasing this package as Apache Jackrabbit Oak ${project.version}.
@@ -221,6 +229,23 @@ least three +1 Jackrabbit PMC votes are cast.
     [ ] +1 Release this package as Apache Jackrabbit Oak ${project.version}
     [ ] -1 Do not release this package because...${line.separator}
                     </echo>
+                    <echo file="${basedir}/target/announcement.txt">
+From: ${username}@apache.org
+To: announce@apache.org, announce@jackrabbit.apache.org, users@jackrabbit.apache.org, dev@jackrabbit.apache.org, oak-dev@jackrabbit.apache.org
+Subject: [ANNOUNCE] Apache Jackrabbit Oak ${project.version} released
+
+The Apache Jackrabbit community is pleased to announce the release of
+Apache Jackrabbit Oak ${project.version}. The release is available for download at:
+
+     http://jackrabbit.apache.org/downloads.html
+
+See the full release notes below for details about this release:
+${line.separator}
+${line.separator}
+                    </echo>
+                    <concat destfile="${basedir}/target/announcement.txt" append="true">
+                      <filelist files="RELEASE-NOTES.txt" />
+                    </concat>
                     <echo />
                     <echo>
 The release candidate has been prepared in:
@@ -237,6 +262,10 @@ Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
 A release vote template has been generated for you:
 
     file://${basedir}/target/vote.txt
+
+An announcement mail template can be found at:
+
+    file://${basedir}/target/announcement.txt
                     </echo>
                     <echo />
                   </tasks>

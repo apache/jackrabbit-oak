@@ -73,4 +73,14 @@ class DocumentCheckpoints extends Checkpoints {
         return CheckpointsHelper.remove(store, r);
     }
 
+    @Override
+    public Map<String, String> getInfo(String cp) {
+        return store.checkpointInfo(cp);
+    }
+
+    @Override
+    public int setInfoProperty(String cp, String name, String value) {
+        return CheckpointsHelper.setInfoProperty(store, cp, name, value);
+    }
+
 }

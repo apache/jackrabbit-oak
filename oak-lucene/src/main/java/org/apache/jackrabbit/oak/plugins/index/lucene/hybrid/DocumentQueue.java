@@ -31,10 +31,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Striped;
+
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -49,7 +53,9 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 
-public class DocumentQueue implements Closeable{
+public class DocumentQueue implements Closeable, IndexingQueue {
+    private static final PerfLogger PERF_LOGGER =
+            new PerfLogger(LoggerFactory.getLogger(DocumentQueue.class.getName() + ".perf"));
     private static final LuceneDoc STOP = LuceneDoc.forUpdate("", "", Collections.<IndexableField>emptyList());
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker tracker;
@@ -58,6 +64,8 @@ public class DocumentQueue implements Closeable{
     private final CounterStats queueSizeStats;
     private final MeterStats added;
     private final MeterStats dropped;
+    private final Striped<Lock> locks = Striped.lock(64);
+    private UncaughtExceptionHandler delegate = (t, e) -> {};
 
     /**
      * Time in millis for which add call to queue
@@ -91,6 +99,7 @@ public class DocumentQueue implements Closeable{
             @Override
             public Void call() throws Exception {
                 try {
+                    long start = PERF_LOGGER.start();
                     int maxSize = docsQueue.size();
                     List<LuceneDoc> docs = Lists.newArrayListWithCapacity(maxSize);
                     ListMultimap<String, LuceneDoc> docsPerIndex = ArrayListMultimap.create();
@@ -111,11 +120,13 @@ public class DocumentQueue implements Closeable{
                         docsPerIndex.get(doc.indexPath).add(doc);
                     }
 
-                    addAllSynchronously(docsPerIndex.asMap());
+                    addDocsToIndex(docsPerIndex.asMap(), true);
 
-                    currentTask.onComplete(completionHandler);
+                    scheduleQueuedDocsProcessing();
+                    PERF_LOGGER.end(start, 1, "Processed {} docs from queue", count);
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
+                    delegate.uncaughtException(Thread.currentThread(), t);
                 }
                 return null;
             }
@@ -142,6 +153,20 @@ public class DocumentQueue implements Closeable{
         this.dropped = sp.getMeter("HYBRID_DROPPED", StatsOptions.DEFAULT);
     }
 
+    @Override
+    public boolean addIfNotFullWithoutWait(LuceneDoc doc){
+        checkState(!stopped);
+        boolean added = docsQueue.offer(doc);
+        if (added) {
+            queueSizeStats.inc();
+            if (log.isTraceEnabled()){
+                log.trace("Adding {} without wait to queue at size {}", doc, docsQueue.size());
+            }
+        }
+        return added;
+    }
+
+    @Override
     public boolean add(LuceneDoc doc){
         checkState(!stopped);
         boolean added = false;
@@ -150,23 +175,57 @@ public class DocumentQueue implements Closeable{
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        // Set the completion handler on the currently running task. Multiple calls
-        // to onComplete are not a problem here since we always pass the same value.
-        // Thus there is no question as to which of the handlers will effectively run.
-        currentTask.onComplete(completionHandler);
+        scheduleQueuedDocsProcessing();
+
         if (added) {
             queueSizeStats.inc();
+            if (log.isTraceEnabled()){
+                log.trace("Adding {} to queue at size {}", doc, docsQueue.size());
+            }
         } else {
             dropped.mark();
         }
         return added;
     }
 
+    @Override
+    public void scheduleQueuedDocsProcessing() {
+        // Set the completion handler on the currently running task. Multiple calls
+        // to onComplete are not a problem here since we always pass the same value.
+        // Thus there is no question as to which of the handlers will effectively run.
+        currentTask.onComplete(completionHandler);
+    }
+
+    @Override
     public void addAllSynchronously(Map<String, Collection<LuceneDoc>> docsPerIndex) {
+        addDocsToIndex(docsPerIndex, false);
+    }
+
+    /**
+     * Delegate handled which can be used by test to check for
+     * any exception occurring in queue processing
+     */
+    public void setExceptionHandler(UncaughtExceptionHandler delegate) {
+        this.delegate = delegate;
+    }
+
+    private void addDocsToIndex(Map<String, Collection<LuceneDoc>> docsPerIndex, boolean docsFromQueue) {
         //If required it can optimized by indexing diff indexes in parallel
         //Something to consider if it becomes a bottleneck
         for (Map.Entry<String, Collection<LuceneDoc>> e : docsPerIndex.entrySet()) {
-            processDocs(e.getKey(), e.getValue());
+            //In NRT case the indexing would be single threaded as it always happens via queue
+            //For sync case it can happen that indexing is requested by LocalIndexObserver and also
+            //via elements in queue. So we need to lock the indexing path
+            //Lock contention should not happen much as in most cases elements added
+            //to queue would get processed before observer is invoked
+            String indexPath = e.getKey();
+            Lock indexingLock = locks.get(indexPath);
+            indexingLock.lock();
+            try {
+                processDocs(indexPath, e.getValue(), docsFromQueue);
+            } finally {
+                indexingLock.unlock();
+            }
             added.mark(e.getValue().size());
         }
     }
@@ -177,7 +236,7 @@ public class DocumentQueue implements Closeable{
         return docs;
     }
 
-    private void processDocs(String indexPath, Iterable<LuceneDoc> docs){
+    private void processDocs(String indexPath, Iterable<LuceneDoc> docs, boolean docsFromQueue){
 
         //Drop the write call if stopped
         if (stopped) {
@@ -192,6 +251,7 @@ public class DocumentQueue implements Closeable{
 
         try{
             LuceneIndexWriter writer = indexNode.getLocalWriter();
+            boolean docAdded = false;
             for (LuceneDoc doc : docs) {
                 if (writer == null) {
                     //IndexDefinition per IndexNode might have changed and local
@@ -200,18 +260,29 @@ public class DocumentQueue implements Closeable{
                             "entry for [{}]", indexPath, doc.docPath);
                     return;
                 }
+                if (doc.isProcessed()){
+                    //Skip already processed doc entry
+                    continue;
+                } else {
+                    doc.markProcessed();
+                }
                 if (doc.delete) {
                     writer.deleteDocuments(doc.docPath);
                 } else {
                     writer.updateDocument(doc.docPath, doc.doc);
                 }
-                log.trace("Updated index with doc {}", doc);
+                docAdded = true;
+                String prefix = docsFromQueue ? "Queued" : "Direct";
+                log.trace("[{}] Updated index with doc {}", prefix, doc);
             }
-            indexNode.refreshReadersOnWriteIfRequired();
+            if (docAdded) {
+                indexNode.refreshReadersOnWriteIfRequired();
+            }
         } catch (Exception e) {
             //For now we just log it. Later we need to see if frequent error then to
             //temporarily disable indexing for this index
             log.warn("Error occurred while indexing index [{}]",indexPath, e);
+            delegate.uncaughtException(Thread.currentThread(), e);
         } finally {
             indexNode.release();
         }

@@ -20,7 +20,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -141,7 +141,7 @@ public class AsyncConflictsIT extends DocumentClusterIT {
         }
     }
     
-    private void defineIndex(@Nonnull final Repository repo) throws RepositoryException {
+    private void defineIndex(@NotNull final Repository repo) throws RepositoryException {
         Session session = repo.login(ADMIN);
         try {
             Node n = session.getRootNode().getNode("oak:index");
@@ -191,7 +191,7 @@ public class AsyncConflictsIT extends DocumentClusterIT {
         
     }
     
-    private void unsubscribe(@Nonnull final Appender<ILoggingEvent> appender) {
+    private void unsubscribe(@NotNull final Appender<ILoggingEvent> appender) {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
             ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).detachAppender(appender);
     }

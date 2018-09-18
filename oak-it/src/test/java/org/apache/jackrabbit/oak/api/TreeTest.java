@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ChildOrderConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -60,7 +61,7 @@ public class TreeTest extends OakBaseTest {
         repository = new Oak(store)
             .with(new OpenSecurityProvider())
             .with(new CompositeConflictHandler(ImmutableList.of(
-                    new ChildOrderConflictHandler() {
+                    ConflictHandlers.wrap(new ChildOrderConflictHandler() {
                         /**
                          * Allow deleting changed node.
                          * See {@link TreeTest#removeWithConcurrentOrderBefore()}
@@ -71,7 +72,7 @@ public class TreeTest extends OakBaseTest {
                                 NodeState theirs) {
                             return Resolution.OURS;
                         }
-                    },
+                    }),
                     new AnnotatingConflictHandler()
             )))
             .with(new ConflictValidatorProvider())

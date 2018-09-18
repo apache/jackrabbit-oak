@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -38,8 +37,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -65,14 +65,14 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void before() throws Exception {
         super.before();
 
-        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider());
+        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS));
     }
 
-    private CugPolicy createCug(@Nonnull String path) {
+    private CugPolicy createCug(@NotNull String path) {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.ABORT);
     }
 
-    private CugPolicy getApplicableCug(@Nonnull String path) throws RepositoryException {
+    private CugPolicy getApplicableCug(@NotNull String path) throws RepositoryException {
         return (CugPolicy) cugAccessControlManager.getApplicablePolicies(path).nextAccessControlPolicy();
     }
 
@@ -224,7 +224,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
                     CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
                     CugConstants.PARAM_CUG_ENABLED, false));
-        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, new CugSecurityProvider(config));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS));
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
         assertEquals(0, policies.length);
 
@@ -426,19 +426,19 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
         private static final InvalidCug INSTANCE = new InvalidCug();
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<Principal> getPrincipals() {
             return Collections.emptySet();
         }
 
         @Override
-        public boolean addPrincipals(@Nonnull Principal... principals) {
+        public boolean addPrincipals(@NotNull Principal... principals) {
             return false;
         }
 
         @Override
-        public boolean removePrincipals(@Nonnull Principal... principals) {
+        public boolean removePrincipals(@NotNull Principal... principals) {
             return false;
         }
 

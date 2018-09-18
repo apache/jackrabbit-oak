@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -28,8 +27,9 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.util.TraversingItemVisitor;
 
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.jetbrains.annotations.NotNull;
 
 public class NodeTypeDefinitionTest extends AbstractJCRTest {
 
@@ -97,7 +97,7 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
         }
     }
 
-    private static int getIndex(@Nonnull Node node) throws RepositoryException {
+    private static int getIndex(@NotNull Node node) throws RepositoryException {
         String name = node.getName();
         int i = name.lastIndexOf('[');
         return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));

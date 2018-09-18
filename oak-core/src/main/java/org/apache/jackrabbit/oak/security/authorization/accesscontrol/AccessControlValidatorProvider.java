@@ -16,21 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code AccessControlValidatorProvider} aimed to provide a root validator
@@ -40,27 +38,27 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class AccessControlValidatorProvider extends ValidatorProvider {
 
-    private final SecurityProvider securityProvider;
+    private final ProviderCtx providerCtx;
 
-    public AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
+    public AccessControlValidatorProvider(@NotNull ProviderCtx providerCtx) {
+        this.providerCtx = providerCtx;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
 
         RestrictionProvider restrictionProvider = getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
 
-        Root root = RootFactory.createReadOnlyRoot(before);
+        Root root = providerCtx.getRootProvider().createReadOnlyRoot(before);
         PrivilegeManager privilegeManager = getConfig(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         PrivilegeBitsProvider privilegeBitsProvider = new PrivilegeBitsProvider(root);
 
-        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider, restrictionProvider);
+        return new AccessControlValidator(after, privilegeManager, privilegeBitsProvider, restrictionProvider, providerCtx);
     }
 
     private <T> T getConfig(Class<T> configClass) {
-        return securityProvider.getConfiguration(configClass);
+        return providerCtx.getSecurityProvider().getConfiguration(configClass);
     }
 }

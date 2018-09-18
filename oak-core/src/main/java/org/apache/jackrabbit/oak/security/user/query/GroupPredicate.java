@@ -16,19 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,41 +46,41 @@ class GroupPredicate implements Predicate<Authorizable> {
         if (group != null) {
             membersIterator = (declaredMembersOnly) ? group.getDeclaredMembers() : group.getMembers();
         } else {
-            membersIterator = Iterators.emptyIterator();
+            membersIterator = Collections.emptyIterator();
         }
     }
 
     @Override
     public boolean apply(@Nullable Authorizable authorizable) {
-        if (authorizable != null) {
-            try {
-                String id = authorizable.getID();
-                if (memberIds.contains(id)) {
-                    return true;
-                } else {
-                    while (membersIterator.hasNext()) {
-                        String memberId = saveGetId(membersIterator.next());
-                        if (memberId != null) {
-                            memberIds.add(memberId);
-                            if (memberId.equals(id)) {
-                                return true;
-                            }
+        String id = saveGetId(authorizable);
+        if (id != null) {
+            if (memberIds.contains(id)) {
+                return true;
+            } else {
+                // not contained in ids that have already been processed => look
+                // for occurrence in the remaining iterator entries.
+                while (membersIterator.hasNext()) {
+                    String memberId = saveGetId(membersIterator.next());
+                    if (memberId != null) {
+                        memberIds.add(memberId);
+                        if (memberId.equals(id)) {
+                            return true;
                         }
                     }
                 }
-            } catch (RepositoryException e) {
-                log.debug("Cannot determine group membership for {}", authorizable, e);
             }
         }
         return false;
     }
 
-    @CheckForNull
-    private String saveGetId(@Nonnull Authorizable authorizable) {
-        try {
-            return authorizable.getID();
-        } catch (RepositoryException e) {
-            log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
+    @Nullable
+    private String saveGetId(@Nullable Authorizable authorizable) {
+        if (authorizable != null) {
+            try {
+                return authorizable.getID();
+            } catch (RepositoryException e) {
+                log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
+            }
         }
         return null;
     }

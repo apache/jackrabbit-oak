@@ -36,6 +36,7 @@ import org.junit.Test;
 public class RecordCacheTest {
     private final Random rnd = new Random();
     private final MemoryStore store = new MemoryStore();
+    private final SegmentIdProvider idProvider = store.getSegmentIdProvider();
 
     public RecordCacheTest() throws IOException {}
 
@@ -44,7 +45,7 @@ public class RecordCacheTest {
         RecordCache<String> cache = newRecordCache(0);
         assertNull(cache.get("any"));
 
-        cache.put("key", (newRecordId(store, rnd)));
+        cache.put("key", (newRecordId(idProvider, rnd)));
         assertNull(cache.get("key"));
     }
 
@@ -53,7 +54,7 @@ public class RecordCacheTest {
         RecordCache<String> cache = newRecordCache(10);
         assertNull(cache.get("any"));
 
-        RecordId value = newRecordId(store, rnd);
+        RecordId value = newRecordId(idProvider, rnd);
         cache.put("key", value);
         assertEquals(value, cache.get("key"));
     }
@@ -64,7 +65,7 @@ public class RecordCacheTest {
         Map<String, RecordId> keys = newLinkedHashMap();
         for (int k = 0; k < 10; k ++) {
             String key = "key-" + k;
-            RecordId value = newRecordId(store, rnd);
+            RecordId value = newRecordId(idProvider, rnd);
             keys.put(key, value);
             cache.put(key, value);
         }
@@ -74,7 +75,7 @@ public class RecordCacheTest {
                     entry.getValue(), cache.get(entry.getKey()));
         }
 
-        RecordId value = newRecordId(store, rnd);
+        RecordId value = newRecordId(idProvider, rnd);
         // This should invalidate "key-0", which is the least recently accessed key
         cache.put("key", value);
         keys.put("key", value);

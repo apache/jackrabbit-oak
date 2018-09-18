@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.AbstractIterator;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An immutable record table. It is initialized at construction time and can
@@ -31,10 +31,10 @@ import com.google.common.collect.AbstractIterator;
  */
 class ImmutableRecordNumbers implements RecordNumbers {
 
-    @Nonnull
+    @NotNull
     private final int[] offsets;
 
-    @Nonnull
+    @NotNull
     private final byte[] type;
 
     /**
@@ -46,7 +46,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
      * @param offsets  Offsets per position. -1 if not mapped.
      * @param type     Types per position. Not defined if not mapped.
      */
-    public ImmutableRecordNumbers(@Nonnull int[] offsets, @Nonnull byte[] type) {
+    public ImmutableRecordNumbers(@NotNull int[] offsets, @NotNull byte[] type) {
         this.offsets = offsets;
         this.type = type;
     }
@@ -61,6 +61,7 @@ class ImmutableRecordNumbers implements RecordNumbers {
         }
     }
 
+    @NotNull
     @Override
     public Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {

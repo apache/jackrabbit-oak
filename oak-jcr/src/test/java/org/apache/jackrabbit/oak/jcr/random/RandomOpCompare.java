@@ -140,10 +140,9 @@ public class RandomOpCompare {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-                DB mongoDB = connection.getDB();                
                 return new DocumentMK.Builder().
                             memoryCacheSize(0).
-                            setMongoDB(mongoDB, 16).
+                            setMongoDB(connection.getMongoClient(), connection.getDBName()).
                             setPersistentCache("target/persistentCache,time").
                             getNodeStore();
             }

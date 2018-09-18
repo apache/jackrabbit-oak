@@ -24,6 +24,9 @@ the repository will be traversed. That is, the query will still work
 but probably be very slow.
 
 * [The Query Engine](./query-engine.html)
+* [XPath Grammar](./grammar-xpath.html)
+* [SQL-2 Grammar](./query-sql2.html)
+* [Troubleshooting](./query-troubleshooting.html)
 * [Flags](./flags.html)
 
 ### Indexes
@@ -36,10 +39,14 @@ documentation page.
 * [Solr](./solr.html)
 * [Property](./property-index.html)
 
+For more details on how indexing works (for all index types):
+
+* [Indexing](indexing.html) 
+* [Reindexing](indexing.html#Reindexing)
+
 ### Customisations
 
 * [Change Out-Of-The-Box Index Definitions](./ootb-index-change.html)
-
-
+* [Machine Translation for Search](./search-mt.html)
 
 

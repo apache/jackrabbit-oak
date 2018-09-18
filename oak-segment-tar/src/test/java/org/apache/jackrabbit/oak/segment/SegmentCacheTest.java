@@ -18,97 +18,247 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
+import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.junit.Test;
 
 public class SegmentCacheTest {
-    @Test
-    public void putTest() {
-        SegmentId id = new SegmentId(mock(SegmentStore.class), -1, -1);
-        Segment segment = mock(Segment.class);
-        when(segment.getSegmentId()).thenReturn(id);
-        SegmentCache cache = new SegmentCache(1);
+    private final SegmentCache cache = newSegmentCache(DEFAULT_SEGMENT_CACHE_MB);
 
-        cache.putSegment(segment);
-        assertEquals(segment, id.getSegment());
+    private final SegmentId id1 = new SegmentId(EMPTY_STORE, 0x0000000000000001L, 0xa000000000000001L, cache::recordHit);
+    private final Segment segment1 = mock(Segment.class);
+    private final SegmentId id2 = new SegmentId(EMPTY_STORE, 0x0000000000000002L, 0xa000000000000002L, cache::recordHit);
+    private final Segment segment2 = mock(Segment.class);
+    private final SegmentId id3 = new SegmentId(EMPTY_STORE, 0x0000000000000003L, 0xa000000000000003L, cache::recordHit);
+    private final Segment segment3 = mock(Segment.class);
+
+    {
+        when(segment1.getSegmentId()).thenReturn(id1);
+        when(segment1.estimateMemoryUsage()).thenReturn(1);
+        when(segment2.getSegmentId()).thenReturn(id2);
+        when(segment2.estimateMemoryUsage()).thenReturn(2);
+        when(segment3.getSegmentId()).thenReturn(id3);
+        when(segment3.estimateMemoryUsage()).thenReturn(DEFAULT_SEGMENT_CACHE_MB * 1024 * 1024);
+    }
+
+    @Test(expected = SegmentNotFoundException.class)
+    public void snfeFromUncachedSegment() {
+        id1.getSegment();
     }
 
     @Test
-    public void invalidateTests() {
-        Segment segment1 = mock(Segment.class);
-        Segment segment2 = mock(Segment.class);
-        SegmentStore store = mock(SegmentStore.class);
-        SegmentId id = new SegmentId(store, -1, -1);
-        when(segment1.getSegmentId()).thenReturn(id);
-        SegmentCache cache = new SegmentCache(1);
-
+    public void putTest() throws ExecutionException {
         cache.putSegment(segment1);
-        assertEquals(segment1, id.getSegment());
+
+        // Segment should be memoised with its id
+        assertEquals(segment1, id1.getSegment());
+
+        // Segment should be cached with the segmentId and thus not trigger a call
+        // to the (empty) node store.
+        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+    }
+
+    @Test
+    public void invalidateTests() throws ExecutionException {
+        cache.putSegment(segment1);
+        assertEquals(segment1, id1.getSegment());
+        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
 
         // Clearing the cache should cause an eviction call back for id
         cache.clear();
 
-        // Check that this was the case by loading a different segment
-        when(store.readSegment(id)).thenReturn(segment2);
-        assertEquals(segment2, id.getSegment());
+        // Check eviction cleared memoisation
+        expect(SegmentNotFoundException.class, id1::getSegment);
+
+        // Check that segment1 was evicted and needs reloading through the node store
+        AtomicBoolean cached = new AtomicBoolean(true);
+        assertEquals(segment1, cache.getSegment(id1, () -> {
+            cached.set(false);
+            return segment1;
+        }));
+        assertFalse(cached.get());
+
+        // Assert that segment1 was loaded again
+        assertEquals(segment1, id1.getSegment());
+        assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
     }
 
     @Test
-    public void statsTest() throws Exception {
-        Callable<Segment> loader = new Callable<Segment>() {
+    public void evictionDuringPut() throws ExecutionException {
+        cache.putSegment(segment3);
 
-            @Override
-            public Segment call() throws Exception {
-                return mock(Segment.class);
-            }
-        };
+        // Check eviction cleared memoisation
+        expect(SegmentNotFoundException.class, id3::getSegment);
 
-        SegmentCache cache = new SegmentCache(1);
-        CacheStats stats = cache.getCacheStats();
-        SegmentId id = new SegmentId(mock(SegmentStore.class), -1, -1);
+        // Check that segment3 was evicted inside put because of its size and needs
+        // reloading through the node store
+        AtomicBoolean cached = new AtomicBoolean(true);
+        assertEquals(segment3, cache.getSegment(id3, () -> {
+            cached.set(false);
+            return segment3;
+        }));
+        assertFalse(cached.get());
+    }
+
+    @Test
+    public void evictionDuringLoad() throws ExecutionException {
+        cache.getSegment(id3, () -> segment3);
+
+        // Check eviction cleared memoisation
+        expect(SegmentNotFoundException.class, id3::getSegment);
+
+        // Check that segment3 was evicted inside put because of its size and needs
+        // reloading through the node store
+        AtomicBoolean cached = new AtomicBoolean(true);
+        assertEquals(segment3, cache.getSegment(id3, () -> {
+            cached.set(false);
+            return segment3;
+        }));
+        assertFalse(cached.get());
+    }
+
+    @Test
+    public void nonEmptyCacheStatsTest() throws Exception {
+        AbstractCacheStats stats = cache.getCacheStats();
 
         // empty cache
         assertEquals(0, stats.getElementCount());
         assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
         assertEquals(0, stats.getHitCount());
         assertEquals(0, stats.getMissCount());
         assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
 
         // load
-        cache.getSegment(id, loader);
+        cache.getSegment(id1, () -> segment1);
         assertEquals(1, stats.getElementCount());
-        assertEquals(0, stats.getLoadCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(33, stats.estimateCurrentWeight());
         assertEquals(0, stats.getHitCount());
-        assertEquals(0, stats.getMissCount());
-        assertEquals(0, stats.getRequestCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
 
         // cache hit
-        cache.getSegment(id, loader);
+        assertEquals(segment1, id1.getSegment());
         assertEquals(1, stats.getElementCount());
-        assertEquals(0, stats.getLoadCount());
-        assertEquals(0, stats.getHitCount());
-        assertEquals(0, stats.getMissCount());
-        assertEquals(0, stats.getRequestCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(33, stats.estimateCurrentWeight());
+        assertEquals(1, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(2, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
 
         cache.clear();
         assertEquals(0, stats.getElementCount());
-        assertEquals(0, stats.getLoadCount());
-        assertEquals(0, stats.getHitCount());
-        assertEquals(0, stats.getMissCount());
-        assertEquals(0, stats.getRequestCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(1, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(2, stats.getRequestCount());
+        assertEquals(1, stats.getEvictionCount());
 
         stats.resetStats();
         assertEquals(0, stats.getElementCount());
         assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
         assertEquals(0, stats.getHitCount());
         assertEquals(0, stats.getMissCount());
         assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        // Eviction during put
+        cache.getSegment(id3, () -> segment3);
+        assertEquals(0, stats.getElementCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(1, stats.getEvictionCount());
+    }
+
+    @Test
+    public void emptyCacheStatsTest() throws Exception {
+        SegmentCache cache = newSegmentCache(0);
+        AbstractCacheStats stats = cache.getCacheStats();
+
+        // empty cache
+        assertEquals(0, stats.getElementCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        // load
+        cache.getSegment(id1, () -> segment1);
+        assertEquals(0, stats.getElementCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        // No cache hit
+        try {
+            id1.getSegment();
+            fail(id1 + " should not be in the cache");
+        } catch (SegmentNotFoundException expected) {}
+
+        cache.clear();
+        assertEquals(0, stats.getElementCount());
+        assertEquals(1, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(1, stats.getMissCount());
+        assertEquals(1, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+
+        stats.resetStats();
+        assertEquals(0, stats.getElementCount());
+        assertEquals(0, stats.getLoadCount());
+        assertEquals(0, stats.estimateCurrentWeight());
+        assertEquals(0, stats.getHitCount());
+        assertEquals(0, stats.getMissCount());
+        assertEquals(0, stats.getRequestCount());
+        assertEquals(0, stats.getEvictionCount());
+    }
+
+    private static void expect(Class<? extends Throwable> exceptionType, Callable<?> thunk) {
+        try {
+            thunk.call();
+        } catch (Throwable e) {
+            if (!exceptionType.isAssignableFrom(e.getClass())) {
+                throw new AssertionError(
+                        "Unexpected exception: " + e.getClass().getSimpleName() + ". " +
+                                "Expected: " + exceptionType.getSimpleName(), e);
+            } else {
+                return;
+            }
+        }
+        throw new AssertionError("Expected exception " +
+                exceptionType.getSimpleName() + " not thrown");
+    }
+
+    private static Segment failToLoad(SegmentId id) {
+        fail("Cache should not need to load " + id);
+        return null;
     }
 
 }

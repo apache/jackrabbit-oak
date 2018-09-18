@@ -30,8 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
@@ -40,6 +38,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,6 @@ import static com.google.common.io.Files.asByteSink;
 import static com.google.common.io.Files.move;
 import static com.google.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
-import static org.apache.commons.io.FileUtils.copyInputStreamToFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copyLarge;
@@ -75,6 +74,12 @@ public final class FileIOUtils {
         }
     };
 
+    public final static Function<String, String> passThruTransformer = new Function<String, String>() {
+        @Nullable @Override public String apply(@Nullable String input) {
+            return input;
+        }
+    };
+
     /**
      * Sorts the given file externally using the {@link #lexComparator} and removes duplicates.
      *
@@ -95,7 +100,7 @@ public final class FileIOUtils {
      */
     public static void sort(File file, Comparator<String> comparator) throws IOException {
         File sorted = createTempFile("fleioutilssort", null);
-        merge(sortInBatch(file, comparator, true), sorted);
+        merge(sortInBatch(file, comparator, true), sorted, comparator);
         move(sorted, file);
     }
 
@@ -110,6 +115,19 @@ public final class FileIOUtils {
         mergeSortedFiles(
             files,
             output, lexComparator, true);
+    }
+
+    /**
+     * Merges a list of files after sorting with the given comparator.
+     *
+     * @param files files to merge
+     * @param output merge output file
+     * @throws IOException
+     */
+    public static void merge(List<File> files, File output, Comparator<String> comparator) throws IOException {
+        mergeSortedFiles(
+            files,
+            output, comparator, true);
     }
 
     /**
@@ -152,13 +170,13 @@ public final class FileIOUtils {
                     closeQuietly(iStream);
                 }
             }
+            threw = false;
+        } finally {
             if (delete) {
                 for (File f : files) {
                     f.delete();
                 }
             }
-            threw = false;
-        } finally {
             close(appendStream, threw);
         }
     }
@@ -210,13 +228,31 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @Nullable Logger logger, @Nullable String message) throws IOException {
+        return writeStrings(iterator, f, escape, passThruTransformer, logger, message);
+    }
+
+    /**
+     * Writes string from the given iterator to the given file and optionally
+     * escape the written strings for line breaks.
+     *
+     * @param iterator the source of the strings
+     * @param f file to write to
+     * @param escape escape whether to escape for line breaks
+     * @param transformer any transformation on the input
+     * @param logger logger to log progress
+     * @param message message to log
+     * @return
+     * @throws IOException
+     */
+    public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
+        @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
         BufferedWriter writer =  newWriter(f, UTF_8);
         boolean threw = true;
 
         int count = 0;
         try {
             while (iterator.hasNext()) {
-                writeAsLine(writer, iterator.next(), escape);
+                writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
                 if (logger != null) {
                     if (count % 1000 == 0) {
@@ -276,6 +312,26 @@ public final class FileIOUtils {
                 return unescapeLineBreaks(input);
             }
         });
+    }
+
+    /**
+     *
+     * Copy the input stream to the given file. Delete the file in case of exception.
+     *
+     * @param source the input stream source
+     * @param destination the file to write to
+     * @throws IOException
+     */
+    public static void copyInputStreamToFile(final InputStream source, final File destination) throws IOException {
+        boolean success = false;
+        try {
+            FileUtils.copyInputStreamToFile(source, destination);
+            success = true;
+        } finally {
+            if (!success) {
+                forceDelete(destination);
+            }
+        }
     }
 
     /**

@@ -72,8 +72,6 @@ import static javax.jcr.Repository.WRITE_SUPPORTED;
 import java.io.Closeable;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.PropertyType;
@@ -100,8 +98,10 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
-import org.apache.jackrabbit.oak.util.OakVersion;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+import org.apache.jackrabbit.oak.OakVersion;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code NodeStore}-based implementation of
@@ -129,12 +129,12 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
      * @param indexProvider        index provider
      * @param securityProvider     The configured security provider.
      */
-    public ContentRepositoryImpl(@Nonnull NodeStore nodeStore,
-                                 @Nonnull CommitHook commitHook,
-                                 @Nonnull String defaultWorkspaceName,
+    public ContentRepositoryImpl(@NotNull NodeStore nodeStore,
+                                 @NotNull CommitHook commitHook,
+                                 @NotNull String defaultWorkspaceName,
                                  QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
-                                 @Nonnull SecurityProvider securityProvider,
+                                 @NotNull SecurityProvider securityProvider,
                                  @Nullable Descriptors baseDescriptors) {
         this.nodeStore = checkNotNull(nodeStore);
         this.commitHook = checkNotNull(commitHook);
@@ -145,7 +145,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         this.baseDescriptors = baseDescriptors;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
@@ -166,7 +166,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                 commitHook, queryEngineSettings, indexProvider);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Descriptors getDescriptors() {
         if (descriptors == null) {
@@ -181,7 +181,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     }
     
     @SuppressWarnings("deprecation")
-    @Nonnull
+    @NotNull
     protected GenericDescriptors createDescriptors() {
         final ValueFactory valueFactory = new SimpleValueFactory();
         final Value trueValue = valueFactory.createValue(true);

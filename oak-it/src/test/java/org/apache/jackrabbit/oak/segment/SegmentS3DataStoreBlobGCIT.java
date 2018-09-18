@@ -66,6 +66,8 @@ public class SegmentS3DataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
         Properties props = S3DataStoreUtils.getS3Config();
         bucket = rootFolder.getName();
         props.setProperty(S3Constants.S3_BUCKET, bucket);
+        props.setProperty("cacheSize", "0");
+
         return new DataStoreBlobStore(
             S3DataStoreUtils.getS3DataStore(s3Class, props, rootFolder.getAbsolutePath()));
     }

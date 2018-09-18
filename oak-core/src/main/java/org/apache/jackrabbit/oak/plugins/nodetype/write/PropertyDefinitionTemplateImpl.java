@@ -21,10 +21,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 import java.util.Arrays;
 import java.util.Locale;

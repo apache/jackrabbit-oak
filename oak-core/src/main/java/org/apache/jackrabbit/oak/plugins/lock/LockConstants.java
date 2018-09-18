@@ -21,6 +21,9 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
+/**
+ * @deprecated Use {@link org.apache.jackrabbit.oak.spi.lock.LockConstants} instead
+ */
 public interface LockConstants extends JcrConstants {
 
     Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(

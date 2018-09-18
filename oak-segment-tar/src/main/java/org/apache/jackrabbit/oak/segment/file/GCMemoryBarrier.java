@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 import static java.lang.management.MemoryType.HEAP;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -30,7 +30,6 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
 import javax.management.ListenerNotFoundException;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -38,6 +37,7 @@ import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Responsible for raising the low memory flag whenever the available memory
@@ -49,36 +49,31 @@ public class GCMemoryBarrier implements Closeable {
     // TODO possibly add a min value to the percentage, ie. skip gc if available
     // heap drops under 2GB
 
-    @Nonnull
+    @NotNull
     private final AtomicBoolean sufficientMemory;
 
-    @Nonnull
+    @NotNull
     private final GCListener gcListener;
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
-
-    private final long gcCount;
 
     private final NotificationEmitter emitter;
     private final MemoryListener listener;
 
-    public GCMemoryBarrier(@Nonnull AtomicBoolean sufficientMemory,
-            @Nonnull GCListener gcListener, long gcCount,
-            @Nonnull SegmentGCOptions gcOptions) {
+    public GCMemoryBarrier(@NotNull AtomicBoolean sufficientMemory,
+                           @NotNull GCListener gcListener,
+                           @NotNull SegmentGCOptions gcOptions) {
         this.sufficientMemory = sufficientMemory;
         this.gcListener = gcListener;
         this.gcOptions = gcOptions;
-        this.gcCount = gcCount;
 
         MemoryPoolMXBean pool = null;
         int percentage = gcOptions.getMemoryThreshold();
         if (percentage > 0) {
             pool = getMemoryPool();
             if (pool == null) {
-                gcListener
-                        .warn("TarMK GC #{}: Unable to setup monitoring of available memory.",
-                                gcCount);
+                gcListener.warn("unable to setup monitoring of available memory.");
             }
         }
         if (pool != null) {
@@ -89,9 +84,11 @@ public class GCMemoryBarrier implements Closeable {
             long maxMemory = usage.getMax();
             long required = maxMemory * percentage / 100;
             gcListener
-                    .info("TarMK GC #{}: setting up a listener to cancel compaction if available memory on pool '{}' drops below {}%, {} ({} bytes).",
-                            gcCount, pool.getName(), percentage,
-                            humanReadableByteCount(required), required);
+                .info(
+            "setting up a listener to cancel compaction if available memory on pool '{}' drops below {} / {}%.",
+                    pool.getName(),
+                    newPrintableBytes(required),
+                    percentage);
 
             long warningThreshold = maxMemory - required;
             long current = pool.getCollectionUsageThreshold();
@@ -132,15 +129,15 @@ public class GCMemoryBarrier implements Closeable {
         long required = maxMemory * percentage / 100;
         if (avail <= required) {
             gcListener
-                    .warn("TarMK GC #{}: canceling compaction because available memory level {} ({} bytes) is too low, expecting at least {} ({} bytes)",
-                            gcCount, humanReadableByteCount(avail), avail,
-                            humanReadableByteCount(required), required);
+                .warn("canceling compaction because available memory level {} is too low, expecting at least {}",
+                    newPrintableBytes(avail),
+                    newPrintableBytes(required));
             sufficientMemory.set(false);
         } else {
             gcListener
-                    .info("TarMK GC #{}: available memory level {} ({} bytes) is good, expecting at least {} ({} bytes)",
-                            gcCount, humanReadableByteCount(avail), avail,
-                            humanReadableByteCount(required), required);
+                .info("available memory level {} is good, expecting at least {}",
+                    newPrintableBytes(avail),
+                    newPrintableBytes(required));
             sufficientMemory.set(true);
         }
     }

@@ -18,34 +18,28 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptyMap;
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
+import com.google.common.io.Closer;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentGraph.SegmentGraphVisitor;
 import org.apache.jackrabbit.oak.segment.SegmentId;
-import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,44 +54,40 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     private static final Logger log = LoggerFactory
             .getLogger(ReadOnlyFileStore.class);
 
-    private final List<TarReader> readers;
+    private final TarFiles tarFiles;
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
+    private final int gcRetainedGenerations;
 
     private ReadOnlyRevisions revisions;
 
     private RecordId currentHead;
 
-    ReadOnlyFileStore(FileStoreBuilder builder)
-            throws InvalidFileStoreVersionException, IOException {
+    ReadOnlyFileStore(FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
-        Map<Integer, Map<Character, File>> map = collectFiles(directory);
+        newManifestChecker(builder.getPersistence(), builder.getStrictVersionCheck()).checkManifest();
 
-        if (!map.isEmpty()) {
-            checkManifest(openManifest());
-        }
+        tarFiles = TarFiles.builder()
+                .withDirectory(directory)
+                .withTarRecovery(recovery)
+                .withIOMonitor(ioMonitor)
+                .withMemoryMapping(memoryMapping)
+                .withReadOnly()
+                .withPersistence(builder.getPersistence())
+                .build();
 
-        this.readers = newArrayListWithCapacity(map.size());
-        Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
-        Arrays.sort(indices);
-        for (int i = indices.length - 1; i >= 0; i--) {
-            // only try to read-only recover the latest file as that might
-            // be the *only* one still being accessed by a writer
-            boolean recover = i == indices.length - 1;
-            readers.add(TarReader.openRO(map.get(indices[i]), memoryMapping, recover, recovery));
-        }
+        writer = defaultSegmentWriterBuilder("read-only").withoutCache().build(this);
+        gcRetainedGenerations = builder.getGcOptions().getRetainedGenerations();
 
-        writer = segmentWriterBuilder("read-only").withoutCache().build(this);
         log.info("TarMK ReadOnly opened: {} (mmap={})", directory,
                 memoryMapping);
     }
 
-    ReadOnlyFileStore bind(@Nonnull ReadOnlyRevisions revisions)
-            throws IOException {
+    ReadOnlyFileStore bind(@NotNull ReadOnlyRevisions revisions) throws IOException {
         this.revisions = revisions;
-        this.revisions.bind(this);
+        this.revisions.bind(this, tracker);
         currentHead = revisions.getHead();
         return this;
     }
@@ -108,48 +98,9 @@ public class ReadOnlyFileStore extends AbstractFileStore {
      * @param revision
      */
     public void setRevision(String revision) {
-        RecordId newHead = RecordId.fromString(this, revision);
+        RecordId newHead = RecordId.fromString(tracker, revision);
         if (revisions.setHead(currentHead, newHead)) {
             currentHead = newHead;
-        }
-    }
-
-    /**
-     * Include the ids of all segments transitively reachable through forward
-     * references from {@code referencedIds}. See OAK-3864.
-     */
-    private static void includeForwardReferences(Iterable<TarReader> readers,
-            Set<UUID> referencedIds) throws IOException {
-        Set<UUID> fRefs = newHashSet(referencedIds);
-        do {
-            // Add direct forward references
-            for (TarReader reader : readers) {
-                reader.calculateForwardReferences(fRefs);
-                if (fRefs.isEmpty()) {
-                    break; // Optimisation: bail out if no references left
-                }
-            }
-            // ... as long as new forward references are found.
-        } while (referencedIds.addAll(fRefs));
-    }
-
-    /**
-     * Build the graph of segments reachable from an initial set of segments
-     * 
-     * @param roots
-     *            the initial set of segments
-     * @param visitor
-     *            visitor receiving call back while following the segment graph
-     * @throws IOException
-     */
-    public void traverseSegmentGraph(@Nonnull Set<UUID> roots,
-            @Nonnull SegmentGraphVisitor visitor) throws IOException {
-
-        List<TarReader> readers = this.readers;
-        includeForwardReferences(readers, roots);
-        for (TarReader reader : readers) {
-            reader.traverseSegmentGraph(checkNotNull(roots),
-                    checkNotNull(visitor));
         }
     }
 
@@ -160,101 +111,54 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     @Override
     public boolean containsSegment(SegmentId id) {
-        long msb = id.getMostSignificantBits();
-        long lsb = id.getLeastSignificantBits();
-        for (TarReader reader : readers) {
-            if (reader.containsEntry(msb, lsb)) {
-                return true;
-            }
-        }
-        return false;
+        return tarFiles.containsSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Segment readSegment(final SegmentId id) {
         try {
             return segmentCache.getSegment(id, new Callable<Segment>() {
                 @Override
                 public Segment call() throws Exception {
-                    long msb = id.getMostSignificantBits();
-                    long lsb = id.getLeastSignificantBits();
-
-                    for (TarReader reader : readers) {
-                        try {
-                            ByteBuffer buffer = reader.readEntry(msb, lsb);
-                            if (buffer != null) {
-                                return new Segment(ReadOnlyFileStore.this, segmentReader, id, buffer);
-                            }
-                        } catch (IOException e) {
-                            log.warn("Failed to read from tar file {}", reader, e);
-                        }
-                    }
-                    throw new SegmentNotFoundException(id);
+                    return readSegmentUncached(tarFiles, id);
                 }
             });
-        } catch (ExecutionException e) {
-            throw e.getCause() instanceof SegmentNotFoundException
-                ? (SegmentNotFoundException) e.getCause()
-                : new SegmentNotFoundException(id, e);
+        } catch (ExecutionException | UncheckedExecutionException e) {
+            throw asSegmentNotFoundException(e, id);
         }
     }
 
     @Override
     public void close() {
-        try {
-            revisions.close();
-            for (TarReader reader : readers) {
-                closeAndLogOnFail(reader);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to close the TarMK at "
-                    + directory, e);
-        }
+        Closer closer = Closer.create();
+        closer.register(tarFiles);
+        closer.register(revisions);
+        closeAndLogOnFail(closer);
         System.gc(); // for any memory-mappings that are no longer used
         log.info("TarMK closed: {}", directory);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentWriter getWriter() {
         return writer;
     }
 
     public Map<String, Set<UUID>> getTarReaderIndex() {
-        Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
-        for (TarReader reader : readers) {
-            index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
-        }
-        return index;
+        return tarFiles.getIndices();
     }
 
-    public Map<UUID, List<UUID>> getTarGraph(String fileName)
-            throws IOException {
-        for (TarReader reader : readers) {
-            if (fileName.equals(reader.getFile().getName())) {
-                Map<UUID, List<UUID>> graph = newHashMap();
-                for (UUID uuid : reader.getUUIDs()) {
-                    graph.put(uuid, null);
-                }
-                Map<UUID, List<UUID>> g = reader.getGraph(false);
-                if (g != null) {
-                    graph.putAll(g);
-                }
-                return graph;
-            }
-        }
-        return emptyMap();
+    public Map<UUID, Set<UUID>> getTarGraph(String fileName) throws IOException {
+        return tarFiles.getGraph(fileName);
     }
 
     public Iterable<SegmentId> getSegmentIds() {
-        List<SegmentId> ids = newArrayList();
-        for (TarReader reader : readers) {
-            for (UUID uuid : reader.getUUIDs()) {
-                long msb = uuid.getMostSignificantBits();
-                long lsb = uuid.getLeastSignificantBits();
-                ids.add(newSegmentId(msb, lsb));
-            }
+        List<SegmentId> ids = new ArrayList<>();
+        for (UUID id : tarFiles.getSegmentIds()) {
+            long msb = id.getMostSignificantBits();
+            long lsb = id.getLeastSignificantBits();
+            ids.add(tracker.newSegmentId(msb, lsb));
         }
         return ids;
     }
@@ -262,5 +166,15 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     @Override
     public ReadOnlyRevisions getRevisions() {
         return revisions;
+    }
+
+    public Set<SegmentId> getReferencedSegmentIds() {
+        return tracker.getReferencedSegmentIds();
+    }
+
+    @Override
+    public void collectBlobReferences(Consumer<String> collector) throws IOException {
+        tarFiles.collectBlobReferences(collector,
+            newOldReclaimer(SegmentGCOptions.GCType.FULL, revisions.getHead().getSegmentId().getGcGeneration(), gcRetainedGenerations));
     }
 }

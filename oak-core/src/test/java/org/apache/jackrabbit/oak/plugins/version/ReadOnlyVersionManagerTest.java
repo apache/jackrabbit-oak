@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,9 +24,11 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -125,7 +126,7 @@ public class ReadOnlyVersionManagerTest extends AbstractSecurityTest {
     }
 
 
-    private void assertVersionable(@Nonnull String expectedPath, @Nonnull Tree versionTree) {
+    private void assertVersionable(@NotNull String expectedPath, @NotNull Tree versionTree) {
         String p = versionTree.getPath();
         assertTrue(p, versionTree.exists());
 

@@ -21,13 +21,12 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code EventTypeFilter} filters based on the access rights of the observing session.
@@ -46,11 +45,11 @@ public final class ACFilter implements EventFilter {
 
     private TreePermission treePermission;
 
-    private ACFilter(@Nonnull NodeState before,
-                     @Nonnull NodeState after,
-                     @Nonnull String name,
-                     @Nonnull PermissionProvider permissionProvider,
-                     @Nonnull ACFilter parentFilter) {
+    private ACFilter(@NotNull NodeState before,
+                     @NotNull NodeState after,
+                     @NotNull String name,
+                     @NotNull PermissionProvider permissionProvider,
+                     @NotNull ACFilter parentFilter) {
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
         this.name = checkNotNull(name);
@@ -66,9 +65,9 @@ public final class ACFilter implements EventFilter {
      * @param after  after state
      * @param permissionProvider  permission provider for access control evaluation
      */
-    public ACFilter(@Nonnull NodeState before,
-                    @Nonnull NodeState after,
-                    @Nonnull PermissionProvider permissionProvider) {
+    public ACFilter(@NotNull NodeState before,
+                    @NotNull NodeState after,
+                    @NotNull PermissionProvider permissionProvider) {
         this.before = checkNotNull(before);
         this.after = checkNotNull(after);
         this.name = null;

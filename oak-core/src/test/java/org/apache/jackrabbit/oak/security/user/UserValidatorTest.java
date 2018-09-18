@@ -17,25 +17,20 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -63,6 +58,10 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void before() throws Exception {
         super.before();
         userPath = getTestUser().getPath();
+    }
+
+    private UserValidatorProvider createValidatorProvider() {
+        return new UserValidatorProvider(getConfig(), getRootProvider(), getTreeProvider());
     }
 
     @Test
@@ -111,7 +110,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager(root).createUser("withoutPrincipalName", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.removeProperty(REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -127,7 +126,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager(root).createUser("withInvalidUUID", "pw");
-            Tree tree = root.getTree(userPath);
+            Tree tree = root.getTree(user.getPath());
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
@@ -270,6 +269,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         invalid.add(userPath);
         invalid.add(userPath + "/folder");
 
+        UserProvider up = new UserProvider(root, getUserConfiguration().getParameters());
         for (String path : invalid) {
             try {
                 Tree parent = root.getTree(path);
@@ -287,7 +287,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
                 }
                 Tree userTree = parent.addChild("testUser");
                 userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
-                userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser", false));
+                userTree.setProperty(JcrConstants.JCR_UUID, up.getContentID("testUser"));
                 userTree.setProperty(REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
                 fail("Invalid hierarchy should be detected");
@@ -300,76 +300,6 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         }
     }
 
-    
-    /**
-     * @since oak 1.0 cyclic group membership added in a single set of transient
-     *        modifications must be detected upon save.
-     */
-    @Test
-    public void testDetectCyclicMembership() throws Exception {
-        Group group1 = null;
-        Group group2 = null;
-        Group group3 = null;
-        
-        UserManager userMgr = getUserManager(root);
-        try {
-            group1 = userMgr.createGroup("group1");
-            group2 = userMgr.createGroup("group2");
-            group3 = userMgr.createGroup("group3");
-
-            group1.addMember(group2);
-            group2.addMember(group3);
-
-            // manually create the cyclic membership
-            Tree group3Tree = root.getTree(group3.getPath());
-            Set<String> values = Collections.singleton(root.getTree(group1.getPath()).getProperty(JcrConstants.JCR_UUID).getValue(Type.STRING));
-            PropertyState prop = PropertyStates.createProperty(REP_MEMBERS, values, Type.WEAKREFERENCES);
-            group3Tree.setProperty(prop);
-            root.commit();
-            fail("Cyclic group membership must be detected");
-        } catch (CommitFailedException e) {
-            // success
-        } finally {
-            if (group1 != null) group1.remove();
-            if (group2 != null) group2.remove();
-            if (group3 != null) group3.remove();
-            root.commit();
-        }
-    }
-
-    @Test
-    public void testDetectCyclicMembershipWithIntermediateCommit() throws Exception {
-        Group group1 = null;
-        Group group2 = null;
-        Group group3 = null;
-
-        UserManager userMgr = getUserManager(root);
-        try {
-            group1 = userMgr.createGroup("group1");
-            group2 = userMgr.createGroup("group2");
-            group3 = userMgr.createGroup("group3");
-
-            group1.addMember(group2);
-            group2.addMember(group3);
-            root.commit();
-
-            // manually create the cyclic membership
-            Tree group3Tree = root.getTree(group3.getPath());
-            Set<String> values = Collections.singleton(root.getTree(group1.getPath()).getProperty(JcrConstants.JCR_UUID).getValue(Type.STRING));
-            PropertyState prop = PropertyStates.createProperty(REP_MEMBERS, values, Type.WEAKREFERENCES);
-            group3Tree.setProperty(prop);
-            root.commit();
-            fail("Cyclic group membership must be detected");
-        } catch (CommitFailedException e) {
-            // success
-        } finally {
-            if (group1 != null) group1.remove();
-            if (group2 != null) group2.remove();
-            if (group3 != null) group3.remove();
-            root.commit();
-        }
-    }
-
     @Test
     public void testCreateNestedUser() throws Exception {
         Tree userTree = root.getTree(getTestUser().getPath());
@@ -378,7 +308,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         NodeUtil nested = profile.addChild("nested", UserConstants.NT_REP_USER);
         nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
         nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
-        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        nested.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID("nested"));
         try {
             root.commit();
             fail("Creating nested users must be detected.");
@@ -398,7 +328,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         NodeUtil nested = profile.addChild("nested", JcrConstants.NT_UNSTRUCTURED);
         nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
         nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
-        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        nested.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID("nested"));
         root.commit();
 
         try {
@@ -415,7 +345,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeAdded() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeState root = store.getRoot();
         NodeBuilder builder = root.builder();
@@ -435,7 +365,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeChanged() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");
@@ -458,7 +388,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test
     public void hiddenNodeDeleted() throws CommitFailedException {
-        UserValidatorProvider provider = new UserValidatorProvider(getConfig());
+        UserValidatorProvider provider = createValidatorProvider();
         MemoryNodeStore store = new MemoryNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.child("test").child(":hidden");

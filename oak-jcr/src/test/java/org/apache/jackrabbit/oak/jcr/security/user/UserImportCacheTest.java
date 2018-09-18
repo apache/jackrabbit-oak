@@ -19,12 +19,9 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import javax.jcr.Node;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Testing user import with default {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}

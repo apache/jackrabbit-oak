@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * ExternalGroup defines a group that is provided by an external system.
@@ -28,7 +28,7 @@ public interface ExternalGroup extends ExternalIdentity {
      * @return the declared member
      * @throws ExternalIdentityException if an error occurs
      */
-    @Nonnull
+    @NotNull
     Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException;
 
 }

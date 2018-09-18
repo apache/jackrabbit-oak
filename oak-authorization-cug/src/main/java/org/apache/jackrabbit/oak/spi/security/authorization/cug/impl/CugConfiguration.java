@@ -19,41 +19,37 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -66,10 +62,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 @Component(metatype = true,
         label = "Apache Jackrabbit Oak CUG Configuration",
@@ -88,115 +86,151 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = CompositeConfiguration.PARAM_RANKING,
                 label = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 200)
+                intValue = 200),
+        @Property(name = OAK_SECURITY_NAME,
+                propertyPrivate = true,
+                value = "org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration")        
 })
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
 
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     private CugExclude exclude;
+
+    /**
+     * Reference to service implementing {@link MountInfoProvider} to make the
+     * CUG authorization model multiplexing aware.
+     */
+    @Reference
+    private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
+
+    private Set<String> supportedPaths = ImmutableSet.of();
 
     @SuppressWarnings("UnusedDeclaration")
     public CugConfiguration() {
         super();
     }
 
-    public CugConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public CugConfiguration(@NotNull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
-        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider());
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
+        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return RestrictionProvider.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
-        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Collections.<String>emptySet());
         if (!enabled || supportedPaths.isEmpty() || getExclude().isExcluded(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext());
+            return new CugPermissionProvider(root, workspaceName, principals, supportedPaths, getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return AuthorizationConfiguration.NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new RepositoryInitializer() {
-            @Override
-            public void initialize(@Nonnull NodeBuilder builder) {
-                NodeState base = builder.getNodeState();
-                NodeStore store = new MemoryNodeStore(base);
+        return builder -> {
+            NodeState base = builder.getNodeState();
+            NodeStore store = new MemoryNodeStore(base);
 
-                Root root = RootFactory.createSystemRoot(store,
-                        new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
-                        null, null, null, null);
-                if (registerCugNodeTypes(root)) {
-                    NodeState target = store.getRoot();
-                    target.compareAgainstBaseState(base, new ApplyDiff(builder));
-                }
+            Root root = getRootProvider().createSystemRoot(store, null);
+            if (registerCugNodeTypes(root)) {
+                NodeState target = store.getRoot();
+                target.compareAgainstBaseState(base, new ApplyDiff(builder));
             }
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return Collections.singletonList(new NestedCugHook());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new CugValidatorProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return Collections.<ProtectedItemImporter>singletonList(new CugImporter());
+        return Collections.<ProtectedItemImporter>singletonList(new CugImporter(mountInfoProvider));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return CugContext.INSTANCE;
     }
 
+    @Override
+    public void setParameters(@NotNull ConfigurationParameters config) {
+        super.setParameters(config);
+        supportedPaths = CugUtil.getSupportedPaths(config, mountInfoProvider);
+    }
+
     //----------------------------------------------------< SCR Integration >---
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    protected void activate(Map<String, Object> properties) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
+    protected void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
+    @Modified
+    protected void modified(Map<String, Object> properties) {
+        activate(properties);
+    }
+
+    public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
+    public void unbindMountInfoProvider(MountInfoProvider mountInfoProvider) {
+        // set to null (and not default) to comply with OSGi lifecycle,
+        // if the reference is unset it means the service is being deactivated
+        this.mountInfoProvider = null;
+    }
+
+    public void bindExclude(CugExclude exclude) {
+        this.exclude = exclude;
+    }
+
+    public void unbindExclude(CugExclude exclude) {
+        this.exclude = null;
+    }
+
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     private CugExclude getExclude() {
         return (exclude == null) ? new CugExclude.Default() : exclude;
     }
 
-    static boolean registerCugNodeTypes(@Nonnull final Root root) {
+    static boolean registerCugNodeTypes(@NotNull final Root root) {
         try {
             ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
                 @Override
@@ -205,17 +239,12 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 }
             };
             if (!ntMgr.hasNodeType(NT_REP_CUG_POLICY)) {
-                InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd");
-                try {
+                try (InputStream stream = CugConfiguration.class.getResourceAsStream("cug_nodetypes.cnd")) {
                     NodeTypeRegistry.register(root, stream, "cug node types");
                     return true;
-                } finally {
-                    stream.close();
                 }
             }
-        } catch (IOException e) {
-            throw new IllegalStateException("Unable to read cug node types", e);
-        } catch (RepositoryException e) {
+        } catch (IOException | RepositoryException e) {
             throw new IllegalStateException("Unable to read cug node types", e);
         }
         return false;

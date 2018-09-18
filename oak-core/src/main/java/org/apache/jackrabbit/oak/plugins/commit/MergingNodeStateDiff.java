@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.commit;
 
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.BASE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CONFLICT;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.OURS;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.ADD_EXISTING_PROPERTY;
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.CHANGE_CHANGED_PROPERTY;
@@ -29,15 +31,18 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_NO
 import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PROPERTY;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler.Resolution;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler.Resolution;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -53,20 +58,20 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
     private final NodeState parent;
     private final NodeBuilder target;
-    private final ConflictHandler conflictHandler;
+    private final ThreeWayConflictHandler conflictHandler;
 
-    private MergingNodeStateDiff(NodeState parent, NodeBuilder target, ConflictHandler conflictHandler) {
+    private MergingNodeStateDiff(NodeState parent, NodeBuilder target, ThreeWayConflictHandler conflictHandler) {
         this.parent = parent;
         this.target = target;
         this.conflictHandler = conflictHandler;
     }
 
-    static NodeState merge(NodeState fromState, NodeState toState, ConflictHandler conflictHandler) {
+    static NodeState merge(NodeState fromState, NodeState toState, ThreeWayConflictHandler conflictHandler) {
         return merge(fromState, toState, toState.builder(), conflictHandler).getNodeState();
     }
 
     private static NodeBuilder merge(NodeState fromState, NodeState toState, NodeBuilder target,
-                                     ConflictHandler conflictHandler) {
+                    ThreeWayConflictHandler conflictHandler) {
         toState.compareAgainstBaseState(fromState,
                 new MergingNodeStateDiff(toState, target, conflictHandler));
 
@@ -89,7 +94,9 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        merge(before, after, target.child(name), conflictHandler);
+        if (target.hasChildNode(name)) {
+            merge(before, after, target.getChildNode(name), conflictHandler);
+        }
         return true;
     }
 
@@ -98,23 +105,44 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private void resolveConflict(ConflictType conflictType, NodeState conflictInfo) {
         PropertyConflictHandler propertyConflictHandler = propertyConflictHandlers.get(conflictType);
         if (propertyConflictHandler != null) {
-            for (PropertyState ours : conflictInfo.getProperties()) {
-                PropertyState theirs = parent.getProperty(ours.getName());
-                Resolution resolution = propertyConflictHandler.resolve(ours, theirs);
-                applyResolution(resolution, conflictType, ours);
+            NodeState oursNS = conflictInfo.getChildNode(OURS);
+            NodeState baseNS = conflictInfo.getChildNode(BASE);
+
+            Set<String> processed = Sets.newHashSet();
+            for (PropertyState ours : oursNS.getProperties()) {
+                String name = ours.getName();
+                processed.add(name);
+                PropertyState base = baseNS.getProperty(name);
+                PropertyState theirs = parent.getProperty(name);
+                Resolution resolution = propertyConflictHandler.resolve(ours, theirs, base);
+                applyPropertyResolution(resolution, conflictType, name, ours);
             }
-        }
-        else {
+            for (PropertyState base : baseNS.getProperties()) {
+                String name = base.getName();
+                if (processed.contains(name)) {
+                    continue;
+                }
+                PropertyState theirs = parent.getProperty(name);
+                Resolution resolution = propertyConflictHandler.resolve(null, theirs, base);
+                applyPropertyResolution(resolution, conflictType, name, null);
+            }
+        } else {
             NodeConflictHandler nodeConflictHandler = nodeConflictHandlers.get(conflictType);
             if (nodeConflictHandler != null) {
-                for (ChildNodeEntry oursCNE : conflictInfo.getChildNodeEntries()) {
-                    String name = oursCNE.getName();
-                    NodeState ours = oursCNE.getNodeState();
+                NodeState oursNS = conflictInfo.getChildNode(OURS);
+                NodeState baseNS = conflictInfo.getChildNode(BASE);
+
+                Set<String> candidates = Sets.union(Sets.newHashSet(oursNS.getChildNodeNames()),
+                        Sets.newHashSet(baseNS.getChildNodeNames()));
+                for (String name : candidates) {
+                    NodeState ours = oursNS.getChildNode(name);
+                    NodeState base = baseNS.getChildNode(name);
                     NodeState theirs = parent.getChildNode(name);
-                    Resolution resolution = nodeConflictHandler.resolve(name, ours, theirs);
+                    Resolution resolution = nodeConflictHandler.resolve(name, ours, theirs, base);
                     applyResolution(resolution, conflictType, name, ours);
+
                     if (LOG.isDebugEnabled()) {
-                        String diff = JsopDiff.diffToJsop(ours, theirs);
+                        String diff = JsopDiff.diffToJsop(base, theirs);
                         LOG.debug(
                                 "{} resolved conflict of type {} with resolution {} on node {}, conflict trace {}",
                                 nodeConflictHandler, conflictType, resolution,
@@ -129,36 +157,50 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (conflictMarker != null) {
-            assert conflictMarker.getChildNodeCount(1) == 0;
+            assert conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE).getChildNodeCount(1) == 0;
+            assert conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.OURS).getChildNodeCount(1) == 0;
         }
     }
 
-    private void applyResolution(Resolution resolution, ConflictType conflictType, PropertyState ours) {
-        String name = ours.getName();
+    private void applyPropertyResolution(Resolution resolution, ConflictType conflictType, String name, PropertyState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
-            if (DELETE_CHANGED_PROPERTY == conflictType) {
+            if (DELETE_CHANGED_PROPERTY == conflictType || DELETE_DELETED_PROPERTY == conflictType) {
                 target.removeProperty(name);
-            }
-            else {
+            } else {
                 target.setProperty(ours);
             }
-
         }
-        conflictMarker.removeProperty(name);
+        NodeBuilder baseClean = conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE);
+        if (baseClean.exists()) {
+            baseClean.removeProperty(name);
+        }
+        NodeBuilder oursClean = conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.OURS);
+        if (oursClean.exists()) {
+            oursClean.removeProperty(name);
+        }
     }
 
     private void applyResolution(Resolution resolution, ConflictType conflictType, String name, NodeState ours) {
         NodeBuilder conflictMarker = getConflictMarker(conflictType);
         if (resolution == Resolution.OURS) {
-            if (DELETE_CHANGED_NODE == conflictType) {
+            if (DELETE_CHANGED_NODE == conflictType || DELETE_DELETED_NODE == conflictType) {
                 removeChild(target, name);
-            }
-            else {
+            } else {
                 addChild(target, name, ours);
             }
         }
-        conflictMarker.getChildNode(name).remove();
+
+        NodeBuilder baseClean = conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.BASE);
+        if (baseClean.exists()) {
+            baseClean.getChildNode(name).remove();
+        }
+
+        NodeBuilder oursClean = conflictMarker.getChildNode(ConflictAnnotatingRebaseDiff.OURS);
+        if (oursClean.exists()) {
+            oursClean.getChildNode(name).remove();
+        }
+
     }
 
     private NodeBuilder getConflictMarker(ConflictType conflictType) {
@@ -174,17 +216,17 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     }
 
     private interface PropertyConflictHandler {
-        Resolution resolve(PropertyState ours, PropertyState theirs);
+        Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base);
     }
 
     private interface NodeConflictHandler {
-        Resolution resolve(String name, NodeState ours, NodeState theirs);
+        Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base);
     }
 
     private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = ImmutableMap.of(
         ADD_EXISTING_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs) {
+            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
                 return conflictHandler.addExistingProperty(target, ours, theirs);
             }
 
@@ -195,8 +237,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs) {
-                return conflictHandler.changeDeletedProperty(target, ours);
+            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+                return conflictHandler.changeDeletedProperty(target, ours, base);
             }
 
             @Override
@@ -206,8 +248,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_CHANGED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs) {
-                return conflictHandler.changeChangedProperty(target, ours, theirs);
+            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+                return conflictHandler.changeChangedProperty(target, ours, theirs, base);
             }
 
             @Override
@@ -217,8 +259,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_DELETED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs) {
-                return conflictHandler.deleteDeletedProperty(target, ours);
+            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+                return conflictHandler.deleteDeletedProperty(target, base);
             }
 
             @Override
@@ -228,8 +270,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_CHANGED_PROPERTY, new PropertyConflictHandler() {
             @Override
-            public Resolution resolve(PropertyState ours, PropertyState theirs) {
-                return conflictHandler.deleteChangedProperty(target, theirs);
+            public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
+                return conflictHandler.deleteChangedProperty(target, theirs, base);
             }
 
             @Override
@@ -242,7 +284,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = ImmutableMap.of(
         ADD_EXISTING_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs) {
+            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
                 return conflictHandler.addExistingNode(target, name, ours, theirs);
             }
 
@@ -253,8 +295,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         CHANGE_DELETED_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs) {
-                return conflictHandler.changeDeletedNode(target, name, ours);
+            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+                return conflictHandler.changeDeletedNode(target, name, ours, base);
             }
 
             @Override
@@ -264,8 +306,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_CHANGED_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs) {
-                return conflictHandler.deleteChangedNode(target, name, theirs);
+            public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+                return conflictHandler.deleteChangedNode(target, name, theirs, base);
             }
 
             @Override
@@ -275,8 +317,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         },
         DELETE_DELETED_NODE, new NodeConflictHandler() {
             @Override
-            public Resolution resolve(String name, NodeState ours, NodeState theirs) {
-                return conflictHandler.deleteDeletedNode(target, name);
+                public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {
+                return conflictHandler.deleteDeletedNode(target, name, base);
             }
 
             @Override

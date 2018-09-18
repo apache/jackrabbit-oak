@@ -21,7 +21,6 @@ import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -30,6 +29,8 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Read-only namespace registry. Used mostly internally when access to the
@@ -71,17 +72,17 @@ public class ReadOnlyNamespaceRegistry
         throw new UnsupportedRepositoryOperationException();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String[] getPrefixes() {
         return toArray(getNSData(REP_PREFIXES), String.class);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String[] getURIs() {
         return toArray(getNSData(REP_URIS), String.class);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getURI(String prefix) throws NamespaceException {
         if (prefix.isEmpty()) {
             return prefix; // the default empty namespace
@@ -96,7 +97,7 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace registered for prefix " + prefix);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getPrefix(String uri) throws NamespaceException {
         if (uri.isEmpty()) {
             return uri; // the default empty namespace

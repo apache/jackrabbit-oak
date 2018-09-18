@@ -20,12 +20,19 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import javax.net.ssl.HttpsURLConnection;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
@@ -38,11 +45,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
-import org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.StandardSystemProperty.USER_HOME;
 
 /**
  * Extension to {@link DataStoreUtils} to enable S3 extensions for cleaning and initialization.
@@ -50,21 +58,19 @@ import org.slf4j.LoggerFactory;
 public class S3DataStoreUtils extends DataStoreUtils {
     private static final Logger log = LoggerFactory.getLogger(S3DataStoreUtils.class);
 
-    private static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
+    static final String DEFAULT_CONFIG_PATH = "./src/test/resources/aws.properties";
+    private static final String DEFAULT_PROPERTY_FILE = "aws.properties";
+    private static final String SYS_PROP_NAME = "s3.config";
 
-    protected static Class JR2_S3 = SharedS3DataStore.class;
     protected static Class S3 = S3DataStore.class;
 
     public static List<String> getFixtures() {
-        return ImmutableList.of(
-            S3.getName(),
-            JR2_S3.getName());
+        return ImmutableList.of(S3.getName());
     }
 
     public static boolean isS3DataStore() {
         String dsName = System.getProperty(DS_CLASS_NAME);
-        boolean s3Class =
-            (dsName != null) && (dsName.equals(S3.getName()) || dsName.equals(JR2_S3.getName()));
+        boolean s3Class = (dsName != null) && (dsName.equals(S3.getName()));
         if (!isS3Configured()) {
             return false;
         }
@@ -78,8 +84,9 @@ public class S3DataStoreUtils extends DataStoreUtils {
      */
     public static boolean isS3Configured() {
         Properties props = getS3Config();
-        if (!props.containsKey(S3Constants.ACCESS_KEY) || !props.containsKey(S3Constants.SECRET_KEY)
-            || !(props.containsKey(S3Constants.S3_REGION) || props.containsKey(S3Constants.S3_END_POINT))) {
+        if (!props.containsKey(S3Constants.ACCESS_KEY) || !props.containsKey(S3Constants.SECRET_KEY) || !(
+            props.containsKey(S3Constants.S3_REGION) || props.containsKey(S3Constants.S3_END_POINT))) {
+
             return false;
         }
         return true;
@@ -93,7 +100,13 @@ public class S3DataStoreUtils extends DataStoreUtils {
      * @return Properties instance
      */
     public static Properties getS3Config() {
-        String config = System.getProperty("config");
+        String config = System.getProperty(SYS_PROP_NAME);
+        if (Strings.isNullOrEmpty(config)) {
+            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+            if (cfgFile.exists()) {
+                config = cfgFile.getAbsolutePath();
+            }
+        }
         if (Strings.isNullOrEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
@@ -101,7 +114,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
         if (new File(config).exists()) {
             InputStream is = null;
             try {
-                props.load(new FileInputStream(config));
+                is = new FileInputStream(config);
+                props.load(is);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
@@ -121,12 +135,10 @@ public class S3DataStoreUtils extends DataStoreUtils {
 
     public static DataStore getS3DataStore(String className, Properties props, String homeDir) throws Exception {
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
-        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        PropertiesUtil.populate(ds, Utils.asMap(props), false);
         // Set the props object
         if (S3.getName().equals(className)) {
             ((S3DataStore) ds).setProperties(props);
-        } else if (JR2_S3.getName().equals(className)) {
-            ((org.apache.jackrabbit.oak.blob.cloud.aws.s3.SharedS3DataStore) ds).setProperties(props);
         }
         ds.init(homeDir);
 
@@ -146,20 +158,18 @@ public class S3DataStoreUtils extends DataStoreUtils {
             for (int i = 0; i < 4; i++) {
                 tmx.abortMultipartUploads(bucket, date);
                 ObjectListing prevObjectListing = s3service.listObjects(bucket);
-                while (prevObjectListing != null ) {
-                    List<DeleteObjectsRequest.KeyVersion>
-                        deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+                while (prevObjectListing != null) {
+                    List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
                     for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
-                        deleteList.add(new DeleteObjectsRequest.KeyVersion(
-                            s3ObjSumm.getKey()));
+                        deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
                     }
                     if (deleteList.size() > 0) {
-                        DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                            bucket);
+                        DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
                         delObjsReq.setKeys(deleteList);
                         s3service.deleteObjects(delObjsReq);
                     }
-                    if (!prevObjectListing.isTruncated()) break;
+                    if (!prevObjectListing.isTruncated())
+                        break;
                     prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
                 }
             }
@@ -170,5 +180,16 @@ public class S3DataStoreUtils extends DataStoreUtils {
         }
         tmx.shutdownNow();
         s3service.shutdown();
+    }
+
+    protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {
+        HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
+        conn.setDoOutput(true);
+        conn.setRequestMethod("PUT");
+        conn.setRequestProperty("Content-Length", String.valueOf(length));
+        conn.setRequestProperty("Date", DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX").withZone(ZoneOffset.UTC).format(Instant.now()));
+        conn.setRequestProperty("Host", uri.getHost());
+
+        return conn;
     }
 }

@@ -20,10 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
@@ -33,7 +35,7 @@ import javax.jcr.version.VersionIterator;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -192,6 +194,9 @@ public class CopyTest extends AbstractRepositoryTest {
 
     @Test
     public void testCopyLockedNode() throws Exception {
+
+        assumeTrue(getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean());
+
         Session session = getAdminSession();
         Node toCopy = session.getNode(TEST_PATH + "/source/node");
         toCopy.addMixin(JcrConstants.MIX_LOCKABLE);

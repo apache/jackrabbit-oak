@@ -21,17 +21,16 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getOrCreateOakI
 
 import java.util.ArrayList;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -44,7 +43,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
                 .with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(@Nonnull NodeBuilder builder) {
+                    public void initialize(@NotNull NodeBuilder builder) {
                         createIndexDefinition(
                                 getOrCreateOakIndex(builder), "pid",
                                 true, false, ImmutableList.of("pid"), null);

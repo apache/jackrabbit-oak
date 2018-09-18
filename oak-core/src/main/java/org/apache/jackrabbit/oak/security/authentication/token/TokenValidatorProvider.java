@@ -16,27 +16,26 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +47,11 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
     private final String userRootPath;
 
-    TokenValidatorProvider(@Nonnull ConfigurationParameters userConfig) {
+    private final TreeProvider treeProvider;
+
+    TokenValidatorProvider(@NotNull ConfigurationParameters userConfig, @NotNull TreeProvider treeProvider) {
         userRootPath = userConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        this.treeProvider = treeProvider;
     }
 
     @Override
@@ -57,7 +59,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         return new TokenValidator(before, after, commitInfo);
     }
 
-    private static CommitFailedException constraintViolation(int code, @Nonnull String message) {
+    private static CommitFailedException constraintViolation(int code, @NotNull String message) {
         return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 
@@ -67,11 +69,11 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         private final Tree parentAfter;
         private final CommitInfo commitInfo;
 
-        TokenValidator(@Nonnull NodeState parentBefore, @Nonnull NodeState parentAfter, @Nonnull CommitInfo commitInfo) {
-            this(TreeFactory.createReadOnlyTree(parentBefore), TreeFactory.createReadOnlyTree(parentAfter), commitInfo);
+        TokenValidator(@NotNull NodeState parentBefore, @NotNull NodeState parentAfter, @NotNull CommitInfo commitInfo) {
+            this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
-        private TokenValidator(@Nullable Tree parentBefore, @Nonnull Tree parentAfter, @Nonnull CommitInfo commitInfo) {
+        private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.commitInfo = commitInfo;
@@ -95,13 +97,13 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-            String beforeName = after.getName();
-            if (TOKEN_ATTRIBUTE_KEY.equals(beforeName)) {
-                String msg = "Attempt to change reserved token property " + beforeName;
+            String propertyName = after.getName();
+            if (TOKEN_ATTRIBUTE_KEY.equals(propertyName)) {
+                String msg = "Attempt to change reserved token property " + propertyName;
                 throw constraintViolation(61, msg);
-            } else if (TOKEN_ATTRIBUTE_EXPIRY.equals(beforeName)) {
+            } else if (TOKEN_ATTRIBUTE_EXPIRY.equals(propertyName)) {
                 verifyCommitInfo();
-            } else if (JcrConstants.JCR_PRIMARYTYPE.equals(beforeName)) {
+            } else if (JcrConstants.JCR_PRIMARYTYPE.equals(propertyName)) {
                 if (TOKEN_NT_NAME.equals(after.getValue(Type.STRING))) {
                     throw constraintViolation(62, "Changing primary type of existing node to the reserved token node type.");
                 }
@@ -146,25 +148,25 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             }
         }
 
-        private void verifyHierarchy(@Nonnull String path) throws CommitFailedException {
+        private void verifyHierarchy(@NotNull String path) throws CommitFailedException {
             if (!Text.isDescendant(userRootPath, path)) {
                 String msg = "Attempt to create a token (or it's parent) outside of configured scope " + path;
                 throw constraintViolation(64, msg);
             }
         }
 
-        private boolean isTokenTree(@CheckForNull Tree tree) {
+        private boolean isTokenTree(@Nullable Tree tree) {
             return tree != null && TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tree));
         }
 
-        private void validateTokenTree(@Nonnull Tree tokenTree) throws CommitFailedException {
+        private void validateTokenTree(@NotNull Tree tokenTree) throws CommitFailedException {
             // enforce changing being made by the TokenProvider implementation
             verifyCommitInfo();
 
             verifyHierarchy(tokenTree.getPath());
 
             Tree parent = tokenTree.getParent();
-            if (!TOKENS_NODE_NAME.equals(parent.getName()) || !UserConstants.NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(parent.getParent()))) {
+            if (!isTokensParent(parent) || !UserConstants.NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(parent.getParent()))) {
                 throw constraintViolation(65, "Invalid location of token node.");
             }
 
@@ -179,11 +181,11 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             }
         }
 
-        private boolean isTokensParent(@CheckForNull Tree tree) {
+        private boolean isTokensParent(@Nullable Tree tree) {
             return tree != null && TOKENS_NODE_NAME.equals(tree.getName());
         }
 
-        private void validateTokensParent(@Nonnull Tree tokensParent) throws CommitFailedException {
+        private void validateTokensParent(@NotNull Tree tokensParent) throws CommitFailedException {
 
             verifyHierarchy(tokensParent.getPath());
 

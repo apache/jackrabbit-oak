@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -64,8 +66,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
+    private final MountInfoProvider mountInfoProvider;
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
-    private NodeBuilder permissionRoot;
+    private NodeBuilder permissionStore;
     private PrivilegeBitsProvider bitsProvider;
 
     private TypePredicate isACL;
@@ -75,21 +80,26 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, PermissionStoreEditor> modified = new HashMap<String, PermissionStoreEditor>();
     private Map<String, PermissionStoreEditor> deleted = new HashMap<String, PermissionStoreEditor>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
+    public PermissionHook(@NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider,
+                          @NotNull MountInfoProvider mountInfoProvider, @NotNull RootProvider rootProvider,
+                          @NotNull TreeProvider treeProvider) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
+        this.mountInfoProvider = mountInfoProvider;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     //---------------------------------------------------------< CommitHook >---
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)
             throws CommitFailedException {
         NodeBuilder rootAfter = after.builder();
 
-        permissionRoot = getPermissionRoot(rootAfter);
-        bitsProvider = new PrivilegeBitsProvider(RootFactory.createReadOnlyRoot(after));
+        permissionStore = getPermissionStore(rootAfter);
+        bitsProvider = new PrivilegeBitsProvider(rootProvider.createReadOnlyRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
         isACE = new TypePredicate(after, NT_REP_ACE);
@@ -120,10 +130,16 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         deleted.clear();
     }
 
-    @Nonnull
-    private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
+    @NotNull
+    private static NodeBuilder getPermissionStore(NodeBuilder rootBuilder) {
         // permission root has been created during workspace initialization
-        return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE).getChildNode(workspaceName);
+        return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
+    }
+
+    @NotNull
+    private NodeBuilder getPermissionRoot(String path) {
+        Mount m = mountInfoProvider.getMountByPath(path);
+        return permissionStore.getChildNode(MountPermissionProvider.getPermissionRootName(m, workspaceName));
     }
 
     private final class Diff extends DefaultNodeStateDiff {
@@ -198,8 +214,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             return true;
         }
 
-        private PermissionStoreEditor createPermissionStoreEditor(@Nonnull String nodeName, @Nonnull NodeState nodeState) {
-            return new PermissionStoreEditor(parentPath, nodeName, nodeState, permissionRoot, isACE, isGrantACE, bitsProvider, restrictionProvider);
+        private PermissionStoreEditor createPermissionStoreEditor(@NotNull String nodeName, @NotNull NodeState nodeState) {
+            return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider, treeProvider);
         }
     }
 }

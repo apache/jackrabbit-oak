@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -32,6 +31,7 @@ import javax.management.StandardMBean;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.standby.jmx.StandbyStatusMBean;
 import org.apache.jackrabbit.oak.segment.standby.store.CommunicationObserver;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +48,8 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
     private final String[] allowedClientIPRanges;
 
     private final boolean secure;
+    
+    private final int blobChunkSize;
 
     private volatile String state;
 
@@ -55,21 +57,22 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
 
     private StandbyServer server;
 
-    public StandbyServerSync(final int port, final FileStore fileStore) {
-        this(port, fileStore, null, false);
+    public StandbyServerSync(final int port, final FileStore fileStore, final int blobChunkSize) {
+        this(port, fileStore, blobChunkSize, null, false);
     }
 
-    public StandbyServerSync(final int port, final FileStore fileStore, final boolean secure) {
-        this(port, fileStore, null, secure);
+    public StandbyServerSync(final int port, final FileStore fileStore, final int blobChunkSize, final boolean secure) {
+        this(port, fileStore, blobChunkSize, null, secure);
     }
 
-    public StandbyServerSync(final int port, final FileStore fileStore, final String[] allowedClientIPRanges) {
-        this(port, fileStore, allowedClientIPRanges, false);
+    public StandbyServerSync(final int port, final FileStore fileStore, final int blobChunkSize, final String[] allowedClientIPRanges) {
+        this(port, fileStore, blobChunkSize, allowedClientIPRanges, false);
     }
 
-    public StandbyServerSync(final int port, final FileStore fileStore, final String[] allowedClientIPRanges, final boolean secure) {
+    public StandbyServerSync(final int port, final FileStore fileStore, final int blobChunkSize, final String[] allowedClientIPRanges, final boolean secure) {
         this.port = port;
         this.fileStore = fileStore;
+        this.blobChunkSize = blobChunkSize;
         this.allowedClientIPRanges = allowedClientIPRanges;
         this.secure = secure;
         this.observer = new CommunicationObserver("primary");
@@ -102,7 +105,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         state = STATUS_STARTING;
 
         try {
-            server = StandbyServer.builder(port, this)
+            server = StandbyServer.builder(port, this, blobChunkSize)
                     .secure(secure)
                     .allowIPRanges(allowedClientIPRanges)
                     .withStateConsumer(this)
@@ -149,7 +152,7 @@ public class StandbyServerSync implements StandbyStatusMBean, StateConsumer, Sto
         state = STATUS_CLOSED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getMode() {
         return "primary";

@@ -22,10 +22,14 @@ import static org.mockito.Mockito.mock;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 
@@ -41,16 +45,50 @@ public class StandbyTestUtils {
 
     public static Segment mockSegment(UUID uuid, byte[] buffer) {
         SegmentStore store = mock(SegmentStore.class);
+        SegmentIdProvider idProvider = mock(SegmentIdProvider.class);
         SegmentReader reader = mock(SegmentReader.class);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
         SegmentId id = new SegmentId(store, msb, lsb);
         ByteBuffer data = ByteBuffer.wrap(buffer);
-        return new Segment(store, reader, id, data);
+        return new Segment(idProvider, reader, id, data);
     }
 
     public static long hash(byte[] data) {
         return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
+    }
+    
+    public static long hash(byte mask, long blobLength, byte[] data) {
+        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+    }
+    
+    public static byte createMask(int currentChunk, int totalChunks) {
+        byte mask = 0;
+        if (currentChunk == 1) {
+            mask = (byte) (mask | (1 << 0));
+        }
+
+        if (currentChunk == totalChunks) {
+            mask = (byte) (mask | (1 << 1));
+        }
+
+        return mask;
+    }
+    
+    public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId, byte[] data, byte mask) {
+        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        
+        ByteBuf buf = Unpooled.buffer();
+        buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + data.length);
+        buf.writeByte(header);
+        buf.writeByte(mask);
+        buf.writeLong(blobLength);
+        buf.writeInt(blobIdBytes.length);
+        buf.writeBytes(blobIdBytes);
+        buf.writeLong(hash(mask, blobLength, data));
+        buf.writeBytes(data);
+        
+        return buf;
     }
 
 }

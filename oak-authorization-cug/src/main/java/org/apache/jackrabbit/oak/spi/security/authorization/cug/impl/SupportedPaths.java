@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
 
 class SupportedPaths {
 
@@ -28,7 +27,7 @@ class SupportedPaths {
 
     private final boolean includesRootPath;
 
-    SupportedPaths(@Nonnull Set<String> supportedPaths) {
+    SupportedPaths(@NotNull Set<String> supportedPaths) {
         this.supportedPaths = supportedPaths.toArray(new String[supportedPaths.size()]);
         supportedAltPaths = new String[supportedPaths.size()];
 
@@ -52,7 +51,7 @@ class SupportedPaths {
      * @return {@code true} if the specified {@code path} is equal to or a
      * descendant of one of the configured supported paths.
      */
-    boolean includes(@Nonnull String path) {
+    boolean includes(@NotNull String path) {
         if (supportedPaths.length == 0) {
             return false;
         }
@@ -82,7 +81,7 @@ class SupportedPaths {
      * @return {@code true} if there exists a configured supported path that is
      * a descendant of the given {@code path}.
      */
-    boolean mayContainCug(@Nonnull String path) {
+    boolean mayContainCug(@NotNull String path) {
         if (supportedPaths.length == 0) {
             return false;
         }

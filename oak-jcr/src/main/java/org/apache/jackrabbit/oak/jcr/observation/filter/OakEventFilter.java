@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.observation.filter;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 
-import aQute.bnd.annotation.ConsumerType;
+import org.osgi.annotation.versioning.ConsumerType;
 
 /**
  * Extension of the JackrabbitEventFilter that exposes Oak specific
@@ -61,7 +61,14 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * <li>include path /a/b/c/d results in additional !deep NODE_REMOVED
      * filters on /a/b/c, on /a/b and on /a</li>
      * <li>include path /a/b/** results in additional !deep NODE_REMOVED
-     * filter on /a</li>
+     * filter on /a, /a/b and /a/b/**</li>
+     * <li>include path /a/b/**{@code /}*.jsp results in additional 
+     * deep NODE_REMOVED filter on /a, /a/b and /a/b/** <br>
+     * Note that this and the above result in the same additional
+     * include paths since all this includeAncestorsRemove flag 
+     * does is include potential ancestors, it doesn't guarantee 
+     * that there are children matching the given paths (eg it doesn't
+     * traverse down)</li>
      * <li>additionally for paths with globs (eg /a/b/**{@code /}*.jsp)
      * it adds a deep NODE_REMOVED filter explicitly for that path
      * using the same method as withIncludeSubtreeOnRemove does, but only
@@ -100,9 +107,9 @@ public abstract class OakEventFilter extends JackrabbitEventFilter {
      * <p>
      * This filter property is added in 'or' mode.
      * 
-     * @param globPath
-     *            glob path that should be added as include path pattern. Note
-     *            that the NamePathMapper is not applied on this globPath.
+     * @param globPaths
+     *            glob paths that should be added as include path pattern. Note
+     *            that the NamePathMapper is not applied on these globPaths.
      * @return this filter with the filter change applied
      */
     public abstract OakEventFilter withIncludeGlobPaths(String... globPaths);

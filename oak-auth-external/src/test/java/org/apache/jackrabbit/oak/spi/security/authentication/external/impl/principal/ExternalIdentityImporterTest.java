@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.PrivilegedExceptionAction;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -29,16 +28,15 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.After;
-import org.junit.Before;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -71,48 +69,35 @@ public class ExternalIdentityImporterTest {
             "   <sv:property sv:name=\"rep:lastSynced\" sv:type=\"Date\"><sv:value>2016-05-03T10:03:08.061+02:00</sv:value></sv:property>" +
             "</sv:node>";
 
-    private Repository repo;
-    private SecurityProvider securityProvider;
-    private JackrabbitSession session;
+    private Repository createRepo() throws Exception {
+        SecurityProvider securityProvider = TestSecurityProvider.newTestSecurityProvider(ConfigurationParameters.EMPTY,
+                new ExternalPrincipalConfiguration());
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setFailTraversal(true);
 
-    @Before
-    public void before() throws Exception {
-        securityProvider = new TestSecurityProvider(getConfigurationParameters(), new ExternalPrincipalConfiguration());
         Jcr jcr = new Jcr();
         jcr.with(securityProvider);
-        repo = jcr.createRepository();
+        jcr.with(queryEngineSettings);
+        return jcr.createRepository();
     }
 
-    @After
-    public void after() throws Exception {
-        try {
-            if (session != null) {
-                session.logout();
-            }
-        } finally {
-            if (repo instanceof JackrabbitRepository) {
-                ((JackrabbitRepository) repo).shutdown();
-            }
+    private static void shutdown(Repository repo) throws Exception {
+        if (repo != null && repo instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repo).shutdown();
         }
     }
 
-    @Nonnull
-    ConfigurationParameters getConfigurationParameters() {
-        return ConfigurationParameters.EMPTY;
-    }
-
-    JackrabbitSession createSession(boolean isSystem) throws Exception {
+    Session createSession(Repository repo, boolean isSystem) throws Exception {
         if (isSystem) {
-            session = (JackrabbitSession) Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
+            return Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<Session>() {
                 @Override
                 public Session run() throws RepositoryException {
                     return repo.login(null, null);
                 }
             });
         } else {
-            session = (JackrabbitSession) repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
+            return repo.login(new SimpleCredentials(UserConstants.DEFAULT_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID.toCharArray()));
         }
-        return session;
     }
 
     Node doImport(Session importSession, String parentPath, String xml) throws Exception {
@@ -130,13 +115,13 @@ public class ExternalIdentityImporterTest {
         }
     }
 
-    static void assertHasProperties(@Nonnull Node node, @Nonnull String... propertyNames) throws Exception {
+    static void assertHasProperties(@NotNull Node node, @NotNull String... propertyNames) throws Exception {
         for (String pN : propertyNames) {
             assertTrue(node.hasProperty(pN));
         }
     }
 
-    static void assertNotHasProperties(@Nonnull Node node, @Nonnull String... propertyNames) throws Exception {
+    static void assertNotHasProperties(@NotNull Node node, @NotNull String... propertyNames) throws Exception {
         for (String pN : propertyNames) {
             assertFalse(node.hasProperty(pN));
         }
@@ -144,28 +129,78 @@ public class ExternalIdentityImporterTest {
 
     @Test
     public void importExternalUser() throws Exception {
-        Node parent = doImport(createSession(false), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
-        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED);
-        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        Repository repo = null;
+        Session s = null;
+        try {
+            repo = createRepo();
+            s = createSession(repo, false);
+            Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
+            assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
+                    ExternalIdentityConstants.REP_LAST_SYNCED);
+            assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        } finally {
+            if (s != null) {
+                s.logout();
+            }
+            shutdown(repo);
+        }
     }
 
     @Test
     public void importExternalUserAsSystem() throws Exception {
-        Node parent = doImport(createSession(true), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
-        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED);
-        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        Repository repo = null;
+        Session s = null;
+        try {
+            repo = createRepo();
+            s = createSession(repo, true);
+            Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
+            assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
+                    ExternalIdentityConstants.REP_LAST_SYNCED);
+            assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        } finally {
+            if (s != null) {
+                s.logout();
+            }
+            shutdown(repo);
+        }
     }
 
     @Test
     public void importExternalUserWithPrincipalNames() throws Exception {
-        Node parent = doImport(createSession(false), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
-        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID);
-        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_LAST_SYNCED, ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        Repository repo = null;
+        Session s = null;
+        try {
+            repo = createRepo();
+            s = createSession(repo, false);
+            Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
+            assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID);
+            assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_LAST_SYNCED,
+                    ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        } finally {
+            if (s != null) {
+                s.logout();
+            }
+            shutdown(repo);
+        }
+
     }
 
     @Test
     public void importExternalUserWithPrincipalNamesAsSystem() throws Exception {
-        Node parent = doImport(createSession(true), UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
-        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED, ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        Repository repo = null;
+        Session s = null;
+        try {
+            repo = createRepo();
+            s = createSession(repo, true);
+            Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER_WITH_PRINCIPAL_NAMES);
+            assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID,
+                    ExternalIdentityConstants.REP_LAST_SYNCED, ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        } finally {
+            if (s != null) {
+                s.logout();
+            }
+            shutdown(repo);
+        }
     }
+
 }

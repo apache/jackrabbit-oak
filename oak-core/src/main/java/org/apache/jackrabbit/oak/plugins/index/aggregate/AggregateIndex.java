@@ -21,15 +21,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -198,7 +198,7 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
                     Cursor newC = flatten(input, plan, filter, state,
                             path + " and(" + index + ")");
                     c = Cursors.newIntersectionCursor(c, newC,
-                            filter.getQueryEngineSettings());
+                            filter.getQueryLimits());
                 }
                 result.set(c);
                 return true;
@@ -216,7 +216,7 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
                             }
                         });
                 result.set(Cursors.newConcatCursor(cursors,
-                        filter.getQueryEngineSettings()));
+                        filter.getQueryLimits()));
                 return true;
             }
         });

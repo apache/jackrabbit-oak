@@ -18,12 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.query.ValueConverter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The base class for all abstract syntax tree nodes.
@@ -130,7 +129,7 @@ abstract class AstElement {
             return v;
         }
         try {
-            return PropertyValues.convert(v, type, query.getNamePathMapper());
+            return ValueConverter.convert(v, type, query.getNamePathMapper());
         } catch (IllegalArgumentException e) {
             // not possible to convert
             return v;
@@ -152,7 +151,7 @@ abstract class AstElement {
      * @return a clone of self. Default implementation in {@link AstElement} returns same reference
      *         to {@code this}.
      */
-    @Nonnull
+    @NotNull
     public AstElement copyOf() {
         return this;
     }    

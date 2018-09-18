@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.text.ParseException;
@@ -40,11 +42,12 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -65,9 +68,8 @@ public class FunctionIndexTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         editorProvider = new LuceneIndexEditorProvider();
         LuceneIndexProvider provider = new LuceneIndexProvider();
-        nodeStore = new MemoryNodeStore();
+        nodeStore = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
         return new Oak(nodeStore)
-                .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
@@ -280,7 +282,63 @@ public class FunctionIndexTest extends AbstractQueryTest {
         assertThat(explainXpath(queryXPath), containsString("lucene:upper"));
         assertQuery(queryXPath, "xpath", paths);
     }
-    
+
+    @Test
+    public void coalesce() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function(
+                "lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname())))"
+        );
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "BAR");
+        rootTree.addChild("b").addChild("jcr:content").setProperty("foo", "bAr");
+        Tree child = rootTree.addChild("c").addChild("jcr:content");
+        child.setProperty("foo", "bar");
+        child.setProperty("foo2", "bar1");
+        rootTree.addChild("bar");
+
+        root.commit();
+
+        assertPlanAndQuery(
+                "select * from [nt:base] where lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname()))) = 'bar'",
+                "lucene:test1(/oak:index/test1)", asList("/a", "/b", "/bar"));
+    }
+
+    @Test
+    public void coalesceOrdering() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo", null).function(
+                "coalesce([jcr:content/foo2], [jcr:content/foo])"
+        ).ordered();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "a");
+        rootTree.addChild("b").addChild("jcr:content").setProperty("foo", "b");
+        Tree child = rootTree.addChild("c").addChild("jcr:content");
+        child.setProperty("foo", "c");
+        child.setProperty("foo2", "a1");
+
+        root.commit();
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo])",
+                "lucene:test1(/oak:index/test1)", asList("/a", "/c", "/b"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo]) DESC",
+                "lucene:test1(/oak:index/test1)", asList("/b", "/c", "/a"));
+    }
+
+
     protected String explain(String query){
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
@@ -293,7 +351,17 @@ public class FunctionIndexTest extends AbstractQueryTest {
         String plan = row.getValue("plan").getValue(Type.STRING);
         return plan;
     }
-    
+
+    private void assertOrderedPlanAndQuery(String query, String planExpectation, List<String> paths) {
+        List<String> result = assertPlanAndQuery(query, planExpectation, paths);
+        assertEquals("Ordering doesn't match", paths, result);
+    }
+
+    private List<String> assertPlanAndQuery(String query, String planExpectation, List<String> paths){
+        assertThat(explain(query), containsString(planExpectation));
+        return assertQuery(query, paths);
+    }
+
     protected Tree createIndex(String name, Set<String> propNames) {
         Tree index = root.getTree("/");
         return createIndex(index, name, propNames);

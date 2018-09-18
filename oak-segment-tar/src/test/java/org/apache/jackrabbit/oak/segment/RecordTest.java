@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
+import static java.lang.Math.min;
 import static java.util.Collections.singletonList;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
@@ -28,27 +28,16 @@ import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Suppliers;
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -68,10 +57,6 @@ public class RecordTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private static final String HELLO_WORLD = "Hello, World!";
-
-    private final byte[] bytes = HELLO_WORLD.getBytes(Charsets.UTF_8);
-
     private FileStore store;
 
     private SegmentWriter writer;
@@ -90,74 +75,6 @@ public class RecordTest {
     }
 
     @Test
-    public void testBlockRecord() throws IOException {
-        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        BlockRecord block = new BlockRecord(blockId, bytes.length);
-
-        // Check reading with all valid positions and lengths
-        for (int n = 1; n < bytes.length; n++) {
-            for (int i = 0; i + n <= bytes.length; i++) {
-                Arrays.fill(bytes, i, i + n, (byte) '.');
-                assertEquals(n, block.read(i, bytes, i, n));
-                assertEquals(HELLO_WORLD, new String(bytes, Charsets.UTF_8));
-            }
-        }
-
-        // Check reading with a too long length
-        byte[] large = new byte[bytes.length * 2];
-        assertEquals(bytes.length, block.read(0, large, 0, large.length));
-        assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, Charsets.UTF_8));
-    }
-
-    @Test
-    public void testListRecord() throws IOException {
-        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-
-        ListRecord one = writeList(1, blockId);
-        ListRecord level1 = writeList(LEVEL_SIZE, blockId);
-        ListRecord level1p = writeList(LEVEL_SIZE + 1, blockId);
-        ListRecord level2 = writeList(LEVEL_SIZE * LEVEL_SIZE, blockId);
-        ListRecord level2p = writeList(LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
-
-        assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry(0));
-        assertEquals(LEVEL_SIZE, level1.size());
-        assertEquals(blockId, level1.getEntry(0));
-        assertEquals(blockId, level1.getEntry(LEVEL_SIZE - 1));
-        assertEquals(LEVEL_SIZE + 1, level1p.size());
-        assertEquals(blockId, level1p.getEntry(0));
-        assertEquals(blockId, level1p.getEntry(LEVEL_SIZE));
-        assertEquals(LEVEL_SIZE * LEVEL_SIZE, level2.size());
-        assertEquals(blockId, level2.getEntry(0));
-        assertEquals(blockId, level2.getEntry(LEVEL_SIZE * LEVEL_SIZE - 1));
-        assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, level2p.size());
-        assertEquals(blockId, level2p.getEntry(0));
-        assertEquals(blockId, level2p.getEntry(LEVEL_SIZE * LEVEL_SIZE));
-
-        int count = 0;
-        for (RecordId entry : level2p.getEntries()) {
-            assertEquals(blockId, entry);
-            assertEquals(blockId, level2p.getEntry(count));
-            count++;
-        }
-        assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, count);
-    }
-
-    private ListRecord writeList(int size, RecordId id) throws IOException {
-        List<RecordId> list = Collections.nCopies(size, id);
-        return new ListRecord(writer.writeList(list), size);
-    }
-
-    @Test
-    public void testListWithLotsOfReferences() throws IOException { // OAK-1184
-        List<RecordId> list = newArrayList();
-        for (int i = 0; i < 1000; i++) {
-            list.add(new RecordId(store.newBulkSegmentId(), 0));
-        }
-        writer.writeList(list);
-    }
-
-    @Test
     public void testStreamRecord() throws IOException {
         checkRandomStreamRecord(0);
         checkRandomStreamRecord(1);
@@ -165,8 +82,8 @@ public class RecordTest {
         checkRandomStreamRecord(0x80);
         checkRandomStreamRecord(0x4079);
         checkRandomStreamRecord(0x4080);
-        checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE);
-        checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE + 1);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE);
+        checkRandomStreamRecord(SegmentStream.BLOCK_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE + 1);
         checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE * 2);
@@ -177,147 +94,35 @@ public class RecordTest {
         byte[] source = new byte[size];
         random.nextBytes(source);
 
-        Blob value = writer.writeStream(new ByteArrayInputStream(source));
+        Blob value = new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(source)));
         InputStream stream = value.getNewStream();
-        try {
+        checkBlob(source, value, 0);
+        checkBlob(source, value, 1);
+        checkBlob(source, value, 42);
+        checkBlob(source, value, 16387);
+        checkBlob(source, value, Integer.MAX_VALUE);
+    }
+
+    private static void checkBlob(byte[] expected, Blob actual, int skip) throws IOException {
+        try (InputStream stream = actual.getNewStream()) {
+            stream.skip(skip);
             byte[] b = new byte[349]; // prime number
-            int offset = 0;
+            int offset = min(skip, expected.length);
             for (int n = stream.read(b); n != -1; n = stream.read(b)) {
                 for (int i = 0; i < n; i++) {
-                    assertEquals(source[offset + i], b[i]);
+                    assertEquals(expected[offset + i], b[i]);
                 }
                 offset += n;
             }
-            assertEquals(offset, size);
+            assertEquals(offset, expected.length);
             assertEquals(-1, stream.read());
-        } finally {
-            stream.close();
         }
-    }
-
-    @Test
-    public void testStringRecord() throws IOException {
-        RecordId empty = writer.writeString("");
-        RecordId space = writer.writeString(" ");
-        RecordId hello = writer.writeString("Hello, World!");
-
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < 2 * Segment.MAX_SEGMENT_SIZE + 1000; i++) {
-            builder.append((char) ('0' + i % 10));
-        }
-        RecordId large = writer.writeString(builder.toString());
-
-        Segment segment = large.getSegmentId().getSegment();
-
-        assertEquals("", store.getReader().readString(empty));
-        assertEquals(" ", store.getReader().readString(space));
-        assertEquals("Hello, World!", store.getReader().readString(hello));
-        assertEquals(builder.toString(), store.getReader().readString(large));
-    }
-
-    @Test
-    public void testMapRecord() throws IOException {
-        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-
-        MapRecord zero = writer.writeMap(
-                null, ImmutableMap.<String, RecordId>of());
-        MapRecord one = writer.writeMap(
-                null, ImmutableMap.of("one", blockId));
-        MapRecord two = writer.writeMap(
-                null, ImmutableMap.of("one", blockId, "two", blockId));
-        Map<String, RecordId> map = newHashMap();
-        for (int i = 0; i < 1000; i++) {
-            map.put("key" + i, blockId);
-        }
-        MapRecord many = writer.writeMap(null, map);
-
-        Iterator<MapEntry> iterator;
-
-        assertEquals(0, zero.size());
-        assertNull(zero.getEntry("one"));
-        iterator = zero.getEntries().iterator();
-        assertFalse(iterator.hasNext());
-
-        assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry("one").getValue());
-        assertNull(one.getEntry("two"));
-        iterator = one.getEntries().iterator();
-        assertTrue(iterator.hasNext());
-        assertEquals("one", iterator.next().getName());
-        assertFalse(iterator.hasNext());
-
-        assertEquals(2, two.size());
-        assertEquals(blockId, two.getEntry("one").getValue());
-        assertEquals(blockId, two.getEntry("two").getValue());
-        assertNull(two.getEntry("three"));
-        iterator = two.getEntries().iterator();
-        assertTrue(iterator.hasNext());
-        iterator.next();
-        assertTrue(iterator.hasNext());
-        iterator.next();
-        assertFalse(iterator.hasNext());
-
-        assertEquals(1000, many.size());
-        iterator = many.getEntries().iterator();
-        for (int i = 0; i < 1000; i++) {
-            assertTrue(iterator.hasNext());
-            assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, many.getEntry("key" + i).getValue());
-        }
-        assertFalse(iterator.hasNext());
-        assertNull(many.getEntry("foo"));
-
-        Map<String, RecordId> changes = newHashMap();
-        changes.put("key0", null);
-        changes.put("key1000", blockId);
-        MapRecord modified = writer.writeMap(many, changes);
-        assertEquals(1000, modified.size());
-        iterator = modified.getEntries().iterator();
-        for (int i = 1; i <= 1000; i++) {
-            assertTrue(iterator.hasNext());
-            assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, modified.getEntry("key" + i).getValue());
-        }
-        assertFalse(iterator.hasNext());
-        assertNull(many.getEntry("foo"));
-    }
-
-    @Test
-    public void testMapRemoveNonExisting() throws IOException {
-        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-
-        Map<String, RecordId> changes = newHashMap();
-        changes.put("one", null);
-        MapRecord zero = writer.writeMap(null, changes);
-        assertEquals(0, zero.size());
-    }
-
-    @Test
-    public void testWorstCaseMap() throws IOException {
-        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        Map<String, RecordId> map = newHashMap();
-        char[] key = new char[2];
-        for (int i = 0; i <= MapRecord.BUCKETS_PER_LEVEL; i++) {
-            key[0] = (char) ('A' + i);
-            key[1] = (char) ('\u1000' - key[0] * 31);
-            map.put(new String(key), blockId);
-        }
-
-        MapRecord bad = writer.writeMap(null, map);
-
-        assertEquals(map.size(), bad.size());
-        Iterator<MapEntry> iterator = bad.getEntries().iterator();
-        for (int i = 0; i < map.size(); i++) {
-            assertTrue(iterator.hasNext());
-            assertEquals('\u1000', iterator.next().getName().hashCode());
-        }
-        assertFalse(iterator.hasNext());
     }
 
     @Test
     public void testEmptyNode() throws IOException {
         NodeState before = EMPTY_NODE;
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -328,7 +133,7 @@ public class RecordTest {
                 .setProperty("bar", 123)
                 .setProperty("baz", Math.PI)
                 .getNodeState();
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -340,7 +145,7 @@ public class RecordTest {
             builder = builder.child("test");
         }
         NodeState before = builder.getNodeState();
-        NodeState after = writer.writeNode(before);
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(before));
         assertEquals(before, after);
     }
 
@@ -350,14 +155,14 @@ public class RecordTest {
         for (int i = 0; i < 1000; i++) {
             builder.child("test" + i);
         }
-        NodeState before = writer.writeNode(builder.getNodeState());
+        NodeState before = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), before);
 
         builder = before.builder();
         for (int i = 0; i < 900; i++) {
             builder.getChildNode("test" + i).remove();
         }
-        NodeState after = writer.writeNode(builder.getNodeState());
+        NodeState after = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertEquals(builder.getNodeState(), after);
     }
 
@@ -371,13 +176,13 @@ public class RecordTest {
         // create enough copies of the value to fill a full segment
         List<Blob> blobs = newArrayList();
         while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
-            blobs.add(writer.writeStream(new ByteArrayInputStream(data)));
+            blobs.add(new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(data))));
         }
 
         // write a simple node that'll now be stored in a separate segment
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("test", blobs, BINARIES);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
 
         // all the blobs should still be accessible, even if they're
         // referenced from another segment
@@ -404,7 +209,7 @@ public class RecordTest {
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(extPropertyState);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
 
         try {
             InputStream is = state.getProperty("binary").getValue(BINARY).getNewStream();
@@ -419,7 +224,7 @@ public class RecordTest {
     public void testStringPrimaryType() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "foo", STRING);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:primaryType"));
     }
 
@@ -427,15 +232,8 @@ public class RecordTest {
     public void testStringMixinTypes() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
-        NodeState state = writer.writeNode(builder.getNodeState());
+        NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         assertNotNull(state.getProperty("jcr:mixinTypes"));
-    }
-
-    @Test
-    public void testCancel() throws IOException {
-        NodeBuilder builder = EMPTY_NODE.builder();
-        NodeState state = writer.writeNode(builder.getNodeState(), Suppliers.ofInstance(true));
-        assertNull(state);
     }
 
 }

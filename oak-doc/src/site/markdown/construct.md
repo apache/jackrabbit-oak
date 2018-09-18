@@ -31,8 +31,9 @@ To construct an in-memory repository, use:
 
 To use a tar file based Segment NodeStore backend, use:
 
-        FileStore fs = FileStore.newFileStore(new File("repository")).create();
-        Repository repo = new Jcr(new SegmentNodeStore(fs)).createRepository();
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("repository")).build();
+        SegmentNodeStore ns = SegmentNodeStoreBuilders.builder(fs).build();
+        Repository repo = new Jcr(new Oak(ns)).createRepository();
 
 To use a MongoDB backend, use:
 

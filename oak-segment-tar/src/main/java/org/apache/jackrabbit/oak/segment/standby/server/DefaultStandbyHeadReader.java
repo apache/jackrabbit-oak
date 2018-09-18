@@ -17,19 +17,25 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.readPersistedHeadWithRetry;
+
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 
 class DefaultStandbyHeadReader implements StandbyHeadReader {
 
     private final FileStore store;
+    private final long timeout;
 
-    DefaultStandbyHeadReader(FileStore store) {
+    DefaultStandbyHeadReader(FileStore store, long timeout) {
         this.store = store;
+        this.timeout = timeout;
     }
 
     @Override
     public String readHeadRecordId() {
-        return store.getHead().getRecordId().toString();
+        RecordId persistedHead = readPersistedHeadWithRetry(store, timeout);
+        return persistedHead != null ? persistedHead.toString() : null;
     }
 
 }

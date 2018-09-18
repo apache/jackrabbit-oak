@@ -41,17 +41,4 @@ various platforms, especially from JavaScript clients running in modern browser 
 implementation should provide more out-of-the-box functionality than typical NoSQL databases while
 achieving comparable levels of scalability and performance.
 
-Work in Progress
-----------------
-This documentation is still work in progress. Currently much of the information on Oak is
-somewhat spread over different places. If you don't find something here you could also try
-
-* the [Oak JIRA](https://issues.apache.org/jira/browse/OAK), specifically [OAK-14]
-  (https://issues.apache.org/jira/browse/OAK-14), which lists the known backward compatibility issues,
-* the [Oak development list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev),
-* the [README files](https://github.com/apache/jackrabbit-oak/blob/trunk/README.md),
-* the [Oak presentation](http://goo.gl/zid8V3)
-  from the .adaptTo conference 2012,
-* [Oak, the architecture of Apache Jackrabbit 3](http://www.slideshare.net/jukka/oak-the-architecture-of-apache-jackrabbit-3).
-* [Oak, the architecture of the new Repository](http://www.slideshare.net/MichaelDrig/oak-39377061)
   

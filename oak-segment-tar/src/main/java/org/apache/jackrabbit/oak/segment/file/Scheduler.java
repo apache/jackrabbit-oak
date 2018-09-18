@@ -30,9 +30,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,13 +50,13 @@ public class Scheduler implements Closeable {
     private static int schedulerNumber = 0;
     private static final Logger LOG = LoggerFactory.getLogger(Scheduler.class);
 
-    @Nonnull
+    @NotNull
     private final AtomicLong executionCounter = new AtomicLong();
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @Nonnull
+    @NotNull
     private final ScheduledExecutorService executor;
 
     /**
@@ -84,7 +83,7 @@ public class Scheduler implements Closeable {
      * @param task
      * @see ScheduledExecutorService#execute(Runnable)
      */
-    public void execute(@Nonnull String name, @Nonnull Runnable task) {
+    public void execute(@NotNull String name, @NotNull Runnable task) {
         executor.execute(new SafeRunnable(name, task));
     }
 
@@ -98,10 +97,10 @@ public class Scheduler implements Closeable {
      * @see ScheduledExecutorService#schedule(Runnable, long, TimeUnit)
      */
     public void scheduleOnce(
-            @Nonnull String name,
+            @NotNull String name,
             long delay,
-            @Nonnull TimeUnit unit,
-            @Nonnull Runnable task) {
+            @NotNull TimeUnit unit,
+            @NotNull Runnable task) {
         executor.schedule(new SafeRunnable(name, task), delay, unit);
     }
 
@@ -115,11 +114,28 @@ public class Scheduler implements Closeable {
      * @see ScheduledExecutorService#scheduleAtFixedRate(Runnable, long, long, TimeUnit)
      */
     public void scheduleAtFixedRate(
-            @Nonnull String name,
+            @NotNull String name,
             long period,
-            @Nonnull TimeUnit unit,
-            @Nonnull Runnable task) {
+            @NotNull TimeUnit unit,
+            @NotNull Runnable task) {
         executor.scheduleAtFixedRate(new SafeRunnable(name, task), period, period, unit);
+    }
+
+    /**
+     * Run {@code task} regularly after a fixed delay. The background thread's name is
+     * set to {@code name} during execution of {@code task}.
+     * @param name
+     * @param delay
+     * @param unit
+     * @param task
+     * @see ScheduledExecutorService#scheduleWithFixedDelay(Runnable, long, long, TimeUnit)
+     */
+    public void scheduleWithFixedDelay(
+            @NotNull String name,
+            long delay,
+            @NotNull TimeUnit unit,
+            @NotNull Runnable task) {
+        executor.scheduleWithFixedDelay(new SafeRunnable(name, task), delay, delay, unit);
     }
 
     /**
@@ -144,15 +160,15 @@ public class Scheduler implements Closeable {
     private static class SchedulerThreadFactory implements ThreadFactory {
         private final ThreadFactory threadFactory = defaultThreadFactory();
 
-        @Nonnull
+        @NotNull
         private final String name;
 
-        public SchedulerThreadFactory(@Nonnull String name) {
+        public SchedulerThreadFactory(@NotNull String name) {
             this.name = name;
         }
 
         @Override
-        public Thread newThread(@Nonnull Runnable runnable) {
+        public Thread newThread(@NotNull Runnable runnable) {
             Thread thread = threadFactory.newThread(runnable);
             thread.setName(name);
             thread.setDaemon(true);

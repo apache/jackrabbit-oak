@@ -70,6 +70,16 @@ public final class FieldNames {
     public static final String ANALYZED_FIELD_PREFIX = "full:";
 
     /**
+     * Name of the field that contains the similarity search indexed tokens.
+     */
+    private static final String SIMILARITY_PREFIX = "sim:";
+
+    /**
+     * Prefix for all field names that contains the similarity search binary values.
+     */
+    private static final String SIMILARITY_BINARY_PREFIX = "simbin:";
+
+    /**
      * Prefix used for storing fulltext of relative node
      */
     public static final String FULLTEXT_RELATIVE_NODE = "fullnode:";
@@ -127,5 +137,23 @@ public final class FieldNames {
 
     public static String createFacetFieldName(String pname) {
         return pname + "_facet";
+    }
+
+    /**
+     * @return if {@code field} represents a field property indexed data
+     */
+    static boolean isPropertyField(String field) {
+        return !field.startsWith(ANALYZED_FIELD_PREFIX)
+                && !field.startsWith(FULLTEXT_RELATIVE_NODE)
+                && !field.startsWith(":")
+                && !field.endsWith("_facet");
+    }
+
+    public static String createBinSimilarityFieldName(String name) {
+        return SIMILARITY_BINARY_PREFIX + name;
+    }
+
+    public static String createSimilarityFieldName(String name) {
+        return SIMILARITY_PREFIX + name;
     }
 }

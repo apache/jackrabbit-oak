@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The base class for constraints.
@@ -174,7 +173,7 @@ public abstract class ConstraintImpl extends AstElement {
      * @return the set of union constraints, if available, or an empty set if
      *         conversion is not possible
      */
-    @Nonnull
+    @NotNull
     public Set<ConstraintImpl> convertToUnion() {
         return Collections.emptySet();
     }

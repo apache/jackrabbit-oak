@@ -17,10 +17,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,8 +50,12 @@ public class AstElementFactory {
         return new ChildNodeJoinConditionImpl(childSelectorName, parentSelectorName);
     }
 
+    public CoalesceImpl coalesce(DynamicOperandImpl operand1, DynamicOperandImpl operand2) {
+        return new CoalesceImpl(operand1, operand2);
+    }
+
     public ColumnImpl column(String selectorName, String propertyName, String columnName) {
-        if (propertyName.startsWith(QueryImpl.REP_FACET)) {
+        if (propertyName.startsWith(QueryConstants.REP_FACET)) {
             return new FacetColumnImpl(selectorName, propertyName, columnName);
         } else {
             return new ColumnImpl(selectorName, propertyName, columnName);
@@ -186,8 +189,8 @@ public class AstElementFactory {
      * @param e the element to be cloned. Cannot be null.
      * @return same as {@link AstElement#copyOf()}
      */
-    @Nonnull
-    public static AstElement copyElementAndCheckReference(@Nonnull final AstElement e) {
+    @NotNull
+    public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
         AstElement clone = checkNotNull(e).copyOf();
         
         if (clone == e && LOG.isDebugEnabled()) {

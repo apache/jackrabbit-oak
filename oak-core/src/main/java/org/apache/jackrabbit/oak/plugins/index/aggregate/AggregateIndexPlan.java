@@ -20,13 +20,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An index plan for multiple query indexes.
@@ -176,7 +175,7 @@ public class AggregateIndexPlan implements IndexPlan {
     // as they are only used locally (in the ordered index, or in the lucene index)
     
     @Override
-    @CheckForNull
+    @Nullable
     public PropertyRestriction getPropertyRestriction() {
         return null;
     }
@@ -197,7 +196,12 @@ public class AggregateIndexPlan implements IndexPlan {
     }
 
     @Override
-    @CheckForNull
+    public boolean getSupportsPathRestriction() {
+        return false;
+    }
+
+    @Override
+    @Nullable
     public Object getAttribute(String name) {
         return null;
     }

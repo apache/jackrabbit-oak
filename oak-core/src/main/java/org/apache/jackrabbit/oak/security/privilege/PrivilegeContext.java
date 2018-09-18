@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 final class PrivilegeContext implements Context, PrivilegeConstants {
 
@@ -38,27 +38,27 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
 
     //------------------------------------------------------------< Context >---
     @Override
-    public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
-        return definesTree(parent) && PRIVILEGE_PROPERTY_NAMES.contains(property.getName());
+    public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
+        return PRIVILEGE_PROPERTY_NAMES.contains(property.getName()) && definesTree(parent);
     }
 
     @Override
-    public boolean definesContextRoot(@Nonnull Tree tree) {
-        return REP_PRIVILEGES.equals(tree.getName());
+    public boolean definesContextRoot(@NotNull Tree tree) {
+        return REP_PRIVILEGES.equals(tree.getName()) && NT_REP_PRIVILEGES.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
-    public boolean definesTree(@Nonnull Tree tree) {
+    public boolean definesTree(@NotNull Tree tree) {
         return PRIVILEGE_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
-    public boolean definesLocation(@Nonnull TreeLocation location) {
-        return location.getPath().startsWith(PRIVILEGES_PATH);
+    public boolean definesLocation(@NotNull TreeLocation location) {
+        return Text.isDescendantOrEqual(PRIVILEGES_PATH, location.getPath());
     }
 
     @Override
-    public boolean definesInternal(@Nonnull Tree tree) {
+    public boolean definesInternal(@NotNull Tree tree) {
         return false;
     }
 

@@ -26,7 +26,6 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -59,7 +58,7 @@ public class HiddenTest extends AbstractCugTest {
         createCug(SUPPORTED_PATH, EveryonePrincipal.getInstance());
         root.commit();
 
-        readOnlyRoot = RootFactory.createReadOnlyRoot(root);
+        readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
         hiddenTree = readOnlyRoot.getTree("/oak:index/acPrincipalName/:index");
         assertTrue(hiddenTree.exists());
 

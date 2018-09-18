@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract base class for the various kinds of type definition classes
@@ -49,7 +48,7 @@ abstract class AbstractTypeDefinition {
      * @param name property name
      * @return property value, or {@code false} if the property does not exist
      */
-    protected boolean getBoolean(@Nonnull String name) {
+    protected boolean getBoolean(@NotNull String name) {
         PropertyState property = definition.getProperty(checkNotNull(name));
         return property != null && property.getValue(Type.BOOLEAN);
     }
@@ -60,8 +59,8 @@ abstract class AbstractTypeDefinition {
      * @param oakName property name
      * @return property value, or {@code null} if the property does not exist
      */
-    @CheckForNull
-    protected String getString(@Nonnull String oakName) {
+    @Nullable
+    protected String getString(@NotNull String oakName) {
         return getValue(oakName, Type.STRING);
     }
 
@@ -71,8 +70,8 @@ abstract class AbstractTypeDefinition {
      * @param oakName property name
      * @return property values, or {@code null} if the property does not exist
      */
-    @CheckForNull
-    protected String[] getStrings(@Nonnull String oakName) {
+    @Nullable
+    protected String[] getStrings(@NotNull String oakName) {
         return getValues(oakName, Type.STRING);
     }
     /**
@@ -81,8 +80,8 @@ abstract class AbstractTypeDefinition {
      * @param oakName property name
      * @return property value, or {@code null} if the property does not exist
      */
-    @CheckForNull
-    protected String getName(@Nonnull String oakName) {
+    @Nullable
+    protected String getName(@NotNull String oakName) {
         return getValue(oakName, Type.NAME);
     }
 
@@ -92,8 +91,8 @@ abstract class AbstractTypeDefinition {
      * @param oakName property name
      * @return property values, or {@code null} if the property does not exist
      */
-    @CheckForNull
-    protected String[] getNames(@Nonnull String oakName) {
+    @Nullable
+    protected String[] getNames(@NotNull String oakName) {
         return getValues(oakName, Type.NAME);
     }
 

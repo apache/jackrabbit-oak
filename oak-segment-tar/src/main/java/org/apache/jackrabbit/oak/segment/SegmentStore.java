@@ -20,12 +20,44 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The backend storage interface used by the segment node store.
  */
 public interface SegmentStore {
+
+    /**
+     * A store that is always empty and that cannot be written to.
+     */
+    SegmentStore EMPTY_STORE = new SegmentStore() {
+
+        /**
+         * @return {@code false}
+         */
+        @Override
+        public boolean containsSegment(SegmentId id) {
+            return false;
+        }
+
+        /**
+         * @throws SegmentNotFoundException always
+         */
+        @NotNull
+        @Override
+        public Segment readSegment(SegmentId segmentId) {
+            throw new SegmentNotFoundException(segmentId);
+        }
+
+        /**
+         * @throws IOException always
+         */
+        @Override
+        public void writeSegment(SegmentId id, byte[] bytes, int offset, int length)
+        throws IOException {
+            throw new IOException("This store is read only");
+        }
+    };
 
     /**
      * Checks whether the identified segment exists in this store.
@@ -41,7 +73,7 @@ public interface SegmentStore {
      * @param segmentId segment identifier
      * @return identified segment, or a {@link SegmentNotFoundException} thrown if not found
      */
-    @Nonnull
+    @NotNull
     Segment readSegment(SegmentId segmentId);
 
     /**
@@ -53,31 +85,4 @@ public interface SegmentStore {
      * @param length length of the segment
      */
     void writeSegment(SegmentId id, byte[] bytes, int offset, int length) throws IOException;
-
-    /**
-     * Create a {@link SegmentId} represented by the given MSB/LSB pair.
-     *
-     * @param msb The most significant bits of the {@link SegmentId}.
-     * @param lsb The least significant bits of the {@link SegmentId}.
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newSegmentId(long msb, long lsb);
-
-    /**
-     * Create a new {@link SegmentId} for a segment of type "bulk".
-     *
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newBulkSegmentId();
-
-    /**
-     * Create a new {@link SegmentId} for a segment of type "data".
-     *
-     * @return A non-{@code null} instance of {@link SegmentId}.
-     */
-    @Nonnull
-    SegmentId newDataSegmentId();
-
 }

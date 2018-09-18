@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * A mutable, thread-safe implementation of {@link SegmentReferences}.
  */
@@ -110,6 +112,7 @@ class MutableSegmentReferences implements SegmentReferences {
         }
     }
 
+    @NotNull
     @Override
     public Iterator<SegmentId> iterator() {
         synchronized (lock) {

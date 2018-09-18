@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
@@ -36,15 +36,24 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
  */
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
-    @Nonnull
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
+
+    PrivilegeValidatorProvider(@NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
+    }
+
+    @NotNull
     @Override
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after)),
+        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after), treeProvider),
                 JCR_SYSTEM, REP_PRIVILEGES);
     }
 
     private Root createRoot(NodeState nodeState) {
-        return RootFactory.createReadOnlyRoot(nodeState);
+        return rootProvider.createReadOnlyRoot(nodeState);
     }
+
 }

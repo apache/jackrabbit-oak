@@ -21,14 +21,14 @@ import java.io.File;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Backup;
 
 class BackupCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.nonOptionArguments().size() < 2) {
@@ -39,12 +39,12 @@ class BackupCommand implements Command {
         File source = new File(options.nonOptionArguments().get(0).toString());
         File target = new File(options.nonOptionArguments().get(1).toString());
 
-        if (options.has(segment)) {
-            SegmentUtils.backup(source, target);
-        } else {
-            SegmentTarUtils.backup(source, target);
-
-        }
+        int statusCode = Backup.builder()
+            .withSource(source)
+            .withTarget(target)
+            .build()
+            .run();
+        System.exit(statusCode);
     }
 
 }

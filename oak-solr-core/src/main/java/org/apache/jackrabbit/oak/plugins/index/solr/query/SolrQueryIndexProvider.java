@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
-
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@link QueryIndexProvider} for {@link SolrQueryIndex}
@@ -37,20 +35,20 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    private final NodeAggregator aggregator;
+    private final QueryIndex.NodeAggregator aggregator;
 
-    public SolrQueryIndexProvider(@Nonnull SolrServerProvider solrServerProvider, @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider,
-                                  @Nullable NodeAggregator nodeAggregator) {
+    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider, @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider,
+                                  @Nullable QueryIndex.NodeAggregator nodeAggregator) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
         this.aggregator = nodeAggregator;
     }
 
-    public SolrQueryIndexProvider(@Nonnull SolrServerProvider solrServerProvider, @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+    public SolrQueryIndexProvider(@NotNull SolrServerProvider solrServerProvider, @NotNull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this(solrServerProvider, oakSolrConfigurationProvider, null);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         return ImmutableList.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));

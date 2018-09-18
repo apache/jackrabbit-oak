@@ -58,6 +58,11 @@ public final class S3Constants {
     public static final String S3_BUCKET = "s3Bucket";
 
     /**
+     * Amazon aws S3 bucket (alternate property name).
+     */
+    public static final String S3_CONTAINER = "container";
+
+    /**
      * Amazon aws S3 region.
      */
     public static final String S3_REGION = "s3Region";
@@ -106,6 +111,14 @@ public final class S3Constants {
      *  Constant to set proxy port.
      */
     public static final String PROXY_PORT = "proxyPort";
+
+    public static final String PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS = "presignedHttpUploadURIExpirySeconds";
+
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS = "presignedHttpDownloadURIExpirySeconds";
+
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
+
+    public static final String PRESIGNED_URI_ENABLE_ACCELERATION = "presignedURIEnableTransferAcceleration";
 
     /**
      * private constructor so that class cannot initialized from outside.

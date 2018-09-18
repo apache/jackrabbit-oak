@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.standby.jmx;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.apache.jackrabbit.oak.api.jmx.Description;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface ObservablePartnerMBean {
 
-    @Nonnull
+    @NotNull
     @Description("name of the partner")
     String getName();
 
@@ -36,7 +35,7 @@ public interface ObservablePartnerMBean {
     @Description("Port of the remote")
     int getRemotePort();
 
-    @CheckForNull
+    @Nullable
     @Description("Time the remote instance was last contacted")
     String getLastSeenTimestamp();
 

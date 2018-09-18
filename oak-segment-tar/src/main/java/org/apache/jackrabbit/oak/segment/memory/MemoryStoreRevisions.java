@@ -24,12 +24,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This is a simple in memory {@code Revisions} implementation.
@@ -45,7 +44,7 @@ public class MemoryStoreRevisions implements Revisions {
         if (head == null) {
             NodeBuilder builder = EMPTY_NODE.builder();
             builder.setChildNode("root", EMPTY_NODE);
-            head = store.getWriter().writeNode(builder.getNodeState()).getRecordId();
+            head = store.getWriter().writeNode(builder.getNodeState());
             store.getWriter().flush();
         }
     }
@@ -54,17 +53,23 @@ public class MemoryStoreRevisions implements Revisions {
         checkState(head != null, "Revisions not bound to a store");
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public synchronized RecordId getHead() {
         checkBound();
         return head;
     }
 
+    @NotNull
+    @Override
+    public RecordId getPersistedHead() {
+        return getHead();
+    }
+    
     @Override
     public synchronized boolean setHead(
-            @Nonnull RecordId expected, @Nonnull RecordId head,
-            @Nonnull Option... options) {
+            @NotNull RecordId expected, @NotNull RecordId head,
+            @NotNull Option... options) {
         checkBound();
         if (this.head.equals(expected)) {
             this.head = head;
@@ -79,9 +84,9 @@ public class MemoryStoreRevisions implements Revisions {
      * @throws UnsupportedOperationException always
      */
     @Override
-    public boolean setHead(
-            @Nonnull Function<RecordId, RecordId> newHead,
-            @Nonnull Option... options) throws InterruptedException {
+    public RecordId setHead(
+            @NotNull Function<RecordId, RecordId> newHead,
+            @NotNull Option... options) throws InterruptedException {
         throw new UnsupportedOperationException();
     }
 }

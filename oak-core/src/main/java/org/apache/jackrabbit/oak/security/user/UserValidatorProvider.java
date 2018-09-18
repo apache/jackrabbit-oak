@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides a validator for user and group management.
@@ -34,29 +31,33 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class UserValidatorProvider extends ValidatorProvider {
 
     private final ConfigurationParameters config;
+    private final RootProvider rootProvider;
+    private final TreeProvider treeProvider;
 
     private MembershipProvider membershipProvider;
 
-    UserValidatorProvider(ConfigurationParameters config) {
-        this.config = checkNotNull(config);
+    UserValidatorProvider(@NotNull ConfigurationParameters config, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
+        this.config = config;
+        this.rootProvider = rootProvider;
+        this.treeProvider = treeProvider;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
 
-    @Override @Nonnull
+    @Override @NotNull
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
-        membershipProvider = new MembershipProvider(RootFactory.createReadOnlyRoot(after), config);
-        return new UserValidator(TreeFactory.createReadOnlyTree(before), TreeFactory.createReadOnlyTree(after), this);
+        membershipProvider = new MembershipProvider(rootProvider.createReadOnlyRoot(after), config);
+        return new UserValidator(treeProvider.createReadOnlyTree(before), treeProvider.createReadOnlyTree(after), this);
     }
 
     //-----------------------------------------------------------< internal >---
-    @Nonnull
+    @NotNull
     ConfigurationParameters getConfig() {
         return config;
     }
 
-    @Nonnull
+    @NotNull
     MembershipProvider getMembershipProvider() {
         return membershipProvider;
     }

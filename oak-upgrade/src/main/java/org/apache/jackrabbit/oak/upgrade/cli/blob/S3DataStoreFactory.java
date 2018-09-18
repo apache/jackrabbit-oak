@@ -21,28 +21,30 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.commons.io.FileUtils;
+import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
-import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 public class S3DataStoreFactory implements BlobStoreFactory {
-
-    private static final Logger log = LoggerFactory.getLogger(S3DataStoreFactory.class);
 
     private static final Pattern STRIP_VALUE_PATTERN = Pattern.compile("^[TILFDXSCB]?\"(.*)\"\\W*$");
 
@@ -63,11 +65,6 @@ public class S3DataStoreFactory implements BlobStoreFactory {
             IOUtils.closeQuietly(reader);
         }
 
-        for (Object key : new HashSet<Object>(props.keySet())) {
-            String value = props.getProperty((String) key);
-            props.put(key, stripValue(value));
-        }
-
         this.directory = directory;
         this.tempHomeDir = Files.createTempDir();
         this.ignoreMissingBlobs = ignoreMissingBlobs;
@@ -75,15 +72,33 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     @Override
     public BlobStore create(Closer closer) throws IOException {
-        S3DataStore delegate = new S3DataStore();
-        delegate.setProperties(props);
-        delegate.setPath(directory);
+        S3DataStore delegate = createDS(directory, props);
+        // Initialize a default stats provider
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+        delegate.setStatisticsProvider(statsProvider);
+        // Reduce staging purge interval to 60 seconds
+        delegate.setStagingPurgeInterval(60);
+
         try {
             delegate.init(tempHomeDir.getPath());
         } catch (RepositoryException e) {
             throw new IOException(e);
         }
-        closer.register(asCloseable(delegate, tempHomeDir));
+        closer.register(asCloseable(delegate));
+        closer.register(new Closeable() {
+            @Override
+            public void close() throws IOException {
+                executor.shutdown();
+                try {
+                    if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                        throw new IOException("Can't shut down the executor");
+                    }
+                } catch (InterruptedException e) {
+                    throw new IOException(e);
+                }
+            }
+        });
         if (ignoreMissingBlobs) {
             return new SafeDataStoreBlobStore(delegate);
         } else {
@@ -91,21 +106,40 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         }
     }
 
-    private static Closeable asCloseable(final CachingDataStore store, final File tempHomeDir) {
+    static S3DataStore createDS(String directory, Properties props) {
+        Properties strippedProperties = new Properties();
+        Map<String, String> map = Maps.newHashMap();
+
+        for (Object key : new HashSet<>(props.keySet())) {
+            String strippedValue = stripValue(props.getProperty((String) key));
+
+            strippedProperties.put(key, strippedValue);
+            map.put((String) key, strippedValue);
+        }
+
+        S3DataStore ds = new S3DataStore();
+        ds.setProperties(strippedProperties);
+        ds.setPath(directory);
+        PropertiesUtil.populate(ds, map, false);
+        return ds;
+    }
+
+    private static Closeable asCloseable(final S3DataStore store) {
         return new Closeable() {
             @Override
             public void close() throws IOException {
                 try {
-                    while (!store.getPendingUploads().isEmpty()) {
-                        log.info("Waiting for following uploads to finish: " + store.getPendingUploads());
-                        Thread.sleep(1000);
+                    while (store.getStats().get(1).getElementCount() > 0) {
+                        Thread.sleep(100);
                     }
-                    store.close();
-                    FileUtils.deleteDirectory(tempHomeDir);
-                } catch (DataStoreException e) {
-                    throw new IOException(e);
                 } catch (InterruptedException e) {
                     throw new IOException(e);
+                } finally {
+                    try {
+                        store.close();
+                    } catch (DataStoreException e) {
+                        throw new IOException(e);
+                    }
                 }
             }
         };

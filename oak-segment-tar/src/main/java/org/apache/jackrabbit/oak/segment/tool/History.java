@@ -23,6 +23,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory;
 import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryElement;
 
@@ -30,7 +32,7 @@ import org.apache.jackrabbit.oak.segment.file.tooling.RevisionHistory.HistoryEle
  * Prints the revision history of an existing segment store. Optionally, it can
  * narrow to the output to the history of a single node.
  */
-public class History implements Runnable {
+public class History {
 
     /**
      * Create a builder for the {@link History} command.
@@ -110,9 +112,9 @@ public class History implements Runnable {
         /**
          * Create an executable version of the {@link History} command.
          *
-         * @return an instance of {@link Runnable}.
+         * @return an instance of {@link History}.
          */
-        public Runnable build() {
+        public History build() {
             checkNotNull(path);
             checkNotNull(journal);
             checkNotNull(node);
@@ -123,7 +125,7 @@ public class History implements Runnable {
 
     private final File path;
 
-    private final File journal;
+    private final JournalFile journal;
 
     private final String node;
 
@@ -131,17 +133,18 @@ public class History implements Runnable {
 
     private History(Builder builder) {
         this.path = builder.path;
-        this.journal = builder.journal;
+        this.journal = new LocalJournalFile(builder.journal);
         this.node = builder.node;
         this.depth = builder.depth;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             run(new RevisionHistory(path).getHistory(journal, node));
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 

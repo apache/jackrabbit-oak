@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -27,27 +28,31 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.PathFilter;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.base.Predicate;
 
@@ -74,7 +79,9 @@ class PropertyIndexEditor implements IndexEditor {
     /** Root node state */
     private final NodeState root;
 
-     private final Set<String> propertyNames;
+    private final Set<String> propertyNames;
+    
+    private final ValuePattern valuePattern;
 
     /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
@@ -128,6 +135,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
+        this.valuePattern = new ValuePattern(definition);
 
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
@@ -155,6 +163,7 @@ class PropertyIndexEditor implements IndexEditor {
         this.definition = parent.definition;
         this.root = parent.root;
         this.propertyNames = parent.getPropertyNames();
+        this.valuePattern = parent.valuePattern;
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
         this.updateCallback = parent.updateCallback;
@@ -193,24 +202,24 @@ class PropertyIndexEditor implements IndexEditor {
      * @return set of encoded values, possibly initialized
      */
     private static Set<String> addValueKeys(
-            Set<String> keys, PropertyState property) {
+            Set<String> keys, PropertyState property, ValuePattern pattern) {
         if (property.getType().tag() != PropertyType.BINARY
                 && property.count() > 0) {
             if (keys == null) {
                 keys = newHashSet();
             }
-            keys.addAll(encode(PropertyValues.create(property)));
+            keys.addAll(encode(PropertyValues.create(property), pattern));
         }
         return keys;
     }
 
     private static Set<String> getMatchingKeys(
-            NodeState state, Iterable<String> propertyNames) {
+            NodeState state, Iterable<String> propertyNames, ValuePattern pattern) {
         Set<String> keys = null;
         for (String propertyName : propertyNames) {
             PropertyState property = state.getProperty(propertyName);
             if (property != null) {
-                keys = addValueKeys(keys, property);
+                keys = addValueKeys(keys, property, pattern);
             }
         }
         return keys;
@@ -248,8 +257,8 @@ class PropertyIndexEditor implements IndexEditor {
             if (typeChanged) {
                 // possible type change, so ignore diff results and
                 // just load all matching values from both states
-                beforeKeys = getMatchingKeys(before, getPropertyNames());
-                afterKeys = getMatchingKeys(after, getPropertyNames());
+                beforeKeys = getMatchingKeys(before, getPropertyNames(), valuePattern);
+                afterKeys = getMatchingKeys(after, getPropertyNames(), valuePattern);
             }
             if (beforeKeys != null && !typePredicate.apply(before)) {
                 // the before state doesn't match the type, so clear its values
@@ -284,11 +293,17 @@ class PropertyIndexEditor implements IndexEditor {
                 String properties = definition.getString(PROPERTY_NAMES);
                 boolean uniqueIndex = keysToCheckForUniqueness != null;
                 for (IndexStoreStrategy strategy : getStrategies(uniqueIndex)) {
-                    NodeBuilder index = definition.child(strategy
-                            .getIndexNodeName());
+                    String indexNodeName = strategy.getIndexNodeName();
+                    Supplier<NodeBuilder> index = memoize(() -> definition.child(indexNodeName));
                     if (uniqueIndex) {
+                        Supplier<NodeBuilder> roBuilder;
+                        if (definition.hasChildNode(indexNodeName)) {
+                            roBuilder = index;
+                        } else {
+                            roBuilder = () -> EMPTY_NODE.builder();
+                        }
                         keysToCheckForUniqueness.addAll(getExistingKeys(
-                                afterKeys, index, strategy));
+                                afterKeys, roBuilder, strategy));
                     }
                     strategy.update(index, getPath(), properties, definition,
                             beforeKeys, afterKeys);
@@ -313,9 +328,8 @@ class PropertyIndexEditor implements IndexEditor {
                         keysToCheckForUniqueness, indexMeta);
                 if (failed != null) {
                     String msg = String.format(
-                            "Uniqueness constraint violated at path [%s] for one of the "
-                                    + "property in %s having value %s",
-                            getPath(), propertyNames, failed);
+                            "Uniqueness constraint violated property %s having value %s",
+                            propertyNames, failed);
                     throw new CommitFailedException(CONSTRAINT, 30, msg);
                 }
             }
@@ -330,7 +344,7 @@ class PropertyIndexEditor implements IndexEditor {
      * @param s the index store strategy
      * @return the set of keys that already exist in this unique index
      */
-    private Set<String> getExistingKeys(Set<String> keys, NodeBuilder index, IndexStoreStrategy s) {
+    private Set<String> getExistingKeys(Set<String> keys, Supplier<NodeBuilder> index, IndexStoreStrategy s) {
         Set<String> existing = null;
         for (String key : keys) {
             if (s.exists(index, key)) {
@@ -359,6 +373,10 @@ class PropertyIndexEditor implements IndexEditor {
             for (IndexStoreStrategy s : getStrategies(true)) {
                 count += s.count(root, indexMeta, singleton(key), 2);
                 if (count > 1) {
+                    Iterator<String> it = s.query(null, null, indexMeta, singleton(key)).iterator();
+                    if (it.hasNext()) {
+                        return key + ": " + it.next();
+                    }
                     return key;
                 }
             }
@@ -375,7 +393,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            afterKeys = addValueKeys(afterKeys, after);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -384,8 +402,8 @@ class PropertyIndexEditor implements IndexEditor {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
-            afterKeys = addValueKeys(afterKeys, after);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
+            afterKeys = addValueKeys(afterKeys, after, valuePattern);
         }
     }
 
@@ -394,7 +412,7 @@ class PropertyIndexEditor implements IndexEditor {
         String name = before.getName();
         typeChanged = typeChanged || isTypeProperty(name);
         if (getPropertyNames().contains(name)) {
-            beforeKeys = addValueKeys(beforeKeys, before);
+            beforeKeys = addValueKeys(beforeKeys, before, valuePattern);
         }
     }
 
@@ -405,7 +423,7 @@ class PropertyIndexEditor implements IndexEditor {
      * @param name the name of the child node
      * @return an instance of the PropertyIndexEditor
      */
-    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name, PathFilter.Result filterResult) {
+    PropertyIndexEditor getChildIndexEditor(@NotNull PropertyIndexEditor parent, @NotNull String name, PathFilter.Result filterResult) {
        return new PropertyIndexEditor(parent, name, filterResult);
     }
     

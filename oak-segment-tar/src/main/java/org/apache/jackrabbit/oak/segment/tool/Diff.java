@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,7 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Shows the differences between two head states.
  */
-public class Diff implements Runnable {
+public class Diff {
 
     /**
      * Create a builder for the {@link Diff} command.
@@ -159,7 +160,7 @@ public class Diff implements Runnable {
          *
          * @return an instance of {@link Runnable}.
          */
-        public Runnable build() {
+        public Diff build() {
             checkNotNull(path);
             checkNotNull(interval);
             checkNotNull(out);
@@ -190,12 +191,13 @@ public class Diff implements Runnable {
         this.ignoreMissingSegments = builder.ignoreMissingSegments;
     }
 
-    @Override
-    public void run() {
+    public int run() {
         try {
             diff();
+            return 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
+            return 1;
         }
     }
 
@@ -211,13 +213,14 @@ public class Diff implements Runnable {
         }
 
         try (ReadOnlyFileStore store = fileStoreBuilder(path).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly()) {
+            SegmentIdProvider idProvider = store.getSegmentIdProvider();
             RecordId idL;
 
             try {
                 if (tokens[0].equalsIgnoreCase("head")) {
                     idL = store.getRevisions().getHead();
                 } else {
-                    idL = fromString(store, tokens[0]);
+                    idL = fromString(idProvider, tokens[0]);
                 }
             } catch (IllegalArgumentException e) {
                 System.out.println("Invalid left endpoint for interval " + interval);
@@ -230,7 +233,7 @@ public class Diff implements Runnable {
                 if (tokens[1].equalsIgnoreCase("head")) {
                     idR = store.getRevisions().getHead();
                 } else {
-                    idR = fromString(store, tokens[1]);
+                    idR = fromString(idProvider, tokens[1]);
                 }
             } catch (IllegalArgumentException e) {
                 System.out.println("Invalid left endpoint for interval " + interval);
@@ -260,9 +263,9 @@ public class Diff implements Runnable {
                         return;
                     }
                     Iterator<String> revDiffsIt = revDiffs.iterator();
-                    RecordId idLt = fromString(store, revDiffsIt.next());
+                    RecordId idLt = fromString(idProvider, revDiffsIt.next());
                     while (revDiffsIt.hasNext()) {
-                        RecordId idRt = fromString(store, revDiffsIt.next());
+                        RecordId idRt = fromString(idProvider, revDiffsIt.next());
                         boolean good = diff(store, idLt, idRt, pw);
                         idLt = idRt;
                         if (!good && !ignoreMissingSegments) {

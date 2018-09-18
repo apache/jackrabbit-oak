@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation.filter;
-
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
@@ -38,20 +36,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Builder for {@link FilterProvider} instances.
@@ -77,12 +74,12 @@ public final class FilterBuilder {
     private EventAggregator aggregator;
 
     public interface Condition {
-        @Nonnull
-        EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after);
+        @NotNull
+        EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after);
     }
     
-    @Nonnull
-    public FilterBuilder setChangeSetFilter(@Nonnull ChangeSetFilter changeSetFilter) {
+    @NotNull
+    public FilterBuilder setChangeSetFilter(@NotNull ChangeSetFilter changeSetFilter) {
         this.changeSetFilter = changeSetFilter;
         return this;
     }
@@ -98,8 +95,8 @@ public final class FilterBuilder {
      * @param absPath  absolute path
      * @return  this instance
      */
-    @Nonnull
-    public FilterBuilder addSubTree(@Nonnull String absPath) {
+    @NotNull
+    public FilterBuilder addSubTree(@NotNull String absPath) {
         if (absPath.endsWith("/")) {
             absPath = absPath.substring(0, absPath.length() - 1);
         }
@@ -117,7 +114,7 @@ public final class FilterBuilder {
      * @param paths
      * @return
      */
-    public FilterBuilder addPathsForMBean(@Nonnull Set<String> paths) {
+    public FilterBuilder addPathsForMBean(@NotNull Set<String> paths) {
         pathsForMBean.addAll(paths);
         return this;
     }
@@ -127,7 +124,7 @@ public final class FilterBuilder {
      * @return  list of paths
      * @see #addSubTree(String)
      */
-    @Nonnull
+    @NotNull
     private Iterable<String> getSubTrees() {
         return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
     }
@@ -143,7 +140,7 @@ public final class FilterBuilder {
      *                otherwise session local changes are not included.
      * @return  this instance
      */
-    @Nonnull
+    @NotNull
     public FilterBuilder includeSessionLocal(boolean include) {
         this.includeSessionLocal = include;
         return this;
@@ -155,7 +152,7 @@ public final class FilterBuilder {
      *                otherwise cluster external changes are not included.
      * @return  this instance
      */
-    @Nonnull
+    @NotNull
     public FilterBuilder includeClusterExternal(boolean include) {
         this.includeClusterExternal = include;
         return this;
@@ -167,7 +164,7 @@ public final class FilterBuilder {
      *                otherwise cluster local changes are not included.
      * @return  this instance
      */
-    @Nonnull
+    @NotNull
     public FilterBuilder includeClusterLocal(boolean include) {
         this.includeClusterLocal = include;
         return this;
@@ -181,8 +178,8 @@ public final class FilterBuilder {
      * @param condition  the conditions to apply
      * @return this instance
      */
-    @Nonnull
-    public FilterBuilder condition(@Nonnull Condition condition) {
+    @NotNull
+    public FilterBuilder condition(@NotNull Condition condition) {
         this.condition = checkNotNull(condition);
         return this;
     }
@@ -193,7 +190,7 @@ public final class FilterBuilder {
      * A condition the always holds
      * @return  true condition
      */
-    @Nonnull
+    @NotNull
     public Condition includeAll() {
         return ConstantCondition.INCLUDE_ALL;
     }
@@ -202,7 +199,7 @@ public final class FilterBuilder {
      * A condition that never holds
      * @return  false condition
      */
-    @Nonnull
+    @NotNull
     public Condition excludeAll() {
         return ConstantCondition.EXCLUDE_ALL;
     }
@@ -215,8 +212,8 @@ public final class FilterBuilder {
      * @return  access control condition
      * @see  ACFilter
      */
-    @Nonnull
-    public Condition accessControl(@Nonnull PermissionProviderFactory permissionProviderFactory) {
+    @NotNull
+    public Condition accessControl(@NotNull PermissionProviderFactory permissionProviderFactory) {
         return new ACCondition(checkNotNull(permissionProviderFactory));
     }
 
@@ -226,8 +223,8 @@ public final class FilterBuilder {
      * @return  path condition
      * @see GlobbingPathFilter
      */
-    @Nonnull
-    public Condition path(@Nonnull String pathPattern) {
+    @NotNull
+    public Condition path(@NotNull String pathPattern) {
         return new PathCondition(checkNotNull(pathPattern));
     }
 
@@ -237,7 +234,7 @@ public final class FilterBuilder {
      * @return event type condition
      * @see EventTypeFilter
      */
-    @Nonnull
+    @NotNull
     public Condition eventType(int eventTypes) {
         if ((ALL_EVENTS & eventTypes) == 0) {
             return excludeAll();
@@ -255,8 +252,8 @@ public final class FilterBuilder {
      *                always matches if empty.
      * @return node type condition
      */
-    @Nonnull
-    public Condition nodeType(@Nonnull Selector selector, @CheckForNull String[] ntNames) {
+    @NotNull
+    public Condition nodeType(@NotNull Selector selector, @Nullable String[] ntNames) {
         if (ntNames == null) {
             return includeAll();
         } else if (ntNames.length == 0) {
@@ -273,8 +270,8 @@ public final class FilterBuilder {
      *                always matches if empty.
      * @return node type condition
      */
-    @Nonnull
-    public Condition uuid(@Nonnull Selector selector, @CheckForNull String[] uuids) {
+    @NotNull
+    public Condition uuid(@NotNull Selector selector, @Nullable String[] uuids) {
         if (uuids == null) {
             return includeAll();
         } else if (uuids.length == 0) {
@@ -291,9 +288,9 @@ public final class FilterBuilder {
      * @param predicate the predicate to check on the named property
      * @return property condition
      */
-    @Nonnull
-    public Condition property(@Nonnull Selector selector, @Nonnull String name,
-            @Nonnull Predicate<PropertyState> predicate) {
+    @NotNull
+    public Condition property(@NotNull Selector selector, @NotNull String name,
+            @NotNull Predicate<PropertyState> predicate) {
 
         return new UniversalCondition(
                 checkNotNull(selector),
@@ -306,15 +303,15 @@ public final class FilterBuilder {
      * @param predicate the predicate to check on the selected node
      * @return universal condition
      */
-    @Nonnull
-    public Condition universal(@Nonnull Selector selector, @Nonnull Predicate<NodeState> predicate) {
+    @NotNull
+    public Condition universal(@NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
         return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
     }
 
     /**
      * @return a condition that holds for children of added nodes.
      */
-    @Nonnull
+    @NotNull
     public Condition addSubtree() {
         return new AddSubtreeTreeCondition();
     }
@@ -322,7 +319,7 @@ public final class FilterBuilder {
     /**
      * @return a condition that holds for children of deleted nodes.
      */
-    @Nonnull
+    @NotNull
     public Condition deleteSubtree() {
         return new DeleteSubtreeTreeCondition();
     }
@@ -330,7 +327,7 @@ public final class FilterBuilder {
     /**
      * @return a condition that holds for children of the target of a moved node
      */
-    @Nonnull
+    @NotNull
     public Condition moveSubtree() {
         return new MoveCondition();
     }
@@ -342,8 +339,8 @@ public final class FilterBuilder {
      * @param conditions conditions of which any must hold in order for this condition to hold
      * @return  any condition
      */
-    @Nonnull
-    public Condition any(@Nonnull Condition... conditions) {
+    @NotNull
+    public Condition any(@NotNull Condition... conditions) {
         return new AnyCondition(newArrayList(checkNotNull(conditions)));
     }
 
@@ -352,8 +349,8 @@ public final class FilterBuilder {
      * @param conditions conditions of which all must hold in order for this condition to hold
      * @return  any condition
      */
-    @Nonnull
-    public Condition all(@Nonnull Condition... conditions) {
+    @NotNull
+    public Condition all(@NotNull Condition... conditions) {
         return new AllCondition(newArrayList(checkNotNull(conditions)));
     }
 
@@ -362,8 +359,8 @@ public final class FilterBuilder {
      * @param conditions conditions of which all must hold in order for this condition to hold
      * @return  any condition
      */
-    @Nonnull
-    public Condition all(@Nonnull List<Condition> conditions) {
+    @NotNull
+    public Condition all(@NotNull List<Condition> conditions) {
         return new AllCondition(checkNotNull(conditions));
     }
 
@@ -372,8 +369,8 @@ public final class FilterBuilder {
      * @param condition condition which must not hold in order for this condition to hold
      * @return  not condition
      */
-    @Nonnull
-    public Condition not(@Nonnull Condition condition) {
+    @NotNull
+    public Condition not(@NotNull Condition condition) {
         return new NotCondition(checkNotNull(condition));
     }
 
@@ -382,8 +379,8 @@ public final class FilterBuilder {
      * @param conditions conditions of which any must hold in order for this condition to hold
      * @return  any condition
      */
-    @Nonnull
-    public Condition any(@Nonnull Iterable<Condition> conditions) {
+    @NotNull
+    public Condition any(@NotNull Iterable<Condition> conditions) {
         return new AnyCondition(checkNotNull(conditions));
     }
 
@@ -392,8 +389,8 @@ public final class FilterBuilder {
      * @param conditions conditions of which all must hold in order for this condition to hold
      * @return  any condition
      */
-    @Nonnull
-    public Condition all(@Nonnull Iterable<Condition> conditions) {
+    @NotNull
+    public Condition all(@NotNull Iterable<Condition> conditions) {
         return new AllCondition(checkNotNull(conditions));
     }
 
@@ -401,7 +398,7 @@ public final class FilterBuilder {
      * Create a {@code FilterProvider} reflecting the current state of this builder.
      * @return  filter provider of the current state of this builder
      */
-    @Nonnull
+    @NotNull
     public FilterProvider build() {
         return new FilterProvider() {
             final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
@@ -418,19 +415,19 @@ public final class FilterBuilder {
             }
             
             @Override
-            public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
+            public boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info) {
                 return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
                     && (includeClusterExternal || !isExternal(info))
                     && (includeClusterLocal || isExternal(info));
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+            public EventFilter getFilter(@NotNull NodeState before, @NotNull NodeState after) {
                 return condition.createFilter(checkNotNull(before), checkNotNull(after));
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<String> getSubTrees() {
                 return subTrees;
@@ -461,7 +458,7 @@ public final class FilterBuilder {
         };
     }
 
-    @Nonnull
+    @NotNull
     private FilterConfigMBean getConfigMBean(){
         return new FilterConfigMBean() {
             @Override
@@ -566,7 +563,7 @@ public final class FilterBuilder {
             this.predicate = predicate;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             return new UniversalFilter(before, after, selector, predicate);
@@ -574,25 +571,25 @@ public final class FilterBuilder {
     }
 
     protected static class AddSubtreeTreeCondition implements Condition {
-        @Nonnull
+        @NotNull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+        public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
             return AddSubtreeFilter.getInstance();
         }
     }
 
     protected static class DeleteSubtreeTreeCondition implements Condition {
-        @Nonnull
+        @NotNull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+        public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
             return DeleteSubtreeFilter.getInstance();
         }
     }
 
     protected static class MoveCondition implements Condition {
-        @Nonnull
+        @NotNull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
+        public EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after) {
             return new MoveFilter();
         }
     }
@@ -658,7 +655,7 @@ public final class FilterBuilder {
             this.condition = condition;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             if (condition == ConstantCondition.EXCLUDE_ALL) {

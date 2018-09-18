@@ -16,21 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,11 +45,18 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeInitializer.class);
 
-    @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
-        NodeBuilder system = builder.child(JcrConstants.JCR_SYSTEM);
-        system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
+    private final RootProvider rootProvider;
 
+    PrivilegeInitializer(@NotNull RootProvider rootProvider) {
+        this.rootProvider = rootProvider;
+    }
+
+    @Override
+    public void initialize(@NotNull NodeBuilder builder) {
+        if (!builder.hasChildNode(JcrConstants.JCR_SYSTEM)) {
+            throw new IllegalStateException("Missing " + JcrConstants.JCR_SYSTEM + " node, NodeStore not initialized.");
+        }
+        NodeBuilder system = builder.getChildNode(JcrConstants.JCR_SYSTEM);
         if (!system.hasChildNode(REP_PRIVILEGES)) {
             NodeBuilder privileges = system.child(REP_PRIVILEGES);
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
@@ -59,7 +65,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeState base = squeeze(builder.getNodeState());
             NodeStore store = new MemoryNodeStore(base);
             try {
-                Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null, null);
+                Root systemRoot = rootProvider.createSystemRoot(store, null);
                 new PrivilegeDefinitionWriter(systemRoot).writeBuiltInDefinitions();
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);

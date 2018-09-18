@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.fulltext;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ExtractedText {
     public enum ExtractionResult {
@@ -51,22 +51,22 @@ public class ExtractedText {
     private final ExtractionResult extractionResult;
     private final CharSequence extractedText;
 
-    public ExtractedText(@Nonnull ExtractionResult extractionResult){
+    public ExtractedText(@NotNull ExtractionResult extractionResult){
         this(extractionResult, null);
     }
 
-    public ExtractedText(@Nonnull ExtractionResult extractionResult,CharSequence extractedText) {
+    public ExtractedText(@NotNull ExtractionResult extractionResult,CharSequence extractedText) {
         this.extractionResult = extractionResult;
         this.extractedText = extractedText;
         checkState();
     }
 
-    @Nonnull
+    @NotNull
     public ExtractionResult getExtractionResult() {
         return extractionResult;
     }
 
-    @CheckForNull
+    @Nullable
     public CharSequence getExtractedText() {
         return extractedText;
     }

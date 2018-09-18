@@ -18,17 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
@@ -92,98 +88,6 @@ public class CheckpointTest {
         NodeBuilder builder = store.getRoot().builder();
         builder.child(name).remove();
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    /**
-     * OAK-3587 test simulates a timeout while trying to create a checkpoint,
-     * then releases the lock and tries again
-     */
-    @Test
-    public void testShortWait() throws Exception {
-        final SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        store.setCheckpointsLockWaitTime(1);
-
-        final Semaphore semaphore = new Semaphore(0);
-        final AtomicBoolean blocking = new AtomicBoolean(true);
-
-        final Callable<Boolean> block = new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() {
-                while (blocking.get()) {
-                    if (semaphore.availablePermits() == 0) {
-                        semaphore.release();
-                    }
-                }
-                return true;
-            }
-        };
-
-        Thread background = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    store.locked(block, 10, SECONDS);
-                } catch (Exception e) {
-                    //
-                }
-            }
-        };
-
-        background.start();
-        semaphore.acquire();
-
-        String cp0 = store.checkpoint(10);
-        assertNull(store.retrieve(cp0));
-
-        blocking.set(false);
-        String cp1 = store.checkpoint(10);
-        assertNotNull(store.retrieve(cp1));
-    }
-
-    /**
-     * OAK-3587 test simulates a wait less than configured
-     * {@code SegmentNodeStore#setCheckpointsLockWaitTime(int)} value so the
-     * checkpoint call must return a valid value
-     */
-    @Test
-    public void testLongWait() throws Exception {
-        final int blockTime = 1;
-        final SegmentNodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
-        store.setCheckpointsLockWaitTime(blockTime + 1);
-
-        final Semaphore semaphore = new Semaphore(0);
-
-        final Callable<Boolean> block = new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() {
-                try {
-                    semaphore.release();
-                    SECONDS.sleep(blockTime);
-                } catch (InterruptedException e) {
-                    //
-                }
-                return true;
-            }
-        };
-
-        Thread background = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    store.locked(block, 10, SECONDS);
-                } catch (Exception e) {
-                    //
-                }
-            }
-        };
-
-        background.start();
-        semaphore.acquire();
-
-        String cp0 = store.checkpoint(10);
-        assertNotNull(store.retrieve(cp0));
     }
 
     @Test

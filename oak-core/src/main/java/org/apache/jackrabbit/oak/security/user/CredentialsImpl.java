@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Credentials implementation to cover
@@ -30,17 +30,17 @@ class CredentialsImpl implements Credentials {
     private final String userId;
     private final String pwHash;
 
-    CredentialsImpl(@Nonnull String userId, @Nullable String pwHash) {
+    CredentialsImpl(@NotNull String userId, @Nullable String pwHash) {
         this.userId = userId;
         this.pwHash = pwHash;
     }
 
-    @Nonnull
+    @NotNull
     public String getUserId() {
         return userId;
     }
 
-    @CheckForNull
+    @Nullable
     public String getPasswordHash() {
         return pwHash;
     }

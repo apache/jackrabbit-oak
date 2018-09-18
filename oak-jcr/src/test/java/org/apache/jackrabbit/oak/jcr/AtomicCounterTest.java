@@ -19,17 +19,17 @@ package org.apache.jackrabbit.oak.jcr;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor.PROP_INCREMENT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_ATOMIC_COUNTER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class AtomicCounterTest extends AbstractRepositoryTest {        
@@ -82,7 +82,7 @@ public class AtomicCounterTest extends AbstractRepositoryTest {
         }
     }
     
-    private static void assertCounter(@Nonnull final Node counter, final long expectedCount) 
+    private static void assertCounter(@NotNull final Node counter, final long expectedCount) 
                                     throws RepositoryException {
         checkNotNull(counter);
         

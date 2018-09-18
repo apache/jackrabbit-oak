@@ -24,19 +24,19 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
+import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A map. The top level record is either a record of type "BRANCH" or "LEAF"
@@ -52,7 +52,7 @@ public class MapRecord extends Record {
     private static final int A = 0xB;
     static final long HASH_MASK = 0xFFFFFFFFL;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     /**
@@ -97,7 +97,7 @@ public class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
-    MapRecord(@Nonnull SegmentReader reader, @Nonnull RecordId id) {
+    MapRecord(@NotNull SegmentReader reader, @NotNull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
     }
@@ -165,7 +165,7 @@ public class MapRecord extends Record {
                 RecordId key = segment.readRecordId(getRecordNumber(), 8);
                 if (name.equals(reader.readString(key))) {
                     RecordId value = segment.readRecordId(getRecordNumber(), 8, 1);
-                    return new MapEntry(reader, name, key, value);
+                    return newMapEntry(reader, name, key, value);
                 }
             }
             RecordId base = segment.readRecordId(getRecordNumber(), 8, 2);
@@ -218,7 +218,7 @@ public class MapRecord extends Record {
                 RecordId valueId = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
                 diff = reader.readString(keyId).compareTo(name);
                 if (diff == 0) {
-                    return new MapEntry(reader, name, keyId, valueId);
+                    return newMapEntry(reader, name, keyId, valueId);
                 }
             }
 
@@ -304,8 +304,14 @@ public class MapRecord extends Record {
             List<MapRecord> buckets = getBucketList(segment);
             List<Iterable<String>> keys =
                     newArrayListWithCapacity(buckets.size());
-            for (MapRecord bucket : buckets) {
-                keys.add(bucket.getKeys());
+            for (final MapRecord bucket : buckets) {
+                keys.add(new Iterable<String>() {
+                    @NotNull
+                    @Override
+                    public Iterator<String> iterator() {
+                        return bucket.getKeys().iterator();
+                    }
+                });
             }
             return concat(keys);
         }
@@ -350,6 +356,7 @@ public class MapRecord extends Record {
                     newArrayListWithCapacity(buckets.size());
             for (final MapRecord bucket : buckets) {
                 entries.add(new Iterable<MapEntry>() {
+                    @NotNull
                     @Override
                     public Iterator<MapEntry> iterator() {
                         return bucket.getEntries(diffKey, diffValue).iterator();
@@ -369,7 +376,7 @@ public class MapRecord extends Record {
                 value = segment.readRecordId(getRecordNumber(), 4 + size * 4, i * 2 + 1);
             }
             String name = reader.readString(key);
-            entries[i] = new MapEntry(reader, name, key, value);
+            entries[i] = newMapEntry(reader, name, key, value);
         }
         return Arrays.asList(entries);
     }
@@ -484,9 +491,7 @@ public class MapRecord extends Record {
             } else if (d == 0) {
                 assert beforeEntry != null;
                 assert afterEntry != null;
-                RecordId beforeValue = beforeEntry.getValue();
-                assert beforeValue != null;
-                if (!beforeValue.equals(afterEntry.getValue())
+                if (!beforeEntry.getValue().equals(afterEntry.getValue())
                         && !diff.childNodeChanged(
                                 beforeEntry.getName(),
                                 beforeEntry.getNodeState(),

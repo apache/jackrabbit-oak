@@ -22,14 +22,14 @@ import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
@@ -65,8 +65,8 @@ class FilterQueryParser {
             }
         }
 
-        List<QueryIndex.OrderEntry> sortOrder = plan.getSortOrder();
-        if (sortOrder != null) {
+        if (plan != null && plan.getSortOrder() != null) {
+            List<QueryIndex.OrderEntry> sortOrder = plan.getSortOrder();
             for (QueryIndex.OrderEntry orderEntry : sortOrder) {
                 SolrQuery.ORDER order;
                 if (QueryIndex.OrderEntry.Order.ASCENDING.equals(orderEntry.getOrder())) {
@@ -98,11 +98,11 @@ class FilterQueryParser {
                     continue;
                 }
                 // facets
-                if (QueryImpl.REP_FACET.equals(pr.propertyName)) {
+                if (QueryConstants.REP_FACET.equals(pr.propertyName)) {
                     solrQuery.setFacetMinCount(1);
                     solrQuery.setFacet(true);
                     String value = pr.first.getValue(Type.STRING);
-                    solrQuery.addFacetField(value.substring(QueryImpl.REP_FACET.length() + 1, value.length() - 1) + "_facet");
+                    solrQuery.addFacetField(value.substring(QueryConstants.REP_FACET.length() + 1, value.length() - 1) + "_facet");
                 }
 
                 // native query support
@@ -233,7 +233,7 @@ class FilterQueryParser {
             solrQuery.addFilterQuery(ptQueryBuilder.toString());
         }
 
-        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryImpl.REP_EXCERPT)) {
+        if (filter.getQueryStatement() != null && filter.getQueryStatement().contains(QueryConstants.REP_EXCERPT)) {
             if (!solrQuery.getHighlight()) {
                 // enable highlighting
                 solrQuery.setHighlight(true);
@@ -290,10 +290,13 @@ class FilterQueryParser {
             public boolean visit(FullTextOr or) {
                 fullTextString.append('(');
                 for (int i = 0; i < or.list.size(); i++) {
+                    FullTextExpression e = or.list.get(i);
+                    if (e.toString().contains("\"OR\"")) {
+                        continue;
+                    }
                     if (i > 0 && i < or.list.size()) {
                         fullTextString.append(" OR ");
                     }
-                    FullTextExpression e = or.list.get(i);
                     String orTerm = parseFullTextExpression(e, configuration);
                     fullTextString.append(orTerm);
                 }
@@ -311,10 +314,13 @@ class FilterQueryParser {
             public boolean visit(FullTextAnd and) {
                 fullTextString.append('(');
                 for (int i = 0; i < and.list.size(); i++) {
+                    FullTextExpression e = and.list.get(i);
+                    if (e.toString().contains("\"AND\"")) {
+                        continue;
+                    }
                     if (i > 0 && i < and.list.size()) {
                         fullTextString.append(" AND ");
                     }
-                    FullTextExpression e = and.list.get(i);
                     String andTerm = parseFullTextExpression(e, configuration);
                     fullTextString.append(andTerm);
                 }

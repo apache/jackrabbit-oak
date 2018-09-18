@@ -42,19 +42,19 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_PROTECTED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getBoolean;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_HAS_PROTECTED_RESIDUAL_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PROTECTED_CHILD_NODES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PROTECTED_PROPERTIES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getBoolean;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,8 +62,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.RepositoryException;
@@ -75,6 +73,8 @@ import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -82,11 +82,14 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -105,19 +108,19 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         return tree.getName();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         return tree.getPath();
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public NodeDelegate getParent() {
         return tree.isRoot() || !tree.getParent().exists()
             ? null
@@ -130,12 +133,12 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public Status getStatus() {
         return tree.getStatus();
     }
 
-    @Nonnull
+    @NotNull
     public String getIdentifier() throws InvalidItemStateException {
         return IdentifierManager.getIdentifier(getTree());
     }
@@ -248,7 +251,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return property at the path given by {@code relPath} or {@code null} if
      *         no such property exists
      */
-    @CheckForNull
+    @Nullable
     public PropertyDelegate getPropertyOrNull(String relPath)
             throws RepositoryException {
         Tree parent = tree;
@@ -279,7 +282,7 @@ public class NodeDelegate extends ItemDelegate {
      * @param relPath oak path
      * @return property at the path given by {@code relPath}.
      */
-    @Nonnull
+    @NotNull
     public PropertyDelegate getProperty(String relPath) throws RepositoryException {
         Tree parent = tree;
         String name = relPath;
@@ -298,7 +301,7 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return properties of the node
      */
-    @Nonnull
+    @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
         return transform(getTree().getProperties().iterator(),
                 new Function<PropertyState, PropertyDelegate>() {
@@ -331,7 +334,7 @@ public class NodeDelegate extends ItemDelegate {
      * @return node at the path given by {@code relPath} or {@code null} if
      *         no such node exists
      */
-    @CheckForNull
+    @Nullable
     public NodeDelegate getChild(String relPath) throws RepositoryException {
         if (relPath.isEmpty()) {
             return this;
@@ -347,7 +350,7 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return child nodes of the node
      */
-    @Nonnull
+    @NotNull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
         return transform(
@@ -378,6 +381,9 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public boolean canAddMixin(String typeName) throws RepositoryException {
+        if (!LockDeprecation.isLockingSupported() && JcrConstants.MIX_LOCKABLE.equals(typeName)) {
+            return false;
+        }
         Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
         if (type.exists()) {
             return !TreeUtil.getBoolean(type, JCR_IS_ABSTRACT)
@@ -496,7 +502,7 @@ public class NodeDelegate extends ItemDelegate {
      *
      * @return the set property
      */
-    @Nonnull
+    @NotNull
     public PropertyDelegate setProperty(
             PropertyState propertyState, boolean exactTypeMatch,
             boolean setProtected) throws RepositoryException {
@@ -681,7 +687,7 @@ public class NodeDelegate extends ItemDelegate {
      *                 or {@code null} if a default type should be used
      * @return the added node or {@code null} if such a node already exists
      */
-    @CheckForNull
+    @Nullable
     public NodeDelegate addChild(String name, String typeName)
             throws RepositoryException {
         Tree tree = getTree();
@@ -725,7 +731,7 @@ public class NodeDelegate extends ItemDelegate {
         return getLock() != null;
     }
 
-    @CheckForNull
+    @Nullable
     public NodeDelegate getLock() {
         Tree lock = findLock(tree, false);
         if (lock != null) {
@@ -741,8 +747,8 @@ public class NodeDelegate extends ItemDelegate {
         return null;
     }
 
-    @CheckForNull
-    private Tree findLock(@Nonnull Tree tree, boolean deep) {
+    @Nullable
+    private Tree findLock(@NotNull Tree tree, boolean deep) {
         if (holdsLock(tree, deep)) {
             return tree;
         } else if (tree.isRoot()) {
@@ -760,8 +766,8 @@ public class NodeDelegate extends ItemDelegate {
                 && (!deep || property.getValue(BOOLEAN));
     }
 
-    @CheckForNull
-    private Tree findDescendantLock(@Nonnull Tree tree) {
+    @Nullable
+    private Tree findDescendantLock(@NotNull Tree tree) {
         for (Tree child : tree.getChildren()) {
             if (holdsLock(child, false)) {
                 return child;
@@ -879,7 +885,7 @@ public class NodeDelegate extends ItemDelegate {
 
     //------------------------------------------------------------< internal >---
 
-    @Nonnull // FIXME this should be package private. OAK-672
+    @NotNull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
         if (!tree.exists()) {
             throw new InvalidItemStateException("Item is stale " + tree.getPath());

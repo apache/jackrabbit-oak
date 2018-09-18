@@ -23,18 +23,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code Utils} provide some utility methods.
  */
-public final class Utils {
+final class Utils {
     private Utils() {
     }
 
@@ -45,14 +44,14 @@ public final class Utils {
      * @return the value of the jcr:uuid property.
      * @throws IllegalArgumentException if the node is not referenceable.
      */
-    @Nonnull
-    static String uuidFromNode(@Nonnull NodeBuilder node)
+    @NotNull
+    static String uuidFromNode(@NotNull NodeBuilder node)
             throws IllegalArgumentException {
         return uuidFromNode(node.getNodeState());
     }
 
-    @Nonnull
-    static String uuidFromNode(@Nonnull NodeState node) {
+    @NotNull
+    static String uuidFromNode(@NotNull NodeState node) {
         PropertyState p = checkNotNull(node).getProperty(JCR_UUID);
         if (p == null) {
             throw new IllegalArgumentException("Not referenceable");
@@ -69,8 +68,8 @@ public final class Utils {
      * @throws IllegalStateException if the node does not have a {@code jcr:primaryType}
      *                               property.
      */
-    @Nonnull
-    static String primaryTypeOf(@Nonnull NodeBuilder node)
+    @NotNull
+    static String primaryTypeOf(@NotNull NodeBuilder node)
             throws IllegalStateException {
         String primaryType = checkNotNull(node).getName(JCR_PRIMARYTYPE);
         if (primaryType == null) {

@@ -34,9 +34,8 @@ Oak API
     - [oak-solr-osgi](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-solr-osgi/)
     - [oak-auth-external](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-auth-external/)
     - [oak-auth-ldap](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-auth-ldap/)
-    - [oak-tarmk-standby](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-tarmk-standby/)
+    - [oak-segment-tar](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-segment-tar/)
     - [oak-authorization-cug](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-authorization-cug/)
-    - [oak-remote](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-remote/)
     - [oak-exercise](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-exercise/)
 
 ### Key API entry points
@@ -44,7 +43,6 @@ Oak API
 - [ContentSession]
 - [Root]
 - [Tree]
-- [NodeState]
 - [PropertyState]
 
 #### Values
@@ -69,7 +67,6 @@ Oak API
 [Root]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Root.html
 [Tree]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Tree.html
 [PropertyState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyState.html
-[NodeState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/NodeState.html
 [PropertyValue]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyValue.html
 [Type]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Type.html
 [Blob]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Blob.html

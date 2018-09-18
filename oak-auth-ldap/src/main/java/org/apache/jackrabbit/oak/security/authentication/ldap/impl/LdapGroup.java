@@ -18,25 +18,25 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
+import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.jetbrains.annotations.NotNull;
 
 public class LdapGroup extends LdapIdentity implements ExternalGroup {
 
     private Map<String, ExternalIdentityRef> members;
 
-    public LdapGroup(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
-        super(provider, ref, id, path);
+    public LdapGroup(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path, Entry entry) {
+        super(provider, ref, id, path, entry);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
         if (members == null) {
-            members = provider.getDeclaredMemberRefs(ref);
+            members = provider.getDeclaredMemberRefs(ref, entry.getDn().getName());
         }
         return members.values();
     }

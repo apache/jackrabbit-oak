@@ -32,12 +32,12 @@ public class ManifestTest {
 
     @Test
     public void defaultStoreVersionShouldBeReturned() throws Exception {
-        assertEquals(42, Manifest.load(folder.newFile()).getStoreVersion(42));
+        assertEquals(42, Manifest.load(new LocalManifestFile(folder.newFile())).getStoreVersion(42));
     }
 
     @Test
     public void storeVersionShouldBeReturned() throws Exception {
-        File file = folder.newFile();
+        LocalManifestFile file = new LocalManifestFile(folder.newFile());
 
         Manifest write = Manifest.empty();
         write.setStoreVersion(42);

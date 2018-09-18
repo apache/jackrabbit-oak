@@ -16,26 +16,42 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.SecureRandom;
-import java.util.Map;
-import java.util.Random;
-import javax.annotation.Nonnull;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import java.security.SecureRandom;
+import java.util.Random;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
  * Implementation of the {@code AuthorizableNodeName} that generates a random
  * node name that doesn't reveal the ID of the authorizable.
  */
-@Component(metatype = true, label = "Apache Jackrabbit Oak Random Authorizable Node Name", description = "Generates a random name for the authorizable node.", policy = ConfigurationPolicy.REQUIRE)
-@Service(AuthorizableNodeName.class)
+@Component(
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        service = AuthorizableNodeName.class,
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.security.user.RandomAuthorizableNodeName"
+)
+@Designate(ocd = RandomAuthorizableNodeName.Configuration.class)
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
+
+    @ObjectClassDefinition(
+            name = "Apache Jackrabbit Oak Random Authorizable Node Name",
+            description = "Generates a random name for the authorizable node."
+    )
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "Name Length",
+                description = "Length of the generated node name.")
+        int length() default DEFAULT_LENGTH;
+    }
 
     /**
      * Characters used to encode the random data. This matches the Base64URL
@@ -57,8 +73,6 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
         sb.append("-_");
         VALID_CHARS = sb.toString().toCharArray();
     }
-
-    private static final String PARAM_LENGTH = "length";
     
     /**
      * 21 characters, each character with 6 bit of entropy (64 possible
@@ -68,12 +82,11 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
      */
     public static final int DEFAULT_LENGTH = 21;
 
-    @Property(name = PARAM_LENGTH, label = "Name Length", description = "Length of the generated node name.", intValue = DEFAULT_LENGTH)
     private int length = DEFAULT_LENGTH;
 
-    @Nonnull
+    @NotNull
     @Override
-    public String generateNodeName(@Nonnull String authorizableId) {
+    public String generateNodeName(@NotNull String authorizableId) {
         Random random = new SecureRandom();
         char[] chars = new char[length];
         for (int i = 0; i < length; i++) {
@@ -83,7 +96,7 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
     }
 
     @Activate
-    private void activate(Map<String, Object> properties) {
-        length = PropertiesUtil.toInteger(properties.get(PARAM_LENGTH), DEFAULT_LENGTH);
+    private void activate(Configuration config) {
+        length = config.length();
     }
 }

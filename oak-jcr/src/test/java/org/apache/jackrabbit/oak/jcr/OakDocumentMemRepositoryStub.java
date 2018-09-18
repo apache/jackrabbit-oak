@@ -17,21 +17,17 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.util.Properties;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.test.RepositoryStubException;
 
 /**
  * A repository stub using the DocumentNodeStore with an in-memory DocumentStore.
  */
-public class OakDocumentMemRepositoryStub extends OakRepositoryStub {
+public class OakDocumentMemRepositoryStub extends BaseRepositoryStub {
 
     private final Repository repository;
 
@@ -44,23 +40,15 @@ public class OakDocumentMemRepositoryStub extends OakRepositoryStub {
     public OakDocumentMemRepositoryStub(Properties settings)
             throws RepositoryException {
         super(settings);
-        Session session = null;
         final DocumentNodeStore store;
         try {
             store = new DocumentMK.Builder().getNodeStore();
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            this.repository = new Jcr(store).with(qs).with(BundlingConfigInitializer.INSTANCE).createRepository();
-
-            session = getRepository().login(superuser);
-            TestContentLoader loader = new TestContentLoader();
-            loader.loadTestContent(session);
+            Jcr jcr = new Jcr(store);
+            preCreateRepository(jcr);
+            this.repository = jcr.createRepository();
+            loadTestContent(repository);
         } catch (Exception e) {
             throw new RepositoryException(e);
-        } finally {
-            if (session != null) {
-                session.logout();
-            }
         }
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override

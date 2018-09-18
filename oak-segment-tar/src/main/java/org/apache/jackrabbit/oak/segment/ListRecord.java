@@ -32,7 +32,10 @@ import java.util.List;
  */
 class ListRecord extends Record {
 
-    static final int LEVEL_SIZE = Segment.SEGMENT_REFERENCE_LIMIT;
+    static final int LEVEL_SIZE = 255;
+
+    /** The maximum number of elements a list can contain */
+    static final int MAX_ELEMENTS = LEVEL_SIZE * LEVEL_SIZE * LEVEL_SIZE;
 
     private final int size;
 
@@ -40,7 +43,10 @@ class ListRecord extends Record {
 
     ListRecord(RecordId id, int size) {
         super(id);
-        checkArgument(size >= 0);
+        checkArgument(size >= 0,
+                "Negative list size: " + size);
+        checkArgument(size <= MAX_ELEMENTS,
+                "Too many elements in list: " + size);
         this.size = size;
 
         int bs = 1;

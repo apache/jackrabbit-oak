@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Arrays;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableSet;
@@ -31,9 +29,10 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Test implementation of the {@code AggregatedPermissionProvider} with following
@@ -53,13 +52,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstants {
 
-    FullScopeProvider(@Nonnull Root root) {
+    FullScopeProvider(@NotNull Root root) {
         super(root);
     }
 
     //-------------------------------------------------< PermissionProvider >---
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree == null) {
@@ -70,7 +69,7 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         if (tree == null) {
             return Arrays.equals(new String[]{JCR_NAMESPACE_MANAGEMENT}, privilegeNames);
         } else {
@@ -78,7 +77,7 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         return new RepositoryPermission() {
@@ -89,19 +88,19 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         return new TestTreePermission(tree.getPath());
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         return property == null && permissions == Permissions.READ_NODE;
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         Tree tree = root.getTree(oakPath);
         return tree.exists() && Session.ACTION_READ.equals(jcrActions);
     }
@@ -109,7 +108,7 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
     //---------------------------------------< AggregatedPermissionProvider >---
 
     @Override
-    public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+    public boolean isGranted(@NotNull TreeLocation location, long permissions) {
         return permissions == Permissions.READ_NODE;
     }
 
@@ -119,13 +118,13 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
 
         private final String path;
 
-        private TestTreePermission(@Nonnull String path) {
+        private TestTreePermission(@NotNull String path) {
             this.path = path;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return new TestTreePermission(PathUtils.concat(path, childName));
         }
 
@@ -135,7 +134,7 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return false;
         }
 
@@ -155,7 +154,7 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return false;
         }
     }

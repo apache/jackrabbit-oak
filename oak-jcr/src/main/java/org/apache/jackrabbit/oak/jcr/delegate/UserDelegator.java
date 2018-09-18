@@ -19,13 +19,13 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implementation of {@code User} delegates back to a
@@ -47,8 +47,8 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         }
     }
 
-    @Nonnull
-    static User unwrap(@Nonnull User user) {
+    @NotNull
+    static User unwrap(@NotNull User user) {
         if (user instanceof UserDelegator) {
             return ((UserDelegator) user).getDelegate();
         } else {
@@ -64,7 +64,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isAdmin() {
         return sessionDelegate.safePerform(new SessionOperation<Boolean>("isAdmin") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return getDelegate().isAdmin();
@@ -75,7 +75,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isSystemUser() {
         return sessionDelegate.safePerform(new SessionOperation<Boolean>("isSystemUser") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return getDelegate().isSystemUser();
@@ -86,7 +86,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public Credentials getCredentials() {
         return sessionDelegate.safePerform(new SessionOperation<Credentials>("getCredentials") {
-            @Nonnull
+            @NotNull
             @Override
             public Credentials perform() throws RepositoryException {
                 return getDelegate().getCredentials();
@@ -97,7 +97,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public Impersonation getImpersonation() {
         return sessionDelegate.safePerform(new SessionOperation<Impersonation>("getImpersonation") {
-            @Nonnull
+            @NotNull
             @Override
             public Impersonation perform() throws RepositoryException {
                 Impersonation impersonation = getDelegate().getImpersonation();
@@ -108,7 +108,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password);
@@ -118,7 +118,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password, final String oldPassword) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().changePassword(password, oldPassword);
@@ -128,7 +128,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void disable(final String reason) throws RepositoryException {
-        sessionDelegate.performVoid(new SessionOperation<Void>("disable") {
+        sessionDelegate.performVoid(new SessionOperation<Void>("disable", true) {
             @Override
             public void performVoid() throws RepositoryException {
                 getDelegate().disable(reason);
@@ -139,7 +139,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     @Override
     public boolean isDisabled() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("isDisabled") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().isDisabled();

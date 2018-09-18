@@ -23,18 +23,14 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
@@ -44,13 +40,13 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.newIndexDirectory;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -59,37 +55,35 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     private final IndexDefinition definition;
     private final NodeBuilder definitionBuilder;
-    private final IndexCopier indexCopier;
+    private final DirectoryFactory directoryFactory;
     private final String dirName;
     private final String suggestDirName;
     private final boolean reindex;
+    private final LuceneIndexWriterConfig writerConfig;
     private IndexWriter writer;
     private Directory directory;
-    private GarbageCollectableBlobStore blobStore;
     private long genAtStart = -1;
     private boolean indexUpdated = false;
 
     public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-        @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
-        boolean reindex, @Nullable GarbageCollectableBlobStore blobStore) {
+                              DirectoryFactory directoryFactory, String dirName, String suggestDirName,
+                              boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.definition = definition;
         this.definitionBuilder = definitionBuilder;
-        this.indexCopier = indexCopier;
+        this.directoryFactory = directoryFactory;
         this.dirName = dirName;
         this.suggestDirName = suggestDirName;
         this.reindex = reindex;
-        this.blobStore = blobStore;
-    }
-
-    public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
-                              @Nullable IndexCopier indexCopier, String dirName, String suggestDirName,
-                              boolean reindex) {
-        this(definition, definitionBuilder, indexCopier, dirName, suggestDirName, reindex, null);
+        this.writerConfig = writerConfig;
     }
 
     @Override
     public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
-        getWriter().updateDocument(newPathTerm(path), doc);
+        if (reindex) {
+            getWriter().addDocument(doc);
+        } else {
+            getWriter().updateDocument(newPathTerm(path), doc);
+        }
         indexUpdated = true;
     }
 
@@ -130,7 +124,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             final long start = PERF_LOGGER.start();
 
             if (updateSuggestions) {
-                indexUpdated |= updateSuggester(writer.getAnalyzer(), currentTime, blobStore);
+                indexUpdated |= updateSuggester(writer.getAnalyzer(), currentTime);
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
@@ -150,19 +144,15 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     //~----------------------------------------< internal >
 
-    private IndexWriter getWriter() throws IOException {
+    IndexWriter getWriter() throws IOException {
         if (writer == null) {
             final long start = PERF_LOGGER.start();
-            directory = newIndexDirectory(definition, definitionBuilder, dirName, indexCopier != null, blobStore);
-            IndexWriterConfig config;
-            if (indexCopier != null){
-                directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
-                config = getIndexWriterConfig(definition, false);
-            } else {
-                config = getIndexWriterConfig(definition, true);
-            }
+            directory = directoryFactory.newInstance(definition, definitionBuilder, dirName, reindex);
+            IndexWriterConfig config = getIndexWriterConfig(definition, directoryFactory.remoteDirectory(), writerConfig);
+            config.setMergePolicy(definition.getMergePolicy());
             writer = new IndexWriter(directory, config);
             genAtStart = getLatestGeneration(directory);
+            log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
             PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
         }
         return writer;
@@ -172,24 +162,25 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * eventually update suggest dictionary
      * @throws IOException if suggest dictionary update fails
      * @param analyzer the analyzer used to update the suggester
-     * @param blobStore
      */
-    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime,
-        @Nullable GarbageCollectableBlobStore blobStore) throws IOException {
+    private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
+        final Closer closer = Closer.create();
+
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-        DirectoryReader reader = DirectoryReader.open(writer, false);
-        final OakDirectory suggestDirectory =
-            new OakDirectory(definitionBuilder, suggestDirName, definition, false, blobStore);
+        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
+        final Directory suggestDirectory =
+            directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
+        // updateSuggester would close the directory (directly or via lookup)
+        // closer.register(suggestDirectory);
         boolean updated = false;
         try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
+            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
+            updated = true;
         } catch (Throwable e) {
             log.warn("could not update suggester", e);
         } finally {
-            updated = suggestDirectory.isDirty();
-            suggestDirectory.close();
-            reader.close();
+            closer.close();
         }
         return updated;
     }
@@ -250,9 +241,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         return -1;
     }
 
-    private static void trackIndexSizeInfo(@Nonnull IndexWriter writer,
-                                           @Nonnull IndexDefinition definition,
-                                           @Nonnull Directory directory) throws IOException {
+    private static void trackIndexSizeInfo(@NotNull IndexWriter writer,
+                                           @NotNull IndexDefinition definition,
+                                           @NotNull Directory directory) throws IOException {
         checkNotNull(writer);
         checkNotNull(definition);
         checkNotNull(directory);

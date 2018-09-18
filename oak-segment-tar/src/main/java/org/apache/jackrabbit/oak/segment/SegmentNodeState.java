@@ -41,29 +41,32 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A record of type "NODE". This class can read a node record from a segment. It
  * currently doesn't cache data (but the template is fully loaded).
  */
 public class SegmentNodeState extends Record implements NodeState {
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @Nullable
+    private final BlobStore blobStore;
+
+    @NotNull
     private final Supplier<SegmentWriter> writer;
 
     private volatile RecordId templateId = null;
@@ -71,19 +74,22 @@ public class SegmentNodeState extends Record implements NodeState {
     private volatile Template template = null;
 
     SegmentNodeState(
-            @Nonnull SegmentReader reader,
-            @Nonnull Supplier<SegmentWriter> writer,
-            @Nonnull RecordId id) {
+            @NotNull SegmentReader reader,
+            @NotNull Supplier<SegmentWriter> writer,
+            @Nullable BlobStore blobStore,
+            @NotNull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
         this.writer = checkNotNull(memoize(writer));
+        this.blobStore = blobStore;
     }
 
-    SegmentNodeState(
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer,
-            @Nonnull RecordId id) {
-        this(reader, Suppliers.ofInstance(writer), id);
+    public SegmentNodeState(
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
+            @Nullable BlobStore blobStore,
+            @NotNull RecordId id) {
+        this(reader, Suppliers.ofInstance(writer), blobStore, id);
     }
 
     RecordId getTemplateId() {
@@ -109,6 +115,15 @@ public class SegmentNodeState extends Record implements NodeState {
         return reader.readMap(segment.readRecordId(getRecordNumber(), 0, 2));
     }
 
+    @NotNull
+    static String getStableId(@NotNull ByteBuffer stableId) {
+        ByteBuffer buffer = stableId.duplicate();
+        long msb = buffer.getLong();
+        long lsb = buffer.getLong();
+        int offset = buffer.getInt();
+        return new UUID(msb, lsb) + ":" + offset;
+    }
+
     /**
      * Returns the stable id of this node. In contrast to the node's record id
      * (which is technically the node's address) the stable id doesn't change
@@ -116,12 +131,8 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return  stable id
      */
-    String getStableId() {
-        ByteBuffer buffer = ByteBuffer.wrap(getStableIdBytes());
-        long msb = buffer.getLong();
-        long lsb = buffer.getLong();
-        int offset = buffer.getInt();
-        return new UUID(msb, lsb) + ":" + offset;
+    public String getStableId() {
+        return getStableId(getStableIdBytes());
     }
 
     /**
@@ -132,7 +143,7 @@ public class SegmentNodeState extends Record implements NodeState {
      *
      * @return the stable ID of this node.
      */
-    byte[] getStableIdBytes() {
+    public ByteBuffer getStableIdBytes() {
         // The first record id of this node points to the stable id.
         RecordId id = getSegment().readRecordId(getRecordNumber());
 
@@ -144,9 +155,7 @@ public class SegmentNodeState extends Record implements NodeState {
         } else {
             // Otherwise that id points to the serialised (msb, lsb, offset)
             // stable id.
-            byte[] buffer = new byte[RecordId.SERIALIZED_RECORD_ID_BYTES];
-            id.getSegment().readBytes(id.getRecordNumber(), buffer, 0, buffer.length);
-            return buffer;
+            return id.getSegment().readBytes(id.getRecordNumber(), 0, RecordId.SERIALIZED_RECORD_ID_BYTES);
         }
     }
 
@@ -169,7 +178,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         checkNotNull(name);
         Template template = getTemplate();
         switch (name) {
@@ -182,8 +191,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @CheckForNull
-    public PropertyState getProperty(@Nonnull String name) {
+    @Override @Nullable
+    public PropertyState getProperty(@NotNull String name) {
         checkNotNull(name);
         Template template = getTemplate();
         PropertyState property = null;
@@ -218,7 +227,7 @@ public class SegmentNodeState extends Record implements NodeState {
         return pIds.getEntry(propertyTemplate.getIndex());
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<PropertyState> getProperties() {
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
@@ -253,7 +262,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return Boolean.TRUE.toString().equals(getValueAsString(name, BOOLEAN));
     }
 
@@ -267,23 +276,23 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public String getString(String name) {
         return getValueAsString(name, STRING);
     }
 
-    @Override @Nonnull
-    public Iterable<String> getStrings(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getStrings(@NotNull String name) {
         return getValuesAsStrings(name, STRINGS);
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
+    @Override @Nullable
+    public String getName(@NotNull String name) {
         return getValueAsString(name, NAME);
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getNames(@NotNull String name) {
         return getValuesAsStrings(name, NAMES);
     }
 
@@ -296,7 +305,7 @@ public class SegmentNodeState extends Record implements NodeState {
      * @param type property type
      * @return string value of the property, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     private String getValueAsString(String name, Type<?> type) {
         checkArgument(!type.isArray());
 
@@ -336,7 +345,7 @@ public class SegmentNodeState extends Record implements NodeState {
      * @param type property type
      * @return string values of the property, or an empty iterable
      */
-    @Nonnull
+    @NotNull
     private Iterable<String> getValuesAsStrings(String name, Type<?> type) {
         checkArgument(type.isArray());
 
@@ -394,7 +403,7 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return false;
@@ -405,8 +414,8 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @Nonnull
-    public NodeState getChildNode(@Nonnull String name) {
+    @Override @NotNull
+    public NodeState getChildNode(@NotNull String name) {
         String childName = getTemplate().getChildName();
         if (childName == Template.MANY_CHILD_NODES) {
             MapEntry child = getChildNodeMap().getEntry(name);
@@ -422,7 +431,7 @@ public class SegmentNodeState extends Record implements NodeState {
         return MISSING_NODE;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<String> getChildNodeNames() {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -434,7 +443,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
@@ -448,9 +457,9 @@ public class SegmentNodeState extends Record implements NodeState {
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, writer.get());
+        return new SegmentNodeBuilder(this, blobStore, reader, writer.get());
     }
 
     @Override
@@ -623,8 +632,21 @@ public class SegmentNodeState extends Record implements NodeState {
     }
 
     //------------------------------------------------------------< Object >--
-
-    static boolean fastEquals(NodeState a, NodeState b) {
+    
+    /**
+     * Indicates whether two {@link NodeState} instances are equal to each
+     * other. A return value of {@code true} clearly means that the instances
+     * are equal, while a return value of {@code false} doesn't necessarily mean
+     * the instances are not equal. These "false negatives" are an
+     * implementation detail and callers cannot rely on them being stable.
+     * 
+     * @param a
+     *            the first {@link NodeState} instance
+     * @param b
+     *            the second {@link NodeState} instance
+     * @return {@code true}, if these two instances are equal.
+     */
+    public static boolean fastEquals(NodeState a, NodeState b) {
         if (Record.fastEquals(a, b)) {
             return true;
         }

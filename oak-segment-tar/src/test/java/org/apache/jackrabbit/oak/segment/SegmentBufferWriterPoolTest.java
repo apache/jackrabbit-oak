@@ -36,12 +36,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 
@@ -51,11 +51,10 @@ public class SegmentBufferWriterPoolTest {
     private final RecordId rootId = store.getRevisions().getHead();
 
     private final SegmentBufferWriterPool pool = new SegmentBufferWriterPool(
-            store,
-            store.getTracker(),
+            store.getSegmentIdProvider(),
             store.getReader(),
             "",
-            Suppliers.ofInstance(0)
+            Suppliers.ofInstance(GCGeneration.NULL)
     );
 
     private final ExecutorService[] executors = new ExecutorService[] {
@@ -81,8 +80,8 @@ public class SegmentBufferWriterPoolTest {
 
     private WriteOperation createOp(final String key, final ConcurrentMap<String, SegmentBufferWriter> map) {
         return new WriteOperation() {
-            @Nonnull @Override
-            public RecordId execute(@Nonnull SegmentBufferWriter writer) {
+            @NotNull @Override
+            public RecordId execute(@NotNull SegmentBufferWriter writer) {
                 map.put(key, writer);
                 return rootId;
             }
@@ -134,7 +133,7 @@ public class SegmentBufferWriterPoolTest {
         assertEquals(rootId, res3.get());
         assertEquals(3, map1.size());
 
-        pool.flush();
+        pool.flush(store);
 
         ConcurrentMap<String, SegmentBufferWriter> map2 = newConcurrentMap();
         Future<RecordId> res4 = execute(createOp("a", map2), 0);
@@ -154,9 +153,9 @@ public class SegmentBufferWriterPoolTest {
     @Test
     public void testFlushBlocks() throws ExecutionException, InterruptedException {
         Future<RecordId> res = execute(new WriteOperation() {
-            @Nonnull
-            @CheckForNull @Override
-            public RecordId execute(@Nonnull SegmentBufferWriter writer) {
+            @NotNull
+            @Nullable @Override
+            public RecordId execute(@NotNull SegmentBufferWriter writer) {
                 try {
                     // This should deadlock as flush waits for this write
                     // operation to finish, which in this case contains the
@@ -164,7 +163,7 @@ public class SegmentBufferWriterPoolTest {
                     executors[1].submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
-                            pool.flush();
+                            pool.flush(store);
                             return null;
                         }
                     }).get(100, MILLISECONDS);

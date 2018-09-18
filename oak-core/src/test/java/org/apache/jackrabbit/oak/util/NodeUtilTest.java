@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.util;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -47,7 +46,7 @@ public class NodeUtilTest extends AbstractSecurityTest {
         }
     }
 
-    private void assertEqualNodeUtil(@Nonnull NodeUtil expected, @Nonnull NodeUtil result) {
+    private void assertEqualNodeUtil(@NotNull NodeUtil expected, @NotNull NodeUtil result) {
         assertEquals(expected.getTree().getPath(), result.getTree().getPath());
     }
 

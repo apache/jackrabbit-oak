@@ -16,42 +16,48 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.mount.Mount;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility methods for this CUG implementation package.
  */
 final class CugUtil implements CugConstants {
 
+    private static final Logger log = LoggerFactory.getLogger(CugUtil.class);
+
     private CugUtil(){}
 
-    public static boolean hasCug(@Nonnull Tree tree) {
+    public static boolean hasCug(@NotNull Tree tree) {
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@CheckForNull NodeState state) {
+    public static boolean hasCug(@Nullable NodeState state) {
         return state != null && state.hasChildNode(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@CheckForNull NodeBuilder builder) {
+    public static boolean hasCug(@Nullable NodeBuilder builder) {
         return builder != null && builder.hasChildNode(REP_CUG_POLICY);
     }
 
-    @CheckForNull
-    public static Tree getCug(@Nonnull Tree tree) {
+    @Nullable
+    public static Tree getCug(@NotNull Tree tree) {
         Tree cugTree = (CugUtil.hasCug(tree)) ? tree.getChild(REP_CUG_POLICY) : null;
         if (cugTree != null && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(cugTree))) {
             return cugTree;
@@ -60,33 +66,51 @@ final class CugUtil implements CugConstants {
         }
     }
 
-    public static boolean definesCug(@Nonnull Tree tree) {
+    public static boolean definesCug(@NotNull Tree tree) {
         return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    public static boolean definesCug(@Nonnull String name, @Nonnull NodeState state) {
+    public static boolean definesCug(@NotNull String name, @NotNull NodeState state) {
         return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(state));
     }
 
-    public static boolean definesCug(@Nonnull Tree tree, @Nonnull PropertyState property) {
+    public static boolean definesCug(@NotNull Tree tree, @NotNull PropertyState property) {
         return REP_PRINCIPAL_NAMES.equals(property.getName()) && definesCug(tree);
     }
 
-    public static boolean hasNestedCug(@Nonnull Tree cugTree) {
+    public static boolean hasNestedCug(@NotNull Tree cugTree) {
         return cugTree.hasProperty(CugConstants.HIDDEN_NESTED_CUGS);
     }
 
-    public static boolean isSupportedPath(@Nullable String oakPath, @Nonnull ConfigurationParameters config) {
+    public static boolean isSupportedPath(@Nullable String oakPath, @NotNull Set<String> supportedPaths) {
         if (oakPath == null) {
             return false;
         } else {
-            for (String supportedPath : config.getConfigValue(CugConfiguration.PARAM_CUG_SUPPORTED_PATHS, new String[0])) {
+            for (String supportedPath : supportedPaths) {
                 if (Text.isDescendantOrEqual(supportedPath, oakPath)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    public static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
+        if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
+            for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
+                for (String path : supportedPaths) {
+                    if (mount.isUnder(path)) {
+                        log.error("Configured supported CUG path '{}' includes node store mount '{}'.", path, mount.getName());
+                        throw new IllegalStateException();
+                    } else if (mount.isMounted(path)) {
+                        log.error("Configured supported CUG path '{}' is part of node store mount '{}'.", path, mount.getName());
+                        throw new IllegalStateException();
+                    }
+                }
+            }
+        }
+        return supportedPaths;
     }
 
     public static int getImportBehavior(ConfigurationParameters config) {

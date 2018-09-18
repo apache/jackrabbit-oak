@@ -23,18 +23,18 @@ import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Filter} implementation supports filtering on paths using
@@ -68,21 +68,29 @@ public class GlobbingPathFilter implements EventFilter {
     public static final String STAR = "*";
     public static final String STAR_STAR = "**";
 
-    private final ImmutableList<String> pattern;
+    // OAK-5589 : pattern can be a normal List, it doesn't have to be immutable -
+    // given we create a new list in the public constructor anyway
+    private final List<String> pattern;
     private final Map<String, Pattern> patternMap;
 
-    private GlobbingPathFilter(@Nonnull Iterable<String> pattern, Map<String, Pattern> patternMap) {
-        this.pattern = ImmutableList.copyOf(checkNotNull(pattern));
+    private GlobbingPathFilter(@NotNull List<String> pattern, Map<String, Pattern> patternMap) {
+        // OAK-5589 : for internal constructor case don't copy the pattern, refer to the same one
+        // this will work fine given the public constructors make a copy and internally we're
+        // never fiddling with the pattern list
+        this.pattern = checkNotNull(pattern);
         this.patternMap = checkNotNull(patternMap);
     }
 
-    public GlobbingPathFilter(@Nonnull String pattern, Map<String, Pattern> patternMap) {
-        this(elements(pattern), checkNotNull(patternMap));
+    public GlobbingPathFilter(@NotNull String pattern, Map<String, Pattern> patternMap) {
+        // OAK-5589 : use the fastest way to create a List based on an unknown deep pattern
+        this.pattern = new ArrayList<String>(10);
+        Iterators.addAll(this.pattern, elements(checkNotNull(pattern)).iterator());
+        this.patternMap = checkNotNull(patternMap);
     }
 
     /** for testing only - use variant which passes the patternMap for productive code **/
-    public GlobbingPathFilter(@Nonnull String pattern) {
-        this(elements(pattern), new HashMap<String, Pattern>());
+    public GlobbingPathFilter(@NotNull String pattern) {
+        this(pattern, new HashMap<String, Pattern>());
     }
 
     @Override

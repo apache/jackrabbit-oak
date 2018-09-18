@@ -13,255 +13,198 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static java.lang.Long.numberOfLeadingZeros;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.file.PriorityCache.nextPowerOfTwo;
+import static org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState.binaryPropertyFromBlob;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
 
-import com.google.common.base.Supplier;
-import com.google.common.hash.Hashing;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.PriorityCache;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Tool for compacting segments.
+ * Instances of this class can be used to compact a node state. I.e. to create a clone
+ * of a given node state without value sharing except for binaries. Binaries that are
+ * stored in a list of bulk segments will still value share the bulk segments (but not
+ * the list records).
+ * A node can either be compacted on its own or alternatively the difference between
+ * two nodes can be compacted on top of an already compacted node.
  */
 public class Compactor {
 
-    /** Logger instance */
-    private static final Logger log = LoggerFactory.getLogger(Compactor.class);
+    /**
+     * Number of content updates that need to happen before the updates
+     * are automatically purged to the underlying segments.
+     */
+    static final int UPDATE_LIMIT =
+            Integer.getInteger("compaction.update.limit", 10000);
 
-    private static final boolean eagerFlush = Boolean.getBoolean("oak.compaction.eagerFlush");
-
-    static {
-        if (eagerFlush) {
-            log.debug("Eager flush enabled.");
-        }
-    }
-
-    private final SegmentReader reader;
-
-    private final BlobStore blobStore;
-
+    @NotNull
     private final SegmentWriter writer;
 
-    private final ProgressTracker progress = new ProgressTracker();
+    @NotNull
+    private final SegmentReader reader;
+
+    @Nullable
+    private final BlobStore blobStore;
+
+    @NotNull
+    private final GCNodeWriteMonitor compactionMonitor;
 
     /**
-     * Enables content based de-duplication of binaries. Involves a fair amount
-     * of I/O when reading/comparing potentially equal blobs.
+     * Create a new instance based on the passed arguments.
+     * @param reader     segment reader used to read from the segments
+     * @param writer     segment writer used to serialise to segments
+     * @param blobStore  the blob store or {@code null} if none
+     * @param compactionMonitor   notification call back for each compacted nodes,
+     *                            properties, and binaries
      */
-    private final boolean binaryDedup;
+    public Compactor(
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
+            @Nullable BlobStore blobStore,
+            @NotNull GCNodeWriteMonitor compactionMonitor) {
+        this.writer = checkNotNull(writer);
+        this.reader = checkNotNull(reader);
+        this.blobStore = blobStore;
+        this.compactionMonitor = checkNotNull(compactionMonitor);
+    }
 
     /**
-     * Set the upper bound for the content based de-duplication checks.
+     * Compact a given {@code state}
+     * @param state  the node state to compact
+     * @return       the compacted node state or {@code null} if cancelled.
+     * @throws IOException
      */
-    private final long binaryDedupMaxSize;
+    @Nullable
+    public SegmentNodeState compact(@NotNull NodeState state, Canceller canceller) throws IOException {
+        return compact(EMPTY_NODE, state, EMPTY_NODE, canceller);
+    }
 
     /**
-     * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted blob
-     * record identifiers. Used to de-duplicate copies of the same binary
-     * values.
+     * compact the differences between {@code after} and {@code before} on top of {@code ont}.
+     * @param before   the node state to diff against from {@code after}
+     * @param after    the node state diffed against {@code before}
+     * @param onto     the node state compacted onto
+     * @return         the compacted node state or {@code null} if cancelled.
+     * @throws IOException
      */
-    private final Map<String, List<RecordId>> binaries = newHashMap();
+    @Nullable
+    public SegmentNodeState compact(
+        @NotNull NodeState before,
+        @NotNull NodeState after,
+        @NotNull NodeState onto,
+        Canceller canceller
+    ) throws IOException {
+        checkNotNull(before);
+        checkNotNull(after);
+        checkNotNull(onto);
+        return new CompactDiff(onto, canceller).diff(before, after);
+    }
 
-    /**
-     * Flag to use content equality verification before actually compacting the
-     * state, on the childNodeChanged diff branch (Used in Backup scenario)
-     */
-    private boolean contentEqualityCheck;
-
-    /**
-     * Allows the cancellation of the compaction process. If this
-     * {@code Supplier} returns {@code true}, this compactor will cancel
-     * compaction and return a partial {@code SegmentNodeState} containing the
-     * changes compacted before the cancellation.
-     */
-    private final Supplier<Boolean> cancel;
-
-    private static final int cacheSize;
-
-    static {
-        Integer ci = Integer.getInteger("compress-interval");
-        Integer size = Integer.getInteger("oak.segment.compaction.cacheSize");
-        if (size != null) {
-            cacheSize = size;
-        } else if (ci != null) {
-            log.warn("Deprecated argument 'compress-interval', please use 'oak.segment.compaction.cacheSize' instead.");
-            cacheSize = ci;
+    @Nullable
+    private static ByteBuffer getStableIdBytes(NodeState state) {
+        if (state instanceof SegmentNodeState) {
+            return ((SegmentNodeState) state).getStableIdBytes();
         } else {
-            cacheSize = 100000;
+            return null;
         }
     }
 
-    /**
-     * Deduplication cache for blobs. 10% of the total cache size.
-     */
-    private final PriorityCache<RecordId, RecordId> blobCache =
-            new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10));
+    private class CompactDiff implements NodeStateDiff {
+        @NotNull
+        private MemoryNodeBuilder builder;
 
-    /**
-     * Deduplication cache for nodes. 90% of the total cache size.
-     */
-    private final PriorityCache<RecordId, RecordId> nodeCache =
-            new PriorityCache<>((int) nextPowerOfTwo(cacheSize/10*9));
+        @NotNull
+        private final NodeState base;
 
-    public Compactor(SegmentReader reader, SegmentWriter writer,
-            BlobStore blobStore, Supplier<Boolean> cancel, SegmentGCOptions gc) {
-        this.reader = reader;
-        this.writer = writer;
-        this.blobStore = blobStore;
-        this.cancel = cancel;
-        this.binaryDedup = gc.isBinaryDeduplication();
-        this.binaryDedupMaxSize = gc.getBinaryDeduplicationMaxSize();
-    }
+        private final Canceller canceller;
 
-    private SegmentNodeBuilder process(NodeState before, NodeState after,
-            NodeState onto) throws IOException {
-        SegmentNodeBuilder builder = new SegmentNodeBuilder(
-                writer.writeNode(onto), writer);
-        new CompactDiff(builder).diff(before, after);
-        return builder;
-    }
-
-    /**
-     * Compact the differences between a {@code before} and a {@code after} on
-     * top of an {@code onto} state.
-     * 
-     * @param before
-     *            the before state
-     * @param after
-     *            the after state
-     * @param onto
-     *            the onto state
-     * @return the compacted state
-     */
-    public SegmentNodeState compact(NodeState before, NodeState after,
-            NodeState onto) throws IOException {
-        progress.start();
-        SegmentNodeState compacted = process(before, after, onto)
-                .getNodeState();
-        writer.flush();
-        progress.stop();
-        return compacted;
-    }
-
-    private class CompactDiff extends ApplyDiff {
+        @Nullable
         private IOException exception;
 
-        /**
-         * Current processed path, or null if the trace log is not enabled at
-         * the beginning of the compaction call. The null check will also be
-         * used to verify if a trace log will be needed or not
-         */
-        private final String path;
+        private long modCount;
 
-        CompactDiff(NodeBuilder builder) {
-            super(builder);
-            if (log.isTraceEnabled()) {
-                this.path = "/";
-            } else {
-                this.path = null;
+        private void updated() throws IOException {
+            if (++modCount % UPDATE_LIMIT == 0) {
+                RecordId newBaseId = writer.writeNode(builder.getNodeState(), null);
+                SegmentNodeState newBase = new SegmentNodeState(reader, writer, blobStore, newBaseId);
+                builder = new MemoryNodeBuilder(newBase);
             }
         }
 
-        private CompactDiff(NodeBuilder builder, String path, String childName) {
-            super(builder);
-            if (path != null) {
-                this.path = concat(path, childName);
-            } else {
-                this.path = null;
-            }
+        CompactDiff(@NotNull NodeState base, Canceller canceller) {
+            this.builder = new MemoryNodeBuilder(checkNotNull(base));
+            this.canceller = canceller;
+            this.base = base;
         }
 
-        boolean diff(NodeState before, NodeState after) throws IOException {
-            boolean success = after.compareAgainstBaseState(before,
-                    new CancelableDiff(this, cancel));
+        @Nullable
+        SegmentNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
+            boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, () -> canceller.check().isCancelled()));
             if (exception != null) {
                 throw new IOException(exception);
+            } else if (success) {
+                NodeState nodeState = builder.getNodeState();
+                checkState(modCount == 0 || !(nodeState instanceof SegmentNodeState));
+                RecordId nodeId = writer.writeNode(nodeState, getStableIdBytes(after));
+                compactionMonitor.onNode();
+                return new SegmentNodeState(reader, writer, blobStore, nodeId);
+            } else {
+                return null;
             }
-            return success;
         }
 
         @Override
-        public boolean propertyAdded(PropertyState after) {
-            if (path != null) {
-                log.trace("propertyAdded {}/{}", path, after.getName());
-            }
-            progress.onProperty();
-            return super.propertyAdded(compact(after));
+        public boolean propertyAdded(@NotNull PropertyState after) {
+            builder.setProperty(compact(after));
+            return true;
         }
 
         @Override
-        public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (path != null) {
-                log.trace("propertyChanged {}/{}", path, after.getName());
-            }
-            progress.onProperty();
-            return super.propertyChanged(before, compact(after));
+        public boolean propertyChanged(@NotNull PropertyState before, @NotNull PropertyState after) {
+            builder.setProperty(compact(after));
+            return true;
         }
 
         @Override
-        public boolean childNodeAdded(String name, NodeState after) {
-            if (path != null) {
-                log.trace("childNodeAdded {}/{}", path, name);
-            }
+        public boolean propertyDeleted(PropertyState before) {
+            builder.removeProperty(before.getName());
+            return true;
+        }
 
-            RecordId id = null;
-            if (after instanceof SegmentNodeState) {
-                id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = nodeCache.get(id, 0);
-                if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(reader,
-                            writer, compactedId));
-                    return true;
-                }
-            }
-
-            progress.onNode();
+        @Override
+        public boolean childNodeAdded(@NotNull String name, @NotNull NodeState after) {
             try {
-                NodeBuilder child;
-                if (eagerFlush) {
-                    child = builder.setChildNode(name);
+                SegmentNodeState compacted = compact(after, canceller);
+                if (compacted != null) {
+                    updated();
+                    builder.setChildNode(name, compacted);
+                    return true;
                 } else {
-                    child = EMPTY_NODE.builder();
+                    return false;
                 }
-                boolean success = new CompactDiff(child, path, name).diff(
-                        EMPTY_NODE, after);
-                if (success) {
-                    SegmentNodeState state = writer.writeNode(child.getNodeState());
-                    builder.setChildNode(name, state);
-                    if (id != null) {
-                        nodeCache.put(id, state.getRecordId(), 0, cost(state));
-                    }
-                }
-                return success;
             } catch (IOException e) {
                 exception = e;
                 return false;
@@ -269,39 +212,28 @@ public class Compactor {
         }
 
         @Override
-        public boolean childNodeChanged(String name, NodeState before,
-                NodeState after) {
-            if (path != null) {
-                log.trace("childNodeChanged {}/{}", path, name);
-            }
-
-            RecordId id = null;
-            if (after instanceof SegmentNodeState) {
-                id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = nodeCache.get(id, 0);
-                if (compactedId != null) {
-                    builder.setChildNode(name, new SegmentNodeState(reader,
-                            writer, compactedId));
-                    return true;
-                }
-            }
-
-            if (contentEqualityCheck && before.equals(after)) {
-                return true;
-            }
-
-            progress.onNode();
+        public boolean childNodeChanged(@NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
             try {
-                NodeBuilder child = builder.getChildNode(name);
-                boolean success = new CompactDiff(child, path, name).diff(
-                        before, after);
-                if (success) {
-                    SegmentNodeState state = writer.writeNode(child.getNodeState());
-                    if (id != null) {
-                        nodeCache.put(id, state.getRecordId(), 0, cost(state));
-                    }
+                SegmentNodeState compacted = compact(before, after, base.getChildNode(name), canceller);
+                if (compacted != null) {
+                    updated();
+                    builder.setChildNode(name, compacted);
+                    return true;
+                } else {
+                    return false;
                 }
-                return success;
+            } catch (IOException e) {
+                exception = e;
+                return false;
+            }
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            try {
+                updated();
+                builder.getChildNode(name).remove();
+                return true;
             } catch (IOException e) {
                 exception = e;
                 return false;
@@ -309,175 +241,24 @@ public class Compactor {
         }
     }
 
-    private static byte cost(SegmentNodeState node) {
-        long childCount = node.getChildNodeCount(Long.MAX_VALUE);
-        return cost(childCount);
-    }
-
-    private static byte cost(SegmentBlob blob) {
-        long length = blob.length();
-        return cost(length);
-    }
-
-    private static byte cost(long n) {
-        return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(n));
-    }
-
-    private PropertyState compact(PropertyState property) {
+    @NotNull
+    private  PropertyState compact(@NotNull PropertyState property) {
+        compactionMonitor.onProperty();
         String name = property.getName();
         Type<?> type = property.getType();
         if (type == BINARY) {
-            Blob blob = compact(property.getValue(Type.BINARY));
-            return BinaryPropertyState.binaryProperty(name, blob);
+            compactionMonitor.onBinary();
+            return binaryProperty(name, property.getValue(Type.BINARY));
         } else if (type == BINARIES) {
-            List<Blob> blobs = new ArrayList<Blob>();
+            List<Blob> blobs = newArrayList();
             for (Blob blob : property.getValue(BINARIES)) {
-                blobs.add(compact(blob));
+                compactionMonitor.onBinary();
+                blobs.add(blob);
             }
-            return MultiBinaryPropertyState.binaryPropertyFromBlob(name, blobs);
+            return binaryPropertyFromBlob(name, blobs);
         } else {
-            Object value = property.getValue(type);
-            return PropertyStates.createProperty(name, value, type);
+            return createProperty(name, property.getValue(type), type);
         }
-    }
-
-    /**
-     * Compacts (and de-duplicates) the given blob.
-     * 
-     * @param blob
-     *            blob to be compacted
-     * @return compacted blob
-     */
-    private Blob compact(Blob blob) {
-        if (blob instanceof SegmentBlob) {
-            SegmentBlob sb = (SegmentBlob) blob;
-            try {
-                // Check if we've already cloned this specific record
-                RecordId id = sb.getRecordId();
-
-                // TODO verify binary impact on cache
-                RecordId compactedId = blobCache.get(id, 0);
-                if (compactedId != null) {
-                    return new SegmentBlob(blobStore, compactedId);
-                }
-
-                progress.onBinary();
-
-                // if the blob is external, just clone it
-                if (sb.isExternal()) {
-                    return writer.writeBlob(sb);
-                }
-                // if the blob is inlined, just clone it
-                if (sb.length() < Segment.MEDIUM_LIMIT) {
-                    SegmentBlob clone = writer.writeBlob(blob);
-                    blobCache.put(id, clone.getRecordId(), 0, cost(clone));
-                    return clone;
-                }
-
-                List<RecordId> ids = null;
-                String key = null;
-                boolean dedup = binaryDedup
-                        && blob.length() <= binaryDedupMaxSize;
-                if (dedup) {
-                    // alternatively look if the exact same binary has been
-                    // cloned
-                    key = getBlobKey(blob);
-                    ids = binaries.get(key);
-                    if (ids != null) {
-                        for (RecordId duplicateId : ids) {
-                            if (new SegmentBlob(blobStore, duplicateId)
-                                    .equals(sb)) {
-                                return new SegmentBlob(blobStore, duplicateId);
-                            }
-                        }
-                    }
-                }
-
-                // if not, clone the large blob and keep track of the result
-                sb = writer.writeBlob(blob);
-                blobCache.put(id, sb.getRecordId(), 0, cost(sb));
-
-                if (dedup) {
-                    if (ids == null) {
-                        ids = newArrayList();
-                        binaries.put(key, ids);
-                    }
-                    ids.add(sb.getRecordId());
-                }
-
-                return sb;
-            } catch (IOException e) {
-                log.warn("Failed to compact a blob", e);
-                // fall through
-            }
-        }
-
-        // no way to compact this blob, so we'll just keep it as-is
-        return blob;
-    }
-
-    private static String getBlobKey(Blob blob) throws IOException {
-        InputStream stream = blob.getNewStream();
-        try {
-            byte[] buffer = new byte[SegmentWriter.BLOCK_SIZE];
-            int n = IOUtils.readFully(stream, buffer, 0, buffer.length);
-            return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
-        } finally {
-            stream.close();
-        }
-    }
-
-    private static class ProgressTracker {
-        private final long logAt = Long.getLong("compaction-progress-log",
-                150000);
-
-        private long start = 0;
-
-        private long nodes = 0;
-        private long properties = 0;
-        private long binaries = 0;
-
-        void start() {
-            nodes = 0;
-            properties = 0;
-            binaries = 0;
-            start = System.currentTimeMillis();
-        }
-
-        void onNode() {
-            if (++nodes % logAt == 0) {
-                logProgress(start, false);
-                start = System.currentTimeMillis();
-            }
-        }
-
-        void onProperty() {
-            properties++;
-        }
-
-        void onBinary() {
-            binaries++;
-        }
-
-        void stop() {
-            logProgress(start, true);
-        }
-
-        private void logProgress(long start, boolean done) {
-            log.debug(
-                    "Compacted {} nodes, {} properties, {} binaries in {} ms.",
-                    nodes, properties, binaries, System.currentTimeMillis()
-                            - start);
-            if (done) {
-                log.info(
-                        "Finished compaction: {} nodes, {} properties, {} binaries.",
-                        nodes, properties, binaries);
-            }
-        }
-    }
-
-    public void setContentEqualityCheck(boolean contentEqualityCheck) {
-        this.contentEqualityCheck = contentEqualityCheck;
     }
 
 }

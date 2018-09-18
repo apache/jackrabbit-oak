@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.jcr.PropertyType;
 
@@ -29,10 +30,16 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -56,13 +63,17 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionTest {
@@ -77,6 +88,7 @@ public class IndexDefinitionTest {
         IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertTrue(idxDefn.saveDirListing());
         assertFalse(idxDefn.isNRTIndexingEnabled());
+        assertFalse(idxDefn.hasSyncPropertyDefinitions());
     }
 
     @Test
@@ -151,6 +163,49 @@ public class IndexDefinitionTest {
         defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
         assertNotNull(defn.getCodec());
         assertEquals(simple.getName(), defn.getCodec().getName());
+    }
+
+    @Test
+    public void mergePolicyConfig() throws Exception{
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "tiered");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logbyte");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(LogByteSizeMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logdoc");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(LogDocMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "no");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(NoMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "default");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "mitigated");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+
+        // wrong mp name falls back to default
+        builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "whoawhoa");
+        defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        assertNotNull(defn.getMergePolicy());
+        assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
     }
 
     @Test
@@ -567,6 +622,24 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void customTikaMimeTypes() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
+
+        NodeBuilder app =defnb.child(LuceneIndexConstants.TIKA)
+                .child(LuceneIndexConstants.TIKA_MIME_TYPES)
+                .child("application");
+        app.child("test").setProperty(LuceneIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
+        app.child("test2").setProperty(LuceneIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertEquals("text/plain", defn.getTikaMappedMimeType("application/test"));
+        assertEquals("text/plain", defn.getTikaMappedMimeType("application/test2"));
+        assertEquals("application/test-unmapped", defn.getTikaMappedMimeType("application/test-unmapped"));
+    }
+
+    @Test
     public void maxExtractLength() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "lucene", of(TYPENAME_STRING));
@@ -909,6 +982,253 @@ public class IndexDefinitionTest {
         assertTrue(defn.hasMatchingNodeTypeReg(root3));
     }
 
+    @Test
+    public void uniqueIsSync() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").unique();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").unique);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").propertyIndex);
+    }
+
+    @Test
+    public void syncIsProperty() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").sync);
+        assertTrue(defn.getApplicableIndexingRule("nt:base").getConfig("foo").propertyIndex);
+    }
+
+    @Test
+    public void syncPropertyDefinitions() throws Exception{
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.hasSyncPropertyDefinitions());
+    }
+
+    //~----------------------------------< nodetype >
+
+
+    String testNodeTypeDefn = "[oak:TestMixA]\n" +
+            "  mixin\n" +
+            "\n" +
+            "[oak:TestSuperType]\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeA] > oak:TestSuperType\n" +
+            "- * (UNDEFINED) multiple\n" +
+            "\n" +
+            "[oak:TestTypeB] > oak:TestSuperType, oak:TestMixA\n" +
+            "- * (UNDEFINED) multiple";
+
+    @Test
+    public void nodeTypeIndexed() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertFalse(defn.hasSyncPropertyDefinitions());
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+        assertTrue(defn.isPureNodeTypeIndex());
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+        assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+
+        assertNotNull(getRule(defn, "oak:TestTypeA"));
+        assertTrue(getRule(defn, "oak:TestTypeA").indexesAllNodesOfMatchingType());
+        assertNotNull(getRule(defn, "oak:TestTypeB"));
+        assertNull(getRule(defn, "oak:TestMixA"));
+    }
+
+    @Test
+    public void nodeTypeIndexedSync() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.hasSyncPropertyDefinitions());
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+        assertTrue(defn.isPureNodeTypeIndex());
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+        assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+        assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+    }
+
+    @Test
+    public void nodeTypeIndexed_IgnoreOtherProps() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+        defnb.indexRule("oak:TestSuperType").property("foo").propertyIndex();
+
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+
+        assertNull(ruleSuper.getConfig("foo"));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    @Test
+    public void nodeTypeIndexed_IgnoreAggregates() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestSuperType").sync();
+        defnb.aggregateRule("oak:TestSuperType").include("*");
+
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+        assertNotNull(ruleSuper);
+
+        assertNull(ruleSuper.getConfig("foo"));
+        assertTrue(ruleSuper.getAggregate().getIncludes().isEmpty());
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES));
+    }
+
+    @Test
+    public void nodeTypeIndex_mixin() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.nodeTypeIndex();
+        defnb.indexRule("oak:TestMixA");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertFalse(defn.hasSyncPropertyDefinitions());
+
+
+        assertNotNull(getRule(defn, "oak:TestTypeB"));
+        assertTrue(getRule(defn, "oak:TestTypeB").indexesAllNodesOfMatchingType());
+        assertNotNull(getRule(defn, "oak:TestMixA"));
+        assertTrue(getRule(defn, "oak:TestMixA").indexesAllNodesOfMatchingType());
+
+        assertNull(getRule(defn, "oak:TestTypeA"));
+        assertNull(getRule(defn, "oak:TestSuperType"));
+    }
+
+    @Test
+    public void mixinAndPrimaryType() throws Exception{
+        TestUtil.registerNodeType(builder, testNodeTypeDefn);
+        root = builder.getNodeState();
+
+
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("oak:TestMixA").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
+        defnb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex().sync();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+
+        IndexingRule a = getRule(defn, "oak:TestMixA");
+        assertNotNull(a.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(a.getConfig(JcrConstants.JCR_MIXINTYPES));
+        assertFalse(a.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+
+        IndexingRule b = getRule(defn, "oak:TestSuperType");
+        assertNotNull(b.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+        assertNotNull(b.getConfig(JcrConstants.JCR_MIXINTYPES));
+        assertTrue(b.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
+        assertTrue(b.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+    }
+
+    @Test
+    public void relativeNodeNames_None() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertTrue(defn.getRelativeNodeNames().isEmpty());
+        assertFalse(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_RelativeProp() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.indexRule("nt:base").property("bar").propertyIndex();
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void relativeNodeNames_Aggregate() {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata");
+        defnb.aggregateRule("nt:base").include("jcr:content/metadata/type/*");
+        defnb.aggregateRule("nt:base").include("*");
+
+        IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+        assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content", "metadata", "type"));
+        assertTrue(defn.indexesRelativeNodes());
+    }
+
+    @Test
+    public void regexAllProps() {
+        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        builder.indexRule("nt:base").property("p");
+        builder.indexRule("nt:base").property("all", LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
+        IndexDefinition def = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        IndexingRule rule = def.getApplicableIndexingRule(root);
+        assertNotNull(rule);
+
+        PropertyDefinition pd = rule.getConfig("p");
+        assertNotNull(pd);
+        assertFalse(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        pd = rule.getConfig("all");
+        assertNotNull(pd);
+        assertTrue(pd.isRegexp);
+        assertFalse(pd.relative);
+        assertEquals(0, pd.ancestors.length);
+
+        assertThat(rule.getAggregate().getIncludes(), is(empty()));
+        assertFalse(rule.getAggregate().hasNodeAggregates());
+        List<Aggregate.Matcher> matchers = rule.getAggregate()
+                .createMatchers(new TestRoot("/"));
+        assertThat(matchers, is(empty()));
+        assertThat(def.getRelativeNodeNames(), is(empty()));
+    }
+
     //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
@@ -932,4 +1252,21 @@ public class IndexDefinitionTest {
         return builder;
     }
 
+    private static class TestRoot implements Aggregate.AggregateRoot {
+
+        private final String path;
+
+        public TestRoot(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public void markDirty() {
+        }
+
+        @Override
+        public String getPath() {
+            return path;
+        }
+    }
 }

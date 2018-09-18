@@ -20,22 +20,25 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
+import org.mockito.Mockito;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doThrow;
 
 public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implements PrivilegeConstants {
 
@@ -89,5 +92,16 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
         assertArrayEquals(
                 new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
                 Iterables.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testCommitFails() throws Exception {
+        Root r = Mockito.spy(root);
+        doThrow(new CommitFailedException(CommitFailedException.OAK, 1, "msg")).when(r).commit();
+
+
+        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(r);
+        writer.writeDefinition(new ImmutablePrivilegeDefinition(
+                "tmp", true, asList(JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL)));
     }
 }

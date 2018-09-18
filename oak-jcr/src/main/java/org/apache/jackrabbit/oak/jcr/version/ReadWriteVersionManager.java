@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -33,8 +32,10 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -52,7 +53,9 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     private final VersionStorage versionStorage;
 
-    public ReadWriteVersionManager(@Nonnull SessionDelegate sessionDelegate) {
+    private final Clock clock = Clock.ACCURATE;
+
+    public ReadWriteVersionManager(@NotNull SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
         this.versionStorage = new VersionStorage(sessionDelegate.getRoot());
     }
@@ -70,19 +73,19 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     protected Tree getVersionStorage() {
         return versionStorage.getTree();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     protected Root getWorkspaceRoot() {
         return sessionDelegate.getRoot();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     protected ReadOnlyNodeTypeManager getNodeTypeManager() {
         return ReadOnlyNodeTypeManager.getInstance(
                 sessionDelegate.getRoot(), NamePathMapper.DEFAULT);
@@ -102,8 +105,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * @throws RepositoryException       if an error occurs while checking the
      *                                   node type of the tree.
      */
-    @Nonnull
-    public Tree checkin(@Nonnull Tree versionable)
+    @NotNull
+    public Tree checkin(@NotNull Tree versionable)
             throws RepositoryException, InvalidItemStateException,
             UnsupportedRepositoryOperationException {
         if (sessionDelegate.hasPendingChanges()) {
@@ -118,12 +121,15 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             Tree baseVersion = getExistingBaseVersion(versionable);
             versionable.setProperty(JCR_ISCHECKEDOUT, Boolean.FALSE, Type.BOOLEAN);
             PropertyState created = baseVersion.getProperty(JCR_CREATED);
-            if (created != null) {
-                long c = ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
-                while (System.currentTimeMillis() == c) {
-                    // busy-wait for System.currentTimeMillis to change
-                    // so that the new version has a distinct timestamp
-                }
+            long c = created == null ? 0 : ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
+            try {
+                long last = Math.max(c,  clock.getTimeIncreasing());
+                // wait for clock to change so that the new version has a distinct
+                // timestamp from the last checkin performed by this VersionManager
+                // see https://issues.apache.org/jira/browse/OAK-7512
+                clock.waitUntil(last);
+            } catch (InterruptedException e) {
+                throw new RepositoryException(e);
             }
             try {
                 sessionDelegate.commit();
@@ -150,8 +156,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * @throws IllegalArgumentException if the {@code versionablePath} is
      *                             not absolute.
      */
-    public void checkout(@Nonnull Root workspaceRoot,
-                         @Nonnull String versionablePath)
+    public void checkout(@NotNull Root workspaceRoot,
+                         @NotNull String versionablePath)
             throws UnsupportedRepositoryOperationException,
             InvalidItemStateException, RepositoryException {
         checkState(!workspaceRoot.hasPendingChanges());
@@ -174,10 +180,10 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
     }
 
-    public void addVersionLabel(@Nonnull VersionStorage versionStorage,
-                                @Nonnull String versionHistoryOakRelPath,
-                                @Nonnull String versionIdentifier,
-                                @Nonnull String oakVersionLabel,
+    public void addVersionLabel(@NotNull VersionStorage versionStorage,
+                                @NotNull String versionHistoryOakRelPath,
+                                @NotNull String versionIdentifier,
+                                @NotNull String oakVersionLabel,
                                 boolean moveLabel) throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
                 checkNotNull(versionHistoryOakRelPath));
@@ -201,9 +207,9 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
     }
 
-    public void removeVersionLabel(@Nonnull VersionStorage versionStorage,
-                                   @Nonnull String versionHistoryOakRelPath,
-                                   @Nonnull String oakVersionLabel)
+    public void removeVersionLabel(@NotNull VersionStorage versionStorage,
+                                   @NotNull String versionHistoryOakRelPath,
+                                   @NotNull String oakVersionLabel)
             throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
                 checkNotNull(versionHistoryOakRelPath));
@@ -222,9 +228,9 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
     }
 
-    public void removeVersion(@Nonnull VersionStorage versionStorage,
-                              @Nonnull String versionHistoryOakRelPath,
-                              @Nonnull String oakVersionName)
+    public void removeVersion(@NotNull VersionStorage versionStorage,
+                              @NotNull String versionHistoryOakRelPath,
+                              @NotNull String oakVersionName)
             throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(versionStorage.getTree(), versionHistoryOakRelPath);
         if (versionHistory == null || !versionHistory.exists()) {
@@ -247,8 +253,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     // TODO: more methods that modify versions
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private Tree getExistingBaseVersion(@Nonnull Tree versionableTree) throws RepositoryException {
+    @NotNull
+    private Tree getExistingBaseVersion(@NotNull Tree versionableTree) throws RepositoryException {
         Tree baseVersion = getBaseVersion(versionableTree);
         if (baseVersion == null) {
             throw new IllegalStateException("Base version does not exist for " + versionableTree.getPath());

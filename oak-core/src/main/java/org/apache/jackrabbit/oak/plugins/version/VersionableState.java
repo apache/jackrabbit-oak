@@ -48,8 +48,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -60,17 +58,19 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,11 +109,11 @@ class VersionableState {
     private final ReadWriteVersionManager vMgr;
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    private VersionableState(@Nonnull NodeBuilder version,
-                             @Nonnull NodeBuilder history,
-                             @Nonnull NodeBuilder versionable,
-                             @Nonnull ReadWriteVersionManager vMgr,
-                             @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    private VersionableState(@NotNull NodeBuilder version,
+                             @NotNull NodeBuilder history,
+                             @NotNull NodeBuilder versionable,
+                             @NotNull ReadWriteVersionManager vMgr,
+                             @NotNull ReadOnlyNodeTypeManager ntMgr) {
         this.version = checkNotNull(version);
         this.history = checkNotNull(history);
         this.frozenNode = version.child(JCR_FROZENNODE);
@@ -134,12 +134,12 @@ class VersionableState {
      * @param ntMgr the node type manager.
      * @return a versionable state
      */
-    @Nonnull
-    static VersionableState fromVersion(@Nonnull NodeBuilder version,
-                                        @Nonnull NodeBuilder history,
-                                        @Nonnull NodeBuilder versionable,
-                                        @Nonnull ReadWriteVersionManager vMgr,
-                                        @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    @NotNull
+    static VersionableState fromVersion(@NotNull NodeBuilder version,
+                                        @NotNull NodeBuilder history,
+                                        @NotNull NodeBuilder versionable,
+                                        @NotNull ReadWriteVersionManager vMgr,
+                                        @NotNull ReadOnlyNodeTypeManager ntMgr) {
         VersionableState state = new VersionableState(
                 version, history, versionable, vMgr, ntMgr);
         return state.initFrozen(version.child(JCR_FROZENNODE),
@@ -156,11 +156,11 @@ class VersionableState {
      * @param ntMgr the node type manager.
      * @return a versionable state.
      */
-    static VersionableState forRestore(@Nonnull NodeBuilder version,
-                                       @Nonnull NodeBuilder history,
-                                       @Nonnull NodeBuilder versionable,
-                                       @Nonnull ReadWriteVersionManager vMgr,
-                                       @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    static VersionableState forRestore(@NotNull NodeBuilder version,
+                                       @NotNull NodeBuilder history,
+                                       @NotNull NodeBuilder versionable,
+                                       @NotNull ReadWriteVersionManager vMgr,
+                                       @NotNull ReadOnlyNodeTypeManager ntMgr) {
         return new VersionableState(version, history, versionable, vMgr, ntMgr);
     }
 
@@ -175,7 +175,7 @@ class VersionableState {
                                         NodeBuilder node,
                                         String nodeId) {
         // initialize jcr:frozenNode
-        frozen.setProperty(JCR_UUID, IdentifierManager.generateUUID(), Type.STRING);
+        frozen.setProperty(JCR_UUID, UUIDUtils.generateUUID(), Type.STRING);
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
@@ -247,10 +247,10 @@ class VersionableState {
      * @param name the name of the source node.
      * @param selector the version selector.
      */
-    private void restoreState(@Nonnull NodeBuilder src,
-                              @Nonnull NodeBuilder destParent,
-                              @Nonnull String name,
-                              @Nonnull VersionSelector selector)
+    private void restoreState(@NotNull NodeBuilder src,
+                              @NotNull NodeBuilder destParent,
+                              @NotNull String name,
+                              @NotNull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
         checkNotNull(name);
         checkNotNull(destParent);
@@ -275,9 +275,9 @@ class VersionableState {
     /**
      * Restore a nt:frozenNode.
      */
-    private void restoreFrozen(@Nonnull NodeBuilder frozen,
-                               @Nonnull NodeBuilder dest,
-                               @Nonnull VersionSelector selector)
+    private void restoreFrozen(@NotNull NodeBuilder frozen,
+                               @NotNull NodeBuilder dest,
+                               @NotNull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
         // 15.7.2 Restoring Type and Identifier
         restoreFrozenTypeAndUUID(frozen, dest);
@@ -323,8 +323,8 @@ class VersionableState {
      * Restores the basic frozen properties (jcr:primaryType, jcr:mixinTypes
      * and jcr:uuid).
      */
-    private void restoreFrozenTypeAndUUID(@Nonnull NodeBuilder frozen,
-                                          @Nonnull NodeBuilder dest) {
+    private void restoreFrozenTypeAndUUID(@NotNull NodeBuilder frozen,
+                                          @NotNull NodeBuilder dest) {
         dest.setProperty(JCR_PRIMARYTYPE,
                 frozen.getName(JCR_FROZENPRIMARYTYPE), Type.NAME);
         String id = frozen.getProperty(JCR_FROZENUUID).getValue(Type.STRING);
@@ -425,8 +425,8 @@ class VersionableState {
     /**
      * 15.7.7 Simple vs. Full Versioning after Restore
      */
-    private void restoreVersionable(@Nonnull NodeBuilder versionable,
-                                    @Nonnull NodeBuilder version) {
+    private void restoreVersionable(@NotNull NodeBuilder versionable,
+                                    @NotNull NodeBuilder version) {
         checkNotNull(versionable).setProperty(JCR_ISCHECKEDOUT,
                 false, Type.BOOLEAN);
         versionable.setProperty(JCR_VERSIONHISTORY,
@@ -544,7 +544,7 @@ class VersionableState {
         }
     }
 
-    private static boolean isHiddenProperty(@Nonnull String propName) {
+    private static boolean isHiddenProperty(@NotNull String propName) {
         return NodeStateUtils.isHidden(propName) && !TreeConstants.OAK_CHILD_ORDER.equals(propName);
     }
 

@@ -19,22 +19,25 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Strings;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProviderAware;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -42,11 +45,11 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
@@ -73,7 +76,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
  * <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
-class UserInitializer implements WorkspaceInitializer, UserConstants {
+class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndexProviderAware {
 
     /**
      * logger instance
@@ -82,7 +85,10 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     private final SecurityProvider securityProvider;
 
-    UserInitializer(SecurityProvider securityProvider) {
+    private QueryIndexProvider queryIndexProvider = new CompositeQueryIndexProvider(new PropertyIndexProvider(),
+            new NodeTypeIndexProvider());
+
+    UserInitializer(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
@@ -95,40 +101,39 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         MemoryNodeStore store = new MemoryNodeStore(base);
 
         Root root = RootFactory.createSystemRoot(store, EmptyHook.INSTANCE, workspaceName,
-                securityProvider, new QueryEngineSettings(),
-                new CompositeQueryIndexProvider(new PropertyIndexProvider(),
-                        new NodeTypeIndexProvider()));
+                securityProvider,  queryIndexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
 
         String errorMsg = "Failed to initialize user content.";
         try {
-            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
-            NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
+            Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+            checkState(rootTree.exists());
+            Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
-                NodeUtil authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true, 
-                        new String[]{REP_AUTHORIZABLE_ID}, 
+                Tree authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true,
+                        new String[]{REP_AUTHORIZABLE_ID},
                         new String[]{NT_REP_AUTHORIZABLE});
-                authorizableId.setString("info", 
+                authorizableId.setProperty("info",
                         "Oak index used by the user management " + 
                         "to enforce uniqueness of rep:authorizableId property values.");
             }
             if (!index.hasChild("principalName")) {
-                NodeUtil principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
+                Tree principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
                         new String[]{REP_PRINCIPAL_NAME},
                         new String[]{NT_REP_AUTHORIZABLE});
-                principalName.setString("info", 
+                principalName.setProperty("info",
                         "Oak index used by the user management " +
                         "to enforce uniqueness of rep:principalName property values, " +
                         "and to quickly search a principal by name if it was constructed manually.");
             }
             if (!index.hasChild("repMembers")) {
-                NodeUtil members = IndexUtils.createIndexDefinition(index, "repMembers", false,
+                Tree members = IndexUtils.createIndexDefinition(index, "repMembers", false,
                         new String[]{REP_MEMBERS},
                         new String[]{NT_REP_MEMBER_REFERENCES});
-                members.setString("info",
+                members.setProperty("info",
                         "Oak index used by the user management to lookup group membership.");
             }
 
@@ -145,15 +150,17 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
             if (root.hasPendingChanges()) {
                 root.commit();
             }
-        } catch (RepositoryException e) {
-            log.error(errorMsg, e);
-            throw new RuntimeException(e);
-        } catch (CommitFailedException e) {
+        } catch (RepositoryException | CommitFailedException e) {
             log.error(errorMsg, e);
             throw new RuntimeException(e);
         }
 
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
+    }
+
+    @Override
+    public void setQueryIndexProvider(QueryIndexProvider provider) {
+        this.queryIndexProvider = provider;
     }
 }

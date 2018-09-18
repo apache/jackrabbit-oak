@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.h2.jdbcx.JdbcDataSource
 import org.junit.After
-import org.junit.Ignore
 import org.junit.Test
+import org.osgi.framework.ServiceEvent
 import org.osgi.framework.ServiceReference
 import org.osgi.framework.ServiceRegistration
 
@@ -128,9 +128,18 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         DocumentNodeStore ns = getServiceWithWait(NodeStore.class)
 
         //3. Shut down ds
-        srds.unregister();
-        TimeUnit.MILLISECONDS.sleep(500);
-        assertNoService(NodeStore.class)
+        // Wait for service to be unregistered after at most 5s.
+        // Previously, we waited only 500ms; this was extended due to
+        // occasional test failures on Jenkins (see OAK-5612). If 5s
+        // are not sufficient, we should investigate some more.
+        awaitServiceEvent({
+                    srds.unregister();
+                },
+                classNameFilter(NodeStore.class.name),
+                ServiceEvent.UNREGISTERING,
+                5, TimeUnit.SECONDS
+        )
+        assert registry.getServiceReference(NodeStore.class.name) == null
 
         //4. Restart ds, service should still be down
         srds = registry.registerService(DataSource.class.name, ds, ['datasource.name': 'oak'] as Hashtable)
@@ -376,7 +385,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     public void tearDown() {
         super.tearDown()
         if (mongoConn) {
-            MongoUtils.dropCollections(mongoConn.DB)
+            MongoUtils.dropCollections(mongoConn.database)
         }
     }
 
@@ -387,7 +396,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     }
 
     private Collection<String> getCollectionNames() {
-        return mongoConn.DB.getCollectionNames().collect { it.toUpperCase() }
+        return mongoConn.database.listCollectionNames().collect { it.toUpperCase() }
     }
 
     private List<String> getExistingTables(DataSource ds) {

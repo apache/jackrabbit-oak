@@ -17,11 +17,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * interface for shared constants around different actors: QueryIndex, IndexEditors,
@@ -31,12 +29,11 @@ public interface OrderedIndex {
     /**
      * Deprecation message tracked when using the ordered index.
      */
-    String DEPRECATION_MESSAGE = 
+    String DEPRECATION_MESSAGE =
         "Ordered Index has been deprecated since Oak 1.1.8. " +
-        "Please replace the index definitions with Lucene Property index " +
-        "and remove the index providers from the repository. " + 
+        "Please replace the index definition ({}) with Lucene Property index " +
+        "and remove the index providers from the repository. " +
         "See docs at http://jackrabbit.apache.org/oak/docs";
-
     /**
      * the deprecation message will be tracked every N times
      */
@@ -72,8 +69,7 @@ public interface OrderedIndex {
          * @return the direction
          */
         @Nullable
-        @CheckForNull
-        public static OrderDirection fromString(@Nonnull final String direction) {
+        public static OrderDirection fromString(@NotNull final String direction) {
             for (OrderDirection d : OrderDirection.values()) {
                 if (d.getDirection().equalsIgnoreCase(direction)) {
                     return d;

@@ -24,6 +24,9 @@ import java.io.File;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.tool.Diff;
+import org.apache.jackrabbit.oak.segment.tool.Revisions;
 
 class FileStoreDiffCommand implements Command {
 
@@ -38,7 +41,6 @@ class FileStoreDiffCommand implements Command {
         OptionSpec<?> incrementalO = parser.accepts("incremental", "Runs diffs between each subsequent revisions in the provided interval");
         OptionSpec<String> pathO = parser.accepts("path", "Filter diff by given path").withRequiredArg().ofType(String.class).defaultsTo("/");
         OptionSpec<?> ignoreSNFEsO = parser.accepts("ignore-snfes", "Ignores SegmentNotFoundExceptions and continues running the diff (experimental)");
-        OptionSpec segment = parser.accepts("segment", "Use oak-segment instead of oak-segment-tar");
         OptionSet options = parser.parse(args);
 
         if (options.has(help)) {
@@ -61,11 +63,25 @@ class FileStoreDiffCommand implements Command {
         String path = pathO.value(options);
         boolean ignoreSNFEs = options.has(ignoreSNFEsO);
 
-        if (options.has(segment)) {
-            SegmentUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+        int statusCode;
+        if (listOnly) {
+            statusCode = Revisions.builder()
+                .withPath(store)
+                .withOutput(out)
+                .build()
+                .run();
         } else {
-            SegmentTarUtils.diff(store, out, listOnly, interval, incremental, path, ignoreSNFEs);
+            statusCode = Diff.builder()
+                .withPath(store)
+                .withOutput(out)
+                .withInterval(interval)
+                .withIncremental(incremental)
+                .withFilter(path)
+                .withIgnoreMissingSegments(ignoreSNFEs)
+                .build()
+                .run();
         }
+        System.exit(statusCode);
     }
 
     private File defaultOutFile() {

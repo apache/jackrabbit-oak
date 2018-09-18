@@ -42,8 +42,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -62,7 +60,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
+import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -72,6 +70,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -218,7 +217,7 @@ public class SegmentDataStoreBlobGCIT {
         // Ensure cleanup is efficient by surpassing the number of
         // retained generations
         for (int k = 0; k < gcOptions.getRetainedGenerations(); k++) {
-            store.compact();
+            store.compactFull();
         }
         store.cleanup();
 

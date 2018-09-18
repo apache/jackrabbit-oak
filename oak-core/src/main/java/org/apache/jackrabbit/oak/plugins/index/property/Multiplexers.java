@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 
 import java.util.HashSet;
@@ -35,10 +34,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 
 public class Multiplexers {
 
     static boolean RO_PRIVATE_UNIQUE_INDEX;
+
+    private Multiplexers() {
+    }
 
     static {
         // TODO OAK-4645 set default to true once the code is stable
@@ -98,8 +101,8 @@ public class Multiplexers {
             strategies.add(newStrategy(unique, true, defaultName, defMount));
             return strategies;
         } else {
-            return unique ? newHashSet(newUniqueStrategy(defaultName))
-                    : newHashSet(newMirrorStrategy(defaultName));
+            return unique ? ImmutableSet.of(newUniqueStrategy(defaultName))
+                    : ImmutableSet.of(newMirrorStrategy(defaultName));
         }
     }
 
@@ -162,7 +165,7 @@ public class Multiplexers {
         return "-" + stripStartingColon(name);
     }
 
-    private static String stripStartingColon(String name) {
+    public static String stripStartingColon(String name) {
         if (name.startsWith(":")) {
             return name.substring(1);
         }

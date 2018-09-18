@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,8 +23,11 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
 /**
@@ -59,17 +60,17 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         return ConfigurationParameters.EMPTY;
     }
 
-    @CheckForNull
-    Tree getTokenTree(@Nonnull TokenInfo info) {
+    @Nullable
+    Tree getTokenTree(@NotNull TokenInfo info) {
         String token = info.getToken();
         int pos = token.indexOf('_');
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         return new IdentifierManager(root).getTree(nodeId);
     }
 
-    @Nonnull
-    Tree createTokenTree(@Nonnull TokenInfo base, @Nonnull NodeUtil parent,
-                         @Nonnull String ntName) throws AccessDeniedException {
+    @NotNull
+    Tree createTokenTree(@NotNull TokenInfo base, @NotNull NodeUtil parent,
+                         @NotNull String ntName) throws AccessDeniedException {
         Tree tokenTree = getTokenTree(base);
         Tree tree = parent.addChild("token", ntName).getTree();
         tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));

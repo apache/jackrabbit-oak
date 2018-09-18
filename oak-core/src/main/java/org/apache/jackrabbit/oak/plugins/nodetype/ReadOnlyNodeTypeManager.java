@@ -22,14 +22,12 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -54,7 +52,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -72,7 +76,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @throws javax.jcr.RepositoryException If there is no valid internal representation
      * of the specified JCR name.
      */
-    @Nonnull
+    @NotNull
     protected final String getOakName(String jcrName) throws RepositoryException {
         return getNamePathMapper().getOakName(jcrName);
     }
@@ -81,7 +85,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @return  {@link org.apache.jackrabbit.oak.api.Tree} instance where the node types
      * are stored or {@code null} if none.
      */
-    @CheckForNull
+    @Nullable
     protected abstract Tree getTypes();
 
     /**
@@ -89,7 +93,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * If {@code null} the former returns {@code null}.
      * @return  {@code ValueFactory} instance or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected ValueFactory getValueFactory() {
         return null;
     }
@@ -102,9 +106,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      *
      * @return {@link NameMapper} instance.
      */
-    @Nonnull
+    @NotNull
     protected NamePathMapper getNamePathMapper() {
-        return NamePathMapperImpl.DEFAULT;
+        return NamePathMapper.DEFAULT;
     }
 
     //--------------------------------------------------------------------------
@@ -117,7 +121,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @param namePathMapper The {@code NamePathMapper} to use.
      * @return a new instance of {@code ReadOnlyNodeTypeManager}.
      */
-    @Nonnull
+    @NotNull
     public static ReadOnlyNodeTypeManager getInstance(final Root root,
                                                       final NamePathMapper namePathMapper) {
         return new ReadOnlyNodeTypeManager() {
@@ -126,7 +130,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 return root.getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return namePathMapper;
@@ -280,8 +284,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public boolean isNodeType(@CheckForNull String primaryTypeName, @Nonnull Iterator<String> mixinTypes,
-                              @Nonnull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Iterator<String> mixinTypes,
+                              @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
         // shortcut
         if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
             return true;
@@ -335,7 +339,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         for (int i = 0; i < mixins.length; i++) {
             mixinImpls[i] = (NodeTypeImpl) mixins[i]; // FIXME
         }
-        return new EffectiveNodeType(primary, mixinImpls, this);
+        return new EffectiveNodeTypeImpl(primary, mixinImpls, this);
     }
 
     @Override
@@ -351,27 +355,27 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType == null) {
-            return new EffectiveNodeType(primaryType, this);
+            return new EffectiveNodeTypeImpl(primaryType, this);
         } else {
             NodeTypeImpl[] mixinTypes = new NodeTypeImpl[jcrMixinType.count()];
             for (int i = 0; i < mixinTypes.length; i++) {
                 mixinTypes[i] = internalGetNodeType(jcrMixinType.getValue(Type.NAME, i));
             }
-            return new EffectiveNodeType(primaryType, mixinTypes, this);
+            return new EffectiveNodeTypeImpl(primaryType, mixinTypes, this);
         }
     }
 
     //-------------------------------------------------< DefinitionProvider >---
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeDefinition getRootDefinition() throws RepositoryException {
         return new RootNodeDefinition(this);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeDefinition getDefinition(@Nonnull Tree parent, @Nonnull String nodeName)
+    public NodeDefinition getDefinition(@NotNull Tree parent, @NotNull String nodeName)
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(nodeName);
@@ -379,10 +383,10 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return effective.getNodeDefinition(nodeName, null);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeDefinition getDefinition(
-            @Nonnull Tree parent, @Nonnull Tree targetNode)
+            @NotNull Tree parent, @NotNull Tree targetNode)
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(targetNode);
@@ -392,7 +396,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return eff.getNodeDefinition(name, getEffectiveNodeType(targetNode));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PropertyDefinition getDefinition(
             Tree parent, PropertyState property, boolean exactTypeMatch)

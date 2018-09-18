@@ -19,16 +19,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.Closeable;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,7 +39,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     protected final IndexTracker tracker;
 
-    protected volatile NodeAggregator aggregator = null;
+    protected volatile QueryIndex.NodeAggregator aggregator = null;
 
     ScorerProviderFactory scorerFactory;
 
@@ -72,13 +70,13 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     //----------------------------------------------------------< Observer >--
 
     @Override
-    public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
         tracker.update(root);
     }
 
     //------------------------------------------------< QueryIndexProvider >--
 
-    @Override @Nonnull
+    @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
         return ImmutableList.<QueryIndex> of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }
@@ -94,13 +92,13 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     /**
      * sets the default node aggregator that will be used at query time
      */
-    public void setAggregator(NodeAggregator aggregator) {
+    public void setAggregator(QueryIndex.NodeAggregator aggregator) {
         this.aggregator = aggregator;
     }
 
     // ----- helper builder method
 
-    public LuceneIndexProvider with(NodeAggregator analyzer) {
+    public LuceneIndexProvider with(QueryIndex.NodeAggregator analyzer) {
         this.setAggregator(analyzer);
         return this;
     }

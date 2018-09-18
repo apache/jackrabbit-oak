@@ -20,12 +20,12 @@ package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
-import static org.apache.jackrabbit.oak.plugins.observation.ChangeCollectorProvider.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
+import static org.apache.jackrabbit.oak.spi.observation.ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.util.Map;
@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -41,8 +40,9 @@ import javax.jcr.observation.EventListener;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.observation.ChangeSet;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringAwareObserver;
@@ -57,16 +57,19 @@ import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimerStats;
-import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,13 +116,19 @@ class ChangeProcessor implements FilteringAwareObserver {
      * kicks in.
      */
     public static final int MAX_DELAY;
-    
-    /** The test mode can be used to just verify if prefiltering would have
-     * correctly done its job and warn if that's not the case.
-     * @deprecated remove this before 1.6 - see OAK-5136
+
+    //It'd would have been more useful to have following 2 properties as instance variables
+    //which got set by tests. But, the tests won't get a handle to the actual instance, so
+    //static-members it is.
+    /**
+     * Number of milliseconds to wait before issuing consecutive queue full warn messages
+     * Controlled by command line property "oak.observation.full-queue.warn.interval".
+     * Note, the command line parameter is wait interval in minutes.
      */
-    private static boolean PREFILTERING_TESTMODE;
-    
+    static long QUEUE_FULL_WARN_INTERVAL = TimeUnit.MINUTES.toMillis(Integer
+            .getInteger("oak.observation.full-queue.warn.interval", 30));
+    static Clock clock = Clock.SIMPLE;
+
     // OAK-4533: make DELAY_THRESHOLD and MAX_DELAY adjustable - using System.properties for now
     static {
         final String delayThresholdStr = System.getProperty("oak.commitRateLimiter.delayThreshold");
@@ -146,15 +155,6 @@ class ChangeProcessor implements FilteringAwareObserver {
         MAX_DELAY = maxDelay;
     }
     
-    /**
-     * @deprecated remove this before 1.6 - see OAK-5136
-     * @param testMode
-     */
-    static void setPrefilteringTestMode(boolean testMode) {
-        PREFILTERING_TESTMODE = testMode;
-        LOG.info("setPrefilteringTestMode: PREFILTERING_TESTMODE = " + PREFILTERING_TESTMODE);
-    }
-    
     private static final AtomicInteger COUNTER = new AtomicInteger();
 
     /**
@@ -173,6 +173,7 @@ class ChangeProcessor implements FilteringAwareObserver {
     private final TimeSeriesMax maxQueueLengthRecorder;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * Lazy initialization via the {@link #start(Whiteboard)} method
@@ -207,7 +208,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             FilterProvider filter,
             StatisticManager statisticManager,
             int queueLength,
-            CommitRateLimiter commitRateLimiter) {
+            CommitRateLimiter commitRateLimiter,
+            BlobAccessProvider blobAccessProvider) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
@@ -218,6 +220,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         this.maxQueueLengthRecorder = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.blobAccessProvider = blobAccessProvider;
     }
 
     /**
@@ -233,7 +236,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         return filterProvider.get();
     }
 
-    @Nonnull
+    @NotNull
     public ChangeProcessorMBean getMBean() {
         return new ChangeProcessorMBean() {
 
@@ -271,7 +274,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         Map<String, String> attrs = ImmutableMap.of(LISTENER_ID, listenerId);
         String name = tracker.toString();
         registration = new CompositeRegistration(
-            registerObserver(whiteboard, filteringObserver),
+            whiteboard.register(Observer.class, filteringObserver, emptyMap()),
             registerMBean(whiteboard, EventListenerMBean.class,
                     tracker.getListenerMBean(), "EventListener", name, attrs),
             registerMBean(whiteboard, BackgroundObserverMBean.class,
@@ -309,6 +312,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             private volatile long delay;
             private volatile boolean blocking;
 
+            private long lastQueueFullWarnTimestamp = -1;
+
             @Override
             protected void added(int newQueueSize) {
                 queueSizeChanged(newQueueSize);
@@ -325,11 +330,11 @@ class ChangeProcessor implements FilteringAwareObserver {
                 if (newQueueSize >= queueLength) {
                     if (commitRateLimiter != null) {
                         if (!blocking) {
-                            LOG.warn("Revision queue is full. Further commits will be blocked.");
+                            logQueueFullWarning("Revision queue is full. Further commits will be blocked.");
                         }
                         commitRateLimiter.blockCommits();
                     } else if (!blocking) {
-                        LOG.warn("Revision queue is full. Further revisions will be compacted.");
+                        logQueueFullWarning("Revision queue is full. Further revisions will be compacted.");
                     }
                     blocking = true;
                 } else {
@@ -361,11 +366,24 @@ class ChangeProcessor implements FilteringAwareObserver {
                                 commitRateLimiter.unblockCommits();
                                 blocking = false;
                             }
+                        } else {
+                            blocking = false;
                         }
                     }
                 }
             }
 
+            private void logQueueFullWarning(String message) {
+                long currTime = clock.getTime();
+                if (lastQueueFullWarnTimestamp + QUEUE_FULL_WARN_INTERVAL < currTime) {
+                    LOG.warn("{} Suppressing further such cases for {} minutes.",
+                            message,
+                            TimeUnit.MILLISECONDS.toMinutes(QUEUE_FULL_WARN_INTERVAL));
+                    lastQueueFullWarnTimestamp = currTime;
+                } else {
+                    LOG.debug(message);
+                }
+            }
             
             @Override
             public String toString() {
@@ -376,11 +394,6 @@ class ChangeProcessor implements FilteringAwareObserver {
             
             @Override
             public boolean excludes(NodeState root, CommitInfo info) {
-                if (PREFILTERING_TESTMODE) {
-                    // then we don't prefilter but only test later
-                    prefilterSkipCount++;
-                    return false;
-                }
                 final FilterResult filterResult = evalPrefilter(root, info, getChangeSet(info));
                 switch (filterResult) {
                 case PREFILTERING_SKIPPED: {
@@ -471,35 +484,20 @@ class ChangeProcessor implements FilteringAwareObserver {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState before, 
-                               @Nonnull NodeState after,
-                               @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState before, 
+                               @NotNull NodeState after,
+                               @NotNull CommitInfo info) {
         checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
         checkNotNull(after);
         checkNotNull(info);
-        FilterResult prefilterTestResult = null;
-        if (PREFILTERING_TESTMODE) {
-            // OAK-4908 test mode: when the ChangeCollectorProvider is enabled
-            // there is the option to have the ChangeProcessors run in so-called
-            // 'test mode'. In this test mode the prefiltering is not applied,
-            // but instead verified if it *would have prefiltered correctly*.
-            // that test is therefore done at dequeue-time, hence in
-            // contentChanged
-            // TODO: remove this testing mechanism after a while
-            try {
-                prefilterTestResult = evalPrefilter(after, info, getChangeSet(info));
-            } catch (Exception e) {
-                LOG.warn("contentChanged: exception in wouldBeExcludedCommit: " + e, e);
-            }
-        }
         try {
             long start = PERF_LOGGER.start();
             FilterProvider provider = filterProvider.get();
-            boolean onEventInvoked = false;
             // FIXME don't rely on toString for session id
             if (provider.includeCommit(contentSession.toString(), info)) {
                 EventFilter filter = provider.getFilter(before, after);
-                EventIterator events = new EventQueue(namePathMapper, info, before, after,
+                EventIterator events = new EventQueue(namePathMapper,
+                        blobAccessProvider, info, before, after,
                         provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
                         provider.getEventAggregator());
 
@@ -512,7 +510,6 @@ class ChangeProcessor implements FilteringAwareObserver {
                     }
                     try {
                         CountingIterator countingEvents = new CountingIterator(events);
-                        onEventInvoked = true;
                         eventListener.onEvent(countingEvents);
                         countingEvents.updateCounters(eventCount, eventDuration);
                     } finally {
@@ -521,26 +518,6 @@ class ChangeProcessor implements FilteringAwareObserver {
                         }
                         runningMonitor.leave();
                     }
-                }
-            }
-            if (prefilterTestResult != null) {
-                // OAK-4908 test mode
-                if (prefilterTestResult == FilterResult.EXCLUDE && onEventInvoked) {
-                    // this is not ok, an event would have gotten
-                    // excluded-by-prefiltering even though
-                    // it actually got an event.
-                    LOG.warn("contentChanged: delivering event which would have been prefiltered, "
-                            + "info={}, this={}, listener={}", info, this, eventListener);
-                } else if (prefilterTestResult == FilterResult.INCLUDE && !onEventInvoked && info != null
-                        && info != CommitInfo.EMPTY) {
-                    // this can occur arbitrarily frequent. as prefiltering
-                    // is not perfect, it can
-                    // have false negatives - ie it can include even though
-                    // no event is then created
-                    // hence we can only really log at debug here
-                    LOG.debug(
-                            "contentChanged: no event to deliver but not prefiltered, info={}, this={}, listener={}",
-                            info, this, eventListener);
                 }
             }
             PERF_LOGGER.end(start, 100,
@@ -659,6 +636,18 @@ class ChangeProcessor implements FilteringAwareObserver {
                 + ", eventDuration=" + eventDuration 
                 + ", commitRateLimiter=" + commitRateLimiter
                 + ", running=" + running.isSatisfied() + "]";
+    }
+    
+    /** for logging only **/
+    String getListenerToString() {
+        if (tracker == null) {
+            return "null";
+        }
+        EventListenerMBean listenerMBean = tracker.getListenerMBean();
+        if (listenerMBean == null) {
+            return "null (no listener mbean)";
+        }
+        return listenerMBean.getToString();
     }
 
     /**

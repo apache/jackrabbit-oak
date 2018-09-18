@@ -25,9 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -53,7 +50,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -66,11 +64,13 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
@@ -132,7 +132,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private final int importBehavior;
 
-    private JackrabbitSession session;
     private Root root;
     private NamePathMapper namePathMapper;
     private ReferenceChangeTracker referenceTracker;
@@ -170,16 +169,15 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
+            @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
 
         if (!(session instanceof JackrabbitSession)) {
             log.debug("Importing protected user content requires a JackrabbitSession");
             return false;
         }
 
-        this.session = (JackrabbitSession) session;
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.referenceTracker = referenceTracker;
@@ -192,17 +190,17 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (!initUserManager(isWorkspaceImport, securityProvider)) {
+        if (!canInitUserManager((JackrabbitSession) session, isWorkspaceImport, securityProvider)) {
             return false;
         }
 
-        userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
+        userManager = new UserManagerImpl(root, new PartialValueFactory(namePathMapper), securityProvider);
 
         initialized = true;
         return initialized;
     }
 
-    private boolean initUserManager(boolean isWorkspaceImport, SecurityProvider securityProvider) {
+    private static boolean canInitUserManager(@NotNull JackrabbitSession session, boolean isWorkspaceImport, @NotNull SecurityProvider securityProvider) {
         try {
             if (!isWorkspaceImport && session.getUserManager().isAutoSave()) {
                 log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
@@ -214,14 +212,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             log.error("Failed to initialize UserImporter: ", e);
             return false;
         }
-
-        userManager = new UserManagerImpl(root, namePathMapper, securityProvider);
         return true;
     }
 
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
-    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
         String propName = propInfo.getName();
@@ -233,7 +229,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } else {
             Authorizable a = userManager.getAuthorizable(parent);
             if (a == null) {
-                log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
+                log.debug("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent an Authorizable.");
                 return false;
             }
 
@@ -254,6 +250,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 } else {
                     throw new AuthorizableExistsException(id);
                 }
+                return true;
+
             } else if (REP_PRINCIPAL_NAME.equals(propName)) {
                 if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                     return false;
@@ -299,7 +297,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 // since impersonators may be imported later on, postpone processing
                 // to the end.
                 // see -> process References
-                referenceTracker.processedReference(new Impersonators(a.getID(), propInfo.getTextValues()));
+                referenceTracker.processedReference(new Impersonators(parent.getPath(), propInfo.getTextValues()));
                 return true;
 
             } else if (REP_DISABLED.equals(propName)) {
@@ -329,7 +327,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) throws RepositoryException {
+    public void propertiesCompleted(@NotNull Tree protectedParent) throws RepositoryException {
         if (isCacheNode(protectedParent)) {
             // remove the cache if present
             protectedParent.remove();
@@ -390,37 +388,31 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
-    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
+    public boolean start(@NotNull Tree protectedParent) throws RepositoryException {
+        Authorizable auth = null;
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
             while (isMemberNode(groupTree) && !groupTree.isRoot()) {
                 groupTree = groupTree.getParent();
             }
-            Authorizable auth = userManager.getAuthorizable(groupTree);
-            if (auth == null) {
-                log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
-                return false;
-            } else {
-                currentMembership = getMembership(auth.getPath());
-                return true;
-            }
+            auth = userManager.getAuthorizable(groupTree);
         } else if (isMemberReferencesListNode(protectedParent)) {
-            Authorizable auth = userManager.getAuthorizable(protectedParent.getParent());
-            if (auth == null) {
-                log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
-                return false;
-            } else {
-                currentMembership = getMembership(auth.getPath());
-                return true;
-            }
+            auth = userManager.getAuthorizable(protectedParent.getParent());
+
         } // else: parent node is not of type rep:Members or rep:MemberReferencesList
 
-        return false;
+        if (auth == null || !auth.isGroup()) {
+            log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Group.");
+            return false;
+        } else {
+            currentMembership = getMembership(auth.getPath());
+            return true;
+        }
     }
 
     @Override
-    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
-        checkNotNull(currentMembership);
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
+        checkState(currentMembership != null);
 
         String ntName = childInfo.getPrimaryTypeName();
         //noinspection deprecation
@@ -448,12 +440,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
+    public void end(@NotNull Tree protectedParent) throws RepositoryException {
         currentMembership = null;
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
+    @NotNull
     private IdentifierManager getIdentifierManager() {
         if (identifierManager == null) {
             identifierManager = new IdentifierManager(root);
@@ -461,13 +453,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return identifierManager;
     }
 
-    @Nonnull
+    @NotNull
     private PrincipalManager getPrincipalManager() throws RepositoryException {
         return userManager.getPrincipalManager();
     }
 
-    @Nonnull
-    private Membership getMembership(@Nonnull String authId) {
+    @NotNull
+    private Membership getMembership(@NotNull String authId) {
         Membership membership = memberships.get(authId);
         if (membership == null) {
             membership = new Membership(authId);
@@ -482,25 +474,25 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
     }
 
-    private boolean isValid(PropertyDefinition definition, String oakNodeTypeName, boolean multipleStatus) {
+    private boolean isValid(@NotNull PropertyDefinition definition, @NotNull String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
                 definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
 
-    private static boolean isMemberNode(@Nullable Tree tree) {
+    private static boolean isMemberNode(@NotNull Tree tree) {
         //noinspection deprecation
-        return tree != null && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isMemberReferencesListNode(@Nullable Tree tree) {
-        return tree != null && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
+    private static boolean isMemberReferencesListNode(@NotNull Tree tree) {
+        return tree.exists() && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isPwdNode(@Nonnull Tree tree) {
+    private static boolean isPwdNode(@NotNull Tree tree) {
         return REP_PWD.equals(tree.getName()) && NT_REP_PASSWORD.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean importPwdNodeProperty(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+    private static boolean importPwdNodeProperty(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         String propName = propInfo.getName();
         if (propName == null) {
             propName = def.getName();
@@ -526,7 +518,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return true;
     }
 
-    private static boolean isCacheNode(@Nonnull Tree tree) {
+    private static boolean isCacheNode(@NotNull Tree tree) {
         return tree.exists() && CacheConstants.REP_CACHE.equals(tree.getName()) && CacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
@@ -618,7 +610,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 } else {
                     handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + memberContentId + ')');
                     if (importBehavior == ImportBehavior.BESTEFFORT) {
-                        log.info("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
+                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
                         /* since we ignore the set of failed ids later on and
                            don't know the real memberId => use fake memberId as
                            value in the map */
@@ -644,7 +636,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
-                log.info("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
+                log.debug("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
@@ -667,20 +659,20 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private final class Impersonators {
 
-        private final String userId;
+        private final String userPath;
         private final Set<String> principalNames = new HashSet<String>();
 
-        private Impersonators(String userId, List<? extends TextValue> values) {
-            this.userId = userId;
+        private Impersonators(String userPath, List<? extends TextValue> values) {
+            this.userPath = userPath;
             for (TextValue v : values) {
                 principalNames.add(v.getString());
             }
         }
 
         private void process() throws RepositoryException {
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = userManager.getAuthorizableByOakPath(userPath);
             if (a == null || a.isGroup()) {
-                throw new RepositoryException(userId + " does not represent a valid user.");
+                throw new RepositoryException(userPath + " does not represent a valid user.");
             }
 
             Impersonation imp = checkNotNull(((User) a).getImpersonation());
@@ -716,7 +708,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                     handleFailure("Failed to grant impersonation for " + principalName + " on " + a);
                     if (importBehavior == ImportBehavior.BESTEFFORT &&
                             getPrincipalManager().getPrincipal(principalName) == null) {
-                        log.info("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
+                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
                         nonExisting.add(principalName);
                     }
                 }

@@ -16,28 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+public final class TestSecurityProvider {
 
-public class TestSecurityProvider extends SecurityProviderImpl {
+    private TestSecurityProvider() {}
 
-    public TestSecurityProvider(@Nonnull ConfigurationParameters configuration, @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        super(configuration);
-
-        PrincipalConfiguration principalConfiguration = getConfiguration(PrincipalConfiguration.class);
-        if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
-            throw new IllegalStateException();
-        } else {
-            PrincipalConfiguration defConfig = checkNotNull(((CompositePrincipalConfiguration) principalConfiguration).getDefaultConfig());
-            bindPrincipalConfiguration(externalPrincipalConfiguration);
-            bindPrincipalConfiguration(defConfig);
-        }
+    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration,
+            @NotNull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(configuration).build();
+        SecurityProviderHelper.updateConfig(sp, externalPrincipalConfiguration, PrincipalConfiguration.class);
+        return sp;
     }
 }

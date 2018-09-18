@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Maps;
@@ -31,8 +30,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Iterators;
 
@@ -43,14 +42,12 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
  */
 public class MembershipWriter {
 
+    public static final int DEFAULT_MEMBERSHIP_THRESHOLD = 100;
+
     /**
      * size of the membership threshold after which a new overflow node is created.
      */
-    private int membershipSizeThreshold = 100;
-
-    public int getMembershipSizeThreshold() {
-        return membershipSizeThreshold;
-    }
+    private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHOLD;
 
     public void setMembershipSizeThreshold(int membershipSizeThreshold) {
         this.membershipSizeThreshold = membershipSizeThreshold;
@@ -78,7 +75,7 @@ public class MembershipWriter {
      * @return the set of member IDs that was not successfully processed.
      * @throws RepositoryException if an error occurs
      */
-    Set<String> addMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
@@ -140,8 +137,8 @@ public class MembershipWriter {
             // for simplicity this is achieved by introducing new tree(s)
             if ((propCnt + memberIds.size()) > membershipSizeThreshold) {
                 while (!memberIds.isEmpty()) {
-                    Set s = new HashSet();
-                    Iterator it = memberIds.keySet().iterator();
+                    Set<String> s = new HashSet<String>();
+                    Iterator<String> it = memberIds.keySet().iterator();
                     while (propCnt < membershipSizeThreshold && it.hasNext()) {
                         s.add(it.next());
                         it.remove();
@@ -165,7 +162,7 @@ public class MembershipWriter {
         return failed;
     }
 
-    private static Tree createMemberRefTree(@Nonnull Tree groupTree, @Nonnull Tree membersList) {
+    private static Tree createMemberRefTree(@NotNull Tree groupTree, @NotNull Tree membersList) {
         if (!membersList.exists()) {
             membersList = groupTree.addChild(UserConstants.REP_MEMBERS_LIST);
             membersList.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
@@ -175,7 +172,7 @@ public class MembershipWriter {
         return refTree;
     }
 
-    private static String nextRefNodeName(@Nonnull Tree membersList) {
+    private static String nextRefNodeName(@NotNull Tree membersList) {
         // keep node names linear
         int i = 0;
         String name = String.valueOf(i);
@@ -192,7 +189,7 @@ public class MembershipWriter {
      * @param memberContentId member to remove
      * @return {@code true} if the member was removed.
      */
-    boolean removeMember(@Nonnull Tree groupTree, @Nonnull String memberContentId) {
+    boolean removeMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
         Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
         m.put(memberContentId, "-");
         return removeMembers(groupTree, m).isEmpty();
@@ -205,7 +202,7 @@ public class MembershipWriter {
      * @param memberIds Map of 'contentId':'memberId' of all members that need to be removed.
      * @return the set of member IDs that was not successfully processed.
      */
-    Set<String> removeMembers(@Nonnull Tree groupTree, @Nonnull Map<String, String> memberIds) {
+    Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
                 Iterators.singletonIterator(groupTree),
@@ -216,66 +213,25 @@ public class MembershipWriter {
             PropertyState refs = t.getProperty(UserConstants.REP_MEMBERS);
             if (refs != null) {
                 PropertyBuilder<String> prop = PropertyBuilder.copy(Type.WEAKREFERENCE, refs);
-                Iterator<Map.Entry<String,String>> memberEntries = memberIds.entrySet().iterator();
-                while (memberEntries.hasNext()) {
-                    String memberContentId = memberEntries.next().getKey();
+                Iterator<Map.Entry<String,String>> it = memberIds.entrySet().iterator();
+                while (it.hasNext() && !prop.isEmpty()) {
+                    String memberContentId = it.next().getKey();
                     if (prop.hasValue(memberContentId)) {
                         prop.removeValue(memberContentId);
-                        if (prop.isEmpty()) {
-                            if (t == groupTree) {
-                                t.removeProperty(UserConstants.REP_MEMBERS);
-                            } else {
-                                t.remove();
-                            }
-                        } else {
-                            t.setProperty(prop.getPropertyState());
-                        }
-                        memberEntries.remove();
+                        it.remove();
                     }
+                }
+                if (prop.isEmpty()) {
+                    if (t == groupTree) {
+                        t.removeProperty(UserConstants.REP_MEMBERS);
+                    } else {
+                        t.remove();
+                    }
+                } else {
+                    t.setProperty(prop.getPropertyState());
                 }
             }
         }
         return Sets.newHashSet(memberIds.values());
-    }
-
-    /**
-     * Sets the given set of members to the specified group. this method is only used by the migration code.
-     *
-     * @param group node builder of group
-     * @param members set of content ids to set
-     */
-    public void setMembers(@Nonnull NodeBuilder group, @Nonnull Set<String> members) {
-        group.removeProperty(UserConstants.REP_MEMBERS);
-        if (group.hasChildNode(UserConstants.REP_MEMBERS)) {
-            group.getChildNode(UserConstants.REP_MEMBERS).remove();
-        }
-
-        PropertyBuilder<String> prop = null;
-        NodeBuilder refList = null;
-        NodeBuilder node = group;
-
-        int count = 0;
-        int numNodes = 0;
-        for (String ref : members) {
-            if (prop == null) {
-                prop = PropertyBuilder.array(Type.WEAKREFERENCE, UserConstants.REP_MEMBERS);
-            }
-            prop.addValue(ref);
-            count++;
-            if (count > membershipSizeThreshold) {
-                node.setProperty(prop.getPropertyState());
-                prop = null;
-                if (refList == null) {
-                    // create intermediate structure
-                    refList = group.child(UserConstants.REP_MEMBERS_LIST);
-                    refList.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES_LIST, NAME);
-                }
-                node = refList.child(String.valueOf(numNodes++));
-                node.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_MEMBER_REFERENCES, NAME);
-            }
-        }
-        if (prop != null) {
-            node.setProperty(prop.getPropertyState());
-        }
     }
 }

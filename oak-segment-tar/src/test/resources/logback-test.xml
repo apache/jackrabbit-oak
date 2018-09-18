@@ -21,8 +21,6 @@
         </encoder>
     </appender>
 
-    <logger name="org.apache.jackrabbit.oak.segment.standby" level="DEBUG" />
-
     <root level="INFO">
         <appender-ref ref="console"/>
     </root>

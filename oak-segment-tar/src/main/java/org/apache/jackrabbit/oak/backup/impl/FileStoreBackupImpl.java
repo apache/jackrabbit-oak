@@ -24,12 +24,10 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.segment.Compactor;
+import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentBufferWriter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -39,8 +37,12 @@ import org.apache.jackrabbit.oak.segment.WriterCacheManager;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,11 +53,13 @@ public class FileStoreBackupImpl implements FileStoreBackup {
     public static final boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
 
     @Override
-    public void backup(@Nonnull SegmentReader reader, @Nonnull Revisions revisions, @Nonnull File destination) throws IOException, InvalidFileStoreVersionException {
+    public void backup(@NotNull SegmentReader reader, @NotNull Revisions revisions, @NotNull File destination) throws IOException, InvalidFileStoreVersionException {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions().setOffline();
 
-        FileStoreBuilder builder = fileStoreBuilder(destination).withDefaultMemoryMapping();
+        FileStoreBuilder builder = fileStoreBuilder(destination)
+            .withStrictVersionCheck(true)
+            .withDefaultMemoryMapping();
 
         if (USE_FAKE_BLOBSTORE) {
             builder.withBlobStore(new BasicReadOnlyBlobStore());
@@ -66,17 +70,17 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         SegmentNodeState current = reader.readHeadState(revisions);
 
         try {
-            int gen = current.getRecordId().getSegmentId().getGcGeneration();
+            GCGeneration gen = current.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
-                    backup,
-                    backup.getTracker().getSegmentCounter(),
+                    backup.getSegmentIdProvider(),
                     backup.getReader(),
                     "b",
                     gen
             );
-            SegmentWriter writer = new SegmentWriter(
+            SegmentWriter writer = new DefaultSegmentWriter(
                     backup,
                     backup.getReader(),
+                    backup.getSegmentIdProvider(),
                     backup.getBlobStore(),
                     new WriterCacheManager.Default(),
                     bufferWriter
@@ -85,12 +89,11 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     backup.getReader(),
                     writer,
                     backup.getBlobStore(),
-                    Suppliers.ofInstance(false),
-                    gcOptions
+                    GCNodeWriteMonitor.EMPTY
             );
-            compactor.setContentEqualityCheck(true);
             SegmentNodeState head = backup.getHead();
-            SegmentNodeState after = compactor.compact(head, current, head);
+            SegmentNodeState after = compactor.compact(head, current, head, Canceller.newCanceller());
+            writer.flush();
 
             if (after != null) {
                 backup.getRevisions().setHead(head.getRecordId(), after.getRecordId());
@@ -102,6 +105,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
         backup = fileStoreBuilder(destination)
                 .withDefaultMemoryMapping()
                 .withGCOptions(gcOptions)
+                .withStrictVersionCheck(true)
                 .build();
 
         try {

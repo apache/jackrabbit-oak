@@ -33,9 +33,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -65,6 +62,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,12 +129,12 @@ public class SessionDelegate {
      * @param statisticManager the statistics manager for tracking session operations
      */
     public SessionDelegate(
-            @Nonnull ContentSession contentSession,
-            @Nonnull SecurityProvider securityProvider,
-            @Nonnull RefreshStrategy refreshStrategy,
-            @Nonnull ThreadLocal<Long> threadSaveCount,
-            @Nonnull StatisticManager statisticManager,
-            @Nonnull Clock clock) {
+            @NotNull ContentSession contentSession,
+            @NotNull SecurityProvider securityProvider,
+            @NotNull RefreshStrategy refreshStrategy,
+            @NotNull ThreadLocal<Long> threadSaveCount,
+            @NotNull StatisticManager statisticManager,
+            @NotNull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
         this.securityProvider = checkNotNull(securityProvider);
         this.root = contentSession.getLatestRoot();
@@ -156,7 +155,7 @@ public class SessionDelegate {
         writeDuration = statisticManager.getTimer(SESSION_WRITE_DURATION);
     }
 
-    @Nonnull
+    @NotNull
     public SessionStats getSessionStats() {
         return sessionStats;
     }
@@ -193,8 +192,8 @@ public class SessionDelegate {
      * @throws RepositoryException
      * @see #getRoot()
      */
-    @Nonnull
-    public <T> T perform(@Nonnull SessionOperation<T> sessionOperation) throws RepositoryException {
+    @NotNull
+    public <T> T perform(@NotNull SessionOperation<T> sessionOperation) throws RepositoryException {
         long t0 = clock.getTime();
 
         // Acquire the exclusive lock for accessing session internals.
@@ -229,7 +228,7 @@ public class SessionDelegate {
      * @see #perform(org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation)
      */
     @Nullable
-    public <T> T performNullable(@Nonnull SessionOperation<T> sessionOperation) throws RepositoryException {
+    public <T> T performNullable(@NotNull SessionOperation<T> sessionOperation) throws RepositoryException {
         long t0 = clock.getTime();
 
         // Acquire the exclusive lock for accessing session internals.
@@ -300,7 +299,7 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @NotNull
     public ContentSession getContentSession() {
         return contentSession;
     }
@@ -383,7 +382,7 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @NotNull
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
     }
@@ -405,12 +404,12 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @NotNull
     public IdentifierManager getIdManager() {
         return idManager;
     }
 
-    @CheckForNull
+    @Nullable
     public NodeDelegate getRootNode() {
         return getNode("/");
     }
@@ -421,7 +420,7 @@ public class SessionDelegate {
      * @return  The {@code NodeDelegate} at {@code path} or {@code null} if
      * none exists or not accessible.
      */
-    @CheckForNull
+    @Nullable
     public NodeDelegate getNode(String path) {
         Tree tree = root.getTree(path);
         return tree.exists() ? new NodeDelegate(this, tree) : null;
@@ -433,7 +432,7 @@ public class SessionDelegate {
      * @param path Oak path
      * @return node or property delegate, or {@code null} if none exists
      */
-    @CheckForNull
+    @Nullable
     public ItemDelegate getItem(String path) {
         String name = PathUtils.getName(path);
         if (name.isEmpty()) {
@@ -452,7 +451,7 @@ public class SessionDelegate {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public NodeDelegate getNodeByIdentifier(String id) {
         Tree tree = idManager.getTree(id);
         return (tree == null || !tree.exists()) ? null : new NodeDelegate(this, tree);
@@ -464,7 +463,7 @@ public class SessionDelegate {
      * @return  The {@code PropertyDelegate} at {@code path} or {@code null} if
      * none exists or not accessible.
      */
-    @CheckForNull
+    @Nullable
     public PropertyDelegate getProperty(String path) {
         Tree parent = root.getTree(PathUtils.getParentPath(path));
         String name = PathUtils.getName(path);
@@ -514,7 +513,7 @@ public class SessionDelegate {
 
     //----------------------------------------------------------< Workspace >---
 
-    @Nonnull
+    @NotNull
     public String getWorkspaceName() {
         return contentSession.getWorkspaceName();
     }
@@ -566,12 +565,12 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @NotNull
     public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
     }
 
-    @Nonnull
+    @NotNull
     public PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
             permissionProvider = checkNotNull(securityProvider)
@@ -589,7 +588,7 @@ public class SessionDelegate {
      *
      * @return  current root
      */
-    @Nonnull
+    @NotNull
     public Root getRoot() {
         return root;
     }
@@ -600,7 +599,7 @@ public class SessionDelegate {
     }
 
     //-----------------------------------------------------------< internal >---
-    private void prePerform(@Nonnull SessionOperation<?> op, long t0) throws RepositoryException {
+    private void prePerform(@NotNull SessionOperation<?> op, long t0) throws RepositoryException {
         if (sessionOpCount == 0) {
             // Refresh and precondition checks only for non re-entrant
             // session operations. Don't refresh if this operation is a
@@ -616,7 +615,7 @@ public class SessionDelegate {
         }
     }
 
-    private void postPerform(@Nonnull SessionOperation<?> op, long t0) {
+    private void postPerform(@NotNull SessionOperation<?> op, long t0) {
         sessionCounters.accessTime = t0;
         long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
         sessionOpCount--;
@@ -799,7 +798,7 @@ public class SessionDelegate {
         }
 
         @Override
-        public boolean tryLock(long time, @Nonnull TimeUnit unit) throws InterruptedException {
+        public boolean tryLock(long time, @NotNull TimeUnit unit) throws InterruptedException {
             if (lock.tryLock(time, unit)) {
                 holderTrace = null;
                 holderThread = null;
@@ -814,7 +813,7 @@ public class SessionDelegate {
             lock.unlock();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Condition newCondition() {
             return lock.newCondition();

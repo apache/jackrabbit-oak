@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public class RootFuzzIT {
     static final Logger log = LoggerFactory.getLogger(RootFuzzIT.class);
 
-    @Parameters
+    @Parameters(name="{0}")
     public static Collection<Object[]> fixtures() {
         return NodeStoreFixtures.asJunitParameters(EnumSet.of(Fixture.DOCUMENT_NS, Fixture.SEGMENT_TAR));
     }
@@ -95,12 +95,12 @@ public class RootFuzzIT {
         counter = 0;
 
         store1 = fixture.createNodeStore();
-        root1 = RootFactory.createSystemRoot(store1, null, null, null, null, null);
+        root1 = RootFactory.createSystemRoot(store1, null, null, null, null);
         root1.getTree("/").addChild("root");
         root1.commit();
 
         store2 = fixture.createNodeStore();
-        root2 = RootFactory.createSystemRoot(store2, null, null, null, null, null);
+        root2 = RootFactory.createSystemRoot(store2, null, null, null, null);
         root2.getTree("/").addChild("root");
         root2.commit();
     }

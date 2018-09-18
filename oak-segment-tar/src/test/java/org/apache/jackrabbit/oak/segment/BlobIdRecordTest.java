@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
+import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 
@@ -27,8 +27,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
@@ -36,13 +34,14 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class BlobIdRecordTest {
 
-    private static abstract class IdMappingBlobStore implements BlobStore {
+    private abstract static class IdMappingBlobStore implements BlobStore {
 
         private final MemoryBlobStore bs = new MemoryBlobStore();
 
@@ -77,12 +76,12 @@ public class BlobIdRecordTest {
         }
 
         @Override
-        public String getBlobId(@Nonnull String s) {
+        public String getBlobId(@NotNull String s) {
             return bs.getBlobId(s);
         }
 
         @Override
-        public String getReference(@Nonnull String s) {
+        public String getReference(@NotNull String s) {
             return bs.getBlobId(mapId(s));
         }
 
@@ -126,9 +125,9 @@ public class BlobIdRecordTest {
     @Test
     public void shortReferencesShouldHaveBlobIdType() throws Exception {
         try (FileStore ss = newFileStore(new ShortIdMappingBlobStore())) {
-            SegmentWriter sw = segmentWriterBuilder("test").build(ss);
+            SegmentWriter sw = defaultSegmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = sw.writeBlob(new ArrayBasedBlob(content));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
         }
     }
@@ -136,9 +135,9 @@ public class BlobIdRecordTest {
     @Test
     public void longReferencesShouldHaveBlobIdType() throws Exception {
         try (FileStore ss = newFileStore(new LongIdMappingBlobStore())) {
-            SegmentWriter sw = segmentWriterBuilder("test").build(ss);
+            SegmentWriter sw = defaultSegmentWriterBuilder("test").build(ss);
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
-            SegmentBlob sb = sw.writeBlob(new ArrayBasedBlob(content));
+            SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
         }
     }

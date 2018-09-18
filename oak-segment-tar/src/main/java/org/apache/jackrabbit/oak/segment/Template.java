@@ -30,10 +30,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,6 +38,8 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The in-memory representation of a "hidden class" of a node; inspired by the
@@ -61,28 +59,28 @@ public class Template {
 
     static final String MANY_CHILD_NODES = "";
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     /**
      * The {@code jcr:primaryType} property, if present as a single-valued
      * {@code NAME} property. Otherwise {@code null}.
      */
-    @CheckForNull
+    @Nullable
     private final PropertyState primaryType;
 
     /**
      * The {@code jcr:mixinTypes} property, if present as a multi-valued
      * {@code NAME} property. Otherwise {@code null}.
      */
-    @CheckForNull
+    @Nullable
     private final PropertyState mixinTypes;
 
     /**
      * Templates of all the properties of a node, excluding the
      * above-mentioned {@code NAME}-valued type properties, if any.
      */
-    @Nonnull
+    @NotNull
     private final PropertyTemplate[] properties;
 
     /**
@@ -90,10 +88,10 @@ public class Template {
      * Otherwise {@link #ZERO_CHILD_NODES} (i.e. {@code null}) if there are
      * no children, or {@link #MANY_CHILD_NODES} if there are more than one.
      */
-    @CheckForNull
+    @Nullable
     private final String childName;
 
-    Template(@Nonnull SegmentReader reader,
+    Template(@NotNull SegmentReader reader,
              @Nullable PropertyState primaryType,
              @Nullable PropertyState mixinTypes,
              @Nullable  PropertyTemplate[] properties,
@@ -110,7 +108,7 @@ public class Template {
         this.childName = childName;
     }
 
-    Template(@Nonnull SegmentReader reader, @Nonnull NodeState state) {
+    Template(@NotNull SegmentReader reader, @NotNull NodeState state) {
         this.reader = checkNotNull(reader);
         checkNotNull(state);
         PropertyState primary = null;
@@ -146,12 +144,12 @@ public class Template {
         }
     }
 
-    @CheckForNull
+    @Nullable
     PropertyState getPrimaryType() {
         return primaryType;
     }
 
-    @CheckForNull
+    @Nullable
     PropertyState getMixinTypes() {
         return mixinTypes;
     }
@@ -186,7 +184,7 @@ public class Template {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     String getChildName() {
         return childName;
     }

@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
@@ -58,6 +57,8 @@ import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -97,7 +98,7 @@ public abstract class AbstractQueryTest {
 
     /**
      * Override this method to add your default index definition
-     * 
+     *
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
@@ -132,7 +133,7 @@ public abstract class AbstractQueryTest {
         // resolving the whole path on disk
         File input = new File(AbstractQueryTest.class.getResource(file).getPath());
         File output = new File("target/" + shortClassName + "_" + file);
-        
+
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
@@ -276,7 +277,8 @@ public abstract class AbstractQueryTest {
             lines.add(e.toString());
         }
         time = System.currentTimeMillis() - time;
-        if (time > 10000 && !isDebugModeEnabled()) {
+        if (time > 5 * 60 * 1000 && !isDebugModeEnabled()) {
+            // more than 5 minutes
             fail("Query took too long: " + query + " took " + time + " ms");
         }
         return lines;
@@ -285,7 +287,7 @@ public abstract class AbstractQueryTest {
     protected List<String> assertQuery(String sql, List<String> expected) {
         return assertQuery(sql, SQL2, expected);
     }
-    
+
     protected void assertResultSize(String query, String language, long expected) {
         long time = System.currentTimeMillis();
         try {
@@ -315,8 +317,8 @@ public abstract class AbstractQueryTest {
         return paths;
 
     }
-    
-    protected static void assertResult(@Nonnull List<String> expected, @Nonnull List<String> actual) {
+
+    protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
         for (String p : checkNotNull(expected)) {
             assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
                 .contains(p));
@@ -328,14 +330,14 @@ public abstract class AbstractQueryTest {
     protected void setTraversalEnabled(boolean traversalEnabled) {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
-    
-    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+
+    protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
         ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {
         if (pathOnly) {
-            return row.getValue(QueryImpl.JCR_PATH).getValue(Type.STRING);
+            return row.getValue(QueryConstants.JCR_PATH).getValue(Type.STRING);
         }
         StringBuilder buff = new StringBuilder();
         PropertyValue[] values = row.getValues();
@@ -521,10 +523,22 @@ public abstract class AbstractQueryTest {
     }
     
     static String formatSQL(String sql) {
+        int start = 0;
+        while (true) {
+            int index = sql.indexOf("/* ", start);
+            if (index < 0) {
+                break;
+            }
+            int end = sql.indexOf(" */", index);
+            sql = sql.substring(0, index).trim() + "\n  /* xpath ... " + sql.substring(end).trim();
+            sql = sql.trim();
+            start = index + 7;
+        }
+        
         // the "(?s)" is enabling the "dot all" flag
         // keep /* xpath ... */ to ensure the xpath comment
         // is really there (and at the right position)
-        sql = sql.replaceAll("(?s) /\\* .* \\*/", "\n  /* xpath ... */").trim();
+//        sql = sql.replaceAll("(?s) /\\* [^\\*]* \\*/", "\n  /* xpath ... */").trim();
         sql = sql.replaceAll(" union select ", "\n  union select ");
         sql = sql.replaceAll(" from ", "\n  from ");
         sql = sql.replaceAll(" where ", "\n  where ");

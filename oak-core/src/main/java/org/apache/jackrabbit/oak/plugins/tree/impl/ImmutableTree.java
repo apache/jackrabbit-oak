@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeAware;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Immutable implementation of the {@code Tree} interface in order to provide
@@ -78,7 +78,7 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  * however, that according to the contract defined in {@code NodeState} these
  * objects are not expected to be used as hash keys.
  */
-public final class ImmutableTree extends AbstractTree {
+public final class ImmutableTree extends AbstractTree implements TreeTypeAware, ReadOnly {
 
     /**
      * Underlying node state
@@ -96,32 +96,34 @@ public final class ImmutableTree extends AbstractTree {
 
     private TreeType type;
 
-    public ImmutableTree(@Nonnull NodeState rootState) {
+    public ImmutableTree(@NotNull NodeState rootState) {
         this(ParentProvider.ROOT_PROVIDER, PathUtils.ROOT_NAME, rootState);
     }
 
-    public ImmutableTree(@Nonnull ImmutableTree parent, @Nonnull String name, @Nonnull NodeState state) {
+    public ImmutableTree(@NotNull ImmutableTree parent, @NotNull String name, @NotNull NodeState state) {
         this(new DefaultParentProvider(parent), name, state);
     }
 
-    public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name, @Nonnull NodeState state) {
+    public ImmutableTree(@NotNull ParentProvider parentProvider, @NotNull String name, @NotNull NodeState state) {
         this.nodeBuilder = new ReadOnlyBuilder(state);
         this.name = name;
         this.parentProvider = parentProvider;
     }
 
+    //----------------------------------------------------------< TypeAware >---
+    @Nullable
     public TreeType getType() {
         return type;
     }
 
-    public void setType(TreeType type) {
+    public void setType(@NotNull TreeType type) {
         this.type = type;
     }
 
     //-------------------------------------------------------< AbstractTree >---
     @Override
-    @Nonnull
-    protected ImmutableTree createChild(@Nonnull String name) {
+    @NotNull
+    protected ImmutableTree createChild(@NotNull String name) {
         return new ImmutableTree(this, name, nodeBuilder.getNodeState().getChildNode(name));
     }
 
@@ -131,23 +133,23 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     protected AbstractTree getParentOrNull() {
         return parentProvider.getParent();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected NodeBuilder getNodeBuilder() {
         return nodeBuilder;
     }
 
     @Override
-    protected boolean isHidden(@Nonnull String name) {
+    protected boolean isHidden(@NotNull String name) {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected String[] getInternalNodeNames() {
         return new String[0];
@@ -155,14 +157,14 @@ public final class ImmutableTree extends AbstractTree {
 
     //---------------------------------------------------------------< Tree >---
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         if (path == null) {
             path = super.getPath();
@@ -170,9 +172,9 @@ public final class ImmutableTree extends AbstractTree {
         return path;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ImmutableTree getChild(@Nonnull String name) throws IllegalArgumentException {
+    public ImmutableTree getChild(@NotNull String name) throws IllegalArgumentException {
         return createChild(name);
 
     }
@@ -183,8 +185,8 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
-    @Nonnull
-    public Tree addChild(@Nonnull String name) {
+    @NotNull
+    public Tree addChild(@NotNull String name) {
         throw new UnsupportedOperationException();
     }
 
@@ -199,22 +201,22 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     @Override
-    public void setProperty(@Nonnull PropertyState property) {
+    public void setProperty(@NotNull PropertyState property) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeProperty(@Nonnull String name) {
+    public void removeProperty(@NotNull String name) {
         throw new UnsupportedOperationException();
     }
 
@@ -255,14 +257,14 @@ public final class ImmutableTree extends AbstractTree {
             }
         };
 
-        @CheckForNull
+        @Nullable
         ImmutableTree getParent();
     }
 
     public static final class DefaultParentProvider implements ParentProvider {
         private final ImmutableTree parent;
 
-        DefaultParentProvider(@Nonnull ImmutableTree parent) {
+        DefaultParentProvider(@NotNull ImmutableTree parent) {
             this.parent = parent;
         }
 

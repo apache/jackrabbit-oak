@@ -20,7 +20,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -34,10 +34,9 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 /**
@@ -78,7 +77,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         mixLanguage(t, "e");
         mixLanguage(t, "f");
 
-        NodeUtil n = new NodeUtil(root.getTree("/oak:index"));
+        Tree n = root.getTree("/oak:index");
         createIndexDefinition(n, "nodetype", false, new String[] {
                 JCR_PRIMARYTYPE, JCR_MIXINTYPES }, new String[] { "nt:folder",
                 "mix:language" });
@@ -98,7 +97,7 @@ public class NodeTypeIndexQueryTest extends AbstractQueryTest {
         setTraversalEnabled(false);
         Tree t, t1;
 
-        NodeUtil n = new NodeUtil(root.getTree("/oak:index"));
+        Tree n = root.getTree("/oak:index");
         createIndexDefinition(n, "nodeType", false, new String[] {
                 JCR_PRIMARYTYPE }, new String[] { NT_UNSTRUCTURED });
 

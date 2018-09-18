@@ -92,6 +92,13 @@ have a versionable node in this workspace that original path is used to evaluate
 the effective permissions that would apply to that node if the version was restored.
 This changes is covered by [OAK-444] and addresses concerns summarized in [JCR-2963].
 
+##### Repository Level Operations
+Repository level operations such as namespace, nodetype, privilege and workspace
+management require permissions to be defined at the repository level such as 
+outlined by JSR 283. This implies that access control policies need to be set at
+the `null` path. In contrast to Jackrabbit 2.x permissions defined at any regular
+path such as e.g. the root path with be ignored.
+
 #### Configuration
 
 The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider 

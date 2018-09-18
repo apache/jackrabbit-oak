@@ -23,13 +23,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.security.Principal;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implementation of {@code Impersonation} delegates back to a
@@ -58,7 +58,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public PrincipalIterator getImpersonators() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<PrincipalIterator>("getImpersonators") {
-            @Nonnull
+            @NotNull
             @Override
             public PrincipalIterator perform() throws RepositoryException {
                 return impersonationDelegate.getImpersonators();
@@ -68,8 +68,8 @@ final class ImpersonationDelegator implements Impersonation {
 
     @Override
     public boolean grantImpersonation(final Principal principal) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>("grantImpersonation") {
-            @Nonnull
+        return sessionDelegate.perform(new SessionOperation<Boolean>("grantImpersonation", true) {
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.grantImpersonation(principal);
@@ -79,8 +79,8 @@ final class ImpersonationDelegator implements Impersonation {
 
     @Override
     public boolean revokeImpersonation(final Principal principal) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>("revokeImpersonation") {
-            @Nonnull
+        return sessionDelegate.perform(new SessionOperation<Boolean>("revokeImpersonation", true) {
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.revokeImpersonation(principal);
@@ -91,7 +91,7 @@ final class ImpersonationDelegator implements Impersonation {
     @Override
     public boolean allows(final Subject subject) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("allows") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() throws RepositoryException {
                 return impersonationDelegate.allows(subject);

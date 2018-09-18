@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -32,12 +31,14 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncResultImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,17 +66,17 @@ public class DynamicSyncContext extends DefaultSyncContext {
 
     private static final Logger log = LoggerFactory.getLogger(DynamicSyncContext.class);
 
-    public DynamicSyncContext(@Nonnull DefaultSyncConfig config,
-                              @Nonnull ExternalIdentityProvider idp,
-                              @Nonnull UserManager userManager,
-                              @Nonnull ValueFactory valueFactory) {
+    public DynamicSyncContext(@NotNull DefaultSyncConfig config,
+                              @NotNull ExternalIdentityProvider idp,
+                              @NotNull UserManager userManager,
+                              @NotNull ValueFactory valueFactory) {
         super(config, idp, userManager, valueFactory);
     }
 
     //--------------------------------------------------------< SyncContext >---
-    @Nonnull
+    @NotNull
     @Override
-    public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+    public SyncResult sync(@NotNull ExternalIdentity identity) throws SyncException {
         if (identity instanceof ExternalUser) {
             return super.sync(identity);
         } else if (identity instanceof ExternalGroup) {
@@ -107,7 +108,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
 
     //-------------------------------------------------< DefaultSyncContext >---
     @Override
-    protected void syncMembership(@Nonnull ExternalIdentity external, @Nonnull Authorizable auth, long depth) throws RepositoryException {
+    protected void syncMembership(@NotNull ExternalIdentity external, @NotNull Authorizable auth, long depth) throws RepositoryException {
         if (auth.isGroup()) {
             return;
         }
@@ -136,7 +137,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
     }
 
     @Override
-    protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
+    protected void applyMembership(@NotNull Authorizable member, @NotNull Set<String> groups) throws RepositoryException {
         log.debug("Dynamic membership sync enabled => omit setting auto-membership for {} ", member.getID());
     }
 
@@ -149,18 +150,23 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * @param depth Configured membership nesting; the recursion will be stopped once depths is < 1.
      * @throws ExternalIdentityException If an error occurs while resolving the the external group references.
      */
-    private void collectPrincipalNames(@Nonnull Set<String> principalNames, @Nonnull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
+    private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
+        boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
         for (ExternalIdentityRef ref : declaredGroupIdRefs) {
-            // get group
-            ExternalIdentity extId = idp.getIdentity(ref);
-            if (extId instanceof ExternalGroup) {
-                principalNames.add(extId.getPrincipalName());
-                // recursively apply further membership until the configured depth is reached
-                if (depth > 1) {
-                    collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
-                }
+            if (shortcut) {
+                principalNames.add(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref));
             } else {
-                log.debug("Not an external group ({}) => ignore.", extId);
+                // get group from the IDP
+                ExternalIdentity extId = idp.getIdentity(ref);
+                if (extId instanceof ExternalGroup) {
+                    principalNames.add(extId.getPrincipalName());
+                    // recursively apply further membership until the configured depth is reached
+                    if (depth > 1) {
+                        collectPrincipalNames(principalNames, extId.getDeclaredGroups(), depth - 1);
+                    }
+                } else {
+                    log.debug("Not an external group ({}) => ignore.", extId);
+                }
             }
         }
     }

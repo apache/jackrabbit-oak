@@ -29,8 +29,9 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.query.ValueConverter;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
 /**
  * A "in" comparison operation.
@@ -133,8 +134,8 @@ public class InImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         ArrayList<PropertyValue> list = new ArrayList<PropertyValue>();
         for (StaticOperandImpl s : operand2) {
-            if (!PropertyValues.canConvert(
-                    s.getPropertyType(), 
+            if (!ValueConverter.canConvert(
+                    s.getPropertyType(),
                     operand1.getPropertyType())) {
                 throw new IllegalArgumentException(
                         "Unsupported conversion from property type " + 

@@ -18,12 +18,21 @@
  */
 package org.apache.jackrabbit.oak.segment.standby;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 import java.io.File;
 
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
+import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
@@ -57,8 +66,28 @@ public class ExternalPrivateStoreIT extends DataStoreTestBase {
     }
 
     @Override
-    boolean storesShouldBeEqual() {
-        return false;
+    boolean storesShouldBeDifferent() {
+        return true;
     }
 
+    @Test
+    @Ignore("OAK-7027") // FIXME OAK-7027
+    public void testSyncFailingDueToTooShortTimeout() throws Exception {
+        final int blobSize = 5 * MB;
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
+        addTestContent(store, "server", blobSize);
+        try (
+            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyClientSync cl = new StandbyClientSync(getServerHost(), 60, secondary, false, getClientTimeout(), false, folder.newFolder())
+        ) {
+            serverSync.start();
+            primary.flush();
+            cl.run();
+            assertNotEquals(primary.getHead(), secondary.getHead());
+            assertEquals(1, cl.getFailedRequests());
+        }
+    }
 }

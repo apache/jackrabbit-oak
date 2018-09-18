@@ -31,9 +31,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,7 +39,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 import org.apache.commons.io.IOUtils;
@@ -51,6 +47,7 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -61,12 +58,16 @@ import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
+import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +106,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final Clock.Fast clock;
     private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
     private final Registration gcMonitorRegistration;
+    private final MountInfoProvider mountInfoProvider;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -127,18 +130,18 @@ public class RepositoryImpl implements JackrabbitRepository {
     /**
      * Constructor used for backward compatibility.
      */
-    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
-                          @Nonnull Whiteboard whiteboard,
-                          @Nonnull SecurityProvider securityProvider,
+    public RepositoryImpl(@NotNull ContentRepository contentRepository,
+                          @NotNull Whiteboard whiteboard,
+                          @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter) {
         this(contentRepository, whiteboard, securityProvider, 
                 observationQueueLength, commitRateLimiter, false);
     }
     
-    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
-                          @Nonnull Whiteboard whiteboard,
-                          @Nonnull SecurityProvider securityProvider,
+    public RepositoryImpl(@NotNull ContentRepository contentRepository,
+                          @NotNull Whiteboard whiteboard,
+                          @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize) {
@@ -152,6 +155,8 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.clock = new Clock.Fast(scheduledExecutor);
         this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
         this.fastQueryResultSize = fastQueryResultSize;
+        this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
+        this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -261,8 +266,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     //------------------------------------------------------------< JackrabbitRepository >---
 
     @Override
-    public Session login(@CheckForNull Credentials credentials, @CheckForNull String workspaceName,
-            @CheckForNull Map<String, Object> attributes) throws RepositoryException {
+    public Session login(@Nullable Credentials credentials, @Nullable String workspaceName,
+            @Nullable Map<String, Object> attributes) throws RepositoryException {
         try {
             if (attributes == null) {
                 attributes = emptyMap();
@@ -274,18 +279,12 @@ public class RepositoryImpl implements JackrabbitRepository {
                 throw new RepositoryException("Duplicate attribute '" + REFRESH_INTERVAL + "'.");
             }
             boolean relaxedLocking = getRelaxedLocking(attributes);
-
-            RefreshPredicate predicate = new RefreshPredicate();
-            RefreshStrategy refreshStrategy = refreshInterval == null
-                ? new RefreshStrategy.ConditionalRefreshStrategy(new RefreshStrategy.LogOnce(60), predicate)
-                : new RefreshStrategy.Timed(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
+            SessionDelegate sessionDelegate = createSessionDelegate(refreshInterval, contentSession);
             SessionContext context = createSessionContext(
                     statisticManager, securityProvider,
                     createAttributes(refreshInterval, relaxedLocking),
                     sessionDelegate, observationQueueLength, commitRateLimiter);
-            predicate.setSessionContext(context);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -293,11 +292,16 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     private SessionDelegate createSessionDelegate(
-            RefreshStrategy refreshStrategy,
+            Long refreshInterval,
             ContentSession contentSession) {
 
+        RefreshStrategy refreshStrategy;
         final RefreshOnGC refreshOnGC = new RefreshOnGC(gcMonitor);
-        refreshStrategy = Composite.create(refreshStrategy, refreshOnGC);
+        if (refreshInterval == null) {
+            refreshStrategy = refreshOnGC;
+        } else {
+            refreshStrategy = Composite.create(new RefreshStrategy.Timed(refreshInterval), refreshOnGC);
+        }
 
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
@@ -343,7 +347,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter, fastQueryResultSize);
+                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider, fastQueryResultSize);
     }
 
     /**
@@ -369,7 +373,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         ThreadFactory tf = new ThreadFactory() {
             private final AtomicLong counter = new AtomicLong();
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread t = new Thread(r, newName());
                 t.setDaemon(true);
                 return t;
@@ -506,26 +510,6 @@ public class RepositoryImpl implements JackrabbitRepository {
         @Override
         public String toString() {
             return "Refresh on revision garbage collection";
-        }
-    }
-
-    /**
-     * Predicate which ensures that refresh strategy is invoked only
-     * if there is no event listeners registered with the session
-     */
-    private static class RefreshPredicate implements Predicate<Long>{
-        private SessionContext sessionContext;
-
-        @Override
-        public boolean apply(@Nullable Long input) {
-            if (sessionContext == null){
-                return true;
-            }
-            return !sessionContext.hasEventListeners();
-        }
-
-        public void setSessionContext(SessionContext sessionContext) {
-            this.sessionContext = sessionContext;
         }
     }
 

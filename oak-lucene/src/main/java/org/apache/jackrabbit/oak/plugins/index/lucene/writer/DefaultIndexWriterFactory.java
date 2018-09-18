@@ -19,36 +19,36 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private final MountInfoProvider mountInfoProvider;
-    private final IndexCopier indexCopier;
-    private final GarbageCollectableBlobStore blobStore;
+    private final DirectoryFactory directoryFactory;
+    private final LuceneIndexWriterConfig writerConfig;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
-        @Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
-        this.mountInfoProvider = mountInfoProvider;
-        this.indexCopier = indexCopier;
-        this.blobStore = blobStore;
+                                     DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
+        this.mountInfoProvider = checkNotNull(mountInfoProvider);
+        this.directoryFactory = checkNotNull(directoryFactory);
+        this.writerConfig = checkNotNull(writerConfig);
     }
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition definition,
                                          NodeBuilder definitionBuilder, boolean reindex) {
         if (mountInfoProvider.hasNonDefaultMounts()){
-            return new MultiplexingIndexWriter(indexCopier, mountInfoProvider, definition,
-                definitionBuilder, reindex, blobStore);
+            return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
+                definitionBuilder, reindex, writerConfig);
         }
-        return new DefaultIndexWriter(definition, definitionBuilder, indexCopier,
+        return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
             LuceneIndexConstants.INDEX_DATA_CHILD_NAME,
-            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, blobStore);
+            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
     }
 }

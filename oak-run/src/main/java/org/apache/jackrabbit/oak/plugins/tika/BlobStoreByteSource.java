@@ -22,10 +22,9 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nullable;
-
 import com.google.common.io.ByteSource;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Avoiding use of BlobByteSource to avoid concurrent access to NodeState
