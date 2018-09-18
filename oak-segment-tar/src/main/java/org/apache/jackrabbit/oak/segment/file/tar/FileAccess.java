@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.lang.Boolean.getBoolean;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 
@@ -34,6 +35,8 @@ import java.nio.channels.FileChannel;
  * reading from a file.
  */
 abstract class FileAccess {
+
+    private static final boolean OFF_HEAP = getBoolean("access.off.heap");
 
     abstract boolean isMemoryMapped();
 
@@ -113,7 +116,12 @@ abstract class FileAccess {
         @Override
         public synchronized ByteBuffer read(int position, int length)
                 throws IOException {
-            ByteBuffer entry = ByteBuffer.allocate(length);
+            ByteBuffer entry;
+            if (OFF_HEAP) {
+                entry = ByteBuffer.allocateDirect(length);
+            } else {
+                entry = ByteBuffer.allocate(length);
+            }
             if (readFully(channel, position, entry) < length) {
                 throw new EOFException();
             }
