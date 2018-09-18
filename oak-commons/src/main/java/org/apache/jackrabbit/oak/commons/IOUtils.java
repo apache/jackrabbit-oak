@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.Locale;
 
 /**
@@ -44,7 +46,7 @@ public final class IOUtils {
      * @param buffer the output buffer
      * @param off    the offset in the buffer
      * @param max    the number of bytes to read at most
-     * @return the number of bytes read, 0 meaning EOF
+     * @return the number of bytes read, 0 meaning EOF or no space in buffer
      * @throws java.io.IOException If an error occurs.
      */
     public static int readFully(InputStream in, byte[] buffer, int off, int max) throws IOException {
@@ -58,6 +60,31 @@ public final class IOUtils {
             result += l;
             off += l;
             len -= l;
+        }
+        return result;
+    }
+
+    /**
+     * Try to read the given number of bytes starting at the specified position
+     * into the buffer. This method reads until the maximum number of bytes have
+     * been read or until the end of the channel.
+     *
+     * @param channel     the input channel
+     * @param position    the position to start reading from the channel
+     * @param buffer      the output buffer
+     * @return the number of bytes read, 0 meaning EOF or no space in buffer
+     * @throws java.io.IOException If an error occurs.
+     */
+    public static int readFully(FileChannel channel, int position, ByteBuffer buffer)
+    throws IOException {
+        int result = 0;
+        while (buffer.remaining() > 0) {
+            int count = channel.read(buffer, position);
+            if (count < 0) {
+                break;
+            }
+            result += count;
+            position += count;
         }
         return result;
     }

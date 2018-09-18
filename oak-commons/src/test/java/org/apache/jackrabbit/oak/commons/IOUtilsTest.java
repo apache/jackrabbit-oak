@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,6 +37,90 @@ import junit.framework.TestCase;
  * Test the utility classes.
  */
 public class IOUtilsTest extends TestCase {
+
+    private File testFile;
+
+    @Override
+    protected void setUp() throws Exception {
+        testFile = new File("target", "test");
+        writeByteArrayToFile(
+                testFile,
+                new byte[]{0,1,2,3,4,5,6,7});
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        testFile.delete();
+    }
+
+    public void testReadAll() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(8);
+            assertEquals(8, IOUtils.readFully(file.getChannel(), 0, buffer));
+            assertEquals(3, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithLargeBuffer() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(10);
+            assertEquals(8, IOUtils.readFully(file.getChannel(), 0, buffer));
+            assertEquals(3, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithSmallBuffer() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(6);
+            assertEquals(6, IOUtils.readFully(file.getChannel(), 0, buffer));
+            assertEquals(3, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithEmptyBuffer() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(0);
+            assertEquals(0, IOUtils.readFully(file.getChannel(), 0, buffer));
+        }
+    }
+
+    public void testReadAllFromOffset() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(7);
+            assertEquals(7, IOUtils.readFully(file.getChannel(), 1, buffer));
+            assertEquals(4, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithLargeBufferFromOffset() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(10);
+            assertEquals(7, IOUtils.readFully(file.getChannel(), 1, buffer));
+            assertEquals(4, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithSmallBufferFromOffset() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(6);
+            assertEquals(6, IOUtils.readFully(file.getChannel(), 1, buffer));
+            assertEquals(4, buffer.array()[3]);
+        }
+    }
+
+    public void testReadWithEmptyBufferFromOffset() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(0);
+            assertEquals(0, IOUtils.readFully(file.getChannel(), 1, buffer));
+        }
+    }
+
+    public void testReadOffsetOutOfBound() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(testFile, "r")) {
+            ByteBuffer buffer = ByteBuffer.allocate(10);
+            assertEquals(0, IOUtils.readFully(file.getChannel(), 10, buffer));
+        }
+    }
 
     public void testReadFully() throws IOException {
         final Random r = new Random(1);
