@@ -60,21 +60,6 @@ public class UniversalFilter implements EventFilter {
     }
 
     /**
-     * Create a new instance of an universal filter rooted at the passed trees.
-     *
-     * @param before          before state
-     * @param after           after state
-     * @param selector        selector for selecting the tree to match the predicate against
-     * @param predicate       predicate for determining whether to include or to exclude an event
-     */
-    @Deprecated
-    public UniversalFilter(
-            @NotNull NodeState before, @NotNull NodeState after,
-            @NotNull Selector selector, @NotNull com.google.common.base.Predicate<NodeState> predicate) {
-        this(before, after, selector, FilterBuilder.asJdkPredicate(predicate));
-    }
-
-    /**
      * A selector instance maps call backs on {@code Filters} to {@code NodeState} instances,
      * which should be used for determining inclusion or exclusion of the associated event.
      */

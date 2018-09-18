@@ -308,10 +308,7 @@ public final class FilterBuilder {
     @NotNull
     public Condition property(@NotNull Selector selector, @NotNull String name,
             @NotNull com.google.common.base.Predicate<PropertyState> predicate) {
-
-        return new UniversalCondition(
-                checkNotNull(selector),
-                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
+        return property(selector, name, asJdkPredicate(predicate));
     }
 
     /**
@@ -630,10 +627,6 @@ public final class FilterBuilder {
             this.conditions = conditions;
         }
 
-        public AnyCondition(Condition... conditions) {
-            this(newArrayList(conditions));
-        }
-
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             List<EventFilter> filters = newArrayList();
@@ -655,10 +648,6 @@ public final class FilterBuilder {
 
         public AllCondition(Iterable<Condition> conditions) {
             this.conditions = conditions;
-        }
-
-        public AllCondition(Condition... conditions) {
-            this(newArrayList(conditions));
         }
 
         @Override
@@ -697,13 +686,8 @@ public final class FilterBuilder {
         }
     }
 
-    static <T> Predicate<T> asJdkPredicate(@NotNull com.google.common.base.Predicate<T> p) {
+    private static <T> Predicate<T> asJdkPredicate(@NotNull com.google.common.base.Predicate<T> p) {
         checkNotNull(p);
-        return new Predicate<T>() {
-            @Override
-            public boolean test(T t) {
-                return p.apply(t);
-            }
-        };
+        return t -> p.apply(t);
     }
 }

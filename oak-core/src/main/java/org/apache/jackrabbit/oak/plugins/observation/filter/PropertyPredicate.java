@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  * the node has a property of the given {@code name} and the given
  * {@code propertyPredicate} holds on that property.
  */
-public class PropertyPredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
+public class PropertyPredicate implements Predicate<NodeState> {
     private final String name;
     private final Predicate<PropertyState> propertyPredicate;
 
@@ -43,18 +43,6 @@ public class PropertyPredicate implements Predicate<NodeState>, com.google.commo
             @NotNull String name, @NotNull Predicate<PropertyState> propertyPredicate) {
         this.name = checkNotNull(name);
         this.propertyPredicate = checkNotNull(propertyPredicate);
-    }
-
-    @Deprecated
-    public PropertyPredicate(
-            @NotNull String name, @NotNull com.google.common.base.Predicate<PropertyState> propertyPredicate) {
-        this(name, FilterBuilder.asJdkPredicate(propertyPredicate));
-    }
-
-    @Deprecated
-    @Override
-    public boolean apply(NodeState node) {
-        return test(node);
     }
 
     @Override
