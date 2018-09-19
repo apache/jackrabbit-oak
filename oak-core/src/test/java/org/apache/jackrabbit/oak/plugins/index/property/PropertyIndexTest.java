@@ -717,7 +717,7 @@ public class PropertyIndexTest {
 
     @Test
     public void traversalWarning() throws Exception {
-        ListAppender appender = createAndRegisterAppender();
+        ListAppender<ILoggingEvent> appender = createAndRegisterAppender();
 
         int testDataSize = ContentMirrorStoreStrategy.TRAVERSING_WARN;
         NodeState indexed = createTestData(testDataSize);
@@ -1103,10 +1103,10 @@ public class PropertyIndexTest {
         return HOOK.processCommit(before, after, CommitInfo.EMPTY);
     }
 
-    private ListAppender createAndRegisterAppender() {
+    private ListAppender<ILoggingEvent> createAndRegisterAppender() {
         TraversingWarningFilter filter = new TraversingWarningFilter();
         filter.start();
-        ListAppender appender = new ListAppender<ILoggingEvent>();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.setContext(getContext());
         appender.setName("TestLogCollector");
         appender.addFilter(filter);
