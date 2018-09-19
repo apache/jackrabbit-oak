@@ -109,6 +109,7 @@ public class FileBlobStore extends AbstractBlobStore {
     protected synchronized void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         File f = getFile(digest, false);
         if (f.exists()) {
+            FileUtils.touch(f);
             return;
         }
         File parent = f.getParentFile();
@@ -221,6 +222,12 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
+    }
+
+    // @Override OAK-2973
+    public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        int count = 0;
         for (String chunkId : chunkIds) {
             byte[] digest = StringUtils.convertHexToBytes(chunkId);
             File f = getFile(digest, false);
@@ -233,9 +240,10 @@ public class FileBlobStore extends AbstractBlobStore {
             if ((maxLastModifiedTime <= 0) 
                     || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
                 f.delete();
+                count++;
             }
         }
-        return true;
+        return count;
     }
 
     @Override
