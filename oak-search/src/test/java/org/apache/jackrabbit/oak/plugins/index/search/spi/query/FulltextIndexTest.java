@@ -16,24 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+import org.junit.Test;
 
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-/**
- * Factory class for {@link FulltextIndexWriter}s
- */
-public interface FulltextIndexWriterFactory<D> {
+public class FulltextIndexTest {
 
-    /**
-     * create a new index writer instance
-     * @param definition the index definition
-     * @param definitionBuilder the node builder associated with the index definition
-     * @param reindex whether or not reindex should be performed
-     * @return an index writer
-     */
-    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
+    @Test
+    public void testParseFacetField() {
+        String field = FulltextIndex.parseFacetField("rep:facet(text)");
+        assertNotNull(field);
+        assertEquals("text", field);
+        field = FulltextIndex.parseFacetField("rep:facet(jcr:title)");
+        assertNotNull(field);
+        assertEquals("jcr:title", field);
+        field = FulltextIndex.parseFacetField("rep:facet(jcr:primaryType)");
+        assertNotNull(field);
+        assertEquals("jcr:primaryType", field);
 
+    }
 }
+

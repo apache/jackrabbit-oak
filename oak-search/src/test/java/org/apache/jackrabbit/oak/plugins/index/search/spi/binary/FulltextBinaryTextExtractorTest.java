@@ -17,23 +17,28 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Test;
 
-/**
- * Factory class for {@link FulltextIndexWriter}s
- */
-public interface FulltextIndexWriterFactory<D> {
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.junit.Assert.assertTrue;
 
-    /**
-     * create a new index writer instance
-     * @param definition the index definition
-     * @param definitionBuilder the node builder associated with the index definition
-     * @param reindex whether or not reindex should be performed
-     * @return an index writer
-     */
-    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
+public class FulltextBinaryTextExtractorTest {
+    private final NodeState root = INITIAL_CONTENT;
+
+    private final NodeBuilder builder = root.builder();
+    private final ExtractedTextCache cache = new ExtractedTextCache(1000, 10000);
+
+    @Test
+    public void tikaConfigServiceLoader() throws Exception {
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+        FulltextBinaryTextExtractor extractor = new FulltextBinaryTextExtractor(cache, idxDefn, false);
+        assertTrue(extractor.getTikaConfig().getServiceLoader().isDynamic());
+    }
 
 }

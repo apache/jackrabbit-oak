@@ -16,37 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
-
-import java.io.IOException;
-import java.io.InputStream;
-
-import com.google.common.io.ByteSource;
-import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
- * {@link ByteSource} extension to work with Oak {@link Blob}s
+ * Utility class to convert data from one to another format.
  */
-public final class BlobByteSource extends ByteSource {
-    private final Blob blob;
+public class DataConversionUtil {
 
-    public BlobByteSource(Blob blob) {
-        this.blob = blob;
+    /**
+     * Date values are saved with sec resolution
+     * @param date jcr data string
+     * @return date value in seconds
+     */
+    public static Long dateToLong(String date){
+        if( date == null){
+            return null;
+        }
+        //TODO OAK-2204 - Should we change the precision to lower resolution
+        return ISO8601.parse(date).getTimeInMillis();
     }
 
-    @Override
-    public InputStream openStream() throws IOException {
-        return blob.getNewStream();
-    }
-
-    @Override
-    public long size() throws IOException {
-        return blob.length();
-    }
-
-    @Override
-    public boolean isEmpty() throws IOException {
-        return blob.length() == 0;
-    }
 }
+

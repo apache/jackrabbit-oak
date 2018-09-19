@@ -54,6 +54,10 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
+/**
+ * A cache to avoid extracting text of binaries that were already processed (in
+ * a different node that references the same binary).
+ */
 public class ExtractedTextCache {
     private static final boolean CACHE_ONLY_SUCCESS =
             Boolean.getBoolean("oak.extracted.cacheOnlySuccess");
@@ -75,7 +79,10 @@ public class ExtractedTextCache {
     private long totalTextSize;
     private long totalTime;
     private int preFetchedCount;
+
+    // the actual cache. key: content id, value: extracted text
     private final Cache<String, String> cache;
+
     private final ConcurrentHashMap<String, String> timeoutMap;
     private final File indexDir;
     private final CacheStats cacheStats;
@@ -104,7 +111,7 @@ public class ExtractedTextCache {
             cacheStats = null;
         }
         this.alwaysUsePreExtractedCache = alwaysUsePreExtractedCache;
-        this.timeoutMap = new ConcurrentHashMap<String, String>();
+        this.timeoutMap = new ConcurrentHashMap<>();
         this.indexDir = indexDir;
         loadTimeoutMap();
     }
@@ -241,13 +248,13 @@ public class ExtractedTextCache {
         return extractedTextProvider;
     }
 
-    void resetCache(){
+    public void resetCache(){
         if (cache != null){
             cache.invalidateAll();
         }
     }
 
-    boolean isAlwaysUsePreExtractedCache() {
+    public boolean isAlwaysUsePreExtractedCache() {
         return alwaysUsePreExtractedCache;
     }
 
@@ -283,7 +290,7 @@ public class ExtractedTextCache {
         closeExecutorService();
     }
 
-    public void process(String name, Callable<Void> callable) throws InterruptedException, Throwable {
+    public void process(String name, Callable<Void> callable) throws Throwable {
         Callable<Void> callable2 = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -305,9 +312,7 @@ public class ExtractedTextCache {
                 future.get(extractionTimeoutMillis, TimeUnit.MILLISECONDS);
             }
         } catch (TimeoutException e) {
-            timeoutCount++;
-            throw e;
-        } catch (InterruptedException e) {
+            timeoutCount++; // TODO : use AtomicInteger ? this is a non-atomic operation on a volatile field
             throw e;
         } catch (ExecutionException e) {
             throw e.getCause();
@@ -332,7 +337,7 @@ public class ExtractedTextCache {
         log.debug("ExtractedTextCache createExecutor " + this);
         ThreadPoolExecutor executor = new ThreadPoolExecutor(1, EXTRACTION_MAX_THREADS,
                 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+            new LinkedBlockingQueue<>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
                 @Override

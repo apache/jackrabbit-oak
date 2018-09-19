@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * Utility class to retrieve configuration values for index definitions
+ * Utility class to retrieve configuration values for index definitions.
  */
 public class ConfigUtil {
 

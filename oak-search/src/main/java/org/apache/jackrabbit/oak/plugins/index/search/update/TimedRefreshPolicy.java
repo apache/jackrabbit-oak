@@ -17,34 +17,53 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search;
+package org.apache.jackrabbit.oak.plugins.index.search.update;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.stats.Clock;
+
 /**
- * Policy which performs immediate refresh upon completion of writes
+ * This policy refreshes the index (if changed) if it wasn't refreshed for a
+ * configured time. For example once per second.
+ *
+ * It is the default policy for asynchronous indexes.
  */
-public class RefreshOnWritePolicy implements ReaderRefreshPolicy, IndexUpdateListener {
+public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListener {
     private final AtomicBoolean dirty = new AtomicBoolean();
+    private final Clock clock;
+    private final long refreshDelta;
+    private volatile long lastRefreshTime;
+
+    public TimedRefreshPolicy(Clock clock, TimeUnit unit, long refreshDelta) {
+        this.clock = clock;
+        this.refreshDelta = unit.toMillis(refreshDelta);
+    }
 
     @Override
     public void refreshOnReadIfRequired(Runnable refreshCallback) {
-        //As writer itself refreshes the index. No refresh done
-        //on read
+        refreshIfRequired(refreshCallback);
     }
 
     @Override
     public void refreshOnWriteIfRequired(Runnable refreshCallback) {
-        //For sync indexing mode we refresh the reader immediately
-        //on the writer thread. So that any read call later sees upto date index
-        if (dirty.get()) {
-            refreshCallback.run();
-            dirty.set(false);
-        }
+        refreshIfRequired(refreshCallback);
     }
 
     @Override
     public void updated() {
         dirty.set(true);
+    }
+
+    private void refreshIfRequired(Runnable refreshCallback) {
+        if (dirty.get()){
+            long currentTime = clock.getTime();
+            if (currentTime - lastRefreshTime > refreshDelta
+                    && dirty.compareAndSet(true, false)){
+                lastRefreshTime = currentTime;
+                refreshCallback.run();
+            }
+        }
     }
 }

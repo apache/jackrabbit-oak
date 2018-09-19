@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import org.osgi.annotation.versioning.ProviderType;
 
+/**
+ * An MBean for text extraction statistics.
+ */
 @ProviderType
 public interface TextExtractionStatsMBean {
     String TYPE = "TextExtractionStats";

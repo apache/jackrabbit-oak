@@ -17,23 +17,9 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search.update;
 
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+public interface IndexUpdateListener extends ReaderRefreshPolicy {
 
-/**
- * Factory class for {@link FulltextIndexWriter}s
- */
-public interface FulltextIndexWriterFactory<D> {
-
-    /**
-     * create a new index writer instance
-     * @param definition the index definition
-     * @param definitionBuilder the node builder associated with the index definition
-     * @param reindex whether or not reindex should be performed
-     * @return an index writer
-     */
-    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
-
+    void updated();
 }

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 /**
- *
+ * Reports index statistics (for example, how many entries does the index contain).
  */
 public interface IndexStatistics {
   int numDocs();

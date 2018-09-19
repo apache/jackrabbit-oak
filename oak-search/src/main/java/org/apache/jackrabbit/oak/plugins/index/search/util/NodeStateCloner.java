@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search;
+package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -26,7 +26,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+/**
+ * A utility class that allows to clone a node structure, excluding hidden nodes.
+ */
 public class NodeStateCloner {
+
+    private NodeStateCloner() {
+        // a utility class
+    }
 
     public static NodeState cloneVisibleState(NodeState state){
         NodeBuilder builder = EMPTY_NODE.builder();

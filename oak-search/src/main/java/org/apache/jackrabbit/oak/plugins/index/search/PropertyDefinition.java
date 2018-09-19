@@ -24,9 +24,9 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
-import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +40,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 public class PropertyDefinition {
@@ -58,19 +59,19 @@ public class PropertyDefinition {
      * property etc then it should be defined via 'name' property in NodeState.
      * In such case NodeState name can be set to anything
      */
-    final String name;
+    public final String name;
 
     private final int propertyType;
     /**
      * The boost value for a property.
      */
-    final float boost;
+    public final float boost;
 
-    final boolean isRegexp;
+    public final boolean isRegexp;
 
     public final boolean index;
 
-    final boolean stored;
+    public final boolean stored;
 
     public final boolean nodeScopeIndex;
 
@@ -82,7 +83,7 @@ public class PropertyDefinition {
 
     public final boolean nullCheckEnabled;
 
-    final boolean notNullCheckEnabled;
+    public final boolean notNullCheckEnabled;
 
     final int includedPropertyTypes;
 
@@ -123,12 +124,14 @@ public class PropertyDefinition {
 
     public final boolean unique;
 
+    public final boolean useInSimilarity;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
-        this.weight = getOptionalValue(defn, PROP_WEIGHT, 5);
+        this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX, true);
@@ -151,6 +154,7 @@ public class PropertyDefinition {
         this.propertyType = getPropertyType(idxDefn, nodeName, defn);
         this.useInSuggest = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.useInSimilarity = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);

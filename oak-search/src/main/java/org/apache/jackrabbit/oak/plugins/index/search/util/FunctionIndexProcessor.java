@@ -56,7 +56,7 @@ public class FunctionIndexProcessor {
      * @return the list of properties, for example ["name"]
      */
     public static String[] getProperties(String[] functionCode) {
-        ArrayList<String> properties = new ArrayList<String>();
+        ArrayList<String> properties = new ArrayList<>();
         for(String token : functionCode) {
             if (token.startsWith("@")) {
                 String propertyName = token.substring(1);
@@ -75,7 +75,7 @@ public class FunctionIndexProcessor {
      * @return null, or the calculated value
      */
     public static PropertyState tryCalculateValue(String path, NodeState state, String[] functionCode) {
-        Deque<PropertyState> stack = new ArrayDeque<PropertyState>();
+        Deque<PropertyState> stack = new ArrayDeque<>();
         for (int i = functionCode.length - 1; i > 0; i--) {
             String token = functionCode[i];
             PropertyState ps;
@@ -108,8 +108,8 @@ public class FunctionIndexProcessor {
         return functionDescription.split("\\*");
     }
     
-    private static PropertyState calculateFunction(String functionName, 
-            Deque<PropertyState> stack) {
+    private static PropertyState calculateFunction(String functionName,
+                                                   Deque<PropertyState> stack) {
         PropertyState ps = stack.pop();
         if ("coalesce".equals(functionName)) {
             // coalesce (a, b) => (a != null ? a : b)
@@ -124,7 +124,7 @@ public class FunctionIndexProcessor {
             return ps;
         }
         Type<?> type = null;
-        ArrayList<Object> values = new ArrayList<Object>(ps.count());
+        ArrayList<Object> values = new ArrayList<>(ps.count());
         for (int i = 0; i < ps.count(); i++) {
             String s = ps.getValue(Type.STRING, i);
             Object x;
@@ -156,8 +156,8 @@ public class FunctionIndexProcessor {
         return result;
     }
     
-    private static PropertyState getProperty(String path, NodeState state, 
-            String propertyName) {
+    private static PropertyState getProperty(String path, NodeState state,
+                                             String propertyName) {
         if (PathUtils.getDepth(propertyName) != 1) {
             for(String n : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
                 state = state.getChildNode(n);
@@ -169,10 +169,10 @@ public class FunctionIndexProcessor {
         }
         PropertyState ps;
         if (":localname".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value", 
+            ps = PropertyStates.createProperty("value",
                     getLocalName(PathUtils.getName(path)), Type.STRING);
         } else if (":name".equals(propertyName)) {
-            ps = PropertyStates.createProperty("value", 
+            ps = PropertyStates.createProperty("value",
                     PathUtils.getName(path), Type.STRING);
         } else {
             ps = state.getProperty(propertyName);

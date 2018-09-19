@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 
@@ -42,7 +44,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,31 +69,34 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
  *
  */
 public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
-        AdvanceFulltextQueryIndex {
+    AdvanceFulltextQueryIndex {
 
     private final Logger LOG = LoggerFactory
             .getLogger(getClass());
     private final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(getClass() + ".perf"));
 
-    static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
+    public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
-    protected abstract FulltextIndexTracker getIndexTracker();
+    protected abstract IndexNode acquireIndexNode(String indexPath);
 
     protected abstract String getType();
 
     protected abstract SizeEstimator getSizeEstimator(IndexPlan plan);
 
+    protected abstract Predicate<NodeState> getIndexDefinitionPredicate();
+
     protected abstract String getFulltextRequestString(IndexPlan plan, IndexNode indexNode);
 
     @Override
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-        Collection<String> indexPaths = new IndexLookup(rootState).collectIndexNodePaths(filter, getType());
+        Collection<String> indexPaths = new IndexLookup(rootState, getIndexDefinitionPredicate())
+                .collectIndexNodePaths(filter);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;
             try {
-                indexNode = getIndexTracker().acquireIndexNode(path, getType());
+                indexNode = acquireIndexNode(path);
 
                 if (indexNode != null) {
                     IndexPlan plan = new FulltextIndexPlanner(indexNode, path, filter, sortOrder).getPlan();
@@ -124,8 +129,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
-        IndexNode index = getIndexTracker().acquireIndexNode(getPlanResult(plan).indexPath, getType());
-        checkState(index != null, "The Fulltext of type " + getType() + "  index is not available");
+        IndexNode index = acquireIndexNode(plan);
+        checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder(getType()).append(":");
@@ -148,7 +153,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
     }
 
-    private static void addSyncIndexPlan(IndexPlan plan, StringBuilder sb) {
+    protected static void addSyncIndexPlan(IndexPlan plan, StringBuilder sb) {
         FulltextIndexPlanner.PlanResult pr = getPlanResult(plan);
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
@@ -176,7 +181,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         throw new UnsupportedOperationException("Not supported as implementing AdvancedQueryIndex");
     }
 
-    private static boolean shouldInclude(String docPath, IndexPlan plan) {
+    protected static boolean shouldInclude(String docPath, IndexPlan plan) {
         String path = getPathRestriction(plan);
 
         boolean include = true;
@@ -214,7 +219,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     protected IndexNode acquireIndexNode(IndexPlan plan) {
-        return getIndexTracker().acquireIndexNode(getPlanResult(plan).indexPath, getType());
+        return acquireIndexNode(getPlanResult(plan).indexPath);
     }
 
     protected static String getIndexName(IndexPlan plan) {
@@ -237,7 +242,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         return getPropertyType(defn, pr.propertyName, typeFromRestriction);
     }
 
-    private static int getPropertyType(PropertyDefinition defn, String name, int defaultVal) {
+    protected static int getPropertyType(PropertyDefinition defn, String name, int defaultVal) {
         if (defn.isTypeDefined()) {
             return defn.getType();
         }
@@ -256,7 +261,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
      */
-    static String rewriteQueryText(String textsearch) {
+    protected static String rewriteQueryText(String textsearch) {
         // replace escaped ' with just '
         StringBuilder rewritten = new StringBuilder();
         // most query parsers recognize 'AND' and 'NOT' as
@@ -301,36 +306,37 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         return "/" + relativePath;
     }
 
-    static class FulltextResultRow {
-        final String path;
-        final double score;
-        final String suggestion;
-        final boolean isVirutal;
-        final Map<String, String> excerpts;
-        final String explanation;
-        final List<FacetResult.Facet> facets;
+    public static class FulltextResultRow {
+        public final String path;
+        public final double score;
+        public final String suggestion;
+        public final boolean isVirutal;
+        public final Map<String, String> excerpts;
+        public final String explanation;
+        private final FacetProvider facetProvider;
 
-        FulltextResultRow(String path, double score, Map<String, String> excerpts, List<FacetResult.Facet> facets, String explanation) {
+        public FulltextResultRow(String path, double score, Map<String, String> excerpts,
+                                 FacetProvider facetProvider, String explanation) {
             this.explanation = explanation;
             this.excerpts = excerpts;
-            this.facets = facets;
+            this.facetProvider = facetProvider;
             this.isVirutal = false;
             this.path = path;
             this.score = score;
             this.suggestion = null;
         }
 
-        FulltextResultRow(String suggestion, long weight) {
+        public FulltextResultRow(String suggestion, long weight) {
             this.isVirutal = true;
             this.path = "/";
             this.score = weight;
             this.suggestion = suggestion;
             this.excerpts = null;
-            this.facets = null;
+            this.facetProvider = null;
             this.explanation = null;
         }
 
-        FulltextResultRow(String suggestion) {
+        public FulltextResultRow(String suggestion) {
             this(suggestion, 1);
         }
 
@@ -338,13 +344,25 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         public String toString() {
             return String.format("%s (%1.2f)", path, score);
         }
+
+        public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
+            if (facetProvider == null) {
+                return null;
+            }
+
+            return facetProvider.getFacets(numberOfFacets, columnName);
+        }
+    }
+
+    public interface FacetProvider {
+        List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException;
     }
 
     /**
      * A cursor over Fulltext results. The result includes the path,
      * and the jcr:score pseudo-property as returned by Lucene.
      */
-    static class FulltextPathCursor implements Cursor {
+    protected static class FulltextPathCursor implements Cursor {
 
         private final Logger log = LoggerFactory.getLogger(getClass());
         private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
@@ -354,9 +372,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         FulltextResultRow currentRow;
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
-        private int numberOfFacets;
+        private final int numberOfFacets;
 
-        FulltextPathCursor(final Iterator<FulltextResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
+        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
@@ -445,18 +463,16 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                         }
                     }
                     if (columnName.startsWith(QueryConstants.REP_FACET)) {
-                        List<FacetResult.Facet> facets = currentRow.facets;
                         try {
+                            List<Facet> facets = currentRow.getFacets(numberOfFacets, columnName);
                             if (facets != null) {
                                 JsopWriter writer = new JsopBuilder();
                                 writer.object();
-                                for (FacetResult.Facet f : facets) {
+                                for (Facet f : facets) {
                                     writer.key(f.getLabel()).value(f.getCount());
                                 }
                                 writer.endObject();
                                 return PropertyValues.newString(writer.toString());
-                            } else {
-                                return null;
                             }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -477,7 +493,38 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
     }
 
-    static String parseFacetField(String columnName) {
+    /**
+     * A query result facet, composed by its label and count.
+     */
+    public static class Facet {
+
+        private final String label;
+        private final int count;
+
+        public Facet(String label, int count) {
+            this.label = label;
+            this.count = count;
+        }
+
+        /**
+         * get the facet label
+         * @return a label
+         */
+        @NotNull
+        public String getLabel() {
+            return label;
+        }
+
+        /**
+         * get the facet count
+         * @return an integer
+         */
+        public int getCount() {
+            return count;
+        }
+    }
+
+    public static String parseFacetField(String columnName) {
         return columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
     }
 }

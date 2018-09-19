@@ -17,23 +17,36 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import java.io.IOException;
+import java.io.InputStream;
+
+import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.oak.api.Blob;
 
 /**
- * Factory class for {@link FulltextIndexWriter}s
+ * {@link ByteSource} extension to work with Oak {@link Blob}s
  */
-public interface FulltextIndexWriterFactory<D> {
+public final class BlobByteSource extends ByteSource {
+    private final Blob blob;
 
-    /**
-     * create a new index writer instance
-     * @param definition the index definition
-     * @param definitionBuilder the node builder associated with the index definition
-     * @param reindex whether or not reindex should be performed
-     * @return an index writer
-     */
-    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
+    public BlobByteSource(Blob blob) {
+        this.blob = blob;
+    }
 
+    @Override
+    public InputStream openStream() throws IOException {
+        return blob.getNewStream();
+    }
+
+    @Override
+    public long size() throws IOException {
+        return blob.length();
+    }
+
+    @Override
+    public boolean isEmpty() throws IOException {
+        return blob.length() == 0;
+    }
 }

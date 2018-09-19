@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
+package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
 import java.util.concurrent.TimeUnit;
 
