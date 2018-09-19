@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.jetbrains.annotations.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +69,9 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 public class FulltextIndexPlanner {
 
+    public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.fulltext.defaultPropertyWeight", 5);
+
+
     /**
      * IndexPaln Attribute name which refers to the name of the fields that should be used for facets.
      */
@@ -83,7 +85,7 @@ public class FulltextIndexPlanner {
     private final List<OrderEntry> sortOrder;
     private IndexNode indexNode;
     private PlanResult result;
-    private static boolean useActualEntryCount = false;
+    protected static boolean useActualEntryCount;
 
     static {
         useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
@@ -103,7 +105,7 @@ public class FulltextIndexPlanner {
         this.sortOrder = sortOrder;
     }
 
-    IndexPlan getPlan() {
+    public IndexPlan getPlan() {
         IndexPlan.Builder builder = getPlanBuilder();
 
         if (definition.isTestMode()){
@@ -133,8 +135,10 @@ public class FulltextIndexPlanner {
                 '}';
     }
 
-    //For tests
-    static void setUseActualEntryCount(boolean useActualEntryCount) {
+    //For tests and since the property is anyway controllable by JVM param, so
+    //public isn't very bad. Though, the real need to use 'public' is because
+    //tests not in this package (happy to hear about other options)
+    public static void setUseActualEntryCount(boolean useActualEntryCount) {
         FulltextIndexPlanner.useActualEntryCount = useActualEntryCount;
     }
 
@@ -323,16 +327,11 @@ public class FulltextIndexPlanner {
                 // that doesn't match everything
                 // case of like search
                 String prefix = ValuePatternUtil.getLongestPrefix(filter, pr.propertyName);
-                if (!pd.valuePattern.matchesPrefix(prefix)) {
-                    // region match which is not fully in the pattern
-                    return false;
-                }
+                return pd.valuePattern.matchesPrefix(prefix);
             } else {
                 // we have a value pattern, for example (a|b),
                 // but we search (also) for 'c': can't match
-                if (!pd.valuePattern.matchesAll(values)) {
-                    return false;
-                }
+                return pd.valuePattern.matchesAll(values);
             }
         }
         return true;
@@ -444,12 +443,8 @@ public class FulltextIndexPlanner {
         }
 
         // If jcr:score is the only sort order then opt out
-        if (sortOrder.size() == 1 &&
-                JCR_SCORE.equals(sortOrder.get(0).getPropertyName())) {
-            return false;
-        }
-
-        return true;
+        return sortOrder.size() != 1 ||
+            !JCR_SCORE.equals(sortOrder.get(0).getPropertyName());
     }
 
     private boolean canEvalAllFullText(final IndexingRule indexingRule, FullTextExpression ft) {
@@ -918,9 +913,9 @@ public class FulltextIndexPlanner {
     //~--------------------------------------------------------< PlanResult >
 
     public static class PlanResult {
-        final String indexPath;
-        final IndexDefinition indexDefinition;
-        final IndexDefinition.IndexingRule indexingRule;
+        public final String indexPath;
+        public final IndexDefinition indexDefinition;
+        public final IndexDefinition.IndexingRule indexingRule;
         private final List<PropertyDefinition> sortedProperties = newArrayList();
 
         //Map of actual property name as present in our property definitions
@@ -1049,8 +1044,8 @@ public class FulltextIndexPlanner {
     }
 
     public static class PropertyIndexResult {
-        final String propertyName;
-        final PropertyRestriction pr;
+        public final String propertyName;
+        public final PropertyRestriction pr;
 
         public PropertyIndexResult(String propertyName, PropertyRestriction pr) {
             this.propertyName = propertyName;
