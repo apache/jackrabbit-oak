@@ -272,6 +272,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final String useIfExists;
 
+    private final boolean deprecated;
+
     //~--------------------------------------------------------< Builder >
 
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
@@ -411,6 +413,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.syncIndexMode = supportsSyncIndexing(defn);
         this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
         this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
+        this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
     }
 
     public NodeState getDefinitionNodeState() {
@@ -481,6 +484,10 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     public double getCostPerExecution() {
         return costPerExecution;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
     }
 
     public long getFulltextEntryCount(long numOfDocs){

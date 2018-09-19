@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -41,13 +43,22 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.read.ListAppender;
+import ch.qos.logback.core.spi.FilterReply;
 
 /**
  * Test the Property2 index mechanism.
  */
-public class PropertyIndexDisabledTest {
+public class PropertyIndexDeprecatedTest {
 
     private static final int MANY = 100;
 
@@ -64,47 +75,51 @@ public class PropertyIndexDisabledTest {
     }
 
     @Test
-    public void disabled() throws Exception {
+    public void deprecated() throws Exception {
         NodeBuilder index = createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), 
                 "foo", true, false, ImmutableSet.of("foo"), null);
-        index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
+        index.setProperty(IndexConstants.INDEX_DEPRECATED, false);
         commit();
         for (int i = 0; i < MANY; i++) {
             rootBuilder.child("test").child("n" + i).setProperty("foo", "x" + i % 20);
         }
         commit();
+        
         FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("x10"));
         PropertyIndex propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
-
+        ListAppender<ILoggingEvent> appender = createAndRegisterAppender();
+        propertyIndex.query(f, root);
+        
+        assertEquals("[]", appender.list.toString());
+        appender.list.clear();
+        
         // now test with a node that doesn't exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
-        index.setProperty(IndexConstants.USE_IF_EXISTS, "/doesNotExist");
+        index.setProperty(IndexConstants.INDEX_DEPRECATED, true);
         commit();
-        // need to create a new one - otherwise the cached plan is used
-        propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertTrue(propertyIndex.getCost(f, root) == Double.POSITIVE_INFINITY);
-        assertEquals("property index not applicable", propertyIndex.getPlan(f, root));
         
-        // test with a property that does exist
-        index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
-        index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@jcr:primaryType");
-        commit();
-        // need to create a new one - otherwise the cached plan is used
+        appender.list.clear();
+        // need to create a new one - otherwise the cached definition is used
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
+        propertyIndex.query(f, root);
+        assertEquals("[[WARN] This index is deprecated: foo; " + 
+                "it is used for query Filter(query=" + 
+                "SELECT * FROM [nt:base], path=*, property=[foo=[x10]]). " + 
+                "Please change the query or the index definitions.]", appender.list.toString());
         
-        // test with a property that does not exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
-        index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@unknownProperty");
+        index.removeProperty(IndexConstants.INDEX_DEPRECATED);
         commit();
-        // need to create a new one - otherwise the cached plan is used
+
+        appender.list.clear();
+        // need to create a new one - otherwise the cached definition is used
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
-        assertTrue(propertyIndex.getCost(f, root) == Double.POSITIVE_INFINITY);
-        assertEquals("property index not applicable", propertyIndex.getPlan(f, root));
+        propertyIndex.query(f, root);
+        assertEquals("[]", appender.list.toString());
+
+        deregisterAppender(appender);
     }
     
     private void commit() throws Exception {
@@ -117,6 +132,57 @@ public class PropertyIndexDisabledTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(nodeTypeName);        
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
         return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+    }
+    
+    private ListAppender<ILoggingEvent> createAndRegisterAppender() {
+        WarnFilter filter = new WarnFilter();
+        filter.start();        
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.setContext(getContext());
+        appender.setName("TestLogCollector");
+        appender.addFilter(filter);        
+        appender.start();
+        rootLogger().addAppender(appender);
+        return appender;
+    }    
+    
+    private void deregisterAppender(Appender<ILoggingEvent> appender){
+        rootLogger().detachAppender(appender);
+    }
+    
+    private static class WarnFilter extends ch.qos.logback.core.filter.Filter<ILoggingEvent> {
+
+        @Override
+        public FilterReply decide(ILoggingEvent event) {
+            if (event.getLevel().isGreaterOrEqual(Level.WARN)) {
+                return FilterReply.ACCEPT;
+            } else {
+                return FilterReply.DENY;
+            }
+        }
+    }    
+    
+    private static LoggerContext getContext(){
+        return (LoggerContext) LoggerFactory.getILoggerFactory();
+    }
+    
+    private static ch.qos.logback.classic.Logger rootLogger() {
+        return getContext().getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+    }    
+    
+    public void startCollecting() {
+        Logger fooLogger = (Logger) LoggerFactory.getLogger(PropertyIndexDeprecatedTest.class);        
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+
+        // add the appender to the logger
+        fooLogger.addAppender(listAppender);
+        
+        fooLogger.warn("hello");
+        
+        List<ILoggingEvent> logsList = listAppender.list;
+        System.out.println(logsList);
+        
     }
 
 }

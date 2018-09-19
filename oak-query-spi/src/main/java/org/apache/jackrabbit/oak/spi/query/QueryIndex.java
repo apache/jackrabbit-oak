@@ -77,7 +77,7 @@ public interface QueryIndex {
      * <p>
      * If an index implementation can not query the data, it has to return
      * {@code Double.MAX_VALUE}.
-     * 
+     *
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return the estimated cost in number of read nodes
@@ -99,7 +99,7 @@ public interface QueryIndex {
      * filter, then this method is not called. If it is still called, then it is
      * supposed to throw an exception (as it would be an internal error of the
      * query engine).
-     * 
+     *
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return a cursor to iterate over the result
@@ -110,7 +110,7 @@ public interface QueryIndex {
      * Get the query plan for the given filter. This method is called when
      * running an {@code EXPLAIN SELECT} query, or for logging purposes. The
      * result should be human readable.
-     * 
+     *
      * @param filter the filter
      * @param rootState root state of the current repository snapshot
      * @return the query plan
@@ -142,7 +142,7 @@ public interface QueryIndex {
         /**
          * Returns the NodeAggregator responsible for providing the aggregation
          * settings or null if aggregation is not available/desired.
-         * 
+         *
          * @return the node aggregator or null
          */
         @Nullable
@@ -165,7 +165,7 @@ public interface QueryIndex {
          * Return the possible index plans for the given filter and sort order.
          * Please note this method is supposed to run quickly. That means it
          * should usually not read any data from the storage.
-         * 
+         *
          * @param filter the filter
          * @param sortOrder the sort order or null if no sorting is required
          * @param rootState root state of the current repository snapshot
@@ -179,7 +179,7 @@ public interface QueryIndex {
          * <p>
          * The index plan is one of the plans that the index returned in the
          * getPlans call.
-         * 
+         *
          * @param plan the index plan
          * @param root root state of the current repository snapshot
          * @return the query plan description
@@ -192,7 +192,7 @@ public interface QueryIndex {
          * <p>
          * The index plan is one of the plans that the index returned in the
          * getPlans call.
-         * 
+         *
          * @param plan the index plan to use
          * @param rootState root state of the current repository snapshot
          * @return a cursor to iterate over the result
@@ -211,7 +211,7 @@ public interface QueryIndex {
          * The cost to execute the query once. The returned value should
          * approximately match the number of disk read operations plus the
          * number of network roundtrips (worst case).
-         * 
+         *
          * @return the cost per execution, in estimated number of I/O operations
          */
         double getCostPerExecution();
@@ -220,7 +220,7 @@ public interface QueryIndex {
          * The cost to read one entry from the cursor. The returned value should
          * approximately match the number of disk read operations plus the
          * number of network roundtrips (worst case).
-         * 
+         *
          * @return the lookup cost per entry, in estimated number of I/O operations
          */
         double getCostPerEntry();
@@ -228,18 +228,18 @@ public interface QueryIndex {
         /**
          * The estimated number of entries in the cursor that is returned by the query method,
          * when using this plan. This value does not have to be accurate.
-         * 
+         *
          * @return the estimated number of entries
          */
         long getEstimatedEntryCount();
 
         /**
          * The filter to use.
-         * 
+         *
          * @return the filter
          */
         Filter getFilter();
-        
+
         /**
          * Use the given filter.
          */
@@ -247,7 +247,7 @@ public interface QueryIndex {
 
         /**
          * Whether the index is not always up-to-date.
-         * 
+         *
          * @return whether the index might be updated asynchronously
          */
         boolean isDelayed();
@@ -256,7 +256,7 @@ public interface QueryIndex {
          * Whether the fulltext part of the filter is evaluated (possibly with
          * an extended syntax). If set, the fulltext part of the filter is not
          * evaluated any more within the query engine.
-         * 
+         *
          * @return whether the index supports full-text extraction
          */
         boolean isFulltextIndex();
@@ -264,14 +264,14 @@ public interface QueryIndex {
         /**
          * Whether the cursor is able to read all properties from a node.
          * If yes, then the query engine will not have to read the data itself.
-         * 
+         *
          * @return wheter node data is returned
          */
         boolean includesNodeData();
 
         /**
          * The sort order of the returned entries, or null if unsorted.
-         * 
+         *
          * @return the sort order
          */
         List<OrderEntry> getSortOrder();
@@ -333,6 +333,13 @@ public interface QueryIndex {
         String getPlanName();
 
         /**
+         * Whether the index is deprecated.
+         *
+         * @return if it is deprecated
+         */
+        boolean isDeprecated();
+
+        /**
          * A builder for index plans.
          */
         class Builder {
@@ -351,6 +358,7 @@ public interface QueryIndex {
             protected boolean supportsPathRestriction = false;
             protected Map<String, Object> attributes = Maps.newHashMap();
             protected String planName;
+            protected boolean deprecated;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -422,25 +430,30 @@ public interface QueryIndex {
                 return this;
              }
 
+            public Builder setDeprecated(boolean deprecated) {
+                this.deprecated = deprecated;
+                return this;
+            }
+
             public IndexPlan build() {
-                
+
                 return new IndexPlan() {
-                    
-                    private final double costPerExecution = 
+
+                    private final double costPerExecution =
                             Builder.this.costPerExecution;
-                    private final double costPerEntry = 
+                    private final double costPerEntry =
                             Builder.this.costPerEntry;
-                    private final long estimatedEntryCount = 
+                    private final long estimatedEntryCount =
                             Builder.this.estimatedEntryCount;
-                    private Filter filter = 
+                    private Filter filter =
                             Builder.this.filter;
-                    private final boolean isDelayed = 
+                    private final boolean isDelayed =
                             Builder.this.isDelayed;
-                    private final boolean isFulltextIndex = 
+                    private final boolean isFulltextIndex =
                             Builder.this.isFulltextIndex;
-                    private final boolean includesNodeData = 
+                    private final boolean includesNodeData =
                             Builder.this.includesNodeData;
-                    private final List<OrderEntry> sortOrder = 
+                    private final List<OrderEntry> sortOrder =
                             Builder.this.sortOrder == null ?
                             null : new ArrayList<OrderEntry>(
                                     Builder.this.sortOrder);
@@ -455,6 +468,8 @@ public interface QueryIndex {
                     private final Map<String, Object> attributes =
                             Builder.this.attributes;
                     private final String planName = Builder.this.planName;
+                    private final boolean deprecated =
+                            Builder.this.deprecated;
 
                     @Override
                     public String toString() {
@@ -470,6 +485,7 @@ public interface QueryIndex {
                             + " definition : %s,"
                             + " propertyRestriction : %s,"
                             + " pathPrefix : %s,"
+                            + " deprecated : %s,"
                             + " supportsPathRestriction : %s }",
                             costPerExecution,
                             costPerEntry,
@@ -482,6 +498,7 @@ public interface QueryIndex {
                             definition,
                             propRestriction,
                             pathPrefix,
+                            deprecated,
                             supportsPathRestriction
                             );
                     }
@@ -505,7 +522,7 @@ public interface QueryIndex {
                     public Filter getFilter() {
                         return filter;
                     }
-                    
+
                     @Override
                     public void setFilter(Filter filter) {
                         this.filter = filter;
@@ -574,6 +591,12 @@ public interface QueryIndex {
                     public String getPlanName() {
                         return planName;
                     }
+
+                    @Override
+                    public boolean isDeprecated() {
+                        return deprecated;
+                    }
+
                 };
             }
 
@@ -590,19 +613,19 @@ public interface QueryIndex {
          * The property name on where to sort.
          */
         private final String propertyName;
-        
+
         /**
          * The property type. Null if not known.
          */
         private final Type<?> propertyType;
-        
+
         /**
          * The sort order (ascending or descending).
          */
         public enum Order { ASCENDING, DESCENDING }
-        
+
         private final Order order;
-        
+
         public OrderEntry(String propertyName, Type<?> propertyType, Order order) {
             this.propertyName = propertyName;
             this.propertyType = propertyType;

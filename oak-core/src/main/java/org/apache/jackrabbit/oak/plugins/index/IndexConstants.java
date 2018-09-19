@@ -141,10 +141,15 @@ public interface IndexConstants {
     String DISABLE_INDEXES_ON_NEXT_CYCLE = ":disableIndexesOnNextCycle";
     
     /**
-     * The property of an index. If the given node or property exists, then the
+     * Whether to use the index. If the given node or property exists, then the
      * index is used for queries; otherwise, it is not used (returns infinite
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
     String USE_IF_EXISTS = "useIfExists";
+    
+    /**
+     * Whether the index is deprecated. If it is, and the index is used, a warning is logged.
+     */
+    String INDEX_DEPRECATED = "deprecated";
 
 }
