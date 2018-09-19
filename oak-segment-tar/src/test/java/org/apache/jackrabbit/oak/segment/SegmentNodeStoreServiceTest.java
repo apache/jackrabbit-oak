@@ -69,6 +69,7 @@ public class SegmentNodeStoreServiceTest {
     public void testNoCustomBlobStoreWithoutBlobStore() {
         registerSegmentNodeStoreService(false);
         assertServiceActivated();
+        assertBlobGCMbeanNotActivated();
 
         unregisterSegmentNodeStoreService();
     }
@@ -83,6 +84,7 @@ public class SegmentNodeStoreServiceTest {
 
         registerSegmentNodeStoreService(false);
         assertServiceActivated();
+        assertBlobGCMbeanNotActivated();
 
         unregisterSegmentNodeStoreService();
         unregisterBlobStore();
@@ -96,6 +98,7 @@ public class SegmentNodeStoreServiceTest {
     public void testUseCustomBlobStoreWithoutBlobStore() {
         registerSegmentNodeStoreService(true);
         assertServiceNotActivated();
+        assertBlobGCMbeanNotActivated();
 
         unregisterSegmentNodeStoreService();
     }
@@ -110,7 +113,7 @@ public class SegmentNodeStoreServiceTest {
 
         registerSegmentNodeStoreService(true);
         assertServiceActivated();
-        assertNotNull(context.getService(BlobGCMBean.class));
+        assertBlobGCMbeanActivated();
 
         unregisterSegmentNodeStoreService();
         unregisterBlobStore();
@@ -128,6 +131,7 @@ public class SegmentNodeStoreServiceTest {
 
         registerBlobStore();
         assertServiceActivated();
+        assertBlobGCMbeanActivated();
 
         unregisterSegmentNodeStoreService();
         unregisterBlobStore();
@@ -144,6 +148,7 @@ public class SegmentNodeStoreServiceTest {
 
         registerSegmentNodeStoreService(true);
         assertServiceActivated();
+        assertBlobGCMbeanActivated();
 
         unregisterBlobStore();
         assertServiceNotActivated();
@@ -162,7 +167,7 @@ public class SegmentNodeStoreServiceTest {
         registerSegmentNodeStoreService(true);
         assertServiceActivated();
 
-        assertNotNull(context.getService(BlobGCMBean.class));
+        assertBlobGCMbeanActivated();
         assertSharedDataStoreRegistered(dataStoreBlobStore);
 
         unregisterSegmentNodeStoreService();
@@ -180,7 +185,7 @@ public class SegmentNodeStoreServiceTest {
         registerSegmentNodeStoreService(false);
         assertServiceActivated();
 
-        assertNull(context.getService(BlobGCMBean.class));
+        assertBlobGCMbeanNotActivated();
         assertSharedDataStoreNotRegistered(dataStoreBlobStore);
 
         unregisterSegmentNodeStoreService();
@@ -241,5 +246,14 @@ public class SegmentNodeStoreServiceTest {
         List<DataRecord> allMetadataRecords =
             dataStoreBlobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         assertTrue(allMetadataRecords.isEmpty());
+    }
+
+
+    protected void assertBlobGCMbeanActivated() {
+        assertNotNull(context.getService(BlobGCMBean.class));
+    }
+
+    protected void assertBlobGCMbeanNotActivated() {
+        assertNull(context.getService(BlobGCMBean.class));
     }
 }
