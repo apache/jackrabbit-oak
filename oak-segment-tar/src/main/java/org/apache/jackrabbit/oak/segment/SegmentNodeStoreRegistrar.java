@@ -396,7 +396,7 @@ class SegmentNodeStoreRegistrar {
         }
 
         // If a shared data store register the repo id in the data store
-        if (cfg.isPrimarySegmentStore() && isShared(cfg.getBlobStore())) {
+        if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && isShared(cfg.getBlobStore())) {
             SharedDataStore sharedDataStore = (SharedDataStore) cfg.getBlobStore();
             try {
                 sharedDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getOrCreateId(segmentNodeStore)));
