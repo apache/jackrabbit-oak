@@ -215,6 +215,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         .setCostPerExecution(defn.getCostPerExecution())
                         .setCostPerEntry(defn.getCostPerEntry())
                         .setAttribute(ATTR_INDEX_PATH, indexPath)
+                        .setDeprecated(defn.isDeprecated())
                         .build());
             }
             //No index node then no plan possible

@@ -129,6 +129,16 @@ public class AggregateIndexPlan implements IndexPlan {
         }
         return false;
     }
+    
+    @Override
+    public boolean isDeprecated() {
+        for (IndexPlan p : basePlans.values()) {
+            if (p != null && p.isDeprecated()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Whether any base plan is a full text index.
