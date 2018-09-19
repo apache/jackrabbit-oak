@@ -21,14 +21,22 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -143,6 +151,42 @@ public class SegmentNodeStoreServiceTest {
         unregisterSegmentNodeStoreService();
     }
 
+    /**
+     * A SharedDataStore service should be registered when the "customBlobStore"
+     * configuration property is true and a BlobStore service as SharedDataStore available.
+     */
+    @Test
+    public void testUseCustomBlobStoreWithSharedBlobStore() throws IOException {
+        DataStoreBlobStore dataStoreBlobStore = registerSharedDataStore(folder.newFolder());
+
+        registerSegmentNodeStoreService(true);
+        assertServiceActivated();
+
+        assertNotNull(context.getService(BlobGCMBean.class));
+        assertSharedDataStoreRegistered(dataStoreBlobStore);
+
+        unregisterSegmentNodeStoreService();
+        unregisterBlobStore();
+    }
+
+    /**
+     * A SharedDataStore service should not be registered when the "customBlobStore"
+     * configuration property is false and a BlobStore service as SharedDataStore available.
+     */
+    @Test
+    public void testUseNoCustomBlobStoreWithSharedBlobStore() throws IOException {
+        DataStoreBlobStore dataStoreBlobStore = registerSharedDataStore(folder.newFolder());
+
+        registerSegmentNodeStoreService(false);
+        assertServiceActivated();
+
+        assertNull(context.getService(BlobGCMBean.class));
+        assertSharedDataStoreNotRegistered(dataStoreBlobStore);
+
+        unregisterSegmentNodeStoreService();
+        unregisterBlobStore();
+    }
+
     private SegmentNodeStoreService segmentNodeStoreService;
 
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {
@@ -164,6 +208,15 @@ public class SegmentNodeStoreServiceTest {
         blobStore = context.bundleContext().registerService(BlobStore.class.getName(), mock(GarbageCollectableBlobStore.class), null);
     }
 
+    private DataStoreBlobStore registerSharedDataStore(File home) {
+        OakFileDataStore ds = new OakFileDataStore();
+        ds.init(home.getAbsolutePath());
+        DataStoreBlobStore dataStoreBlobStore = new DataStoreBlobStore(ds);
+
+        blobStore = context.bundleContext().registerService(BlobStore.class.getName(), dataStoreBlobStore, null);
+        return dataStoreBlobStore;
+    }
+
     private void unregisterBlobStore() {
         blobStore.unregister();
     }
@@ -178,4 +231,15 @@ public class SegmentNodeStoreServiceTest {
         assertNull(context.getService(SegmentStoreProvider.class));
     }
 
+    protected void assertSharedDataStoreRegistered(DataStoreBlobStore dataStoreBlobStore) {
+        List<DataRecord> allMetadataRecords =
+            dataStoreBlobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
+        assertFalse(allMetadataRecords.isEmpty());
+    }
+
+    protected void assertSharedDataStoreNotRegistered(DataStoreBlobStore dataStoreBlobStore) {
+        List<DataRecord> allMetadataRecords =
+            dataStoreBlobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
+        assertTrue(allMetadataRecords.isEmpty());
+    }
 }
