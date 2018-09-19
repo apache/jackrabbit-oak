@@ -17,9 +17,29 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search;
+package org.apache.jackrabbit.oak.plugins.index.search.update;
 
-interface IndexUpdateListener extends ReaderRefreshPolicy {
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-    void updated();
+class RecordingRunnable implements Runnable {
+    private boolean invoked;
+    @Override
+    public void run() {
+        invoked = true;
+    }
+
+    public void assertInvokedAndReset(){
+        assertTrue(invoked);
+        reset();
+    }
+
+    public void assertNotInvokedAndReset(){
+        assertFalse(invoked);
+        reset();
+    }
+
+    public void reset(){
+        invoked = false;
+    }
 }

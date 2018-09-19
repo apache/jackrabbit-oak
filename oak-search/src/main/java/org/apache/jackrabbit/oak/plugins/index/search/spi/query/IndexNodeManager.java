@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
-import org.apache.jackrabbit.oak.plugins.index.search.ReaderRefreshPolicy;
+import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -35,6 +35,9 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 
+/**
+ * Keeps track of the open read sessions for an index.
+ */
 public abstract class IndexNodeManager {
     /**
      * Name of the hidden node under which information about the checkpoints

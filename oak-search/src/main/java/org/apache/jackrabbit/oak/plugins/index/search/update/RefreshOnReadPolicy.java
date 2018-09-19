@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.search;
+package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,19 +25,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
- * This policy ensures that any writes that have been done to index are made visible
- * *before* any read is performed. Its meant as an alternative to {@link RefreshOnWritePolicy}
- * and for "sync" indexes. For "nrt" indexes {@link TimedRefreshPolicy} should be preferred
+ * This policy ensures that any writes that have been done to index are made
+ * visible *before* any read is performed.
  *
- * <p>The readers are not refreshed immediately upon write. Instead they would be refreshed if
+ * Its meant as an alternative to {@link RefreshOnWritePolicy} and for "sync"
+ * indexes. For "nrt" indexes {@link TimedRefreshPolicy} should be preferred
+ *
+ * <p>
+ * The readers are not refreshed immediately upon write. Instead they would be
+ * refreshed if
  *
  * <ul>
- *     <li>Upon write if refreshDelta time has elapsed then readers would be refreshed</li>
- *     <li>Upon read if index is found to be updated then again readers would be refreshed</li>
+ * <li>Upon write if refreshDelta time has elapsed then readers would be
+ * refreshed</li>
+ * <li>Upon read if index is found to be updated then again readers would be
+ * refreshed</li>
  * </ul>
  *
- * <p>This policy can result in some contention if index is being frequently updated and
- * queried.
+ * <p>
+ * This policy can result in some contention if index is being frequently
+ * updated and queried.
  *
  * *This is an experimental policy. Currently it causes high contention*
  */

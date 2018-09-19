@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.junit.Test;
@@ -122,7 +123,7 @@ public class ExtractedTextCacheTest {
 
         cache.setExtractedTextProvider(provider);
         when(provider.getText(anyString(), any(Blob.class)))
-                .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
+            .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
         Blob b = new IdBlob("hello", "a");
         String text = cache.get("/a", "foo", b, true);
         assertEquals("bar", text);
@@ -135,7 +136,7 @@ public class ExtractedTextCacheTest {
 
         cache.setExtractedTextProvider(provider);
         when(provider.getText(anyString(), any(Blob.class)))
-                .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
+            .thenReturn(new ExtractedText(ExtractionResult.SUCCESS, "bar"));
         Blob b = new IdBlob("hello", "a");
         String text = cache.get("/a", "foo", b, false);
         assertEquals("bar", text);
@@ -194,7 +195,7 @@ public class ExtractedTextCacheTest {
         assertNull(cache.get("/a", "foo", b, false));
         cache.putTimeout(b, ExtractedText.ERROR);
         assertNull("Cache returned non null text for blob with null content identity",
-                cache.get("/a", "foo", b, false));
+            cache.get("/a", "foo", b, false));
     }
 
     private static class IdBlob extends ArrayBasedBlob {

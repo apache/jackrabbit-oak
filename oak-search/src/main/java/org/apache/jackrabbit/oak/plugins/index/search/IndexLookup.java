@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -29,30 +30,38 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
+/**
+ * Allows to check which indexes can possibly be used for a certain query.
+ *
+ * For example, for a query of the form "/jcr:root/content//*", the indexes
+ * under "/" and the indexes under "/content" can be used.
+ */
 public class IndexLookup {
+
     private final NodeState root;
+    private final Predicate<NodeState> definitionPredicate;
 
-    public IndexLookup(NodeState root) {
+    public IndexLookup(NodeState root, Predicate<NodeState> definitionPredicate) {
         this.root = root;
+        this.definitionPredicate = definitionPredicate;
     }
 
-    public Collection<String> collectIndexNodePaths(Filter filter, String type){
-        return collectIndexNodePaths(filter, type, true);
+    public Collection<String> collectIndexNodePaths(Filter filter) {
+        return collectIndexNodePaths(filter, true);
     }
 
-    private Collection<String> collectIndexNodePaths(Filter filter, String type, boolean recurse){
+    public Collection<String> collectIndexNodePaths(Filter filter, boolean recurse) {
         Set<String> paths = Sets.newHashSet();
 
-        collectIndexNodePaths(root, type, "/", paths);
+        collectIndexNodePaths(root, "/", paths);
 
         if (recurse) {
             StringBuilder sb = new StringBuilder();
             NodeState nodeState = root;
             for (String element : PathUtils.elements(filter.getPath())) {
                 nodeState = nodeState.getChildNode(element);
-                collectIndexNodePaths(nodeState, type,
+                collectIndexNodePaths(nodeState,
                         sb.append("/").append(element).toString(),
                         paths);
             }
@@ -61,19 +70,14 @@ public class IndexLookup {
         return paths;
     }
 
-    public static void collectIndexNodePaths(NodeState nodeState, String type, String parentPath, Collection<String> paths) {
+    private void collectIndexNodePaths(NodeState nodeState, String parentPath, Collection<String> paths) {
         NodeState state = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            if (isIndexOfType(entry.getNodeState(), type)) {
+            if (definitionPredicate.test(entry.getNodeState())) {
                 paths.add(createIndexNodePath(parentPath, entry.getName()));
             }
         }
     }
-
-    private static boolean isIndexOfType(NodeState nodeState, String type) {
-        return type.equals(nodeState.getString(TYPE_PROPERTY_NAME));
-    }
-
 
     private static String createIndexNodePath(String parentPath, String name){
         return PathUtils.concat(parentPath, INDEX_DEFINITIONS_NAME, name);

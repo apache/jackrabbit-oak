@@ -66,7 +66,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
   private boolean propertiesChanged = false;
 
-  private List<PropertyState> propertiesModified = Lists.newArrayList();
+  private final List<PropertyState> propertiesModified = Lists.newArrayList();
 
   /**
    * Flag indicating if the current tree being traversed has a deleted parent.
@@ -81,7 +81,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
   private final PathFilter.Result pathFilterResult;
 
-  FulltextIndexEditor(FulltextIndexEditorContext<D> context) throws CommitFailedException {
+  public FulltextIndexEditor(FulltextIndexEditorContext<D> context) throws CommitFailedException {
     this.parent = null;
     this.name = null;
     this.path = "/";
@@ -91,10 +91,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     this.pathFilterResult = context.getDefinition().getPathFilter().filter(PathUtils.ROOT_PATH);
   }
 
-  private FulltextIndexEditor(FulltextIndexEditor<D> parent, String name,
-                            MatcherState matcherState,
-                            PathFilter.Result pathFilterResult,
-                            boolean isDeleted) {
+  public FulltextIndexEditor(FulltextIndexEditor<D> parent, String name,
+                             MatcherState matcherState,
+                             PathFilter.Result pathFilterResult,
+                             boolean isDeleted) {
     this.parent = parent;
     this.name = name;
     this.path = null;

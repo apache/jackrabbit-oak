@@ -66,7 +66,7 @@ public class AggregateTest {
     private final TestCollector col = new TestCollector();
     private final SimpleMapper mapper = new SimpleMapper();
     private final NodeState root = INITIAL_CONTENT;
-    private NodeBuilder builder = root.builder();
+    private final NodeBuilder builder = root.builder();
 
     //~---------------------------------< Node Includes >
 

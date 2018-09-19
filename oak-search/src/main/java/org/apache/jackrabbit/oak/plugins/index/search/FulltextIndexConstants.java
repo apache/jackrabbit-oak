@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-
+/**
+ * Internal constants used in index definition, and index implementations.
+ */
 public interface FulltextIndexConstants {
 
-  enum IndexingMode {
-        SYNC,
-        NRT,
-        ASYNC;
+    enum IndexingMode {
+        SYNC, NRT, ASYNC;
 
-        public String asyncValueName(){
+        public String asyncValueName() {
             return name().toLowerCase();
         }
 
-        public static IndexingMode from(String indexingMode){
+        public static IndexingMode from(String indexingMode) {
             return valueOf(indexingMode.toUpperCase());
         }
     }
@@ -192,6 +192,7 @@ public interface FulltextIndexConstants {
 
     /**
      * Config node which include Tika related configuration
+     * Its value should match {@link FieldNames#NODE_NAME}
      */
     String TIKA = "tika";
 
@@ -248,6 +249,11 @@ public interface FulltextIndexConstants {
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 
+  /**
+   * whether use this property values for similarity
+   */
+  String PROP_USE_IN_SIMILARITY = "useInSimilarity";
+
     /**
      * Property definition config indicating that null check support should be
      * enabled for this property
@@ -288,6 +294,12 @@ public interface FulltextIndexConstants {
      * used in compat mode to specific version
      */
     String COMPAT_MODE = "compatVersion";
+
+    /**
+     * Optional (index definition) property indicating whether facets should be ACL checked.
+     * Default is true
+     */
+    String PROP_SECURE_FACETS = "secure";
 
     /**
      * Optional (index definition) property indicating max number of facets that will be retrieved

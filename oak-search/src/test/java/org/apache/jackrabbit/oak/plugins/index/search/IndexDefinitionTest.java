@@ -69,7 +69,7 @@ public class IndexDefinitionTest {
 
     private NodeState root = INITIAL_CONTENT;
 
-    private NodeBuilder builder = root.builder();
+    private final NodeBuilder builder = root.builder();
 
     @Test
     public void defaultConfig() throws Exception{
@@ -833,7 +833,7 @@ public class IndexDefinitionTest {
     //~----------------------------------< nodetype >
 
 
-    String testNodeTypeDefn = "[oak:TestMixA]\n" +
+    final String testNodeTypeDefn = "[oak:TestMixA]\n" +
             "  mixin\n" +
             "\n" +
             "[oak:TestSuperType]\n" +
