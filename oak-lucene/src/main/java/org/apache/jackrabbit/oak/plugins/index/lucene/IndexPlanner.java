@@ -706,6 +706,7 @@ class IndexPlanner {
         return new IndexPlan.Builder()
                 .setCostPerExecution(definition.getCostPerExecution())
                 .setCostPerEntry(definition.getCostPerEntry())
+                .setDeprecated(definition.isDeprecated())
                 .setFulltextIndex(definition.isFullTextEnabled())
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)

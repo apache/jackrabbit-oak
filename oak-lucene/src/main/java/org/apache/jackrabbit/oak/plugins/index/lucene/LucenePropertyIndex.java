@@ -335,6 +335,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
     @Override
     public Cursor query(final IndexPlan plan, NodeState rootState) {
+        if (plan.isDeprecated()) {
+            LOG.warn("This index is deprecated: {}; it is used for query {}. " +
+                    "Please change the query or the index definitions.", plan.getPlanName(), plan.getFilter());
+        }
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
