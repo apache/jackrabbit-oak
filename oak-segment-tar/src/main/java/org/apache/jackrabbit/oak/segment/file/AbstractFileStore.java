@@ -28,7 +28,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -37,6 +39,7 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
@@ -55,8 +58,6 @@ import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Supplier;
 
 /**
  * The storage implementation for tar files.
@@ -331,31 +332,47 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         w.writeEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
             Segment segment = new Segment(this, segmentReader, newSegmentId(msb, lsb), buffer);
-            populateTarGraph(segment, w);
-            populateTarBinaryReferences(segment, w);
+            populateTarGraph(segment, w, readGraphReferences(segment));
+            populateTarBinaryReferences(segment, w, readBinaryReferences(segment));
         }
     }
 
-    static void populateTarGraph(Segment segment, TarWriter w) {
+    static void populateTarGraph(Segment segment, TarWriter w, Iterable<UUID> references) {
         UUID from = segment.getSegmentId().asUUID();
-        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
-            w.addGraphEdge(from, segment.getReferencedSegmentId(i));
+        for (UUID reference : references) {
+            w.addGraphEdge(from, reference);
         }
     }
 
-    static void populateTarBinaryReferences(final Segment segment, final TarWriter w) {
-        final int generation = segment.getGcGeneration();
-        final UUID id = segment.getSegmentId().asUUID();
+    static Iterable<UUID> readGraphReferences(Segment segment) {
+        List<UUID> reference = new ArrayList<>();
+        for (int i = 0; i < segment.getReferencedSegmentIdCount(); i++) {
+            reference.add(segment.getReferencedSegmentId(i));
+        }
+        return reference;
+    }
+
+    static void populateTarBinaryReferences(Segment segment, TarWriter w, Iterable<String> references) {
+        int generation = segment.getGcGeneration();
+        UUID id = segment.getSegmentId().asUUID();
+        for (String reference : references) {
+            w.addBinaryReference(generation, id, reference);
+        }
+    }
+
+    static Iterable<String> readBinaryReferences(final Segment segment) {
+        final List<String> references = new ArrayList<>();
         segment.forEachRecord(new RecordConsumer() {
 
             @Override
             public void consume(int number, RecordType type, int offset) {
                 if (type == RecordType.BLOB_ID) {
-                    w.addBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+                    references.add(SegmentBlob.readBlobId(segment, number));
                 }
             }
 
         });
+        return references;
     }
 
     static void closeAndLogOnFail(Closeable closeable) {
