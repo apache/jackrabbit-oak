@@ -615,6 +615,8 @@ public class FileStore extends AbstractFileStore {
     @Override
     public void writeSegment(SegmentId id, byte[] buffer, int offset, int length) throws IOException {
         Segment segment = null;
+        Iterable<UUID> graphReferences = null;
+        Iterable<String> binaryReferences = null;
 
         // If the segment is a data segment, create a new instance of Segment to
         // access some internal information stored in the segment and to store
@@ -634,6 +636,8 @@ public class FileStore extends AbstractFileStore {
 
             segment = new Segment(this, segmentReader, id, data);
             generation = segment.getGcGeneration();
+            graphReferences = readGraphReferences(segment);
+            binaryReferences = readBinaryReferences(segment);
         }
 
         fileStoreLock.writeLock().lock();
@@ -653,8 +657,8 @@ public class FileStore extends AbstractFileStore {
             // (potentially) flushing the TAR file.
 
             if (segment != null) {
-                populateTarGraph(segment, tarWriter);
-                populateTarBinaryReferences(segment, tarWriter);
+                populateTarGraph(segment, tarWriter, graphReferences);
+                populateTarBinaryReferences(segment, tarWriter, binaryReferences);
             }
 
             // Close the TAR file if the size exceeds the maximum.
