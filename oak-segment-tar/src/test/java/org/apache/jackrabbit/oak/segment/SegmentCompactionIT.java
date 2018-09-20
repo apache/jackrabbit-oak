@@ -27,13 +27,16 @@ import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.dereference;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -138,6 +141,10 @@ public class SegmentCompactionIT {
     private static final boolean ENABLED =
             SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
 
+    private static final boolean MMAP = parseBoolean(getProperty("mmap", "true"));
+
+    private static final int SEGMENT_CACHE_SIZE = getInteger("segment-cache", DEFAULT_SEGMENT_CACHE_MB);
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCompactionIT.class);
 
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -162,8 +169,8 @@ public class SegmentCompactionIT {
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
     private volatile ReadWriteLock compactionLock = null;
-    private volatile int maxReaders = Integer.getInteger("SegmentCompactionIT.maxReaders", 10);
-    private volatile int maxWriters = Integer.getInteger("SegmentCompactionIT.maxWriters", 10);
+    private volatile int maxReaders = getInteger("SegmentCompactionIT.maxReaders", 10);
+    private volatile int maxWriters = getInteger("SegmentCompactionIT.maxWriters", 10);
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
     private volatile int maxStringSize = 100;
@@ -255,7 +262,8 @@ public class SegmentCompactionIT {
         MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer, executor);
         FileStoreBuilder builder = fileStoreBuilder(folder.getRoot());
         fileStore = builder
-                .withMemoryMapping(true)
+                .withMemoryMapping(MMAP)
+                .withSegmentCacheSize(SEGMENT_CACHE_SIZE)
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
                 .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
