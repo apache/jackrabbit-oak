@@ -214,6 +214,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getIndexStatistics().numDocs()))
                         .setCostPerExecution(defn.getCostPerExecution())
                         .setCostPerEntry(defn.getCostPerEntry())
+                        .setDeprecated(defn.isDeprecated())
                         .setAttribute(ATTR_INDEX_PATH, indexPath)
                         .setDeprecated(defn.isDeprecated())
                         .build());
@@ -269,6 +270,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
     @Override
     public Cursor query(final IndexPlan plan, NodeState rootState) {
+        if (plan.isDeprecated()) {
+            LOG.warn("This index is deprecated: {}; it is used for query {}. " +
+                    "Please change the query or the index definitions.", plan.getPlanName(), plan.getFilter());
+        }
         final Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         final Set<String> relPaths = getRelativePaths(ft);
