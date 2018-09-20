@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentBufferMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
@@ -119,6 +120,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
+    @NotNull
+    private final SegmentBufferMonitor segmentBufferMonitor;
+
     protected final IOMonitor ioMonitor;
 
     AbstractFileStore(final FileStoreBuilder builder) {
@@ -134,6 +138,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
         this.memoryMapping = builder.getMemoryMapping();
         this.ioMonitor = builder.getIOMonitor();
+        this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
@@ -268,6 +273,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         if (buffer == null) {
             throw new SegmentNotFoundException(id);
         }
+        segmentBufferMonitor.trackAllocation(buffer);
         return new Segment(tracker, segmentReader, id, buffer);
     }
 
