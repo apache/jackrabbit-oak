@@ -193,6 +193,9 @@ class PropertyIndex implements QueryIndex {
         if (useIfExists == null) {
             return true;
         }
+        if (!PathUtils.isValid(useIfExists)) {
+            return false;
+        }
         NodeState nodeState = root;
         for (String element : PathUtils.elements(useIfExists)) {
             if (element.startsWith("@")) {
