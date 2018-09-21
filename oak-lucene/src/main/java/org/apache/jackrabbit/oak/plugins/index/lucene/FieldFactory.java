@@ -16,15 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 
 import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BlobByteSource;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 
@@ -101,6 +108,34 @@ public final class FieldFactory {
             return new OakTextField(name, value, stored);
         }
         return new StringField(name, value, NO);
+    }
+
+    static Collection<Field> newSimilarityFields(String name, Blob value) throws IOException {
+        Collection<Field> fields = new ArrayList<>(1);
+        byte[] bytes = new BlobByteSource(value).read();
+//        fields.add(newBinarySimilarityField(name, bytes));
+        fields.add(newSimilarityField(name, bytes));
+        return fields;
+    }
+
+    static Collection<Field> newSimilarityFields(String name, String value) {
+        Collection<Field> fields = new ArrayList<>(1);
+//        byte[] bytes = SimSearchUtils.toByteArray(value);
+//        fields.add(newBinarySimilarityField(name, bytes));
+        fields.add(newSimilarityField(name, value));
+        return fields;
+    }
+
+    private static Field newSimilarityField(String name, byte[] bytes) {
+        return newSimilarityField(name, SimSearchUtils.toDoubleString(bytes));
+    }
+
+    private static Field newSimilarityField(String name, String value) {
+        return new TextField(FieldNames.createSimilarityFieldName(name), value, Field.Store.YES);
+    }
+
+    private static StoredField newBinarySimilarityField(String name, byte[] bytes) {
+        return new StoredField(FieldNames.createBinSimilarityFieldName(name), bytes);
     }
 
     public static Field newFulltextField(String value) {
