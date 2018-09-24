@@ -45,7 +45,7 @@ public class FunctionIndexProcessor {
 
     private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
 
-    private FunctionIndexProcessor(String function) {
+    protected FunctionIndexProcessor(String function) {
         this.remaining = function;
     }
     
