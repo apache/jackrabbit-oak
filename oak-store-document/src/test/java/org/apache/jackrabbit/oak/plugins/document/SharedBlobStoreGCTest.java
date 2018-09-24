@@ -250,6 +250,66 @@ public class SharedBlobStoreGCTest {
         assertTrue(existing.containsAll(cluster3.getInitBlobs()));
     }
 
+    @Test
+    public void testGCStatsOnCloned() throws Exception {
+        log.debug("Running testGCStatsOnCloned()");
+        BlobStore blobeStore3 = getBlobStore(rootFolder);
+        DocumentNodeStore ds3 = new DocumentMK.Builder()
+            .setAsyncDelay(0)
+            .setDocumentStore(new MemoryDocumentStore())
+            .setBlobStore(blobeStore3)
+            .clock(clock)
+            .getNodeStore();
+        NodeBuilder a = ds3.getRoot().builder();
+        a.child(":clusterConfig").setProperty(":clusterId", cluster2.repoId);
+        Cluster cluster3 = new Cluster(ds3, cluster2.repoId, 120);
+        cluster3.init();
+
+        Set<String> actualRepoIds = Sets.newHashSet();
+        actualRepoIds.add(cluster1.repoId);
+        actualRepoIds.add(cluster2.repoId);
+
+        log.debug("Initialized {}", cluster3);
+
+        Set<String> observedRepoIds = Sets.newHashSet();
+        List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
+        for (GarbageCollectionRepoStats stat : statsList) {
+            assertEquals(0, stat.getNumLines());
+            observedRepoIds.add(stat.getRepositoryId());
+            if (stat.getRepositoryId().equals(cluster1.repoId)) {
+                assertTrue(stat.isLocal());
+            }
+        }
+
+        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+
+        // Only run the mark phase on all the nodes to get the stats
+        cluster1.gc.collectGarbage(true);
+        cluster2.gc.collectGarbage(true);
+        cluster3.gc.collectGarbage(true);
+
+
+        Set<Integer> actualNumBlobs = Sets.newHashSet();
+        actualNumBlobs.add(cluster1.initBlobs.size());
+        actualNumBlobs.add(cluster2.initBlobs.size());
+        actualNumBlobs.add(cluster3.initBlobs.size());
+
+        statsList = cluster1.gc.getStats();
+        Set<Integer> observedNumBlobs = Sets.newHashSet();
+        observedRepoIds = Sets.newHashSet();
+        for (GarbageCollectionRepoStats stat : statsList) {
+            observedNumBlobs.add(stat.getNumLines());
+            observedRepoIds.add(stat.getRepositoryId());
+            assertTrue(stat.getStartTime() <= stat.getEndTime());
+            if (stat.getRepositoryId().equals(cluster1.repoId)) {
+                assertTrue(stat.isLocal());
+            }
+        }
+
+        assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+    }
+
     @After
     public void tearDown() throws Exception {
         DataStoreUtils.time = -1;
