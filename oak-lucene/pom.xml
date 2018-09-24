@@ -135,6 +135,7 @@
           <excludes>
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.txt</exclude>
+            <exclude>**/fvs.csv</exclude>
           </excludes>
         </configuration>
       </plugin>
