@@ -51,6 +51,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -242,55 +245,63 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // Get all the references available
             List<DataRecord> refFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
-            Map<String, DataRecord> references = Maps.uniqueIndex(refFiles, new Function<DataRecord, String>() {
-                @Override 
-                public String apply(DataRecord input) {
-                    return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
-                }
-            });
-    
+            ImmutableListMultimap<String, DataRecord> references =
+                FluentIterable.from(refFiles).index(new Function<DataRecord, String>() {
+                    @Override public String apply(DataRecord input) {
+                        return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
+
+                    }
+                });
+
             // Get all the markers available
             List<DataRecord> markerFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
             Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles, new Function<DataRecord, String>() {
                 @Override
                 public String apply(DataRecord input) {
-                    return SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString());
+                    return input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1);
                 }
             });
-            
+
             // Get all the repositories registered
             List<DataRecord> repoFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
-    
+
             for (DataRecord repoRec : repoFiles) {
-                String id = SharedStoreRecordType.REFERENCES.getIdFromName(repoRec.getIdentifier().toString());
+                String id = SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());
+
                 GarbageCollectionRepoStats stat = new GarbageCollectionRepoStats();
+                stats.add(stat);
+
                 stat.setRepositoryId(id);
                 if (id != null && id.equals(repoId)) {
                     stat.setLocal(true);
                 }
 
                 if (references.containsKey(id)) {
-                    DataRecord refRec = references.get(id);
-                    stat.setEndTime(refRec.getLastModified());
-                    stat.setLength(refRec.getLength());
-                    
-                    if (markers.containsKey(id)) {
-                        stat.setStartTime(markers.get(id).getLastModified());
-                    }
-                    
-                    LineNumberReader reader = null;
-                    try {
-                        reader = new LineNumberReader(new InputStreamReader(refRec.getStream()));
-                        while (reader.readLine() != null) {
+                    ImmutableList<DataRecord> refRecs = references.get(id);
+                    for(DataRecord refRec : refRecs) {
+                        String uniqueSessionId = refRec.getIdentifier().toString()
+                            .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
+
+                        stat.setEndTime(refRec.getLastModified());
+                        stat.setLength(refRec.getLength());
+
+                        if (markers.containsKey(uniqueSessionId)) {
+                            stat.setStartTime(markers.get(uniqueSessionId).getLastModified());
                         }
-                        stat.setNumLines(reader.getLineNumber());
-                    } finally {
-                        Closeables.close(reader, true);
+
+                        LineNumberReader reader = null;
+                        try {
+                            reader = new LineNumberReader(new InputStreamReader(refRec.getStream()));
+                            while (reader.readLine() != null) {
+                            }
+                            stat.setNumLines(reader.getLineNumber());
+                        } finally {
+                            Closeables.close(reader, true);
+                        }
                     }
                 }
-                stats.add(stat);
             }
         }
         return stats;
@@ -367,14 +378,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     protected void mark(GarbageCollectorFileState fs) throws IOException, DataStoreException {
         LOG.debug("Starting mark phase of the garbage collector");
 
+        String uniqueSuffix = UUID.randomUUID().toString();
+
         // Create a time marker in the data store if applicable
-        GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId);
+        GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId, uniqueSuffix);
 
         // Mark all used references
         iterateNodeTree(fs, false);
 
         // Move the marked references file to the data store meta area if applicable
-        GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId);
+        GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId, uniqueSuffix);
 
         LOG.debug("Ending mark phase of the garbage collector");
     }
@@ -809,12 +822,13 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
              * @param blobStore the blob store
              * @param fs the fs
              * @param repoId the repo id
+             * @param uniqueSuffix the unique session suffix
              * @throws DataStoreException the data store exception
              * @throws IOException Signals that an I/O exception has occurred.
              */
             @Override
-            void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
-                    String repoId) throws DataStoreException, IOException {
+            void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs, String repoId,
+                String uniqueSuffix) throws DataStoreException, IOException {
                 boolean exists = ((SharedDataStore) blobStore)
                     .metadataRecordExists(SharedStoreRecordType.REFERENCES.getNameFromId(repoId));
                 if (exists) {
@@ -823,15 +837,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 ((SharedDataStore) blobStore).addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES
-                    .getNameFromIdPrefix(repoId, UUID.randomUUID().toString()));
+                    .getNameFromIdPrefix(repoId, uniqueSuffix));
             }
             
             @Override
-            public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {
+            public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId,
+                String uniqueSuffix) {
                 try {
                     ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
                         SharedStoreRecordType.MARKED_START_MARKER
-                            .getNameFromIdPrefix(repoId, UUID.randomUUID().toString()));
+                            .getNameFromIdPrefix(repoId, uniqueSuffix));
                 } catch (DataStoreException e) {
                     LOG.debug("Error creating marked time marker for repo : {}", repoId);
                 }
@@ -841,8 +856,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         void removeAllMarkedReferences(GarbageCollectableBlobStore blobStore) {}
 
-        void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
-                String repoId) throws DataStoreException, IOException {}
+        void addMarked(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs, String repoId,
+            String uniqueSuffix) throws DataStoreException, IOException {}
 
         long mergeAllMarkedReferences(GarbageCollectableBlobStore blobStore,
                 GarbageCollectorFileState fs)
@@ -861,7 +876,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             return DEFAULT;
         }
     
-        public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId) {}
+        public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId, String uniqueSuffix) {}
     }
 
     /**
