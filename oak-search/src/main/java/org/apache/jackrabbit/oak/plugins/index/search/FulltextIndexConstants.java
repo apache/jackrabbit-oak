@@ -334,4 +334,11 @@ public interface FulltextIndexConstants {
      * should be indexed
      */
     String PROP_INDEX_NODE_TYPE = "nodeTypeIndex";
+
+    /**
+     * The property of an index. If the given node or property exists, then the
+     * index is used for queries; otherwise, it is not used (returns infinite
+     * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
+     */
+     String USE_IF_EXISTS = "useIfExists";
 }

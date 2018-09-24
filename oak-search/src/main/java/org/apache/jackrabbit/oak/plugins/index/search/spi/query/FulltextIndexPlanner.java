@@ -340,6 +340,10 @@ public class FulltextIndexPlanner {
     private boolean wrongIndex() {
         // REMARK: similar code is used in oak-core, PropertyIndex
         // skip index if "option(index ...)" doesn't match
+        if (!definition.isEnabled()) {
+            return true;
+        }
+
         PropertyRestriction indexName = filter.getPropertyRestriction(IndexConstants.INDEX_NAME_OPTION);
         boolean wrong = false;
         if (indexName != null && indexName.first != null) {

@@ -267,6 +267,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean syncPropertyIndexes;
 
+    private final String useIfExists;
+
     private final boolean testMode;
 
     public boolean isTestMode() {
@@ -421,10 +423,31 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         this.nrtIndexMode = supportsNRTIndexing(defn);
         this.syncIndexMode = supportsSyncIndexing(defn);
         this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
+        this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
     }
 
     public NodeState getDefinitionNodeState() {
         return definition;
+    }
+
+    public boolean isEnabled() {
+        if (useIfExists == null) {
+            return true;
+        }
+        if (!PathUtils.isValid(useIfExists)) {
+            return false;
+        }
+        NodeState nodeState = root;
+        for (String element : PathUtils.elements(useIfExists)) {
+            if (element.startsWith("@")) {
+                return nodeState.hasProperty(element.substring(1));
+            }
+            nodeState = nodeState.getChildNode(element);
+            if (!nodeState.exists()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean isFullTextEnabled() {
