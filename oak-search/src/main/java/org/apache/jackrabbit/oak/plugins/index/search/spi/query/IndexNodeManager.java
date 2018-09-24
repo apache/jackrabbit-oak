@@ -43,7 +43,7 @@ public abstract class IndexNodeManager {
      * Name of the hidden node under which information about the checkpoints
      * seen and indexed by each async indexer is kept.
      */
-    private static final String ASYNC = ":async";
+    public static final String ASYNC = ":async";
 
     private static final AtomicInteger SEARCHER_ID_COUNTER = new AtomicInteger();
 
