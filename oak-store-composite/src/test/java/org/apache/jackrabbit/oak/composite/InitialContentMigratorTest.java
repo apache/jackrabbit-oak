@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -24,7 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -73,6 +73,10 @@ public class InitialContentMigratorTest {
         seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         
         MemoryNodeStore target = new MemoryNodeStore();
+        NodeBuilder targetRootBuilder = target.getRoot().builder();
+        targetRootBuilder.child(CLUSTER_CONFIG_NODE);
+        target.merge(targetRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
         MountInfoProvider mip = Mounts.newBuilder().mount("seed", "/first").build();
         
         // perform migration
@@ -85,7 +89,8 @@ public class InitialContentMigratorTest {
         assertFalse("Node /first should not have been migrated", targetRoot.hasChildNode("first"));
         assertTrue("Node /second should have been migrated", targetRoot.hasChildNode("second"));
         assertTrue("Node /third should have been migrated", targetRoot.hasChildNode("third"));
-        
+        assertTrue(CLUSTER_CONFIG_NODE  + " should be retained", targetRoot.hasChildNode(CLUSTER_CONFIG_NODE));
+
         // verify that the 'second' node is visible in the migrated store when retrieving the checkpoint
         NodeState checkpointTargetRoot = target.retrieve(checkpoint1);
         assertFalse("Node /first should not have been migrated", checkpointTargetRoot.hasChildNode("first"));
