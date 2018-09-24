@@ -45,7 +45,7 @@ public class TypePredicates {
     }
 
     @NotNull
-    public static TypePredicate isOrderable(@NotNull NodeState root) {
+    public static Predicate<NodeState> isOrderable(@NotNull NodeState root) {
         Set<String> orderable = newHashSet();
         NodeState types = checkNotNull(root).getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
         for (ChildNodeEntry entry : types.getChildNodeEntries()) {
