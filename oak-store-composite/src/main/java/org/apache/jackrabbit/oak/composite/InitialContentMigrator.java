@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -43,11 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
+
 public class InitialContentMigrator {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
 
     private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
+
+    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of("/" + CLUSTER_CONFIG_NODE);
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
@@ -74,13 +79,13 @@ public class InitialContentMigrator {
         this.excludeFragments = ImmutableSet.of(seedMount.getPathFragmentName());
 
         if (seedMount instanceof MountInfo) {
-            this.excludePaths = ((MountInfo) seedMount).getIncludedPaths();
+            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(), DEFAULT_IGNORED_PATHS);
             this.fragmentPaths = new HashSet<>();
             for (String p : ((MountInfo) seedMount).getPathsSupportingFragments()) {
                 fragmentPaths.add(stripPatternCharacters(p));
             }
         } else {
-            this.excludePaths = FilteringNodeState.NONE;
+            this.excludePaths = DEFAULT_IGNORED_PATHS;
             this.fragmentPaths = FilteringNodeState.ALL;
         }
     }
