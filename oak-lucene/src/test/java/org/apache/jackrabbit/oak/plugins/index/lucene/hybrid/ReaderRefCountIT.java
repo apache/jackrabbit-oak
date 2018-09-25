@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -157,7 +156,7 @@ public class ReaderRefCountIT {
             @Override
             public void run() {
                 while(!stop.get()) {
-                    IndexNode indexNode = tracker.acquireIndexNode(indexPath);
+                    LuceneIndexNode indexNode = tracker.acquireIndexNode(indexPath);
                     if (indexNode != null) {
                         try {
                             indexNode.getSearcher().search(new MatchAllDocsQuery(), 5);

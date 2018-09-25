@@ -46,11 +46,12 @@ import com.google.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexSanityChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexSanityChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -62,9 +63,11 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
+/**
+ * Copies index files to/from the local disk and the datastore.
+ */
 public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     public static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
     private static final int MAX_FAILURE_ENTRIES = 10000;
@@ -114,14 +117,14 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         this.indexRootDirectory = new IndexRootDirectory(indexRootDir);
     }
 
-    public Directory wrapForRead(String indexPath, IndexDefinition definition,
+    public Directory wrapForRead(String indexPath, LuceneIndexDefinition definition,
                                  Directory remote, String dirName) throws IOException {
         Directory local = createLocalDirForIndexReader(indexPath, definition, dirName);
         checkIntegrity(indexPath, local, remote);
         return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, executor);
     }
 
-    public Directory wrapForWrite(IndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
+    public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
         Directory local = createLocalDirForIndexWriter(definition, dirName);
         String indexPath = definition.getIndexPath();
         checkIntegrity(indexPath, local, remote);
@@ -145,7 +148,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexRootDirectory;
     }
 
-    protected Directory createLocalDirForIndexWriter(IndexDefinition definition, String dirName) throws IOException {
+    protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName) throws IOException {
         String indexPath = definition.getIndexPath();
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
 
@@ -157,7 +160,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return dir;
     }
 
-    protected Directory createLocalDirForIndexReader(String indexPath, IndexDefinition definition, String dirName) throws IOException {
+    protected Directory createLocalDirForIndexReader(String indexPath, LuceneIndexDefinition definition, String dirName) throws IOException {
         File indexDir = getIndexDir(definition, indexPath, dirName);
         Directory result = FSDirectory.open(indexDir);
 

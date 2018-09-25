@@ -16,15 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-public interface SizeEstimator {
+package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-    /**
-     * Get the estimated size, or -1 if not known.
-     * 
-     * @return the size
-     */
-    long getSize();
-    
+public class IndexCopierClosedException extends RuntimeException{
+    public IndexCopierClosedException(String message) {
+        super(message);
+    }
 }

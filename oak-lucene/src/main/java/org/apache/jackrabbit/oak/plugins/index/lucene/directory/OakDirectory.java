@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Collection;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -25,8 +31,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -41,18 +48,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.Collection;
-import java.util.Set;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
@@ -74,7 +75,7 @@ public class OakDirectory extends Directory {
     protected final NodeBuilder builder;
     protected final String dataNodeName;
     protected final NodeBuilder directoryBuilder;
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
     private LockFactory lockFactory;
     private final boolean readOnly;
     private final boolean streamingWriteEnabled;
@@ -85,41 +86,41 @@ public class OakDirectory extends Directory {
     private final BlobDeletionCallback blobDeletionCallback;
     private volatile boolean dirty;
 
-    public OakDirectory(NodeBuilder builder, IndexDefinition definition, boolean readOnly) {
-        this(builder, INDEX_DATA_CHILD_NAME, definition, readOnly);
+    public OakDirectory(NodeBuilder builder, LuceneIndexDefinition definition, boolean readOnly) {
+        this(builder, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, definition, readOnly);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition, boolean readOnly) {
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition, boolean readOnly) {
         this(builder, dataNodeName, definition, readOnly, BlobFactory.getNodeBuilderBlobFactory(builder));
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
                         boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore) {
         this(builder, dataNodeName, definition, readOnly, blobStore, BlobDeletionCallback.NOOP);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
                         boolean readOnly, @Nullable GarbageCollectableBlobStore blobStore,
-                        @NotNull BlobDeletionCallback blobDeletionCallback) {
+                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly,
                 blobStore != null ? BlobFactory.getBlobStoreBlobFactory(blobStore) : BlobFactory.getNodeBuilderBlobFactory(builder),
                 blobDeletionCallback);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory) {
         this(builder, dataNodeName, definition, readOnly, blobFactory, BlobDeletionCallback.NOOP);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory,
-                        @NotNull BlobDeletionCallback blobDeletionCallback) {
+                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this(builder, dataNodeName, definition, readOnly, blobFactory, blobDeletionCallback, false);
     }
 
-    public OakDirectory(NodeBuilder builder, String dataNodeName, IndexDefinition definition,
+    public OakDirectory(NodeBuilder builder, String dataNodeName, LuceneIndexDefinition definition,
                         boolean readOnly, BlobFactory blobFactory,
-                        @NotNull BlobDeletionCallback blobDeletionCallback,
+                        @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
                         boolean streamingWriteEnabled) {
 
         this.lockFactory = NoLockFactory.getNoLockFactory();

@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+
 import com.google.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -27,10 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -91,7 +92,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private final BlobFactory blobFactory;
 
     OakStreamingIndexFile(String name, NodeBuilder file, String dirDetails,
-                                 @NotNull BlobFactory blobFactory) {
+                          @NotNull BlobFactory blobFactory) {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;

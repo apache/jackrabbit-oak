@@ -22,9 +22,9 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.joshua.decoder.Decoder;
 import org.apache.joshua.decoder.StructuredTranslation;

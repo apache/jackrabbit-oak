@@ -114,13 +114,13 @@ public class HybridPropertyIndexLookup {
     }
 
     private static Iterable<String> queryUnique(Filter filter, String indexName, NodeState propIndexRootNode,
-                                         String propIdxNodeName, Set<String> values) {
+                                                String propIdxNodeName, Set<String> values) {
         UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy(propIdxNodeName);
         return s.query(filter, indexName, propIndexRootNode, values);
     }
 
     private Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
-                                                Set<String> values) {
+                                         Set<String> values) {
         return Iterables.concat(
                 queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
                 queryBucket(filter, indexName, propIndexNode, PROP_PREVIOUS_BUCKET, values)

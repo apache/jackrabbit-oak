@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -39,7 +39,7 @@ public class FSDirectoryFactory implements DirectoryFactory {
     }
 
     @Override
-    public Directory newInstance(IndexDefinition definition, NodeBuilder builder,
+    public Directory newInstance(LuceneIndexDefinition definition, NodeBuilder builder,
                                  String dirName, boolean reindex) throws IOException {
         File indexDir = DirectoryUtils.createIndexDir(baseDir, definition.getIndexPath());
         File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);

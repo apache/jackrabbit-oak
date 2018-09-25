@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -48,7 +49,7 @@ public class MultiplexersLuceneTest {
 
     @Test
     public void indexDir() throws Exception{
-        assertEquals(LuceneIndexConstants.INDEX_DATA_CHILD_NAME, MultiplexersLucene.getIndexDirName(defaultMount));
+        assertEquals(FulltextIndexConstants.INDEX_DATA_CHILD_NAME, MultiplexersLucene.getIndexDirName(defaultMount));
         assertTrue(MultiplexersLucene.isIndexDirName(MultiplexersLucene.getIndexDirName(defaultMount)));
         assertFalse(MultiplexersLucene.isIndexDirName(MultiplexersLucene.getSuggestDirName(defaultMount)));
     }

@@ -26,7 +26,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -220,8 +220,8 @@ public class IndexRootDirectoryTest {
         LuceneIndexEditorContext.configureUniqueId(resetBuilder());
     }
 
-    private IndexDefinition getDefn(){
-        return new IndexDefinition(root, builder.getNodeState(), "/foo");
+    private LuceneIndexDefinition getDefn(){
+        return new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
     }
 
     private static LocalIndexDir getDir(String jcrPath, List<LocalIndexDir> dirs){

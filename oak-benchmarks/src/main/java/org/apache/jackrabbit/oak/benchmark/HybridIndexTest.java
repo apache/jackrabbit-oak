@@ -75,6 +75,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderF
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.PropertyRule;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -497,7 +498,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             defnBuilder.async("async", "async");
             defnBuilder.codec("Lucene46");
             defnBuilder.indexRule("nt:base")
-                    .property(LuceneIndexConstants.REGEX_ALL_PROPS, true)
+                    .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
                     .nodeScopeIndex();
             oakIndex.setChildNode("globalIndex", defnBuilder.build());
         }

@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -85,19 +86,19 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
                         .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
                         .setProperty(REINDEX_PROPERTY_NAME, true)
                         .setProperty(LuceneIndexConstants.TEST_MODE, true)
-                        .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+                        .setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
                 index.child(LuceneIndexConstants.SUGGESTION_CONFIG)
                         .setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME)
                         .setProperty(LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 10);
 
-                NodeBuilder rules = index.child(LuceneIndexConstants.INDEX_RULES);
+                NodeBuilder rules = index.child(FulltextIndexConstants.INDEX_RULES);
                 rules.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
                 NodeBuilder ntBase = rules.child("nt:base");
                 ntBase.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
 
                 //Enable nodeName index support
                 ntBase.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
-                NodeBuilder props = ntBase.child(LuceneIndexConstants.PROP_NODE);
+                NodeBuilder props = ntBase.child(FulltextIndexConstants.PROP_NODE);
                 props.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME);
 
                 // Enable function-based indexes: upper+lower(name+localname+prop1)
@@ -114,20 +115,20 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
         private void enableFulltextIndex(NodeBuilder propNode){
             propNode.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME)
-                    .setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
-                    .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true)
-                    .setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true)
-                    .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)
+                    .setProperty(FulltextIndexConstants.PROP_ANALYZED, true)
+                    .setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true)
+                    .setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true)
+                    .setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true)
                     .setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true)
                     .setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true)
-                    .setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS)
-                    .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+                    .setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS)
+                    .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
         }
         
         private static void functionBasedIndex(NodeBuilder props, String function) {
             props.child(function.replace('[', '_').replace(']', '_')).
                 setProperty(JCR_PRIMARYTYPE, "nt:unstructured", NAME).
-                setProperty(LuceneIndexConstants.PROP_FUNCTION, function);
+                setProperty(FulltextIndexConstants.PROP_FUNCTION, function);
         }
 
     }

@@ -35,7 +35,9 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexUpda
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyQuery;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -55,10 +57,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 
 /**
  * Service that provides Lucene based {@link IndexEditor}s
- * 
+ *
  * @see LuceneIndexEditor
  * @see IndexEditorProvider
- * 
+ *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -114,7 +116,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      ExtractedTextCache extractedTextCache,
                                      @Nullable IndexAugmentorFactory augmentorFactory,
                                      MountInfoProvider mountInfoProvider,
-                                     @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector) {
+                                     @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
@@ -125,8 +127,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
-            @NotNull IndexUpdateCallback callback)
+        @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+        @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
             checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
@@ -134,8 +136,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
-            LuceneIndexWriterFactory writerFactory = null;
-            IndexDefinition indexDefinition = null;
+            FulltextIndexWriterFactory writerFactory = null;
+            LuceneIndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
             String indexPath = indexingContext.getIndexPath();
             PropertyIndexUpdateCallback propertyUpdateCallback = null;
@@ -177,7 +179,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 }
 
                 if (indexDefinition == null) {
-                    indexDefinition = IndexDefinition.newBuilder(root, definition.getNodeState(),
+                    indexDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(),
                             indexPath).build();
                 }
 
@@ -220,7 +222,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return indexingQueue;
     }
 
-    ExtractedTextCache getExtractedTextCache() {
+    public ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
     }
 

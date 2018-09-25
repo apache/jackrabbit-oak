@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.jetbrains.annotations.Nullable;
 
@@ -310,19 +311,19 @@ public class OakIndexUtils {
             IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
 
         indexDef.setProperty(IndexConstants.TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
-        indexDef.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        indexDef.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         if (async != null) {
             indexDef.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, async);
         }
         // Set indexed property names
-        indexDef.setProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propertyNames,
+        indexDef.setProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propertyNames,
             PropertyType.NAME);
 
-        Node propsNode = JcrUtils.getOrAddNode(indexDef, LuceneIndexConstants.PROP_NODE);
+        Node propsNode = JcrUtils.getOrAddNode(indexDef, FulltextIndexConstants.PROP_NODE);
         for (int i = 0; i < propertyNames.length; i++) {
             Node propNode =
                 JcrUtils.getOrAddNode(propsNode, propertyNames[i], NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-            propNode.setProperty(LuceneIndexConstants.PROP_TYPE, type[i]);
+            propNode.setProperty(FulltextIndexConstants.PROP_TYPE, type[i]);
         }
 
         // Set ordered property names
@@ -332,12 +333,12 @@ public class OakIndexUtils {
                 .entrySet()) {
                 Node propNode = JcrUtils.getOrAddNode(propsNode, orderedPropEntry.getKey(),
                     NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-                propNode.setProperty(LuceneIndexConstants.PROP_TYPE,
-                    orderedPropEntry.getValue().get(LuceneIndexConstants.PROP_TYPE));
+                propNode.setProperty(FulltextIndexConstants.PROP_TYPE,
+                    orderedPropEntry.getValue().get(FulltextIndexConstants.PROP_TYPE));
                 orderedProps.add(orderedPropEntry.getKey());
             }
             if (!orderedProps.isEmpty()) {
-                indexDef.setProperty(LuceneIndexConstants.ORDERED_PROP_NAMES,
+                indexDef.setProperty(FulltextIndexConstants.ORDERED_PROP_NAMES,
                     orderedProps.toArray(new String[orderedProps.size()]),
                     PropertyType.NAME);
             }
@@ -345,9 +346,9 @@ public class OakIndexUtils {
 
         // Set file persistence if specified
         if (!Strings.isNullOrEmpty(persistencePath)) {
-            indexDef.setProperty(LuceneIndexConstants.PERSISTENCE_NAME,
-                LuceneIndexConstants.PERSISTENCE_FILE);
-            indexDef.setProperty(LuceneIndexConstants.PERSISTENCE_PATH,
+            indexDef.setProperty(FulltextIndexConstants.PERSISTENCE_NAME,
+                FulltextIndexConstants.PERSISTENCE_FILE);
+            indexDef.setProperty(FulltextIndexConstants.PERSISTENCE_PATH,
                 persistencePath);
         }
         session.save();

@@ -25,6 +25,9 @@ import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.util.Version;
 
+/**
+ * The default Lucene Analyzer used in Oak.
+ */
 public class OakAnalyzer extends Analyzer {
 
     private final Version matchVersion;
@@ -33,7 +36,7 @@ public class OakAnalyzer extends Analyzer {
 
     /**
      * Creates a new {@link OakAnalyzer}
-     * 
+     *
      * @param matchVersion
      *            Lucene version to match See
      *            {@link #matchVersion above}

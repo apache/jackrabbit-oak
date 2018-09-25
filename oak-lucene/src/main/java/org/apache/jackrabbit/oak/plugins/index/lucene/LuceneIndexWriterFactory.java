@@ -19,25 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.osgi.annotation.versioning.ProviderType;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-@ProviderType
-public interface TextExtractionStatsMBean {
-    String TYPE = "TextExtractionStats";
-
-    boolean isPreExtractedTextProviderConfigured();
-
-    boolean isAlwaysUsePreExtractedCache();
-
-    int getTextExtractionCount();
-
-    long getTotalTime();
-
-    int getPreFetchedCount();
-
-    String getExtractedTextSize();
-
-    String getBytesRead();
-
-    int getTimeoutCount();
+public interface LuceneIndexWriterFactory extends FulltextIndexWriterFactory {
+    @Override
+    LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
 }

@@ -19,32 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import java.io.IOException;
-
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.lucene.index.IndexableField;
 
-public interface LuceneIndexWriter {
-
-    /**
-     * Updates the Lucene document having given path
-     *
-     * @param path path of the NodeState which the Document represents
-     * @param doc updated document
-     */
-    void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException;
-
-    /**
-     * Deletes Lucene Documents which are same or child of given path
-     *
-     * @param path path whose children need to be deleted
-     */
-    void deleteDocuments(String path) throws IOException;
-
-    /**
-     * Closes the underlying writer.
-     *
-     * @param timestamp timestamp to be used for recording at status in NodeBuilder
-     * @return true if index was updated or any write happened.
-     */
-    boolean close(long timestamp) throws IOException;
+public interface LuceneIndexWriter extends FulltextIndexWriter<Iterable<? extends IndexableField>> {
 }

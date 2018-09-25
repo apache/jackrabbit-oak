@@ -16,26 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.isPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
 
 /**
  * This class would populate some statistics from a reader. We want to be careful here such that
  * we only collect statistics which don't incur reads from the index i.e. we would only collect
  * stats that lucene would already have read into memory when the reader was opened.
  */
-public class IndexStatistics {
-    private static final Logger LOG = LoggerFactory.getLogger(IndexStatistics.class);
+public class LuceneIndexStatistics implements IndexStatistics {
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexStatistics.class);
     private final int numDocs;
     private final Map<String, Integer> numDocsForField;
     private final boolean safelyInitialized;
@@ -50,7 +51,7 @@ public class IndexStatistics {
     /**
      * @param reader {@link IndexReader} for which statistics need to be collected.
      */
-    IndexStatistics(IndexReader reader) {
+    LuceneIndexStatistics(IndexReader reader) {
         numDocs = reader.numDocs();
 
         Map<String, Integer> numDocsForField = Maps.newHashMap();

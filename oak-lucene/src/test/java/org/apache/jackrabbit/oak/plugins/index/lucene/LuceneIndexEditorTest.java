@@ -19,25 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newLuceneIndexDefinitionV2;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -60,9 +41,21 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -94,6 +87,24 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static com.google.common.collect.ImmutableSet.of;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newLuceneIndexDefinitionV2;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
+
 @RunWith(Parameterized.class)
 public class LuceneIndexEditorTest {
     private EditorHook HOOK;
@@ -104,7 +115,7 @@ public class LuceneIndexEditorTest {
 
     private IndexTracker tracker = new IndexTracker();
 
-    private IndexNode indexNode;
+    private LuceneIndexNode indexNode;
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -136,7 +147,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder idxnb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        IndexDefinition defn = new IndexDefinition(root, idxnb.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, idxnb.getNodeState(), "/foo");
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("price", 100);
@@ -156,7 +167,7 @@ public class LuceneIndexEditorTest {
         NodeState before = builder.getNodeState();
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene", of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
 
 
@@ -189,9 +200,9 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "price", "weight", "bool", "creationTime"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(root, nb.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, nb.getNodeState(), "/foo");
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("bar", "kite is flying");
@@ -229,7 +240,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
 
         NodeState before = builder.getNodeState();
@@ -250,7 +261,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
             of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
 
         NodeState before = builder.getNodeState();
@@ -273,7 +284,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"),
                 STRINGS));
 
@@ -310,7 +321,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "jcr:content/mime",
                 "jcr:content/metadata/type"), STRINGS));
 
@@ -475,7 +486,7 @@ public class LuceneIndexEditorTest {
     private int numDocs(Mount m) throws IOException {
         String indexDirName = MultiplexersLucene.getIndexDirName(m);
         NodeBuilder defnBuilder = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
-        Directory d = new OakDirectory(defnBuilder, indexDirName, new IndexDefinition(root, defnBuilder.getNodeState(), "/foo"), true);
+        Directory d = new OakDirectory(defnBuilder, indexDirName, new LuceneIndexDefinition(root, defnBuilder.getNodeState(), "/foo"), true);
         IndexReader r = DirectoryReader.open(d);
         return r.numDocs();
     }
@@ -486,7 +497,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar", "baz"), STRINGS));
         //nb.removeProperty(REINDEX_PROPERTY_NAME);
 
@@ -525,12 +536,12 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = newLuceneIndexDefinitionV2(index, indexName,
                 of(TYPENAME_STRING));
-        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of(propName), STRINGS));
         return builder.getNodeState();
     }
 
-    private String query(String query, IndexDefinition defn) throws IOException, ParseException {
+    private String query(String query, LuceneIndexDefinition defn) throws IOException, ParseException {
         QueryParser queryParser = new QueryParser(VERSION, "", defn.getAnalyzer());
         return getPath(queryParser.parse(query));
     }
@@ -541,7 +552,7 @@ public class LuceneIndexEditorTest {
             if(td.totalHits > 1){
                 fail("More than 1 result found for query " + query);
             }
-            return getSearcher().getIndexReader().document(td.scoreDocs[0].doc).get(PATH);
+            return getSearcher().getIndexReader().document(td.scoreDocs[0].doc).get(FieldNames.PATH);
         }
         return null;
     }
@@ -572,7 +583,7 @@ public class LuceneIndexEditorTest {
         releaseIndexNode();
     }
 
-    static Calendar createCal(String dt) throws java.text.ParseException {
+    public static Calendar createCal(String dt) throws java.text.ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         Calendar cal = Calendar.getInstance();
         cal.setTime(sdf.parse(dt));

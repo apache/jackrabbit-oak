@@ -22,8 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.*;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
@@ -31,7 +33,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
@@ -44,14 +45,14 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
         this(indexCopier, blobStore, BlobDeletionCallback.NOOP);
     }
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore,
-                                   @NotNull BlobDeletionCallback blobDeletionCallback) {
+                                   @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this.indexCopier = indexCopier;
         this.blobStore = blobStore;
         this.blobDeletionCallback = blobDeletionCallback;
     }
 
     @Override
-    public Directory newInstance(IndexDefinition definition, NodeBuilder builder,
+    public Directory newInstance(LuceneIndexDefinition definition, NodeBuilder builder,
                                  String dirName, boolean reindex) throws IOException {
         Directory directory = newIndexDirectory(definition, builder, dirName);
         if (indexCopier != null && !(SUGGEST_DATA_CHILD_NAME.equals(dirName) && definition.getUniqueId() == null)) {
@@ -65,13 +66,13 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
         return indexCopier == null;
     }
 
-    private Directory newIndexDirectory(IndexDefinition indexDefinition,
+    private Directory newIndexDirectory(LuceneIndexDefinition indexDefinition,
                                         NodeBuilder definition, String dirName)
             throws IOException {
         String path = null;
-        if (LuceneIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
-                definition.getString(LuceneIndexConstants.PERSISTENCE_NAME))) {
-            path = definition.getString(PERSISTENCE_PATH);
+        if (FulltextIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
+                definition.getString(FulltextIndexConstants.PERSISTENCE_NAME))) {
+            path = definition.getString(FulltextIndexConstants.PERSISTENCE_PATH);
         }
         if (path == null) {
             if (!remoteDirectory()) {

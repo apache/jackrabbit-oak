@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.hasItem;

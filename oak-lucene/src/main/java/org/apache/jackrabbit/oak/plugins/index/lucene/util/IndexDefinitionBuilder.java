@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCopyUtils;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
@@ -46,6 +48,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public final class IndexDefinitionBuilder {
@@ -73,15 +76,15 @@ public final class IndexDefinitionBuilder {
         this.builder = nodeBuilder;
         this.initial = nodeBuilder.getNodeState();
         this.tree = TreeFactory.createTree(builder);
-        tree.setProperty(LuceneIndexConstants.COMPAT_MODE, 2);
+        tree.setProperty(FulltextIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
         setType();
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);
-        indexRule = getOrCreateChild(tree, LuceneIndexConstants.INDEX_RULES);
+        indexRule = getOrCreateChild(tree, FulltextIndexConstants.INDEX_RULES);
     }
 
     public IndexDefinitionBuilder evaluatePathRestrictions(){
-        tree.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        tree.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         return this;
     }
 
@@ -127,7 +130,7 @@ public final class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder nodeTypeIndex() {
-        tree.setProperty(LuceneIndexConstants.PROP_INDEX_NODE_TYPE, true);
+        tree.setProperty(FulltextIndexConstants.PROP_INDEX_NODE_TYPE, true);
         return this;
     }
 
@@ -167,7 +170,7 @@ public final class IndexDefinitionBuilder {
     private void setType() {
         PropertyState type = tree.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
         if (type == null || !"disabled".equals(type.getValue(Type.STRING))) {
-            tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "lucene");
+            tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, TYPE_LUCENE);
         }
     }
 
@@ -199,17 +202,17 @@ public final class IndexDefinitionBuilder {
         }
 
         public IndexRule indexNodeName(){
-            indexRule.setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+            indexRule.setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
             return this;
         }
 
         public IndexRule includePropertyTypes(String ... types){
-            indexRule.setProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES, asList(types), STRINGS);
+            indexRule.setProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES, asList(types), STRINGS);
             return this;
         }
 
         public IndexRule sync() {
-            indexRule.setProperty(LuceneIndexConstants.PROP_SYNC, true);
+            indexRule.setProperty(FulltextIndexConstants.PROP_SYNC, true);
             return this;
         }
 
@@ -242,18 +245,18 @@ public final class IndexDefinitionBuilder {
         }
 
         private void loadExisting() {
-            if (!indexRule.hasChild(LuceneIndexConstants.PROP_NAME)) {
+            if (!indexRule.hasChild(FulltextIndexConstants.PROP_NAME)) {
                 return;
             }
 
             for (Tree tree : getPropsTree().getChildren()){
-                if (!tree.hasProperty(LuceneIndexConstants.PROP_NAME)){
+                if (!tree.hasProperty(FulltextIndexConstants.PROP_NAME)){
                     continue;
                 }
-                String name = tree.getProperty(LuceneIndexConstants.PROP_NAME).getValue(Type.STRING);
+                String name = tree.getProperty(FulltextIndexConstants.PROP_NAME).getValue(Type.STRING);
                 boolean regex = false;
-                if (tree.hasProperty(LuceneIndexConstants.PROP_IS_REGEX)) {
-                    regex = tree.getProperty(LuceneIndexConstants.PROP_IS_REGEX).getValue(Type.BOOLEAN);
+                if (tree.hasProperty(FulltextIndexConstants.PROP_IS_REGEX)) {
+                    regex = tree.getProperty(FulltextIndexConstants.PROP_IS_REGEX).getValue(Type.BOOLEAN);
                 }
                 PropertyRule pr = new PropertyRule(this, tree, name, regex);
                 props.put(name, pr);
@@ -262,7 +265,7 @@ public final class IndexDefinitionBuilder {
 
         private Tree findExisting(String name) {
             for (Tree tree : getPropsTree().getChildren()){
-                if (name.equals(tree.getProperty(LuceneIndexConstants.PROP_NAME).getValue(Type.STRING))){
+                if (name.equals(tree.getProperty(FulltextIndexConstants.PROP_NAME).getValue(Type.STRING))){
                     return tree;
                 }
             }
@@ -290,7 +293,7 @@ public final class IndexDefinitionBuilder {
         }
 
         private Tree getPropsTree() {
-            return getOrCreateChild(indexRule, LuceneIndexConstants.PROP_NODE);
+            return getOrCreateChild(indexRule, FulltextIndexConstants.PROP_NODE);
         }
     }
 
@@ -302,20 +305,20 @@ public final class IndexDefinitionBuilder {
             this.indexRule = indexRule;
             this.propTree = propTree;
             if (name != null) {
-                propTree.setProperty(LuceneIndexConstants.PROP_NAME, name);
+                propTree.setProperty(FulltextIndexConstants.PROP_NAME, name);
             }
             if (regex) {
-                propTree.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+                propTree.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
             }
         }
 
         public PropertyRule useInExcerpt(){
-            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
             return this;
         }
 
         public PropertyRule useInSpellcheck(){
-            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true);
             return this;
         }
 
@@ -327,63 +330,63 @@ public final class IndexDefinitionBuilder {
         public PropertyRule type(String type){
             //This would throw an IAE if type is invalid
             PropertyType.valueFromName(type);
-            propTree.setProperty(LuceneIndexConstants.PROP_TYPE, type);
+            propTree.setProperty(FulltextIndexConstants.PROP_TYPE, type);
             return this;
         }
 
         public PropertyRule useInSuggest(){
-            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SUGGEST, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SUGGEST, true);
             return this;
         }
 
         public PropertyRule analyzed(){
-            propTree.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
             return this;
         }
 
         public PropertyRule nodeScopeIndex(){
-            propTree.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
             return this;
         }
 
         public PropertyRule ordered(){
-            propTree.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
             return this;
         }
 
         public PropertyRule ordered(String type){
             type(type);
-            propTree.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
             return this;
         }
 
         public PropertyRule disable() {
-            propTree.setProperty(LuceneIndexConstants.PROP_INDEX, false);
+            propTree.setProperty(FulltextIndexConstants.PROP_INDEX, false);
             return this;
         }
 
         public PropertyRule propertyIndex(){
-            propTree.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
             return this;
         }
 
         public PropertyRule nullCheckEnabled(){
-            propTree.setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
             return this;
         }
 
         public PropertyRule excludeFromAggregation(){
-            propTree.setProperty(LuceneIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
             return this;
         }
 
         public PropertyRule notNullCheckEnabled(){
-            propTree.setProperty(LuceneIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
             return this;
         }
 
         public PropertyRule weight(int weight){
-            propTree.setProperty(LuceneIndexConstants.PROP_WEIGHT, weight);
+            propTree.setProperty(FulltextIndexConstants.PROP_WEIGHT, weight);
             return this;
         }
 
@@ -403,17 +406,17 @@ public final class IndexDefinitionBuilder {
         }
 
         public PropertyRule sync(){
-            propTree.setProperty(LuceneIndexConstants.PROP_SYNC, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_SYNC, true);
             return this;
         }
 
         public PropertyRule unique(){
-            propTree.setProperty(LuceneIndexConstants.PROP_UNIQUE, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_UNIQUE, true);
             return this;
         }
 
         public PropertyRule function(String fn) {
-            propTree.setProperty(LuceneIndexConstants.PROP_FUNCTION, fn);
+            propTree.setProperty(FulltextIndexConstants.PROP_FUNCTION, fn);
             return this;
         }
 
@@ -442,7 +445,7 @@ public final class IndexDefinitionBuilder {
 
     public AggregateRule aggregateRule(String type){
         if (aggregatesTree == null){
-            aggregatesTree = getOrCreateChild(tree, LuceneIndexConstants.AGGREGATES);
+            aggregatesTree = getOrCreateChild(tree, FulltextIndexConstants.AGGREGATES);
         }
         AggregateRule rule = aggRules.get(type);
         if (rule == null){
@@ -485,7 +488,7 @@ public final class IndexDefinitionBuilder {
 
         private Tree findExisting(String includePath) {
             for (Tree tree : aggregate.getChildren()){
-                if (includePath.equals(tree.getProperty(LuceneIndexConstants.AGG_PATH).getValue(Type.STRING))){
+                if (includePath.equals(tree.getProperty(FulltextIndexConstants.AGG_PATH).getValue(Type.STRING))){
                     return tree;
                 }
             }
@@ -494,7 +497,7 @@ public final class IndexDefinitionBuilder {
 
         private void loadExisting(Tree aggregate) {
             for (Tree tree : aggregate.getChildren()){
-                if (tree.hasProperty(LuceneIndexConstants.AGG_PATH)) {
+                if (tree.hasProperty(FulltextIndexConstants.AGG_PATH)) {
                     Include include = new Include(this, tree);
                     includes.put(include.getPath(), include);
                 }
@@ -511,12 +514,12 @@ public final class IndexDefinitionBuilder {
             }
 
             public Include path(String includePath) {
-                include.setProperty(LuceneIndexConstants.AGG_PATH, includePath);
+                include.setProperty(FulltextIndexConstants.AGG_PATH, includePath);
                 return this;
             }
 
             public Include relativeNode(){
-                include.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
+                include.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
                 return this;
             }
 
@@ -525,7 +528,7 @@ public final class IndexDefinitionBuilder {
             }
 
             public String getPath(){
-                return include.getProperty(LuceneIndexConstants.AGG_PATH).getValue(Type.STRING);
+                return include.getProperty(FulltextIndexConstants.AGG_PATH).getValue(Type.STRING);
             }
         }
     }

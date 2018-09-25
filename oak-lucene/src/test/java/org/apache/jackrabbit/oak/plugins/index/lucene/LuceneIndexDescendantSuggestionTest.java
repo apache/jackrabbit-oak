@@ -20,6 +20,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.After;
@@ -43,10 +45,10 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROPDEF_PROP_NODE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_USE_IN_SUGGEST;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_USE_IN_SUGGEST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
@@ -62,9 +64,9 @@ public class LuceneIndexDescendantSuggestionTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
 
         Jcr jcr = new Jcr()
-                .with(((QueryIndexProvider) provider))
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider());
+            .with(((QueryIndexProvider) provider))
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
         session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -120,19 +122,19 @@ public class LuceneIndexDescendantSuggestionTest {
     }
 
     private void createSuggestIndex(Node rootNode, String name, String indexedNodeType, String indexedPropertyName)
-            throws Exception {
+        throws Exception {
         Node def = JcrUtils.getOrAddNode(rootNode, INDEX_DEFINITIONS_NAME)
-                .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
+            .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
-        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         def.setProperty(EVALUATE_PATH_RESTRICTION, true);
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(LuceneIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+            .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
+            .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
+            .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty(PROP_USE_IN_SUGGEST, true);
         propertyIdxDef.setProperty("name", indexedPropertyName);
@@ -140,8 +142,8 @@ public class LuceneIndexDescendantSuggestionTest {
 
     private String createSuggestQuery(String nodeTypeName, String suggestFor, String rootPath) {
         return "SELECT [rep:suggest()] as suggestion, [jcr:score] as score  FROM [" + nodeTypeName + "]" +
-                " WHERE suggest('" + suggestFor + "')" +
-                (rootPath==null?"":" AND ISDESCENDANTNODE([" + rootPath + "])");
+            " WHERE suggest('" + suggestFor + "')" +
+            (rootPath==null?"":" AND ISDESCENDANTNODE([" + rootPath + "])");
 
     }
 
@@ -167,16 +169,16 @@ public class LuceneIndexDescendantSuggestionTest {
     @Test
     public void noDescendantSuggestsAll() throws Exception {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void rootIndexWithDescendantConstraint() throws Exception {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test2", "test3"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
+            newHashSet("test2", "test3"));
     }
 
     //OAK-3994
@@ -189,8 +191,8 @@ public class LuceneIndexDescendantSuggestionTest {
 
         //Without path restriction indexing, descendant clause shouldn't be respected
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
+            newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     @Ignore("OAK-3992")
@@ -213,25 +215,25 @@ public class LuceneIndexDescendantSuggestionTest {
     @Test
     public void unambiguousSubtreeIndexWithDescendantConstraint() throws Exception {
         validateSuggestions(
-                createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test5", "test6"));
+            createSuggestQuery(NT_BASE, "te", "/content3"),
+            newHashSet("test5", "test6"));
     }
 
     //OAK-3994
     @Test
     public void unambiguousSubtreeIndexWithSubDescendantConstraint() throws Exception {
         validateSuggestions(
-                createSuggestQuery(NT_BASE, "te", "/content3/sC"),
-                newHashSet("test6"));
+            createSuggestQuery(NT_BASE, "te", "/content3/sC"),
+            newHashSet("test6"));
     }
 
     @Ignore("OAK-3993")
     @Test
     public void unionOnTwoDescendants() throws Exception {
         validateSuggestions(
-                createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
-                        " UNION " +
-                        createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test2", "test3", "test5"));
+            createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
+                " UNION " +
+                createSuggestQuery(NT_BASE, "te", "/content3"),
+            newHashSet("test2", "test3", "test5"));
     }
 }

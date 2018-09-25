@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -273,7 +272,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         }
         //Always remove old index file on close as it ensures that
         //no other IndexSearcher are opened with previous revision of Index due to
-        //way IndexTracker closes IndexNode. At max there would be only two IndexNode
+        //way IndexTracker closes LuceneIndexNode. At max there would be only two LuceneIndexNode
         //opened pinned to different revision of same Lucene index
         executor.execute(new Runnable() {
             @Override

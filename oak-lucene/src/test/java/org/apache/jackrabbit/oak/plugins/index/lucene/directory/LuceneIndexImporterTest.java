@@ -27,7 +27,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
@@ -41,9 +41,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.PROP_UID;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createFile;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 import static org.junit.Assert.*;
 
 public class LuceneIndexImporterTest {
@@ -56,7 +56,7 @@ public class LuceneIndexImporterTest {
     @Test
     public void exportAndImport() throws Exception{
         NodeState baseIndexState = idx.getNodeState();
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
 
         LuceneIndexEditorContext.configureUniqueId(idx);
 
@@ -101,7 +101,7 @@ public class LuceneIndexImporterTest {
         assertNotNull(importedUid);
     }
 
-    private static void assertDirectoryEquals(IndexDefinition defn, NodeState expected, NodeState actual, String dirName) throws IOException {
+    private static void assertDirectoryEquals(LuceneIndexDefinition defn, NodeState expected, NodeState actual, String dirName) throws IOException {
         OakDirectory dir1 = new OakDirectory(new ReadOnlyBuilder(expected), dirName, defn, true);
         OakDirectory dir2 = new OakDirectory(new ReadOnlyBuilder(actual), dirName, defn, true);
         assertDirectoryEquals(dir1, dir2);

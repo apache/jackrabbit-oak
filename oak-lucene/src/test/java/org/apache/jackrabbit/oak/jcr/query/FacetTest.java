@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
@@ -59,17 +60,17 @@ public class FacetTest extends AbstractQueryTest {
 
         Node node = props.addNode("relative");
         node.setProperty("name", "jc/text");
-        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
-        node.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        node.setProperty(FulltextIndexConstants.PROP_FACETS, true);
+        node.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         node = props.getNode("allProps");
-        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        node.setProperty(FulltextIndexConstants.PROP_FACETS, true);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
 
         if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
             node = superuser.getNode(INDEX_CONFING_NODE_PATH);
-            node.addNode(LuceneIndexConstants.FACETS);
+            node.addNode(FulltextIndexConstants.FACETS);
             markIndexForReindex();
             superuser.save();
             superuser.refresh(true);
@@ -81,7 +82,7 @@ public class FacetTest extends AbstractQueryTest {
         assertTrue(superuser.nodeExists("/oak:index/luceneGlobal/facets"));
 
         if (superuser.nodeExists(FACET_CONFING_PROP_PATH)) {
-            superuser.getProperty(LuceneIndexConstants.PROP_FACETS).remove();
+            superuser.getProperty(FulltextIndexConstants.PROP_FACETS).remove();
             superuser.save();
             superuser.refresh(true);
         }
@@ -504,7 +505,7 @@ public class FacetTest extends AbstractQueryTest {
     public void testFacetRetrievalNumberOfFacetsConfiguredHigherThanDefault() throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
-        facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
+        facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
@@ -555,7 +556,7 @@ public class FacetTest extends AbstractQueryTest {
     public void testFacetRetrievalNumberOfFacetsConfiguredLowerThanDefault() throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
-        facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
+        facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);

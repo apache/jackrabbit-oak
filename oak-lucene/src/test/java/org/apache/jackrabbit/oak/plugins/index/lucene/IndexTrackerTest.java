@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
+import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -36,12 +38,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.index.lucene.BadIndexTracker.BadIndexInfo;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -68,7 +68,7 @@ public class IndexTrackerTest {
     @Before
     public void setUp(){
         IndexUpdateProvider updateProvider = new IndexUpdateProvider(
-                new LuceneIndexEditorProvider(), "async", false);
+            new LuceneIndexEditorProvider(), "async", false);
         updateProvider.setCorruptIndexHandler(corruptIndexHandler);
         hook = new EditorHook(updateProvider);
     }
@@ -87,7 +87,7 @@ public class IndexTrackerTest {
         assertEquals(0, tracker.getIndexNodePaths().size());
 
         tracker.update(indexed);
-        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
         indexNode.release();
         assertEquals(1, tracker.getIndexNodePaths().size());
 
@@ -111,7 +111,7 @@ public class IndexTrackerTest {
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
 
-        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/foo");
+        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/foo");
         indexNode.release();
 
         assertTrue(tracker.getBadIndexTracker().getIndexPaths().isEmpty());
@@ -130,7 +130,7 @@ public class IndexTrackerTest {
 
 
         //3. Recreate the tracker as we cannot push corrupt index in existing tracker
-        //As diffAndUpdate would fail and existing IndexNode would not be changed
+        //As diffAndUpdate would fail and existing LuceneIndexNode would not be changed
         tracker = new IndexTracker();
         tracker.update(indexed);
 
@@ -143,7 +143,7 @@ public class IndexTrackerTest {
         assertNull(indexNode);
         assertTrue(tracker.getBadIndexTracker().getIndexPaths().contains("/oak:index/foo"));
 
-        BadIndexInfo badIdxInfo = tracker.getBadIndexTracker().getInfo("/oak:index/foo");
+        BadIndexTracker.BadIndexInfo badIdxInfo = tracker.getBadIndexTracker().getInfo("/oak:index/foo");
         assertNotNull(badIdxInfo);
         assertEquals(0, badIdxInfo.getAccessCount());
 
@@ -209,7 +209,7 @@ public class IndexTrackerTest {
 
         assertTrue(corruptIndexHandler.getFailingIndexData("async").containsKey("/oak:index/foo"));
     }
-    
+
     @Test
     public void avoidRedundantDiff() throws Exception{
         IndexTracker tracker2 = new IndexTracker();
@@ -226,7 +226,7 @@ public class IndexTrackerTest {
         tracker.update(indexed);
         tracker2.update(indexed);
 
-        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
         assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
         indexNode.release();
 
@@ -269,7 +269,7 @@ public class IndexTrackerTest {
         indexed = ModifiedNodeState.squeeze(indexed);
         tracker.update(indexed);
 
-        IndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+        LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
         int indexNodeId = indexNode.getIndexNodeId();
         indexNode.release();
 
@@ -293,7 +293,7 @@ public class IndexTrackerTest {
         for (String name : dir.getChildNodeNames()){
             if (!"segments.gen".equals(name)){
                 dir.getChildNode(name).setProperty(PropertyStates.createProperty("jcr:data", Collections
-                        .singletonList(new ArrayBasedBlob("foo".getBytes())), Type.BINARIES));
+                    .singletonList(new ArrayBasedBlob("foo".getBytes())), Type.BINARIES));
             }
         }
 

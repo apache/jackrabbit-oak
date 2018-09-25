@@ -716,6 +716,7 @@ public class FulltextIndexPlanner {
                 .setPathPrefix(getPathPrefix())
                 .setSupportsPathRestriction(definition.evaluatePathRestrictions())
                 .setDelayed(true) //Lucene is always async
+                .setDeprecated(definition.isDeprecated())
                 .setAttribute(FulltextIndex.ATTR_PLAN_RESULT, result)
                 .setEstimatedEntryCount(estimatedEntryCount())
                 .setPlanName(indexPath);

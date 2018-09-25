@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder>{
+class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder> {
     private final static Logger log = LoggerFactory.getLogger(LuceneJournalPropertyBuilder.class);
     //Use HashMultimap to ensure that indexPath is not duplicated per node path
     private final Multimap<String, String> indexedNodes = HashMultimap.create();

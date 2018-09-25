@@ -27,7 +27,7 @@ import java.util.List;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.spell.Dictionary;
@@ -42,7 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Helper class for getting suggest results for a given term, calling a {@link org.apache.lucene.search.suggest.Lookup}
+ * Helper class for getting suggest results for a given term, calling a {@link Lookup}
  * implementation under the hood.
  */
 public class SuggestHelper {
@@ -51,8 +51,8 @@ public class SuggestHelper {
 
     private static final Analyzer analyzer = new Analyzer() {
         @Override
-        protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new Analyzer.TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
+        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+            return new TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
         }
     };
 

@@ -19,6 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +46,7 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Result;
@@ -46,12 +60,14 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFa
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -63,7 +79,6 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -79,14 +94,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndexTest.createIndex;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -101,7 +108,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
     private NodeState initialContent = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private MountInfoProvider mip = Mounts.newBuilder()
-            .mount("foo", "/libs", "/apps").build();
+        .mount("foo", "/libs", "/apps").build();
     private NodeStore nodeStore;
 
     @Override
@@ -113,30 +120,30 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-                new ExtractedTextCache(10*FileUtils.ONE_MB, 100),
-                null,
-                mip);
+            new ExtractedTextCache(10*FileUtils.ONE_MB, 100),
+            null,
+            mip);
         LuceneIndexProvider provider = new LuceneIndexProvider(new IndexTracker(new DefaultIndexReaderFactory(mip, copier)));
         nodeStore = new MemoryNodeStore();
         return new Oak(nodeStore)
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .with(new PropertyIndexEditorProvider())
-                .with(new NodeTypeIndexProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .with(new PropertyIndexEditorProvider())
+            .with(new NodeTypeIndexProvider())
+            .createContentRepository();
     }
 
     @Test
     public void numDocsIsSumOfAllReaders() throws Exception{
         NodeBuilder defnBuilder = newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
-        IndexDefinition defn = new IndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
 
         //1. Have 2 reader created by writes in 2 diff mounts
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
-        LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
+        DefaultIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
         Document doc = newDoc("/content/en");
@@ -153,12 +160,12 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
         List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(),"/foo");
 
-        IndexNodeManager node = new IndexNodeManager("foo", defn, readers, null);
+        LuceneIndexNodeManager node = new LuceneIndexNodeManager("foo", defn, readers, null);
 
         //3 Obtain the plan
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        IndexPlanner planner = new IndexPlanner(node.acquire(), "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node.acquire(), "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
         QueryIndex.IndexPlan plan = planner.getPlan();
 
         //Count should be sum of both readers
@@ -195,8 +202,8 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         root.commit();
 
-        int expectedSize = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2 * 2;
-        for (int i = 0; i < LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2; i++) {
+        int expectedSize = LuceneIndex.LUCENE_QUERY_BATCH_SIZE * 2 * 2;
+        for (int i = 0; i < LuceneIndex.LUCENE_QUERY_BATCH_SIZE * 2; i++) {
             createPath("/libs/a"+i).setProperty("foo", "bar");
             createPath("/content/a"+i).setProperty("foo", "bar");
         }
@@ -211,7 +218,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex(root.getTree("/"), "test1", ImmutableSet.of("foo", "bar", "baz"));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, ImmutableSet.of("foo", "baz"), STRINGS));
         Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
-        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
         int firstPropSize = 25;
@@ -233,7 +240,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] asc, [baz] desc",
-                LucenePropertyIndexTest.getSortedPaths(tuples));
+            LucenePropertyIndexTest.getSortedPaths(tuples));
     }
 
     private List<String> getIndexDirNames(String indexName){
