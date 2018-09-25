@@ -124,7 +124,7 @@ public class CommitTest {
             try {
                 c.apply();
                 fail("commit must fail");
-            } catch (DocumentStoreException e) {
+            } catch (ConflictException e) {
                 // expected
                 assertTrue("Unexpected exception message: " + e.getMessage(),
                         e.getMessage().contains("does not exist"));

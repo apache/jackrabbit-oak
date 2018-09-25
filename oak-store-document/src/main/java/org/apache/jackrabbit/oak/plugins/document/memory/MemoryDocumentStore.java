@@ -327,7 +327,7 @@ public class MemoryDocumentStore implements DocumentStore {
             T doc = collection.newDocument(this);
             if (oldDoc == null) {
                 if (!update.isNew()) {
-                    throw new DocumentStoreException("Document does not exist: " + update.getId());
+                    return null;
                 }
             } else {
                 oldDoc.deepCopy(doc);

@@ -257,7 +257,9 @@ public interface DocumentStore {
 
     /**
      * Atomically checks if the document exists and updates it, otherwise the
-     * document is created (aka upsert). The returned document is immutable.
+     * document is created (aka "upsert"), unless the update operation requires
+     * the document to be present (see {@link UpdateOp#isNew()}). The returned
+     * document is immutable.
      * <p>
      * If this method fails with a {@code DocumentStoreException}, then the
      * document may or may not have been created or updated. It is the
@@ -267,13 +269,20 @@ public interface DocumentStore {
      * cache. That is, an implementation could simply evict documents with the
      * given keys from the cache.
      *
-     * @param <T> the document type
-     * @param collection the collection
-     * @param update the update operation (where {@link Condition}s are not allowed)
-     * @return the old document or <code>null</code> if it didn't exist before.
-     * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
-     * @throws DocumentStoreException if the operation failed. E.g. because of
-     *          an I/O error.
+     * @param <T>
+     *            the document type
+     * @param collection
+     *            the collection
+     * @param update
+     *            the update operation (where {@link Condition}s are not
+     *            allowed)
+     * @return the old document or {@code null} if it either didn't exist
+     *            before, or the {@linkplain UpdateOp} required the document to be
+     *            present but {@link UpdateOp#isNew()} was {@code false}.
+     * @throws IllegalArgumentException
+     *             when the {@linkplain UpdateOp} is conditional
+     * @throws DocumentStoreException
+     *             if the operation failed. E.g. because of an I/O error.
      */
     @Nullable
     <T extends Document> T createOrUpdate(Collection<T> collection,
