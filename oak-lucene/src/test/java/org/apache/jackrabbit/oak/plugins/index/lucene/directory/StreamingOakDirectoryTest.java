@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -40,7 +40,7 @@ public class StreamingOakDirectoryTest extends OakDirectoryTestBase {
     }
 
     @Override
-    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, IndexDefinition indexDefinition) {
+    OakDirectoryBuilder getOakDirectoryBuilder(NodeBuilder builder, LuceneIndexDefinition indexDefinition) {
         return new OakDirectoryBuilder(builder, indexDefinition, true);
     }
 

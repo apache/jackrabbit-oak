@@ -25,11 +25,10 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalIndexObserver implements Observer{
+public class LocalIndexObserver implements Observer {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentQueue docQueue;
 

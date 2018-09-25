@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.InitialContentHelper;
@@ -112,11 +113,11 @@ public class FunctionIndexTest extends AbstractQueryTest {
         Tree luceneIndex = createIndex("lowerLocalName", Collections.<String>emptySet());
         luceneIndex.setProperty("excludedPaths", 
                 Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
-        Tree func = luceneIndex.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild(FulltextIndexConstants.PROP_NODE)
                 .addChild("lowerLocalName");
-        func.setProperty(LuceneIndexConstants.PROP_FUNCTION, "lower(localname())");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "lower(localname())");
 
         Tree test = root.getTree("/").addChild("test");
         for (int idx = 0; idx < 3; idx++) {
@@ -149,13 +150,13 @@ public class FunctionIndexTest extends AbstractQueryTest {
         Tree luceneIndex = createIndex("lengthName", Collections.<String>emptySet());
         luceneIndex.setProperty("excludedPaths", 
                 Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
-        Tree func = luceneIndex.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild(FulltextIndexConstants.PROP_NODE)
                 .addChild("lengthName");
-        func.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
-        func.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
-        func.setProperty(LuceneIndexConstants.PROP_FUNCTION, "fn:string-length(fn:name())");
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+        func.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:string-length(fn:name())");
 
         Tree test = root.getTree("/").addChild("test");
         for (int idx = 1; idx < 1000; idx *= 10) {
@@ -183,11 +184,11 @@ public class FunctionIndexTest extends AbstractQueryTest {
         Tree luceneIndex = createIndex("length", Collections.<String>emptySet());
         luceneIndex.setProperty("excludedPaths", 
                 Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
-        Tree func = luceneIndex.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild(FulltextIndexConstants.PROP_NODE)
                 .addChild("lengthName");
-        func.setProperty(LuceneIndexConstants.PROP_FUNCTION, "fn:string-length(@value)");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:string-length(@value)");
 
         Tree test = root.getTree("/").addChild("test");
         for (int idx = 1; idx <= 1000; idx *= 10) {
@@ -209,11 +210,11 @@ public class FunctionIndexTest extends AbstractQueryTest {
     @Test
     public void upperCase() throws Exception {
         Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
-        Tree func = luceneIndex.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild(FulltextIndexConstants.PROP_NODE)
                 .addChild("upperName");
-        func.setProperty(LuceneIndexConstants.PROP_FUNCTION, "fn:upper-case(@name)");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(@name)");
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -239,11 +240,11 @@ public class FunctionIndexTest extends AbstractQueryTest {
     @Test
     public void upperCaseRelative() throws Exception {
         Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
-        Tree func = luceneIndex.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE)
+                .addChild(FulltextIndexConstants.PROP_NODE)
                 .addChild("upperName");
-        func.setProperty(LuceneIndexConstants.PROP_FUNCTION, "upper([data/name])");
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "upper([data/name])");
 
         Tree test = root.getTree("/").addChild("test");
         test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
@@ -373,8 +374,8 @@ public class FunctionIndexTest extends AbstractQueryTest {
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
+        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }    

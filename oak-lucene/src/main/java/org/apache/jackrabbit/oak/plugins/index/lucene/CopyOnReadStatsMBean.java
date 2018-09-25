@@ -23,6 +23,9 @@ import javax.management.openmbean.TabularData;
 
 import org.osgi.annotation.versioning.ProviderType;
 
+/**
+ * Statistics for the copy-on-read mechanism.
+ */
 @SuppressWarnings("UnusedDeclaration")
 @ProviderType
 public interface CopyOnReadStatsMBean {

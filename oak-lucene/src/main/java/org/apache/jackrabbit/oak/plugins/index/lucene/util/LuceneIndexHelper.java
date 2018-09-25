@@ -16,55 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.util.Set;
+
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.newHashSet;
-import static javax.jcr.PropertyType.TYPENAME_BINARY;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.GROUP_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.USER_PROPERTY_NAMES;
-
-import java.util.Set;
-
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class LuceneIndexHelper {
-
-    public static final Set<String> JR_PROPERTY_INCLUDES = of(TYPENAME_STRING,
-            TYPENAME_BINARY);
-
-    /**
-     * Nodes that represent content that shold not be tokenized (like UUIDs,
-     * etc)
-     * 
-     */
-    private final static Set<String> NOT_TOKENIZED = newHashSet(JCR_UUID);
-
-    static {
-        NOT_TOKENIZED.addAll(USER_PROPERTY_NAMES);
-        NOT_TOKENIZED.addAll(GROUP_PROPERTY_NAMES);
-    }
 
     private LuceneIndexHelper() {
     }
@@ -99,15 +71,15 @@ public class LuceneIndexHelper {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
+            index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
                     propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
-            index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
+            index.setProperty(createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
         }
         if (stored != null) {
-            index.setProperty(createProperty(EXPERIMENTAL_STORAGE, stored));
+            index.setProperty(createProperty(FulltextIndexConstants.EXPERIMENTAL_STORAGE, stored));
         }
         return index;
     }
@@ -130,18 +102,18 @@ public class LuceneIndexHelper {
         index = index.child(name);
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
-                .setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE)
-                .setProperty(PERSISTENCE_PATH, path)
+                .setProperty(FulltextIndexConstants.PERSISTENCE_NAME, FulltextIndexConstants.PERSISTENCE_FILE)
+                .setProperty(FulltextIndexConstants.PERSISTENCE_PATH, path)
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
         }
         if (propertyTypes != null && !propertyTypes.isEmpty()) {
-            index.setProperty(createProperty(INCLUDE_PROPERTY_TYPES,
+            index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
                     propertyTypes, STRINGS));
         }
         if (excludes != null && !excludes.isEmpty()) {
-            index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
+            index.setProperty(createProperty(FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
         }
         return index;
@@ -158,8 +130,8 @@ public class LuceneIndexHelper {
         index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
                 .setProperty(REINDEX_PROPERTY_NAME, true);
-        index.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        index.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, includes, STRINGS));
+        index.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
+        index.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, includes, STRINGS));
 
         if (async != null) {
             index.setProperty(ASYNC_PROPERTY_NAME, async);
@@ -167,15 +139,7 @@ public class LuceneIndexHelper {
         return index;
     }
 
-    /**
-     * Nodes that represent UUIDs and shold not be tokenized
-     * 
-     */
-    public static boolean skipTokenization(String name) {
-        return NOT_TOKENIZED.contains(name);
-    }
-
     public static boolean isLuceneIndexNode(NodeState node){
-        return TYPE_LUCENE.equals(node.getString(TYPE_PROPERTY_NAME));
+        return IndexHelper.isIndexNodeOfType(node, TYPE_LUCENE);
     }
 }

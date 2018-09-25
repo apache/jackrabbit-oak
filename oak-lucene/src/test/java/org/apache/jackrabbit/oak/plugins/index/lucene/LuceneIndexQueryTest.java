@@ -16,27 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.InitialContentHelper;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
@@ -47,6 +26,28 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -60,12 +61,12 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
         useV2(indexDefn);
         indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
-        indexDefn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
-        props.getParent().setProperty(LuceneIndexConstants.INDEX_NODE_NAME, true);
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
         TestUtil.enablePropertyIndex(props, "c1/p", false);
-        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
         TestUtil.enablePropertyIndex(props, "a/name", false);
         TestUtil.enablePropertyIndex(props, "b/name", false);
         TestUtil.enableFunctionIndex(props, "length([name])");
@@ -112,8 +113,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
         assertEquals("/test/b", result.next());
@@ -128,8 +129,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
-                "JCR-SQL2").iterator();
+            "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
         assertFalse(result.hasNext());
@@ -150,8 +151,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
-                "JCR-SQL2").iterator();
+            "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
+            "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/, /children", result.next());
         assertEquals("/, /jcr:system", result.next());
@@ -175,7 +176,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         stmt.append("/jcr:root//*[jcr:contains(., '").append(h);
         stmt.append("')]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
 
         // query 'world'
         stmt = new StringBuffer();
@@ -197,34 +198,34 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         String planPrefix = "[nt:base] as [a] /* lucene:test-index(/oak:index/test-index) ";
 
         assertXPathPlan("/jcr:root//*[@a]",
-                planPrefix + "a:[* TO *]");
+            planPrefix + "a:[* TO *]");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(., '*')]",
-                planPrefix + ":fulltext:* ft:(\"*\")");
+            planPrefix + ":fulltext:* ft:(\"*\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(@a,'*')]",
-                planPrefix + "full:a:* ft:(a:\"*\")");
+            planPrefix + "full:a:* ft:(a:\"*\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(@a,'hello -world')]",
-                planPrefix + "+full:a:hello -full:a:world ft:(a:\"hello\" -a:\"world\")");
+            planPrefix + "+full:a:hello -full:a:world ft:(a:\"hello\" -a:\"world\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(@a,'test*')]",
-                planPrefix + "full:a:test* ft:(a:\"test*\")");
+            planPrefix + "full:a:test* ft:(a:\"test*\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test')]",
-                planPrefix + "-full:a:test *:* ft:(-a:\"test\")");
+            planPrefix + "-full:a:test *:* ft:(-a:\"test\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test*')]",
-                planPrefix + "-full:a:test* *:* ft:(-a:\"test*\")");
+            planPrefix + "-full:a:test* *:* ft:(-a:\"test*\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(., '-*')]",
-                planPrefix + "-:fulltext:* *:* ft:(-\"*\")");
+            planPrefix + "-:fulltext:* *:* ft:(-\"*\")");
 
         assertXPathPlan("/jcr:root//*[jcr:contains(., 'apple - pear')]",
-                planPrefix + "+:fulltext:apple -:fulltext:pear ft:(\"apple\" \"-\" \"pear\")");
+            planPrefix + "+:fulltext:apple -:fulltext:pear ft:(\"apple\" \"-\" \"pear\")");
 
         assertXPathPlan("/jcr:root/content//*[jcr:contains(., 'apple - pear')]",
-                planPrefix + "-:fulltext:pear +:fulltext:apple +:ancestors:/content ft:(\"apple\" \"-\" \"pear\")");
+            planPrefix + "-:fulltext:pear +:fulltext:apple +:ancestors:/content ft:(\"apple\" \"-\" \"pear\")");
 
     }
 
@@ -247,9 +248,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("/jcr:root//*[jcr:contains(., 'hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
         assertQuery("/jcr:root//*[jcr:contains(., '*hello-wor*')]", "xpath",
-                ImmutableList.of("/test/a", "/test/b"));
+            ImmutableList.of("/test/a", "/test/b"));
 
     }
 
@@ -262,13 +263,13 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery(
-                "/jcr:root//*[jcr:contains(@dc:format, 'pro*')]",
-                "xpath", ImmutableList.of("/test/b"));
+            "/jcr:root//*[jcr:contains(@dc:format, 'pro*')]",
+            "xpath", ImmutableList.of("/test/b"));
 
 
         assertQuery(
-                "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
-                "xpath", ImmutableList.of("/test/a"));
+            "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
+            "xpath", ImmutableList.of("/test/a"));
 
     }
 
@@ -308,7 +309,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         StringBuffer stmt = new StringBuffer();
         stmt.append("//*[jcr:contains(., 'match')]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of("/match_on_path"));
+            ImmutableList.of("/match_on_path"));
 
     }
 
@@ -321,7 +322,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         StringBuffer stmt = new StringBuffer();
         stmt.append("//*[jcr:contains(., 'match')]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of("/match_on_path1234"));
+            ImmutableList.of("/match_on_path1234"));
 
     }
 
@@ -348,7 +349,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         StringBuffer stmt = new StringBuffer();
         stmt.append("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]");
         assertQuery(stmt.toString(), "xpath",
-                ImmutableList.of(one.getPath(), two.getPath()));
+            ImmutableList.of(one.getPath(), two.getPath()));
     }
 
     @Test
@@ -368,7 +369,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Test
     public void testRepSimilarAsNativeQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where " +
-                "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
+            "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World");
         test.addChild("b").setProperty("text", "He said Hello and then the world said Hello as well.");
@@ -430,7 +431,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         one.setProperty("t", "美女衬衫");
         root.commit();
         assertQuery("//*[jcr:contains(., '美女')]", "xpath",
-                ImmutableList.of(one.getPath()));
+            ImmutableList.of(one.getPath()));
     }
 
     @Test
@@ -441,8 +442,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         test.addChild(child).setProperty(mulValuedProp, of("foo","bar"), Type.STRINGS);
         root.commit();
         assertQuery(
-                "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
-                "xpath", of("/test/" + child));
+            "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
+            "xpath", of("/test/" + child));
         test.getChild(child).setProperty(mulValuedProp, new ArrayList<String>(), Type.STRINGS);
         root.commit();
         assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<String>());
@@ -450,8 +451,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         test.getChild(child).setProperty(mulValuedProp, of("bar"), Type.STRINGS);
         root.commit();
         assertQuery(
-                "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
-                "xpath", new ArrayList<String>());
+            "/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]",
+            "xpath", new ArrayList<String>());
 
         test.getChild(child).removeProperty(mulValuedProp);
         root.commit();

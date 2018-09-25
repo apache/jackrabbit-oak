@@ -59,21 +59,20 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LucenePropertyIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.IndexRule;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -96,7 +95,6 @@ import org.apache.lucene.store.SimpleFSDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -185,7 +183,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void hybridIndex() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
         root.commit();
 
         //Get initial indexing done as local indexing only work
@@ -221,7 +219,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void noTextExtractionForSyncCommit() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createFulltextIndex(root.getTree("/"), idxName);
-        TestUtil.enableIndexingMode(idx, IndexingMode.NRT);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
         root.commit();
 
         runAsyncIndex();
@@ -246,7 +244,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void hybridIndexSync() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
 
         //Get initial indexing done as local indexing only work
@@ -269,7 +267,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void usageBeforeFirstIndex() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
 
         createPath("/a").setProperty("foo", "bar");
@@ -294,7 +292,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void newNodeTypesFoundLater() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, ImmutableSet.of("foo", "bar"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
 
         setTraversalEnabled(false);
@@ -371,7 +369,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         });
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
         runAsyncIndex();
 
@@ -394,7 +392,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     public void paging() throws Exception{
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
         root.commit();
         runAsyncIndex();
 
@@ -521,7 +519,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.evaluatePathRestrictions();
         idx.indexRule("nt:base")
-                .property(LuceneIndexConstants.REGEX_ALL_PROPS, true)
+                .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
                 .analyzed()
                 .nodeScopeIndex()
                 .useInExcerpt();

@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -43,11 +44,11 @@ public class LuceneIndexLookupTest {
         newLuceneIndexDefinition(index, "l1", of(TYPENAME_STRING));
         newLuceneIndexDefinition(index, "l2", of(TYPENAME_STRING));
 
-        LuceneIndexLookup lookup = new LuceneIndexLookup(builder.getNodeState());
+        IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/oak:index/l2"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
     }
 
     @Test
@@ -61,14 +62,14 @@ public class LuceneIndexLookupTest {
         index = builder.child("a").child("b").child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "l3", of(TYPENAME_STRING));
 
-        LuceneIndexLookup lookup = new LuceneIndexLookup(builder.getNodeState());
+        IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
 
         f.restrictPath("/a/b", Filter.PathRestriction.EXACT);
         assertEquals(of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
-                lookup.collectIndexNodePaths(f));
+            lookup.collectIndexNodePaths(f));
     }
 }

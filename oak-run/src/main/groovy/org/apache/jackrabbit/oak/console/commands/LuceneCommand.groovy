@@ -22,8 +22,9 @@ package org.apache.jackrabbit.oak.console.commands
 import com.google.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
@@ -40,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder as OakNodeBuilder
 
 
 import static com.google.common.base.Preconditions.checkNotNull
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME
 
 class LuceneCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'lucene'
@@ -124,7 +124,7 @@ class LuceneCommand extends ComplexCommandSupport {
         for (String element : PathUtils.elements(path)) {
             definition = definition.getChildNode(element);
         }
-        NodeState data = definition.getChildNode(INDEX_DATA_CHILD_NAME);
+        NodeState data = definition.getChildNode(FulltextIndexConstants.INDEX_DATA_CHILD_NAME);
         if (data.exists()) {
             //OakDirectory is package scope but Groovy allows us
             //to use it. Good or bad but its helpful debug scripts

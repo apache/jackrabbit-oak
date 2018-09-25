@@ -27,10 +27,10 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.IndexingMode;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -78,7 +78,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void ignoreReindexCase() throws Exception{
-        createIndexDefinition("fooIndex", IndexingMode.NRT);
+        createIndexDefinition("fooIndex", FulltextIndexConstants.IndexingMode.NRT);
 
         builder.child("a").setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
@@ -92,7 +92,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void localIndexWriter() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
+        NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
         builder.child("c").setProperty("foo", "bar");
@@ -109,7 +109,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void mutlipleIndex() throws Exception{
-        NodeState indexed = createAndPopulateTwoAsyncIndex(IndexingMode.NRT);
+        NodeState indexed = createAndPopulateTwoAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
         builder.child("c").setProperty("bar", "foo");
@@ -130,7 +130,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void syncIndexing() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.SYNC);
+        NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
         builder = indexed.builder();
         builder.child("b").setProperty("foo", "bar");
         builder.child("c").setProperty("foo", "bar");
@@ -146,7 +146,7 @@ public class LocalIndexWriterFactoryTest {
 
     @Test
     public void inMemoryDocLimit() throws Exception{
-        NodeState indexed = createAndPopulateAsyncIndex(IndexingMode.NRT);
+        NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         editorProvider.setInMemoryDocsLimit(5);
         editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, sameThreadExecutor()));
         builder = indexed.builder();
@@ -161,7 +161,7 @@ public class LocalIndexWriterFactoryTest {
         assertEquals(5 + 1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
     }
 
-    private NodeState createAndPopulateAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
+    private NodeState createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
         createIndexDefinition("fooIndex", indexingMode);
 
         //Have some stuff to be indexed
@@ -170,7 +170,7 @@ public class LocalIndexWriterFactoryTest {
         return asyncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
     }
 
-    private NodeState createAndPopulateTwoAsyncIndex(IndexingMode indexingMode) throws CommitFailedException {
+    private NodeState createAndPopulateTwoAsyncIndex(FulltextIndexConstants.IndexingMode indexingMode) throws CommitFailedException {
         createIndexDefinition("fooIndex", indexingMode);
         createIndexDefinition("barIndex", indexingMode);
 
@@ -196,7 +196,7 @@ public class LocalIndexWriterFactoryTest {
         return info;
     }
 
-    private void createIndexDefinition(String idxName, IndexingMode indexingMode) {
+    private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         TestUtil.enableIndexingMode(idx.getBuilderTree(), indexingMode);
         idx.indexRule("nt:base").property("foo").propertyIndex();

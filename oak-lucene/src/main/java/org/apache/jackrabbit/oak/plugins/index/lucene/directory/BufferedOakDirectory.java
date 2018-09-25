@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,11 +38,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -87,7 +88,7 @@ public final class BufferedOakDirectory extends Directory {
 
     private final String dataNodeName;
 
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
 
     private final OakDirectory base;
 
@@ -102,16 +103,16 @@ public final class BufferedOakDirectory extends Directory {
 
     public BufferedOakDirectory(@NotNull NodeBuilder builder,
                                 @NotNull String dataNodeName,
-                                @NotNull IndexDefinition definition,
+                                @NotNull LuceneIndexDefinition definition,
                                 @Nullable BlobStore blobStore) {
         this(builder, dataNodeName, definition, blobStore, BlobDeletionCallback.NOOP);
     }
 
     public BufferedOakDirectory(@NotNull NodeBuilder builder,
                                 @NotNull String dataNodeName,
-                                @NotNull IndexDefinition definition,
+                                @NotNull LuceneIndexDefinition definition,
                                 @Nullable BlobStore blobStore,
-                                @NotNull BlobDeletionCallback blobDeletionCallback) {
+                                @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
                 BlobFactory.getBlobStoreBlobFactory(blobStore) :
                 BlobFactory.getNodeBuilderBlobFactory(builder);

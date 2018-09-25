@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.Closeable;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * A provider for Lucene indexes.
@@ -70,7 +69,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     //----------------------------------------------------------< Observer >--
 
     @Override
-    public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         tracker.update(root);
     }
 

@@ -121,6 +121,7 @@
                 *
             </Import-Package>
             <Embed-Dependency>
+              oak-search;inline=true,
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
               oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
@@ -200,6 +201,11 @@
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
       <version>${tika.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-search</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- Lucene dependencies -->

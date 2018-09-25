@@ -24,7 +24,7 @@ import org.apache.lucene.analysis.util.CharTokenizer;
 import org.apache.lucene.util.Version;
 
 /**
- * A {@link org.apache.lucene.analysis.util.CharTokenizer} dividing tokens at <code>\n</code>.
+ * A {@link CharTokenizer} dividing tokens at <code>\n</code>.
  *
  * This should be deprecated if / once LUCENE-5833 fix gets included in the Lucene version we ship.
  */

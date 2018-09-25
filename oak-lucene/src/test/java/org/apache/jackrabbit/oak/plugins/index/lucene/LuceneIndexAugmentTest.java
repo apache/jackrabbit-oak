@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -64,7 +66,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
 
     private IndexTracker tracker = new IndexTracker();
 
-    private IndexNode indexNode;
+    private LuceneIndexNode indexNode;
 
     @Override
     protected void createTestIndexNode() throws Exception {
@@ -74,17 +76,17 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
-                new ExtractedTextCache(0, 0),
-                factory, Mounts.defaultMountInfoProvider());
+            new ExtractedTextCache(0, 0),
+            factory, Mounts.defaultMountInfoProvider());
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker,
-                ScorerProviderFactory.DEFAULT,
-                factory);
+            ScorerProviderFactory.DEFAULT,
+            factory);
         return new Oak()
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(editorProvider)
-                .createContentRepository();
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(editorProvider)
+            .createContentRepository();
     }
 
     //OAK-3576
@@ -102,7 +104,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
             @Override
             public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
                 assertEquals("Full text term passed to provider isn't same as the one passed in query",
-                        testSearchText, text);
+                    testSearchText, text);
                 return new TermQuery(new Term(":fulltext", realSearchText));
             }
 
@@ -190,7 +192,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
                 assertEquals("/test/item", path);
                 assertEquals(TestUtil.NT_TEST, document.getName(JcrConstants.JCR_PRIMARYTYPE));
                 assertEquals(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE,
-                        indexDefinition.getName(JcrConstants.JCR_PRIMARYTYPE));
+                    indexDefinition.getName(JcrConstants.JCR_PRIMARYTYPE));
                 return Lists.<Field>newArrayList(new StringField("barbar", "1", Field.Store.NO));
             }
 
@@ -347,10 +349,10 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
         Tree props = createIndex(TestUtil.NT_TEST);
         Tree prop = props.addChild("foo1");
-        prop.setProperty(LuceneIndexConstants.PROP_INDEX, true);
+        prop.setProperty(FulltextIndexConstants.PROP_INDEX, true);
         prop = props.addChild("foo2");
-        prop.setProperty(LuceneIndexConstants.PROP_NAME, "subChild/foo2");
-        prop.setProperty(LuceneIndexConstants.PROP_INDEX, true);
+        prop.setProperty(FulltextIndexConstants.PROP_NAME, "subChild/foo2");
+        prop.setProperty(FulltextIndexConstants.PROP_INDEX, true);
         root.commit();
 
         //setup augmentors
@@ -393,17 +395,17 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         //indexing assertions
         assertEquals("Indexing augment should get called once", 1, indexingCounter.get());
         assertEquals("No docs should get indexed (augmentor hasn't added any field)",
-                0, getSearcher().getIndexReader().numDocs());
+            0, getSearcher().getIndexReader().numDocs());
 
         String query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [foo1]='bar1'";
         List<String> paths = executeQuery(query, SQL2);
         assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")",
-                paths.get(0).contains("/* no-index "));
+            paths.get(0).contains("/* no-index "));
 
         query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [subChild/foo2]='bar2'";
         paths = executeQuery(query, SQL2);
         assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")",
-                paths.get(0).contains("/* no-index "));
+            paths.get(0).contains("/* no-index "));
     }
 
     //OAK-3576
@@ -462,7 +464,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         query = "EXPLAIN " + query;
         List<String> paths = executeQuery(query, SQL2, false);
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-                paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/* lucene:test-index("));
 
         query = "SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [subChild/foo2]='bar2'";
         executeQuery(query, SQL2);
@@ -470,7 +472,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         query = "EXPLAIN " + query;
         paths = executeQuery(query, SQL2);
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-                paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/* lucene:test-index("));
     }
 
     //OAK-3576
@@ -531,7 +533,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         List<String> paths = executeQuery(query, SQL2, false);
         assertEquals("Query augmentor should get called for full text constraints", 1, queryingCounter.get());
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-                paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/* lucene:test-index("));
 
         queryingCounter.set(0);
         query = "SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE CONTAINS(*, 'bar2')";
@@ -542,7 +544,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         paths = executeQuery(query, SQL2, false);
         assertEquals("Query augmentor should get called for full text constraints", 1, queryingCounter.get());
         assertTrue("property index should have made the index selected (" + paths.get(0) + ")",
-                paths.get(0).contains("/* lucene:test-index("));
+            paths.get(0).contains("/* lucene:test-index("));
     }
 
     @Test
@@ -674,20 +676,20 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         @Override
         public IndexFieldProvider getIndexFieldProvider(String nodeType) {
             return useSuperBehavior?
-                    super.getIndexFieldProvider(nodeType):
-                    (indexFieldProvider != null)?
-                            indexFieldProvider:
-                            IndexFieldProvider.DEFAULT;
+                super.getIndexFieldProvider(nodeType):
+                (indexFieldProvider != null)?
+                    indexFieldProvider:
+                    IndexFieldProvider.DEFAULT;
         }
 
         @NotNull
         @Override
         public FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
             return useSuperBehavior?
-                    super.getFulltextQueryTermsProvider(nodeType):
-                    (fulltextQueryTermsProvider != null)?
-                        fulltextQueryTermsProvider:
-                        FulltextQueryTermsProvider.DEFAULT;
+                super.getFulltextQueryTermsProvider(nodeType):
+                (fulltextQueryTermsProvider != null)?
+                    fulltextQueryTermsProvider:
+                    FulltextQueryTermsProvider.DEFAULT;
         }
     }
 
@@ -700,7 +702,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
 
     private void checkSimpleBehavior(Tree rootTree, int testIndex) throws Exception {
         createNodeWithType(rootTree, "node" + testIndex, TestUtil.NT_TEST)
-                .setProperty("foo", "bar" + testIndex);
+            .setProperty("foo", "bar" + testIndex);
         root.commit();
 
         String query = "SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE contains(*, 'bar" + testIndex + "')";

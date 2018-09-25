@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public interface LuceneIndexReaderFactory {
 
-    List<LuceneIndexReader> createReaders(IndexDefinition definition, NodeState definitionState, String indexPath) throws IOException;
+    List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition, NodeState definitionState, String indexPath) throws IOException;
 }

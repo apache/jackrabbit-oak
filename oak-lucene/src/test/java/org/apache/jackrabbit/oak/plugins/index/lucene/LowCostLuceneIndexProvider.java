@@ -46,7 +46,7 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
         @Override
         public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-            String indexPath = new LuceneIndexLookup(rootState).getOldFullTextIndexPath(filter, tracker);
+            String indexPath = LuceneIndexLookupUtil.getOldFullTextIndexPath(rootState, filter, tracker);
             if (indexPath == null){
                 return Collections.emptyList();
             }

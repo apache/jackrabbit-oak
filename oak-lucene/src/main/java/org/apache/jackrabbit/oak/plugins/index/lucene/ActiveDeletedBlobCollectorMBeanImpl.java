@@ -59,7 +59,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.i
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.done;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManagementOperation;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
 
@@ -109,7 +109,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      *                                      used to purge blobs which have been deleted from lucene indexes.
      * @param executor                      executor for running the collection task
      */
-    ActiveDeletedBlobCollectorMBeanImpl(
+    public ActiveDeletedBlobCollectorMBeanImpl(
             @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector,
             @NotNull Whiteboard whiteboard,
             @NotNull NodeStore store,

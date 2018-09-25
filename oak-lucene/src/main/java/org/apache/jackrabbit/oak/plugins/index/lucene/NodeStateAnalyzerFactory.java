@@ -37,8 +37,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
+import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -62,11 +62,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 
 /**
- * Constructs the TokenizerChain based on NodeState content. Approach taken is similar
- * to one taken in org.apache.solr.schema.FieldTypePluginLoader which is implemented for
- * xml based config. Resource lookup are performed via binary property access
+ * Constructs a Lucene Analyzer from nodes (based on NodeState content).
+ *
+ * Approach taken is similar to one taken in
+ * org.apache.solr.schema.FieldTypePluginLoader which is implemented for xml
+ * based config. Resource lookup are performed via binary property access
  */
-final class NodeStateAnalyzerFactory{
+final class NodeStateAnalyzerFactory {
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
     private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
@@ -80,11 +82,11 @@ final class NodeStateAnalyzerFactory{
     private final ResourceLoader defaultLoader;
     private final Version defaultVersion;
 
-    public NodeStateAnalyzerFactory(Version defaultVersion){
+    NodeStateAnalyzerFactory(Version defaultVersion){
         this(new ClasspathResourceLoader(NodeStateAnalyzerFactory.class.getClassLoader()), defaultVersion);
     }
 
-    public NodeStateAnalyzerFactory(ResourceLoader defaultLoader, Version defaultVersion) {
+    NodeStateAnalyzerFactory(ResourceLoader defaultLoader, Version defaultVersion) {
         this.defaultLoader = defaultLoader;
         this.defaultVersion = defaultVersion;
     }
@@ -239,7 +241,7 @@ final class NodeStateAnalyzerFactory{
     }
 
     private static CharArraySet loadStopwordSet(NodeState file, String name,
-                                                  Version matchVersion) throws IOException {
+                                                Version matchVersion) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
         try {

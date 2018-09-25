@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -34,21 +35,21 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.junit.Assert.assertEquals;
 
 public class IndexStatisticsTest {
     @After
     public void resetFailFlags() {
-        IndexStatistics.failReadingFields = false;
-        IndexStatistics.failReadingSyntheticallyFalliableField = false;
+        LuceneIndexStatistics.failReadingFields = false;
+        LuceneIndexStatistics.failReadingSyntheticallyFalliableField = false;
     }
 
     @Test
     public void numDocs() throws Exception {
         Directory d = createSampleDirectory(2);
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
 
         assertEquals(2, stats.numDocs());
     }
@@ -62,14 +63,14 @@ public class IndexStatisticsTest {
             writer.close();
         }
 
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
         assertEquals(1, stats.numDocs());
     }
 
     @Test
     public void getSimpleFieldDocCnt() throws Exception {
         Directory d = createSampleDirectory(2);
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
 
         assertEquals(2, stats.getDocCountFor("foo"));
     }
@@ -83,15 +84,15 @@ public class IndexStatisticsTest {
             writer.close();
         }
 
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
         assertEquals("Stats don't need to get accurate result which might require reading more",
-                2, stats.getDocCountFor("foo"));
+            2, stats.getDocCountFor("foo"));
     }
 
     @Test
     public void absentFields() throws Exception {
         Directory d = createSampleDirectory(1);
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
 
         assertEquals(1, stats.getDocCountFor("foo"));
         assertEquals(0, stats.getDocCountFor("absent"));
@@ -110,7 +111,7 @@ public class IndexStatisticsTest {
         document.add(new StringField(FieldNames.FULLTEXT_RELATIVE_NODE + "foo", "manualBar", Field.Store.NO));
         document.add(new StringField("foo_facet", "manualBar", Field.Store.NO));
         Directory d = createSampleDirectory(document);
-        IndexStatistics stats = getStats(d);
+        LuceneIndexStatistics stats = getStats(d);
 
         assertEquals(3, stats.getDocCountFor("foo"));
         assertEquals(0, stats.getDocCountFor("absent"));
@@ -122,9 +123,9 @@ public class IndexStatisticsTest {
 
     @Test
     public void unableToIterateFields() throws Exception {
-        IndexStatistics.failReadingFields = true;
+        LuceneIndexStatistics.failReadingFields = true;
 
-        IndexStatistics stats = getStats(createSampleDirectory(100));
+        LuceneIndexStatistics stats = getStats(createSampleDirectory(100));
 
         assertEquals(100, stats.numDocs());
         assertEquals(-1, stats.getDocCountFor("foo"));
@@ -133,12 +134,12 @@ public class IndexStatisticsTest {
 
     @Test
     public void unableToReadCountForJcrTitle() throws Exception {
-        IndexStatistics.failReadingSyntheticallyFalliableField = true;
+        LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
 
         Document doc = new Document();
         doc.add(new StringField("foo1", "bar1", Field.Store.NO));
         doc.add(new StringField(SYNTHETICALLY_FALLIABLE_FIELD, "title", Field.Store.NO));
-        IndexStatistics stats = getStats(createSampleDirectory(doc));
+        LuceneIndexStatistics stats = getStats(createSampleDirectory(doc));
 
         assertEquals(3, stats.numDocs());
         assertEquals(2, stats.getDocCountFor("foo"));
@@ -187,12 +188,12 @@ public class IndexStatisticsTest {
         return new IndexWriter(d, config);
     }
 
-    private static IndexStatistics getStats(Directory d) throws IOException {
+    private static LuceneIndexStatistics getStats(Directory d) throws IOException {
         IndexReader reader = DirectoryReader.open(d);
         // no more reads
         d.close();
 
-        IndexStatistics stats = new IndexStatistics(reader);
+        LuceneIndexStatistics stats = new LuceneIndexStatistics(reader);
         //close reader... Index stats would read numDocs right away
         reader.close();
 

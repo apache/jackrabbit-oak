@@ -27,9 +27,10 @@ import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
@@ -53,7 +54,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexWriter.class.getName() + ".perf"));
 
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
     private final NodeBuilder definitionBuilder;
     private final DirectoryFactory directoryFactory;
     private final String dirName;
@@ -65,7 +66,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private long genAtStart = -1;
     private boolean indexUpdated = false;
 
-    public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
+    public DefaultIndexWriter(LuceneIndexDefinition definition, NodeBuilder definitionBuilder,
                               DirectoryFactory directoryFactory, String dirName, String suggestDirName,
                               boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.definition = definition;

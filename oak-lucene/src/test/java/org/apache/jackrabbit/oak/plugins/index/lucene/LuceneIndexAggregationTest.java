@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -35,7 +36,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
@@ -43,7 +44,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binar
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -67,7 +68,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
         //Include all properties
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
-        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
 
         root.commit();
     }
@@ -85,13 +86,13 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
     /**
      * <code>
-     * <aggregate primaryType="nt:file"> 
+     * <aggregate primaryType="nt:file">
      *   <include>jcr:content</include>
      *   <include>jcr:content/*</include>
      *   <include-property>jcr:content/jcr:lastModified</include-property>
      * </aggregate>
      * <code>
-     * 
+     *
      */
     private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
@@ -101,7 +102,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
     /**
      * simple index aggregation from jcr:content to nt:file
-     * 
+     *
      */
     @Test
     public void testNtFileAggregate() throws Exception {
@@ -400,15 +401,15 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'dog')]", 
+                "//element(*, nt:file)[jcr:contains(., 'dog')]",
                 "xpath", ImmutableList.of("/myFolder/myFile"));
 
         assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'title')]", 
+                "//element(*, nt:file)[jcr:contains(., 'title')]",
                 "xpath", ImmutableList.of("/myFolder/myFile"));
 
         assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]", 
+                "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]",
                 "xpath", ImmutableList.of("/myFolder/myFile"));
 
         // double aggregation dupes
@@ -424,21 +425,21 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
     @Test
     public void oak3371AggregateV1() throws CommitFailedException {
-        
+
         Tree indexdef = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertNotNull(indexdef);
         assertTrue(indexdef.exists());
-        indexdef.setProperty(LuceneIndexConstants.COMPAT_MODE, 1L);
+        indexdef.setProperty(FulltextIndexConstants.COMPAT_MODE, 1L);
         indexdef.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         root.commit();
-        
+
         oak3371();
     }
 
     private void oak3371() throws CommitFailedException {
         setTraversalEnabled(false);
         Tree test, t;
-        
+
         test = root.getTree("/").addChild("test");
         t = test.addChild("a");
         t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
@@ -452,7 +453,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
         t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
         t.setProperty("foo", "bar cat");
         root.commit();
-        
+
         assertQuery(
             "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar')",
             of("/test/a", "/test/d"));

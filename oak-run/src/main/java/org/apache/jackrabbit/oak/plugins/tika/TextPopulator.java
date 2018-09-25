@@ -40,8 +40,8 @@ import java.io.IOException;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.FULLTEXT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.tika.CSVFileBinaryResourceProvider.FORMAT;
 
 class TextPopulator {

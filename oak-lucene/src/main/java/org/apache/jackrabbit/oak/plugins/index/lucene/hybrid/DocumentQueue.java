@@ -37,11 +37,10 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Striped;
-
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -243,9 +242,9 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             return;
         }
 
-        IndexNode indexNode = tracker.acquireIndexNode(indexPath);
+        LuceneIndexNode indexNode = tracker.acquireIndexNode(indexPath);
         if (indexNode == null) {
-            log.debug("No IndexNode found for index [{}].", indexPath);
+            log.debug("No LuceneIndexNode found for index [{}].", indexPath);
             return;
         }
 
@@ -254,7 +253,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
             boolean docAdded = false;
             for (LuceneDoc doc : docs) {
                 if (writer == null) {
-                    //IndexDefinition per IndexNode might have changed and local
+                    //IndexDefinition per LuceneIndexNode might have changed and local
                     //indexing is disabled. Ignore
                     log.debug("No local IndexWriter found for index [{}]. Skipping index " +
                             "entry for [{}]", indexPath, doc.docPath);
