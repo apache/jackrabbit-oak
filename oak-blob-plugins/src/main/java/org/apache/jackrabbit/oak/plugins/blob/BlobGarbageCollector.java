@@ -71,7 +71,6 @@ public interface BlobGarbageCollector {
      * Returns consistency operation statistics
      *
      * @return stats object
-     * @throws Exception
      */
     OperationsStatsMBean getConsistencyOperationStats();
 }
