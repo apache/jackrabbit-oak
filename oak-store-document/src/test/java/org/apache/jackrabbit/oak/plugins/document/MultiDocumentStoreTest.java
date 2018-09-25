@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -28,11 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
@@ -224,5 +225,115 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         assertNotNull(foo);
         assertEquals(2L, foo.get("_ds1"));
         assertEquals(1L, foo.get("_ds2"));
+    }
+
+    @Test
+    public void testUpdateOrCreateDeletedDocument() {
+
+        String id = Utils.getIdFromPath("/foo");
+        removeMe.add(id);
+
+        UpdateOp op1 = new UpdateOp(id, true);
+        assertNull(ds1.createOrUpdate(Collection.NODES, op1));
+
+        NodeDocument d = ds1.find(Collection.NODES, id);
+        assertNotNull(d);
+        Long mc = d.getModCount();
+ 
+        ds2.remove(Collection.NODES, id);
+
+        UpdateOp op2 = new UpdateOp(id, true);
+        NodeDocument prev = ds1.createOrUpdate(Collection.NODES, op2);
+
+        assertNull(prev);
+
+        // make sure created
+        NodeDocument created = ds1.find(Collection.NODES, id);
+        assertNotNull(created);
+        assertEquals(mc, created.getModCount());
+    }
+
+    @Test
+    public void testUpdateNoCreateDeletedDocument() {
+        String id = Utils.getIdFromPath("/foo");
+        removeMe.add(id);
+
+        UpdateOp op1 = new UpdateOp(id, true);
+        assertNull(ds1.createOrUpdate(Collection.NODES, op1));
+
+        NodeDocument d = ds1.find(Collection.NODES, id);
+        assertNotNull(d);
+
+        ds2.remove(Collection.NODES, id);
+
+        UpdateOp op2 = new UpdateOp(id, false);
+        NodeDocument prev = ds1.createOrUpdate(Collection.NODES, op2);
+
+        assertNull(prev);
+
+        // make sure not created
+        assertNull(ds1.find(Collection.NODES, id));
+    }
+
+    @Test
+    public void batchUpdateNoCreateDeletedDocument() {
+        batchUpdateNoCreateDeletedDocument(2);
+    }
+
+    @Test
+    public void batchUpdateNoCreateDeletedDocumentMany() {
+        batchUpdateNoCreateDeletedDocument(10);
+    }
+
+    private void batchUpdateNoCreateDeletedDocument(int numUpdates) {
+        String id1 = this.getClass().getName() + ".batchUpdateNoCreateDeletedDocument";
+        List<String> ids = new ArrayList<>();
+        for (int i = 1; i < numUpdates; i++) {
+            ids.add(id1 + "b" + i);
+        }
+
+        removeMe.add(id1);
+        removeMe.addAll(ids);
+
+        List<String> allIds = new ArrayList<>(ids);
+        allIds.add(id1);
+        // create docs
+        for (String id : allIds) {
+            UpdateOp up = new UpdateOp(id, true);
+            assertNull(ds1.createOrUpdate(Collection.NODES, up));
+            NodeDocument doc = ds1.find(Collection.NODES, id);
+            assertNotNull(doc);
+        }
+
+        // remove id1 on ds2
+        ds2.remove(Collection.NODES, id1);
+
+        // bulk update
+        List<UpdateOp> ops = new ArrayList<>();
+        ops.add(new UpdateOp(id1, false));
+        for (String id : ids) {
+            ops.add(new UpdateOp(id, false));
+        }
+
+        List<NodeDocument> result = ds1.createOrUpdate(Collection.NODES, ops);
+        assertEquals(numUpdates, result.size());
+
+        // id1 result should be reported as null and not be created
+        assertNull(result.get(0));
+        assertNull(ds1.find(Collection.NODES, id1));
+
+        // for other ids result should be reported with previous doc
+        for (int i = 1; i < numUpdates; i++) {
+            NodeDocument prev = result.get(i);
+            assertNotNull(prev);
+            String id = ids.get(i - 1);
+            assertEquals(id, prev.getId());
+
+            NodeDocument updated = ds1.find(Collection.NODES, id);
+            assertNotNull(updated);
+            if (prev.getModCount() != null) {
+                assertNotEquals(updated.getModCount(), prev.getModCount());
+            }
+        }
     }
 }

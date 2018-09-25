@@ -140,6 +140,17 @@ public class MongoDocumentStore implements DocumentStore {
 
     public static final int IN_CLAUSE_BATCH_SIZE = 500;
 
+    /**
+     * A conflicting ID assignment on insert. Used by
+     * {@link #sendBulkUpdate(Collection, java.util.Collection, Map)} for
+     * {@code UpdateOp} with {@code isNew == false}. An upsert with this
+     * operation will always fail when there is no existing document.
+     */
+    private static final Map CONFLICT_ON_INSERT = new BasicDBObject(
+            "$setOnInsert",
+            new BasicDBObject(Document.ID, "a").append(Document.ID, "b")
+    ).toMap();
+
     private MongoCollection<BasicDBObject> nodes;
     private final MongoCollection<BasicDBObject> clusterNodes;
     private final MongoCollection<BasicDBObject> settings;
@@ -891,7 +902,7 @@ public class MongoDocumentStore implements DocumentStore {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
-        Bson update = createUpdate(updateOp, false);
+        Bson update = createUpdate(updateOp, !upsert);
 
         Lock lock = null;
         if (collection == Collection.NODES) {
@@ -959,7 +970,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             });
 
-            if (oldNode == null){
+            if (oldNode == null && upsert) {
                 newEntry = true;
             }
 
@@ -982,6 +993,9 @@ public class MongoDocumentStore implements DocumentStore {
             } else {
                 // updateOp without conditions and not an upsert
                 // this means the document does not exist
+                if (collection == Collection.NODES) {
+                    nodesCache.invalidate(updateOp.getId());
+                }
             }
             return oldDoc;
         } catch (Exception e) {
@@ -1001,7 +1015,7 @@ public class MongoDocumentStore implements DocumentStore {
             throws DocumentStoreException {
         log("createOrUpdate", update);
         UpdateUtils.assertUnconditional(update);
-        T doc = findAndModify(collection, update, true, false);
+        T doc = findAndModify(collection, update, update.isNew(), false);
         log("createOrUpdate returns ", doc);
         return doc;
     }
@@ -1220,14 +1234,18 @@ public class MongoDocumentStore implements DocumentStore {
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
             Bson query = createQueryForUpdate(id, updateOp.getConditions());
+            // fail on insert when isNew == false
+            boolean failInsert = !updateOp.isNew();
             T oldDoc = oldDocs.get(id);
             if (oldDoc == null || oldDoc == NodeDocument.NULL) {
                 query = Filters.and(query, Filters.exists(Document.MOD_COUNT, false));
-                writes.add(new UpdateOneModel<>(query, createUpdate(updateOp, true), new UpdateOptions().upsert(true)));
             } else {
                 query = Filters.and(query, Filters.eq(Document.MOD_COUNT, oldDoc.getModCount()));
-                writes.add(new UpdateOneModel<>(query, createUpdate(updateOp, false), new UpdateOptions().upsert(true)));
             }
+            writes.add(new UpdateOneModel<>(query,
+                    createUpdate(updateOp, failInsert),
+                    new UpdateOptions().upsert(true))
+            );
             bulkIds[i++] = id;
         }
 
@@ -1631,11 +1649,11 @@ public class MongoDocumentStore implements DocumentStore {
      * Creates a MongoDB update object from the given UpdateOp.
      *
      * @param updateOp the update op.
-     * @param includeId whether to include the SET id operation
+     * @param failOnInsert whether to create an update that will fail on insert.
      * @return the DBObject.
      */
-    @NotNull
-    private static BasicDBObject createUpdate(UpdateOp updateOp, boolean includeId) {
+    private static BasicDBObject createUpdate(UpdateOp updateOp,
+                                              boolean failOnInsert) {
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
@@ -1643,9 +1661,6 @@ public class MongoDocumentStore implements DocumentStore {
 
         // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
-        if (includeId) {
-            setUpdates.append(Document.ID, updateOp.getId());
-        }
 
         // other updates
         for (Entry<Key, Operation> entry : updateOp.getChanges().entrySet()) {
@@ -1685,6 +1700,10 @@ public class MongoDocumentStore implements DocumentStore {
         }
         if (!unsetUpdates.isEmpty()) {
             update.append("$unset", unsetUpdates);
+        }
+
+        if (failOnInsert) {
+            update.putAll(CONFLICT_ON_INSERT);
         }
 
         return update;

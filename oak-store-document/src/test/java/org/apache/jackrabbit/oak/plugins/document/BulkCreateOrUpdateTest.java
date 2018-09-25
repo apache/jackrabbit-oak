@@ -350,4 +350,68 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
             assertEquals("The value is not correct", 100l, newDoc.get("prop_" + i));
         }
     }
+
+    @Test
+    public void testBulkCreateOrUpdateIsNewFalse() {
+        bulkCreateOrUpdateIsNewFalse(2);
+    }
+
+    @Test
+    public void testBulkCreateOrUpdateIsNewFalseMany() {
+        bulkCreateOrUpdateIsNewFalse(10);
+    }
+
+    private void bulkCreateOrUpdateIsNewFalse(int numUpdates) {
+        String id1 = this.getClass().getName() + ".testBulkCreateOrUpdateIsNewFalse";
+        List<String> ids = new ArrayList<>();
+        for (int i = 1; i < numUpdates; i++) {
+            ids.add(id1 + "b" + i);
+        }
+
+        removeMe.add(id1);
+        removeMe.addAll(ids);
+
+        // remove id1
+        super.ds.remove(Collection.NODES, id1);
+        List<NodeDocument> initial = new ArrayList<>();
+        // insert other ids
+        for (String id : ids) {
+            UpdateOp up = new UpdateOp(id, true);
+            assertNull(super.ds.createOrUpdate(Collection.NODES, up));
+            NodeDocument doc = super.ds.find(Collection.NODES, id);
+            assertNotNull(doc);
+            initial.add(doc);
+        }
+
+        // bulk update
+        List<UpdateOp> ops = new ArrayList<>();
+        ops.add(new UpdateOp(id1, false));
+        for (String id : ids) {
+            ops.add(new UpdateOp(id, false));
+        }
+
+        List<NodeDocument> result = super.ds.createOrUpdate(Collection.NODES, ops);
+        assertEquals(numUpdates, result.size());
+
+        // id1 result should be reported as null and not be created
+        assertNull(result.get(0));
+        assertNull(ds.find(Collection.NODES, id1));
+
+        // for other ids result should be reported with previous doc
+        for (int i = 1; i < numUpdates; i++) {
+            NodeDocument prev = result.get(i);
+            assertNotNull(prev);
+            String id = ids.get(i - 1);
+            assertEquals(id, prev.getId());
+            if (prev.getModCount() != null) {
+                assertEquals(initial.get(i - 1).getModCount(), prev.getModCount());
+            }
+
+            NodeDocument updated = super.ds.find(Collection.NODES, id);
+            assertNotNull(updated);
+            if (prev.getModCount() != null) {
+                assertNotEquals(updated.getModCount(), prev.getModCount());
+            }
+        }
+    }
 }

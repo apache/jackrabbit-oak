@@ -108,7 +108,7 @@ class RecoveryLock {
             }
             ClusterNodeInfoDocument old = store.findAndUpdate(CLUSTER_NODES, update);
             if (old == null) {
-                throw new RuntimeException("ClusterNodeInfo document for " + clusterId + " missing.");
+                throw new DocumentStoreException("ClusterNodeInfo document for " + clusterId + " does not exist.");
             }
             LOG.info("Released recovery lock for cluster id {} (recovery successful: {})",
                     clusterId, success);
