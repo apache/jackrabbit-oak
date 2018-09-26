@@ -55,20 +55,20 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
   private final FulltextIndexEditorContext<D> context;
 
-  /** Name of this node, or {@code null} for the root node. */
+  /* Name of this node, or {@code null} for the root node. */
   private final String name;
 
-  /** Parent editor or {@code null} if this is the root editor. */
+  /* Parent editor or {@code null} if this is the root editor. */
   private final FulltextIndexEditor parent;
 
-  /** Path of this editor, built lazily in {@link #getPath()}. */
+  /* Path of this editor, built lazily in {@link #getPath()}. */
   private String path;
 
   private boolean propertiesChanged = false;
 
   private final List<PropertyState> propertiesModified = Lists.newArrayList();
 
-  /**
+  /*
    * Flag indicating if the current tree being traversed has a deleted parent.
    */
   private final boolean isDeleted;
@@ -304,7 +304,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   }
 
 
-  /**
+  /*
    * Determines which all matchers are affected by this property change
    *
    * @param name modified property name

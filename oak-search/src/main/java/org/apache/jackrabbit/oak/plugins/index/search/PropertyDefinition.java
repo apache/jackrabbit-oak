@@ -62,6 +62,7 @@ public class PropertyDefinition {
     public final String name;
 
     private final int propertyType;
+
     /**
      * The boost value for a property.
      */

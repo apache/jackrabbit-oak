@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A {@link DocumentMaker} is responsible for creating an instance of a document {@link D} to be indexed.
+ * A {@link DocumentMaker} is responsible for creating an instance of a document D to be indexed.
  * For Apache Lucene that would be a Lucene {@code Document}, for Apache Solr that might be a {@code SolrInputDocument}, etc.
  */
 public interface DocumentMaker<D> {

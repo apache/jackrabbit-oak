@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 
 /**
- * A {@link FulltextIndexWriter} is responsible for writing / deleting documents of type {@code D} to the index
+ * A {@link FulltextIndexWriter} is responsible for writing / deleting documents of type D to the index
  * implementation underlying persistence layer.
  *
- * @param <D>
+ *
  */
 public interface FulltextIndexWriter<D> {
 
