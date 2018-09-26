@@ -71,9 +71,8 @@ public class FulltextIndexPlanner {
 
     public static final int DEFAULT_PROPERTY_WEIGHT = Integer.getInteger("oak.fulltext.defaultPropertyWeight", 5);
 
-
     /**
-     * IndexPaln Attribute name which refers to the name of the fields that should be used for facets.
+     * IndexPlan Attribute name which refers to the name of the fields that should be used for facets.
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
@@ -410,10 +409,9 @@ public class FulltextIndexPlanner {
         return canHandleNativeFunction ? defaultPlan().setEstimatedEntryCount(1) : null;
     }
 
-    /**
+    /*
      * Check if there is a mismatch between QueryPaths associated with index
      * and path restriction specified in query
-
      * @return true if QueryPaths and path restrictions do not have any conflict
      */
     private boolean checkForQueryPaths() {
@@ -569,7 +567,7 @@ public class FulltextIndexPlanner {
         return true;
     }
 
-    /**
+    /*
      * Computes the indexedProps which can be part of query by virtue of relativizing i.e.
      * if query is on jcr:content/keyword then perform search on keyword and change parent
      * path to jcr:content
@@ -907,7 +905,7 @@ public class FulltextIndexPlanner {
         return true;
     }
 
-    /**
+    /*
      * Determine if the propertyName of a fulltext term indicates current node
      * @param propertyName property name in the full text term clause
      */

@@ -57,7 +57,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 public abstract class FulltextIndexTracker {
 
-    /** Logger instance. */
     private static final Logger log = LoggerFactory.getLogger(FulltextIndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(FulltextIndexTracker.class.getName() + ".perf"));

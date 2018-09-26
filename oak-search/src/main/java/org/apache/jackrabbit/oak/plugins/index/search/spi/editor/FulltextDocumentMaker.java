@@ -52,20 +52,20 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 /**
  * Abstract implementation of a {@link DocumentMaker}.
  *
- * @param <D> the type of documents to be indexed specific to subclasses implementations
+ * D is the type of entities / documents to be indexed specific to subclasses implementations.
  */
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    protected final FulltextBinaryTextExtractor textExtractor;
+    private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
-                               @NotNull IndexDefinition.IndexingRule indexingRule,
+                               IndexDefinition.IndexingRule indexingRule,
                                @NotNull String path) {
         this.textExtractor = textExtractor;
         this.definition = checkNotNull(definition);
@@ -75,7 +75,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract D initDoc();
 
-    protected abstract D finalizeDoc(D fields, boolean dirty, boolean facet) throws IOException;
+    protected abstract D finalizeDoc(D doc, boolean dirty, boolean facet) throws IOException;
 
     protected abstract boolean isFacetingEnabled();
 
@@ -420,13 +420,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return dirty;
     }
 
-    /**
+    /*
      * Determine if the property as defined by PropertyDefinition exists or not.
      *
-     * <p>For relative property if the intermediate nodes do not exist then property is
-     * <bold>not</bold> considered to be null</p>
+     * For relative property if the intermediate nodes do not exist then property is
+     * not considered to be null
      *
-     * @return true if the property does not exist
      */
     private boolean isPropertyNull(NodeState state, PropertyDefinition pd){
         NodeState propertyNode = getPropertyNode(state, pd);
@@ -436,13 +435,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return !propertyNode.hasProperty(pd.nonRelativeName);
     }
 
-    /**
+    /*
      * Determine if the property as defined by PropertyDefinition exists or not.
      *
-     * <p>For relative property if the intermediate nodes do not exist then property is
-     * considered to be null</p>
-     *
-     * @return true if the property exists
+     * For relative property if the intermediate nodes do not exist then property is
+     * considered to be null
      */
     private boolean isPropertyNotNull(NodeState state, PropertyDefinition pd){
         NodeState propertyNode = getPropertyNode(state, pd);
@@ -463,22 +460,17 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return node;
     }
 
-    /**
+    /*
      * index aggregates on a certain path
-     * @param path the path of the node
-     * @param fields the list of fields
-     * @param state the node state
-     * @return an array of booleans whose first element is {@code true} if any indexing has happened
-     * and the second element is {@code true} if facets on any (aggregate) property have been indexed
      */
-    private boolean[] indexAggregates(final String path, final D fields,
+    private boolean[] indexAggregates(final String path, final D document,
                                     final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
         final AtomicBoolean facetFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
             @Override
             public void onResult(Aggregate.NodeIncludeResult result) {
-                boolean dirty = indexAggregatedNode(path, fields, result);
+                boolean dirty = indexAggregatedNode(path, document, result);
                 if (dirty) {
                     dirtyFlag.set(true);
                 }
@@ -488,10 +480,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             public void onResult(Aggregate.PropertyIncludeResult result) {
                 boolean dirty = false;
                 if (result.pd.ordered) {
-                    dirty |= addTypedOrderedFields(fields, result.propertyState,
+                    dirty |= addTypedOrderedFields(document, result.propertyState,
                             result.propertyPath, result.pd);
                 }
-                dirty |= indexProperty(path, fields, state, result.propertyState,
+                dirty |= indexProperty(path, document, state, result.propertyState,
                         result.propertyPath, result.pd);
 
                 if (result.pd.facet) {
@@ -504,13 +496,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         });
         return new boolean[]{dirtyFlag.get(), facetFlag.get()};
     }
-    /**
+
+    /*
      * Create the fulltext field from the aggregated nodes. If result is for aggregate for a relative node
      * include then
-     * @param path current node path
-     * @param doc document
-     * @param result aggregate result
-     * @return true if a field was created for passed node result
      */
     private boolean indexAggregatedNode(String path, D doc, Aggregate.NodeIncludeResult result) {
         //rule for node being aggregated might be null if such nodes
@@ -579,10 +568,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return definition.getIndexName();
     }
 
-    /**
+    /*
      * Extracts the local name of the current node ignoring any namespace prefix
-     *
-     * @param name node name
      */
     private void addNodeNameField(D doc, String name) {
         //TODO Need to check if it covers all cases

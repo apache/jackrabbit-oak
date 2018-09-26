@@ -26,21 +26,57 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface TextExtractionStatsMBean {
+
+    /**
+     * Type of this MBean
+     */
     String TYPE = "TextExtractionStats";
 
+    /**
+     * Check whether pre extracted text provider is configured
+     * @return {@code true} if configured, {@code false} otherwise
+     */
     boolean isPreExtractedTextProviderConfigured();
 
+    /**
+     * Check whether pre extracted cache should always be used
+     * @return {@code true} if PEC should always be used, {@code false} otherwise
+     */
     boolean isAlwaysUsePreExtractedCache();
 
+    /**
+     * Number of text extraction operations performed
+     * @return the text extraction count
+     */
     int getTextExtractionCount();
 
+    /**
+     * Total time taken by text extraction
+     * @return total time taken
+     */
     long getTotalTime();
 
+    /**
+     * Pre fetch count
+     * @return no. of prefetch operations
+     */
     int getPreFetchedCount();
 
+    /**
+     * Size of extracted size
+     * @return extracted text size
+     */
     String getExtractedTextSize();
 
+    /**
+     * Bytes read by text extraction
+     * @return bytes read
+     */
     String getBytesRead();
 
+    /**
+     * Count of extractions gone timeout
+     * @return timeout count
+     */
     int getTimeoutCount();
 }

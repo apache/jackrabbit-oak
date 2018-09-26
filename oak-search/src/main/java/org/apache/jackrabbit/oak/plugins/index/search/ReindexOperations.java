@@ -26,6 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext.configureUniqueId;
 
+/**
+ * Reindexing operations
+ */
 public class ReindexOperations {
     private final NodeState root;
     private final NodeBuilder definitionBuilder;
@@ -40,6 +43,11 @@ public class ReindexOperations {
         this.indexDefBuilder = indexDefBuilder;
     }
 
+    /**
+     * Update index definition based on base or latest builder state
+     * @param useStateFromBuilder whether to use the latest builder state
+     * @return the up to date index definition
+     */
     public IndexDefinition apply(boolean useStateFromBuilder) {
         IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
         definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
