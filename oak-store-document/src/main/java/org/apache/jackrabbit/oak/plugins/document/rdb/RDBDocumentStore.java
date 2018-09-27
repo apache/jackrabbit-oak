@@ -423,6 +423,12 @@ public class RDBDocumentStore implements DocumentStore {
         for (UpdateOp updateOp : updateOps) {
             UpdateOp conflictedOp = operationsToCover.remove(updateOp.getId());
             if (conflictedOp != null) {
+                if (collection == Collection.NODES) {
+                    LOG.debug("update conflict on {}, invalidating cache and retrying...", updateOp.getId());
+                    nodesCache.invalidate(updateOp.getId());
+                } else {
+                    LOG.debug("update conflict on {}, retrying...", updateOp.getId());
+                }
                 results.put(conflictedOp, createOrUpdate(collection, updateOp));
             } else if (duplicates.contains(updateOp)) {
                 results.put(updateOp, createOrUpdate(collection, updateOp));
@@ -1621,10 +1627,17 @@ public class RDBDocumentStore implements DocumentStore {
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
+                                LOG.debug("suspect update from different instance (current modcount: {}), refetching: {}...",
+                                        newmodcount, update.getId());
                                 if (collection == Collection.NODES) {
                                     nodesCache.invalidate(update.getId());
                                 }
                                 oldDoc = readDocumentUncached(collection, update.getId(), null);
+                                if (oldDoc == null) {
+                                    LOG.debug("after refetch: {} is gone", update.getId());
+                                } else {
+                                    LOG.debug("after refetch: modcount for {} is {}", update.getId(), modcountOf(oldDoc));
+                                }
                             }
                         }
 
