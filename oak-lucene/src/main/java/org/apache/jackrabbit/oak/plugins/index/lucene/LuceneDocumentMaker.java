@@ -64,18 +64,18 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
 
-    public LuceneDocumentMaker(@NotNull IndexDefinition definition,
-                               @NotNull IndexDefinition.IndexingRule indexingRule,
-                               @NotNull String path) {
+    public LuceneDocumentMaker(IndexDefinition definition,
+                               IndexDefinition.IndexingRule indexingRule,
+                               String path) {
         this(null, null, null, definition, indexingRule, path);
     }
 
     public LuceneDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @Nullable FacetsConfigProvider facetsConfigProvider,
                                @Nullable IndexAugmentorFactory augmentorFactory,
-                               @NotNull IndexDefinition definition,
-                               @NotNull IndexDefinition.IndexingRule indexingRule,
-                               @NotNull String path) {
+                               IndexDefinition definition,
+                               IndexDefinition.IndexingRule indexingRule,
+                               String path) {
         super(textExtractor, definition, indexingRule, path);
         this.facetsConfigProvider = facetsConfigProvider;
         this.augmentorFactory = augmentorFactory;
