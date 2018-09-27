@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
@@ -137,10 +138,7 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
  * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
  * </ul>
- * <p>
  * <pre>{@code
- * <pre>{@code
- * {
  * {
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("lucene")
@@ -150,7 +148,6 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  *         .setProperty("reindex", "true");
  * }
  * }</pre>
- *
  * @see QueryIndex
  *
  */

@@ -170,7 +170,6 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
  * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
  * </ul>
- * <p>
  * <pre>{@code
  * {
  *     NodeBuilder index = root.child("oak:index");
@@ -885,7 +884,7 @@ public class LucenePropertyIndex extends FulltextIndex {
      * play properly when sent to lucene.
      *
      * @param qs the list of queries. Cannot be null.
-     * @return
+     * @return the request facade
      */
     @NotNull
     public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<Query> qs) {
