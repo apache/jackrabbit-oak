@@ -53,6 +53,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
     private PrivilegeManagerImpl privilegeManager;
 
     @Before
+    @Override
     public void before() throws Exception {
         super.before();
         privilegeManager = create(root);
@@ -167,6 +168,16 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
     @Test(expected = RepositoryException.class)
     public void testRegisterPrivilegeReservedNamespace() throws Exception {
         privilegeManager.registerPrivilege("jcr:customPrivilege", true, new String[]{"jcr:read", "jcr:write"});
+    }
+
+    @Test
+    public void testRegisterAggregated() throws Exception {
+        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "jcr:read", "jcr:write" });
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testRegisterAggregatedNonExisting() throws Exception {
+        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "test:nan" });
     }
 
     @Test(expected = RepositoryException.class)

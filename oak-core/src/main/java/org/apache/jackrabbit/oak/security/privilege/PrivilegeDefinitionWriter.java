@@ -140,6 +140,9 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             bits = PrivilegeBits.BUILT_IN.get(name);
         } else if (isAggregate) {
             bits = bitsMgr.getBits(declAggrNames);
+            if (bits.isEmpty()) {
+                throw new RepositoryException("Illegal aggregation of non-exising privileges on '" + name + "'.");
+            }
         } else {
             bits = next();
         }
