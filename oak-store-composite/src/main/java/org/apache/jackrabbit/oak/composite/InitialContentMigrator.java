@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
 
 public class InitialContentMigrator {
 
@@ -52,7 +53,8 @@ public class InitialContentMigrator {
 
     private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
 
-    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of("/" + CLUSTER_CONFIG_NODE);
+    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet
+        .of("/" + CLUSTER_CONFIG_NODE, NAMESPACES_PATH);
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
