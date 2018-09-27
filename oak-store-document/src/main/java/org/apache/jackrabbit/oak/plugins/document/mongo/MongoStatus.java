@@ -22,6 +22,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientException;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
 import com.mongodb.client.MongoCollection;
@@ -236,8 +237,18 @@ public class MongoStatus implements ServerMonitorListener {
 
     private BasicDBObject getServerStatus() {
         if (serverStatus == null) {
-            serverStatus = client.getDatabase(dbName).runCommand(
-                    new BasicDBObject("serverStatus", 1), BasicDBObject.class);
+            try {
+                serverStatus = client.getDatabase(dbName).runCommand(
+                        new BasicDBObject("serverStatus", 1), BasicDBObject.class);
+            } catch (MongoCommandException e) {
+                if (e.getErrorCode() == -1) {
+                    // OAK-7485: workaround when running on
+                    // MongoDB Atlas shared instances
+                    serverStatus = new BasicDBObject();
+                } else {
+                    throw e;
+                }
+            }
         }
         return serverStatus;
     }
