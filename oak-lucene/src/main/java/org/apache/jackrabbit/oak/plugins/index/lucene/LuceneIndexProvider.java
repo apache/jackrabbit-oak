@@ -90,6 +90,8 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     /**
      * sets the default node aggregator that will be used at query time
+     *
+     * @param aggregator the node aggregator
      */
     public void setAggregator(QueryIndex.NodeAggregator aggregator) {
         this.aggregator = aggregator;

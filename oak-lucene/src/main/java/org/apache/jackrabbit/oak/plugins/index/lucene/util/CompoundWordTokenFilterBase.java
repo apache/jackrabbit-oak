@@ -152,7 +152,11 @@ public abstract class CompoundWordTokenFilterBase extends TokenFilter {
     public final CharSequence txt;
     public final int startOffset, endOffset;
 
-    /** Construct the compound token based on a slice of the current {@link CompoundWordTokenFilterBase#termAtt}. */
+    /** Construct the compound token based on a slice of the current {@link CompoundWordTokenFilterBase#termAtt}.
+     *
+     * @param offset  the initial offset
+     * @param length  the token length
+     * */
     public CompoundToken(int offset, int length) {
       this.txt = CompoundWordTokenFilterBase.this.termAtt.subSequence(offset, offset + length);
       

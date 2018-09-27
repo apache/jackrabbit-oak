@@ -76,7 +76,9 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
         return facetsConfig;
     }
 
-    /** Only set for testing */
+    /** Only set for testing
+     * @param c clock
+     * */
     public static void setClock(Clock c) {
         FulltextIndexEditorContext.setClock(c);
     }
