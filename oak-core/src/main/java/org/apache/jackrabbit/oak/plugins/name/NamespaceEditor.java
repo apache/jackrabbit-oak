@@ -46,6 +46,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class NamespaceEditor extends DefaultEditor {
 
+    /**
+     * Flag controlling the strictness of the check to disallow modifications to
+     * the internal node 'ns:data'. If enabled, any changes will throw a
+     * CommitFailedException, otherwise the index node will be rebuilt on any
+     * external change.
+     */
+    private static final boolean strictIntegrityCheck = Boolean.getBoolean("oak.strictIntegrityCheck");
+
     private final NodeBuilder builder;
 
     private boolean modified = false;
@@ -137,7 +145,11 @@ class NamespaceEditor extends DefaultEditor {
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) throws CommitFailedException {
         if (REP_NSDATA.equals(name) && !before.equals(after)) {
-            throw modificationNotAllowed(name);
+            if (strictIntegrityCheck) {
+                throw modificationNotAllowed(name);
+            } else {
+                modified = true;
+            }
         }
         return null;
     }
