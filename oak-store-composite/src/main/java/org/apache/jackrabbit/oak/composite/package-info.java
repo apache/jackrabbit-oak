@@ -47,8 +47,8 @@
  *
  *  <p>The {@link org.apache.jackrabbit.oak.spi.mount.Mount#getPathFragmentName()} method defines
  *  a name pattern that can be used by mounted stores to contribute to a patch which is not
- *  owned by them. For instance, a mount named <em>apps</em> which owns <tt>/libs,/apps</tt>
- *  can own another subtree anywhere in the repository given that a node named <tt>:oak-mount-apps</tt>
+ *  owned by them. For instance, a mount named <em>apps</em> which owns {@code /libs,/apps}
+ *  can own another subtree anywhere in the repository given that a node named {@code :oak-mount-apps}
  *  is found.
  *
  *  <p>The current implementation naively queries all stores whenever the child node list is prepared.
