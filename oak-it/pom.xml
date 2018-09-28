@@ -229,5 +229,12 @@
             <artifactId>docker-junit-rule</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <!-- see https://issues.apache.org/jira/browse/OAK-7787 -->
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>1.1.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
