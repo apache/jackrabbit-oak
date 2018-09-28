@@ -123,14 +123,14 @@ public class TypeEditor extends DefaultEditor {
     };
     
     /**
-     * Creates a new <tt>TypeEditor</tt> instance
+     * Creates a new {@linkplain TypeEditor} instance
      * 
      * @param callback the callback to use when a constraint violation is found. The client must
      *   check the results of the callback invocations if the specified callback does not
      *   immediately propagate constraint violations as checked exceptions.
-     * @param typesToCheck the types to check for. If <tt>null</tt>, this node is checked. Otherwise
+     * @param typesToCheck the types to check for. If {@code null}, this node is checked. Otherwise
      *  it is checked if its primary type or one of it's mixin types is contained in this parameters
-     * @param types the <tt>/jcr:system/jcr:nodeTypes</tt> node
+     * @param types the {@code /jcr:system/jcr:nodeTypes} node
      * @param primary the node's primary type
      * @param mixins the node's mixins
      * @param builder a builder containing the current state of the node to check. May be used to set
