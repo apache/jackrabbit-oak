@@ -154,7 +154,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     
     
     /**
-     * Search for a given set of values, returning <tt>IndexEntry</tt> results
+     * Search for a given set of values, returning {@linkplain IndexEntry} results
      * 
      * @param filter the filter (can optionally be used for optimized query execution)
      * @param indexName the name of the index (for logging)

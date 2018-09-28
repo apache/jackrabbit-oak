@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Holds information related to the {@link Mount}s configured in a <tt>ContentRepository</tt>.
+ * Holds information related to the {@link Mount}s configured in a {@code ContentRepository}.
  * 
  * <p>The configuration may either be trivial - only a default mount is configured, or defining at least one non-default mount.</p>
  */
@@ -56,7 +56,7 @@ public interface MountInfoProvider {
      *
      * @param name name of the mount
      * @return mount instance for given mount name. If no mount exists for given name
-     * <tt>null</tt> would be returned
+     * {@code null} would be returned
      */
     @Nullable
     Mount getMountByName(String name);
