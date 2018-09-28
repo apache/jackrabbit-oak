@@ -404,10 +404,10 @@ public final class NodeDocument extends Document {
     }
 
     /**
-     * Returns <tt>true</tt> if this node possibly has children.
+     * Returns {@code true} if this node possibly has children.
      * If false then that indicates that there are no child
      *
-     * @return <tt>true</tt> if this node has children
+     * @return {@code true} if this node has children
      */
     public boolean hasChildren() {
         Boolean childrenFlag = (Boolean) get(CHILDREN_FLAG);
@@ -415,7 +415,7 @@ public final class NodeDocument extends Document {
     }
 
     /**
-     * Returns <tt>true</tt> if this document was ever deleted in past.
+     * Returns {@code true} if this document was ever deleted in past.
      */
     public boolean wasDeletedOnce() {
         Boolean deletedOnceFlag = (Boolean) get(DELETED_ONCE);
@@ -426,7 +426,7 @@ public final class NodeDocument extends Document {
      * Checks if this document has been modified after the given lastModifiedTime
      *
      * @param lastModifiedTime time to compare against in millis
-     * @return <tt>true</tt> if this document was modified after the given
+     * @return {@code true} if this document was modified after the given
      *  lastModifiedTime
      */
     public boolean hasBeenModifiedSince(long lastModifiedTime){
@@ -439,7 +439,7 @@ public final class NodeDocument extends Document {
      * time
      *
      * @param maxRevisionTime timemstamp (in millis) of revision to check
-     * @return <tt>true</tt> if timestamp of maximum revision stored in this document
+     * @return {@code true} if timestamp of maximum revision stored in this document
      * is less than than the passed revision timestamp
      */
     public boolean hasAllRevisionLessThan(long maxRevisionTime){
@@ -450,7 +450,7 @@ public final class NodeDocument extends Document {
     /**
      * Determines if this document is a split document
      *
-     * @return <tt>true</tt> if this document is a split document
+     * @return {@code true} if this document is a split document
      */
     public boolean isSplitDocument(){
         return getSplitDocType() != SplitDocType.NONE;
