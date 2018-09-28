@@ -189,13 +189,13 @@ public class LockManagerImpl implements LockManager {
             }
         });
     }
-    
+
     /**
-     * Verifies if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     * Verifies if the current {@link #sessionContext} can unlock the specified node
      * 
      * @param node the node state to check
      * 
-     * @return true if the current <tt>sessionContext</tt> can unlock the specified <tt>node</tt>
+     * @return true if the current {@linkplain #sessionContext} can unlock the specified node
      */
     public boolean canUnlock(NodeDelegate node) {
         String path = node.getPath();
