@@ -103,8 +103,9 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <h3>Access Control Management</h3>
  *
- * <table align="left" summary="">
- *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ * <table style="text-align: left;">
+ *     <caption></caption>
+ *     <tr><th style="text-align: left;">Feature</th><th style="text-align: left;">Description</th></tr>
  *     <tr><td>Supported Privileges</td><td>all</td></tr>
  *     <tr><td>Supports Custom Privileges</td><td>yes</td></tr>
  *     <tr><td>Management by Path</td><td>not supported</td></tr>
@@ -116,8 +117,9 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <h3>Permission Evaluation</h3>
  *
- * <table summary="">
- *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ * <table>
+ *     <caption></caption>
+ *     <tr><th style="text-align: left;">Feature</th><th style="text-align: left;">Description</th></tr>
  *     <tr><td>Supported Permissions</td><td>all</td></tr>
  *     <tr><td>Aggregated Permission Provider</td><td>yes</td></tr>
  * </table>
