@@ -505,18 +505,18 @@ The config files should be formatted according to the OSGi configuration admin s
 Oak DataStore
 -------------------
 
-Maintenance commands for for the DataStore:
+Maintenance commands for the DataStore:
 * Data store garbage collection
 * Data store consistency check
 
 
     $ java -jar oak-run-*.jar datastore [--check-consistency|--collect-garbage [true]] \
-            [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <path>] \
-            [--out-dir <output path>] \
-            [--work-dir <temporary path>] \
+            [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
+            [--out-dir <output_path>] \
+            [--work-dir <temporary_path>] \
             [--max-age <seconds>] \
             [--verbose] \
-            [<path>|<mongo_uri>]
+            [<store_path>|<mongo_uri>]
 
 The following operations are available:
     
@@ -525,20 +525,20 @@ The following operations are available:
 
 The following options are available:
 
-    --work-dir         - Path to use for temporary files and directoriesw(Optional). Otherwise, files will be dumped in the user temp directory.
-    --out-dir          - Path where to dump the files (Optional). Otherwise, files will be dumped in the current directory.
-    --ds-read-write    - Required option to open the datastore in read-write mode.
-    --s3ds             - Path to the S3DataStore configuration file.
-    --azureds          - Path to the AzureDataStore configuration file.
-    --fds              - Path to the FileDataStore configuration file ('path' property is mandatory).
-    --fake-ds-path     - To check for misconfigured external references when no data store should be there.
-    --max-age          - Corresponds to the OSGi 'maxBlobGcAgeInSecs' property and specifies the time interval from now with only older blobs being deleted.
-    --verbose          - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
-                         This options would typically be a slower option since, it requires the whole repo traversal.  
-                         Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
-    --<path|mongo_uri> - Path to the tar segment store or the segment azure uri as specified in 
-                         http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
-                         or if Mongo NodeStore then the mongo uri.
+    --work-dir              - Path to use for temporary files and directories (Optional). Otherwise, files will be dumped in the user temp directory.
+    --out-dir               - Path where to dump the files (Optional). Otherwise, files will be dumped in the current directory.
+    --ds-read-write         - Required option to open the datastore in read-write mode.
+    --s3ds                  - Path to the S3DataStore configuration file.
+    --azureds               - Path to the AzureDataStore configuration file.
+    --fds                   - Path to the FileDataStore configuration file ('path' property is mandatory).
+    --fake-ds-path          - To check for misconfigured external references when no data store should be there.
+    --max-age               - Corresponds to the OSGi 'maxBlobGcAgeInSecs' property and specifies the time interval from now with only older blobs being deleted.
+    --verbose               - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
+                               This options would typically be a slower option since, it requires the whole repo traversal.  
+                               Adds the sub-directories created in FDS to the id path and the changes done to the id for S3/Azure when stored in the respective container.
+    <store_path|mongo_uri>  - Path to the tar segment store or the segment azure uri as specified in 
+                               http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
+                               or if Mongo NodeStore then the mongo uri.
 
 Note:
 
