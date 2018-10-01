@@ -65,7 +65,7 @@ public class MongoDocumentStoreTest {
         if (MONGO_DB) {
             MongoConnection c = connectionFactory.getConnection();
             assertNotNull(c);
-            return new MongoDocumentStore(c.getMongoClient(), c.getDBName(), new DocumentMK.Builder());
+            return new MongoDocumentStore(c.getMongoClient(), c.getDatabase(), new DocumentMK.Builder());
         }
         return new MemoryDocumentStore();
     }

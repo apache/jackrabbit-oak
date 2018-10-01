@@ -82,7 +82,7 @@ public class UnlockUpgradeCommandTest {
     private void resetFormatVersion(FormatVersion v) {
         MongoConnection c = connectionFactory.getConnection();
         DocumentStore s = new MongoDocumentStore(c.getMongoClient(),
-                c.getDBName(), newMongoDocumentNodeStoreBuilder());
+                c.getDatabase(), newMongoDocumentNodeStoreBuilder());
         s.remove(Collection.SETTINGS, "version");
         assertTrue(v.writeTo(s));
         s.dispose();

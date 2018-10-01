@@ -246,12 +246,12 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
-    public MongoDocumentStore(MongoClient client, String dbName,
+    public MongoDocumentStore(MongoClient client, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
         this.readOnly = builder.getReadOnlyMode();
         MongoStatus mongoStatus = builder.getMongoStatus();
         if (mongoStatus == null) {
-            mongoStatus = new MongoStatus(client, dbName);
+            mongoStatus = new MongoStatus(client, db.getName());
         }
         mongoStatus.checkVersion();
         metadata = ImmutableMap.<String,String>builder()
@@ -262,7 +262,7 @@ public class MongoDocumentStore implements DocumentStore {
         this.client = client;
         this.status = mongoStatus;
         this.sessionFactory = new MongoSessionFactory(client);
-        this.db = client.getDatabase(dbName);
+        this.db = db;
         stats = builder.getDocumentStoreStatsCollector();
         nodes = db.getCollection(Collection.NODES.toString(), BasicDBObject.class);
         clusterNodes = db.getCollection(Collection.CLUSTER_NODES.toString(), BasicDBObject.class);
