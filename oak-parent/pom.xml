@@ -124,12 +124,12 @@
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.0.1</version>
+          <version>3.0.0</version>
           <configuration>
             <source>${java.version}</source>
             <aggregate>true</aggregate>
             <links>
-              <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/index.html</link><!-- see OAK-7789 -->
+              <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
               <link>http://jackrabbit.apache.org/api/trunk/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
             </links>
