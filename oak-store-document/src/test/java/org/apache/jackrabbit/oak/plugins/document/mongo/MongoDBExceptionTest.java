@@ -53,7 +53,7 @@ public class MongoDBExceptionTest {
     public void before() {
         MongoUtils.dropCollections(MongoUtils.DB);
         client = new MongoTestClient(MongoUtils.URL);
-        store = new MongoDocumentStore(client, MongoUtils.DB,
+        store = new MongoDocumentStore(client, client.getDatabase(MongoUtils.DB),
                 new DocumentMK.Builder());
     }
 

@@ -49,7 +49,7 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
         MongoConnection connection = connectionFactory.getConnection();
         assumeNotNull(connection);
         store = new MongoDocumentStore(
-                connection.getMongoClient(), connection.getDBName(),
+                connection.getMongoClient(), connection.getDatabase(),
                 new DocumentMK.Builder());
     }
 

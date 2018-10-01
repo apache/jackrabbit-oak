@@ -92,7 +92,7 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
 
     static final class TestStore extends MongoDocumentStore {
         TestStore(MongoConnection c, DocumentMK.Builder builder) {
-            super(c.getMongoClient(), c.getDBName(), builder);
+            super(c.getMongoClient(), c.getDatabase(), builder);
         }
     }
 }

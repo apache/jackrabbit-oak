@@ -214,7 +214,7 @@ public abstract class DocumentStoreFixture {
                 MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
                 return new MongoDocumentStore(connection.getMongoClient(),
-                        connection.getDBName(), builder);
+                        connection.getDatabase(), builder);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

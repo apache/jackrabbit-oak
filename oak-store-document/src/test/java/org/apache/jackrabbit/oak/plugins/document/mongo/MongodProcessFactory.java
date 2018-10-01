@@ -42,6 +42,7 @@ import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
 import de.flapdoodle.embed.process.config.IRuntimeConfig;
 import de.flapdoodle.embed.process.io.directories.FixedPath;
 import de.flapdoodle.embed.process.io.directories.IDirectory;
+import de.flapdoodle.embed.process.io.progress.Slf4jProgressListener;
 import de.flapdoodle.embed.process.runtime.Network;
 
 import static de.flapdoodle.embed.process.io.directories.Directories.join;
@@ -70,6 +71,7 @@ public class MongodProcessFactory extends ExternalResource {
                     .defaults(Command.MongoD)
                     .download(new DownloadConfigBuilder()
                             .defaultsForCommand(Command.MongoD)
+                            .progressListener(new Slf4jProgressListener(LOG))
                             .artifactStorePath(DOWNLOAD_DIR).build())
                     .extractDir(EXTRACT_DIR).build())
             .daemonProcess(false)

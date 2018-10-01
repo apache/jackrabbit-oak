@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoDatabase;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -52,7 +53,7 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         MongoUtils.dropCollections(mongoConnection.getDatabase());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.clock(getTestClock());
-        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDBName(), builder);
+        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDatabase(), builder);
         mk = builder.setDocumentStore(store).open();
     }
 
@@ -102,8 +103,8 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
         private int failRead = 0;
 
-        public TestStore(MongoClient client, String dbName, DocumentMK.Builder builder) {
-            super(client, dbName, builder);
+        public TestStore(MongoClient client, MongoDatabase db, DocumentMK.Builder builder) {
+            super(client, db, builder);
         }
 
         @Override

@@ -81,7 +81,7 @@ class UnlockUpgradeCommand implements Command {
                 } else {
                     MongoConnection mongo = new MongoConnection(clientURI.getURI());
                     store = new MongoDocumentStore(
-                            mongo.getMongoClient(), mongo.getDBName(),
+                            mongo.getMongoClient(), mongo.getDatabase(),
                             new MongoDocumentNodeStoreBuilder());
                 }
             } else if (uri.startsWith("jdbc")) {

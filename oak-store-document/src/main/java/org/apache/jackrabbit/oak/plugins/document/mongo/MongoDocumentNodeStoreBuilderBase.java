@@ -224,7 +224,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
         this.mongoStatus = status;
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
-                client, db.getName(), MongoDocumentNodeStoreBuilderBase.this));
+                client, db, MongoDocumentNodeStoreBuilderBase.this));
 
         if (this.blobStore == null) {
             GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
