@@ -144,6 +144,8 @@ class SegmentNodeStoreRegistrar {
 
         boolean registerDescriptors();
 
+        boolean dispatchChanges();
+
         String getRepositoryHome();
 
         long getBlobSnapshotInterval();
@@ -360,9 +362,8 @@ class SegmentNodeStoreRegistrar {
         // register segment node store
 
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(store).withStatisticsProvider(cfg.getStatisticsProvider());
-        if (cfg.isStandbyInstance() || !cfg.isPrimarySegmentStore()) {
-            segmentNodeStoreBuilder.dispatchChanges(false);
-        }
+        segmentNodeStoreBuilder.dispatchChanges(cfg.dispatchChanges());
+
         SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
         if (cfg.isPrimarySegmentStore()) {

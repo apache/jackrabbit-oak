@@ -292,6 +292,12 @@ public class SegmentNodeStoreFactory {
             description = "Should only be done for one factory instance"
         )
         boolean registerDescriptors() default false;
+
+        @AttributeDefinition(
+                name = "Dispatch changes",
+                description = "Enable support for observers on this factory instance"
+        )
+        boolean dispatchChanges() default false;
     }
 
     @Reference(
@@ -535,6 +541,11 @@ public class SegmentNodeStoreFactory {
             @Override
             public boolean registerDescriptors() {
                 return configuration.registerDescriptors();
+            }
+
+            @Override
+            public boolean dispatchChanges() {
+                return configuration.dispatchChanges();
             }
 
             @Override
