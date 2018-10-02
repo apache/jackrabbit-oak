@@ -55,7 +55,7 @@
  *  This is obviously correct but may be slow.
  *  {@link org.apache.jackrabbit.oak.composite.CompositionContext#getContributingStores(java.lang.String, java.util.function.Function)}
  */
-@Version("1.0.0")
+@Version("0.3.0")
 package org.apache.jackrabbit.oak.composite;
 
 import org.osgi.annotation.versioning.Version;

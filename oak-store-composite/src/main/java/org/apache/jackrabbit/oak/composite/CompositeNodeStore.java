@@ -47,8 +47,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -412,6 +410,27 @@ public class CompositeNodeStore implements NodeStore, Observable {
             Mount mount = checkNotNull(mip.getMountByName(mountName), "No mount with name %s found in %s", mountName, mip);
             nonDefaultStores.add(new MountedNodeStore(mount, store));
             return this;
+        }
+
+        public Builder addIgnoredReadOnlyWritePath(String path) {
+            throw new UnsupportedOperationException();
+        }
+
+        public Builder setPartialReadOnly(boolean partialReadOnly) {
+            // only read only partials are supported
+            return this;
+        }
+
+        public void assertPartialMountsAreReadOnly() {
+            List<String> readWriteMountNames = nonDefaultStores
+                    .stream()
+                    .map(MountedNodeStore::getMount)
+                    .filter(m -> !m.isReadOnly())
+                    .map(Mount::getName)
+                    .collect(Collectors.toList());
+
+            checkArgument(readWriteMountNames.isEmpty(),
+                    "Following partial mounts are write-enabled: ", readWriteMountNames);
         }
 
         public CompositeNodeStore build() {
