@@ -16,18 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
@@ -37,6 +27,18 @@ import java.util.EnumSet;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.StorageUri;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class AzureUtilities {
 
@@ -75,11 +77,8 @@ public final class AzureUtilities {
 
     public static void readBufferFully(CloudBlob blob, ByteBuffer buffer) throws IOException {
         try {
-            buffer.rewind();
-            long readBytes = blob.downloadToByteArray(buffer.array(), 0);
-            if (buffer.limit() != readBytes) {
-                throw new IOException("Buffer size: " + buffer.limit() + ", read bytes: " + readBytes);
-            }
+            blob.download(new ByteBufferOutputStream(buffer));
+            buffer.flip();
         } catch (StorageException e) {
             throw new IOException(e);
         }
@@ -112,4 +111,26 @@ public final class AzureUtilities {
 
         return container.getDirectoryReference(dir);
     }
+
+    private static class ByteBufferOutputStream extends OutputStream {
+
+        @NotNull
+        private final ByteBuffer buffer;
+
+        public ByteBufferOutputStream(@NotNull ByteBuffer buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            buffer.put((byte)b);
+        }
+
+        @Override
+        public void write(@NotNull byte[] bytes, int offset, int length) throws IOException {
+            buffer.put(bytes, offset, length);
+        }
+    }
 }
+
+
