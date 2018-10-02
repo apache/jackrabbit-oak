@@ -16,14 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.google.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import static java.lang.Boolean.getBoolean;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,10 +32,17 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
+import com.google.common.base.Stopwatch;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 
 public class AzureSegmentArchiveReader implements SegmentArchiveReader {
+    static final boolean OFF_HEAP = getBoolean("access.off.heap");
 
     private final CloudBlobDirectory archiveDirectory;
 
@@ -73,7 +75,13 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         if (indexEntry == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(indexEntry.getLength());
+
+        ByteBuffer buffer;
+        if (OFF_HEAP) {
+            buffer = ByteBuffer.allocateDirect(indexEntry.getLength());
+        } else {
+            buffer = ByteBuffer.allocate(indexEntry.getLength());
+        }
         ioMonitor.beforeSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
         readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);

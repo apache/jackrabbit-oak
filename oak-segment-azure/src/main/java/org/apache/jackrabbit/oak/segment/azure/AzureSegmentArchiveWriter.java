@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveReader.OFF_HEAP;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
@@ -108,7 +109,13 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         if (indexEntry == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(indexEntry.getLength());
+
+        ByteBuffer buffer;
+        if (OFF_HEAP) {
+            buffer = ByteBuffer.allocateDirect(indexEntry.getLength());
+        } else {
+            buffer = ByteBuffer.allocate(indexEntry.getLength());
+        }
         readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
         return buffer;
     }
