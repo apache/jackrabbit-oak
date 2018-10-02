@@ -22,7 +22,6 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -79,23 +78,11 @@ public class CompositeNodeStoreService {
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
-    @Property(label = "Ignore read only writes",
-            unbounded = PropertyUnbounded.ARRAY,
-            description = "Writes to these read-only paths won't fail the commit"
-    )
-    private static final String PROP_IGNORE_READ_ONLY_WRITES = "ignoreReadOnlyWrites";
-
     @Property(label = "Enable node store checks",
             description = "Whether the composite node store constraints should be checked before start",
             boolValue = true
     )
     private static final String ENABLE_CHECKS = "enableChecks";
-
-    @Property(label = "Read-only mounts",
-            description = "The partial stores should be configured as read-only",
-            boolValue = true
-    )
-    private static final String PROP_PARTIAL_READ_ONLY = "partialReadOnly";
 
     @Property(label = "Pre-populate seed mount",
             description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
@@ -118,10 +105,6 @@ public class CompositeNodeStoreService {
 
     private ObserverTracker observerTracker;
 
-    private String[] ignoreReadOnlyWritePaths;
-
-    private boolean partialReadOnly;
-
     private String seedMount;
 
     private boolean pathStats;
@@ -131,8 +114,6 @@ public class CompositeNodeStoreService {
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
-        ignoreReadOnlyWritePaths = PropertiesUtil.toStringArray(config.get(PROP_IGNORE_READ_ONLY_WRITES), new String[0]);
-        partialReadOnly = PropertiesUtil.toBoolean(config.get(PROP_PARTIAL_READ_ONLY), true);
         seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
         pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
         enableChecks = PropertiesUtil.toBoolean(config.get(ENABLE_CHECKS), true);
@@ -179,10 +160,6 @@ public class CompositeNodeStoreService {
 
         if (enableChecks) {
             builder.with(checks);
-        }
-        builder.setPartialReadOnly(partialReadOnly);
-        for (String p : ignoreReadOnlyWritePaths) {
-            builder.addIgnoredReadOnlyWritePath(p);
         }
 
         for (NodeStoreWithProps ns : nodeStores) {
