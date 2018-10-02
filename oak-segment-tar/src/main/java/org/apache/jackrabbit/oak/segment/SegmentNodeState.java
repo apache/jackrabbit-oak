@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,27 +71,43 @@ public class SegmentNodeState extends Record implements NodeState {
     @NotNull
     private final Supplier<SegmentWriter> writer;
 
+    private final MeterStats readStats;
+
     private volatile RecordId templateId = null;
 
     private volatile Template template = null;
 
     SegmentNodeState(
-            @NotNull SegmentReader reader,
-            @NotNull Supplier<SegmentWriter> writer,
-            @Nullable BlobStore blobStore,
-            @NotNull RecordId id) {
+        @NotNull SegmentReader reader,
+        @NotNull Supplier<SegmentWriter> writer,
+        @Nullable BlobStore blobStore,
+        @NotNull RecordId id,
+        MeterStats readStats
+    ) {
         super(id);
         this.reader = checkNotNull(reader);
         this.writer = checkNotNull(memoize(writer));
         this.blobStore = blobStore;
+        this.readStats = readStats;
     }
 
     public SegmentNodeState(
-            @NotNull SegmentReader reader,
-            @NotNull SegmentWriter writer,
-            @Nullable BlobStore blobStore,
-            @NotNull RecordId id) {
-        this(reader, Suppliers.ofInstance(writer), blobStore, id);
+        @NotNull SegmentReader reader,
+        @NotNull SegmentWriter writer,
+        @Nullable BlobStore blobStore,
+        @NotNull RecordId id
+    ) {
+        this(reader, Suppliers.ofInstance(writer), blobStore, id, NoopStats.INSTANCE);
+    }
+
+    public SegmentNodeState(
+        @NotNull SegmentReader reader,
+        @NotNull SegmentWriter writer,
+        @Nullable BlobStore blobStore,
+        @NotNull RecordId id,
+        MeterStats readStats
+    ) {
+        this(reader, Suppliers.ofInstance(writer), blobStore, id, readStats);
     }
 
     RecordId getTemplateId() {
@@ -166,6 +184,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public long getPropertyCount() {
+        readStats.mark();
         Template template = getTemplate();
         long count = template.getPropertyTemplates().length;
         if (template.getPrimaryType() != null) {
@@ -179,6 +198,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean hasProperty(@NotNull String name) {
+        readStats.mark();
         checkNotNull(name);
         Template template = getTemplate();
         switch (name) {
@@ -193,6 +213,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nullable
     public PropertyState getProperty(@NotNull String name) {
+        readStats.mark();
         checkNotNull(name);
         Template template = getTemplate();
         PropertyState property = null;
@@ -229,6 +250,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @NotNull
     public Iterable<PropertyState> getProperties() {
+        readStats.mark();
         Template template = getTemplate();
         PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
         List<PropertyState> list =
@@ -263,11 +285,13 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean getBoolean(@NotNull String name) {
+        readStats.mark();
         return Boolean.TRUE.toString().equals(getValueAsString(name, BOOLEAN));
     }
 
     @Override
     public long getLong(String name) {
+        readStats.mark();
         String value = getValueAsString(name, LONG);
         if (value != null) {
             return Long.parseLong(value);
@@ -278,21 +302,25 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nullable
     public String getString(String name) {
+        readStats.mark();
         return getValueAsString(name, STRING);
     }
 
     @Override @NotNull
     public Iterable<String> getStrings(@NotNull String name) {
+        readStats.mark();
         return getValuesAsStrings(name, STRINGS);
     }
 
     @Override @Nullable
     public String getName(@NotNull String name) {
+        readStats.mark();
         return getValueAsString(name, NAME);
     }
 
     @Override @NotNull
     public Iterable<String> getNames(@NotNull String name) {
+        readStats.mark();
         return getValuesAsStrings(name, NAMES);
     }
 
@@ -392,6 +420,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public long getChildNodeCount(long max) {
+        readStats.mark();
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return 0;
@@ -404,6 +433,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean hasChildNode(@NotNull String name) {
+        readStats.mark();
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return false;
@@ -416,6 +446,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @NotNull
     public NodeState getChildNode(@NotNull String name) {
+        readStats.mark();
         String childName = getTemplate().getChildName();
         if (childName == Template.MANY_CHILD_NODES) {
             MapEntry child = getChildNodeMap().getEntry(name);
@@ -433,6 +464,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @NotNull
     public Iterable<String> getChildNodeNames() {
+        readStats.mark();
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return Collections.emptyList();
@@ -445,6 +477,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+        readStats.mark();
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return Collections.emptyList();
@@ -459,11 +492,12 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @NotNull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, blobStore, reader, writer.get());
+        return new SegmentNodeBuilder(this, blobStore, reader, writer.get(), readStats);
     }
 
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        readStats.mark();
         if (this == base || fastEquals(this, base)) {
              return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case

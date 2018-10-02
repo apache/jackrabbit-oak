@@ -26,6 +26,7 @@ import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,6 +56,8 @@ public class CachingSegmentReader implements SegmentReader {
     @NotNull
     private final TemplateCache templateCache;
 
+    private final MeterStats readStats;
+
     /**
      * Create a new instance based on the supplied arguments.
      * @param writer          A {@code Supplier} for a the {@code SegmentWriter} used by the segment
@@ -66,14 +69,17 @@ public class CachingSegmentReader implements SegmentReader {
      * @param templateCacheMB the size of the template cache in MBs or {@code 0} for no cache.
      */
     public CachingSegmentReader(
-            @NotNull Supplier<SegmentWriter> writer,
-            @Nullable BlobStore blobStore,
-            long stringCacheMB,
-            long templateCacheMB) {
+        @NotNull Supplier<SegmentWriter> writer,
+        @Nullable BlobStore blobStore,
+        long stringCacheMB,
+        long templateCacheMB,
+        MeterStats readStats
+    ) {
         this.writer = checkNotNull(writer);
         this.blobStore = blobStore;
         stringCache = new StringCache(stringCacheMB * 1024 * 1024);
         templateCache = new TemplateCache(templateCacheMB * 1024 * 1024);
+        this.readStats = readStats;
     }
 
     /**
@@ -121,7 +127,7 @@ public class CachingSegmentReader implements SegmentReader {
     @NotNull
     @Override
     public SegmentNodeState readNode(@NotNull RecordId id) {
-        return new SegmentNodeState(this, writer, blobStore, id);
+        return new SegmentNodeState(this, writer, blobStore, id, readStats);
     }
 
     @NotNull
