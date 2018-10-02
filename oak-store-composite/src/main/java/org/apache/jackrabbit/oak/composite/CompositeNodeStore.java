@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -37,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,9 +47,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -61,11 +59,7 @@ import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.difference;
-import static com.google.common.collect.Sets.filter;
-import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.System.currentTimeMillis;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
 
 /**
@@ -98,42 +92,48 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
     private static final String CHECKPOINT_METADATA_MOUNT = CHECKPOINT_METADATA + "mount.";
 
-    private final TreeSet<String> ignoreReadOnlyWritePaths;
-
     final CompositionContext ctx;
 
     private final ChangeDispatcher dispatcher;
 
-    private final Lock mergeLock;
+    private final Lock mergeLock = new ReentrantLock();
 
     // visible for testing only
     CompositeNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore) {
-        this(mip, globalStore, nonDefaultStore, Collections.<String>emptyList(), CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
+        this(mip, globalStore, nonDefaultStore, CompositeNodeStoreMonitor.EMPTY_INSTANCE, CompositeNodeStoreMonitor.EMPTY_INSTANCE);
     }
 
-    CompositeNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore, List<String> ignoreReadOnlyWritePaths, CompositeNodeStoreMonitor nodeStateMonitor, CompositeNodeStoreMonitor nodeBuilderMonitor) {
+    CompositeNodeStore(MountInfoProvider mip, NodeStore globalStore, List<MountedNodeStore> nonDefaultStore, CompositeNodeStoreMonitor nodeStateMonitor, CompositeNodeStoreMonitor nodeBuilderMonitor) {
+        assertPartialMountsAreReadOnly(nonDefaultStore);
+
         this.ctx = new CompositionContext(mip, globalStore, nonDefaultStore, nodeStateMonitor, nodeBuilderMonitor);
-        this.ignoreReadOnlyWritePaths = new TreeSet<>(ignoreReadOnlyWritePaths);
-        this.mergeLock = new ReentrantLock();
         this.dispatcher = new ChangeDispatcher(getRoot());
 
         // setup observation proxy mechanism for underlying store for events not dispatched from within our
         // merge
         if (globalStore instanceof Observable) {
             Observable globalStoreObservable = (Observable) globalStore;
-            globalStoreObservable.addObserver(new MountedNodeStoreObserver());
+            globalStoreObservable.addObserver((root, info) -> dispatcher.contentChanged(ctx.createRootNodeState(root), info));
         }
+    }
+
+    private static void assertPartialMountsAreReadOnly(List<MountedNodeStore> nonDefaultStores) {
+        List<String> readWriteMountNames = nonDefaultStores
+                .stream()
+                .map(MountedNodeStore::getMount)
+                .filter(m -> !m.isReadOnly())
+                .map(Mount::getName)
+                .collect(Collectors.toList());
+
+        checkArgument(readWriteMountNames.isEmpty(),
+                "Following partial mounts are write-enabled: ", readWriteMountNames);
     }
 
     @Override
     public NodeState getRoot() {
         // the composite root state exposes the node states as they are
         // at this certain point in time, so we eagerly retrieve them from all stores
-        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-        for (MountedNodeStore nodeStore : ctx.getAllMountedNodeStores()) {
-            nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
-        }
-        return ctx.createRootNodeState(nodeStates);
+        return ctx.createRootNodeState(ctx.getGlobalStore().getNodeStore().getRoot());
     }
 
     @Override
@@ -149,44 +149,22 @@ public class CompositeNodeStore implements NodeStore, Observable {
         mergeLock.lock();
         try {
             // merge the global builder and apply the commit hooks within
-            Map<MountedNodeStore, NodeState> resultStates = newHashMap();
             MountedNodeStore globalStore = ctx.getGlobalStore();
             CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx, nodeBuilder);
             NodeState globalResult = globalStore.getNodeStore().merge(nodeBuilder.getNodeBuilder(globalStore), hookEnhancer, info);
-            resultStates.put(globalStore, globalResult);
-
             if (!hookEnhancer.getUpdatedBuilder().isPresent()) {
                 // it means that the commit hook wasn't invoked, because there were
                 // no changes on the global store. we should invoke it anyway.
                 hookEnhancer.processCommit(globalResult, globalResult, info);
             }
-            CompositeNodeBuilder updatedBuilder = hookEnhancer.getUpdatedBuilder().get();
-
-            // merge the partial builders
-            for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
-                NodeBuilder partialBuilder = updatedBuilder.getNodeBuilder(mns);
-
-                if (mns.getMount().isReadOnly()) {
-                    assertNoChange(mns, partialBuilder);
-                    resultStates.put(mns, mns.getNodeStore().getRoot());
-                } else {
-                    NodeState partialState = mns.getNodeStore().merge(partialBuilder, EmptyHook.INSTANCE, info);
-                    resultStates.put(mns, partialState);
-                }
-            }
-
-            CompositeNodeState newRoot = ctx.createRootNodeState(resultStates);
-            return newRoot;
+            return ctx.createRootNodeState(globalResult);
         } finally {
             mergeLock.unlock();
         }
    }
 
     private void assertNoChangesOnReadOnlyMounts(CompositeNodeBuilder nodeBuilder) throws CommitFailedException {
-        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
-            if (!mountedNodeStore.getMount().isReadOnly()) {
-                continue;
-            }
+        for (MountedNodeStore mountedNodeStore : ctx.getNonDefaultStores()) {
             NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
             assertNoChange(mountedNodeStore, partialBuilder);
         }
@@ -197,13 +175,8 @@ public class CompositeNodeStore implements NodeStore, Observable {
         NodeState nodeState = partialBuilder.getNodeState();
         if (!nodeState.equals(baseState)) {
             Set<String> changedPaths = getModifiedPaths(baseState, nodeState);
-            Set<String> ignoredChangedPaths = getIgnoredPaths(changedPaths);
-            if (!ignoredChangedPaths.isEmpty()) {
-                LOG.debug("Can't merge following read-only paths (they are configured to be ignored): {}.", ignoredChangedPaths);
-            }
-            Set<String> failingChangedPaths = difference(changedPaths, ignoredChangedPaths);
-            if (!failingChangedPaths.isEmpty()) {
-                throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount().getName() + ". Failing paths: " + failingChangedPaths.toString());
+            if (!changedPaths.isEmpty()) {
+                throw new CommitFailedException("CompositeStore", 31, "Unable to perform changes on read-only mount " + mountedNodeStore.getMount().getName() + ". Failing paths: " + changedPaths.toString());
             }
         }
     }
@@ -211,41 +184,19 @@ public class CompositeNodeStore implements NodeStore, Observable {
     @Override
     public NodeState rebase(NodeBuilder builder) {
         checkArgument(builder instanceof CompositeNodeBuilder);
-
         CompositeNodeBuilder nodeBuilder = (CompositeNodeBuilder) builder;
-        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
-            NodeStore nodeStore = mountedNodeStore.getNodeStore();
-            NodeState result;
-            if (mountedNodeStore.getMount().isReadOnly()) {
-                result = nodeStore.getRoot();
-            } else {
-                NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
-                result = nodeStore.rebase(partialBuilder);
-            }
-            resultStates.put(mountedNodeStore, result);
-        }
-        return ctx.createRootNodeState(resultStates);
+        MountedNodeStore globalStore = ctx.getGlobalStore();
+        NodeState globalResult = globalStore.getNodeStore().rebase(nodeBuilder.getNodeBuilder(globalStore));
+        return ctx.createRootNodeState(globalResult);
     }
 
     @Override
     public NodeState reset(NodeBuilder builder) {
         checkArgument(builder instanceof CompositeNodeBuilder);
-
         CompositeNodeBuilder nodeBuilder = (CompositeNodeBuilder) builder;
-        Map<MountedNodeStore, NodeState> resultStates = newHashMap();
-        for (MountedNodeStore mountedNodeStore : ctx.getAllMountedNodeStores()) {
-            NodeStore nodeStore = mountedNodeStore.getNodeStore();
-            NodeState result;
-            if (mountedNodeStore.getMount().isReadOnly()) {
-                result = nodeStore.getRoot();
-            } else {
-                NodeBuilder partialBuilder = nodeBuilder.getNodeBuilder(mountedNodeStore);
-                result = nodeStore.reset(partialBuilder);
-            }
-            resultStates.put(mountedNodeStore, result);
-        }
-        return ctx.createRootNodeState(resultStates);
+        MountedNodeStore globalStore = ctx.getGlobalStore();
+        NodeState globalResult = globalStore.getNodeStore().reset(nodeBuilder.getNodeBuilder(globalStore));
+        return ctx.createRootNodeState(globalResult);
     }
 
     @Override
@@ -288,13 +239,6 @@ public class CompositeNodeStore implements NodeStore, Observable {
         Map<String, String> globalProperties = newHashMap(properties);
         globalProperties.put(CHECKPOINT_METADATA + "created", Long.toString(currentTimeMillis()));
         globalProperties.put(CHECKPOINT_METADATA + "expires", Long.toString(currentTimeMillis() + lifetime));
-        for (MountedNodeStore mns : ctx.getNonDefaultStores()) {
-            if (mns.getMount().isReadOnly()) {
-                continue;
-            }
-            String checkpoint = mns.getNodeStore().checkpoint(lifetime, properties);
-            globalProperties.put(CHECKPOINT_METADATA_MOUNT + mns.getMount().getName(), checkpoint);
-        }
         String newCheckpoint = ctx.getGlobalStore().getNodeStore().checkpoint(lifetime, globalProperties);
         if (LOG.isDebugEnabled()) {
             LOG.debug("Created checkpoint {}. Debug info:\n{}", newCheckpoint, checkpointDebugInfo());
@@ -335,11 +279,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
         Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
         nodeStates.put(ctx.getGlobalStore(), ctx.getGlobalStore().getNodeStore().retrieve(checkpoint));
         for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            NodeState nodeState = null;
+            NodeState nodeState;
             String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props, true);
-            if (partialCheckpoint == null && nodeStore.getMount().isReadOnly()) {
+            if (partialCheckpoint == null) {
                 nodeState = nodeStore.getNodeStore().getRoot();
-            } else if (partialCheckpoint != null) {
+            } else {
                 nodeState = nodeStore.getNodeStore().retrieve(partialCheckpoint);
             }
             nodeStates.put(nodeStore, nodeState);
@@ -361,17 +305,6 @@ public class CompositeNodeStore implements NodeStore, Observable {
         } else {
             props = Collections.emptyMap();
             result = true;
-        }
-        for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-            if (nodeStore.getMount().isReadOnly()) {
-                continue;
-            }
-            boolean released = false;
-            String partialCheckpoint = getPartialCheckpointName(nodeStore, checkpoint, props, false);
-            if (partialCheckpoint != null) {
-                released = nodeStore.getNodeStore().release(partialCheckpoint);
-            }
-            result &= released;
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("Released checkpoint {}. Result: {}. Debug info:\n{}", checkpoint, result, checkpointDebugInfo());
@@ -449,16 +382,6 @@ public class CompositeNodeStore implements NodeStore, Observable {
         return dispatcher.addObserver(observer);
     }
 
-    private Set<String> getIgnoredPaths(Set<String> paths) {
-        return newHashSet(filter(paths, new Predicate<String>() {
-            @Override
-            public boolean apply(String path) {
-                String previousPath = ignoreReadOnlyWritePaths.floor(path);
-                return previousPath != null && (previousPath.equals(path) || isAncestor(previousPath, path));
-            }
-        }));
-    }
-
     public static class Builder {
 
         private final MountInfoProvider mip;
@@ -467,13 +390,9 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
         private final List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
 
-        private final List<String> ignoreReadOnlyWritePaths = Lists.newArrayList();
-
         private CompositeNodeStoreMonitor nodeStateMonitor = CompositeNodeStoreMonitor.EMPTY_INSTANCE;
 
         private CompositeNodeStoreMonitor nodeBuilderMonitor = CompositeNodeStoreMonitor.EMPTY_INSTANCE;
-
-        private boolean partialReadOnly = true;
 
         private NodeStoreChecks checks;
 
@@ -502,36 +421,12 @@ public class CompositeNodeStore implements NodeStore, Observable {
             return this;
         }
 
-        public Builder addIgnoredReadOnlyWritePath(String path) {
-            ignoreReadOnlyWritePaths.add(path);
-            return this;
-        }
-
-        public Builder setPartialReadOnly(boolean partialReadOnly) {
-            this.partialReadOnly = partialReadOnly;
-            return this;
-        }
-
         public CompositeNodeStore build() {
             checkMountsAreConsistentWithMounts();
-            if (partialReadOnly) {
-                assertPartialMountsAreReadOnly();
-            }
-            if ( checks != null ) {
+            if (checks != null) {
                 nonDefaultStores.forEach( s -> checks.check(globalStore, s));
             }
-            return new CompositeNodeStore(mip, globalStore, nonDefaultStores, ignoreReadOnlyWritePaths, nodeStateMonitor, nodeBuilderMonitor);
-        }
-
-        public void assertPartialMountsAreReadOnly() {
-            List<String> readWriteMountNames = Lists.newArrayList();
-            for (Mount mount : mip.getNonDefaultMounts()) {
-                if (!mount.isReadOnly()) {
-                    readWriteMountNames.add(mount.getName());
-                }
-            }
-            checkArgument(readWriteMountNames.isEmpty(),
-                    "Following partial mounts are write-enabled: ", readWriteMountNames);
+            return new CompositeNodeStore(mip, globalStore, nonDefaultStores, nodeStateMonitor, nodeBuilderMonitor);
         }
 
         private void checkMountsAreConsistentWithMounts() {
@@ -540,18 +435,6 @@ public class CompositeNodeStore implements NodeStore, Observable {
             checkArgument(buildMountCount == mipMountCount,
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
-        }
-    }
-
-    private class MountedNodeStoreObserver implements Observer {
-        @Override
-        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-            Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
-            for (MountedNodeStore nodeStore : ctx.getNonDefaultStores()) {
-                nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
-            }
-            nodeStates.put(ctx.getGlobalStore(), root);
-            dispatcher.contentChanged(ctx.createRootNodeState(nodeStates), info);
         }
     }
 }

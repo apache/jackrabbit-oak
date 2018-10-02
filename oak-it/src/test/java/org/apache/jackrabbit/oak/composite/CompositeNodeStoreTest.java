@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.plugins.document.util.CountingDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -121,9 +120,9 @@ public class CompositeNodeStoreTest {
     @Before
     public void initStore() throws Exception {
         mip = Mounts.newBuilder()
-                .mount("temp", "/tmp")
-                .mount("deep", "/libs/mount")
-                .mount("empty", "/nowhere")
+                .readOnlyMount("temp", "/tmp")
+                .readOnlyMount("deep", "/libs/mount")
+                .readOnlyMount("empty", "/nowhere")
                 .readOnlyMount("readOnly", "/readOnly")
                 .build();
 
@@ -272,19 +271,7 @@ public class CompositeNodeStoreTest {
         globalBuilder.child("new");
         globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // create a new child /tmp/new in the mounted store
-        NodeBuilder mountedBuilder = mountedStore.getRoot().builder();
-        mountedBuilder.getChildNode("tmp").child("new");
-        mountedStore.merge(mountedBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // create a new child /libs/mount/new in the deeply mounted store
-        NodeBuilder deepMountBuilder = deepMountedStore.getRoot().builder();
-        deepMountBuilder.getChildNode("libs").getChildNode("mount").child("new");
-        deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
         assertFalse("store incorrectly exposes child at /new", store.retrieve(checkpoint).hasChildNode("new"));
-        assertFalse("store incorrectly exposes child at /tmp/new", store.retrieve(checkpoint).getChildNode("tmp").hasChildNode("new"));
-        assertFalse("store incorrectly exposes child at /libs/mount/new", store.retrieve(checkpoint).getChildNode("libs").getChildNode("mount").hasChildNode("new"));
     }
 
     @Test
@@ -374,19 +361,6 @@ public class CompositeNodeStoreTest {
     }
 
     @Test
-    public void createNodeInMountedStore() throws Exception {
-
-        NodeBuilder builder = store.getRoot().builder();
-
-        builder.getChildNode("tmp").child("newNode");
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertTrue("Node must be added to composite store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
-        assertTrue("Node must be added to owning (mounted) store", mountedStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));
-    }
-
-    @Test
     public void removeNodeInRootStore() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
 
@@ -396,27 +370,6 @@ public class CompositeNodeStoreTest {
 
         assertFalse("Node must be removed from the composite store", store.getRoot().hasChildNode("apps"));
         assertFalse("Node must be removed from the owning (root) store", globalStore.getRoot().hasChildNode("apps"));
-    }
-
-
-    @Test
-    public void removeNodeInMountedStore() throws Exception {
-        NodeBuilder builder = store.getRoot().builder();
-
-        builder.getChildNode("tmp").child("newNode");
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertTrue("Node must be added to composite store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
-
-        builder = store.getRoot().builder();
-
-        builder.getChildNode("tmp").getChildNode("newNode").remove();
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertFalse("Node must be removed from the composite store", store.getRoot().getChildNode("tmp").hasChildNode("newNode"));
-        assertFalse("Node must be removed from the owning (composite) store", globalStore.getRoot().getChildNode("tmp").hasChildNode("newNode"));
     }
 
     @Test
@@ -481,20 +434,6 @@ public class CompositeNodeStoreTest {
         assertThat("Node apps must not have any properties", store.getRoot().getChildNode("apps").getPropertyCount(), equalTo(0l));
     }
 
-
-    @Test
-    public void setChildNodeInMountStore() throws Exception {
-        NodeBuilder builder = store.getRoot().builder();
-
-        builder.getChildNode("tmp").setChildNode("child1");
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertTrue("Node child1 must still exist", store.getRoot().getChildNode("tmp").hasChildNode("child1"));
-        assertThat("Node child1 must not have any properties", store.getRoot().getChildNode("tmp").getChildNode("child1").getPropertyCount(), equalTo(0l));
-    }
-
-
     @Test
     public void builderBasedOnRootStoreChildNode() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
@@ -510,24 +449,6 @@ public class CompositeNodeStoreTest {
 
         assertTrue("Node /apps/child1 must exist (composite store)", store.getRoot().getChildNode("apps").hasChildNode("child1"));
         assertTrue("Node /apps/child1 must exist (root store)", globalStore.getRoot().getChildNode("apps").hasChildNode("child1"));
-    }
-
-    @Test
-    public void builderBasedOnMountStoreChildNode() throws Exception {
-        NodeBuilder builder = store.getRoot().builder();
-        NodeBuilder tmpBuilder = builder.getChildNode("tmp");
-
-        tmpBuilder.removeProperty("prop1");
-        tmpBuilder.setChildNode("child3");
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertFalse("Node tmp must have no properties (composite store)", store.getRoot().getChildNode("tmp").hasProperty("prop1"));
-        assertFalse("Node tmp must have no properties (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasProperty("prop1"));
-
-        assertTrue("Node /tmp/build3 must exist (composite store)", store.getRoot().getChildNode("tmp").hasChildNode("child3"));
-        assertTrue("Node /tmp/child3 must exist (mounted store)", mountedStore.getRoot().getChildNode("tmp").hasChildNode("child3"));
-
     }
 
     @Test
@@ -657,17 +578,6 @@ public class CompositeNodeStoreTest {
     }
 
     @Test
-    public void resetOnMountedStore() {
-        NodeBuilder rootBuilder = store.getRoot().builder();
-        NodeBuilder builder = rootBuilder.getChildNode("tmp");
-        builder.child("newChild");
-
-        store.reset(rootBuilder);
-
-        assertFalse("Newly added child should no longer be visible after reset", builder.getChildNode("tmp").hasChildNode("newChild"));
-    }
-
-    @Test
     public void oldNodeStateDoesNotRefreshOnGlobalStore() throws Exception {
         NodeState old = store.getRoot();
 
@@ -679,21 +589,6 @@ public class CompositeNodeStoreTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertFalse("old NodeState should not see newly added child node after merge ", old.hasChildNode("newNode"));
-    }
-
-    @Test
-    public void oldNodeStateDoesNotRefreshOnMountedStore() throws Exception {
-        NodeState old = store.getRoot();
-
-        NodeBuilder builder = store.getRoot().builder();
-
-        builder.getChildNode("tmp").child("newNode");
-
-        assertFalse("old NodeState should not see newly added child node before merge ", old.getChildNode("tmp").hasChildNode("newNode"));
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        assertFalse("old NodeState should not see newly added child node after merge ", old.getChildNode("tmp").hasChildNode("newNode"));
     }
 
     // this test ensures that when going from State -> Builder -> State -> Builder the state is properly maintained
@@ -741,20 +636,8 @@ public class CompositeNodeStoreTest {
         globalBuilder.child("new");
         globalStore.merge(globalBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // create a new child /tmp/new in the mounted store
-        NodeBuilder mountedBuilder = mountedStore.getRoot().builder();
-        mountedBuilder.getChildNode("tmp").child("new");
-        mountedStore.merge(mountedBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // create a new child /libs/mount/new in the deeply mounted store
-        NodeBuilder deepMountBuilder = deepMountedStore.getRoot().builder();
-        deepMountBuilder.getChildNode("libs").getChildNode("mount").child("new");
-        deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
         NodeBuilder rootCheckpointBuilder = store.retrieve(checkpoint).builder();
         assertFalse("store incorrectly exposes child at /new", rootCheckpointBuilder.hasChildNode("new"));
-        assertFalse("store incorrectly exposes child at /tmp/new", rootCheckpointBuilder.getChildNode("tmp").hasChildNode("new"));
-        assertFalse("store incorrectly exposes child at /libs/mount/new", rootCheckpointBuilder.getChildNode("libs").getChildNode("mount").hasChildNode("new"));
     }
 
     @Test

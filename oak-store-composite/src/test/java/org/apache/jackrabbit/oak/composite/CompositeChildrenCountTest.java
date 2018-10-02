@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -70,7 +69,7 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void multipleContributingStores() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -121,7 +120,7 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void contributingStoreReturnsInfinity() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
