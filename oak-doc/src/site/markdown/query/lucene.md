@@ -1307,7 +1307,7 @@ Lucene property indexes can also be used for retrieving facets, in order to do s
     + nt:base
       + properties
         - jcr:primaryType = "nt:unstructured"
-        + jcr:title
+        + tags
           - facets = true
           - propertyIndex = true
 ```
@@ -1332,7 +1332,7 @@ Specific facet related features for Lucene property index can be configured in a
     + nt:base
       + properties
         - jcr:primaryType = "nt:unstructured"
-        + jcr:title
+        + tags
           - facets = true
           - propertyIndex = true
 ```
