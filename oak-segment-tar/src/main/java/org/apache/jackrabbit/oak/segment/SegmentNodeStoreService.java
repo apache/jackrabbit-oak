@@ -494,6 +494,11 @@ public class SegmentNodeStoreService {
             }
 
             @Override
+            public boolean dispatchChanges() {
+                return !isStandbyInstance();
+            }
+
+            @Override
             public String getRepositoryHome() {
                 String repositoryHome = OsgiUtil.lookupConfigurationThenFramework(context, "repository.home");
                 if (isNullOrEmpty(repositoryHome)) {
