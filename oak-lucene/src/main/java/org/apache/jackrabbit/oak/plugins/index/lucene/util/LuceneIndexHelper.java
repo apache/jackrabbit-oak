@@ -36,10 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
-public class LuceneIndexHelper {
-
-    private LuceneIndexHelper() {
-    }
+public class LuceneIndexHelper extends IndexHelper {
 
     public static NodeBuilder newLuceneIndexDefinition(
             @NotNull NodeBuilder index, @NotNull String name,
