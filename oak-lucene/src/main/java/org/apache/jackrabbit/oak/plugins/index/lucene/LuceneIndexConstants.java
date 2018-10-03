@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.util.Version;
@@ -24,7 +25,7 @@ import org.apache.lucene.util.Version;
 /**
  * Constants used internally in Lucene indexes.
  */
-public interface LuceneIndexConstants {
+public interface LuceneIndexConstants extends FulltextIndexConstants {
 
     String TYPE_LUCENE = "lucene";
 
