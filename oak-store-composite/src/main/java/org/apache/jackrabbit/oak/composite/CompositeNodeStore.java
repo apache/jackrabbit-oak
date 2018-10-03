@@ -33,9 +33,12 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -438,7 +441,11 @@ public class CompositeNodeStore implements NodeStore, Observable {
             if (checks != null) {
                 nonDefaultStores.forEach( s -> checks.check(globalStore, s));
             }
-            return new CompositeNodeStore(mip, globalStore, nonDefaultStores, nodeStateMonitor, nodeBuilderMonitor);
+            if (globalStore instanceof Clusterable) {
+                return new ClusterableCNS(mip, globalStore, nonDefaultStores, nodeStateMonitor, nodeBuilderMonitor);
+            } else {
+                return new CompositeNodeStore(mip, globalStore, nonDefaultStores, nodeStateMonitor, nodeBuilderMonitor);
+            }
         }
 
         private void checkMountsAreConsistentWithMounts() {
@@ -447,6 +454,43 @@ public class CompositeNodeStore implements NodeStore, Observable {
             checkArgument(buildMountCount == mipMountCount,
                     "Inconsistent mount configuration. Builder received %s mounts, but MountInfoProvider knows about %s.",
                     buildMountCount, mipMountCount);
+        }
+    }
+
+    private static class ClusterableCNS
+            extends CompositeNodeStore
+            implements Clusterable {
+
+        private final Clusterable clusterable;
+
+        ClusterableCNS(MountInfoProvider mip,
+                       NodeStore globalStore,
+                       List<MountedNodeStore> nonDefaultStore,
+                       CompositeNodeStoreMonitor nodeStateMonitor,
+                       CompositeNodeStoreMonitor nodeBuilderMonitor) {
+            super(mip, globalStore, nonDefaultStore, nodeStateMonitor, nodeBuilderMonitor);
+            checkArgument(globalStore instanceof Clusterable,
+                    "globalStore must implement Clusterable");
+            this.clusterable = (Clusterable) globalStore;
+        }
+
+        @Override
+        @NotNull
+        public String getInstanceId() {
+            return clusterable.getInstanceId();
+        }
+
+        @Override
+        @Nullable
+        public String getVisibilityToken() {
+            return clusterable.getVisibilityToken();
+        }
+
+        @Override
+        public boolean isVisible(@NotNull String visibilityToken,
+                                 long maxWaitMillis)
+                throws InterruptedException {
+            return clusterable.isVisible(visibilityToken, maxWaitMillis);
         }
     }
 }
