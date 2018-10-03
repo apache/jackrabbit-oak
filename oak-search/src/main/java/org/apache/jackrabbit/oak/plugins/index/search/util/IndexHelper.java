@@ -67,9 +67,6 @@ public class IndexHelper {
         NOT_TOKENIZED.addAll(GROUP_PROPERTY_NAMES);
     }
 
-    private IndexHelper() {
-    }
-
     public static NodeBuilder newFTIndexDefinition(
         @NotNull NodeBuilder index, @NotNull String name, String type,
         @Nullable Set<String> propertyTypes) {
