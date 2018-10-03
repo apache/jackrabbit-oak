@@ -52,7 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 public class LuceneIndexDefinition extends IndexDefinition {
-    private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
+    private static final Logger log = LoggerFactory.getLogger(LuceneIndexDefinition.class);
 
     private final boolean saveDirListing;
 
