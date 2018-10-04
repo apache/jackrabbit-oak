@@ -82,10 +82,9 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
             system.child(VersionConstants.JCR_ACTIVITIES)
                     .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
-        }
 
-        NodeBuilder system = builder.getChildNode(JCR_SYSTEM);
-        Namespaces.setupNamespaces(system);
+            Namespaces.setupNamespaces(system);
+        }
 
         NodeBuilder versionStorage = builder.child(JCR_SYSTEM)
                 .child(JCR_VERSIONSTORAGE);

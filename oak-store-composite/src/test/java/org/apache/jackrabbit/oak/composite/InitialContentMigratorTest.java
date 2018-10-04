@@ -16,11 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
-import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
-import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
-import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -33,19 +29,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -56,46 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 public class InitialContentMigratorTest {
-
-    @Test
-    public void noMigrationJcrNamespaces() throws Exception {
-        // Initialize seed
-        NodeStore seed = new MemoryNodeStore();
-        EditorHook hook = new EditorHook(
-            new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
-        NodeBuilder seedRootBuilder = seed.getRoot().builder();
-
-        // Initialize seed content
-        new InitialContent().initialize(seedRootBuilder);
-        NodeBuilder namespaceBuilder = seedRootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_NAMESPACES);
-        Namespaces.addCustomMapping(namespaceBuilder, "http://sling.apache.org/jcr/sling/1.0", "sling");
-        Namespaces.buildIndexNode(namespaceBuilder);
-
-        seed.merge(seedRootBuilder, hook, CommitInfo.EMPTY);
-
-        // Initialize target to migrate to
-        MemoryNodeStore target = new MemoryNodeStore();
-        NodeBuilder targetRootBuilder = target.getRoot().builder();
-        targetRootBuilder.child(JCR_SYSTEM);
-        target.merge(targetRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        MountInfoProvider mip = Mounts.newBuilder().mount("seed", "/first").build();
-        // perform migration
-        InitialContentMigrator icm = new InitialContentMigrator(target, seed, mip.getMountByName("seed"));
-        icm.migrate();
-
-        // Initialize target with a little different namespace
-        targetRootBuilder = target.getRoot().builder();
-        new InitialContent().initialize(targetRootBuilder);
-        NodeBuilder targetNamespaceBuilder = targetRootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_NAMESPACES);
-        Namespaces.addCustomMapping(targetNamespaceBuilder, "http://pling.apache.org/jcr/sling/1.0", "pling");
-        Namespaces.buildIndexNode(targetNamespaceBuilder);
-        target.merge(targetRootBuilder, hook, CommitInfo.EMPTY);
-
-        NodeState targetRoot = target.getRoot();
-        assertTrue(NAMESPACES_PATH + "/" + REP_NSDATA + " should have been created",
-            targetRoot.getChildNode(JCR_SYSTEM).getChildNode(REP_NAMESPACES).hasChildNode(REP_NSDATA));
-    }
 
     @Test
     public void migrateContentWithCheckpoints() throws IOException, CommitFailedException {
