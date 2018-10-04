@@ -147,13 +147,8 @@ public class CompositeNodeStore implements NodeStore, Observable {
 
         // merge the global builder and apply the commit hooks within
         MountedNodeStore globalStore = ctx.getGlobalStore();
-        CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx, nodeBuilder);
+        CommitHookEnhancer hookEnhancer = new CommitHookEnhancer(commitHook, ctx);
         NodeState globalResult = globalStore.getNodeStore().merge(nodeBuilder.getNodeBuilder(globalStore), hookEnhancer, info);
-        if (!hookEnhancer.getUpdatedBuilder().isPresent()) {
-            // it means that the commit hook wasn't invoked, because there were
-            // no changes on the global store. we should invoke it anyway.
-            hookEnhancer.processCommit(globalResult, globalResult, info);
-        }
         return ctx.createRootNodeState(globalResult);
    }
 

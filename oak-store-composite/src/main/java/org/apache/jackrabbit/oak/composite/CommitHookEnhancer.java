@@ -19,27 +19,20 @@ package org.apache.jackrabbit.oak.composite;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
-import java.util.Optional;
 import static com.google.common.collect.Maps.newHashMap;
 
 class CommitHookEnhancer implements CommitHook {
 
     private final CompositionContext ctx;
 
-    private final CompositeNodeBuilder builder;
-
     private final CommitHook hook;
 
-    private Optional<CompositeNodeBuilder> updatedBuilder = Optional.empty();
-
-    CommitHookEnhancer(CommitHook hook, CompositionContext ctx, CompositeNodeBuilder builder) {
+    CommitHookEnhancer(CommitHook hook, CompositionContext ctx) {
         this.ctx = ctx;
-        this.builder = builder;
         this.hook = hook;
     }
 
@@ -60,22 +53,10 @@ class CommitHookEnhancer implements CommitHook {
         CompositeNodeState compositeAfter = ctx.createRootNodeState(afterStates);
 
         NodeState result = hook.processCommit(compositeBefore, compositeAfter, info);
-        updatedBuilder = Optional.of(toComposite(result, compositeBefore));
-
         if (result instanceof CompositeNodeState) {
             return ((CompositeNodeState) result).getNodeState(ctx.getGlobalStore());
         } else {
             throw new IllegalStateException("The commit hook result should be a composite node state");
         }
-    }
-
-    Optional<CompositeNodeBuilder> getUpdatedBuilder() {
-        return updatedBuilder;
-    }
-
-    private CompositeNodeBuilder toComposite(NodeState nodeState, CompositeNodeState compositeRoot) {
-        CompositeNodeBuilder builder = compositeRoot.builder();
-        nodeState.compareAgainstBaseState(compositeRoot, new ApplyDiff(builder));
-        return builder;
     }
 }
