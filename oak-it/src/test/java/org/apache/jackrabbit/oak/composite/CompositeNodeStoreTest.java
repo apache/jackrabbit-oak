@@ -57,6 +57,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -686,6 +688,28 @@ public class CompositeNodeStoreTest {
         store.merge(builder, hook, CommitInfo.EMPTY);
     }
 
+    @Test
+    public void bigPropertyIndexUpdate() throws Exception{
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
+
+        globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
+
+        int updateLimit = new DocumentNodeStoreBuilder().getUpdateLimit();
+        NodeBuilder builder = store.getRoot().builder();
+        for (int i = 0; i < updateLimit; i++) {
+            builder.child("content").child("node-" + i).setProperty("foo", "bar");
+        }
+        store.merge(builder, hook, CommitInfo.EMPTY);
+
+        builder = store.getRoot().builder();
+        builder.child("content").remove();
+        store.merge(builder, hook, CommitInfo.EMPTY);
+    }
+
     private static enum NodeStoreKind {
         MEMORY {
             @Override
@@ -780,7 +804,9 @@ public class CompositeNodeStoreTest {
                         }
                         ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
 
-                        instance = new DocumentMK.Builder().setRDBConnection(ds, options).getNodeStore();
+                        instance = new DocumentMK.Builder()
+                                .setRDBConnection(ds, options).build();
+                        instance.setMaxBackOffMillis(0);
 
                         return instance;
 
