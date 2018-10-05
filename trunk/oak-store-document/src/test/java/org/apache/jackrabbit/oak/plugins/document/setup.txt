@@ -1,0 +1,123 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+== MongoDB cluster setup ==
+
+This script will create a MongoDB cluster with 3 shards:
+
+=== Stop
+
+./mongo --port=27017
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10001
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10002
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10003
+use admin
+db.shutdownServer()
+exit
+./mongo --port=20001
+use admin
+db.shutdownServer()
+exit
+ps -ef | grep mongo
+
+=== Clean, Init, and Start
+
+rm -rf db
+mkdir db
+mkdir db/shard1
+mkdir db/shard2
+mkdir db/shard3
+mkdir db/config
+./mongod --shardsvr --port=10001 --dbpath db/shard1 --fork --logpath db/shard1.log
+./mongod --shardsvr --port=10002 --dbpath db/shard2 --fork --logpath db/shard2.log
+./mongod --shardsvr --port=10003 --dbpath db/shard3 --fork --logpath db/shard3.log
+./mongod --configsvr --port 20001 --dbpath=db/config --fork --logpath db/config.log
+./mongos --port 27017 --configdb localhost:20001 --fork --logpath db/mongos.log
+./mongo --host localhost --port 27017
+sh.addShard("localhost:10001")
+sh.addShard("localhost:10002")
+sh.addShard("localhost:10003")
+use MongoMKDB
+db.createCollection("nodes")
+db.createCollection("blobs")
+sh.enableSharding("MongoMKDB")
+sh.shardCollection("MongoMKDB.nodes", { "_id": 1 }, true)
+sh.shardCollection("MongoMKDB.blobs", { "_id": 1 }, true)
+exit
+
+=== Just one
+
+rm -rf db
+mkdir db
+./mongod --dbpath db --port 27017
+
+=== Other
+
+Display sharding status:
+
+du -h .
+./mongo --host localhost --port 27017
+db.printShardingStatus()
+exit
+
+
+=== Testing with a local Replica Set
+
+# within the mongodb directory:
+
+cd <mongodb/bin>
+
+# create a replica set with 2 replicas and 1 arbiter:
+# see also http://docs.mongodb.org/manual/tutorial/deploy-replica-set/
+
+killall mongod
+rm -rf db1; mkdir db1
+rm -rf db2; mkdir db2
+rm -rf db3; mkdir db3
+./mongod --replSet test --dbpath db1 --port 27017 > db1/log.txt &
+./mongod --replSet test --dbpath db2 --port 27018 > db2/log.txt &
+./mongod --replSet test --dbpath db3 --port 27019 > db3/log.txt &
+while ! nc -vz localhost 27017; do sleep 1; done
+while ! nc -vz localhost 27018; do sleep 1; done
+while ! nc -vz localhost 27019; do sleep 1; done
+./mongo --eval "rs.initiate({_id:'test', members:[ \
+  {_id:0, host:'localhost:27017'}, \
+  {_id:1, host:'localhost:27018'}, \
+  {_id:2, host:'localhost:27019', arbiterOnly:true}, \
+]});"
+
+# display configuration:
+
+./mongo
+rs.config()
+
+# display processes:
+
+ps -ef | grep "./mongod "
+
+# kill the one on port 27017:
+
+ps -l | grep "mongod" | grep "port 27017" | awk '{print $2}' | xargs kill -9

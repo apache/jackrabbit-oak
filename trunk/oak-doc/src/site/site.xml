@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<project xmlns="http://maven.apache.org/DECORATION/1.3.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/DECORATION/1.3.0 http://maven.apache.org/xsd/decoration-1.3.0.xsd"
+         name="Jackrabbit Oak">
+  <body>
+    <menu name="Overview">
+      <item href="index.html" name="Jackrabbit Oak" />
+      <item href="license.html" name="License" />
+      <item href="downloads.html" name="Downloads" />
+      <item href="articles.html" name="Articles" />
+    </menu>
+    <menu name="Concepts and Architecture">
+      <item href="architecture/overview.html" name="Overview" />
+      <item href="architecture/nodestate.html" name="The Node State Model" />
+    </menu>
+    <menu name="Main APIs">
+      <item href="http://www.day.com/specs/jcr/2.0/index.html" name="JCR API" />
+      <item href="https://jackrabbit.apache.org/jcr/jcr-api.html" name="Jackrabbit API" />
+      <item href="oak_api/overview.html" name="Oak API" />
+    </menu>
+    <menu name="Features and Plugins">
+      <item href="nodestore/overview.html" name="Node Storage" collapse="false">
+        <item href="nodestore/documentmk.html" name="Document NodeStore" collapse="false">
+          <item href="nodestore/document/mongo-document-store.html" name="MongoDB DocumentStore" />
+          <item href="nodestore/document/node-bundling.html" name="Node Bundling" />
+          <item href="nodestore/document/secondary-store.html" name="Secondary Store" />
+          <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
+          <item href="clustering.html" name="Clustering" />
+        </item>
+        <item href="nodestore/segment/overview.html" name="Segment NodeStore" />
+        <item href="nodestore/compositens.html" name="Composite NodeStore" />
+      </item>
+      <item href="plugins/blobstore.html" name="Blob Storage" collapse="false">
+          <item href="features/direct-binary-access.html" name="Direct Binary Access" />
+      </item>
+      <item href="query/query.html" name="Query" collapse="false">
+        <item href="query/query-engine.html" name="Query Engine" />
+        <item href="query/grammar-xpath.html" name="XPath Grammar" />
+        <item href="query/grammar-sql2.html" name="SQL-2 Grammar" />
+        <item href="query/query-troubleshooting.html" name="Troubleshooting" />
+        <item href="query/indexing.html" name="Indexing" />
+        <item href="query/lucene.html" name="Lucene Index" />
+        <item href="query/property-index.html" name="Property Index" />
+        <item href="query/solr.html" name="Solr Index" />
+      </item>
+      <item href="security/overview.html" name="Security" />
+      <item href="features/atomic-counter.html" name="Atomic Counter" />
+      <item href="features/observation.html" name="Observation" />
+    </menu>
+    <menu name="Using Oak">
+      <item href="use_getting_started.html" name="Getting Started" />
+      <item href="construct.html" name="Repository Construction" />
+      <item href="osgi_config.html" name="Configuring Oak" />
+      <item href="command_line.html" name="Command Line Tools" />
+      <item href="migration.html" name="Migration" />
+      <item href="differences.html" name="Differences to Jackrabbit 2" />
+      <item href="known_issues.html" name="Known Issues" />
+      <item href="constraints.html" name="Constraints" />
+      <item href="dos_and_donts.html" name="Dos and Don'ts" />
+      <item href="coldstandby/coldstandby.html" name="Cold Standby" />
+      <item href="FAQ.html" name="FAQ" />
+    </menu>
+    <menu name="Developing Oak">
+      <item href="dev_getting_started.html" name="Getting Started" />
+      <item href="participating.html" name="Participating" />
+      <item href="developing-with-git.html" name="Developing with Git" />
+      <item href="diagnostic-builds.html" name="Cutting diagnostic builds" />
+      <item href="branching.html" name="Branching off a new stable" />
+      <item href="attribution.html" name="Attribution" />
+      <item href="release-schedule.html" name="Release Schedule" />
+    </menu>
+    <menu name="Links">
+      <item href="http://jackrabbit.apache.org/oak" name="Apache Jackrabbit Oak" />
+      <item href="http://jackrabbit.apache.org/" name="Apache Jackrabbit" />
+    </menu>
+  </body>
+
+  <skin>
+    <groupId>org.apache.maven.skins</groupId>
+    <artifactId>maven-fluido-skin</artifactId>
+    <version>1.6</version>
+  </skin>
+
+  <custom>
+    <fluidoSkin>
+      <sourceLineNumbersEnabled>false</sourceLineNumbersEnabled>
+      <topBarEnabled>true</topBarEnabled>
+      <topBarIcon>
+        <name>Oak logo</name>
+        <alt>Oak logo</alt>
+        <src>oak_logo.png</src>
+        <href>/</href>
+      </topBarIcon>
+      <sideBarEnabled>true</sideBarEnabled>
+      <gitHub>
+        <projectId>apache/jackrabbit-oak</projectId>
+        <ribbonOrientation>right</ribbonOrientation>
+      </gitHub>
+      <ohloh>
+        <projectId>jackrabbit-oak</projectId>
+        <widget>thin-badge</widget>
+      </ohloh>
+      <googlePlusOne />
+    </fluidoSkin>
+  </custom>
+</project>

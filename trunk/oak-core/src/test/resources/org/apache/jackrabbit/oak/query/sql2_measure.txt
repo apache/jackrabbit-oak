@@ -1,0 +1,170 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+# OAK-5949
+explain [SELECT] * from [nt:base]
+java.text.ParseException: Query: explain [SELECT](*)* from [nt:base]; expected: SELECT
+
+commit / + "testRoot": { }
+commit /testRoot + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit /testRoot + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p
+  inner join [nt:base] as c on p.id = c.p
+  where isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+/testRoot/parents/p1, /testRoot/children/c1
+/testRoot/parents/p1, /testRoot/children/c2
+/testRoot/parents/p2, /testRoot/children/c3
+
+select [jcr:path] from [nt:base] as p
+  where p.[testRoot/children/*/*] = '3'
+/
+
+select [jcr:path], p.[children/c1/*] from [nt:base] as p
+  where p.[children/c1/*] is not null
+/testRoot, 1
+
+select [jcr:path], [jcr:score], * from [nt:base] as a
+  where ([id] = '0' or [p0/id] = '0')
+/testRoot/parents, null, null
+/testRoot/parents/p0, null, null
+
+select [jcr:path], [jcr:score], * from [nt:base] as a
+  where ([id] = '0' or [*/id] = '0')
+/testRoot/parents, null, null
+/testRoot/parents/p0, null, null
+
+select c.[jcr:path], p.[jcr:path] from [nt:base] as c
+  right outer join [nt:base] as p on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+/testRoot/children/c1, /testRoot/parents/p1
+/testRoot/children/c2, /testRoot/parents/p1
+/testRoot/children/c3, /testRoot/parents/p2
+
+measure select * from [nt:base] as c
+  right outer join [nt:base] as p on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+/testRoot/parents/p1, /testRoot/children/c1
+/testRoot/parents/p1, /testRoot/children/c2
+/testRoot/parents/p2, /testRoot/children/c3
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 0
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p
+  inner join [nt:base] as c on p.id = c.p
+  where isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as c
+  right outer join [nt:base] as p on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 0
+
+measure select * from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is not null
+  and isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p
+  inner join [nt:base] as c on p.id = c.p
+  where isdescendantnode(p, '/testRoot')
+  and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+

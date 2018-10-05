@@ -1,0 +1,57 @@
+ /'
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ '/
+ @startuml
+
+title Write or Update flow for Secondary NodeStore
+autonumber
+
+
+participant "NodeStore\nClient" as NS
+participant "Document\nNodeStore" as DNS
+database "Cache"
+database "Secondary Store" as SS
+database Mongo
+
+NS -> DNS : Write /a/b@r1
+
+DNS -> Mongo : Write /a/b@r1
+DNS -> Cache : Cache /a/b@r1
+DNS -> NS    : Commit completed
+
+...
+autonumber 1
+== Local Change Event==
+DNS -> SS    : Content changed event /a/b
+SS ->  SS    : Commit changes \n to local store and \n update head revision
+
+...
+autonumber 1
+== External Change Event==
+DNS -> Mongo : Background read for head revision
+DNS -> Mongo : Read Journal entry for changes \n done from other cluster nodes
+Mongo -> DNS : Changed paths
+DNS -> SS    : Content changed event for external changes
+SS ->  SS    : Commit changes \n to local store and \n update head revision
+
+...
+autonumber 1
+== Startup Sync==
+DNS -> SS    : Inform observer about current head revision at startup
+SS  -> DNS   : Perform diff between local store \n head revision and current head revision
+SS ->  SS    : Apply diff \n to local store and \n update head revision
+
+@enduml

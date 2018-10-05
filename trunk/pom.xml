@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.apache.jackrabbit</groupId>
+    <artifactId>oak-parent</artifactId>
+    <version>1.9.9</version>
+    <relativePath>oak-parent/pom.xml</relativePath>
+  </parent>
+
+  <artifactId>jackrabbit-oak</artifactId>
+  <name>Jackrabbit Oak</name>
+  <packaging>pom</packaging>
+
+  <properties>
+    <skip.deployment>true</skip.deployment>
+  </properties>
+
+  <modules>
+    <module>oak-parent</module>
+    <module>oak-commons</module>
+    <module>oak-api</module>
+    <module>oak-core-spi</module>
+    <module>oak-store-spi</module>
+    <module>oak-query-spi</module>
+    <module>oak-security-spi</module>
+    <module>oak-store-composite</module>
+    <module>oak-store-document</module>
+
+    <module>oak-blob-plugins</module>
+    <module>oak-blob</module>
+    <module>oak-blob-cloud</module>
+    <module>oak-blob-cloud-azure</module>
+    <module>oak-core</module>
+    <module>oak-jcr</module>
+
+    <module>oak-upgrade</module>
+    <module>oak-http</module>
+    <module>oak-search</module>
+    <module>oak-lucene</module>
+    <module>oak-solr-core</module>
+    <module>oak-solr-osgi</module>
+    <module>oak-search-mt</module>
+    <module>oak-auth-external</module>
+    <module>oak-auth-ldap</module>
+    <module>oak-run-commons</module>
+    <module>oak-run</module>
+    <module>oak-it-osgi</module>
+    <module>oak-pojosr</module>
+    <module>oak-authorization-cug</module>
+    <module>oak-exercise</module>
+    <module>oak-examples</module>
+    <module>oak-it</module>
+    <module>oak-segment-tar</module>
+    <module>oak-segment-azure</module>
+    <module>oak-benchmarks</module>
+  </modules>
+
+  <scm>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.9.9</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.9.9</developerConnection>
+    <url>http://svn.apache.org/viewvc/jackrabbit/oak/tags/jackrabbit-oak-1.9.9</url>
+  </scm>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>release.properties</exclude>
+            <exclude>.git/**</exclude>
+            <exclude>.idea/**</exclude>
+            <exclude>.gitignore</exclude>
+            <exclude>oak-doc/*.uxf</exclude>
+            <exclude>oak-doc/.*/**</exclude>
+            <exclude>oak-doc/*.iml</exclude>
+            <exclude>oak-doc/target/**</exclude>
+            <exclude>oak-segment-tar/target/**</exclude>
+            <exclude>oak-segment-tar/*.iml</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>doc</id>
+      <modules>
+        <module>oak-doc</module>
+        <module>oak-doc-railroad-macro</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>javadoc</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.0.1</version>
+            <executions>
+              <execution>
+                <id>aggregate</id>
+                <goals>
+                  <goal>aggregate</goal>
+                </goals>
+                <phase>site</phase>
+              </execution>
+            </executions>
+            <configuration>
+              <reportOutputDirectory>${basedir}/oak-doc/target/site</reportOutputDirectory>
+              <additionalparam>-notimestamp</additionalparam>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>apache-release</id>
+      <properties>
+        <keyfile>${user.home}/.ssh/id_rsa</keyfile>
+        <passphrase />
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.1.0</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <phase>package</phase>
+                <configuration>
+                  <descriptors>
+                    <descriptor>assembly.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+              <execution>
+                <id>source-release-assembly</id>
+                <configuration>
+                  <skipAssembly>true</skipAssembly>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <version>1.8</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <phase>deploy</phase>
+                <configuration>
+                  <tasks>
+                    <mkdir dir="${basedir}/target/${project.version}" />
+                    <copy todir="${basedir}/target/${project.version}" flatten="true">
+                      <fileset dir="${basedir}">
+                        <include name="RELEASE-NOTES.txt" />
+                        <include name="target/*-src.zip*" />
+                      </fileset>
+                    </copy>
+                    <checksum algorithm="SHA1" fileext=".sha1">
+                      <fileset dir="${basedir}/target/${project.version}">
+                        <include name="*.zip" />
+                      </fileset>
+                    </checksum>
+                    <checksum algorithm="SHA-512" fileext=".sha512">
+                      <fileset dir="${basedir}/target/${project.version}">
+                        <include name="*.zip" />
+                      </fileset>
+                    </checksum>
+                    <checksum file="${basedir}/target/${project.version}/${project.artifactId}-${project.version}-src.zip" algorithm="SHA1" property="checksum" />
+                    <echo file="${basedir}/target/vote.txt">
+From: ${apache.username}@apache.org
+To: oak-dev@jackrabbit.apache.org
+Subject: [VOTE] Release Apache Jackrabbit Oak ${project.version}
+
+A candidate for the Jackrabbit Oak ${project.version} release is available at:
+
+    https://dist.apache.org/repos/dist/dev/jackrabbit/oak/${project.version}/
+
+The release candidate is a zip archive of the sources in:
+
+    https://svn.apache.org/repos/asf/jackrabbit/oak/tags/${project.artifactId}-${project.version}/
+
+The SHA1 checksum of the archive is ${checksum}.
+
+A staged Maven repository is available for review at:
+
+    https://repository.apache.org/
+
+The command for running automated checks against this release candidate is:
+
+    # run in SVN checkout of https://dist.apache.org/repos/dist/dev/jackrabbit
+    $ sh check-release.sh oak ${project.version} ${checksum}
+
+Please vote on releasing this package as Apache Jackrabbit Oak ${project.version}.
+The vote is open for the next 72 hours and passes if a majority of at
+least three +1 Jackrabbit PMC votes are cast.
+
+    [ ] +1 Release this package as Apache Jackrabbit Oak ${project.version}
+    [ ] -1 Do not release this package because...${line.separator}
+                    </echo>
+                    <echo file="${basedir}/target/announcement.txt">
+From: ${username}@apache.org
+To: announce@apache.org, announce@jackrabbit.apache.org, users@jackrabbit.apache.org, dev@jackrabbit.apache.org, oak-dev@jackrabbit.apache.org
+Subject: [ANNOUNCE] Apache Jackrabbit Oak ${project.version} released
+
+The Apache Jackrabbit community is pleased to announce the release of
+Apache Jackrabbit Oak ${project.version}. The release is available for download at:
+
+     http://jackrabbit.apache.org/downloads.html
+
+See the full release notes below for details about this release:
+${line.separator}
+${line.separator}
+                    </echo>
+                    <concat destfile="${basedir}/target/announcement.txt" append="true">
+                      <filelist files="RELEASE-NOTES.txt" />
+                    </concat>
+                    <echo />
+                    <echo>
+The release candidate has been prepared in:
+
+    ${basedir}/target/${project.version}
+
+Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
+
+    cd /path/to/jackrabbit-dev
+    cp -r ${basedir}/target/${project.version} oak/${project.version}
+    svn add oak/${project.version}
+    svn commit -m 'Apache Jackrabbit Oak ${project.version} release candidate' oak/${project.version}
+
+A release vote template has been generated for you:
+
+    file://${basedir}/target/vote.txt
+
+An announcement mail template can be found at:
+
+    file://${basedir}/target/announcement.txt
+                    </echo>
+                    <echo />
+                  </tasks>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <dependency>
+                 <groupId>org.apache.ant</groupId>
+                 <artifactId>ant-nodeps</artifactId>
+                 <version>1.8.1</version>
+               </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+</project>

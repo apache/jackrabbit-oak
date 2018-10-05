@@ -1,0 +1,324 @@
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+#set($h1 = '#')
+#set($h2 = '##')
+#set($h3 = '###')
+#set($h4 = '####')
+
+#set($sql2-grammar = ${project.basedir} + '/src/site/resources/grammar/sql2.csv')
+
+#macro( railroad_link $topic )
+<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic|renderLink=true} -->
+#end
+
+#macro( render $topic )
+<!-- MACRO{railroad|file=$sql2-grammar|topic=$topic} -->
+#end
+
+$h2 Oak SQL-2 Query Grammar
+
+* #railroad_link( 'Query' )
+* #railroad_link( 'Column' )
+* #railroad_link( 'Selector' )
+* #railroad_link( 'Join' )
+* #railroad_link( 'Constraint' )
+* #railroad_link( 'And Condition' )
+* #railroad_link( 'Condition' )
+* #railroad_link( 'Comparison' )
+* #railroad_link( 'In Comparison' )
+* #railroad_link( 'Static Operand' )
+* #railroad_link( 'Ordering' )
+* #railroad_link( 'Dynamic Operand' )
+* #railroad_link( 'Type' )
+* #railroad_link( 'Options' )
+* #railroad_link( 'Explain' )
+* #railroad_link( 'Measure' )
+
+---
+
+#render( 'Query' )
+
+All queries should have a path restriction 
+(even if it's just, for example, "/content"), as this allows to shrink indexes.
+
+"distinct" ensures each row is only returned once.
+
+"union" combines the result of this query with the results of another query,
+where "union all" does not remove duplicates.
+
+"order by" may use an index.
+If there is no index for the given sort order, 
+then the result is fully read in memory and sorted before returning the first row.
+
+Examples:
+
+    select * from [sling:Folder] as a where [sling:resourceType] = 'x' and isdescendantnode(a, '/content')
+    select [jcr:path] from [oak:QueryIndexDefinition] as a where [type] = 'lucene' and isdescendantnode(a, '/') order by [reindexCount] desc
+    select [jcr:path], [jcr:score], * from [nt:base] as a where [type] = 'report' and isdescendantnode(a, '/etc') option(traversal fail)
+
+---
+
+#render( 'Column' )
+
+It is recommended to enclose property names in square brackets.
+
+For the "excerpt" property, 
+see <a href="query-engine.html#Excerpts_and_Highlighting">Excerpts and Highlighting</a>.
+
+Not listed above are "special" properties such as "[jcr:path]" (the path), "[jcr:score]" (the score),
+"[rep:suggest()]".
+
+Examples:
+
+    *
+    [jcr:path]
+    [jcr:score]
+    a.*
+    a.[sling:resourceType]
+
+---
+
+#render( 'Selector' )
+
+The nodetype name can be either a primary nodetype or a mixin nodetype.
+It is recommended to specify the nodetype name in square brackes.
+
+Examples:
+
+    [sling:Folder] as a
+
+---
+
+#render( 'Join' )
+
+An "inner join" only returns entries if nodes are found on both the left and right selector.
+A "left outer join" will return entries that don't have matching nodes on the right selector.
+A "right outer join" will return entries that don't have matching nodes on the left selector.
+For outer joins, all the properties of the selector that doesn't have a matching node are null.
+
+Examples:
+
+All nodes below /oak:index that _don't_ have a child node:
+
+    select a.* from [oak:QueryIndexDefinition] as a 
+      left outer join [nt:base] as b on ischildnode(b, a)
+      where isdescendantnode(a, '/oak:index') 
+      and b.[jcr:primaryType] is null 
+      order by a.[jcr:path]
+
+---
+
+#render( 'Constraint' )
+
+"or" conditions of the form "[x]=1 or [x]=2" are automatically converted to "[x] in(1, 2)",
+and can use the same an index.
+
+"or" conditions of the form "[x]=1 or [y]=2" are more complicated.
+Oak will try two options: first, what is the expected cost to use a "union" query
+(one query with x=1, and a second query with y=2).
+If using "union" results in a lower estimated cost, then "union" is used.
+This can be the case, for example, if there are two distinct indexes,
+one on x, and another on y.
+
+---
+
+#render( 'And Condition' )
+
+A special case (not found in relational databases) is
+"and" conditions of the form "[x]=1 and [x]=2".
+They will match nodes with multi-valued properties, 
+where the property value contains both 1 and 2.
+
+---
+
+#render( 'Condition' )
+
+"not" conditions can not typically use an index.
+
+"contains": see <a href="query-engine.html#Full-Text_Queries">Full-Text Queries</a>.
+
+"similar": see <a href="query-engine.html#Similarity_Queries">Similarity Queries</a>.
+
+"native": see <a href="query-engine.html#Native_Queries">Native Queries</a>.
+
+"spellcheck": see <a href="query-engine.html#Spellchecking">Spellchecking</a>.
+
+"suggest": see <a href="query-engine.html#Suggestions">Suggestions</a>.
+
+Examples:
+
+    select [jcr:path] from [nt:base] where similar(*, '/test/a') 
+    select [jcr:path] from [nt:base] where native('solr', 'name:(Hello OR World)')
+    select [rep:suggest()] from [nt:base] where suggest('in ') and issamenode('/')
+    select [rep:spellcheck()] from [nt:base] as a where spellcheck('helo') and issamenode(a, '/')
+
+---
+
+#render( 'Comparison' )
+
+"like": when comparing with LIKE, the wildcards characters are '_' (any one character) 
+and '%' (any characters). An index is used, 
+except if the operand starts with a wildcard. 
+To search for the characters '%' and '_', the characters need to be escaped using '\' (backslash).
+
+Comparison using &lt;, &gt;, &gt;=, and &lt;= can use an index if the property in the index is ordered.
+
+Examples:
+
+    [name] like '%: 100 \%'
+
+---
+
+#render( 'In Comparison' )
+
+Examples:
+
+    [status] in('active', 'inactive')
+
+---
+
+#render( 'Static Operand' )
+
+A string (text) literal starts and ends with a single quote. 
+Two single quotes can be used to create a single quote inside a string.
+
+Example:
+
+    'John''s car'
+    $uuid
+    cast('2020-12-01T20:00:00.000' as date)
+
+---
+
+#render( 'Ordering' )
+
+Ordering by an indexed property will use that index if possible.
+If there is no index that can be used for the given sort order,
+then the result is fully read in memory and sorted there.
+
+As a special case, sorting by "jcr:score" in descending order is ignored 
+(removed from the list), as this is what the fulltext index does anyway
+(and if no fulltext index is used, then the score doesn't apply).
+If for some reason you want to enforce sorting by "jcr:score", then
+you can use the workaround to order by "LOWER([jcr:score]) DESC".
+
+Examples:
+
+    [lastName]
+    [price] desc
+
+---
+
+#render( 'Dynamic Operand' )
+
+The selector name is only needed if the query contains multiple selectors.
+
+Property names can be relative, so that for example 'jcr:content/test'
+means the property names 'test' in the child node 'jcr:content'.
+
+The wildcard '*' means any property.
+
+"coalesce": this returns the first operand if it is not null,
+and the second operand otherwise.
+`@since Oak 1.8`
+
+"property": This feature is rarely used. 
+It allows to filter for all properties with a given type.
+Example: the condition `property(*, Reference) = $uuid` will search for any property of type
+`Reference`.
+
+"lower", "upper", "length": Indexes on functions are supported `@since Oak 1.6`, see OAK-3574.
+
+Examples:
+
+    lower([firstName])
+    coalesce([lastName], name())
+    length(coalesce([lastName], name()))
+    [jcr:content/title]
+
+---
+
+#render( 'Type' )
+
+This is the list of all JCR property types.
+
+---
+
+#render( 'Options' )
+
+"traversal": by default, queries without index will log a warning,
+except if the configuration option `QueryEngineSettings.failTraversal` is changed
+The traversal option can be used to change the behavior of the given query:
+"ok" to not log a warning,
+"warn" to log a warning,
+"fail" to fail the query, and 
+"default" to use the default setting.
+
+"index tag": by default, queries will use the index with the lowest expected cost (as in relational databases).
+To only consider some of the indexes, add tags (a multi-valued String property) to the index(es) of choice,
+and specify this tag in the query.
+See <a href="query-engine.html#Query_Option_Index_Tag">Query Option Index Tag</a>.
+
+Examples:
+
+    option(traversal fail)
+
+---
+
+#render( 'Explain' )
+
+Does not run the query, but only computes and returns the query plan.
+With EXPLAIN MEASURE, the expected cost is calculated as well.
+In both cases, the query result will only have one column called 'plan', and one row that contains the plan.
+
+Examples:
+
+    explain measure 
+    select * from [nt:base] where [jcr:uuid] = 1
+
+Result:
+
+    plan = [nt:base] as [nt:base] 
+    /* property uuid = 1 where [nt:base].[jcr:uuid] = 1 */  
+    cost: { "nt:base": 2.0 } 
+
+This means the property index named "uuid" is used for this query.
+The expected cost (roughly the number of uncached I/O operations) is 2.
+
+---
+
+#render( 'Measure' )
+
+Runs the query, but instead of returning the result, returns the number of rows traversed.
+The query result has two columns, one called 'selector' and one called 'scanCount'.
+The result has at least two rows, one that represents the total (selector set to 'query'),
+and one per selector used in the query. 
+
+Examples:
+
+    measure 
+    select * from [nt:base] where [jcr:uuid] = 1
+
+Result:
+
+    selector = query
+    scanCount = 0
+    selector = nt:base
+    scanCount = 0
+
+In this case, the scanCount is zero because the query did not find any nodes.
+

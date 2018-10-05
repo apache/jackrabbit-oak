@@ -1,0 +1,255 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Sample LDIF data for the ApacheDS v1.0 Basic User's Guide
+#
+# Some sailors and their ships
+# userpassword for all persons is "pass"
+#
+version: 1
+
+dn: ou=crews,ou=groups,ou=system
+objectclass: organizationalUnit
+objectclass: top
+description: Contains entries which describe ship crews
+ou: crews
+
+dn: ou=ranks,ou=groups,ou=system
+objectclass: organizationalUnit
+objectclass: top
+description: Contains entries which describe naval ranks (e.g. captain)
+ou: ranks
+
+# Super Rat
+# ---------
+dn: cn=Rat Ratterson,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Rat Ratterson
+description: Ship Rat
+givenname: Rat
+sn: Ratterson
+uid: ratty
+mail: ratty@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+# Special Agent
+# ---------
+dn: cn=Special\, Agent [007],ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Special, Agent [007]
+description: Special Characters in DN
+givenname: Special
+sn: Agent
+uid: =007=
+mail: oo7@mi6.gov
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+# HMS Lydia Crew
+# --------------
+
+dn: cn=Horatio Hornblower,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Horatio Hornblower
+description: Capt. Horatio Hornblower, R.N
+givenname: Horatio
+sn: Hornblower
+uid: hhornblo
+mail: hhornblo@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=William Bush,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: William Bush
+description: Lt. William Bush
+givenname: William
+manager: cn=Horatio Hornblower,ou=users,ou=system
+sn: Bush
+uid: wbush
+mail: wbush@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=Thomas Quist,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Thomas Quist
+description: Seaman Quist
+givenname: Thomas
+manager: cn=Horatio Hornblower,ou=users,ou=system
+sn: Quist
+uid: tquist
+mail: tquist@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=Moultrie Crystal,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Moultrie Crystal
+description: Lt. Crystal
+givenname: Moultrie
+manager: cn=Horatio Hornblower,ou=users,ou=system
+sn: Crystal
+uid: mchrysta
+mail: mchrysta@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=HMS Lydia,ou=crews,ou=groups,ou=system
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: HMS Lydia
+uniquemember: cn=Horatio Hornblower,ou=users,ou=system
+uniquemember: cn=William Bush,ou=users,ou=system
+uniquemember: cn=Thomas Quist,ou=users,ou=system
+uniquemember: cn=Moultrie Crystal,ou=users,ou=system
+uniquemember: cn=Rat Ratterson,ou=users,ou=system
+
+# HMS Victory Crew
+# ----------------
+
+dn: cn=Horatio Nelson,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Horatio Nelson
+description: Lord Horatio Nelson
+givenname: Horatio
+sn: Nelson
+uid: hnelson
+mail: hnelson@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=Thomas Masterman Hardy,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Thomas Masterman Hardy
+description: Sir Thomas Masterman Hardy
+givenname: Thomas
+manager: cn=Horatio Nelson,ou=users,ou=system
+sn: Hardy
+uid: thardy
+mail: thardy@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=Cornelius Buckley,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Cornelius Buckley
+description: LM Cornelius Buckley
+givenname: Cornelius
+manager: cn=Horatio Nelson,ou=users,ou=system
+sn: Buckley
+uid: cbuckley
+mail: cbuckley@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=HMS Victory,ou=crews,ou=groups,ou=system
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: HMS Victory
+uniquemember: cn=Horatio Nelson,ou=users,ou=system
+uniquemember: cn=Thomas Masterman Hardy,ou=users,ou=system
+uniquemember: cn=Cornelius Buckley,ou=users,ou=system
+uniquemember: cn=Rat Ratterson,ou=users,ou=system
+
+# HMS Bounty Crew
+# ---------------
+
+dn: cn=William Bligh,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: William Bligh
+description: Captain William Bligh
+givenname: William
+sn: Bligh
+uid: wbligh
+mail: wbligh@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=Fletcher Christian,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: Fletcher Christian
+description: Lieutenant Fletcher Christian
+givenname: Fletcher
+manager: cn=William Bligh,ou=users,ou=system
+sn: Christian
+uid: fchristi
+mail: fchristi@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=John Fryer,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: John Fryer
+description: Master John Fryer
+givenname: John
+manager: cn=William Bligh,ou=users,ou=system
+sn: Fryer
+uid: jfryer
+mail: jfryer@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=John Hallett,ou=users,ou=system
+objectclass: person
+objectclass: organizationalPerson
+objectclass: inetOrgPerson
+objectclass: top
+cn: John Hallett
+description: Midshipman John Hallett
+givenname: John
+manager: cn=William Bligh,ou=users,ou=system
+sn: Hallett
+uid: jhallett
+mail: jhallett@royalnavy.mod.uk
+userpassword: {SHA}nU4eI71bcnBGqeO0t9tXvY1u5oQ=
+
+dn: cn=HMS Bounty,ou=crews,ou=groups,ou=system
+objectclass: groupOfUniqueNames
+objectclass: top
+cn: HMS Bounty
+uniquemember: cn=William Bligh,ou=users,ou=system
+uniquemember: cn=Fletcher Christian,ou=users,ou=system
+uniquemember: cn=John Fryer,ou=users,ou=system
+uniquemember: cn=John Hallett,ou=users,ou=system
+uniquemember: cn=Rat Ratterson,ou=users,ou=system
+

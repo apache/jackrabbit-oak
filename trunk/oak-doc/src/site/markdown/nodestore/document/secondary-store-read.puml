@@ -1,0 +1,59 @@
+ /'
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ '/
+@startuml
+
+title Read flow for Secondary NodeStore
+autonumber
+hide footbox
+
+participant "NodeStore\nClient" as NS
+participant "Document\nNodeStore" as DNS
+database "Cache"
+database "Secondary Store" as SS
+database Mongo
+
+NS -> DNS : Read /a/b@r1
+
+DNS -> SS : Read /a/b@r1
+alt Found in Secondary Store
+  SS -> DNS
+  note over Cache
+     Secondary Store has nodes under
+     /a/b for revisions <= r1
+  end note
+  DNS -> NS : Read done from \nSecondary Store
+  note left
+      Further reads
+      of children under
+      /a/b would be done
+      from Secondary Store
+  end note
+else Not in Secondary Store
+  SS -> DNS :
+  DNS -> Cache : Try to read from cache \n else load from Mongo
+  alt Found in cache
+   Cache -> DNS    : /a/b@r1 already in cache
+   DNS -> NS       : Read done \n from memory cache
+   else Not found in cache
+    Cache -> Mongo : Read 2:/a/b from Mongo
+    Mongo -> Cache : Return 2:/a/b
+    Cache -> DNS   : Construct /a/b@r1\n and cache it
+    DNS -> NS      : Read done \n from Mongo
+    end
+end
+
+@enduml

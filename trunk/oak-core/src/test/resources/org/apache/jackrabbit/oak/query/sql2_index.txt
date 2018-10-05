@@ -1,0 +1,273 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+explain select [jcr:path], [jcr:score], * from [nt:base] as a where lower([test]) <> 'lower'
+[nt:base] as [a] /* traverse "*"
+  where lower([a].[test]) <> 'lower' */
+
+explain select * from [nt:base] where [jcr:uuid] <> '1'
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
+  where [nt:base].[jcr:uuid] <> '1' */
+
+explain select * from [nt:base] as a
+    left outer join [nt:base] as b on a.x=b.y
+    where a.y is null and b.z = 1
+[nt:base] as [a] /* traverse "*"
+  where [a].[y] is null */ left outer join [nt:base] as [b] /* traverse "*"
+  where [b].[z] = 1 */
+  on [a].[x] = [b].[y]
+
+explain select * from [nt:base] as a
+    right outer join [nt:base] as b on a.x=b.y
+    where a.y is null and b.z = 1
+[nt:base] as [b] /* traverse "*"
+  where [b].[z] = 1 */ left outer join [nt:base] as [a] /* traverse "*" */
+  on [a].[x] = [b].[y]
+
+explain select * from [nt:base] where (p=1 or p=2) and (p=3 or p=4)
+[nt:base] as [nt:base] /* traverse "*"
+  where ([nt:base].[p] in(1, 2))
+  and ([nt:base].[p] in(3, 4)) */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] like '%'
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
+  where [nt:base].[jcr:uuid] like '%' */
+
+explain select e.[jcr:path]
+  from [nt:base] as a
+  inner join [nt:base] as b on ischildnode(b, a)
+  inner join [nt:base] as c on ischildnode(c, b)
+  inner join [nt:base] as d on ischildnode(d, c)
+  inner join [nt:base] as e on ischildnode(e, d)
+  where name(a) = 'a'
+  and isdescendantnode(a, '/')
+  and name(b) = 'c'
+  and name(c) = 'd'
+  and name(d) = 'e'
+  and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
+[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
+  where [e].[jcr:uuid] in('1', '2', '3', '4') */
+  inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
+  where name([d]) = 'e' */
+  on ischildnode([e], [d])
+  inner join [nt:base] as [c] /* traverse "* && //parent/of/join"
+  where name([c]) = 'd' */
+  on ischildnode([d], [c])
+  inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
+  where name([b]) = 'c' */
+  on ischildnode([c], [b])
+  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
+  where (name([a]) = 'a')
+  and (isdescendantnode([a], [/])) */
+  on ischildnode([b], [a])
+
+explain select e.[jcr:path]
+  from [nt:base] as a
+  inner join [nt:base] as b on ischildnode(b, a)
+  inner join [nt:base] as c on ischildnode(c, b)
+  inner join [nt:base] as d on ischildnode(d, c)
+  inner join [nt:base] as e on ischildnode(e, d)
+  where name(a) = 'a'
+  and isdescendantnode(a, '/')
+  and name(b) = 'c'
+  and name(c) = 'd'
+  and name(d) = 'e'
+  and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
+[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
+  where [e].[jcr:uuid] in('1', '2', '3', '4') */
+  inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
+  where name([d]) = 'e' */
+  on ischildnode([e], [d])
+  inner join [nt:base] as [c] /* traverse "* && //parent/of/join"
+  where name([c]) = 'd' */
+  on ischildnode([d], [c])
+  inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
+  where name([b]) = 'c' */
+  on ischildnode([c], [b])
+  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
+  where (name([a]) = 'a')
+  and (isdescendantnode([a], [/])) */
+  on ischildnode([b], [a])
+
+explain select excerpt(.)
+  from [nt:resource]
+  where contains(*, 'jackrabbit')
+[nt:resource] as [nt:resource] /* traverse "*"
+  where contains([nt:resource].[*], 'jackrabbit') */
+
+explain select excerpt(.)
+  from [nt:resource]
+  where contains(*, 'jackrabbit') or contains(*, 'jackrabbit')
+[nt:resource] as [nt:resource] /* traverse "*"
+  where contains([nt:resource].[*], 'jackrabbit') */
+
+explain select excerpt(.)
+  from [nt:resource]
+  where (contains(*, 'jackrabbit') or contains(*, 'jackrabbit'))
+  and x = '1'
+[nt:resource] as [nt:resource] /* traverse "*"
+  where (contains([nt:resource].[*], 'jackrabbit'))
+  and ([nt:resource].[x] = '1') */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid]=1 or [b]=2
+[nt:base] as [nt:base] /* traverse "*"
+  where ([nt:base].[jcr:uuid] = 1) or ([nt:base].[b] = 2) */
+
+explain select b.[jcr:uuid]
+  from [nt:base] as a
+  inner join [nt:base] as b on isdescendantnode(b, a)
+  where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
+[nt:base] as [a] /* property uuid IN (1, 2)
+  where [a].[jcr:uuid] in('1', '2') */
+  inner join [nt:base] as [b] /* traverse "* && //path/from/join//*" */
+  on isdescendantnode([b], [a])
+
+explain select b.[jcr:uuid]
+  from [nt:base] as a
+  inner join [nt:base] as b on isdescendantnode(b, a)
+  where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
+  and b.[jcr:uuid] is not null
+[nt:base] as [a] /* property uuid IN (1, 2)
+  where [a].[jcr:uuid] in('1', '2') */
+  inner join [nt:base] as [b] /* property uuid IS NOT NULL
+  where [b].[jcr:uuid] is not null */
+  on isdescendantnode([b], [a])
+
+explain select *
+  from [nt:base]
+  where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
+  where ([nt:base].[jcr:uuid] is not null)
+  and ((length([nt:base].[jcr:uuid]) = 1) or (upper([nt:base].[jcr:uuid]) = '1') or (lower([nt:base].[jcr:uuid]) = '3')) */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] = '1' or ([jcr:uuid] = '2'
+  and [b] = '3')
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
+  where ([nt:base].[jcr:uuid] is not null)
+  and ([nt:base].[jcr:uuid] in('1', '2')) */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] in('1', '2')
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
+  where [nt:base].[jcr:uuid] in('1', '2') */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] = '1' or [jcr:uuid] = '2'
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
+  where [nt:base].[jcr:uuid] in('1', '2') */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] = '123'
+[nt:base] as [nt:base] /* property uuid = 123
+  where [nt:base].[jcr:uuid] = '123' */
+
+explain select *
+  from [nt:base]
+  where [jcr:uuid] is not null
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
+  where [nt:base].[jcr:uuid] is not null */
+
+explain select *
+  from [nt:base] as a
+  inner join [nt:base] as b on isdescendantnode(b, a)
+  where a.[jcr:uuid] is not null
+  and b.[jcr:uuid] is not null
+[nt:base] as [a] /* property uuid IS NOT NULL
+  where [a].[jcr:uuid] is not null */
+  inner join [nt:base] as [b] /* property uuid IS NOT NULL
+  where [b].[jcr:uuid] is not null */
+  on isdescendantnode([b], [a])
+
+explain select *
+  from [nt:base] as a
+  inner join [nt:base] as b on isdescendantnode(b, a)
+  where (a.[jcr:uuid]=1 or a.[jcr:uuid]=2)
+  and (b.[jcr:uuid]=3 or b.[jcr:uuid]=4)
+[nt:base] as [a] /* property uuid IN (1, 2)
+  where [a].[jcr:uuid] in(1, 2) */
+  inner join [nt:base] as [b] /* property uuid IN (3, 4)
+  where [b].[jcr:uuid] in(3, 4) */
+  on isdescendantnode([b], [a])
+
+explain select *
+  from [nt:base] as a
+  inner join [nt:base] as b on isdescendantnode(b, a)
+  where a.[jcr:uuid] is not null
+  and b.[x] is not null
+[nt:base] as [a] /* property uuid IS NOT NULL
+  where [a].[jcr:uuid] is not null */
+  inner join [nt:base] as [b] /* traverse "* && //path/from/join//*"
+  where [b].[x] is not null */
+  on isdescendantnode([b], [a])
+
+explain select [rep:excerpt]
+  from [nt:base]
+  where [jcr:uuid] is not null
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
+  where [nt:base].[jcr:uuid] is not null */
+
+commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
+
+select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] is not null
+/test
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = '123'
+  union select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = '312'
+  union select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = '231'
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = '123'
+  union select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = '312'
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where [jcr:uuid] = 'xyz'
+/test
+
+commit / - "test"

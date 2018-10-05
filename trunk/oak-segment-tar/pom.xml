@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.apache.jackrabbit</groupId>
+        <artifactId>oak-parent</artifactId>
+        <version>1.9.9</version>
+        <relativePath>../oak-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>oak-segment-tar</artifactId>
+    <packaging>bundle</packaging>
+
+    <name>Oak Segment Tar</name>
+
+    <properties>
+        <netty.version>4.1.14.Final</netty.version>
+        <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>
+                            org.apache.jackrabbit.oak.segment.spi.monitor,
+                            org.apache.jackrabbit.oak.segment.spi.persistence
+                        </Export-Package>
+                        <Embed-Dependency>
+                            netty-*,
+                            concurrentlinkedhashmap-lru
+                        </Embed-Dependency>
+                        <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
+                            com.codahale.metrics*;version="[3.1,4)",
+                            com.google.protobuf;version="[2.6,3)";resolution:=optional,
+                            com.google.protobuf.nano;resolution:=optional,
+                            com.jcraft.jzlib;resolution:=optional,
+                            com.ning.compress;version="[1.0,2)";resolution:=optional,
+                            com.ning.compress.lzf;version="[1.0,2)";resolution:=optional,
+                            com.ning.compress.lzf.util;version="[1.0,2)";resolution:=optional,
+                            io.netty.internal.tcnative;version="[2.0,3)";resolution:=optional,
+                            javax.security.cert;resolution:=optional,
+                            lzma.sdk;resolution:=optional,
+                            lzma.sdk.lzma;resolution:=optional,
+                            net.jpountz.lz4;resolution:=optional,
+                            net.jpountz.xxhash;resolution:=optional,
+                            org.apache.commons.logging;resolution:=optional;version="[1.2,2)",
+                            org.apache.log4j;resolution:=optional;version="[1.2,2)",
+                            org.apache.logging.log4j;resolution:=optional;version="[2.6,3)",
+                            org.bouncycastle.asn1.x500;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.cert;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.cert.jcajce;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.jce.provider;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.operator;version="[1.54,2)";resolution:=optional,
+                            org.bouncycastle.operator.jcajce;version="[1.54,2)";resolution:=optional,
+                            org.conscrypt;resolution:=optional,
+                            org.eclipse.jetty.alpn;version="[1,2)";resolution:=optional,
+                            org.eclipse.jetty.npn;version="[1,2)";resolution:=optional,
+                            org.jboss.marshalling;resolution:=optional,
+                            sun.misc;resolution:=optional,
+                            sun.nio.ch;resolution:=optional,
+                            sun.security.util;resolution:=optional,
+                            sun.security.x509;resolution:=optional,
+                            *
+                        </Import-Package>
+                    </instructions>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>pre-integration-test</phase>
+                        <goals><goal>copy</goal></goals>
+                        <configuration>
+                            <artifact>org.apache.jackrabbit:oak-run:1.6.1</artifact>
+                            <outputDirectory>${project.build.directory}/upgrade-it</outputDirectory>
+                            <stripVersion>true</stripVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>pre-integration-test</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/upgrade-it</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/test/upgrade-it-scripts</directory>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/oak-1.6-gc.log</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <!-- Dependencies on Oak modules -->
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-api</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-core-spi</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-commons</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob-plugins</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-store-spi</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Dependencies on Jackrabbit modules -->
+        <dependency>
+            <groupId>javax.jcr</groupId>
+            <artifactId>jcr</artifactId>
+            <version>2.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>jackrabbit-jcr-commons</artifactId>
+            <version>${jackrabbit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>jackrabbit-api</artifactId>
+            <version>${jackrabbit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>jackrabbit-data</artifactId>
+            <version>${jackrabbit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Other dependencies -->
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.compendium</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.component.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.metatype.annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+		<!-- Embedded dependencies -->
+		
+        <!-- Netty -->
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-buffer</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+		<!-- ConcurrentLinkedHashMap -->
+
+        <dependency>
+            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+            <artifactId>concurrentlinkedhashmap-lru</artifactId>
+            <version>${concurrentlinkedhashmap.version}</version>
+            <scope>compile</scope>
+	    </dependency>
+	    
+        <!-- Dependencies on Oak testing modules -->
+
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-store-spi</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-commons</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob-plugins</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testing dependencies -->
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.easymock</groupId>
+            <artifactId>easymock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- FIXME: test dependency of oak-core due to usage of InitialContent for test setup -->
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-core</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-core</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

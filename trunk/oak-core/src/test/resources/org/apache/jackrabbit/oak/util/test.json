@@ -1,0 +1,31 @@
+{
+    "a":"Aqq",
+    "b":"Bqq",
+    "arr":[1,2,3,0.2, true, null, "quc"],
+    "obj":{
+        "q":0.02,
+        "n":null,
+        "bool": {
+            "t":true,
+            "f":false
+        },
+        "":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{"":{}}}}}}}}}}}}},
+        "1":{
+	        "test-node" : {
+                "jcr:primaryType" : "sling:propertySetTestNodeType",
+                "string" : "Sling",
+                "strings" : ["Apache", "Sling"],
+                "long" : 42,
+                "longs" : [4, 8, 15, 16, 23, 42],
+                "boolean" : true,
+                "booleans" : [true, false],
+                "uri" : "http://www.google.com/",
+                "uris" : ["http://sling.apache.org/", "http://www.google.com/"],
+                "name" : "sling:test",
+                "names" : ["jcr:base", "sling:test"],
+                "path" : "/sling-test/initial-content-folder/folder-content-test",
+                "paths" : ["/sling-test/initial-content-folder/folder-content-test", "/apps"]
+	       }
+        }
+    }
+}

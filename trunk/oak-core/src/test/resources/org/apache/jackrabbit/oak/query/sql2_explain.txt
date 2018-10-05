@@ -1,0 +1,121 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+# TODO current not used, as property and prefix indexes are no longer supported
+
+# property type (value prefix) index
+
+commit / + "test": { "a": { "id": "ref:123" }, "b": { "id" : "str:123" }}
+
+explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as [nt:base] /* traverse "*" where property([nt:base].[*], 'reference') = cast('123' as reference) */
+
+explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as [nt:base] /* traverse "*" where property([nt:base].[id], 'reference') = cast('123' as reference) */
+
+explain select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
+[nt:base] as [a] /* traverse "/test//*" where (name([a]) = cast('yes' as string)) and (isdescendantnode([a], [/test])) */ inner join [nt:base] as [b] /* traverse "/path/from/the/join" where [b].[x] is not null */ on ischildnode([a], [b])
+
+select [jcr:path] from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+/test/a
+
+commit /oak:index + "indexes": { "type": "property" }
+commit /oak:index/indexes + "prefix@ref:": {}
+
+explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as [nt:base] /* prefixIndex "ref:123" where property([nt:base].[*], 'reference') = cast('123' as reference) */
+
+explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
+[nt:base] as [nt:base] /* prefixIndex "ref:123" where property([nt:base].[id], 'reference') = cast('123' as reference) */
+
+select [jcr:path] from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
+/test/a
+
+select [jcr:path] from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
+/test/a
+
+commit / - "test"
+commit /oak:index/indexes - "prefix@ref:"
+
+# test the property content index
+
+commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
+commit /oak:index/indexes + "property@id,unique": {}
+
+# combining 'not' and 'and'
+
+select [jcr:path] from [nt:base] where id is not null and not id = '100' and id <> '20'
+/test/a
+
+select [jcr:path] from [nt:base] where id is not null and not (id = '100' and id <> '20')
+/test/a
+/test/b
+
+explain select * from [nt:base] where id = '10'
+[nt:base] as [nt:base] /* propertyIndex "id [10..10]" where [nt:base].[id] = cast('10' as string) */
+
+select [jcr:path] from [nt:base] where id = '10'
+/test/a
+
+select [jcr:path] from [nt:base] where id = '10'
+/test/a
+
+explain select * from [nt:base] where id > '10'
+[nt:base] as [nt:base] /* traverse "*" where [nt:base].[id] > cast('10' as string) */
+
+commit / - "test"
+commit /oak:index/indexes - "property@id,unique"
+
+# other tests
+
+commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
+
+explain select * from [nt:base] as b where ischildnode(b, '/test')
+[nt:base] as [b] /* traverse "/test/*" where ischildnode([b], [/test]) */
+
+explain select * from [nt:base] as b where isdescendantnode(b, '/test')
+[nt:base] as [b] /* traverse "/test//*" where isdescendantnode([b], [/test]) */
+
+commit / - "test"
+
+commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+
+explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
+[nt:base] as [p] /* traverse "*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "*" where [c].[p] is not null */ on [p].[id] = [c].[p]
+
+explain select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
+[nt:base] as [p] /* traverse "*" where [p].[jcr:path] = cast('/parents' as string) */ inner join [nt:base] as [p2] /* traverse "/path/from/the/join/selector" */ on issamenode([p2], [p], [.])
+
+explain select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
+[nt:base] as [p] /* traverse "*" where [p].[id] is not null */ inner join [nt:base] as [c] /* traverse "*" where [c].[p] is not null */ on [p].[id] = [c].[p]
+
+explain select * from [nt:base] where id = 1 order by id
+[nt:base] as [nt:base] /* traverse "*" where [nt:base].[id] = cast('1' as long) */
+
+commit / - "parents"
+commit / - "children"
+
