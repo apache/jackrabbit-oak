@@ -26,6 +26,13 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -41,6 +48,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
@@ -60,6 +68,8 @@ public class SplitPersistenceTest {
 
     private FileStore splitFileStore;
 
+    private SegmentNodeStorePersistence splitPersistence;
+
     @Before
     public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
         SegmentNodeStorePersistence sharedPersistence = new AzurePersistence(azurite.getContainer("oak-test").getDirectoryReference("oak"));
@@ -76,7 +86,7 @@ public class SplitPersistenceTest {
         baseFileStore.flush();
 
         SegmentNodeStorePersistence localPersistence = new TarPersistence(folder.newFolder());
-        SegmentNodeStorePersistence splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
+        splitPersistence = new SplitPersistence(sharedPersistence, localPersistence);
 
         splitFileStore = FileStoreBuilder
                 .fileStoreBuilder(folder.newFolder())
@@ -87,8 +97,13 @@ public class SplitPersistenceTest {
 
     @After
     public void tearDown() {
-        splitFileStore.close();
-        baseFileStore.close();
+        if (splitFileStore != null) {
+            splitFileStore.close();
+        }
+
+        if (baseFileStore != null) {
+            baseFileStore.close();
+        }
     }
 
     @Test
@@ -112,5 +127,18 @@ public class SplitPersistenceTest {
         split.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertEquals("v1", base.getRoot().getChildNode("foo").getChildNode("bar").getString("version"));
+    }
+
+    @Test
+    public void testBinaryReferencesAreNotNull() throws IOException, InvalidBinaryReferencesIndexException {
+        splitFileStore.close();
+        splitFileStore = null;
+
+        SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        for (String archive : manager.listArchives()) {
+            SegmentArchiveReader reader = manager.open(archive);
+            BinaryReferencesIndexLoader.parseBinaryReferencesIndex(reader.getBinaryReferences());
+            reader.close();
+        }
     }
 }
