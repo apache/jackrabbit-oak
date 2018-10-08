@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.document.Document;
@@ -34,9 +34,10 @@ import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.util.BytesRef;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * ACL filtered version of {@link SortedSetDocValuesFacetCounts}
@@ -65,9 +66,10 @@ class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCount
         }
 
         LabelAndValue[] labelAndValues = topChildren.labelValues;
+        InaccessibleFacetCountManager inaccessibleFacetCountManager = new InaccessibleFacetCountManager();
 
         for (ScoreDoc scoreDoc : docs.scoreDocs) {
-            labelAndValues = filterFacet(scoreDoc.doc, dim, labelAndValues);
+            labelAndValues = filterFacet(scoreDoc.doc, dim, labelAndValues, inaccessibleFacetCountManager);
         }
 
         int childCount = labelAndValues.length;
@@ -79,45 +81,82 @@ class FilteredSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCount
         return new FacetResult(dim, path, value, labelAndValues, childCount);
     }
 
-    private LabelAndValue[] filterFacet(int docId, String dimension, LabelAndValue[] labelAndValues) throws IOException {
-        boolean filterd = false;
-        Map<String, Long> newValues = new HashMap<String, Long>();
-
+    private LabelAndValue[] filterFacet(int docId, String dimension, LabelAndValue[] labelAndValues,
+                                        InaccessibleFacetCountManager inaccessibleFacetCountManager) throws IOException {
         Document document = reader.document(docId);
-        SortedSetDocValues docValues = state.getDocValues();
-        docValues.setDocument(docId);
 
         // filter using doc values (avoiding requiring stored values)
         if (!filter.isAccessible(document.getField(FieldNames.PATH).stringValue() + "/" + dimension)) {
-            filterd = true;
-            for (LabelAndValue lv : labelAndValues) {
-                long existingCount = lv.value.longValue();
 
-                BytesRef key = new BytesRef(FacetsConfig.pathToString(dimension, new String[]{lv.label}));
-                long l = docValues.lookupTerm(key);
-                if (l >= 0) {
-                    if (existingCount > 0) {
-                        newValues.put(lv.label, existingCount - 1);
-                    } else {
-                        if (newValues.containsKey(lv.label)) {
-                            newValues.remove(lv.label);
-                        }
+            SortedSetDocValues docValues = state.getDocValues();
+            docValues.setDocument(docId);
+            TermsEnum termsEnum = docValues.termsEnum();
+
+            long ord = docValues.nextOrd();
+
+            while (ord != SortedSetDocValues.NO_MORE_ORDS) {
+                termsEnum.seekExact(ord);
+                String facetDVTerm = termsEnum.term().utf8ToString();
+                String [] facetDVDimPaths = FacetsConfig.stringToPath(facetDVTerm);
+
+                for (int i = 1; i < facetDVDimPaths.length; i++) {
+                    inaccessibleFacetCountManager.markInaccessbile(facetDVDimPaths[i]);
+                }
+
+                ord = docValues.nextOrd();
+            }
+        }
+
+        return inaccessibleFacetCountManager.updateLabelAndValue(labelAndValues);
+    }
+
+    static class InaccessibleFacetCountManager {
+        Map<String, Long> inaccessbileCounts = Maps.newHashMap();
+
+        void markInaccessbile(@NotNull String label) {
+            Long count = inaccessbileCounts.get(label);
+            if (count == null) {
+                count = 1L;
+            } else {
+                count--;
+            }
+            inaccessbileCounts.put(label, count);
+        }
+
+        LabelAndValue[] updateLabelAndValue(LabelAndValue[] currentLabels) {
+            int numZeros = 0;
+
+            LabelAndValue[] newValues;
+
+            for (int i = 0; i < currentLabels.length; i++) {
+                LabelAndValue lv = currentLabels[i];
+                Long inaccessibleCount = inaccessbileCounts.get(lv.label);
+
+                if (inaccessibleCount != null) {
+                    long newValue = lv.value.longValue() - inaccessibleCount;
+
+                    if (newValue <= 0) {
+                        newValue = 0;
+                        numZeros++;
                     }
+
+                    currentLabels[i] = new LabelAndValue(lv.label, newValue);
                 }
             }
-        }
-        LabelAndValue[] filteredLVs;
-        if (filterd) {
-            filteredLVs = new LabelAndValue[newValues.size()];
-            int i = 0;
-            for (Map.Entry<String, Long> entry : newValues.entrySet()) {
-                filteredLVs[i] = new LabelAndValue(entry.getKey(), entry.getValue());
-                i++;
-            }
-        } else {
-            filteredLVs = labelAndValues;
-        }
 
-        return filteredLVs;
+            if (numZeros > 0) {
+                newValues = new LabelAndValue[currentLabels.length - numZeros];
+                int i = 0;
+                for (LabelAndValue lv : currentLabels) {
+                    if (lv.value.longValue() > 0) {
+                        newValues[i++] = lv;
+                    }
+                }
+            } else {
+                newValues = currentLabels;
+            }
+
+            return newValues;
+        }
     }
 }
