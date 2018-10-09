@@ -69,8 +69,16 @@ see supported options
 
 ### DocumentNodeStore - RDB
 
-<<TBD>>
+To connect to a relational database specify the JDBC URL and add database user and password as optional arguments:
 
+    java -cp ... org.apache.jackrabbit.oak.run.Main <command> jdbc:... --rdbjdbcuser user --rdbjdbcpasswd password
+    
+Note that the oak-run JAR file lacks several RDB specific JAR files that need to be added to the classpath:
+
+1. tomcat-jdbc-8.5.*.jar (Apache Tomcat JDBC connection pool)
+2. juli-6.0.*.jar (Apache Tomcat Logger)
+3. Whatever JDBC driver is needed to connect to the database
+    
 ## BlobStore
 
 ### FileDataStore
