@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -191,12 +192,16 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         InputStream is = rec.getStream();
         closer.register(is);
 
-        assertFile(is, f, folder, false);
+        assertNotNull(is);
+        assertTrue(is instanceof LazyFileInputStream);
+        ((LazyFileInputStream)is).open();
 
         File tmp = new File(new File(path), "tmp");
         Collection<File> temp0cacheFiles =
             FileUtils.listFiles(tmp, FileFilterUtils.prefixFileFilter("temp0cache"), null);
         assertEquals(1, temp0cacheFiles.size());
+
+        assertFile(is, f, folder, false);
 
         LOG.info("Finished loadDirectBackendTemp");
     }
