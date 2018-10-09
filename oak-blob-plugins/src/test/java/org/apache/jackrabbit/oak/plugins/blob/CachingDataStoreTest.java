@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -88,6 +89,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private TestMemoryBackend backend;
     private StatisticsProvider statsProvider;
     private TestExecutor listeningExecutor;
+    private String dsPath;
+    private File backendRoot;
 
     @Before
     public void setup() throws Exception {
@@ -112,8 +115,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
-        final File datastoreRoot = folder.newFolder();
-        final TestMemoryBackend testBackend = new TestMemoryBackend(datastoreRoot);
+        backendRoot = folder.newFolder();
+        final TestMemoryBackend testBackend = new TestMemoryBackend(backendRoot);
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
@@ -131,6 +134,8 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.listeningExecutor = listeningExecutor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.executor = sameThreadExecutor();
+        dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
+        dataStore.setPath(dsPath);
         dataStore.init(root.getAbsolutePath());
 
         LOG.info("Finished init");
@@ -155,12 +160,12 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.close();
         init(1, (int) cacheSize, 0);
         String path = FilenameUtils
-            .normalizeNoEndSeparator(new File(root.getAbsolutePath() + "/repository/datastore").getAbsolutePath());
+            .normalizeNoEndSeparator(new File(dsPath).getAbsolutePath());
         String home = FilenameUtils.normalizeNoEndSeparator(new File(root.getAbsolutePath()).getAbsolutePath());
 
         dataStore.cache = new CompositeDataStoreCache(path , new File(home), cacheSize, 0,
             0,
-            new TestErrorCacheLoader(new File(path), 40), new StagingUploader() {
+            new TestErrorCacheLoader(backendRoot, 40, true), new StagingUploader() {
             @Override public void write(String id, File file) throws DataStoreException {
                 backend.write(new DataIdentifier(id), file);
             }
@@ -184,12 +189,19 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
             rec = dataStore.addRecord(fin);
         }
         assertEquals(id, rec.getIdentifier().toString());
-        assertFile(rec.getStream(), f, folder);
+        InputStream is = rec.getStream();
+        closer.register(is);
+
+        assertNotNull(is);
+        assertTrue(is instanceof LazyFileInputStream);
+        ((LazyFileInputStream)is).open();
 
         File tmp = new File(new File(path), "tmp");
         Collection<File> temp0cacheFiles =
             FileUtils.listFiles(tmp, FileFilterUtils.prefixFileFilter("temp0cache"), null);
         assertEquals(1, temp0cacheFiles.size());
+
+        assertFile(is, f, folder, false);
 
         LOG.info("Finished loadDirectBackendTemp");
     }
@@ -556,14 +568,20 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.close();
     }
 
-    private static void assertFile(InputStream is, File org, TemporaryFolder folder)
+    private static void assertFile(InputStream is, File org, TemporaryFolder folder) throws IOException {
+        assertFile(is, org, folder, true);
+    }
+
+    private static void assertFile(InputStream is, File org, TemporaryFolder folder, boolean close)
         throws IOException {
         try {
             File ret = folder.newFile();
-            FileUtils.copyInputStreamToFile(is, ret);
+            copyToFile(is, ret);
             assertTrue(Files.equal(org, ret));
         } finally {
-            IOUtils.closeQuietly(is);
+            if (close) {
+                IOUtils.closeQuietly(is);
+            }
         }
     }
 

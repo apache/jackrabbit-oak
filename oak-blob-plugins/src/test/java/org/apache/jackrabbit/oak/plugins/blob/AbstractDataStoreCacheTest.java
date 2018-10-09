@@ -54,6 +54,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
@@ -111,7 +112,7 @@ public class AbstractDataStoreCacheTest {
 
 
     static class TestCacheLoader<S, I> extends CacheLoader<String, FileInputStream> {
-        protected final File root;
+        protected File root;
 
         public TestCacheLoader(File dir) {
             this.root = new File(dir, "datastore");
@@ -166,6 +167,15 @@ public class AbstractDataStoreCacheTest {
 
         public TestErrorCacheLoader(File dir, long max) {
             super(dir);
+            this.max = max;
+        }
+
+        public TestErrorCacheLoader(File dir, long max, boolean override) {
+            super(dir);
+            if (override) {
+                this.root = dir;
+            }
+
             this.max = max;
         }
 
@@ -420,7 +430,7 @@ public class AbstractDataStoreCacheTest {
     }
 
     static File copyToFile(InputStream stream, File file) throws IOException {
-        FileUtils.copyInputStreamToFile(stream, file);
+        FileIOUtils.copyInputStreamToFile(stream, file);
         return file;
     }
 
