@@ -95,7 +95,7 @@ public class ToolUtils {
 
         switch (storeType) {
         case AZURE:
-            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
+            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri);
             persistence = new AzurePersistence(cloudBlobDirectory);
             break;
         default:
