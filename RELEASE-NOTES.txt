@@ -50,6 +50,8 @@ Bug
     [OAK-7801] - CompositeNodeStore.merge() may trigger conflicting branches
     [OAK-7802] - LuceneIndexHelper should extend IndexHelper
     [OAK-7805] - getBinaryReferences() may return null when using the split persistence
+    [OAK-7808] - Incorrect facet counts when some results are inaccessible due to ACLs
+    [OAK-7812] - Error running OffRC on Azure because of incorrect parsing
 
 Epic
 
