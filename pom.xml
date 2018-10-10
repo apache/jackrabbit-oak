@@ -73,6 +73,8 @@
     <module>oak-segment-tar</module>
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
+
+    <module>oak-doc-railroad-macro</module>
   </modules>
 
   <scm>
@@ -109,7 +111,6 @@
       <id>doc</id>
       <modules>
         <module>oak-doc</module>
-        <module>oak-doc-railroad-macro</module>
       </modules>
     </profile>
     <profile>
