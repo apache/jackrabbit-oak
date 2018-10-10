@@ -23,7 +23,7 @@ that it easy to view e.g. from GitHub. Alternatively the Maven site plugin
 can be used to build and deploy a web site as follows:
 
 From the reactor do
-
+    mvn clean install -Pdoc -pl :oak-doc-railroad-macro # oak-doc requires to be installed locally as this module isn't released
     mvn clean -Pdoc
 
 to clean any existing site,
