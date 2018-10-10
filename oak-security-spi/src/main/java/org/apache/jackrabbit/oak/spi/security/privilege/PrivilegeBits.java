@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import com.google.common.primitives.Longs;
@@ -65,34 +66,69 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
     public static final PrivilegeBits EMPTY = new PrivilegeBits(UnmodifiableData.EMPTY);
 
-    public static final Map<String, PrivilegeBits> BUILT_IN = new HashMap<String, PrivilegeBits>();
-    static {
-        BUILT_IN.put(REP_READ_NODES, getInstance(READ_NODES));
-        BUILT_IN.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
-        BUILT_IN.put(REP_ADD_PROPERTIES, getInstance(ADD_PROPERTIES));
-        BUILT_IN.put(REP_ALTER_PROPERTIES, getInstance(ALTER_PROPERTIES));
-        BUILT_IN.put(REP_REMOVE_PROPERTIES, getInstance(REMOVE_PROPERTIES));
-        BUILT_IN.put(JCR_ADD_CHILD_NODES, getInstance(ADD_CHILD_NODES));
-        BUILT_IN.put(JCR_REMOVE_CHILD_NODES, getInstance(REMOVE_CHILD_NODES));
-        BUILT_IN.put(JCR_REMOVE_NODE, getInstance(REMOVE_NODE));
-        BUILT_IN.put(JCR_READ_ACCESS_CONTROL, getInstance(READ_AC));
-        BUILT_IN.put(JCR_MODIFY_ACCESS_CONTROL, getInstance(MODIFY_AC));
-        BUILT_IN.put(JCR_NODE_TYPE_MANAGEMENT, getInstance(NODE_TYPE_MNGMT));
-        BUILT_IN.put(JCR_VERSION_MANAGEMENT, getInstance(VERSION_MNGMT));
-        BUILT_IN.put(JCR_LOCK_MANAGEMENT, getInstance(LOCK_MNGMT));
-        BUILT_IN.put(JCR_LIFECYCLE_MANAGEMENT, getInstance(LIFECYCLE_MNGMT));
-        BUILT_IN.put(JCR_RETENTION_MANAGEMENT, getInstance(RETENTION_MNGMT));
-        BUILT_IN.put(JCR_WORKSPACE_MANAGEMENT, getInstance(WORKSPACE_MNGMT));
-        BUILT_IN.put(JCR_NODE_TYPE_DEFINITION_MANAGEMENT, getInstance(NODE_TYPE_DEF_MNGMT));
-        BUILT_IN.put(JCR_NAMESPACE_MANAGEMENT, getInstance(NAMESPACE_MNGMT));
-        BUILT_IN.put(REP_PRIVILEGE_MANAGEMENT, getInstance(PRIVILEGE_MNGMT));
-        BUILT_IN.put(REP_USER_MANAGEMENT, getInstance(USER_MNGMT));
-        BUILT_IN.put(REP_INDEX_DEFINITION_MANAGEMENT, getInstance(INDEX_DEFINITION_MNGMT));
+    public static final Map<String, PrivilegeBits> BUILT_IN;
+    private static final Map<Long, String> BUILT_IN_BITS;
 
-        BUILT_IN.put(JCR_READ, PrivilegeBits.getInstance(READ));
-        BUILT_IN.put(JCR_MODIFY_PROPERTIES, PrivilegeBits.getInstance(MODIFY_PROPERTIES));
-        BUILT_IN.put(JCR_WRITE, PrivilegeBits.getInstance(WRITE));
-        BUILT_IN.put(REP_WRITE, PrivilegeBits.getInstance(WRITE2));
+    static {
+        Map<String, PrivilegeBits> privs = new HashMap<String, PrivilegeBits>();
+        privs.put(REP_READ_NODES, getInstance(READ_NODES));
+        privs.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
+        privs.put(REP_ADD_PROPERTIES, getInstance(ADD_PROPERTIES));
+        privs.put(REP_ALTER_PROPERTIES, getInstance(ALTER_PROPERTIES));
+        privs.put(REP_REMOVE_PROPERTIES, getInstance(REMOVE_PROPERTIES));
+        privs.put(JCR_ADD_CHILD_NODES, getInstance(ADD_CHILD_NODES));
+        privs.put(JCR_REMOVE_CHILD_NODES, getInstance(REMOVE_CHILD_NODES));
+        privs.put(JCR_REMOVE_NODE, getInstance(REMOVE_NODE));
+        privs.put(JCR_READ_ACCESS_CONTROL, getInstance(READ_AC));
+        privs.put(JCR_MODIFY_ACCESS_CONTROL, getInstance(MODIFY_AC));
+        privs.put(JCR_NODE_TYPE_MANAGEMENT, getInstance(NODE_TYPE_MNGMT));
+        privs.put(JCR_VERSION_MANAGEMENT, getInstance(VERSION_MNGMT));
+        privs.put(JCR_LOCK_MANAGEMENT, getInstance(LOCK_MNGMT));
+        privs.put(JCR_LIFECYCLE_MANAGEMENT, getInstance(LIFECYCLE_MNGMT));
+        privs.put(JCR_RETENTION_MANAGEMENT, getInstance(RETENTION_MNGMT));
+        privs.put(JCR_WORKSPACE_MANAGEMENT, getInstance(WORKSPACE_MNGMT));
+        privs.put(JCR_NODE_TYPE_DEFINITION_MANAGEMENT, getInstance(NODE_TYPE_DEF_MNGMT));
+        privs.put(JCR_NAMESPACE_MANAGEMENT, getInstance(NAMESPACE_MNGMT));
+        privs.put(REP_PRIVILEGE_MANAGEMENT, getInstance(PRIVILEGE_MNGMT));
+        privs.put(REP_USER_MANAGEMENT, getInstance(USER_MNGMT));
+        privs.put(REP_INDEX_DEFINITION_MANAGEMENT, getInstance(INDEX_DEFINITION_MNGMT));
+
+        privs.put(JCR_READ, getInstance(READ));
+        privs.put(JCR_MODIFY_PROPERTIES, getInstance(MODIFY_PROPERTIES));
+        privs.put(JCR_WRITE, getInstance(WRITE));
+        privs.put(REP_WRITE, getInstance(WRITE2));
+
+        BUILT_IN = Collections.unmodifiableMap(privs);
+
+        Map<Long, String> bits = new HashMap<>();
+        bits.put(READ_NODES, REP_READ_NODES);
+        bits.put(READ_PROPERTIES, REP_READ_PROPERTIES);
+        bits.put(ADD_PROPERTIES, REP_ADD_PROPERTIES);
+        bits.put(ALTER_PROPERTIES, REP_ALTER_PROPERTIES);
+        bits.put(REMOVE_PROPERTIES, REP_REMOVE_PROPERTIES);
+        bits.put(ADD_CHILD_NODES, JCR_ADD_CHILD_NODES);
+        bits.put(REMOVE_CHILD_NODES, JCR_REMOVE_CHILD_NODES);
+        bits.put(REMOVE_NODE, JCR_REMOVE_NODE);
+        bits.put(READ_AC, JCR_READ_ACCESS_CONTROL);
+        bits.put(MODIFY_AC, JCR_MODIFY_ACCESS_CONTROL);
+        bits.put(NODE_TYPE_MNGMT, JCR_NODE_TYPE_MANAGEMENT);
+        bits.put(VERSION_MNGMT, JCR_VERSION_MANAGEMENT);
+        bits.put(LOCK_MNGMT, JCR_LOCK_MANAGEMENT);
+        bits.put(LIFECYCLE_MNGMT, JCR_LIFECYCLE_MANAGEMENT);
+        bits.put(RETENTION_MNGMT, JCR_RETENTION_MANAGEMENT);
+        bits.put(WORKSPACE_MNGMT, JCR_WORKSPACE_MANAGEMENT);
+        bits.put(NODE_TYPE_DEF_MNGMT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
+        bits.put(NAMESPACE_MNGMT, JCR_NAMESPACE_MANAGEMENT);
+        bits.put(PRIVILEGE_MNGMT, REP_PRIVILEGE_MANAGEMENT);
+        bits.put(USER_MNGMT, REP_USER_MANAGEMENT);
+        bits.put(INDEX_DEFINITION_MNGMT, REP_INDEX_DEFINITION_MANAGEMENT);
+
+        bits.put(READ, JCR_READ);
+        bits.put(MODIFY_PROPERTIES, JCR_MODIFY_PROPERTIES);
+        bits.put(WRITE, JCR_WRITE);
+        bits.put(WRITE2, REP_WRITE);
+
+        BUILT_IN_BITS = Collections.unmodifiableMap(bits);
     }
 
     public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(INDEX_DEFINITION_MNGMT).nextBits();
@@ -191,6 +227,12 @@ public final class PrivilegeBits implements PrivilegeConstants {
             return EMPTY;
         } else {
             checkArgument(bits > NO_PRIVILEGE);
+            if (BUILT_IN_BITS != null) {
+                String key = BUILT_IN_BITS.get(bits);
+                if (key != null) {
+                    return BUILT_IN.get(key);
+                }
+            }
             return new PrivilegeBits(new UnmodifiableData(bits));
         }
     }
@@ -590,7 +632,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
         private UnmodifiableData(long bits) {
             this.bits = bits;
-            bitsArr = new long[]{bits};
+            bitsArr = null;
             isSimple = true;
         }
 
@@ -612,6 +654,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
         @Override
         long[] longValues() {
+            if (isSimple) {
+                return new long[] { bits };
+            }
             return bitsArr;
         }
 
