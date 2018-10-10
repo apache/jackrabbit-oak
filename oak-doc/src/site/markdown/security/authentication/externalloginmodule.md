@@ -25,18 +25,19 @@ allows easy integration of 3rd party authentication and identity systems, such a
 external system as authentication source and as a provider for users and groups
 that may also be synchronized into the repository.
 
-what it does:
+What it does:
 
 * facilitate the use of a 3rd party system for authentication
 * simplify populating the oak user manager with identities from a 3rd party system
 
-what it does not:
+What it does not:
 
 * provide a transparent oak user manager
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
 <a name="details"/>
+
 ### Implementation Details
 The external identity and login handling is split into 3 parts:
 
@@ -121,6 +122,7 @@ See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
 <a name="configuration"/>
+
 ### Configuration
 
 #### Configuration Parameters
@@ -134,7 +136,7 @@ for the [ExternalLoginModuleFactory]/[ExternalLoginModule].
 | `PARAM_SYNC_HANDLER_NAME` | String   | \-         | Name of the sync handler to be retrieved from the `SyncManager` |
 |                           |          |            |                          |
 | _Optional (OSGi-setup)_   |          |            |                          |
-| `JAAS_RANKING`            | int      | 50         | Ranking of the `ExternalLoginModule` in the JAAS configuration, see [LoginModuleFactory] |
+| `JAAS_RANKING`            | int      | 150         | Ranking of the `ExternalLoginModule` in the JAAS configuration, see [LoginModuleFactory] |
 | `JAAS_CONTROL_FLAG`       | String   | SUFFICIENT | See [LoginModuleControlFlag] for supported values. |
 | `JAAS_REALM_NAME`         | String   | \-         | See [LoginModuleFactory] |
 
@@ -149,13 +151,14 @@ are omitted):
 
     jackrabbit.oak {
          org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
-         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
-         org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule required
+         org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule sufficient
             sync.handlerName="default"
             idp.name="ldap";
+         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
      };
 
 <a name="pluggability"/>
+
 ### Pluggability
 
 The design of the `ExternalLoginModule` allows for customization of the key features
@@ -250,6 +253,7 @@ handles the same set of supported credentials!
 [ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
 [ExternalIdentityProviderManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProviderManager.html
 [ExternalIDPManagerImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalIDPManagerImpl.html
+[ExternalLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalLoginModule.html
 [ExternalLoginModuleFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/ExternalLoginModuleFactory.html
 [LoginModuleFactory]: http://svn.apache.org/repos/asf/felix/trunk/jaas/src/main/java/org/apache/felix/jaas/LoginModuleFactory.java
 [LoginModuleControlFlag]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/AppConfigurationEntry.LoginModuleControlFlag.html
