@@ -974,6 +974,10 @@ public class QueryImpl implements Query {
         double bestCost = Double.POSITIVE_INFINITY;
         IndexPlan bestPlan = null;
 
+        // track similar costs
+        QueryIndex almostBestIndex = null;
+        double almostBestCost = Double.POSITIVE_INFINITY;
+
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
         List<? extends QueryIndex> queryIndexes = MINIMAL_COST_ORDERING
@@ -1042,12 +1046,25 @@ public class QueryImpl implements Query {
             if (cost < 0) {
                 LOG.error("cost below 0 for " + indexName + " is " + cost);
             }
+
             if (cost < bestCost) {
+                almostBestCost = bestCost;
+                almostBestIndex = bestIndex;
+
                 bestCost = cost;
                 bestIndex = index;
                 bestPlan = indexPlan;
+            } else if (cost - bestCost <= 0.1) {
+                almostBestCost = cost;
+                almostBestIndex = index;
             }
         }
+
+        if (LOG.isDebugEnabled() && Math.abs(bestCost - almostBestCost) <= 0.1) {
+            LOG.debug("selected index {} and {} have similar costs {} and {} for query {} - check query explanation / index definitions",
+                    bestIndex, almostBestIndex, bestCost, almostBestCost, filter.toString());
+        }
+
         potentiallySlowTraversalQuery = bestIndex == null;
         if (traversalEnabled) {
             TraversingIndex traversal = new TraversingIndex();
