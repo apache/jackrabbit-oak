@@ -123,7 +123,15 @@ public class ToolUtils {
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
         String key = System.getenv("AZURE_SECRET_KEY");
-        StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
+
+        StorageCredentials credentials = null;
+        try {
+            credentials = new StorageCredentialsAccountAndKey(accountName, key);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Could not connect to the Azure Storage. Please verify if AZURE_SECRET_KEY environment variable "
+                            + "is correctly set!");
+        }
 
         String uri = config.get(KEY_STORAGE_URI);
         String dir = config.get(KEY_DIR);
