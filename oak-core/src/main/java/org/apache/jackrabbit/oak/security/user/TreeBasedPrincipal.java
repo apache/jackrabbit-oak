@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
@@ -27,13 +27,13 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
 
     private final String path;
-    private final PathMapper pathMapper;
+    private final NamePathMapper pathMapper;
 
-    TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
+    TreeBasedPrincipal(String principalName, Tree tree, NamePathMapper pathMapper) {
         this(principalName, tree.getPath(), pathMapper);
     }
 
-    TreeBasedPrincipal(String principalName, String oakPath, PathMapper pathMapper) {
+    TreeBasedPrincipal(String principalName, String oakPath, NamePathMapper pathMapper) {
         super(principalName);
         this.pathMapper = pathMapper;
         this.path = oakPath;
@@ -41,6 +41,10 @@ class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
 
     String getOakPath() {
         return path;
+    }
+
+    NamePathMapper getNamePathMapper() {
+        return pathMapper;
     }
 
     //-------------------------------------------------< ItemBasedPrincipal >---

@@ -187,16 +187,15 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @Nullable
     private Principal createPrincipal(@Nullable Tree authorizableTree) {
-        Principal principal = null;
         if (authorizableTree != null) {
             AuthorizableType type = UserUtil.getType(authorizableTree);
             if (AuthorizableType.GROUP == type) {
-                principal = createGroupPrincipal(authorizableTree);
+                return createGroupPrincipal(authorizableTree);
             } else if (AuthorizableType.USER == type) {
-                principal = createUserPrincipal(UserUtil.getAuthorizableId(authorizableTree, type), authorizableTree);
+                return createUserPrincipal(UserUtil.getAuthorizableId(authorizableTree, type), authorizableTree);
             }
         }
-        return principal;
+        return null;
     }
 
     @Nullable
@@ -220,7 +219,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         if (principalName == null) {
             return null;
         }
-        return new GroupPrincipalImpl(principalName, groupTree);
+        return new GroupPrincipalImpl(principalName, groupTree.getPath(), namePathMapper, root, config);
     }
 
     @Nullable
@@ -323,7 +322,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             Set<Principal> groups = new HashSet<>();
             for (String s : Text.explode(str, ',')) {
                 final String name = Text.unescape(s);
-                groups.add(new CachedGroupPrincipal(name));
+                groups.add(new CachedGroupPrincipal(name, namePathMapper, root, config));
             }
             return groups;
         } else {
@@ -393,22 +392,23 @@ class UserPrincipalProvider implements PrincipalProvider {
     // Group Principal implementations that retrieve member information on demand
     //--------------------------------------------------------------------------
 
-    private abstract class BaseGroupPrincipal extends AbstractGroupPrincipal {
+    private static abstract class BaseGroupPrincipal extends AbstractGroupPrincipal {
 
+        private final Root root;
+        private final UserConfiguration config;
         private UserManager userManager;
 
-        BaseGroupPrincipal(@NotNull String principalName, @NotNull Tree groupTree) {
-            super(principalName, groupTree, namePathMapper);
-        }
-
-        BaseGroupPrincipal(@NotNull String principalName, @NotNull String groupPath) {
+        BaseGroupPrincipal(@NotNull String principalName, @NotNull String groupPath,
+                @NotNull NamePathMapper namePathMapper, @NotNull Root root, @NotNull UserConfiguration config) {
             super(principalName, groupPath, namePathMapper);
+            this.root = root;
+            this.config = config;
         }
 
         @Override
         UserManager getUserManager() {
             if (userManager == null) {
-                userManager = config.getUserManager(root, namePathMapper);
+                userManager = config.getUserManager(root, getNamePathMapper());
             }
             return userManager;
         }
@@ -439,12 +439,13 @@ class UserPrincipalProvider implements PrincipalProvider {
      * Implementation of {@link AbstractGroupPrincipal} that reads the underlying
      * authorizable group lazily in case the group membership must be retrieved.
      */
-    private final class GroupPrincipalImpl extends BaseGroupPrincipal {
+    private static final class GroupPrincipalImpl extends BaseGroupPrincipal {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
-        GroupPrincipalImpl(@NotNull String principalName, @NotNull Tree groupTree) {
-            super(principalName, groupTree);
+        GroupPrincipalImpl(@NotNull String principalName, @NotNull String groupPath,
+                @NotNull NamePathMapper namePathMapper, @NotNull Root root, @NotNull UserConfiguration config) {
+            super(principalName, groupPath, namePathMapper, root, config);
         }
 
         @Override
@@ -460,18 +461,19 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    private final class CachedGroupPrincipal extends BaseGroupPrincipal {
+    private static final class CachedGroupPrincipal extends BaseGroupPrincipal {
 
         private org.apache.jackrabbit.api.security.user.Group group;
 
-        CachedGroupPrincipal(@NotNull String principalName) {
-            super(principalName, "");
+        CachedGroupPrincipal(@NotNull String principalName, @NotNull NamePathMapper namePathMapper,
+                @NotNull Root root, @NotNull UserConfiguration config) {
+            super(principalName, "", namePathMapper, root, config);
         }
 
         @Override
         String getOakPath() {
             String groupPath = getPath();
-            return (groupPath == null) ? null : namePathMapper.getOakPath(getPath());
+            return (groupPath == null) ? null : getNamePathMapper().getOakPath(getPath());
         }
 
         @Override

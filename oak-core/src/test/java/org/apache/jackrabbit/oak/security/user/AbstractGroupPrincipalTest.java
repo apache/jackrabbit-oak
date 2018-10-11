@@ -158,7 +158,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         private boolean isEveryone;
 
         AGP() throws Exception {
-            super(testGroup.getPrincipal().getName(), root.getTree(testGroup.getPath()), getNamePathMapper());
+            super(testGroup.getPrincipal().getName(), root.getTree(testGroup.getPath()), AbstractGroupPrincipalTest.this.getNamePathMapper());
             member = getTestUser();
         }
 
