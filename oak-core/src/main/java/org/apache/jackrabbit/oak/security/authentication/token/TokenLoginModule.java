@@ -153,6 +153,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         if (tokenCredentials != null && userId != null) {
             Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(userId);
             updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
+            clearState();
             return true;
         }
         try{
@@ -206,6 +207,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         tokenCredentials = null;
         tokenInfo = null;
         userId = null;
+        tokenProvider = null;
     }
 
     //------------------------------------------------------------< private >---
@@ -245,7 +247,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @return The {@code AuthInfo} resulting from the successful login.
      */
     @Nullable
-    private AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
+    private static AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
         if (tokenInfo != null) {
             Map<String, Object> attributes = new HashMap<String, Object>();
             Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();

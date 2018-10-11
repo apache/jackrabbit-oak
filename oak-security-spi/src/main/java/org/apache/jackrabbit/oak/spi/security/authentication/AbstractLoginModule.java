@@ -219,6 +219,7 @@ public abstract class AbstractLoginModule implements LoginModule {
             } catch (IOException e) {
                 log.debug(e.getMessage());
             }
+            systemSession = null;
         }
     }
 
