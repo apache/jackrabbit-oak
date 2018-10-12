@@ -32,4 +32,5 @@ public class DataRecordUploadException extends Exception {
     public DataRecordUploadException(Exception e) {
         super(e);
     }
+    public DataRecordUploadException(String message, Exception e) { super(message, e); }
 }

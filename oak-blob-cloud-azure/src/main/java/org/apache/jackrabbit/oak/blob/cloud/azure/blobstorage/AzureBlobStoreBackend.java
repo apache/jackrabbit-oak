@@ -942,14 +942,15 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             // else do nothing - single put is already complete
 
             if (! exists(blobId)) {
-            //if (! getAzureContainer().getBlockBlobReference(blobId).exists()) {
                 throw new DataRecordUploadException(
                         String.format("Unable to finalize direct write of binary %s", blobId));
             }
         }
         catch (URISyntaxException | StorageException e) {
             throw new DataRecordUploadException(
-                    String.format("Unable to finalize direct write of binary %s", blobId));
+                    String.format("Unable to finalize direct write of binary %s", blobId),
+                    e
+            );
         }
 
         return getRecord(blobId);
