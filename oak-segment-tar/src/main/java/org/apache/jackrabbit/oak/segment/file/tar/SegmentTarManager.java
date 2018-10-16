@@ -18,11 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static java.nio.ByteBuffer.wrap;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
+
 import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.slf4j.Logger;
@@ -40,10 +44,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static java.nio.ByteBuffer.wrap;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 public class SegmentTarManager implements SegmentArchiveManager {
 
@@ -65,11 +65,15 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
     private final boolean memoryMapping;
 
-    public SegmentTarManager(File segmentstoreDir, FileStoreMonitor fileStoreMonitor, IOMonitor ioMonitor, boolean memoryMapping) {
+    private final boolean offHeapAccess;
+
+    public SegmentTarManager(File segmentstoreDir, FileStoreMonitor fileStoreMonitor, IOMonitor ioMonitor, boolean memoryMapping,
+            boolean offHeapAccess) {
         this.segmentstoreDir = segmentstoreDir;
         this.fileStoreMonitor = fileStoreMonitor;
         this.ioMonitor = ioMonitor;
         this.memoryMapping = memoryMapping;
+        this.offHeapAccess = offHeapAccess;
     }
 
     @Override
@@ -102,7 +106,13 @@ public class SegmentTarManager implements SegmentArchiveManager {
                     }
                 }
 
-                FileAccess random = new FileAccess.Random(access);
+                FileAccess random = null;
+                if (offHeapAccess) {
+                    random = new FileAccess.RandomOffHeap(access);
+                } else {
+                    random = new FileAccess.Random(access);
+                }
+
                 // prevent the finally block from closing the file
                 // as the returned TarReader will take care of that
                 access = null;

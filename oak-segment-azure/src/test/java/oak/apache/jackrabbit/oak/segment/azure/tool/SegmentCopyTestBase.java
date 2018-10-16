@@ -89,9 +89,9 @@ public abstract class SegmentCopyTestBase {
 
         IOMonitor ioMonitor = new IOMonitorAdapter();
         FileStoreMonitor fileStoreMonitor = new FileStoreMonitorAdapter();
-        SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, ioMonitor,
+        SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false, ioMonitor,
                 fileStoreMonitor);
-        SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, ioMonitor,
+        SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, false, ioMonitor,
                 fileStoreMonitor);
 
         checkArchives(srcArchiveManager, destArchiveManager);

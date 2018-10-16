@@ -86,7 +86,7 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     private Optional<String> getLastArchive() throws IOException {
-        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
         List<String> archives = manager.listArchives();
         if (archives.isEmpty()) {
             return Optional.empty();
@@ -97,14 +97,14 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) throws IOException {
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) throws IOException {
         if (lastRoArchive.isPresent()) {
             return new SplitSegmentArchiveManager(
-                    roPersistence.createArchiveManager(memoryMapping, ioMonitor, fileStoreMonitor),
-                    rwPersistence.createArchiveManager(memoryMapping, ioMonitor, fileStoreMonitor),
+                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor),
+                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor),
                     lastRoArchive.get());
         } else {
-            return rwPersistence.createArchiveManager(memoryMapping, ioMonitor, fileStoreMonitor);
+            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor);
         }
     }
 

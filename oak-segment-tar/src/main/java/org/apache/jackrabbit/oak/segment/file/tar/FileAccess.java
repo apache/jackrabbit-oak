@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.lang.Boolean.getBoolean;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 
@@ -35,8 +34,6 @@ import java.nio.channels.FileChannel;
  * reading from a file.
  */
 abstract class FileAccess {
-
-    private static final boolean OFF_HEAP = getBoolean("access.off.heap");
 
     abstract boolean isMemoryMapped();
 
@@ -87,14 +84,14 @@ abstract class FileAccess {
         }
 
     }
-    
+
     /**
      * The implementation that uses random access file (reads are synchronized).
-     */    
+     */
     static class Random extends FileAccess {
 
         private final RandomAccessFile file;
-        private final FileChannel channel;
+        protected final FileChannel channel;
 
         Random(RandomAccessFile file) {
             this.file = file;
@@ -117,11 +114,8 @@ abstract class FileAccess {
         public synchronized ByteBuffer read(int position, int length)
                 throws IOException {
             ByteBuffer entry;
-            if (OFF_HEAP) {
-                entry = ByteBuffer.allocateDirect(length);
-            } else {
-                entry = ByteBuffer.allocate(length);
-            }
+            entry = ByteBuffer.allocate(length);
+
             if (readFully(channel, position, entry) < length) {
                 throw new EOFException();
             }
@@ -134,6 +128,30 @@ abstract class FileAccess {
             file.close();
         }
 
+    }
+
+    /**
+     * The implementation that uses random access file (reads are synchronized)
+     * and off heap access.
+     */
+    static class RandomOffHeap extends Random {
+
+        RandomOffHeap(RandomAccessFile file) {
+            super(file);
+        }
+
+        @Override
+        public synchronized ByteBuffer read(int position, int length)
+                throws IOException {
+            ByteBuffer entry;
+            entry = ByteBuffer.allocateDirect(length);
+
+            if (readFully(channel, position, entry) < length) {
+                throw new EOFException();
+            }
+            entry.flip();
+            return entry;
+        }
     }
 
 }

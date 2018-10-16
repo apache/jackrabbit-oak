@@ -108,7 +108,7 @@ public class ToolUtils {
     public static SegmentArchiveManager createArchiveManager(SegmentNodeStorePersistence persistence) {
         SegmentArchiveManager archiveManager = null;
         try {
-            archiveManager = persistence.createArchiveManager(false, new IOMonitorAdapter(),
+            archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
                     new FileStoreMonitorAdapter());
         } catch (IOException e) {
             throw new IllegalArgumentException(

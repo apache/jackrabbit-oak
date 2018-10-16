@@ -109,6 +109,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     final boolean memoryMapping;
 
+    final boolean offHeapAccess;
+
     @NotNull
     final SegmentCache segmentCache;
 
@@ -144,6 +146,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             builder.getStatsProvider().getMeter("oak.segment.reads", StatsOptions.DEFAULT)
         );
         this.memoryMapping = builder.getMemoryMapping();
+        this.offHeapAccess = builder.getOffHeapAccess();
         this.ioMonitor = builder.getIOMonitor();
         this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
     }

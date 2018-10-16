@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
+import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
@@ -27,8 +29,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
-import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,8 +54,9 @@ public class TarPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
-        return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping);
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
+            FileStoreMonitor fileStoreMonitor) {
+        return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess);
     }
 
     @Override

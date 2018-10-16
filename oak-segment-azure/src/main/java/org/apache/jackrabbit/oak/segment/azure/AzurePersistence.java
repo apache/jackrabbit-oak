@@ -49,7 +49,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
         return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
     }
 

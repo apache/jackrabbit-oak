@@ -35,6 +35,7 @@ public interface SegmentNodeStorePersistence {
      *
      * @param memoryMapping whether the memory mapping should be used (if the given
      *                      persistence supports it)
+     * @param offHeapAccess whether off heap access for segements should be used
      * @param ioMonitor object used to monitor segment-related IO access. The
      *                  implementation should call the appropriate methods when
      *                  accessing segments.
@@ -42,7 +43,8 @@ public interface SegmentNodeStorePersistence {
      * @return segment archive manager
      * @throws IOException
      */
-    SegmentArchiveManager createArchiveManager(boolean memoryMapping, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) throws IOException;
+    SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
+            FileStoreMonitor fileStoreMonitor) throws IOException;
 
     /**
      * Check if the segment store already contains any segments

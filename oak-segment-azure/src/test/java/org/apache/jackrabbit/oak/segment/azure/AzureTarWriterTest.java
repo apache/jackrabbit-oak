@@ -40,7 +40,7 @@ public class AzureTarWriterTest extends TarWriterTest {
         try {
             monitor = new TestFileStoreMonitor();
             container = azurite.getContainer("oak-test");
-            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, new IOMonitorAdapter(), monitor);
+            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), monitor);
         } catch (StorageException | InvalidKeyException | URISyntaxException e) {
             throw new IOException(e);
         }
