@@ -42,7 +42,7 @@ public class AzureTarFileTest extends TarFileTest {
     public void setUp() throws IOException {
         try {
             container = azurite.getContainer("oak-test");
-            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
         } catch (StorageException | InvalidKeyException | URISyntaxException e) {
             throw new IOException(e);
         }

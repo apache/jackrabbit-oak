@@ -194,9 +194,10 @@ public class FileStore extends AbstractFileStore {
            }
         });
 
-        log.info("TarMK opened at {}, mmap={}, size={}",
+        log.info("TarMK opened at {}, mmap={}, offHeapAccess={}, size={}",
             directory,
             memoryMapping,
+            offHeapAccess,
             newPrintableBytes(size)
         );
         log.debug("TAR files: {}", tarFiles);

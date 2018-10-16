@@ -49,7 +49,7 @@ public class TarWriterTest {
     @Before
     public void setUp() throws IOException {
         monitor = new TestFileStoreMonitor();
-        archiveManager = new SegmentTarManager(folder.newFolder(), monitor, new IOMonitorAdapter(), false);
+        archiveManager = new SegmentTarManager(folder.newFolder(), monitor, new IOMonitorAdapter(), false, false);
     }
 
     @Test

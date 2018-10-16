@@ -58,7 +58,7 @@ public class TarFileTest {
 
     @Before
     public void setUp() throws IOException {
-        archiveManager = new SegmentTarManager(folder.newFolder(), new FileStoreMonitorAdapter(), new IOMonitorAdapter(), false);
+        archiveManager = new SegmentTarManager(folder.newFolder(), new FileStoreMonitorAdapter(), new IOMonitorAdapter(), false, false);
     }
 
     protected long getWriteAndReadExpectedSize() {

@@ -112,6 +112,8 @@ public class TarFiles implements Closeable {
 
         private boolean memoryMapping;
 
+        private boolean offHeapAccess;
+
         private TarRecovery tarRecovery;
 
         private IOMonitor ioMonitor;
@@ -135,6 +137,11 @@ public class TarFiles implements Closeable {
 
         public Builder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
+            return this;
+        }
+
+        public Builder withOffHeapAccess(boolean offHeapAccess) {
+            this.offHeapAccess = offHeapAccess;
             return this;
         }
 
@@ -210,7 +217,7 @@ public class TarFiles implements Closeable {
         }
 
         private SegmentArchiveManager buildArchiveManager() throws IOException {
-            return persistence.createArchiveManager(memoryMapping, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
+            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
         }
     }
 
@@ -354,6 +361,7 @@ public class TarFiles implements Closeable {
         writer = new TarWriter(archiveManager, writeNumber);
     }
 
+    @Override
     public void close() throws IOException {
         shutdown = true;
 

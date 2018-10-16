@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Sets.newHashSet;
+import static java.lang.Boolean.getBoolean;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -95,6 +97,8 @@ public class FileStoreBuilder {
 
     private boolean memoryMapping = MEMORY_MAPPING_DEFAULT;
 
+    private boolean offHeapAccess = getBoolean("access.off.heap");
+
     private SegmentNodeStorePersistence persistence;
 
     @NotNull
@@ -133,7 +137,7 @@ public class FileStoreBuilder {
     private final Set<IOMonitor> ioMonitors = newHashSet();
 
     private boolean strictVersionCheck;
-    
+
     private boolean built;
 
     /**
@@ -252,6 +256,17 @@ public class FileStoreBuilder {
     }
 
     /**
+     * Turn off heap access on or off
+     * @param offHeapAccess
+     * @return this instance
+     */
+    @NotNull
+    public FileStoreBuilder withOffHeapAccess(boolean offHeapAccess) {
+        this.offHeapAccess = offHeapAccess;
+        return this;
+    }
+
+    /**
      * Set memory mapping to the default value based on OS properties
      * @return this instance
      */
@@ -337,7 +352,7 @@ public class FileStoreBuilder {
         this.strictVersionCheck = strictVersionCheck;
         return this;
     }
-    
+
     public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) throws IOException {
         this.persistence = persistence;
         return this;
@@ -456,6 +471,10 @@ public class FileStoreBuilder {
         return memoryMapping;
     }
 
+    boolean getOffHeapAccess() {
+        return offHeapAccess;
+    }
+
     @NotNull
     GCListener getGcListener() {
         return gcListener;
@@ -470,7 +489,7 @@ public class FileStoreBuilder {
     SegmentGCOptions getGcOptions() {
         return gcOptions;
     }
-    
+
     @NotNull
     SegmentNotFoundExceptionListener getSnfeListener() {
         return snfeListener;
@@ -521,6 +540,7 @@ public class FileStoreBuilder {
                 ", templateDeduplicationCacheSize=" + templateDeduplicationCacheSize +
                 ", nodeDeduplicationCacheSize=" + nodeDeduplicationCacheSize +
                 ", memoryMapping=" + memoryMapping +
+                ", offHeapAccess=" + offHeapAccess +
                 ", gcOptions=" + gcOptions +
                 '}';
     }
