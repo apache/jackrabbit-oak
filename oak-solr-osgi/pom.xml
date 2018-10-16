@@ -115,6 +115,10 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-annotations</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>commons-fileupload</groupId>
+                    <artifactId>commons-fileupload</artifactId>
+                </exclusion>
             </exclusions>
             <scope>runtime</scope>
         </dependency>

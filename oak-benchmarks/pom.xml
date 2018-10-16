@@ -183,6 +183,10 @@
                     <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
                     <artifactId>concurrentlinkedhashmap-lru</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>commons-fileupload</groupId>
+                    <artifactId>commons-fileupload</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
