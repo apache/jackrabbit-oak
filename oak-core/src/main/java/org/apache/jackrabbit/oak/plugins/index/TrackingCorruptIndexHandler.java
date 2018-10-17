@@ -34,9 +34,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Metric;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
@@ -91,6 +88,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             CorruptIndexInfo info = indexes.remove(indexPath);
             if (info != null){
                 log.info("Index at [{}] which was so far failing {} is now working again.", info.path, info.getStats());
+            } else {
+                meter.mark();
             }
         }
     }
