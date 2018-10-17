@@ -191,7 +191,8 @@ public enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
+            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(),
+                    migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
         }
 
         @Override
