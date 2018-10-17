@@ -60,6 +60,6 @@ public final class AvailableModes {
             .put("server", new ServerCommand())
             .put(DataStoreCommand.NAME, new DataStoreCommand())
             .put("segment-copy", new SegmentCopyCommand())
-            .put("search", new SearchCommand())
+            .put("search-nodes", new SearchNodesCommand())
             .build());
 }

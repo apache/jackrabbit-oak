@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.tool.SearchNodes;
 import org.apache.jackrabbit.oak.segment.tool.SearchNodes.Builder;
 import org.apache.jackrabbit.oak.segment.tool.SearchNodes.Output;
 
-class SearchCommand implements Command {
+class SearchNodesCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
