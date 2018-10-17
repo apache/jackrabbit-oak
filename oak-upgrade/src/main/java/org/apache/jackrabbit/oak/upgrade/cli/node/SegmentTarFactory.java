@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 import java.io.File;
@@ -39,11 +40,14 @@ public class SegmentTarFactory implements NodeStoreFactory {
 
     private final boolean disableMmap;
 
+    private int segmentCacheSize;
+
     private final boolean readOnly;
 
-    public SegmentTarFactory(String directory, boolean disableMmap, boolean readOnly) {
+    public SegmentTarFactory(String directory, boolean disableMmap, int segmentCacheSize, boolean readOnly) {
         this.dir = new File(directory);
         this.disableMmap = disableMmap;
+        this.segmentCacheSize = segmentCacheSize;
         this.readOnly = readOnly;
         createDirectoryIfMissing(dir);
         if (!dir.isDirectory()) {
@@ -73,6 +77,7 @@ public class SegmentTarFactory implements NodeStoreFactory {
         try {
             if (readOnly) {
                 final ReadOnlyFileStore fs;
+                builder.withSegmentCacheSize(segmentCacheSize > 0 ? segmentCacheSize : DEFAULT_SEGMENT_CACHE_MB);
                 fs = builder.buildReadOnly();
                 closer.register(asCloseable(fs));
                 return SegmentNodeStoreBuilders.builder(fs).build();
