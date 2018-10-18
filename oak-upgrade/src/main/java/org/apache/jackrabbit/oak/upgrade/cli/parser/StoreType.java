@@ -161,7 +161,9 @@ public enum StoreType {
             if (isCustomAzureConnectionString(path)) {
                 // azure configuration specified through connection string
                 Map<String, String> config = parseAzureConfigurationFromCustomConnection(path);
-                return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR), direction == MigrationDirection.SRC)
+                return new StoreFactory(
+                        new SegmentAzureFactory.Builder(config.get(KEY_DIR), migrationOptions.getCacheSizeInMB(),
+                                direction == MigrationDirection.SRC)
                         .connectionString(config.get(KEY_CONNECTION_STRING))
                         .containerName(config.get(KEY_CONTAINER_NAME))
                         .build()
@@ -170,7 +172,8 @@ public enum StoreType {
                 // azure configuration specified through URI
                 Map<String, String> config = parseAzureConfigurationFromUri(path);
 
-                return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR), direction == MigrationDirection.SRC)
+                return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR),
+                        migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC)
                         .accountName(config.get(KEY_ACCOUNT_NAME))
                         .uri(config.get(KEY_STORAGE_URI))
                         .build()

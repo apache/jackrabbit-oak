@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 import java.io.IOException;
@@ -46,10 +47,13 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     private final String connectionString;
     private final String containerName;
     private final String dir;
+
+    private int segmentCacheSize;
     private final boolean readOnly;
 
     public static class Builder {
         private final String dir;
+        private final int segmentCacheSize;
         private final boolean readOnly;
 
         private String accountName;
@@ -57,8 +61,9 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         private String connectionString;
         private String containerName;
 
-        public Builder(String dir, boolean readOnly) {
+        public Builder(String dir, int segmentCacheSize, boolean readOnly) {
             this.dir = dir;
+            this.segmentCacheSize = segmentCacheSize;
             this.readOnly = readOnly;
         }
 
@@ -93,6 +98,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         this.connectionString = builder.connectionString;
         this.containerName = builder.containerName;
         this.dir = builder.dir;
+        this.segmentCacheSize = builder.segmentCacheSize;
         this.readOnly = builder.readOnly;
     }
 
@@ -115,6 +121,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         try {
             if (readOnly) {
                 final ReadOnlyFileStore fs;
+                builder.withSegmentCacheSize(segmentCacheSize > 0 ? segmentCacheSize : DEFAULT_SEGMENT_CACHE_MB);
                 fs = builder.buildReadOnly();
                 closer.register(asCloseable(fs));
                 return SegmentNodeStoreBuilders.builder(fs).build();
