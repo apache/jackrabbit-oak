@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestOutputStream;
@@ -38,8 +39,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
@@ -169,6 +170,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                     @Override public void write(String id, File file) throws DataStoreException {
                         backend.write(new DataIdentifier(id), file);
                     }
+
+                @Override public void adopt(File f, File moved) throws IOException {
+                    FileUtils.moveFile(f, moved);
+                }
             }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
     }
