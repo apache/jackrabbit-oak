@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -384,12 +385,15 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void testConcurrentSameAdd() throws Exception {
+        LOG.info("Starting testConcurrentSameAdd");
+
         // Add load
         List<ListenableFuture<Integer>> futures = put(folder);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
-        assertFalse(future2.isPresent());
+        assertTrue(future2.isPresent());
+        assertEquals(future2.get().get().intValue(), 0);
 
         //start
         taskLatch.countDown();
@@ -397,6 +401,47 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFuture(futures, 0);
 
         assertCacheStats(stagingCache, 0, 0, 1, 2);
+
+        LOG.info("Finished testConcurrentSameAdd");
+    }
+
+    /**
+     * Stage request same file concurrently.
+     * @throws Exception
+     */
+    @Test
+    public void testConcurrentSameAddRequest() throws Exception {
+        LOG.info("Starting testConcurrentSameAddRequest");
+
+        closer.close();
+        ListeningExecutorService executorService =
+            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+
+        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        CountDownLatch moveLatch = new CountDownLatch(1);
+        init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
+
+        //1st request
+        ListenableFuture<Boolean> resultReq1 = putThread(folder, executorService, futures);
+        Thread.sleep(100);
+
+        //2nd Request
+        ListenableFuture<Boolean> resultReq2 = putThread(folder, executorService, futures);
+        Thread.sleep(200);
+
+        // Allow any thread to start moving
+        moveLatch.countDown();
+
+        assertTrue(resultReq1.get());
+        assertTrue(resultReq2.get());
+
+        taskLatch.countDown();
+        callbackLatch.countDown();
+
+        assertFuture(futures, 0);
+        assertCacheStats(stagingCache, 0, 0, 1, 2);
+
+        LOG.info("Finished testConcurrentSameAddRequest");
     }
 
     /**
@@ -604,7 +649,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         createUpgradeLoad(home, pendingUploadsFile);
 
         // Start again
-        init(1, new TestStagingUploader(folder.newFolder()), home);
+        init(2, new TestStagingUploader(folder.newFolder()), home);
 
         taskLatch.countDown();
         callbackLatch.countDown();
@@ -722,6 +767,29 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+
+    private ListenableFuture<Boolean> putThread(final TemporaryFolder folder, ListeningExecutorService executorService, final List<ListenableFuture<Integer>> futures) {
+        closer.register(new ExecutorCloser(executorService));
+
+        ListenableFuture<Boolean> result = executorService.submit(new Callable<Boolean>() {
+            @Override public Boolean call() {
+                try {
+                    LOG.info("Starting put");
+                    futures.addAll(put(folder));
+                    LOG.info("Finished put");
+                    File f = stagingCache.getIfPresent(ID_PREFIX + 0);
+                    LOG.info("Retrieved file {}, {}", f, f.exists());
+                    return f != null && f.exists();
+                } catch (Exception e) {
+                    LOG.info("Exception in get", e);
+                }
+                return false;
+            }
+        });
+
+        return result;
     }
 
     private List<ListenableFuture<Integer>> put(TemporaryFolder folder)

@@ -71,10 +71,17 @@ public class AbstractDataStoreCacheTest {
 
     static class TestStagingUploader implements StagingUploader {
         private final File root;
+        private CountDownLatch adoptLatch;
 
         public TestStagingUploader(File dir) {
             this.root = new File(dir, "datastore");
             root.mkdirs();
+        }
+
+        public TestStagingUploader(File dir, CountDownLatch adoptLatch) {
+            this.root = new File(dir, "datastore");
+            root.mkdirs();
+            this.adoptLatch = adoptLatch;
         }
 
         @Override public void write(String id, File f) throws DataStoreException {
@@ -86,6 +93,17 @@ public class AbstractDataStoreCacheTest {
             } catch (IOException e) {
                 throw new DataStoreException(e);
             }
+        }
+
+        @Override public void adopt(File f, File moved) throws IOException {
+            try {
+                if (adoptLatch != null) {
+                    adoptLatch.await();
+                }
+            } catch (Exception e) {
+                LOG.info("Error in adopt", e);
+            }
+            FileUtils.moveFile(f, moved);
         }
 
         public File read(String id) {
