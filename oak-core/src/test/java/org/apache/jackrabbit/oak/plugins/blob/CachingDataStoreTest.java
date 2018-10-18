@@ -169,6 +169,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
             @Override public void write(String id, File file) throws DataStoreException {
                 backend.write(new DataIdentifier(id), file);
             }
+
+            @Override public void adopt(File f, File moved) throws IOException {
+                FileUtils.moveFile(f, moved);
+            }
         }, statsProvider, listeningExecutor, scheduledExecutor, dataStore.executor, 300,
             600);
 
