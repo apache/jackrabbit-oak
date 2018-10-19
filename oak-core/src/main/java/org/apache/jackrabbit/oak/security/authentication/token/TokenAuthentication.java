@@ -93,7 +93,12 @@ class TokenAuthentication implements Authentication {
         }
 
         if (tokenInfo.matches(tokenCredentials)) {
-            tokenInfo.resetExpiration(loginTime);
+            if (tokenCredentials.getAttribute(TokenConstants.TOKEN_SKIP_REFRESH) == null) {
+                boolean reset = tokenInfo.resetExpiration(loginTime);
+                log.debug("Token reset={}", reset);
+            } else {
+                log.debug("Token reset skipped.");
+            }
             return true;
         }
 

@@ -42,4 +42,9 @@ interface TokenConstants {
             TOKEN_ATTRIBUTE_KEY);
 
     Set<String> TOKEN_PROPERTY_NAMES = ImmutableSet.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
+
+    /**
+     * Flag set on the TokenCredentials to skip refreshing the token expiration time
+     */
+    String TOKEN_SKIP_REFRESH = "tokenSkipRefresh";
 }
