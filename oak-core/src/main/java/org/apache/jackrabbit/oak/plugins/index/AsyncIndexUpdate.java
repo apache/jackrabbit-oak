@@ -220,6 +220,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         this.leaseTimeOut = DEFAULT_ASYNC_TIMEOUT;
         this.statisticsProvider = statsProvider;
         this.indexStats = new AsyncIndexStats(name, statsProvider);
+        this.corruptIndexHandler.setMeterStats(statsProvider.getMeter("corrupt-index", StatsOptions.METRICS_ONLY));
     }
 
     public AsyncIndexUpdate(@NotNull String name, @NotNull NodeStore store,

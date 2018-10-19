@@ -39,6 +39,7 @@ import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,11 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
     private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
+    private MeterStats meter;
+
+    void setMeterStats(MeterStats meter) {
+        this.meter = meter;
+    }
 
     public Map<String, CorruptIndexInfo> getCorruptIndexData(String asyncName){
         if (corruptIntervalMillis <= 0){
@@ -82,6 +88,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             CorruptIndexInfo info = indexes.remove(indexPath);
             if (info != null){
                 log.info("Index at [{}] which was so far failing {} is now working again.", info.path, info.getStats());
+            } else {
+                meter.mark();
             }
         }
     }
@@ -106,6 +114,9 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
     @Override
     public void indexUpdateFailed(String async, String indexPath, Exception e) {
+        if (meter != null) {
+            meter.mark();
+        }
         getOrCreateInfo(async, indexPath).addFailure(e);
     }
 
