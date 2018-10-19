@@ -19,15 +19,22 @@
 package org.apache.jackrabbit.oak.segment.file.tooling;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.segment.file.JournalEntry;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -210,4 +217,46 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(
                 "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
+
+    @Ignore("OAK-7838")
+    @Test
+    public void testLargeJournal() throws IOException {
+        StringWriter strOut = new StringWriter();
+        StringWriter strErr = new StringWriter();
+
+        PrintWriter outWriter = new PrintWriter(strOut, true);
+        PrintWriter errWriter = new PrintWriter(strErr, true);
+
+        File segmentStoreFolder = new File(temporaryFolder.getRoot().getAbsolutePath());
+        File journalFile = new File(segmentStoreFolder, "journal.log");
+        File largeJournalFile = temporaryFolder.newFile("journal.log.large");
+
+        JournalReader journalReader = new JournalReader(new LocalJournalFile(journalFile));
+        JournalEntry journalEntry = journalReader.next();
+
+        String journalLine = journalEntry.getRevision() + " root " + journalEntry.getTimestamp() + "\n";
+
+        for (int k = 0; k < 10000; k++) {
+            FileUtils.writeStringToFile(largeJournalFile, journalLine, true);
+        }
+
+        Check.builder()
+                .withPath(segmentStoreFolder)
+                .withJournal("journal.log.large")
+                .withDebugInterval(Long.MAX_VALUE)
+                .withCheckBinaries(true)
+                .withCheckHead(true)
+                .withFilterPaths(ImmutableSet.of("/"))
+                .withCheckpoints(checkpoints)
+                .withOutWriter(outWriter)
+                .withErrWriter(errWriter)
+                .build()
+                .run();
+
+        outWriter.close();
+        errWriter.close();
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
+    }
+
 }
