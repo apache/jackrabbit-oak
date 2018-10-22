@@ -31,9 +31,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
@@ -47,9 +44,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexInfoProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -58,6 +55,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,7 +142,7 @@ public class IndexHelper implements Closeable{
         return statisticsProvider;
     }
 
-    @CheckForNull
+    @Nullable
     public GarbageCollectableBlobStore getGCBlobStore() {
         return blobStore instanceof GarbageCollectableBlobStore ? (GarbageCollectableBlobStore) blobStore : null;
     }
@@ -167,8 +166,8 @@ public class IndexHelper implements Closeable{
         getExtractedTextCache().setExtractedTextProvider(new DataStoreTextWriter(dir, true));
     }
 
-    @CheckForNull
-    public <T> T getService(@Nonnull Class<T> type) {
+    @Nullable
+    public <T> T getService(@NotNull Class<T> type) {
         return WhiteboardUtils.getService(whiteboard, type);
     }
 
@@ -204,7 +203,7 @@ public class IndexHelper implements Closeable{
             private final Thread.UncaughtExceptionHandler handler =
                     (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);

@@ -46,8 +46,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -146,6 +144,8 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermDocs;
 import org.apache.lucene.index.TermEnum;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,7 +326,7 @@ public class RepositoryUpgrade {
      *
      * @param includes Paths to be included in the copy.
      */
-    public void setIncludes(@Nonnull String... includes) {
+    public void setIncludes(@NotNull String... includes) {
         this.includePaths = copyOf(checkNotNull(includes));
     }
 
@@ -336,7 +336,7 @@ public class RepositoryUpgrade {
      *
      * @param excludes Paths to be excluded from the copy.
      */
-    public void setExcludes(@Nonnull String... excludes) {
+    public void setExcludes(@NotNull String... excludes) {
         this.excludePaths = copyOf(checkNotNull(excludes));
     }
 
@@ -346,7 +346,7 @@ public class RepositoryUpgrade {
      *
      * @param merges Paths to be merged during copy.
      */
-    public void setMerges(@Nonnull String... merges) {
+    public void setMerges(@NotNull String... merges) {
         this.mergePaths = copyOf(checkNotNull(merges));
     }
 
@@ -456,7 +456,7 @@ public class RepositoryUpgrade {
                         return upgradeRoot.getTree(NODE_TYPES_PATH);
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     protected Root getWriteRoot() {
                         return upgradeRoot;
@@ -1055,7 +1055,7 @@ public class RepositoryUpgrade {
             this.source = source;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
             NodeState newState = after;

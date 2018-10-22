@@ -20,16 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.child;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;

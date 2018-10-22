@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code WriteOperationHandler} executes {@link WriteOperation
@@ -44,8 +44,8 @@ interface WriteOperationHandler {
          * @return        {@code RecordId} that resulted from persisting the changes.
          * @throws IOException
          */
-        @Nonnull
-        RecordId execute(@Nonnull SegmentBufferWriter writer) throws IOException;
+        @NotNull
+        RecordId execute(@NotNull SegmentBufferWriter writer) throws IOException;
     }
 
     /**
@@ -54,13 +54,13 @@ interface WriteOperationHandler {
      * @return                {@code RecordId} that resulted from persisting the changes.
      * @throws IOException
      */
-    @Nonnull
-    RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException;
+    @NotNull
+    RecordId execute(@NotNull WriteOperation writeOperation) throws IOException;
 
     /**
      * Flush any pending changes on any {@link SegmentBufferWriter} managed by this instance.
      * @param store  the {@code SegmentStore} instance to write the {@code Segment} to
      * @throws IOException
      */
-    void flush(@Nonnull SegmentStore store) throws IOException;
+    void flush(@NotNull SegmentStore store) throws IOException;
 }

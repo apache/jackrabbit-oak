@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Extension point for observing changes in an Oak repository. Observer
@@ -69,6 +68,6 @@ public interface Observer {
      * @param root root state of the repository
      * @param info commit information
      */
-    void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info);
+    void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info);
 
 }

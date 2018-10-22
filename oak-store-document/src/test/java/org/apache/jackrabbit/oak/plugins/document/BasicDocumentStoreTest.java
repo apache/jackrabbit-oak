@@ -111,11 +111,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertNull(nd.get(NodeDocument.HAS_BINARY_FLAG));
         assertFalse(nd.wasDeletedOnce());
         assertFalse(nd.hasBinary());
-        
+
         up = new UpdateOp(id, false);
         up.set(NodeDocument.DELETED_ONCE, true);
         super.ds.findAndUpdate(Collection.NODES, up);
-        
+
         super.ds.invalidateCache();
         nd = super.ds.find(Collection.NODES, id, 0);
         assertEquals(true, nd.get(NodeDocument.DELETED_ONCE));
@@ -127,20 +127,20 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         up.set(NodeDocument.DELETED_ONCE, false);
         up.set(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
         super.ds.findAndUpdate(Collection.NODES, up);
-        
+
         super.ds.invalidateCache();
         nd = super.ds.find(Collection.NODES, id, 0);
         assertEquals(false, nd.get(NodeDocument.DELETED_ONCE));
         assertEquals(NodeDocument.HAS_BINARY_VAL, nd.get(NodeDocument.HAS_BINARY_FLAG));
         assertFalse(nd.wasDeletedOnce());
         assertTrue(nd.hasBinary());
-        
+
         // remove
         up = new UpdateOp(id, false);
         up.remove(NodeDocument.DELETED_ONCE);
         up.remove(NodeDocument.HAS_BINARY_FLAG);
         super.ds.findAndUpdate(Collection.NODES, up);
-        
+
         super.ds.invalidateCache();
         nd = super.ds.find(Collection.NODES, id, 0);
         assertNull(nd.get(NodeDocument.DELETED_ONCE));
@@ -162,11 +162,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testCreateOrUpdate() {
         String id = this.getClass().getName() + ".testCreateOrUpdate";
 
-        // remove if present
-        NodeDocument nd = super.ds.find(Collection.NODES, id);
-        if (nd != null) {
-            super.ds.remove(Collection.NODES, id);
-        }
+        super.ds.remove(Collection.NODES, id);
 
         // create
         UpdateOp up = new UpdateOp(id, true);
@@ -176,6 +172,21 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         up = new UpdateOp(id, true);
         assertNotNull(super.ds.createOrUpdate(Collection.NODES, up));
         removeMe.add(id);
+    }
+
+    @Test
+    public void testCreateOrUpdateIsNewFalse() {
+        String id = this.getClass().getName() + ".testCreateOrUpdateIsNewFalse";
+
+        super.ds.remove(Collection.NODES, id);
+
+        // create with isNew==false
+        UpdateOp up = new UpdateOp(id, false);
+        assertNull(super.ds.createOrUpdate(Collection.NODES, up));
+
+        // has the document been created?
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        assertNull(nd);
     }
 
     @Test

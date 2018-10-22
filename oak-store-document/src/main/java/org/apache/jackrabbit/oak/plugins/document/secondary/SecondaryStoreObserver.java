@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,7 @@ public class SecondaryStoreObserver implements Observer {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         //Diff here would also be traversing non visible areas and there
         //diffManyChildren might pose problem for e.g. data under uuid index
         if (!firstEventProcessed){

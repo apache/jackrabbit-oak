@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.singletonList;
 
 class CompositionContext {
@@ -156,6 +157,15 @@ class CompositionContext {
 
     boolean belongsToStore(final MountedNodeStore mountedNodeStore, final String parentPath, final String childName) {
         return getOwningStore(PathUtils.concat(parentPath, childName)) == mountedNodeStore;
+    }
+
+    CompositeNodeState createRootNodeState(NodeState globalRootState) {
+        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+        nodeStates.put(getGlobalStore(), globalRootState);
+        for (MountedNodeStore nodeStore : getNonDefaultStores()) {
+            nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());
+        }
+        return createRootNodeState(nodeStates);
     }
 
     CompositeNodeState createRootNodeState(Map<MountedNodeStore, NodeState> rootStates) {

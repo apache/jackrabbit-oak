@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,7 +178,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     }
 
     //------------------------------------------------< AbstractLoginModule >---
-    @Nonnull
+    @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return SUPPORTED_CREDENTIALS;
@@ -195,8 +194,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     }
 
     //--------------------------------------------------------------------------
-    @CheckForNull
-    private String getLoginId(@CheckForNull PreAuthenticatedLogin preAuthenticatedLogin) {
+    @Nullable
+    private String getLoginId(@Nullable PreAuthenticatedLogin preAuthenticatedLogin) {
         if (preAuthenticatedLogin != null) {
             return preAuthenticatedLogin.getUserId();
         }
@@ -241,7 +240,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private Authentication getUserAuthentication(@Nullable String loginName) {
         SecurityProvider securityProvider = getSecurityProvider();
         Root root = getRoot();
@@ -257,7 +256,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return null;
     }
 
-    private AuthInfo createAuthInfo(@Nonnull Set<? extends Principal> principals) {
+    private AuthInfo createAuthInfo(@NotNull Set<? extends Principal> principals) {
         Credentials creds;
         if (credentials instanceof ImpersonationCredentials) {
             creds = ((ImpersonationCredentials) credentials).getBaseCredentials();

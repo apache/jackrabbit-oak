@@ -53,12 +53,12 @@
                         </goals>
                         <phase>pre-integration-test</phase>
                         <configuration>
-                            <!--
-                              This is required because there's no prior (stable) version of oak-search.
-                              This should be removed post 1.8 release
-                              Anyway nothing is exported therefore it shouldn't be a problem
-                            -->
-                            <skip>true</skip>
+                          <!--
+                            This is required as classes present in this module
+                            were part of oak-lucene. This should be removed
+                            post 1.10 release
+                          -->
+                          <comparisonArtifactId>oak-lucene</comparisonArtifactId>
                         </configuration>
                     </execution>
                 </executions>
@@ -112,6 +112,11 @@
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${tika.version}</version>
+        </dependency>
 
         <!-- Logging -->
         <dependency>
@@ -120,10 +125,10 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Findbugs annotations -->
+        <!-- Nullability annotations -->
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
             <scope>provided</scope>
         </dependency>
 
@@ -136,7 +141,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -149,6 +153,13 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-jcr</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-core</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
 

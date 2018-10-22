@@ -21,13 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 
 public interface DirectoryFactory {
 
-    Directory newInstance(IndexDefinition definition, NodeBuilder builder, String dirName,
+    Directory newInstance(LuceneIndexDefinition definition, NodeBuilder builder, String dirName,
                           boolean reindex) throws IOException;
 
     /**

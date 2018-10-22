@@ -41,6 +41,7 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.util.Text;
@@ -208,7 +209,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();
-                propMap.put(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+                propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(CREATED, propMap);
             case LUCENE:
                 OakIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,

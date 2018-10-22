@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Predicate used to evaluation if a given {@code PermissionEntry} matches
@@ -43,11 +41,11 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
         this(null, null, null, false);
     }
 
-    EntryPredicate(@Nonnull Tree tree, @Nullable PropertyState property, boolean respectParent) {
+    EntryPredicate(@NotNull Tree tree, @Nullable PropertyState property, boolean respectParent) {
         this(tree, property, tree.getPath(), respectParent);
     }
 
-    EntryPredicate(@Nonnull String path, boolean respectParent) {
+    EntryPredicate(@NotNull String path, boolean respectParent) {
         this(null, null, path, respectParent);
     }
 
@@ -67,7 +65,7 @@ final class EntryPredicate implements Predicate<PermissionEntry> {
         this.respectParent = parent != null || parentPath != null;
     }
 
-    @CheckForNull
+    @Nullable
     String getPath() {
         return path;
     }

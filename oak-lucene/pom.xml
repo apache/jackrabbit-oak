@@ -121,6 +121,7 @@
                 *
             </Import-Package>
             <Embed-Dependency>
+              oak-search;inline=true,
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
               oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
@@ -136,6 +137,7 @@
           <excludes>
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.txt</exclude>
+            <exclude>**/fvs.csv</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -200,6 +202,11 @@
       <artifactId>tika-core</artifactId>
       <version>${tika.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-search</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <!-- Lucene dependencies -->
     <dependency>
@@ -259,10 +266,10 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
 
     <!-- Test Dependencies -->
@@ -365,6 +372,10 @@
           <groupId>commons-logging</groupId>
           <artifactId>commons-logging</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -380,7 +391,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -398,6 +408,11 @@
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
       <version>2.8.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.arakelian</groupId>
+      <artifactId>docker-junit-rule</artifactId>
       <scope>test</scope>
     </dependency>
 

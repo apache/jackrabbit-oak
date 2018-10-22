@@ -23,9 +23,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,6 +36,8 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +65,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
     }, Iterables.toArray(PathUtils.elements(CONFIG_PATH), String.class));
 
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         EditorDiff.process(changeDetector, this.root, root);
         this.root = root;
     }

@@ -18,14 +18,24 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -51,7 +61,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testRecovery() throws StorageException, URISyntaxException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -71,4 +81,23 @@ public class AzureArchiveManagerTest {
         assertEquals(uuids.subList(0, 5), newArrayList(recovered.keySet()));
     }
 
+    @Test
+    public void testUncleanStop() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
+        AzurePersistence p = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fs.close();
+
+        container.getBlockBlobReference("oak/data00000a.tar/closed").delete();
+        container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.brf").delete();
+        container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.gph").delete();
+
+        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+        assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+        fs.close();
+    }
 }

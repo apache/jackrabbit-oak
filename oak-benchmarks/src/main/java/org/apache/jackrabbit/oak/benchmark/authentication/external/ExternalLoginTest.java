@@ -17,14 +17,21 @@
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.jetbrains.annotations.NotNull;
+
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.REQUIRED;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
 
 /**
  * Login against the {@link ExternalLoginModule} with a randomly selected user.
@@ -37,7 +44,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 public class ExternalLoginTest extends AbstractExternalTest {
 
     public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime,
-                             boolean dynamicMembership, @Nonnull List<String> autoMembership) {
+                             boolean dynamicMembership, @NotNull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
     }
 
@@ -50,17 +57,25 @@ public class ExternalLoginTest extends AbstractExternalTest {
         return new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                return new AppConfigurationEntry[]{
+                return new AppConfigurationEntry[] {
                         new AppConfigurationEntry(
-                                LoginModuleImpl.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                                ImmutableMap.<String, Object>of()),
+                                GuestLoginModule.class.getName(),
+                                OPTIONAL,
+                                ImmutableMap.of()),
+                        new AppConfigurationEntry(
+                                TokenLoginModule.class.getName(),
+                                SUFFICIENT,
+                                ImmutableMap.of()),
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                                SUFFICIENT,
                                 ImmutableMap.of(
                                         ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
-                                        ExternalLoginModule.PARAM_IDP_NAME, idp.getName()))
+                                        ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
+                        new AppConfigurationEntry(
+                                LoginModuleImpl.class.getName(),
+                                SUFFICIENT,
+                                ImmutableMap.of())
                 };
             }
         };

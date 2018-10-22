@@ -29,8 +29,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COU
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback.NOOP;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -46,9 +47,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import ch.qos.logback.classic.Level;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -78,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -526,6 +527,62 @@ public class IndexUpdateTest {
         }
     }
 
+    /**
+     * OAK-7686: async def with nrt/sync def should fail on missing provider only when running in
+     * context of an async cycle
+     */
+    @Test
+    public void testMissingProviderWithAsyncDef() throws Exception {
+        final MissingIndexProviderStrategy mips = new MissingIndexProviderStrategy();
+        mips.setFailOnMissingIndexProvider(true);
+
+        // prepare different hooks for different types indexing cycles
+        EditorHook syncHook = new EditorHook((before, after, builder, info) ->
+                new IndexUpdate(emptyProvider(), null, after, builder, NOOP)
+                        .withMissingProviderStrategy(mips));
+        EditorHook asyncHook = new EditorHook((before, after, builder, info) ->
+                new IndexUpdate(emptyProvider(), "async-run", after, builder, NOOP)
+                        .withMissingProviderStrategy(mips));
+        EditorHook otherAsyncHook = new EditorHook((before, after, builder, info) ->
+                new IndexUpdate(emptyProvider(), "other-async-run", after, builder, NOOP)
+                        .withMissingProviderStrategy(mips));
+
+        builder = EmptyNodeState.EMPTY_NODE.builder();
+
+        // create async defs with nrt and sync mixed in
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "asyncIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run"), Type.STRINGS)
+                .setProperty(REINDEX_PROPERTY_NAME, false);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "nrtIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "nrt"), Type.STRINGS)
+                .setProperty(REINDEX_PROPERTY_NAME, false);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "asyncSyncIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "sync"), Type.STRINGS)
+                .setProperty(REINDEX_PROPERTY_NAME, false);
+
+        // node states to run hook on
+        NodeState before = builder.getNodeState();
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        // sync run should be ok with missing provider for an async def
+        syncHook.processCommit(before, after, CommitInfo.EMPTY);
+
+        // unrelated async run should be ok with missing provider
+        otherAsyncHook.processCommit(before, after, CommitInfo.EMPTY);
+
+        // async run matching the def async lane still should fail
+        try {
+            asyncHook.processCommit(before, after, CommitInfo.EMPTY);
+            fail("commit should fail on missing index provider");
+        } catch (CommitFailedException ex) {
+            // expected
+        }
+    }
+
     @Test
     public void testReindexCount() throws Exception{
         builder.child("testRoot").setProperty("foo", "abc");
@@ -603,8 +660,8 @@ public class IndexUpdateTest {
         IndexUpdateCallback callback;
 
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
             Editor editor = super.getIndexEditor(type, definition, root, callback);
             if (editor != null){
                 this.callback = callback;
@@ -636,8 +693,8 @@ public class IndexUpdateTest {
     private static IndexEditorProvider emptyProvider() {
         return new IndexEditorProvider() {
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                    @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                    @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                     throws CommitFailedException {
                 return null;
             }

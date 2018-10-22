@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -31,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -44,21 +42,21 @@ public final class UserUtil implements UserConstants {
     private UserUtil() {
     }
 
-    public static boolean isAdmin(@Nonnull ConfigurationParameters parameters, @Nonnull String userId) {
+    public static boolean isAdmin(@NotNull ConfigurationParameters parameters, @NotNull String userId) {
         return getAdminId(parameters).equals(userId);
     }
 
-    @Nonnull
-    public static String getAdminId(@Nonnull ConfigurationParameters parameters) {
+    @NotNull
+    public static String getAdminId(@NotNull ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
     }
 
-    @Nonnull
-    public static String getAnonymousId(@Nonnull ConfigurationParameters parameters) {
+    @NotNull
+    public static String getAnonymousId(@NotNull ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
     }
 
-    public static boolean isType(@Nullable Tree authorizableTree, @Nonnull AuthorizableType type) {
+    public static boolean isType(@Nullable Tree authorizableTree, @NotNull AuthorizableType type) {
         if (authorizableTree != null) {
             String ntName = TreeUtil.getPrimaryTypeName(authorizableTree);
             switch (type) {
@@ -73,14 +71,14 @@ public final class UserUtil implements UserConstants {
         return false;
     }
 
-    @CheckForNull
-    public static AuthorizableType getType(@Nonnull Tree authorizableNode) {
+    @Nullable
+    public static AuthorizableType getType(@NotNull Tree authorizableNode) {
         String ntName = TreeUtil.getPrimaryTypeName(authorizableNode);
         return getType(ntName);
     }
 
-    @CheckForNull
-    public static AuthorizableType getType(@CheckForNull String primaryTypeName) {
+    @Nullable
+    public static AuthorizableType getType(@Nullable String primaryTypeName) {
         if (primaryTypeName != null) {
             if (NT_REP_GROUP.equals(primaryTypeName)) {
                 return AuthorizableType.GROUP;
@@ -97,8 +95,8 @@ public final class UserUtil implements UserConstants {
         return authorizableTree != null && NT_REP_SYSTEM_USER.equals(TreeUtil.getPrimaryTypeName(authorizableTree));
     }
 
-    @CheckForNull
-    public static String getAuthorizableRootPath(@Nonnull ConfigurationParameters parameters,
+    @Nullable
+    public static String getAuthorizableRootPath(@NotNull ConfigurationParameters parameters,
                                                  @Nullable AuthorizableType type) {
         String path = null;
         if (type != null) {
@@ -120,8 +118,8 @@ public final class UserUtil implements UserConstants {
         return path;
     }
 
-    @CheckForNull
-    public static String getAuthorizableId(@Nonnull Tree authorizableTree) {
+    @Nullable
+    public static String getAuthorizableId(@NotNull Tree authorizableTree) {
         checkNotNull(authorizableTree);
         if (UserUtil.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
@@ -142,8 +140,8 @@ public final class UserUtil implements UserConstants {
      * @param type The type of the authorizable tree.
      * @return The id retrieved from the specified {@code AuthorizableTree}.
      */
-    @Nonnull
-    public static String getAuthorizableId(@Nonnull Tree authorizableTree, @Nonnull AuthorizableType type) {
+    @NotNull
+    public static String getAuthorizableId(@NotNull Tree authorizableTree, @NotNull AuthorizableType type) {
         checkArgument(UserUtil.isType(authorizableTree, type));
         PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
         if (idProp != null) {
@@ -153,7 +151,7 @@ public final class UserUtil implements UserConstants {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public static <T extends Authorizable> T castAuthorizable(@Nullable Authorizable authorizable, Class<T> authorizableClass) throws AuthorizableTypeException {
         if (authorizable == null) {
             return null;
@@ -178,7 +176,7 @@ public final class UserUtil implements UserConstants {
      * or {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#IGNORE} if this
      * config parameter is missing.
      */
-    public static int getImportBehavior(@Nonnull ConfigurationParameters config) {
+    public static int getImportBehavior(@NotNull ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }

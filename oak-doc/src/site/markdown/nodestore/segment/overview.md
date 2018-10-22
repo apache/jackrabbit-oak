@@ -25,11 +25,13 @@
     * [Online Garbage Collection](#online-garbage-collection)
 * [Monitoring](#monitoring)            
 * [Tools](#tools)
+    * [Segment-Copy](#segment-copy)
     * [Backup](#backup)
     * [Restore](#restore)
     * [Check](#check)
     * [Compact](#compact)
     * [Debug](#debug)
+    * [IOTrace](#iotrace)
     * [Diff](#diff)
     * [History](#history)
 
@@ -663,6 +665,31 @@ Oak Segment Tar exposes a number of command line tools that can be used to perfo
 The tools are exposed as sub-commands of [Oak Run](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run).
 The following sections assume that you have built this module or that you have a compiled version of it.
 
+### <a name="remote-segment-stores"/> Remote Segment Stores
+Besides the local storage in TAR files (previously known as TarMK), support for remote Segment Store(s) was introduced in Apache Oak. For connecting to a remote Segment Store, a `cloud-prefix:URI` argument needs to be provided. This applies wherever a `PATH` to the Segment Store was needed.
+
+**Connection Instructions**:
+
+* **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
+
+### <a name="segment-copy"/> Segment-Copy
+```
+java -jar oak-run.jar segment-copy [--verbose] SOURCE DESTINATION
+```
+
+The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
+Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../../migration.md)) which includes only the current head state, this translation includes __all previous revisions persisted in the Segment Store__, therefore retaining the entire history.
+
+`SOURCE` must be a valid path/uri to an existing Segment Store. 
+`DESTINATION` must be a valid path/uri for the resulting Segment Store. 
+Both are specified as `PATH | cloud-prefix:URI`. 
+Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
+
+If the `--verbose` option is specified, the command will print detailed progress information messages. 
+These include individual segments being transfered from `SOURCE` to `DESTINATION` at a certain point in time.
+If not specified, progress information messages will be disabled.
+
+
 ### <a name="backup"/> Backup
 
 ```
@@ -737,11 +764,12 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] PATH
+java -jar oak-run.jar compact [--force] [--mmap] PATH | cloud-prefix:URI
 ```
 
-The `compact` command performs offline compaction of the Segment Store at `PATH`. 
-`PATH` must be a valid path to an existing Segment Store. 
+The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
+`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store is the only supported remote Segment Store. 
+Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
 If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
 matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
@@ -818,6 +846,45 @@ Both record IDs must point to valid node records.
 The pair of record IDs can be followed by a path, like `333dc24d-438f-4cca-8b21-3ebf67c05856:12345-46116fda-7a72-4dbc-af88-a09322a7753a:67890/path/to/child`.
 When a node record ID range is specified, the tool will perform a diff between the two nodes pointed by the record IDs, optionally following the provided path.
 The result of the diff will be printed in JSOP format.
+
+### <a name="iotrace"/> IOTrace
+
+````
+java -jar oak-run.jar iotrace PATH --trace DEPTH|BREADTH [--depth DEPTH] [--mmap MMAP] [--output OUTPUT] [--path PATH] [--segment-cache SEGMENT_CACHE] 
+
+usage: iotrace path/to/segmentstore <options>
+Option (* = required)      Description
+---------------------      -----------
+--count <Integer>          Number of paths to access Applies to RANDOM (default: 1000)
+--depth <Integer>          Maximal depth of the traversal. Applies to BREADTH, DEPTH (default: 5)
+--mmap <Boolean>           use memory mapping for the file store (default: true)
+--output <File>            output file where the IO trace is written to (default: iotrace.csv)
+--path <String>            starting path for the traversal. Applies to BREADTH, DEPTH (default: /root)
+--paths <File>             file containing list of paths to traverse. Applies to RANDOM (default: paths.txt)
+--seed <Long>              Seed for generating random numbers. Applies to RANDOM (default: 0)
+--segment-cache <Integer>  size of the segment cache in MB (default: 256)
+* --trace <Traces>         type of the traversal. Either of [DEPTH, BREADTH, RANDOM]
+````
+
+The `iotrace` command collects IO traces of read accesses to the segment store's back-end 
+(e.g. disk). Traffic patterns can be specified via the `--trace` option. Permissible values 
+are `DEPTH` for depth first traversal, `BREADTH` for breadth first traversal and `RANDOM` for
+random access. The `--depth` option limits the maximum number of levels traversed. 
+The `--path` option specifies the node where traversal starts (from the super root). 
+The `--mmap` and `--segment-cache` options configure memory mapping and segment cache size 
+of the segment store, respectively.
+The `--paths` option specifies the list of paths to access. The file must contain a single path 
+per line. 
+The `--seed` option specifies the seed to used when randomly choosing a paths.  
+The `--output` options specifies the file where the IO trace is stored. IO traces are stored in
+CSV format of the following form:
+
+```
+timestamp,file,segmentId,length,elapsed
+1522147945084,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,171849
+1522147945096,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,131272
+1522147945097,data01415a.tar,f81378df-b3f8-4b25-0000-00000002c450,181328,142766
+``` 
 
 ### <a name="diff"/> Diff
 

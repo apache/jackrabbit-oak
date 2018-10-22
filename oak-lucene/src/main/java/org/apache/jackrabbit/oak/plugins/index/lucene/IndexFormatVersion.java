@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+/**
+ * The version of an index (property "compatVersion").
+ *
+ * The default is version 2. Version 1 is supported for backward compatibility.
+ */
 public enum IndexFormatVersion {
     /**
      * Index confirming to Oak version upto 1.0.8

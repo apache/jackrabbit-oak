@@ -35,12 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import junit.framework.Assert;
 
 /**
  * Tests the ClusterRepositoryInfo unique cluster repository id.
@@ -167,6 +167,35 @@ public class ClusterRepositoryInfoTest {
         Assert.assertEquals(id, "xxxxxxxx");
     }
 
+    @Test
+    public void getId() {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
+            .setAsyncDelay(0)
+            .setDocumentStore(store)
+            .setClusterId(1)
+            .getNodeStore();
+        String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
+        ds1.runBackgroundOperations();
+
+        String retrievedId = ClusterRepositoryInfo.getId(ds1);
+        Assert.assertNotNull(retrievedId);
+        Assert.assertEquals(repoId1, retrievedId);
+    }
+
+    @Test
+    public void getIdNotSet() {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ds1 = builderProvider.newBuilder()
+            .setAsyncDelay(0)
+            .setDocumentStore(store)
+            .setClusterId(1)
+            .getNodeStore();
+        ds1.runBackgroundOperations();
+
+        String retrievedId = ClusterRepositoryInfo.getId(ds1);
+        Assert.assertNull(retrievedId);
+    }
 
     @After
     public void close() throws IOException {

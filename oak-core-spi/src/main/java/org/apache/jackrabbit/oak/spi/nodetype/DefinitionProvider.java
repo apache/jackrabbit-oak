@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.nodetype;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -24,6 +23,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -32,7 +32,7 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface DefinitionProvider {
 
-    @Nonnull
+    @NotNull
     NodeDefinition getRootDefinition() throws RepositoryException;
 
     /**
@@ -47,8 +47,8 @@ public interface DefinitionProvider {
      * @throws ConstraintViolationException If no matching definition can be found.
      * @throws RepositoryException If another error occurs.
      */
-    @Nonnull
-    NodeDefinition getDefinition(@Nonnull Tree parent, @Nonnull String nodeName)
+    @NotNull
+    NodeDefinition getDefinition(@NotNull Tree parent, @NotNull String nodeName)
             throws ConstraintViolationException, RepositoryException;
 
     /**
@@ -61,7 +61,7 @@ public interface DefinitionProvider {
      * @throws ConstraintViolationException If no matching definition can be found.
      * @throws RepositoryException If another error occurs.
      */
-    @Nonnull
+    @NotNull
     NodeDefinition getDefinition(Tree parent, Tree targetNode)
             throws ConstraintViolationException, RepositoryException;
 
@@ -75,7 +75,7 @@ public interface DefinitionProvider {
      * @throws ConstraintViolationException If no matching definition can be found.
      * @throws RepositoryException If another error occurs.
      */
-    @Nonnull
+    @NotNull
     PropertyDefinition getDefinition(
             Tree parent, PropertyState propertyState, boolean exactTypeMatch)
             throws ConstraintViolationException, RepositoryException;

@@ -32,8 +32,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
@@ -47,6 +47,9 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+/**
+ * A utility to build index definitions.
+ */
 public final class IndexDefinitionBuilder {
     private final NodeBuilder builder;
     private final Tree tree;
@@ -72,6 +75,7 @@ public final class IndexDefinitionBuilder {
         this.builder = nodeBuilder;
         this.initial = nodeBuilder.getNodeState();
         this.tree = TreeFactory.createTree(builder);
+        tree.setProperty(FulltextIndexConstants.COMPAT_MODE, 2);
         tree.setProperty("async", "async");
         setType();
         tree.setProperty(JCR_PRIMARYTYPE, "oak:QueryIndexDefinition", NAME);

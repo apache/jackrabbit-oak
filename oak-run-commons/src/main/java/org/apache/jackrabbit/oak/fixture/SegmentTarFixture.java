@@ -27,8 +27,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.StandardSystemProperty;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
@@ -51,6 +49,7 @@ import org.apache.jackrabbit.oak.segment.standby.client.StandbyClientSync;
 import org.apache.jackrabbit.oak.segment.standby.server.StandbyServerSync;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +62,7 @@ public class SegmentTarFixture extends OakFixture {
      */
     SegmentNotFoundExceptionListener IGNORE_SNFE = new SegmentNotFoundExceptionListener() {
         @Override
-        public void notify(@Nonnull SegmentId id, @Nonnull SegmentNotFoundException snfe) { }
+        public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) { }
     };
     
     private static final int MB = 1024 * 1024;

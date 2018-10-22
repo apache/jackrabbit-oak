@@ -26,10 +26,14 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import javax.jcr.security.Privilege;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
@@ -59,17 +63,17 @@ public class FacetTest extends AbstractQueryTest {
 
         Node node = props.addNode("relative");
         node.setProperty("name", "jc/text");
-        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
-        node.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        node.setProperty(FulltextIndexConstants.PROP_FACETS, true);
+        node.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
         node = props.getNode("allProps");
-        node.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+        node.setProperty(FulltextIndexConstants.PROP_FACETS, true);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
 
         if (!superuser.nodeExists(FACET_CONFING_NODE_PATH)) {
             node = superuser.getNode(INDEX_CONFING_NODE_PATH);
-            node.addNode(LuceneIndexConstants.FACETS);
+            node.addNode(FulltextIndexConstants.FACETS);
             markIndexForReindex();
             superuser.save();
             superuser.refresh(true);
@@ -81,7 +85,7 @@ public class FacetTest extends AbstractQueryTest {
         assertTrue(superuser.nodeExists("/oak:index/luceneGlobal/facets"));
 
         if (superuser.nodeExists(FACET_CONFING_PROP_PATH)) {
-            superuser.getProperty(LuceneIndexConstants.PROP_FACETS).remove();
+            superuser.getProperty(FulltextIndexConstants.PROP_FACETS).remove();
             superuser.save();
             superuser.refresh(true);
         }
@@ -504,7 +508,7 @@ public class FacetTest extends AbstractQueryTest {
     public void testFacetRetrievalNumberOfFacetsConfiguredHigherThanDefault() throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
-        facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
+        facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 11);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
@@ -555,7 +559,7 @@ public class FacetTest extends AbstractQueryTest {
     public void testFacetRetrievalNumberOfFacetsConfiguredLowerThanDefault() throws RepositoryException {
 
         Node facetsConfig = superuser.getNode(FACET_CONFING_NODE_PATH);
-        facetsConfig.setProperty(LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
+        facetsConfig.setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN, 7);
         markIndexForReindex();
         superuser.save();
         superuser.refresh(true);
@@ -630,6 +634,110 @@ public class FacetTest extends AbstractQueryTest {
         assertTrue(rows.hasNext());
         assertEquals(bar.getPath(), rows.nextRow().getPath());
         assertFalse(rows.hasNext());
+    }
+
+    public void testNoFacetsIfNoAccess() throws Exception {
+        deny(testRootNode.addNode("test1")).setProperty("jcr:title", "test1");
+        deny(testRootNode.addNode("test2")).addNode("child").setProperty("jcr:title", "test2");
+        deny(testRootNode.addNode("test3").addNode("child")).setProperty("jcr:title", "test3");
+        superuser.save();
+
+        Session anonUser = getHelper().getReadOnlySession();
+        QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
+        Query q = queryManager.createQuery("//*[@jcr:title]/(rep:facet(jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertNotNull("facetResult is null", facetResult);
+        assertTrue(facetResult.getDimensions().isEmpty());
+    }
+
+    public void testOnlyAllowedFacetLabelsShowUp() throws Exception {
+        deny(testRootNode.addNode("test1")).setProperty("jcr:title", "test1");
+        deny(testRootNode.addNode("test2")).addNode("child").setProperty("jcr:title", "test2");
+        testRootNode.addNode("test3").addNode("child").setProperty("jcr:title", "test3");
+        superuser.save();
+
+        Session anonUser = getHelper().getReadOnlySession();
+        QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
+        Query q = queryManager.createQuery("//*[@jcr:title]/(rep:facet(jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertNotNull("facetResult is null", facetResult);
+        assertEquals("Unexpected number of dimension", 1, facetResult.getFacets("jcr:title").size());
+        FacetResult.Facet facet = facetResult.getFacets("jcr:title").get(0);
+        assertEquals("Unexpected facet label", "test3", facet.getLabel());
+        assertEquals("Unexpected facet count", 1, facet.getCount());
+    }
+
+    public void testInaccessibleFacetCounts() throws Exception {
+        deny(testRootNode.addNode("test1")).setProperty("jcr:title", "test");
+        deny(testRootNode.addNode("test2")).addNode("child").setProperty("jcr:title", "test");
+        testRootNode.addNode("test3").addNode("child").setProperty("jcr:title", "test");
+        testRootNode.addNode("test4").addNode("child").setProperty("jcr:title", "another-test");
+        superuser.save();
+
+        Session anonUser = getHelper().getReadOnlySession();
+        QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
+        Query q = queryManager.createQuery("//*[@jcr:title]/(rep:facet(jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertNotNull("facetResult is null", facetResult);
+        assertEquals("Unexpected number of labels", 2, facetResult.getFacets("jcr:title").size());
+        Map<String, Integer> facets = facetResult.getFacets("jcr:title")
+                .stream().collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
+        assertEquals("Unexpected facet count for jcr:title", 1, (int)facets.get("test"));
+        assertEquals("Unexpected facet count for jcr:title", 1, (int)facets.get("another-test"));
+    }
+
+    public void testAllowedSubNodeFacet() throws Exception {
+        allow(
+            deny(testRootNode.addNode("parent")).addNode("child")
+        ).setProperty("jcr:title", "test");
+        superuser.save();
+
+        Session anonUser = getHelper().getReadOnlySession();
+        QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
+        Query q = queryManager.createQuery("//*[@jcr:title]/(rep:facet(jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertNotNull("facetResult is null", facetResult);
+        assertEquals("Unexpected number of labels", 1, facetResult.getFacets("jcr:title").size());
+        FacetResult.Facet facet = facetResult.getFacets("jcr:title").get(0);
+        assertEquals("Unexpected facet label", "test", facet.getLabel());
+        assertEquals("Unexpected facet count", 1, facet.getCount());
+    }
+
+    public void testAcRelativeFacetsAccessControl() throws Exception {
+        deny(testRootNode.addNode("test1")).addNode("jc").setProperty("text", "test_1");
+        deny(testRootNode.addNode("test2").addNode("jc")).setProperty("text", "test_2");
+        testRootNode.addNode("test3").addNode("jc").setProperty("text", "test_3");
+        superuser.save();
+
+        Session anonUser = getHelper().getReadOnlySession();
+        QueryManager queryManager = anonUser.getWorkspace().getQueryManager();
+        Query q = queryManager.createQuery("//*[jcr:contains(jc/@text, 'test')]/(rep:facet(jc/text))", Query.XPATH);
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertNotNull("facetResult is null", facetResult);
+        assertEquals("Unexpected number of dimension", 1, facetResult.getFacets("jc/text").size());
+        FacetResult.Facet facet = facetResult.getFacets("jc/text").get(0);
+        assertEquals("Unexpected facet label", "test_3", facet.getLabel());
+        assertEquals("Unexpected facet count", 1, facet.getCount());
+    }
+
+    public Node deny(Node node) throws RepositoryException {
+        AccessControlUtils.deny(node, "anonymous", Privilege.JCR_ALL);
+        return node;
+    }
+
+    public Node allow(Node node) throws RepositoryException {
+        AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
+        return node;
     }
 
     private void markIndexForReindex() throws RepositoryException {

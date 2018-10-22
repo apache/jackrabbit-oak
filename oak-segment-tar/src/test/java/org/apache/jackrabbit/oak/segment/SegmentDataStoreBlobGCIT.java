@@ -42,8 +42,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -72,6 +70,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;

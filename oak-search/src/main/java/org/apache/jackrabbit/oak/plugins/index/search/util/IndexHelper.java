@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.of;
@@ -49,15 +48,17 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.GROUP_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.USER_PROPERTY_NAMES;
 
+/**
+ * A helper class that helps decide what to (not) index.
+ */
 public class IndexHelper {
 
     public static final Set<String> JR_PROPERTY_INCLUDES = of(TYPENAME_STRING,
             TYPENAME_BINARY);
 
     /**
-     * Nodes that represent content that shold not be tokenized (like UUIDs,
+     * Nodes that represent content that should not be tokenized (like UUIDs,
      * etc)
-     * 
      */
     private final static Set<String> NOT_TOKENIZED = newHashSet(JCR_UUID);
 
@@ -66,28 +67,25 @@ public class IndexHelper {
         NOT_TOKENIZED.addAll(GROUP_PROPERTY_NAMES);
     }
 
-    private IndexHelper() {
-    }
-
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes) {
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes) {
         return newFTIndexDefinition(index, name, type, propertyTypes, null, null, null);
     }
 
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nullable String async) {
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @Nullable String async) {
         return newFTIndexDefinition(index, type, name, propertyTypes, excludes,
                 async, null);
     }
 
     public static NodeBuilder newFTIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nullable String async,
-            @Nullable Boolean stored) {
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @Nullable String async,
+        @Nullable Boolean stored) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -113,17 +111,17 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes, @Nonnull String path) {
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes, @NotNull String path) {
         return newFTFileIndexDefinition(index, type, name, propertyTypes, null,
                 path, null);
     }
 
     public static NodeBuilder newFTFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nonnull String path,
-            @Nullable String async) {
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @Nullable Set<String> propertyTypes,
+        @Nullable Set<String> excludes, @NotNull String path,
+        @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -148,10 +146,10 @@ public class IndexHelper {
     }
 
     public static NodeBuilder newFTPropertyIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name, String type,
-            @Nonnull Set<String> includes,
-            @Nonnull String async) {
-        checkArgument(!includes.isEmpty(), "Lucene property index " +
+        @NotNull NodeBuilder index, @NotNull String name, String type,
+        @NotNull Set<String> includes,
+        @NotNull String async) {
+        checkArgument(!includes.isEmpty(), "Fulltext property index " +
                 "requires explicit list of property names to be indexed");
 
         index = index.child(name);
@@ -168,8 +166,7 @@ public class IndexHelper {
     }
 
     /**
-     * Nodes that represent UUIDs and shold not be tokenized
-     * 
+     * Nodes that represent UUIDs and should not be tokenized
      */
     public static boolean skipTokenization(String name) {
         return NOT_TOKENIZED.contains(name);

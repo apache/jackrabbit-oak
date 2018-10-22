@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>7.0.84</tomcat.version>
+    <tomcat.version>7.0.91</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -57,6 +57,10 @@
         <exclusion>
           <groupId>commons-logging</groupId>
           <artifactId>commons-logging</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-log4j12</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -140,8 +144,8 @@
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
-      <version>2.3.6</version>
+      <artifactId>groovy</artifactId>
+      <version>2.5.2</version>
     </dependency>
 
     <dependency>
@@ -175,7 +179,7 @@
     <dependency>
       <groupId>net.sourceforge.htmlunit</groupId>
       <artifactId>htmlunit</artifactId>
-      <version>2.28</version>
+      <version>2.33</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -187,7 +191,6 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.5.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -207,12 +210,12 @@
     <plugins>
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>3.2.2</version>
       </plugin>
       <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>9.4.3.v20170317</version>
+         <version>9.4.11.v20180605</version>
          <configuration>
            <scanIntervalSeconds>0</scanIntervalSeconds>
            <connectors>
@@ -294,7 +297,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-clean-plugin</artifactId>
-        <version>3.0.0</version>
         <configuration>
           <filesets>
             <fileset>

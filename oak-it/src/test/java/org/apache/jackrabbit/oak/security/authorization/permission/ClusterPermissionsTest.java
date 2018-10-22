@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

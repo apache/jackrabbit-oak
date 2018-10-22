@@ -23,14 +23,14 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
@@ -41,6 +41,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexWriter.class.getName() + ".perf"));
 
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
     private final NodeBuilder definitionBuilder;
     private final DirectoryFactory directoryFactory;
     private final String dirName;
@@ -65,7 +66,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
     private long genAtStart = -1;
     private boolean indexUpdated = false;
 
-    public DefaultIndexWriter(IndexDefinition definition, NodeBuilder definitionBuilder,
+    public DefaultIndexWriter(LuceneIndexDefinition definition, NodeBuilder definitionBuilder,
                               DirectoryFactory directoryFactory, String dirName, String suggestDirName,
                               boolean reindex, LuceneIndexWriterConfig writerConfig) {
         this.definition = definition;
@@ -164,20 +165,23 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * @param analyzer the analyzer used to update the suggester
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
+        final Closer closer = Closer.create();
+
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-        DirectoryReader reader = DirectoryReader.open(writer, false);
+        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
         final Directory suggestDirectory =
             directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
+        // updateSuggester would close the directory (directly or via lookup)
+        // closer.register(suggestDirectory);
         boolean updated = false;
         try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
+            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
             updated = true;
         } catch (Throwable e) {
             log.warn("could not update suggester", e);
         } finally {
-            suggestDirectory.close();
-            reader.close();
+            closer.close();
         }
         return updated;
     }
@@ -238,9 +242,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         return -1;
     }
 
-    private static void trackIndexSizeInfo(@Nonnull IndexWriter writer,
-                                           @Nonnull IndexDefinition definition,
-                                           @Nonnull Directory directory) throws IOException {
+    private static void trackIndexSizeInfo(@NotNull IndexWriter writer,
+                                           @NotNull IndexDefinition definition,
+                                           @NotNull Directory directory) throws IOException {
         checkNotNull(writer);
         checkNotNull(definition);
         checkNotNull(directory);

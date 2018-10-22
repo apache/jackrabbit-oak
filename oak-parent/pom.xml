@@ -43,24 +43,26 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.17.2</jackrabbit.version>
+    <jackrabbit.version>2.17.6</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
+    <mongo.url />
+    <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
     <solr.version>5.5.5</solr.version>
-    <mongo.driver.version>3.6.3</mongo.driver.version>
+    <mongo.driver.version>3.6.4</mongo.driver.version>
     <slf4j.api.version>1.7.25</slf4j.api.version>
     <slf4j.version>1.7.25</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.17</tika.version>
+    <tika.version>1.19.1</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
-    <findbugs.version>3.0.4</findbugs.version>
-    <derby.version>10.14.1.0</derby.version>
+    <derby.version>10.14.2.0</derby.version>
+    <jackson.version>2.9.7</jackson.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -98,7 +100,7 @@
       <plugins>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.7.0</version>
+          <version>3.8.0</version>
           <configuration>
             <target>${java.version}</target>
             <source>${java.version}</source>
@@ -122,7 +124,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.0.0-M1</version>
+          <version>3.0.0</version>
           <configuration>
             <source>${java.version}</source>
             <aggregate>true</aggregate>
@@ -136,7 +138,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>3.5.1</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
@@ -155,11 +157,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-              <groupId>biz.aQute.bnd</groupId>
-              <artifactId>biz.aQute.bndlib</artifactId>
-              <version>3.3.0</version>
-            </dependency>
           </dependencies>
           <configuration>
             <exportScr>true</exportScr>
@@ -174,7 +171,7 @@
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
               <!-- Support parsing of maven-scr-plugin annotations through the felix.scr.bnd plugin -->
-              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory};</_plugin>
+              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}</_plugin>
             </instructions>
           </configuration>
           <executions>
@@ -189,7 +186,7 @@
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
                 <!-- Set the comparisonVersion to last release from stable branch-->
-                <comparisonVersion>1.8.0</comparisonVersion>
+                <comparisonVersion>1.8.8</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
                   <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
@@ -199,6 +196,7 @@
                   <filter>!org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage</filter>
                   <filter>!org.apache.jackrabbit.oak</filter>
                   <filter>!org.apache.jackrabbit.oak.json</filter>
+                  <filter>!org.apache.jackrabbit.oak.namepath.impl</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.blob.datastore</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.commit</filter>
@@ -207,10 +205,12 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.index.aggregate</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.property</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.index.property.strategy</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.reference</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.lock</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.memory</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.migration</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.migration.report</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.name</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.nodetype.write</filter>
@@ -218,15 +218,18 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.observation.filter</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.tree.factories</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.value</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.value.jcr</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.version</filter>
                   <filter>!org.apache.jackrabbit.oak.query</filter>
                   <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
                   <filter>!org.apache.jackrabbit.oak.security</filter>
+                  <filter>!org.apache.jackrabbit.oak.spi.cluster</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.lifecycle</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.state</filter>
                   <filter>!org.apache.jackrabbit.oak.jcr</filter>
+                  <filter>!org.apache.jackrabbit.oak.plugins.document.spi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
@@ -270,7 +273,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-assembly-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.rat</groupId>
@@ -282,7 +285,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.21.0</version>
+          <version>2.22.0</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -291,6 +294,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
+              <mongo.url>${mongo.url}</mongo.url>
               <segment.db>${segment.db}</segment.db>
               <nsfixtures>${fixtures}</nsfixtures>
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
@@ -300,7 +304,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.21.0</version>
+          <version>2.22.0</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -309,6 +313,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
+              <mongo.url>${mongo.url}</mongo.url>
               <nsfixtures>${fixtures}</nsfixtures>
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
             </systemPropertyVariables>
@@ -316,13 +321,13 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>2.17</version>
+            <version>3.0.0</version>
           </plugin>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <version>${findbugs.version}</version>
-          </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>3.1.5</version>
+        </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -365,34 +370,37 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.6</version>
+          <version>3.7.1</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
             <skipDeploy>true</skipDeploy>
           </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.apache.maven.doxia</groupId>
-              <artifactId>doxia-module-markdown</artifactId>
-              <version>1.7</version>
-            </dependency>
-          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>1.1</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>2.9</version>
+          <version>3.0.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-clean-plugin</artifactId>
+            <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.1</version>
+          <version>0.8.2</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -450,7 +458,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.0.2</version>
+        <version>3.1.0</version>
         <executions>
           <execution>
             <goals>
@@ -525,9 +533,9 @@
         <version>6.0.0</version>
       </dependency>
       <dependency>
-        <groupId>com.google.code.findbugs</groupId>
-        <artifactId>jsr305</artifactId>
-        <version>2.0.0</version>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>16.0.2</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
@@ -548,7 +556,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.4</version>
+        <version>3.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>2.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -578,6 +591,11 @@
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
+        <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-core</artifactId>
         <version>${logback.version}</version>
       </dependency>
       <dependency>
@@ -614,7 +632,7 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.30</version>
+        <version>8.5.33</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -630,6 +648,56 @@
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>3.2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-smile</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient-osgi</artifactId>
+        <version>4.5.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>4.4.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore-osgi</artifactId>
+        <version>4.4.10</version>
+     </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpmime</artifactId>
+        <version>4.5.6</version>
+      </dependency>
+      <dependency>
+        <groupId>com.arakelian</groupId>
+        <artifactId>docker-junit-rule</artifactId>
+        <version>2.1.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -742,9 +810,8 @@
                </executions>
             </plugin>
             <plugin>
-               <groupId>org.codehaus.mojo</groupId>
-               <artifactId>findbugs-maven-plugin</artifactId>
-               <version>${findbugs.version}</version>
+               <groupId>com.github.spotbugs</groupId>
+               <artifactId>spotbugs-maven-plugin</artifactId>
                <configuration>
                   <failOnError>false</failOnError>
                </configuration>
@@ -799,6 +866,49 @@
       </build>
    </profile>
     
+   <profile>
+      <id>guavabetachecks</id>
+      <build>
+         <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.7.0</version>
+              <configuration>
+                <compilerId>javac-with-errorprone</compilerId>
+                <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                <target>${java.version}</target>
+                <source>${java.version}</source>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava-beta-checker</artifactId>
+                    <version>1.0</version>
+                  </path>
+                </annotationProcessorPaths>
+                <compilerArgs>
+                  <!-- OAK-7310 -->
+                  <arg>-Xpkginfo:always</arg>
+                  <arg>-XepDisableAllChecks</arg>
+                  <arg>-Xep:BetaApi:ERROR</arg>
+                </compilerArgs>
+              </configuration>
+              <dependencies>
+                <dependency>
+                  <groupId>org.codehaus.plexus</groupId>
+                  <artifactId>plexus-compiler-javac-errorprone</artifactId>
+                  <version>2.5</version>
+                </dependency>
+                <dependency>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>2.3.1</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+         </plugins>
+      </build>
+   </profile>
+
     <profile>
       <id>rat</id>
       <build>
@@ -823,6 +933,32 @@
                <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
              </configuration>
            </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>javadoc</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <!-- run a test to prevent Jenkins from failing because no test ran -->
+              <test>PathUtilsTest</test>
+              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
+            </configuration>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -856,9 +992,8 @@
             </executions>
           </plugin>
           <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>findbugs-maven-plugin</artifactId>
-            <version>${findbugs.version}</version>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-maven-plugin</artifactId>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
@@ -905,7 +1040,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>5.1.46</version>
+          <version>8.0.12</version>
         </dependency>
       </dependencies>
     </profile>
@@ -915,7 +1050,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.2</version>
+          <version>42.2.5</version>
         </dependency>
       </dependencies>
     </profile>
@@ -930,17 +1065,12 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of MS SqlServer JDBC driver deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=sqljdbc41.jar -Dpackaging=jar\
-          -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.1
-       -->
       <id>rdb-mssql</id>
       <dependencies>
         <dependency>
           <groupId>com.microsoft.sqlserver</groupId>
-          <artifactId>sqljdbc4</artifactId>
-          <version>4.1</version>
+          <artifactId>mssql-jdbc</artifactId>
+          <version>7.0.0.jre8</version>
         </dependency>
       </dependencies>
     </profile>
@@ -964,14 +1094,14 @@
       <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
       <!-- for instance:
         mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.66
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.72
        -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
           <artifactId>db2</artifactId>
-          <version>4.19.66</version>
+          <version>4.19.72</version>
         </dependency>
       </dependencies>
     </profile>
@@ -979,16 +1109,6 @@
       <id>coverage</id>
       <properties>
         <skip.coverage>false</skip.coverage>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>findbugs-jdk6</id>
-      <activation>
-        <jdk>1.6</jdk>
-      </activation>
-      <properties>
-        <findbugs.version>2.5.5</findbugs.version>
       </properties>
     </profile>
 
@@ -1015,7 +1135,7 @@
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-resources-plugin</artifactId>
-              <version>3.0.2</version>
+              <version>3.1.0</version>
               <executions>
                 <execution>
                   <id>default</id>

@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,9 +108,9 @@ final class NodeDocumentSweeper {
      * @throws DocumentStoreException if reading from the store or writing to
      *          the store failed.
      */
-    @CheckForNull
-    Revision sweep(@Nonnull Iterable<NodeDocument> documents,
-                   @Nonnull NodeDocumentSweepListener listener)
+    @Nullable
+    Revision sweep(@NotNull Iterable<NodeDocument> documents,
+                   @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
         return performSweep(documents, checkNotNull(listener));
     }
@@ -125,7 +124,7 @@ final class NodeDocumentSweeper {
 
     //----------------------------< internal >----------------------------------
 
-    @CheckForNull
+    @Nullable
     private Revision performSweep(Iterable<NodeDocument> documents,
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
@@ -281,7 +280,7 @@ final class NodeDocumentSweeper {
         return new UpdateOp(doc.getId(), false);
     }
 
-    @CheckForNull
+    @Nullable
     private Revision getCommitRevision(final NodeDocument doc,
                                        final Revision rev)
             throws DocumentStoreException {

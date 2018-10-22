@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface for the privilege management configuration.
@@ -37,6 +36,6 @@ public interface PrivilegeConfiguration extends SecurityConfiguration {
      * @param namePathMapper The name and path mapper to be used.
      * @return A new {@code PrivilegeManager}.
      */
-    @Nonnull
+    @NotNull
     PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper);
 }

@@ -95,8 +95,8 @@ public class NodeStateAnalyzerFactoryTest {
         assertEquals(WhitespaceTokenizerFactory.class.getName(), analyzer.getTokenizer().getClassArg());
 
         nb.child(ANL_TOKENIZER)
-                .setProperty(ANL_NAME, "pathhierarchy")
-                .setProperty("delimiter", "#");
+            .setProperty(ANL_NAME, "pathhierarchy")
+            .setProperty("delimiter", "#");
         analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
         assertEquals(PathHierarchyTokenizerFactory.class.getName(), analyzer.getTokenizer().getClassArg());
         assertEquals('#', getValue(analyzer.getTokenizer(), "delimiter"));
@@ -172,7 +172,7 @@ public class NodeStateAnalyzerFactoryTest {
         createFileNode(nb, "foo", testData);
 
         NodeStateResourceLoader loader = new NodeStateResourceLoader(nb.getNodeState(),
-                new ClasspathResourceLoader());
+            new ClasspathResourceLoader());
         assertArrayEquals(testData, IOUtils.toByteArray(loader.openResource("foo")));
     }
 

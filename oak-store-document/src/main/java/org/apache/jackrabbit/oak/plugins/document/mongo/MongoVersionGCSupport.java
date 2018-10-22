@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -34,7 +32,6 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
-import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
@@ -50,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,7 +98,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 Filters.lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))
         );
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .withReadPreference(ReadPreference.secondaryPreferred())
                 .find(query).batchSize(batchSize);
 
         return CloseableIterable.wrap(transform(cursor,
@@ -110,9 +107,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public long getDeletedOnceCount() {
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-        return getNodeCollection()
-                .withReadPreference(ReadPreference.secondaryPreferred())
-                .count(query);
+        return getNodeCollection().count(query);
     }
 
     @Override
@@ -185,7 +180,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         );
     }
 
-    @Nonnull
+    @NotNull
     private Iterable<Bson> queriesForType(SplitDocType type, RevisionVector sweepRevs) {
         if (type != DEFAULT_NO_BRANCH) {
             return singletonList(Filters.eq(SD_TYPE, type.typeCode()));

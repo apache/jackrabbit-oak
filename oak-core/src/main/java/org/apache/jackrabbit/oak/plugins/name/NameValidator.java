@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
+
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -24,17 +28,37 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class NameValidator extends DefaultValidator {
 
+    private static final Logger LOG = LoggerFactory.getLogger(NameValidator.class);
+
+    private final NodeState namespaces;
     private final Set<String> prefixes;
 
-    NameValidator(Set<String> prefixes) {
-        this.prefixes = prefixes;
+    /**
+     * Flag controlling the strictness of the namespace checks. if {@code true}
+     * namespaces existence will not be checked, otherwise referencing a
+     * non-existent namespace will cause a {@link CommitFailedException}.
+     * 
+     * Used only for the case where lucene index definitions are registered via
+     * {@link RepositoryInitializer}s.
+     */
+    private final boolean initPhase;
+
+    private final boolean strictInitialNSChecks = Boolean.getBoolean("oak.strictInitialNSChecks");
+
+    NameValidator(NodeState namespaces, boolean initPhase) {
+        this.namespaces = namespaces;
+        this.prefixes = newHashSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
+        this.initPhase = initPhase;
     }
 
     // escape non-printable non-USASCII characters using standard Java escapes
@@ -65,10 +89,7 @@ class NameValidator extends DefaultValidator {
         int colon = name.indexOf(':');
         if (colon > 0) {
             String prefix = name.substring(0, colon);
-            if (prefix.isEmpty() || !prefixes.contains(prefix)) {
-                throw new CommitFailedException(
-                        CommitFailedException.NAME, 1, "Invalid namespace prefix("+prefixes+"): " + prefix);
-            }
+            checkPrefix(prefix);
         }
 
         String local = name.substring(colon + 1);
@@ -91,6 +112,21 @@ class NameValidator extends DefaultValidator {
             throw new CommitFailedException(
                     CommitFailedException.NAME, 3, "Invalid name: " + getPrintableName(name));
         }
+    }
+
+    private void checkPrefix(String prefix) throws CommitFailedException {
+        if (prefix.isEmpty() || !contains(prefixes, namespaces, prefix)) {
+            String msg = "Invalid namespace prefix(" + prefixes + "): " + prefix;
+            if (initPhase && !strictInitialNSChecks) {
+                LOG.warn(msg);
+                return;
+            }
+            throw new CommitFailedException(CommitFailedException.NAME, 1, msg);
+        }
+    }
+
+    private static boolean contains(Set<String> prefixes, NodeState namespaces, String prefix) {
+        return prefixes.contains(prefix) || Namespaces.collectNamespaces(namespaces.getProperties()).containsKey(prefix);
     }
 
     protected void checkValidValue(PropertyState property)

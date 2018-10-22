@@ -30,9 +30,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.AbstractCache;
@@ -48,6 +45,8 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,8 +109,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             .weigher(weigher)
             .evictionCallback(new EvictionCallback<String, File>() {
                 @Override
-                public void evicted(@Nonnull String key, @Nullable File cachedFile,
-                    @Nonnull RemovalCause cause) {
+                public void evicted(@NotNull String key, @Nullable File cachedFile,
+                    @NotNull RemovalCause cause) {
                     try {
                         if (cachedFile != null && cachedFile.exists()
                             && cause != RemovalCause.REPLACED) {

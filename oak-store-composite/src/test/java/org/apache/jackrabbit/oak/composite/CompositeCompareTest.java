@@ -97,7 +97,7 @@ public class CompositeCompareTest {
 
     @Test
     public void onlyPropertiesOnMainNodesAreCompared() throws CommitFailedException {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -132,7 +132,7 @@ public class CompositeCompareTest {
 
     @Test
     public void nodesOutsideTheMountsAreIgnored() throws CommitFailedException {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 

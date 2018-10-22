@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.oak.api.Type.DATE;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -79,7 +78,7 @@ public class JcrLastModifiedConflictHandlerTest {
         Assert.assertEquals(p1, root.getTree("/c").getProperty(JCR_LASTMODIFIED));
     }
 
-    public static PropertyState createDateProperty(@Nonnull String name) {
+    public static PropertyState createDateProperty(@NotNull String name) {
         String now = ISO8601.format(Calendar.getInstance());
         return PropertyStates.createProperty(name, now, DATE);
     }

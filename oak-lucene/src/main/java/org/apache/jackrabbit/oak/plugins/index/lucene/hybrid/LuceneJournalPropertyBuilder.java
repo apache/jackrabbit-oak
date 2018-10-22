@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -32,10 +30,11 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder>{
+class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder> {
     private final static Logger log = LoggerFactory.getLogger(LuceneJournalPropertyBuilder.class);
     //Use HashMultimap to ensure that indexPath is not duplicated per node path
     private final Multimap<String, String> indexedNodes = HashMultimap.create();

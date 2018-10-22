@@ -16,16 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.google.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteAction;
-import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteQueue;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import static org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveReader.OFF_HEAP;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +31,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
+import com.google.common.base.Stopwatch;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteAction;
+import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteQueue;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 
 public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
 
@@ -109,7 +109,13 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         if (indexEntry == null) {
             return null;
         }
-        ByteBuffer buffer = ByteBuffer.allocate(indexEntry.getLength());
+
+        ByteBuffer buffer;
+        if (OFF_HEAP) {
+            buffer = ByteBuffer.allocateDirect(indexEntry.getLength());
+        } else {
+            buffer = ByteBuffer.allocate(indexEntry.getLength());
+        }
         readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
         return buffer;
     }
@@ -147,6 +153,11 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     @Override
     public long getLength() {
         return totalLength;
+    }
+
+    @Override
+    public int getEntryCount() {
+        return index.size();
     }
 
     @Override

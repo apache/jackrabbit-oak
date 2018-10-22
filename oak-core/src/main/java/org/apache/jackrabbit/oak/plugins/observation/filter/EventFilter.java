@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Filter for determining what changes to report the the event listener.
@@ -92,6 +91,6 @@ public interface EventFilter {
      * @return  filter instance for filtering the child node or {@code null} to
      *          exclude the sub tree rooted at this child node.
      */
-    @CheckForNull
+    @Nullable
     EventFilter create(String name, NodeState before, NodeState after);
 }

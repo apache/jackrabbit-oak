@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.util.Arrays;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    @Nonnull
+    @NotNull
     private String getNewNamespacePrefix(Workspace wsp) throws RepositoryException {
         String prefix = "prefix";
         List<String> pfcs = Arrays.asList(wsp.getNamespaceRegistry().getPrefixes());
@@ -66,7 +66,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
         return prefix;
     }
 
-    @Nonnull
+    @NotNull
     private String getNewNamespaceURI(Workspace wsp) throws RepositoryException {
         String uri = "http://jackrabbit.apache.org/uri";
         List<String> uris = Arrays.asList(wsp.getNamespaceRegistry().getURIs());

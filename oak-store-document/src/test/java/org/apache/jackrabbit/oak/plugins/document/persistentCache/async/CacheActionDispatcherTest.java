@@ -24,28 +24,25 @@ import static java.lang.Thread.sleep;
 import static org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher.MAX_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class CacheActionDispatcherTest {
 
     @Test
     public void testMaxQueueSize() {
         CacheActionDispatcher dispatcher = new CacheActionDispatcher();
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        CacheWriteQueue<String, Object> queue = new CacheWriteQueue(dispatcher, mock(PersistentCache.class), null);
 
         for (int i = 0; i < MAX_SIZE + 10; i++) {
-            dispatcher.add(createWriteAction(valueOf(i), queue));
+            dispatcher.add(createWriteAction(valueOf(i)));
         }
         assertEquals(MAX_SIZE, dispatcher.queue.size());
         assertEquals("0", dispatcher.queue.peek().toString());
@@ -56,8 +53,6 @@ public class CacheActionDispatcherTest {
         int threads = 5;
         int actionsPerThread = 100;
 
-        @SuppressWarnings("unchecked")
-        CacheWriteQueue<String, Object> queue = Mockito.mock(CacheWriteQueue.class);
         final CacheActionDispatcher dispatcher = new CacheActionDispatcher();
         Thread queueThread = new Thread(dispatcher);
         queueThread.start();
@@ -67,7 +62,7 @@ public class CacheActionDispatcherTest {
         for (int i = 0; i < threads; i++) {
             final List<DummyCacheWriteAction> threadActions = new ArrayList<DummyCacheWriteAction>();
             for (int j = 0; j < actionsPerThread; j++) {
-                DummyCacheWriteAction action = new DummyCacheWriteAction(String.format("%d_%d", i, j), queue);
+                DummyCacheWriteAction action = new DummyCacheWriteAction(String.format("%d_%d", i, j));
                 threadActions.add(action);
                 allActions.add(action);
             }
@@ -107,13 +102,58 @@ public class CacheActionDispatcherTest {
         assertFalse(queueThread.isAlive());
     }
 
-    private DummyCacheWriteAction createWriteAction(String id, CacheWriteQueue<String, Object> queue) {
-        return new DummyCacheWriteAction(id, queue);
+    @Test
+    public void maxMemory() throws Exception {
+        // calculate memory for a few actions and use as memory maximum
+        long maxMemory = 0;
+        List<CacheAction> actions = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            CacheAction a = new DummyCacheWriteAction("id-" + i, 0);
+            actions.add(a);
+            maxMemory += a.getMemory();
+        }
+        CacheActionDispatcher dispatcher = new CacheActionDispatcher(maxMemory);
+
+        // adding actions to the queue must all succeed
+        for (CacheAction a : actions) {
+            assertTrue(dispatcher.add(a));
+        }
+
+        // adding more must be rejected
+        assertFalse(dispatcher.add(new DummyCacheWriteAction("foo", 0)));
+
+        // drain the queue
+        Thread t = new Thread(dispatcher);
+        t.start();
+
+        for (int i = 0; i < 100; i++) {
+            if (dispatcher.getMemory() == 0) {
+                break;
+            }
+            Thread.sleep(20);
+        }
+        assertEquals(0, dispatcher.getMemory());
+        dispatcher.stop();
+        t.join();
+
+        // must be able to add again
+        assertTrue(dispatcher.add(actions.get(0)));
+
+        // but not if it exceeds the maximum memory
+        String id = "abcdef";
+        CacheAction big;
+        do {
+            big = new DummyCacheWriteAction(id, 0);
+            id = id + id;
+        } while (big.getMemory() < maxMemory);
+        assertFalse(dispatcher.add(big));
     }
 
-    private class DummyCacheWriteAction implements CacheAction<String, Object> {
+    private DummyCacheWriteAction createWriteAction(String id) {
+        return new DummyCacheWriteAction(id);
+    }
 
-        private final CacheWriteQueue<String, Object> queue;
+    private class DummyCacheWriteAction implements CacheAction {
 
         private final String id;
 
@@ -121,12 +161,11 @@ public class CacheActionDispatcherTest {
 
         private volatile boolean finished;
 
-        private DummyCacheWriteAction(String id, CacheWriteQueue<String, Object> queue) {
-            this(id, queue, new Random().nextInt(10));
+        private DummyCacheWriteAction(String id) {
+            this(id, new Random().nextInt(10));
         }
 
-        private DummyCacheWriteAction(String id, CacheWriteQueue<String, Object> queue, long delay) {
-            this.queue = queue;
+        private DummyCacheWriteAction(String id, long delay) {
             this.id = id;
             this.delay = delay;
         }
@@ -139,6 +178,11 @@ public class CacheActionDispatcherTest {
                 fail("Interrupted");
             }
             finished = true;
+        }
+
+        @Override
+        public int getMemory() {
+            return StringUtils.estimateMemoryUsage(id);
         }
 
         @Override

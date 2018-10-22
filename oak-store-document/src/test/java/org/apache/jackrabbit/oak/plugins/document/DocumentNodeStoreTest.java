@@ -21,6 +21,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -33,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -79,8 +81,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 
 import com.google.common.base.Throwables;
@@ -117,6 +117,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -135,11 +137,13 @@ public class DocumentNodeStoreTest {
     @AfterClass
     public static void resetClock() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
     }
 
     @Before
     public void setDefaultClock() {
         Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
     }
 
     // OAK-1254
@@ -227,7 +231,7 @@ public class DocumentNodeStoreTest {
     public void childNodeEntries() throws Exception {
         final AtomicInteger counter = new AtomicInteger();
         DocumentStore docStore = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -504,7 +508,7 @@ public class DocumentNodeStoreTest {
     public void readChildrenWithDeletedSiblings() throws Exception {
         final AtomicInteger maxLimit = new AtomicInteger(0);
         DocumentStore docStore = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -758,6 +762,41 @@ public class DocumentNodeStoreTest {
         assertTrue(store2.getRoot().getChildNode("test").getChildNode("node").exists());
     }
 
+    // verify that the dispose method does a best effort in releasing resources (see OAK-7709)
+    @Test
+    public void disposeAfterLeaseFailure() throws Exception {
+        try {
+            final AtomicBoolean documentStoreDisposeWasReached = new AtomicBoolean(false);
+            Clock clock = new Clock.Virtual();
+            clock.waitUntil(System.currentTimeMillis());
+
+            MemoryDocumentStore docStore = new MemoryDocumentStore() {
+                @Override
+                public void dispose() {
+                    documentStoreDisposeWasReached.set(true);
+                }
+            };
+
+            DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).clock(clock)
+                    .setClusterId(1).getNodeStore();
+
+            ClusterNodeInfo.setClock(clock);
+            // wait until lease expires
+            clock.waitUntil(clock.getTime() + store1.getClusterInfo().getLeaseTime() + 1000);
+
+            assertFalse(documentStoreDisposeWasReached.get());
+            try {
+                store1.dispose();
+                fail("expected lease failure exception; test setup may be incorrect");
+            } catch (DocumentStoreException expected) {
+                // due to lease update failure
+            }
+            assertTrue("The DocumentStore instance's dispose() method was not called", documentStoreDisposeWasReached.get());
+        } finally {
+            ClusterNodeInfo.resetClockToDefault();
+        }
+    }
+
     // OAK-2336
     @Test
     public void readBranchCommit() throws Exception {
@@ -813,7 +852,7 @@ public class DocumentNodeStoreTest {
     public void diffOnce() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         MemoryDocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -1665,10 +1704,12 @@ public class DocumentNodeStoreTest {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder()
                 .setAsyncDelay(0).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(store)
                 .setClusterId(1).getNodeStore();
         DocumentNodeStore ns2 = builderProvider.newBuilder()
                 .setAsyncDelay(0).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(store)
                 .setClusterId(2).getNodeStore();
 
@@ -1870,12 +1911,12 @@ public class DocumentNodeStoreTest {
         private final Semaphore controllee = new Semaphore(0);
 
         private void startMerge(final NodeStore store,
-                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
             startMerge(store, null, addChildren, removeChildren, change);
         }
 
         private void startMerge(final NodeStore store, final CommitHook hook,
-                                @Nonnull String [] addChildren, @Nonnull String [] removeChildren, boolean change) {
+                                @NotNull String [] addChildren, @NotNull String [] removeChildren, boolean change) {
             setDontBlock(false);
 
             //our controller is controllee for merge thread (and vice versa)
@@ -1909,13 +1950,13 @@ public class DocumentNodeStoreTest {
 
         private Thread createMergeThread(final NodeStore store, final CommitHook hook,
                                          final Semaphore controller, final Semaphore controllee,
-                                         @Nonnull final String [] addChildren, @Nonnull final String [] removeChildren,
+                                         @NotNull final String [] addChildren, @NotNull final String [] removeChildren,
                                          final boolean change) {
             return new Thread(new Runnable() {
                 @Override
                 public void run() {
                     final CommitHook blockingHook = new CommitHook() {
-                        @Nonnull
+                        @NotNull
                         @Override
                         public NodeState processCommit(NodeState before, NodeState after, CommitInfo info)
                                 throws CommitFailedException {
@@ -2073,7 +2114,7 @@ public class DocumentNodeStoreTest {
                 .setDocumentStore(docStore).getNodeStore();
 
         // perform recovery if needed
-        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(store2);
+        LastRevRecoveryAgent agent = new LastRevRecoveryAgent(docStore, store2);
         if (agent.isRecoveryNeeded()) {
             agent.recover(1);
         }
@@ -2137,7 +2178,7 @@ public class DocumentNodeStoreTest {
     public void diffCache() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         MemoryDocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -2197,7 +2238,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         final List<Long> startValues = Lists.newArrayList();
         MemoryDocumentStore ds = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -2212,6 +2253,7 @@ public class DocumentNodeStoreTest {
             }
         };
         DocumentNodeStore ns = builderProvider.newBuilder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();
@@ -2303,7 +2345,7 @@ public class DocumentNodeStoreTest {
 
         try {
             b.merge(new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
@@ -2735,7 +2777,7 @@ public class DocumentNodeStoreTest {
         final AtomicBoolean failCommit = new AtomicBoolean();
         ns.addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
                 if (failCommit.get()){
                     throw testException;
                 }
@@ -2758,7 +2800,7 @@ public class DocumentNodeStoreTest {
     public void localChangesFromCache() throws Exception {
         final AtomicInteger numQueries = new AtomicInteger();
         DocumentStore store = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -2907,6 +2949,64 @@ public class DocumentNodeStoreTest {
         merge(ns, builder);
         numChangedPaths = ns.getCurrentJournalEntry().getNumChangedNodes();
         assertTrue("Two added paths should have forced flush", numChangedPaths == 0);
+    }
+
+    // OAK-7564
+    @Test
+    public void forceJournalFlushWithException() throws Exception {
+        AtomicBoolean failJournalOps = new AtomicBoolean();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> boolean create(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+                if (collection == Collection.JOURNAL && failJournalOps.get()) {
+                    throw new DocumentStoreException("failure");
+                }
+                return super.create(collection, updateOps);
+            }
+        };
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        ns.setMaxBackOffMillis(0);
+        ns.setJournalPushThreshold(2);
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        builder.child("bar");
+        // fail operations that want to create journal documents
+        failJournalOps.set(true);
+        // now two possible outcomes are fine.
+        // Either the merge fails with an exception and the changes
+        // didn't make it to the node store
+        // OR
+        // the merge succeeds and the changes must be visible.
+        boolean success = false;
+        try {
+            merge(ns, builder);
+            success = true;
+        } catch (CommitFailedException e) {
+            // permitted as well
+        } finally {
+            // resume proper journal operations
+            failJournalOps.set(false);
+        }
+        if (success) {
+            // check if the changes are there
+            assertTrue(ns.getRoot().hasChildNode("foo"));
+            assertTrue(ns.getRoot().hasChildNode("bar"));
+        } else {
+            // check changes are not visible and didn't corrupt the
+            // repository. that is, we can add the nodes after enabling
+            // operations again
+            assertFalse(ns.getRoot().hasChildNode("foo"));
+            assertFalse(ns.getRoot().hasChildNode("bar"));
+
+            builder = ns.getRoot().builder();
+            builder.child("foo");
+            builder.child("bar");
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
     }
 
     @Test
@@ -3127,7 +3227,7 @@ public class DocumentNodeStoreTest {
             @Override
             public MissingLastRevSeeker createMissingLastRevSeeker() {
                 return new MissingLastRevSeeker(getDocumentStore(), getClock()) {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterable<NodeDocument> getCandidates(long startTime) {
                         candidateCalls.incrementAndGet();
@@ -3210,6 +3310,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder().disableBranches()
                 .setUpdateLimit(100).clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setAsyncDelay(0).getNodeStore();
         RevisionVector head = ns.getHeadRevision();
         NodeBuilder b = ns.getRoot().builder();
@@ -3413,6 +3514,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(docStore).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
                 .setBundlingDisabled(true)
@@ -3467,6 +3569,7 @@ public class DocumentNodeStoreTest {
         Revision.setClock(clock);
         MemoryDocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(docStore).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6))
                 .setAsyncDelay(0).clock(clock).getNodeStore();
@@ -3637,6 +3740,118 @@ public class DocumentNodeStoreTest {
         assertTrue(ns.getRoot().hasChildNode("bar"));
     }
 
+    @Test
+    public void preventCommitPastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a merge must fail
+        builder = ns.getRoot().builder();
+        builder.child("bar");
+        try {
+            merge(ns, builder);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("lease end"));
+        }
+    }
+
+    @Test
+    public void preventBranchCommitPastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setUpdateLimit(10).clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a branch commit must fail
+        builder = ns.getRoot().builder();
+        try {
+            for (int i = 0; i < 30; i++) {
+                builder.child("bar-" + i);
+            }
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("failed to update the lease"));
+        }
+    }
+
+    @Test
+    public void preventBranchMergePastLeaseEnd() throws Exception {
+        Clock clock = new Clock.Virtual();
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+        DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0)
+                .setUpdateLimit(10).clock(clock).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        // start a branch
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < 30; i++) {
+            builder.child("bar-" + i);
+        }
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        // now a branch merge must fail
+        try {
+            merge(ns, builder);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("lease end"));
+        }
+    }
+
+    @Test
+    public void preventCommitInPast() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                .setClusterId(1).clock(clock)
+                .setDocumentStore(store).build();
+        // wait two minutes
+        clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(2));
+        doSomeChange(ns);
+        ns.dispose();
+
+        long now = clock.getTime();
+        // rewind time by one minute
+        clock = new Clock.Virtual();
+        clock.waitUntil(now - TimeUnit.MINUTES.toMillis(1));
+        Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
+
+        try {
+            builderProvider.newBuilder()
+                    .setClusterId(1).clock(clock)
+                    .setDocumentStore(store).build();
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException e) {
+            assertThat(e.getMessage(), containsString("newer than current time"));
+        }
+
+        // cluster node info 1 must not be active
+        ClusterNodeInfoDocument info = store.find(CLUSTER_NODES, "1");
+        assertNotNull(info);
+        assertFalse(info.isActive());
+    }
+
     private void getChildNodeCountTest(int numChildren,
                                        Iterable<Long> maxValues,
                                        Iterable<Long> expectedValues)
@@ -3749,7 +3964,7 @@ public class DocumentNodeStoreTest {
 
         TestHook(final String prefix) {
             super(new EditorProvider() {
-                @CheckForNull
+                @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before,
                                             NodeState after,
@@ -3763,7 +3978,7 @@ public class DocumentNodeStoreTest {
     }
 
     private static final CommitHook FAILING_HOOK = new CommitHook() {
-        @Nonnull
+        @NotNull
         @Override
         public NodeState processCommit(NodeState before,
                                        NodeState after,

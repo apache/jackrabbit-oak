@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface TreeTypeAware {
 
-    @CheckForNull
+    @Nullable
     TreeType getType();
 
-    void setType(@Nonnull TreeType type);
+    void setType(@NotNull TreeType type);
 }

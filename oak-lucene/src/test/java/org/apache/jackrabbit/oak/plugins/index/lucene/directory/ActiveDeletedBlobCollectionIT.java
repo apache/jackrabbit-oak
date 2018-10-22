@@ -24,21 +24,23 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollectorImpl;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -51,6 +53,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(Parameterized.class)
@@ -87,8 +90,9 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
 
     @Override
     protected ContentRepository createRepository() {
-        adbc = new ActiveDeletedBlobCollectorImpl(clock,
-                new File(blobCollectionRoot.getRoot(), "deleted-blobs"), executorService);
+        File deletedBlobsDir = new File(blobCollectionRoot.getRoot(), "deleted-blobs");
+        assertTrue(deletedBlobsDir.mkdirs());
+        adbc = new ActiveDeletedBlobCollectorImpl(clock, deletedBlobsDir, executorService);
 
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, null,
@@ -123,6 +127,13 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
                 .createContentRepository();
     }
 
+    @After
+    public void dispose() {
+        String dbName = mongoConnection.getDBName();
+        ((DocumentNodeStore) nodeStore).dispose();
+        MongoUtils.dropCollections(dbName);
+    }
+
     @Test
     public void simpleAsyncIndexUpdateBasedBlobCollection() throws Exception {
         createIndex("test1", of("propa"));
@@ -155,10 +166,10 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
         long secondGCNumChunks = blobStore.numChunks;
 
-        Assert.assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
-        Assert.assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
-        Assert.assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
-        Assert.assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
+        assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
+        assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
+        assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
     }
 
 }

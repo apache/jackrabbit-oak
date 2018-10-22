@@ -161,7 +161,6 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
                 break;
 
             case CHECKPOINTS_MISSING:
-                verifyEmptyAsync();
                 break;
         }
     }

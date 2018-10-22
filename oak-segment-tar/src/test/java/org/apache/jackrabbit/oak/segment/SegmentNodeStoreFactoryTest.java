@@ -35,9 +35,9 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {
         Map<String, Object> properties = newHashMap();
 
-        properties.put(SegmentNodeStoreFactory.ROLE, "some-role");
-        properties.put(SegmentNodeStoreFactory.CUSTOM_BLOB_STORE, customBlobStore);
-        properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
+        properties.put("role", "some-role");
+        properties.put("customBlobStore", customBlobStore);
+        properties.put("repository.home", folder.getRoot().getAbsolutePath());
 
         segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
     }

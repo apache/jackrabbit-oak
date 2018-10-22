@@ -60,7 +60,7 @@ public final class MountInfo implements Mount {
     private final Set<String> pathsSupportingFragments;
     private final NavigableSet<String> includedPaths;
 
-    MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
+    public MountInfo(String name, boolean readOnly, List<String> pathsSupportingFragments,
               List<String> includedPaths) {
         this.name = checkNotNull(name, "Mount name must not be null");
         this.readOnly = readOnly;

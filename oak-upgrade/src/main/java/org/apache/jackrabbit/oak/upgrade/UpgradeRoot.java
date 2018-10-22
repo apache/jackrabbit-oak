@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.NodeBuilderTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Simplistic 'Root' implementation around the {@code NodeBuilder} used for the
@@ -54,9 +53,9 @@ class UpgradeRoot implements Root {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree getTree(@Nonnull String path) {
+    public Tree getTree(@NotNull String path) {
         Tree child = rootTree;
         for (String name : elements(path)) {
             child = child.getChild(name);
@@ -75,7 +74,7 @@ class UpgradeRoot implements Root {
     }
 
     @Override
-    public void commit(@Nonnull Map<String, Object> info) throws CommitFailedException {
+    public void commit(@NotNull Map<String, Object> info) throws CommitFailedException {
         // ignore
     }
 
@@ -89,28 +88,28 @@ class UpgradeRoot implements Root {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public QueryEngine getQueryEngine() {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Blob createBlob(@Nonnull InputStream stream) throws IOException {
+    public Blob createBlob(@NotNull InputStream stream) throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ContentSession getContentSession() {
         return new ContentSession() {
-            @Nonnull
+            @NotNull
             @Override
             public AuthInfo getAuthInfo() {
                 throw new UnsupportedOperationException();
@@ -121,7 +120,7 @@ class UpgradeRoot implements Root {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Root getLatestRoot() {
                 return UpgradeRoot.this;

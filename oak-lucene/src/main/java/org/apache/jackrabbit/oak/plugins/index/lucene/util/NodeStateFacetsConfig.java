@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.facet.FacetsConfig;
 
@@ -35,7 +35,7 @@ class NodeStateFacetsConfig extends FacetsConfig {
     private final NodeBuilder nodeBuilder;
 
     NodeStateFacetsConfig(NodeBuilder nodeBuilder) {
-        this.nodeBuilder = nodeBuilder.child(LuceneIndexConstants.FACETS);
+        this.nodeBuilder = nodeBuilder.child(FulltextIndexConstants.FACETS);
         if (!this.nodeBuilder.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
             this.nodeBuilder.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
         }

@@ -28,9 +28,7 @@ import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -39,12 +37,12 @@ import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
+import org.apache.jackrabbit.oak.segment.SegmentBufferMonitor;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
@@ -52,10 +50,14 @@ import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.EntryRecovery;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,10 +97,10 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         );
     }
 
-    @Nonnull
+    @NotNull
     final SegmentTracker tracker;
 
-    @Nonnull
+    @NotNull
     final CachingSegmentReader segmentReader;
 
     final File directory;
@@ -107,7 +109,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     final boolean memoryMapping;
 
-    @Nonnull
+    final boolean offHeapAccess;
+
+    @NotNull
     final SegmentCache segmentCache;
 
     final TarRecovery recovery = new TarRecovery() {
@@ -119,21 +123,32 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     };
 
+    @NotNull
+    private final SegmentBufferMonitor segmentBufferMonitor;
+
     protected final IOMonitor ioMonitor;
 
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @Nonnull
+            @Override @NotNull
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(AbstractFileStore.this, msb, lsb, segmentCache::recordHit);
             }
         });
         this.blobStore = builder.getBlobStore();
         this.segmentCache = newSegmentCache(builder.getSegmentCacheSize());
-        this.segmentReader = new CachingSegmentReader(this::getWriter, blobStore, builder.getStringCacheSize(), builder.getTemplateCacheSize());
+        this.segmentReader = new CachingSegmentReader(
+            this::getWriter,
+            blobStore,
+            builder.getStringCacheSize(),
+            builder.getTemplateCacheSize(),
+            builder.getStatsProvider().getMeter("oak.segment.reads", StatsOptions.DEFAULT)
+        );
         this.memoryMapping = builder.getMemoryMapping();
+        this.offHeapAccess = builder.getOffHeapAccess();
         this.ioMonitor = builder.getIOMonitor();
+        this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
     }
 
     static SegmentNotFoundException asSegmentNotFoundException(Exception e, SegmentId id) {
@@ -143,30 +158,30 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return new SegmentNotFoundException(id, e);
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getSegmentCacheStats() {
         return segmentCache.getCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getStringCacheStats() {
         return segmentReader.getStringCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getTemplateCacheStats() {
         return segmentReader.getTemplateCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public abstract SegmentWriter getWriter();
 
-    @Nonnull
+    @NotNull
     public SegmentReader getReader() {
         return segmentReader;
     }
 
-    @Nonnull
+    @NotNull
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
@@ -184,7 +199,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * </pre>
      * @return the current head node state
      */
-    @Nonnull
+    @NotNull
     public SegmentNodeState getHead() {
         return segmentReader.readHeadState(getRevisions());
     }
@@ -192,7 +207,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     /**
      * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
-    @CheckForNull
+    @Nullable
     public BlobStore getBlobStore() {
         return blobStore;
     }
@@ -268,7 +283,21 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         if (buffer == null) {
             throw new SegmentNotFoundException(id);
         }
+        segmentBufferMonitor.trackAllocation(buffer);
         return new Segment(tracker, segmentReader, id, buffer);
     }
 
+    /**
+     * Finds all external blob references that are currently accessible
+     * in this repository and adds them to the given collector. Useful
+     * for collecting garbage in an external data store.
+     * <p>
+     * Note that this method only collects blob references that are already
+     * stored in the repository (at the time when this method is called), so
+     * the garbage collector will need some other mechanism for tracking
+     * in-memory references and references stored while this method is
+     * running.
+     * @param collector  reference collector called back for each blob reference found
+     */
+    public abstract void collectBlobReferences(Consumer<String> collector) throws IOException;
 }

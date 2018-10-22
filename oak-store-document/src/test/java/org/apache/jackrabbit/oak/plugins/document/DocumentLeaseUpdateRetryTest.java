@@ -40,7 +40,8 @@ public class DocumentLeaseUpdateRetryTest {
         clock = new Clock.Virtual();
         ClusterNodeInfo.setClock(clock);
         ds = new TestStore();
-        ns = new DocumentMK.Builder().clock(clock).setDocumentStore(ds).setLeaseCheck(true).getNodeStore();
+        ns = new DocumentMK.Builder().clock(clock).setDocumentStore(ds)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT).getNodeStore();
     }
 
     @After

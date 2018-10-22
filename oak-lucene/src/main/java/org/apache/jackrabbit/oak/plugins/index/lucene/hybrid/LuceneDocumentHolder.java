@@ -22,19 +22,18 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class LuceneDocumentHolder implements JournalProperty{
+public class LuceneDocumentHolder implements JournalProperty {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
     public static final String NAME = "luceneDocs";
 
@@ -48,7 +47,7 @@ public class LuceneDocumentHolder implements JournalProperty{
     private boolean docAddedToQueue;
     private boolean schedulingDone;
 
-    public LuceneDocumentHolder(@Nonnull IndexingQueue documentQueue, int inMemoryDocsLimit) {
+    public LuceneDocumentHolder(@NotNull IndexingQueue documentQueue, int inMemoryDocsLimit) {
         this.documentQueue = checkNotNull(documentQueue);
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }

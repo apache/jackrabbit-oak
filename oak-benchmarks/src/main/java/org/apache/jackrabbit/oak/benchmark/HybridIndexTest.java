@@ -34,8 +34,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -77,6 +75,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderF
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.PropertyRule;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -89,6 +88,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -441,7 +442,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private class PropertyIndexInitializer implements RepositoryInitializer {
 
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
             addPropIndexDefn(oakIndex, indexedPropName);
             for (int i = 0; i < numOfIndexes - 1; i++) {
@@ -465,7 +466,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
     private class LuceneIndexInitializer implements RepositoryInitializer {
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
 
             IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
@@ -490,14 +491,14 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
     private class LuceneFullTextInitializer implements RepositoryInitializer {
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
 
             IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
             defnBuilder.async("async", "async");
             defnBuilder.codec("Lucene46");
             defnBuilder.indexRule("nt:base")
-                    .property(LuceneIndexConstants.REGEX_ALL_PROPS, true)
+                    .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
                     .nodeScopeIndex();
             oakIndex.setChildNode("globalIndex", defnBuilder.build());
         }
@@ -506,7 +507,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private class NodeTypeIndexFixerInitializer implements RepositoryInitializer {
 
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
             //Due to OAK-1150 currently all nodes get indexed
             //With explicit list on those nodes would be indexed
             NodeBuilder nodetype = builder.getChildNode("oak:index").getChildNode("nodetype");

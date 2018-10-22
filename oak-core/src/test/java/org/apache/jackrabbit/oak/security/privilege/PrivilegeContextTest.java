@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -44,7 +43,7 @@ public class PrivilegeContextTest {
 
     private final Context ctx = PrivilegeContext.getInstance();
 
-    private static Tree mockTree(@Nonnull String name, @Nonnull String ntName) {
+    private static Tree mockTree(@NotNull String name, @NotNull String ntName) {
         Tree t = Mockito.mock(Tree.class);
         when(t.getName()).thenReturn(name);
         when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));

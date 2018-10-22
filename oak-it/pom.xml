@@ -167,8 +167,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -211,7 +211,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -223,6 +222,18 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.arakelian</groupId>
+            <artifactId>docker-junit-rule</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- see https://issues.apache.org/jira/browse/OAK-7787 -->
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>1.1.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

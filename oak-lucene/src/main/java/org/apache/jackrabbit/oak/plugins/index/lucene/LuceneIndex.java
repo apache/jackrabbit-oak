@@ -35,21 +35,19 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.Cursors;
+import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.plugins.index.Cursors;
-import org.apache.jackrabbit.oak.plugins.index.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -57,6 +55,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -69,7 +73,6 @@ import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -99,15 +102,23 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.*;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper.skipTokenization;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
+ * Used to query old (compatVersion 1) Lucene indexes.
+ *
  * Provides a QueryIndex that does lookups against a Lucene-based index
  *
  * <p>
@@ -127,7 +138,6 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
  * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
  * </ul>
- * <p>
  * <pre>{@code
  * {
  *     NodeBuilder index = root.child("oak:index");
@@ -138,7 +148,6 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  *         .setProperty("reindex", "true");
  * }
  * }</pre>
- *
  * @see QueryIndex
  *
  */
@@ -195,7 +204,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return Collections.emptyList();
         }
 
-        String indexPath = new LuceneIndexLookup(rootState).getOldFullTextIndexPath(filter, tracker);
+        String indexPath = LuceneIndexLookupUtil.getOldFullTextIndexPath(rootState, filter, tracker);
         if (indexPath == null) { // unusable index
             return Collections.emptyList();
         }
@@ -206,7 +215,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // "contains(a/x, 'hello') and contains(b/x, 'world')"
             return Collections.emptyList();
         }
-        IndexNode node = tracker.acquireIndexNode(indexPath);
+        LuceneIndexNode node = tracker.acquireIndexNode(indexPath);
         try{
             if (node != null){
                 IndexDefinition defn = node.getDefinition();
@@ -214,7 +223,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getIndexStatistics().numDocs()))
                         .setCostPerExecution(defn.getCostPerExecution())
                         .setCostPerEntry(defn.getCostPerEntry())
+                        .setDeprecated(defn.isDeprecated())
                         .setAttribute(ATTR_INDEX_PATH, indexPath)
+                        .setDeprecated(defn.isDeprecated())
                         .build());
             }
             //No index node then no plan possible
@@ -239,7 +250,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
-        IndexNode index = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+        LuceneIndexNode index = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
         checkState(index != null, "The Lucene index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
@@ -268,6 +279,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
     @Override
     public Cursor query(final IndexPlan plan, NodeState rootState) {
+        if (plan.isDeprecated()) {
+            LOG.warn("This index is deprecated: {}; it is used for query {}. " +
+                    "Please change the query or the index definitions.", plan.getPlanName(), plan.getFilter());
+        }
         final Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         final Set<String> relPaths = getRelativePaths(ft);
@@ -340,7 +355,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                 ScoreDoc lastDocToRecord = null;
 
-                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+                LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
@@ -474,7 +489,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         SizeEstimator sizeEstimator = new SizeEstimator() {
             @Override
             public long getSize() {
-                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+                LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
@@ -596,8 +611,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      * @param indexDefinition nodestate that contains the index definition
      * @return the Lucene query
      */
-    private static LuceneRequestFacade getLuceneRequest(Filter filter, IndexReader reader,
-                                                        boolean nonFullTextConstraints, IndexDefinition indexDefinition) {
+    private static LuceneRequestFacade getLuceneRequest(Filter filter, IndexReader reader, boolean nonFullTextConstraints,
+                                                        LuceneIndexDefinition indexDefinition) {
         List<Query> qs = new ArrayList<Query>();
         Analyzer analyzer = indexDefinition.getAnalyzer();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -650,7 +665,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
-            Filter filter, IndexReader reader, Analyzer analyzer, IndexDefinition indexDefinition) {
+                                                  Filter filter, IndexReader reader, Analyzer analyzer, IndexDefinition indexDefinition) {
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(qs, filter);
         }
@@ -801,7 +816,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     private static boolean isExcludedProperty(PropertyRestriction pr,
-            IndexingRule rule) {
+                                              IndexingRule rule) {
         String name = pr.propertyName;
         if (name.contains("/")) {
             // lucene cannot handle child-level property restrictions
@@ -898,7 +913,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     if (x instanceof BooleanQuery) {
                         BooleanQuery bq = (BooleanQuery) x;
                         if ((bq.getClauses().length == 1) &&
-                            (bq.getClauses()[0].getOccur() == BooleanClause.Occur.MUST_NOT)) {
+                            (bq.getClauses()[0].getOccur() == Occur.MUST_NOT)) {
                             hasMustNot = true;
                             q.add(bq.getClauses()[0]);
                         }

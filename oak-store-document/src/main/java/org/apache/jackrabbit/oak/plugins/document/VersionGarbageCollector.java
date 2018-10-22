@@ -31,9 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -52,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +119,7 @@ public class VersionGarbageCollector {
         this.gcStats = new RevisionGCStats(provider);
     }
 
-    @Nonnull
+    @NotNull
     RevisionGCStats getRevisionGCStats() {
         return gcStats;
     }
@@ -135,6 +134,8 @@ public class VersionGarbageCollector {
         if (collector.compareAndSet(null, job)) {
             VersionGCStats overall = new VersionGCStats();
             overall.active.start();
+            gcStats.started();
+            boolean success = false;
             try {
                 long averageDurationMs = 0;
                 while (maxRunTime.contains(nodeStore.getClock().getTime() + averageDurationMs)) {
@@ -152,11 +153,13 @@ public class VersionGarbageCollector {
                     averageDurationMs = ((averageDurationMs * (overall.iterationCount - 1))
                             + stats.active.elapsed(TimeUnit.MILLISECONDS)) / overall.iterationCount;
                 }
-                gcStats.finished(overall);
+                success = true;
                 return overall;
             } finally {
                 overall.active.stop();
                 collector.set(null);
+                overall.success = success;
+                gcStats.finished(overall);
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
                             overall.iterationCount, overall);
@@ -183,7 +186,7 @@ public class VersionGarbageCollector {
         }
     }
 
-    public void setGCMonitor(@Nonnull GCMonitor gcMonitor) {
+    public void setGCMonitor(@NotNull GCMonitor gcMonitor) {
         this.gcMonitor = checkNotNull(gcMonitor);
     }
 
@@ -243,6 +246,7 @@ public class VersionGarbageCollector {
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
         boolean canceled;
+        boolean success = true;
         boolean limitExceeded;
         boolean needRepeat;
         int iterationCount;
@@ -312,6 +316,7 @@ public class VersionGarbageCollector {
             ++iterationCount;
             this.ignoredGCDueToCheckPoint = run.ignoredGCDueToCheckPoint;
             this.canceled = run.canceled;
+            this.success = run.success;
             this.limitExceeded = run.limitExceeded;
             this.needRepeat = run.needRepeat;
             this.deletedDocGCCount += run.deletedDocGCCount;
@@ -621,10 +626,10 @@ public class VersionGarbageCollector {
         private final VersionGCOptions options;
         private final GCMonitor monitor;
 
-        public DeletedDocsGC(@Nonnull RevisionVector headRevision,
-                             @Nonnull AtomicBoolean cancel,
-                             @Nonnull VersionGCOptions options,
-                             @Nonnull GCMonitor monitor) {
+        public DeletedDocsGC(@NotNull RevisionVector headRevision,
+                             @NotNull AtomicBoolean cancel,
+                             @NotNull VersionGCOptions options,
+                             @NotNull GCMonitor monitor) {
             this.headRevision = checkNotNull(headRevision);
             this.cancel = checkNotNull(cancel);
             this.timer = Stopwatch.createUnstarted();
@@ -1006,7 +1011,7 @@ public class VersionGarbageCollector {
         }
     }
 
-    @Nonnull
+    @NotNull
     private StringSort newStringSort(VersionGCOptions options) {
         return new StringSort(options.overflowToDiskThreshold, NodeDocumentIdComparator.INSTANCE);
     }

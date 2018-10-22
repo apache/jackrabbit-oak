@@ -38,7 +38,8 @@ import org.apache.lucene.codecs.lucene46.Lucene46SegmentInfoFormat;
 /**
  * Oak specific {@link org.apache.lucene.codecs.Codec}.
  *
- * It simply mimics {@link org.apache.lucene.codecs.lucene46.Lucene46Codec} but with uncompressed {@link org.apache.lucene.codecs.StoredFieldsFormat}.
+ * It simply mimics {@link Lucene46Codec} but
+ * with uncompressed {@link StoredFieldsFormat}.
  */
 public class OakCodec extends FilterCodec {
 

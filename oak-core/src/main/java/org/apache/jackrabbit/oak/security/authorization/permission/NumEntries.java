@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import com.google.common.base.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class NumEntries {
 
@@ -51,7 +49,9 @@ final class NumEntries {
     }
 
     static NumEntries valueOf(long size, boolean isExact) {
-        if (size == 0 && isExact) {
+        if (size == 0) {
+            // if size is zero we assume that this is the correct value
+            // irrespective of the isExact flag.
             return ZERO;
         } else {
             return new NumEntries(size, isExact);

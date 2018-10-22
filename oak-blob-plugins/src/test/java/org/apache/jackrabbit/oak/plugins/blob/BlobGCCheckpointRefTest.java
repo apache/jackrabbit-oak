@@ -19,11 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.TabularData;
 
@@ -31,8 +28,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
@@ -44,11 +39,13 @@ import static org.junit.Assert.assertTrue;
  * Adds BlobGC tests related to retrieving oldest checkpoint reference
  */
 public class BlobGCCheckpointRefTest extends BlobGCTest {
+    protected CheckpointMBean checkpointMBean;
+
     @Override
     @Before
-    public void before() {
+    public void before() throws Exception {
         super.before();
-        checkpointMBean = new MemoryStoreCheckpointMBean(nodeStore, clock);
+        checkpointMBean = new MemoryStoreCheckpointMBean(cluster.nodeStore, clock);
         WhiteboardUtils.registerMBean(wb, CheckpointMBean.class, checkpointMBean,
             CheckpointMBean.TYPE, "Test checkpoint mbean");
     }
@@ -57,19 +54,17 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
     public void gcCheckpointHeld() throws Exception {
         log.info("Staring gcCheckpointHeld()");
 
-        BlobStoreState state = setUp(10, 5, 100);
         long afterSetupTime = clock.getTime();
         log.info("afterSetupTime {}", afterSetupTime);
 
         checkpointMBean.createCheckpoint(100);
-        Set<String> afterCheckpointBlobs = createBlobs(2, 100);
-        Set<String> present = Sets.union(state.blobsPresent, afterCheckpointBlobs);
+        Set<String> afterCheckpointBlobs = createBlobs(cluster.blobStore, 2, 100);
+        Set<String> present = Sets.union(cluster.blobStoreState.blobsPresent, afterCheckpointBlobs);
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
         log.info("{} blobs remaining : {}", present.size(), present);
 
-        Set<String> existingAfterGC = gcInternal(maxGcAge);
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
         assertTrue(Sets.symmetricDifference(present, existingAfterGC).isEmpty());
     }
 
@@ -77,40 +72,35 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
     public void gcCheckpointHeldNoAddition() throws Exception {
         log.info("Staring gcCheckpointHeldNoAddition()");
 
-        BlobStoreState state = setUp(10, 5, 100);
         long afterSetupTime = clock.getTime();
         log.info("afterSetupTime {}", afterSetupTime);
 
         checkpointMBean.createCheckpoint(100);
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
-        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
-
-        Set<String> existingAfterGC = gcInternal(maxGcAge);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
     public void gcCheckpointHeldMaxAgeChange() throws Exception {
         log.info("Staring gcCheckpointHeldMaxAgeChange()");
-        startReferenceTime = clock.getTime();
 
-        BlobStoreState state = setUp(10, 5, 100);
         long afterSetupTime = clock.getTime();
         log.info("{} afterSetupTime time", afterSetupTime);
 
         checkpointMBean.createCheckpoint(100);
-        Set<String> afterCheckpointBlobs = createBlobs(2, 100);
-        state.blobsPresent.addAll(afterCheckpointBlobs);
+        Set<String> afterCheckpointBlobs = createBlobs(cluster.blobStore, 2, 100);
+        cluster.blobStoreState.blobsPresent.addAll(afterCheckpointBlobs);
 
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
-        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
+        log.info("{} blobs added : {}", cluster.blobStoreState.blobsAdded.size(), cluster.blobStoreState.blobsAdded);
+        log.info("{} blobs remaining : {}", cluster.blobStoreState.blobsPresent.size(), cluster.blobStoreState.blobsPresent);
 
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
         log.info("Max age configured {}", maxGcAge);
-        Set<String> existingAfterGC = gcInternal(maxGcAge);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     /**

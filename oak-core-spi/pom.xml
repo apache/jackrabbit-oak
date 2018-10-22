@@ -46,6 +46,7 @@
               org.apache.jackrabbit.oak.osgi,
               org.apache.jackrabbit.oak.spi.descriptors,
               org.apache.jackrabbit.oak.spi.gc,
+              org.apache.jackrabbit.oak.spi.lock,
               org.apache.jackrabbit.oak.spi.mount,
               org.apache.jackrabbit.oak.spi.namespace,
               org.apache.jackrabbit.oak.spi.nodetype,
@@ -131,10 +132,10 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
 
     <!-- Test dependencies -->
@@ -151,7 +152,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>

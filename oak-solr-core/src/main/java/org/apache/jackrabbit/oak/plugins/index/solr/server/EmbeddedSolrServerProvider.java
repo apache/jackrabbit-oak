@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import javax.annotation.CheckForNull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
@@ -33,6 +31,7 @@ import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.core.CoreContainer;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,19 +228,19 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSolrServer() throws Exception {
         return createSolrServer();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getIndexingSolrServer() throws Exception {
         return getSolrServer();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();

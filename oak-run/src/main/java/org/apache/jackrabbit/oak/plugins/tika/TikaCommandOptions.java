@@ -38,10 +38,12 @@ public class TikaCommandOptions implements OptionsBean {
     private final OptionSpec<File> dataFileSpecOpt;
     private final OptionSpec<File> tikaConfigSpecOpt;
     private final OptionSpec<File> storeDirSpecOpt;
+    private final OptionSpec<File> indexDirSpecOpt;
     private final OptionSpec<Integer> poolSizeOpt;
 
     private final OptionSpec<Void> reportAction;
     private final OptionSpec<Void> generateAction;
+    private final OptionSpec<Void> populateAction;
     private final OptionSpec<Void> extractAction;
 
     private final Set<String> operationNames;
@@ -71,6 +73,11 @@ public class TikaCommandOptions implements OptionsBean {
                 .withRequiredArg()
                 .ofType(File.class);
 
+        indexDirSpecOpt = parser
+                .accepts("index-dir", "Path of directory which stores lucene index containing extracted data")
+                .withRequiredArg()
+                .ofType(File.class);
+
         poolSizeOpt = parser
                 .accepts("pool-size", "Size of the thread pool used to perform text extraction. Defaults " +
                         "to number of cores on the system")
@@ -79,9 +86,10 @@ public class TikaCommandOptions implements OptionsBean {
 
         reportAction = parser.accepts("report", "Generates a summary report based on the csv file");
         generateAction = parser.accepts("generate", "Generates the CSV file required for 'extract' and 'report' actions");
+        populateAction = parser.accepts("populate", "Populates extraction store based on supplied indexed data and csv file");
         extractAction = parser.accepts("extract", "Performs the text extraction based on the csv file");
 
-        operationNames = ImmutableSet.of("report", "generate", "extract");
+        operationNames = ImmutableSet.of("report", "generate", "populate", "extract");
     }
 
     @Override
@@ -97,7 +105,7 @@ public class TikaCommandOptions implements OptionsBean {
     @Override
     public String description() {
         return "The tika command supports following operations. All operations connect to repository in read only mode. \n" +
-                "Use of one of the supported actions like --report, --generate, --extract etc. ";
+                "Use of one of the supported actions like --report, --generate, --populate, --extract etc. ";
     }
 
     @Override
@@ -126,6 +134,10 @@ public class TikaCommandOptions implements OptionsBean {
         return storeDirSpecOpt.value(options);
     }
 
+    public File getIndexDir() {
+        return indexDirSpecOpt.value(options);
+    }
+
     public boolean isPoolSizeDefined() {
         return options.has(poolSizeOpt);
     }
@@ -143,12 +155,20 @@ public class TikaCommandOptions implements OptionsBean {
         return options.has(generateAction) || hasNonOption("generate");
     }
 
+    public boolean populate() {
+        return options.has(populateAction) || hasNonOption("populate");
+    }
+
     public boolean extract() {
         return options.has(extractAction) || hasNonOption("extract");
     }
 
     public OptionSpec<File> getDataFileSpecOpt() {
         return dataFileSpecOpt;
+    }
+
+    public OptionSpec<File> getIndexDirSpecOpt() {
+        return indexDirSpecOpt;
     }
 
     public OptionSpec<File> getStoreDirSpecOpt() {

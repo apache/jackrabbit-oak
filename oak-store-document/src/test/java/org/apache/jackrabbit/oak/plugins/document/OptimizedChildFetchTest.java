@@ -23,14 +23,14 @@ import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Set;
 
-import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -104,7 +104,7 @@ public class OptimizedChildFetchTest extends BaseDocumentMKTest {
     private static class TestDocumentStore extends MemoryDocumentStore {
         Set<String> paths = Sets.newHashSet();
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
                                                   String indexedProperty, long startValue, int limit) {

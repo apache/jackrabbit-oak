@@ -16,35 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 
 @Component(service = {RootProvider.class})
 public class RootProviderService implements RootProvider {
 
-    @Nonnull
+    @NotNull
     @Override
-    public Root createReadOnlyRoot(@Nonnull NodeState rootState) {
+    public Root createReadOnlyRoot(@NotNull NodeState rootState) {
         return RootFactory.createReadOnlyRoot(rootState);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Root createReadOnlyRoot(@Nonnull Root root) {
+    public Root createReadOnlyRoot(@NotNull Root root) {
         return RootFactory.createReadOnlyRoot(root);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Root createSystemRoot(@Nonnull NodeStore store, @Nullable CommitHook hook) {
+    public Root createSystemRoot(@NotNull NodeStore store, @Nullable CommitHook hook) {
         return RootFactory.createSystemRoot(store, hook, null, null, null);
     }
 }

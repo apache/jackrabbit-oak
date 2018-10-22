@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -70,6 +68,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,7 +151,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 match++;
             }
         }
-
+        log.debug("{} matched restrictions for filter {} and configuration {}", match, filter, configuration);
 
         return match;
     }
@@ -546,9 +545,11 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         Collection<String> indexPaths = new SolrIndexLookup(rootState).collectIndexNodePaths(filter);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
 
+        log.debug("looking for plans for paths : {}", indexPaths);
         for (String path : indexPaths) {
             OakSolrConfiguration configuration = getConfiguration(path, rootState);
             SolrClient solrServer = getServer(path, rootState);
+            log.debug("building plan for server {} and configuration {}", solrServer, configuration);
             // only provide the plan if both valid configuration and server exist
             if (configuration != null && solrServer != null) {
                 LMSEstimator estimator = getEstimator(path);
@@ -587,12 +588,14 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     private IndexPlan getIndexPlan(Filter filter, OakSolrConfiguration configuration, LMSEstimator estimator,
                                    List<OrderEntry> sortOrder, String path) {
         if (getMatchingFilterRestrictions(filter, configuration) > 0) {
-            return planBuilder(filter)
-                    .setEstimatedEntryCount(estimator.estimate(filter))
-                    .setSortOrder(sortOrder)
-                    .setPlanName(path)
-                    .setPathPrefix(getPathPrefix(path))
-                    .build();
+            IndexPlan indexPlan = planBuilder(filter)
+                .setEstimatedEntryCount(estimator.estimate(filter))
+                .setSortOrder(sortOrder)
+                .setPlanName(path)
+                .setPathPrefix(getPathPrefix(path))
+                .build();
+            log.debug("index plan {}", indexPlan);
+            return indexPlan;
         } else {
             return null;
         }
@@ -792,7 +795,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
             switch (precision) {
                 case EXACT:
                     // query solr
-                    SolrQuery countQuery = FilterQueryParser.getQuery(plan.getFilter(), null, this.configuration);
+                    SolrQuery countQuery = FilterQueryParser.getQuery(plan.getFilter(), plan, this.configuration);
                     countQuery.setRows(0);
                     try {
                         estimate = this.solrServer.query(countQuery).getResults().getNumFound();
@@ -814,7 +817,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public NodeAggregator getNodeAggregator() {
         return aggregator;
     }

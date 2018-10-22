@@ -234,7 +234,7 @@ public class LdapProviderTest {
     public void testAuthenticate() throws Exception {
         authenticateInternal(idp, TEST_USER1_DN);
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         authenticateInternal(idp, TEST_USER1_UID);
@@ -262,7 +262,7 @@ public class LdapProviderTest {
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_DN);
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_UID);
@@ -280,7 +280,7 @@ public class LdapProviderTest {
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_DN);
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_UID);
@@ -298,7 +298,7 @@ public class LdapProviderTest {
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_DN);
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_UID);
@@ -316,7 +316,7 @@ public class LdapProviderTest {
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_DN);
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         authenticateValidateInternal(idp, TEST_USER1_UID);
@@ -330,13 +330,13 @@ public class LdapProviderTest {
         assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
 
-        providerConfig.setExtIdAttribute("uid");
+        providerConfig.setUseUidForExtId(true);
         idp.close();
         idp = new LdapIdentityProvider(providerConfig);
         user = idp.authenticate(creds);
         assertNotNull("User 1 must authenticate", user);
         assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
-        assertEquals("User Ref", TEST_USER1_UID, user.getExternalId().getId());
+        assertEquals("User Ref", TEST_USER1_UID.toUpperCase(), user.getExternalId().getId());
     }
 
     @Test

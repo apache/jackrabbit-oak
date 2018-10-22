@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import javax.annotation.CheckForNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Content change validator. An instance of this interface is used to
@@ -64,7 +63,7 @@ public interface Validator extends Editor {
      * should not decent into the subtree rooted at {@code after}.
      * @throws CommitFailedException  if validation fails.
      */
-    @CheckForNull
+    @Nullable
     Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException;
 
@@ -77,7 +76,7 @@ public interface Validator extends Editor {
      * should not decent into the subtree rooted at {@code after}.
      * @throws CommitFailedException  if validation fails.
      */
-    @CheckForNull
+    @Nullable
     Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException;
@@ -90,7 +89,7 @@ public interface Validator extends Editor {
      * {@code null} if validation should not decent into the subtree
      * @throws CommitFailedException  if validation fails.
      */
-    @CheckForNull
+    @Nullable
     Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException;
 

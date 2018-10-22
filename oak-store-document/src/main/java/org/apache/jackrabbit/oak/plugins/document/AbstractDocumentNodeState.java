@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -58,7 +57,7 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
      * @return a copy of this node state with the given root revision and
      *          external change flag.
      */
-    public abstract AbstractDocumentNodeState withRootRevision(@Nonnull RevisionVector root,
+    public abstract AbstractDocumentNodeState withRootRevision(@NotNull RevisionVector root,
                                                boolean externalChange);
 
     public abstract boolean hasNoChildren();

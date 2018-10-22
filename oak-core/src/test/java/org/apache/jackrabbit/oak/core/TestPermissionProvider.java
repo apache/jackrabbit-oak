@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dummy permission provider implementation that grants read access to all trees
@@ -42,14 +41,14 @@ final class TestPermissionProvider implements PermissionProvider {
 
     boolean denyAll;
 
-    private TreePermission getTreePermission(@Nonnull String name) {
+    private TreePermission getTreePermission(@NotNull String name) {
         if (denyAll) {
             return TreePermission.EMPTY;
         } else {
             return new TreePermission() {
-                @Nonnull
+                @NotNull
                 @Override
-                public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+                public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
                     return getTreePermission(childName);
                 }
 
@@ -59,7 +58,7 @@ final class TestPermissionProvider implements PermissionProvider {
                 }
 
                 @Override
-                public boolean canRead(@Nonnull PropertyState property) {
+                public boolean canRead(@NotNull PropertyState property) {
                     return canReadProperties || !property.getName().contains(NAME_NON_ACCESSIBLE);
                 }
 
@@ -79,7 +78,7 @@ final class TestPermissionProvider implements PermissionProvider {
                 }
 
                 @Override
-                public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+                public boolean isGranted(long permissions, @NotNull PropertyState property) {
                     throw new UnsupportedOperationException();
                 }
             };
@@ -91,36 +90,36 @@ final class TestPermissionProvider implements PermissionProvider {
         denyAll = !denyAll;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryPermission getRepositoryPermission() {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         return getTreePermission(tree.getName());
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
         throw new UnsupportedOperationException();
     }
 }

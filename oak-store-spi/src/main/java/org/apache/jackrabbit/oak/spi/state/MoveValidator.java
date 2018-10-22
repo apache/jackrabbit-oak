@@ -19,10 +19,9 @@
 
 package org.apache.jackrabbit.oak.spi.state;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A validator that also receives notifications about moved nodes.
@@ -42,14 +41,14 @@ public interface MoveValidator extends Validator {
     void move(String name, String sourcePath, NodeState moved) throws CommitFailedException;
 
     @Override
-    @CheckForNull
+    @Nullable
     MoveValidator childNodeAdded(String name, NodeState after) throws CommitFailedException;
 
     @Override
-    @CheckForNull
+    @Nullable
     MoveValidator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException;
 
     @Override
-    @CheckForNull
+    @Nullable
     MoveValidator childNodeDeleted(String name, NodeState before) throws CommitFailedException;
 }

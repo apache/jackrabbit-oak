@@ -19,13 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -49,10 +42,20 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
+import org.apache.jackrabbit.oak.plugins.index.lucene.CopyOnReadStatsMBean;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexAugmentorFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LoggingInfoStream;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -74,6 +77,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.osgi.framework.ServiceReference;
+
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class LuceneIndexProviderServiceTest {
     /*
@@ -158,7 +169,7 @@ public class LuceneIndexProviderServiceTest {
     public void typeProperty() throws Exception{
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         ServiceReference sr = context.bundleContext().getServiceReference(IndexEditorProvider.class.getName());
-        assertEquals("lucene", sr.getProperty("type"));
+        assertEquals(TYPE_LUCENE, sr.getProperty("type"));
     }
 
     @Test
@@ -404,7 +415,7 @@ public class LuceneIndexProviderServiceTest {
 
         MockOsgi.activate(service, context.bundleContext(), config);
         ServiceReference[] sr = context.bundleContext().getAllServiceReferences(Runnable.class.getName(),
-                "(scheduler.name="+PropertyIndexCleaner.class.getName()+")");
+                "(scheduler.name="+ PropertyIndexCleaner.class.getName()+")");
         assertEquals(sr.length, 1);
 
         assertEquals(142L, sr[0].getProperty("scheduler.period"));
@@ -417,7 +428,7 @@ public class LuceneIndexProviderServiceTest {
 
         MockOsgi.activate(service, context.bundleContext(), config);
         ServiceReference[] sr = context.bundleContext().getAllServiceReferences(Runnable.class.getName(),
-                "(scheduler.name="+PropertyIndexCleaner.class.getName()+")");
+                "(scheduler.name="+ PropertyIndexCleaner.class.getName()+")");
         assertNull(sr);
     }
 

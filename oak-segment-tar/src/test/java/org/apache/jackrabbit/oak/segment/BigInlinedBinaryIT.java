@@ -29,9 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -39,6 +36,8 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -81,10 +80,10 @@ public class BigInlinedBinaryIT {
         }
     }
 
-    @Nonnull
+    @NotNull
     private static Blob createBlob(long blobSize) {
         return new Blob() {
-                @Nonnull
+                @NotNull
                 @Override
                 public InputStream getNewStream() {
                     return new InputStream() {
@@ -101,13 +100,13 @@ public class BigInlinedBinaryIT {
                     return blobSize;
                 }
 
-                @CheckForNull
+                @Nullable
                 @Override
                 public String getReference() {
                     return null;
                 }
 
-                @CheckForNull
+                @Nullable
                 @Override
                 public String getContentIdentity() {
                     return null;

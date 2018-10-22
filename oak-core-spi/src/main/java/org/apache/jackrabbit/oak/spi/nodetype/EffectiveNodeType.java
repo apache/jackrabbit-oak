@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.nodetype;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -25,6 +24,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
@@ -47,18 +47,18 @@ public interface EffectiveNodeType {
 
     Iterable<PropertyDefinition> getMandatoryPropertyDefinitions();
 
-    @Nonnull
+    @NotNull
     Iterable<NodeDefinition> getNamedNodeDefinitions(
             String oakName);
 
-    @Nonnull
+    @NotNull
     Iterable<PropertyDefinition> getNamedPropertyDefinitions(
             String oakName);
 
-    @Nonnull
+    @NotNull
     Iterable<NodeDefinition> getResidualNodeDefinitions();
 
-    @Nonnull
+    @NotNull
     Iterable<PropertyDefinition> getResidualPropertyDefinitions();
 
     void checkSetProperty(PropertyState property) throws RepositoryException;

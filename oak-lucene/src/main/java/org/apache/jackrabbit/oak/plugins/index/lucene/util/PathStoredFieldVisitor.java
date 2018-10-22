@@ -21,10 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
-
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 
 public class PathStoredFieldVisitor extends StoredFieldVisitor {
 
@@ -33,7 +32,7 @@ public class PathStoredFieldVisitor extends StoredFieldVisitor {
 
     @Override
     public Status needsField(FieldInfo fieldInfo) throws IOException {
-        if (PATH.equals(fieldInfo.name)) {
+        if (FieldNames.PATH.equals(fieldInfo.name)) {
             return Status.YES;
         }
         return pathVisited ? Status.STOP : Status.NO;
@@ -42,7 +41,7 @@ public class PathStoredFieldVisitor extends StoredFieldVisitor {
     @Override
     public void stringField(FieldInfo fieldInfo, String value)
             throws IOException {
-        if (PATH.equals(fieldInfo.name)) {
+        if (FieldNames.PATH.equals(fieldInfo.name)) {
             path = value;
             pathVisited = true;
         }

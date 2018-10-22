@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
@@ -55,9 +54,9 @@ public class WhiteboardAuthorizableNodeNameTest {
         authorizableNodeName.start(whiteboard);
 
         AuthorizableNodeName registered = new AuthorizableNodeName() {
-            @Nonnull
+            @NotNull
             @Override
-            public String generateNodeName(@Nonnull String authorizableId) {
+            public String generateNodeName(@NotNull String authorizableId) {
                 return "generated";
             }
         };

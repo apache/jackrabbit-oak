@@ -25,15 +25,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +49,8 @@ class PropertyHistory implements Iterable<NodeDocument> {
     // path of the main document
     private final String mainPath;
 
-    public PropertyHistory(@Nonnull NodeDocument doc,
-                           @Nonnull String property) {
+    public PropertyHistory(@NotNull NodeDocument doc,
+                           @NotNull String property) {
         this.doc = checkNotNull(doc);
         this.property = checkNotNull(property);
         this.mainPath = doc.getMainPath();

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 
@@ -32,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation specific access control utility methods
@@ -44,12 +44,12 @@ final class Util implements AccessControlConstants {
     private Util() {}
 
     public static void checkValidPrincipal(@Nullable Principal principal,
-                                           @Nonnull PrincipalManager principalManager) throws AccessControlException {
+                                           @NotNull PrincipalManager principalManager) throws AccessControlException {
         checkValidPrincipal(principal, principalManager, ImportBehavior.ABORT);
     }
 
     public static boolean checkValidPrincipal(@Nullable Principal principal,
-                                              @Nonnull PrincipalManager principalManager,
+                                              @NotNull PrincipalManager principalManager,
                                               int importBehavior) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
@@ -70,7 +70,7 @@ final class Util implements AccessControlConstants {
     }
 
     public static void checkValidPrincipals(@Nullable Set<Principal> principals,
-                                            @Nonnull PrincipalManager principalManager) throws AccessControlException {
+                                            @NotNull PrincipalManager principalManager) throws AccessControlException {
         if (principals == null) {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
@@ -79,7 +79,7 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    public static boolean isValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) {
+    public static boolean isValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) {
         if (policy instanceof ACL) {
             String path = ((ACL) policy).getOakPath();
             return !((path == null && oakPath != null) || (path != null && !path.equals(oakPath)));
@@ -87,28 +87,28 @@ final class Util implements AccessControlConstants {
         return false;
     }
 
-    public static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
+    public static void checkValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
         if (!isValidPolicy(oakPath, policy)) {
             throw new AccessControlException("Invalid access control policy " + policy);
         }
     }
 
-    public static boolean isAccessControlled(@Nullable String oakPath, @Nonnull Tree tree,
-                                             @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    public static boolean isAccessControlled(@Nullable String oakPath, @NotNull Tree tree,
+                                             @NotNull ReadOnlyNodeTypeManager ntMgr) {
         String mixinName = getMixinName(oakPath);
         return ntMgr.isNodeType(tree, mixinName);
     }
 
-    public static boolean isACE(@Nonnull Tree tree, @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+    public static boolean isACE(@NotNull Tree tree, @NotNull ReadOnlyNodeTypeManager ntMgr) {
         return tree.exists() && ntMgr.isNodeType(tree, NT_REP_ACE);
     }
 
-    @Nonnull
+    @NotNull
     public static String getMixinName(@Nullable String oakPath) {
         return (oakPath == null) ? MIX_REP_REPO_ACCESS_CONTROLLABLE : MIX_REP_ACCESS_CONTROLLABLE;
     }
 
-    @Nonnull
+    @NotNull
     public static String getAclName(@Nullable String oakPath) {
         return (oakPath == null) ? REP_REPO_POLICY : REP_POLICY;
     }
@@ -120,8 +120,8 @@ final class Util implements AccessControlConstants {
      * @param index The index of the entry in the list
      * @return the name of the ACE node.
      */
-    @Nonnull
-    public static String generateAceName(@Nonnull ACE ace, int index) {
+    @NotNull
+    public static String generateAceName(@NotNull ACE ace, int index) {
         String hint = (ace.isAllow()) ? "allow" : "deny";
         if (index == 0) {
             return hint;

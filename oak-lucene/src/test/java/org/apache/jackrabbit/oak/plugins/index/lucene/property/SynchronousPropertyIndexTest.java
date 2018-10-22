@@ -29,9 +29,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -49,9 +46,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -78,6 +75,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -517,10 +516,10 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     private static class DelayingIndexEditor implements IndexEditorProvider {
         private Semaphore semaphore;
-        @CheckForNull
+        @Nullable
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                 throws CommitFailedException {
             ContextAwareCallback ccb = (ContextAwareCallback) callback;
             if (semaphore != null && ccb.getIndexingContext().isAsync()) {

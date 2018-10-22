@@ -19,14 +19,13 @@
 
 package org.apache.jackrabbit.oak.query;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An instance of this class provides the context for the execution of a query,
@@ -65,7 +64,7 @@ public class ExecutionContext {
      * 
      * @return base state of the content tree against which the query runs.
      */
-    @Nonnull
+    @NotNull
     public NodeState getBaseState() {
         return baseState;
     }
@@ -85,7 +84,7 @@ public class ExecutionContext {
      * 
      * @return root of the content tree against which the query runs.
      */
-    @Nonnull
+    @NotNull
     public Root getRoot() {
         return root;
     }
@@ -94,7 +93,7 @@ public class ExecutionContext {
      * @return Index provider for indexes matching the state of the content tree as
      * returned from {@link #getBaseState()}.
      */
-    @Nonnull
+    @NotNull
     public QueryIndexProvider getIndexProvider() {
         return indexProvider;
     }
@@ -103,7 +102,7 @@ public class ExecutionContext {
         return settings;
     }
 
-    @CheckForNull
+    @Nullable
     public PermissionProvider getPermissionProvider() {
         return permissionProvider;
     }

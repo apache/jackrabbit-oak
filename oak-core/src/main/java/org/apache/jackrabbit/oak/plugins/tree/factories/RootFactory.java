@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.factories;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
@@ -32,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Factory to obtain immutable {@code Root} objects.
@@ -42,21 +41,21 @@ public final class RootFactory {
 
     private RootFactory() {}
 
-    @Nonnull
-    public static Root createReadOnlyRoot(@Nonnull NodeState rootState) {
+    @NotNull
+    public static Root createReadOnlyRoot(@NotNull NodeState rootState) {
         return new ImmutableRoot(rootState);
     }
 
-    @Nonnull
-    public static Root createReadOnlyRoot(@Nonnull Root root) {
+    @NotNull
+    public static Root createReadOnlyRoot(@NotNull Root root) {
         return ImmutableRoot.getInstance(root);
     }
 
     /**
      * @deprecated with Oak 1.7.2 due to the usage of deprecated {@link QueryEngineSettings}
      */
-    @Nonnull
-    public static Root createSystemRoot(@Nonnull NodeStore store,
+    @NotNull
+    public static Root createSystemRoot(@NotNull NodeStore store,
                                         @Nullable CommitHook hook,
                                         @Nullable String workspaceName,
                                         @Nullable SecurityProvider securityProvider,
@@ -71,8 +70,8 @@ public final class RootFactory {
 
     }
 
-    @Nonnull
-    public static Root createSystemRoot(@Nonnull NodeStore store,
+    @NotNull
+    public static Root createSystemRoot(@NotNull NodeStore store,
                                         @Nullable CommitHook hook,
                                         @Nullable String workspaceName,
                                         @Nullable SecurityProvider securityProvider,

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This commit hook implementation is responsible for resolving
@@ -59,7 +58,7 @@ public class ConflictHook implements CommitHook {
         this.conflictHandler = conflictHandler;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)

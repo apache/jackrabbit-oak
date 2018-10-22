@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -68,11 +68,11 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS));
     }
 
-    private CugPolicy createCug(@Nonnull String path) {
+    private CugPolicy createCug(@NotNull String path) {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.ABORT);
     }
 
-    private CugPolicy getApplicableCug(@Nonnull String path) throws RepositoryException {
+    private CugPolicy getApplicableCug(@NotNull String path) throws RepositoryException {
         return (CugPolicy) cugAccessControlManager.getApplicablePolicies(path).nextAccessControlPolicy();
     }
 
@@ -426,19 +426,19 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
         private static final InvalidCug INSTANCE = new InvalidCug();
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<Principal> getPrincipals() {
             return Collections.emptySet();
         }
 
         @Override
-        public boolean addPrincipals(@Nonnull Principal... principals) {
+        public boolean addPrincipals(@NotNull Principal... principals) {
             return false;
         }
 
         @Override
-        public boolean removePrincipals(@Nonnull Principal... principals) {
+        public boolean removePrincipals(@NotNull Principal... principals) {
             return false;
         }
 

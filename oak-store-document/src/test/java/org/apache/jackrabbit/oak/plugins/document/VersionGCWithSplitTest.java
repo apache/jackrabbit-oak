@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -73,7 +71,7 @@ public class VersionGCWithSplitTest {
         this.fixture = fixture;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
@@ -93,6 +91,7 @@ public class VersionGCWithSplitTest {
         clock = new Clock.Virtual();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(testStore)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -208,7 +207,6 @@ public class VersionGCWithSplitTest {
             this.docStore = base;
         }
 
-        @Nonnull
         @Override
         public <T extends Document> T createOrUpdate(final Collection<T> collection,
                                                      final UpdateOp update) {

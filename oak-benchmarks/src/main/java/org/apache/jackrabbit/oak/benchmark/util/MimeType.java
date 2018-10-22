@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public enum MimeType {
     APPLICATION_DVI("application/x-dvi"),
@@ -87,7 +87,7 @@ public enum MimeType {
     
     private final String value;
     
-    MimeType(@Nonnull final String value) {
+    MimeType(@NotNull final String value) {
         this.value = value;
     }
     

@@ -47,16 +47,15 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.file.FileReaper;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,6 +112,8 @@ public class TarFiles implements Closeable {
 
         private boolean memoryMapping;
 
+        private boolean offHeapAccess;
+
         private TarRecovery tarRecovery;
 
         private IOMonitor ioMonitor;
@@ -136,6 +137,11 @@ public class TarFiles implements Closeable {
 
         public Builder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
+            return this;
+        }
+
+        public Builder withOffHeapAccess(boolean offHeapAccess) {
+            this.offHeapAccess = offHeapAccess;
             return this;
         }
 
@@ -211,7 +217,7 @@ public class TarFiles implements Closeable {
         }
 
         private SegmentArchiveManager buildArchiveManager() throws IOException {
-            return persistence.createArchiveManager(memoryMapping, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
+            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
         }
     }
 
@@ -231,7 +237,7 @@ public class TarFiles implements Closeable {
     private static Iterable<TarReader> iterable(final Node head) {
         return new Iterable<TarReader>() {
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<TarReader> iterator() {
                 return new Iterator<TarReader>() {
@@ -355,6 +361,7 @@ public class TarFiles implements Closeable {
         writer = new TarWriter(archiveManager, writeNumber);
     }
 
+    @Override
     public void close() throws IOException {
         shutdown = true;
 
@@ -445,6 +452,29 @@ public class TarFiles implements Closeable {
         }
 
         return Iterables.size(iterable(head));
+    }
+
+    /**
+     * @return  the number of segments in the segment store
+     */
+    public int segmentCount() {
+        int count = 0;
+        Node head;
+
+        lock.readLock().lock();
+        try {
+            if (writer != null) {
+                count = writer.getEntryCount();
+            }
+            head = readers;
+        } finally {
+            lock.readLock().unlock();
+        }
+
+        for (TarReader reader : iterable(head)) {
+            count += reader.getEntries().length;
+        }
+        return count;
     }
 
     public void flush() throws IOException {

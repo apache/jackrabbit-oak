@@ -17,20 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.IOException;
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.jetbrains.annotations.Nullable;
 
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
     private SolrClient solrServer;
     private SolrClient indexingSolrServer;
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSolrServer() throws Exception {
         if (solrServer == null) {
@@ -39,7 +38,7 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getIndexingSolrServer() throws Exception {
         if (indexingSolrServer == null) {
@@ -48,7 +47,7 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
         return indexingSolrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();

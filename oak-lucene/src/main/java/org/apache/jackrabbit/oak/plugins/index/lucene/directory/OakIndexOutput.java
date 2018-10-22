@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
-
-import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexFile.getOakIndexFile;
 

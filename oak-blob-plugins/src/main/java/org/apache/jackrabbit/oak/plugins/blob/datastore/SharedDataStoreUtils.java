@@ -19,19 +19,17 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class for {@link SharedDataStore}.
@@ -59,7 +57,7 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, Long>() {
                     @Override
                     @Nullable
-                    public Long apply(@Nonnull DataRecord input) {
+                    public Long apply(@NotNull DataRecord input) {
                         return input.getLastModified();
                     }
                 }).min(recs);
@@ -78,15 +76,15 @@ public class SharedDataStoreUtils {
                 new Function<DataRecord, String>() {
                     @Override
                     @Nullable
-                    public String apply(@Nonnull DataRecord input) {
+                    public String apply(@NotNull DataRecord input) {
                         return SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString());
                     }
                 }).keySet(),
-                FluentIterable.from(refs).uniqueIndex(
+                FluentIterable.from(refs).index(
                         new Function<DataRecord, String>() {
                             @Override
                             @Nullable
-                            public String apply(@Nonnull DataRecord input) {
+                            public String apply(@NotNull DataRecord input) {
                                 return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
                             }
                         }).keySet());
@@ -112,14 +110,29 @@ public class SharedDataStoreUtils {
         }
 
         public String getIdFromName(String name) {
-            return Splitter.on(DELIIM).limit(2).splitToList(name).get(1);
+            return Splitter.on("_").limit(2).splitToList(
+                Splitter.on(DELIM).limit(2).splitToList(name).get(1)).get(0);
         }
 
         public String getNameFromId(String id) {
-            return Joiner.on(DELIIM).join(getType(), id);
+            return Joiner.on(DELIM).join(getType(), id);
         }
 
-        static final String DELIIM = "-";
+        /**
+         * Creates name from id and prefix. The format returned is of the form
+         * references-id_prefix.
+         *
+         * @param id
+         * @param prefix
+         * @return
+         */
+        public String getNameFromIdPrefix(String id, String prefix) {
+            return Joiner.on("_").join(
+                Joiner.on(DELIM).join(getType(), id),
+                prefix);
+        }
+
+        static final String DELIM = "-";
     }
 }
 

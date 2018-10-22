@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -28,10 +26,12 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoDatabase;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
@@ -53,7 +53,7 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
         MongoUtils.dropCollections(mongoConnection.getDatabase());
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.clock(getTestClock());
-        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDBName(), builder);
+        store = new TestStore(mongoConnection.getMongoClient(), mongoConnection.getDatabase(), builder);
         mk = builder.setDocumentStore(store).open();
     }
 
@@ -103,8 +103,8 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
         private int failRead = 0;
 
-        public TestStore(MongoClient client, String dbName, DocumentMK.Builder builder) {
-            super(client, dbName, builder);
+        public TestStore(MongoClient client, MongoDatabase db, DocumentMK.Builder builder) {
+            super(client, db, builder);
         }
 
         @Override
@@ -115,7 +115,7 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
             return super.findUncached(collection, key, docReadPref);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         protected <T extends Document> List<T> queryInternal(Collection<T> collection,
                                                              String fromKey,

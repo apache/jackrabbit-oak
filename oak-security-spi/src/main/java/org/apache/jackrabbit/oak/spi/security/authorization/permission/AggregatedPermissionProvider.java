@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension of the {@link PermissionProvider} interface that allows it to be
@@ -53,7 +52,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * that are supported and evaluated by the implementation at the given {@code tree}
      * represented as {@code PrivilegeBits}.
      */
-    @Nonnull
+    @NotNull
     PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits);
 
     /**
@@ -91,7 +90,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * @return The subset of the given {@code permissions} that are supported and
      * evaluated by the implementation for the given location.
      */
-    long supportedPermissions(@Nonnull TreeLocation location, long permissions);
+    long supportedPermissions(@NotNull TreeLocation location, long permissions);
 
     /**
      * Allows to determined the set or subset of permissions evaluated by the
@@ -109,7 +108,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * @return The subset of the given {@code permissions} that are supported and
      * evaluated by the implementation for the given tree permissions.
      */
-    long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions);
+    long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions);
 
     /**
      * Test if the specified permissions are granted for the set of {@code Principal}s
@@ -122,7 +121,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * @return {@code true} if the specified permissions are granted for the existing
      * or non-existing item identified by the given location.
      */
-    boolean isGranted(@Nonnull TreeLocation location, long permissions);
+    boolean isGranted(@NotNull TreeLocation location, long permissions);
 
     /**
      * Return the {@code TreePermission} for the set of {@code Principal}s associated
@@ -134,7 +133,7 @@ public interface AggregatedPermissionProvider extends PermissionProvider {
      * obtained before for the parent tree.
      * @return The {@code TreePermission} object for the specified {@code tree}.
      */
-    @Nonnull
-    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission);
+    @NotNull
+    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission);
 
 }

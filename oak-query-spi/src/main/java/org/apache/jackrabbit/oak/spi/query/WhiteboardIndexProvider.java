@@ -20,10 +20,9 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Dynamic {@link QueryIndexProvider} based on the available
@@ -37,7 +36,7 @@ public class WhiteboardIndexProvider
         super(QueryIndexProvider.class);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         QueryIndexProvider composite =
                 CompositeQueryIndexProvider.compose(getServices());

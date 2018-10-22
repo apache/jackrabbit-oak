@@ -20,7 +20,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;

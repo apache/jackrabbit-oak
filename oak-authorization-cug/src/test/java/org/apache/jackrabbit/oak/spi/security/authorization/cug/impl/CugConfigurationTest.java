@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -217,7 +217,7 @@ public class CugConfigurationTest extends AbstractCugTest {
         assertSupportedPaths(cugConfiguration, "/changed");
     }
 
-    private static void assertSupportedPaths(@Nonnull CugConfiguration configuration, @Nonnull String... paths) throws Exception {
+    private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) throws Exception {
         Set<String> expected = ImmutableSet.copyOf(paths);
         assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
     }

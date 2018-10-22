@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Facade for possible requests to be done to Lucene, like queries, spellchecking requests, etc..
+ * Facade for possible requests to be done to Lucene, like queries,
+ * spellchecking requests, etc..
  *
  * @param <T> the actual Lucene class representing the request / use case.
  */
@@ -27,7 +28,7 @@ class LuceneRequestFacade<T> {
 
     private final T luceneRequest;
 
-    LuceneRequestFacade(@Nonnull T luceneRequest) {
+    LuceneRequestFacade(@NotNull T luceneRequest) {
         this.luceneRequest = luceneRequest;
     }
 

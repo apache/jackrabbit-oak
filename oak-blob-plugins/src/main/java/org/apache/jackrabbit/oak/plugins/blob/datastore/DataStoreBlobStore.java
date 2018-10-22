@@ -31,6 +31,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -38,8 +40,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -57,16 +57,27 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +87,8 @@ import org.slf4j.LoggerFactory;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore
-    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore {
+    implements DataStore, BlobStore, GarbageCollectableBlobStore, BlobTrackingStore, TypedDataStore,
+        BlobAccessProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     protected final DataStore delegate;
@@ -109,7 +121,7 @@ public class DataStoreBlobStore
 
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
-        public int weigh(@Nonnull String key, @Nonnull byte[] value) {
+        public int weigh(@NotNull String key, @NotNull byte[] value) {
             long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
             if (weight > Integer.MAX_VALUE) {
                 log.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);
@@ -277,7 +289,7 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public String getBlobId(@Nonnull String reference) {
+    public String getBlobId(@NotNull String reference) {
         checkNotNull(reference);
         DataRecord record;
         try {
@@ -292,7 +304,7 @@ public class DataStoreBlobStore
     }
 
     @Override
-    public String getReference(@Nonnull String encodedBlobId) {
+    public String getReference(@NotNull String encodedBlobId) {
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
@@ -475,6 +487,11 @@ public class DataStoreBlobStore
     }
 
     @Override
+    public boolean metadataRecordExists(String name) {
+        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).metadataRecordExists(name);
+    }
+
+    @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         if (delegate instanceof SharedDataStore) {
             return ((SharedDataStore) delegate).getAllMetadataRecords(prefix);
@@ -501,7 +518,8 @@ public class DataStoreBlobStore
         } else {
             return Iterators.transform(delegate.getAllIdentifiers(),
                 new Function<DataIdentifier, DataRecord>() {
-                    @Nullable @Override
+                    @Nullable
+                    @Override
                     public DataRecord apply(@Nullable DataIdentifier input) {
                         try {
                             return delegate.getRecord(input);
@@ -652,6 +670,82 @@ public class DataStoreBlobStore
             return BlobId.of(encodedBlobId).blobId;
         }
         return encodedBlobId;
+    }
+
+
+    // <--------------- BlobAccessProvider implementation - Direct binary access feature --------------->
+
+    @Nullable
+    @Override
+    public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws IllegalArgumentException {
+        if (delegate instanceof DataRecordAccessProvider) {
+            try {
+                DataRecordAccessProvider provider = (DataRecordAccessProvider) this.delegate;
+
+                DataRecordUpload upload = provider.initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                if (upload == null) {
+                    return null;
+                }
+                return new BlobUpload() {
+                    @Override
+                    @NotNull
+                    public String getUploadToken() {
+                        return upload.getUploadToken();
+                    }
+
+                    @Override
+                    public long getMinPartSize() {
+                        return upload.getMinPartSize();
+                    }
+
+                    @Override
+                    public long getMaxPartSize() {
+                        return upload.getMaxPartSize();
+                    }
+
+                    @Override
+                    @NotNull
+                    public Collection<URI> getUploadURIs() {
+                        return upload.getUploadURIs();
+                    }
+                };
+            }
+            catch (DataRecordUploadException e) {
+                log.warn("Unable to initiate direct upload", e);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Blob completeBlobUpload(@NotNull String uploadToken) throws IllegalArgumentException {
+        if (delegate instanceof DataRecordAccessProvider) {
+            try {
+                DataRecord record = ((DataRecordAccessProvider) delegate).completeDataRecordUpload(uploadToken);
+                return new BlobStoreBlob(this, record.getIdentifier().toString());
+            }
+            catch (DataStoreException | DataRecordUploadException e) {
+                log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public URI getDownloadURI(@NotNull Blob blob, @NotNull BlobDownloadOptions downloadOptions) {
+        if (delegate instanceof DataRecordAccessProvider) {
+            String blobId = blob.getContentIdentity();
+            if (blobId != null) {
+                return ((DataRecordAccessProvider) delegate).getDownloadURI(
+                        new DataIdentifier(extractBlobId(blobId)),
+                        DataRecordDownloadOptions.fromBlobDownloadOptions(downloadOptions)
+                );
+            }
+        }
+        return null;
     }
 
     public static class BlobId {

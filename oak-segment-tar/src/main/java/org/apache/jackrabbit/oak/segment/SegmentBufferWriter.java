@@ -30,6 +30,7 @@ import static java.lang.System.identityHashCode;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
+import static org.apache.jackrabbit.oak.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.RECORD_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.SEGMENT_REFERENCE_SIZE;
@@ -38,14 +39,15 @@ import static org.apache.jackrabbit.oak.segment.SegmentId.isDataSegmentId;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,19 +98,19 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     private MutableSegmentReferences segmentReferences = new MutableSegmentReferences();
 
-    @Nonnull
+    @NotNull
     private final SegmentIdProvider idProvider;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     /**
      * Id of this writer.
      */
-    @Nonnull
+    @NotNull
     private final String wid;
 
-    @Nonnull
+    @NotNull
     private final GCGeneration gcGeneration;
 
     /**
@@ -139,10 +141,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private boolean dirty;
 
-    public SegmentBufferWriter(@Nonnull SegmentIdProvider idProvider,
-                               @Nonnull SegmentReader reader,
-                               @CheckForNull String wid,
-                               @Nonnull GCGeneration gcGeneration) {
+    public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
+                               @NotNull SegmentReader reader,
+                               @Nullable String wid,
+                               @NotNull GCGeneration gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
@@ -152,13 +154,13 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
         return writeOperation.execute(this);
     }
 
-    @Nonnull
+    @NotNull
     GCGeneration getGCGeneration() {
         return gcGeneration;
     }
@@ -176,7 +178,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * The segment meta data is guaranteed to be the first string record in a segment.
      */
     private void newSegment(SegmentStore store) throws IOException {
-        buffer = new byte[Segment.MAX_SEGMENT_SIZE];
+        buffer = new byte[MAX_SEGMENT_SIZE];
         buffer[0] = '0';
         buffer[1] = 'a';
         buffer[2] = 'K';
@@ -284,13 +286,31 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         dirty = true;
     }
 
+    private String dumpSegmentBuffer() {
+        return SegmentDump.dumpSegment(
+            segment != null ? segment.getSegmentId() : null,
+            length,
+            segment != null ? segment.getSegmentInfo() : null,
+            gcGeneration,
+            segmentReferences,
+            recordNumbers,
+            stream -> {
+                try {
+                    HexDump.dump(buffer, 0, stream, 0);
+                } catch (IOException e) {
+                    e.printStackTrace(new PrintStream(stream));
+                }
+            }
+        );
+    }
+
     /**
      * Adds a segment header to the buffer and writes a segment to the segment
      * store. This is done automatically (called from prepare) when there is not
      * enough space for a record. It can also be called explicitly.
      */
     @Override
-    public void flush(@Nonnull SegmentStore store) throws IOException {
+    public void flush(@NotNull SegmentStore store) throws IOException {
         if (dirty) {
             int referencedSegmentIdCount = segmentReferences.size();
             BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, referencedSegmentIdCount);
@@ -303,6 +323,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             int totalLength = align(HEADER_SIZE + referencedSegmentIdCount * SEGMENT_REFERENCE_SIZE + recordNumberCount * RECORD_SIZE + length, 16);
 
             if (totalLength > buffer.length) {
+                LOG.warn("Segment buffer corruption detected\n{}", dumpSegmentBuffer());
                 throw new IllegalStateException(String.format(
                         "Too much data for a segment %s (referencedSegmentIdCount=%d, recordNumberCount=%d, length=%d, totalLength=%d)",
                         segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
@@ -405,17 +426,36 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             segmentSize = align(headerSize + recordSize + length, 16);
         }
 
+        // If the resulting segment buffer would be too big we need to allocate
+        // additional space. Allocating additional space is a recursive
+        // operation guarded by the `dirty` flag. The recursion can iterate at
+        // most two times. The base case happens when the `dirty` flag is
+        // `false`: the current buffer is empty, the record is too big to fit in
+        // an empty segment, and we fail with an `IllegalArgumentException`. The
+        // recursive step happens when the `dirty` flag is `true`:
+        // the current buffer is non-empty, we flush it, allocate a new buffer
+        // for an empty segment, and invoke `prepare()` once more.
+
         if (segmentSize > buffer.length) {
-            LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
+            if (dirty) {
+                LOG.debug("Flushing full segment {} (headerSize={}, recordSize={}, length={}, segmentSize={})",
                     segment.getSegmentId(), headerSize, recordSize, length, segmentSize);
-            flush(store);
+                flush(store);
+                return prepare(type, size, ids, store);
+            }
+            throw new IllegalArgumentException(String.format(
+                "Record too big: type=%s, size=%s, recordIds=%s, total=%s",
+                type,
+                size,
+                ids.size(),
+                recordSize
+            ));
         }
 
         statistics.recordCount++;
 
         length += recordSize;
         position = buffer.length - length;
-        checkState(position >= 0);
 
         int recordNumber = recordNumbers.addRecord(type, position);
         return new RecordId(segment.getSegmentId(), recordNumber);

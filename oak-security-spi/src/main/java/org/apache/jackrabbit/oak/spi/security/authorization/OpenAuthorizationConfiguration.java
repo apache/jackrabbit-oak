@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class implements an {@link AuthorizationConfiguration} which grants
@@ -35,21 +35,21 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public class OpenAuthorizationConfiguration extends SecurityConfiguration.Default
         implements AuthorizationConfiguration {
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         return OpenPermissionProvider.getInstance();
     }
 

@@ -642,6 +642,24 @@ public class AzureDataStoreTest {
         assertTrue(backend.deleteMetadataRecord("name"));
     }
 
+    // MetadataRecordExists (Backend)
+    @Test
+    public void testBackendMetadataRecordExists() throws DataStoreException {
+        backend.addMetadataRecord(randomStream(0, 10), "name");
+        for (String name : Lists.newArrayList("invalid", "", null)) {
+            if (Strings.isNullOrEmpty(name)) {
+                try {
+                    backend.metadataRecordExists(name);
+                }
+                catch (IllegalArgumentException e) { }
+            }
+            else {
+                assertFalse(backend.metadataRecordExists(name));
+            }
+        }
+        assertTrue(backend.metadataRecordExists("name"));
+    }
+
     // DeleteAllMetadataRecords (Backend)
 
     @Test

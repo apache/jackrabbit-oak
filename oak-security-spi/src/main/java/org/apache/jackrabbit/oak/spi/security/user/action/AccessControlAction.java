@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -39,6 +37,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,12 +118,12 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     @Override
-    public void onCreate(@Nonnull Group group, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(group, root, namePathMapper);
     }
 
     @Override
-    public void onCreate(@Nonnull User user, @Nullable String password, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         setAC(user, root, namePathMapper);
     }
 
@@ -144,8 +144,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
     }
 
-    private void setAC(@Nonnull Authorizable authorizable, @Nonnull Root root,
-                       @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    private void setAC(@NotNull Authorizable authorizable, @NotNull Root root,
+                       @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
@@ -196,7 +196,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
     }
 
-    private boolean isBuiltInUser(@Nonnull Authorizable authorizable) throws RepositoryException {
+    private boolean isBuiltInUser(@NotNull Authorizable authorizable) throws RepositoryException {
         ConfigurationParameters userConfig = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
         String userId = authorizable.getID();
         return UserUtil.getAdminId(userConfig).equals(userId) || UserUtil.getAnonymousId(userConfig).equals(userId);
@@ -212,7 +212,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * resolved to a valid privilege.
      */
     private static Privilege[] getPrivileges(@Nullable String[] privNames,
-                                             @Nonnull AccessControlManager acMgr) throws RepositoryException {
+                                             @NotNull AccessControlManager acMgr) throws RepositoryException {
         if (privNames == null || privNames.length == 0) {
             return new Privilege[0];
         }

@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -33,7 +34,9 @@ import com.google.common.collect.Iterators;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -43,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -83,6 +87,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     private ScheduledExecutorService scheduledExecutor;
     private AbstractSharedCachingDataStore dataStore;
     private TestMemoryBackend backend;
+    private StatisticsProvider statsProvider;
+    private TestExecutor listeningExecutor;
+    private String dsPath;
+    private File backendRoot;
 
     @Before
     public void setup() throws Exception {
@@ -97,18 +105,18 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         taskLatch = new CountDownLatch(1);
         callbackLatch = new CountDownLatch(1);
         afterExecuteLatch = new CountDownLatch(i);
-        TestExecutor listeningExecutor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
+        listeningExecutor = new TestExecutor(1, taskLatch, callbackLatch, afterExecuteLatch);
 
         // stats
         ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(statsExecutor, 500, TimeUnit.MILLISECONDS));
-        StatisticsProvider statsProvider = new DefaultStatisticsProvider(statsExecutor);
+        statsProvider = new DefaultStatisticsProvider(statsExecutor);
 
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
-        final File datastoreRoot = folder.newFolder();
-        final TestMemoryBackend testBackend = new TestMemoryBackend(datastoreRoot);
+        backendRoot = folder.newFolder();
+        final TestMemoryBackend testBackend = new TestMemoryBackend(backendRoot);
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
@@ -126,9 +134,76 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.listeningExecutor = listeningExecutor;
         dataStore.schedulerExecutor = scheduledExecutor;
         dataStore.executor = sameThreadExecutor();
+        dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
+        dataStore.setPath(dsPath);
         dataStore.init(root.getAbsolutePath());
 
         LOG.info("Finished init");
+    }
+
+    @Test
+    public void loadCacheErrorDirectTemp() throws Exception {
+        LOG.info("Started loadCacheErrorDirectTemp");
+        loadDirectBackendTemp(64 * 1024 * 1024);
+        LOG.info("Finished loadCacheErrorDirectTemp");
+    }
+
+    @Test
+    public void cacheZeroDirectTemp() throws Exception {
+        LOG.info("Started cacheZeroDirectTemp");
+        loadDirectBackendTemp(0);
+        LOG.info("Finished cacheZeroDirectTemp");
+    }
+
+    public void loadDirectBackendTemp(long cacheSize) throws Exception {
+        LOG.info("Started loadDirectBackendTemp");
+        dataStore.close();
+        init(1, (int) cacheSize, 0);
+        String path = FilenameUtils
+            .normalizeNoEndSeparator(new File(dsPath).getAbsolutePath());
+        String home = FilenameUtils.normalizeNoEndSeparator(new File(root.getAbsolutePath()).getAbsolutePath());
+
+        dataStore.cache = new CompositeDataStoreCache(path , new File(home), cacheSize, 0,
+            0,
+            new TestErrorCacheLoader(backendRoot, 40, true), new StagingUploader() {
+            @Override public void write(String id, File file) throws DataStoreException {
+                backend.write(new DataIdentifier(id), file);
+            }
+
+            @Override public void adopt(File f, File moved) throws IOException {
+                FileUtils.moveFile(f, moved);
+            }
+        }, statsProvider, listeningExecutor, scheduledExecutor, dataStore.executor, 300,
+            600);
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+
+        DataRecord rec;
+        if (cacheSize != 0) {
+            backend.write(new DataIdentifier(id), f);
+            rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+        } else {
+            FileInputStream fin = new FileInputStream(f);
+            closer.register(fin);
+            rec = dataStore.addRecord(fin);
+        }
+        assertEquals(id, rec.getIdentifier().toString());
+        InputStream is = rec.getStream();
+        closer.register(is);
+
+        assertNotNull(is);
+        assertTrue(is instanceof LazyFileInputStream);
+        ((LazyFileInputStream)is).open();
+
+        File tmp = new File(new File(path), "tmp");
+        Collection<File> temp0cacheFiles =
+            FileUtils.listFiles(tmp, FileFilterUtils.prefixFileFilter("temp0cache"), null);
+        assertEquals(1, temp0cacheFiles.size());
+
+        assertFile(is, f, folder, false);
+
+        LOG.info("Finished loadDirectBackendTemp");
     }
 
     /**
@@ -493,14 +568,20 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.close();
     }
 
-    private static void assertFile(InputStream is, File org, TemporaryFolder folder)
+    private static void assertFile(InputStream is, File org, TemporaryFolder folder) throws IOException {
+        assertFile(is, org, folder, true);
+    }
+
+    private static void assertFile(InputStream is, File org, TemporaryFolder folder, boolean close)
         throws IOException {
         try {
             File ret = folder.newFile();
-            FileUtils.copyInputStreamToFile(is, ret);
+            copyToFile(is, ret);
             assertTrue(Files.equal(org, ret));
         } finally {
-            IOUtils.closeQuietly(is);
+            if (close) {
+                IOUtils.closeQuietly(is);
+            }
         }
     }
 

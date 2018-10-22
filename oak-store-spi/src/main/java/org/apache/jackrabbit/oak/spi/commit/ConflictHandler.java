@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code ConflictHandler} is responsible for handling conflicts which happen
@@ -52,7 +51,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -64,7 +63,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -77,7 +76,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -89,7 +88,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -101,7 +100,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs);
 
     /**
@@ -115,7 +114,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs);
 
     /**
@@ -128,7 +127,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours);
 
     /**
@@ -141,7 +140,7 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs);
 
     /**
@@ -153,6 +152,6 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @return  {@link Resolution} of the conflict
      */
     @Override
-    @Nonnull
+    @NotNull
     Resolution deleteDeletedNode(NodeBuilder parent, String name);
 }

@@ -25,19 +25,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Result;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -46,6 +45,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -59,7 +59,7 @@ import static org.junit.Assert.assertTrue;
 
 public class IndexConsistencyCheckerTest {
 
-    private NodeState rootState = InitialContent.INITIAL_CONTENT;
+    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
 
 
@@ -119,7 +119,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void validIndexTest() throws Exception{
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -144,7 +144,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void missingFile() throws Exception{
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -166,7 +166,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void badFile() throws Exception{
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -223,7 +223,7 @@ public class IndexConsistencyCheckerTest {
             this.corruptLength = corruptLength;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
             if (corruptLength){

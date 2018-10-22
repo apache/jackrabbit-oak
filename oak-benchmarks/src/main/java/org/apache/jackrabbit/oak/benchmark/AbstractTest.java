@@ -25,9 +25,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -43,6 +40,8 @@ import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistic
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -454,7 +453,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         return new Object[0];
     }
 
-    @CheckForNull
+    @Nullable
     protected String comment(){
         return null;
     }
@@ -584,7 +583,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         return loginSubject(SystemSubject.INSTANCE);
     }
 
-    protected Session loginSubject(@Nonnull Subject subject) {
+    protected Session loginSubject(@NotNull Subject subject) {
         try {
 
             return Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {

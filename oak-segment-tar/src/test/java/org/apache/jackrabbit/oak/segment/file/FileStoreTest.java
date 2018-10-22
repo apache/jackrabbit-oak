@@ -20,10 +20,13 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 
 import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
+import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,5 +66,23 @@ public class FileStoreTest {
             fileStore.close();
         }
     }
+
+    @Test
+    public void segmentCount() throws Exception {
+        try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build()) {
+            assertEquals(1, fileStore.getSegmentCount());
+
+            SegmentNodeState head = fileStore.getHead();
+            SegmentNodeBuilder builder = head.builder();
+            builder.setProperty("a", 1);
+            SegmentNodeState newHead = builder.getNodeState();
+
+            fileStore.getRevisions().setHead(head.getRecordId(), newHead.getRecordId());
+            fileStore.flush();
+
+            assertEquals(2, fileStore.getSegmentCount());
+        }
+    }
+
 
 }

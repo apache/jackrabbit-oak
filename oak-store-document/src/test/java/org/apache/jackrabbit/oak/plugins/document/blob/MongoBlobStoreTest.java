@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
+import com.mongodb.ReadPreference;
+import com.mongodb.client.MongoDatabase;
+
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -48,7 +51,10 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDatabase());
 
-        MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDatabase());
+        // Some tests assume read from the primary
+        MongoDatabase db = mongoConnection.getDatabase()
+                .withReadPreference(ReadPreference.primary());
+        MongoBlobStore blobStore = new MongoBlobStore(db);
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;

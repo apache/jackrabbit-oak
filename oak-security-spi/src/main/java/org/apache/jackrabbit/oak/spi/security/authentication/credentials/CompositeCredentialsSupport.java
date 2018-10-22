@@ -21,14 +21,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Maps.newHashMap;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Composite implementation of the
@@ -37,19 +38,19 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public final class CompositeCredentialsSupport implements CredentialsSupport {
 
-    @Nonnull
+    @NotNull
     private final Supplier<Collection<CredentialsSupport>> credentialSupplier;
 
-    private CompositeCredentialsSupport(@Nonnull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
+    private CompositeCredentialsSupport(@NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
         this.credentialSupplier = credentialSupplier;
     }
 
-    public static CredentialsSupport newInstance(@Nonnull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
+    public static CredentialsSupport newInstance(@NotNull Supplier<Collection<CredentialsSupport>> credentialSupplier) {
         return new CompositeCredentialsSupport(credentialSupplier);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<Class> getCredentialClasses() {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         if (all.isEmpty()) {
@@ -66,8 +67,8 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    @CheckForNull
-    public String getUserId(@Nonnull Credentials credentials) {
+    @Nullable
+    public String getUserId(@NotNull Credentials credentials) {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         for (CredentialsSupport c : all) {
             String userId = c.getUserId(credentials);
@@ -79,8 +80,8 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    @Nonnull
-    public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
+    @NotNull
+    public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         if (all.isEmpty()) {
             return ImmutableMap.of();
@@ -96,7 +97,7 @@ public final class CompositeCredentialsSupport implements CredentialsSupport {
     }
 
     @Override
-    public boolean setAttributes(@Nonnull Credentials credentials, @Nonnull Map<String, ?> attributes) {
+    public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
         boolean set = false;
         Collection<CredentialsSupport> all = this.credentialSupplier.get();
         for (CredentialsSupport c : all) {

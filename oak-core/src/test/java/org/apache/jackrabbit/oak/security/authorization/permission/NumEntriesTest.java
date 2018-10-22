@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -43,9 +41,7 @@ public class NumEntriesTest {
     @Test
     public void testValueOfNotExactZero() {
         NumEntries ne = NumEntries.valueOf(0, false);
-        assertNotSame(NumEntries.ZERO, ne);
-        assertFalse(ne.isExact);
-        assertEquals(0, ne.size);
+        assertSame(NumEntries.ZERO, ne);
     }
 
     @Test

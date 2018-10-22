@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.session;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,9 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,6 +40,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -66,10 +65,12 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +106,7 @@ public class SessionContext implements NamePathMapper {
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
+    private BlobAccessProvider blobAccessProvider;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
     private final Set<String> openScopedLocks = newTreeSet();
@@ -115,21 +117,22 @@ public class SessionContext implements NamePathMapper {
     private final boolean fastQueryResultSize;
 
     public SessionContext(
-             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
-             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
-             @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
+             @NotNull Repository repository, @NotNull StatisticManager statisticManager,
+             @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
+             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
              int observationQueueLength, CommitRateLimiter commitRateLimiter) {
         
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
-            observationQueueLength, commitRateLimiter, null, false);
+            observationQueueLength, commitRateLimiter, null, null, false);
     }
 
     public SessionContext(
-            @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
-            @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
-            @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
+            @NotNull Repository repository, @NotNull StatisticManager statisticManager,
+            @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
+            @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
-            MountInfoProvider mountInfoProvider, boolean fastQueryResultSize) {
+            MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
+            boolean fastQueryResultSize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -139,13 +142,14 @@ public class SessionContext implements NamePathMapper {
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
+        this.blobAccessProvider = blobAccessProvider == null ? DEFAULT_BLOB_ACCESS_PROVIDER : blobAccessProvider;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
         this.namePathMapper = new NamePathMapperImpl(
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
-                delegate.getRoot(), namePathMapper);
+                delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.fastQueryResultSize = fastQueryResultSize;
     }
 
@@ -189,32 +193,32 @@ public class SessionContext implements NamePathMapper {
         return new WorkspaceImpl(this);
     }
 
-    @Nonnull
+    @NotNull
     public StatisticManager getStatisticManager() {
         return statisticManager;
     }
 
-    @Nonnull
+    @NotNull
     public MeterStats getMeter(Type type){
         return statisticManager.getMeter(type);
     }
 
-    @Nonnull
+    @NotNull
     public TimerStats getTimer(Type type) {
         return statisticManager.getTimer(type);
     }
 
-    @Nonnull
+    @NotNull
     public CounterStats getCount(Type type) {
         return statisticManager.getStatsCounter(type);
     }
 
-    @Nonnull
+    @NotNull
     public Repository getRepository() {
         return repository;
     }
 
-    @Nonnull
+    @NotNull
     public SessionDelegate getSessionDelegate() {
         return delegate;
     }
@@ -224,7 +228,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Map<String, String> getSessionLocalMappings() {
         return getNamespaces().getSessionLocalMappings();
     }
@@ -233,7 +237,7 @@ public class SessionContext implements NamePathMapper {
         return valueFactory;
     }
 
-    @Nonnull
+    @NotNull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
             AccessControlManager acm = getConfig(AuthorizationConfiguration.class)
@@ -248,7 +252,7 @@ public class SessionContext implements NamePathMapper {
         return accessControlManager;
     }
 
-    @Nonnull
+    @NotNull
     public PrincipalManager getPrincipalManager() {
         if (principalManager == null) {
             principalManager = new PrincipalManagerDelegator(delegate,
@@ -258,7 +262,7 @@ public class SessionContext implements NamePathMapper {
         return principalManager;
     }
 
-    @Nonnull
+    @NotNull
     public UserManager getUserManager() {
         if (userManager == null) {
             userManager = new UserManagerDelegator(delegate, getConfig(UserConfiguration.class)
@@ -267,7 +271,7 @@ public class SessionContext implements NamePathMapper {
         return userManager;
     }
 
-    @Nonnull
+    @NotNull
     public PrivilegeManager getPrivilegeManager() {
         if (privilegeManager == null) {
             privilegeManager = new PrivilegeManagerDelegator(delegate,
@@ -277,7 +281,7 @@ public class SessionContext implements NamePathMapper {
         return privilegeManager;
     }
 
-    @Nonnull
+    @NotNull
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // TODO: take non-security related importers into account as well (proper configuration)
         List<ProtectedItemImporter> importers = new ArrayList<ProtectedItemImporter>();
@@ -288,7 +292,7 @@ public class SessionContext implements NamePathMapper {
     }
 
 
-    @Nonnull
+    @NotNull
     public ObservationManager getObservationManager() throws UnsupportedRepositoryOperationException {
         if (observationManager == null) {
             observationManager = new ObservationManagerImpl(
@@ -297,6 +301,11 @@ public class SessionContext implements NamePathMapper {
                 whiteboard, observationQueueLength, commitRateLimiter);
         }
         return observationManager;
+    }
+
+    @NotNull
+    public BlobAccessProvider getBlobAccessProvider() {
+        return blobAccessProvider;
     }
 
     public boolean hasEventListeners(){
@@ -329,31 +338,31 @@ public class SessionContext implements NamePathMapper {
     //-----------------------------------------------------< NamePathMapper >---
 
     @Override
-    @Nonnull
-    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+    @NotNull
+    public String getOakName(@NotNull String jcrName) throws RepositoryException {
         return namePathMapper.getOakName(jcrName);
     }
 
     @Override
-    @CheckForNull
-    public String getOakNameOrNull(@Nonnull String jcrName) {
+    @Nullable
+    public String getOakNameOrNull(@NotNull String jcrName) {
         return namePathMapper.getOakNameOrNull(jcrName);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String getJcrName(@Nonnull String oakName) {
+    public String getJcrName(@NotNull String oakName) {
         return namePathMapper.getJcrName(oakName);
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public String getOakPath(String jcrPath) {
         return namePathMapper.getOakPath(jcrPath);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getJcrPath(String oakPath) {
         return namePathMapper.getJcrPath(oakPath);
     }
@@ -366,7 +375,7 @@ public class SessionContext implements NamePathMapper {
      * @return Oak path
      * @throws javax.jcr.RepositoryException if the path can not be mapped
      */
-    @Nonnull
+    @NotNull
     public String getOakPathOrThrow(String jcrPath) throws RepositoryException {
         String oakPath = getOakPath(jcrPath);
         if (oakPath != null) {
@@ -384,7 +393,7 @@ public class SessionContext implements NamePathMapper {
      * @return Oak path
      * @throws javax.jcr.PathNotFoundException if the path can not be mapped
      */
-    @Nonnull
+    @NotNull
     public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
         String oakPath = getOakPath(jcrPath);
         if (oakPath != null) {
@@ -394,7 +403,7 @@ public class SessionContext implements NamePathMapper {
         }
     }
 
-    @Nonnull
+    @NotNull
     public AccessManager getAccessManager() throws RepositoryException {
         if (accessManager == null) {
             accessManager = new AccessManager(delegate, delegate.getPermissionProvider());
@@ -402,7 +411,7 @@ public class SessionContext implements NamePathMapper {
         return accessManager;
     }
 
-    @Nonnull
+    @NotNull
     public SecurityProvider getSecurityProvider() {
         return securityProvider;
     }
@@ -448,7 +457,7 @@ public class SessionContext implements NamePathMapper {
         });
     }
 
-    @Nonnull
+    @NotNull
     private <T> T getConfig(Class<T> clss) {
         return securityProvider.getConfiguration(clss);
     }

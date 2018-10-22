@@ -18,19 +18,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 
 public class DoublePropertyState extends SinglePropertyState<Double> {
     private final double value;
 
-    public DoublePropertyState(@Nonnull String name, double value) {
+    public DoublePropertyState(@NotNull String name, double value) {
         super(name);
         this.value = value;
     }
@@ -42,7 +41,7 @@ public class DoublePropertyState extends SinglePropertyState<Double> {
      * @return  The new property state of type {@link Type#DOUBLE}
      */
     public static PropertyState doubleProperty(
-            @Nonnull String name, double value) {
+            @NotNull String name, double value) {
         return new DoublePropertyState(name, value);
     }
 

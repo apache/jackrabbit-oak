@@ -22,8 +22,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.base.Predicate;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides constants for permissions used in the OAK access evaluation as well
@@ -362,8 +362,8 @@ public final class Permissions {
      * @throws IllegalArgumentException If the string contains unknown actions
      * or permission names.
      */
-    public static long getPermissions(@Nonnull String jcrActions,
-                                      @Nonnull TreeLocation location,
+    public static long getPermissions(@NotNull String jcrActions,
+                                      @NotNull TreeLocation location,
                                       boolean isAccessControlContent) {
         Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
@@ -442,7 +442,7 @@ public final class Permissions {
         }
     }
 
-    private static long getPermissions(@Nonnull Set<String> permissionNames) {
+    private static long getPermissions(@NotNull Set<String> permissionNames) {
         long permissions = NO_PERMISSION;
         Iterator<String> it = permissionNames.iterator();
         while (it.hasNext()) {

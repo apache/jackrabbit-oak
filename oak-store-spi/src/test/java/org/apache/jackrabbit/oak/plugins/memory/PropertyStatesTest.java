@@ -27,7 +27,7 @@ import javax.jcr.Value;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,11 +37,12 @@ import static org.junit.Assert.assertEquals;
 public class PropertyStatesTest {
 
     private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
+    private final PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
 
     @Test
     public void namePropertyFromNameValue() throws RepositoryException {
         PropertyState nameProperty = PropertyStates.createProperty("name", "oak-prefix:value", PropertyType.NAME);
-        Value nameValue = ValueFactoryImpl.createValue(nameProperty, namePathMapper);
+        Value nameValue = valueFactory.createValue(nameProperty);
         PropertyState namePropertyFromValue = PropertyStates.createProperty("name", nameValue);
         assertEquals(nameProperty, namePropertyFromValue);
     }
@@ -49,7 +50,7 @@ public class PropertyStatesTest {
     @Test
     public void pathPropertyFromPathValue() throws RepositoryException {
         PropertyState pathProperty = PropertyStates.createProperty("path", "oak-prefix:a/oak-prefix:b", PropertyType.PATH);
-        Value nameValue = ValueFactoryImpl.createValue(pathProperty, namePathMapper);
+        Value nameValue = valueFactory.createValue(pathProperty);
         PropertyState namePropertyFromValue = PropertyStates.createProperty("path", nameValue);
         assertEquals(pathProperty, namePropertyFromValue);
     }

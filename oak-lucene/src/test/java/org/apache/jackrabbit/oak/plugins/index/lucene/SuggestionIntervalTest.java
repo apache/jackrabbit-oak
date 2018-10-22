@@ -16,8 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.Sets;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.jcr.query.Query;
+
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -25,7 +37,9 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -34,17 +48,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.jcr.query.Query;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import com.google.common.collect.Sets;
 
 public class SuggestionIntervalTest extends AbstractQueryTest {
 
@@ -55,12 +59,12 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
 
         ContentRepository repository = new Oak()
-                .with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with((QueryIndexProvider) provider)
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider())
-                .createContentRepository();
+            .with(new InitialContent())
+            .with(new OpenSecurityProvider())
+            .with((QueryIndexProvider) provider)
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider())
+            .createContentRepository();
 
         clock = new Clock.Virtual();
         try {
@@ -79,24 +83,24 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
     }
 
     private Tree createSuggestIndex(String indexedNodeType)
-            throws Exception {
+        throws Exception {
         String indexName = "lucene-suggest";
         Tree def = root.getTree("/" + INDEX_DEFINITIONS_NAME)
-                .addChild(indexName);
+            .addChild(indexName);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", indexName);
-        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
-        Tree propertyIdxDef = def.addChild(INDEX_RULES)
-                .addChild(indexedNodeType)
-                .addChild(LuceneIndexConstants.PROP_NODE)
-                .addChild("indexedProperty");
+        Tree propertyIdxDef = def.addChild(FulltextIndexConstants.INDEX_RULES)
+            .addChild(indexedNodeType)
+            .addChild(FulltextIndexConstants.PROP_NODE)
+            .addChild("indexedProperty");
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
-        propertyIdxDef.setProperty("name", LuceneIndexConstants.PROPDEF_PROP_NODE_NAME);
+        propertyIdxDef.setProperty("name", FulltextIndexConstants.PROPDEF_PROP_NODE_NAME);
 
         return def;
     }
@@ -134,7 +138,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //add a node... this should kick in a suggestions udpate too as enough time has passed
         root.getTree("/").addChild("indexedNode")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+            .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
         root.commit();
 
         Set<String> suggestions = getSuggestions(nodeType, "indexedn");
@@ -156,7 +160,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //add a node that get part in the index
         root.getTree("/").addChild("indexedNode")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+            .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
         root.commit();
 
         //wait for suggestions refresh time
@@ -165,7 +169,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
 
         //push a change which should not make any change in the index but yet should help update suggestions
         root.getTree("/").addChild("some-non-index-change")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured", Type.NAME);
+            .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured", Type.NAME);
         root.commit();
 
         Set<String> suggestions = getSuggestions(nodeType, "indexedn");
@@ -182,7 +186,7 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         //initial content which also updates suggestions with "indexedNode"
         Tree indexDef = createSuggestIndex(nodeType);
         root.getTree("/").addChild("indexedNode")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+            .setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
         root.commit();
         String suggUpdateTime1 = getSuggestionLastUpdated(indexDef);
 
@@ -198,13 +202,13 @@ public class SuggestionIntervalTest extends AbstractQueryTest {
         //push a change which should not make any change in the index but would kick in suggestion logic
         //YET, suggestion logic shouldn't do any change
         root.getTree("/").addChild("some-non-index-change")
-                .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
+            .setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
         root.commit();
 
         String suggUpdateTime2 = getSuggestionLastUpdated(indexDef);
 
         assertEquals("Suggestions shouldn't rebuild un-necessarily. Update times are different",
-                suggUpdateTime1, suggUpdateTime2);
+            suggUpdateTime1, suggUpdateTime2);
     }
 
     private String getSuggestionLastUpdated(Tree indexDef) {

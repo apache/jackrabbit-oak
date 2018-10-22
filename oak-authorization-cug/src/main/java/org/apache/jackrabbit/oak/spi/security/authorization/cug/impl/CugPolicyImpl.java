@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Strings;
@@ -31,6 +29,8 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +49,14 @@ class CugPolicyImpl implements CugPolicy {
 
     private final Set<Principal> principals = new HashSet<>();
 
-    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
-                  @Nonnull PrincipalManager principalManager, int importBehavior) {
+    CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
+                  @NotNull PrincipalManager principalManager, int importBehavior) {
         this(oakPath, namePathMapper, principalManager, importBehavior, Collections.<Principal>emptySet());
     }
 
-    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
-                  @Nonnull PrincipalManager principalManager, int importBehavior,
-                  @Nonnull Set<Principal> principals) {
+    CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
+                  @NotNull PrincipalManager principalManager, int importBehavior,
+                  @NotNull Set<Principal> principals) {
         ImportBehavior.nameFromValue(importBehavior);
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
@@ -65,14 +65,14 @@ class CugPolicyImpl implements CugPolicy {
         this.principals.addAll(principals);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<Principal> getPrincipals() {
         return Sets.newHashSet(principals);
     }
 
     @Override
-    public boolean addPrincipals(@Nonnull Principal... principals) throws AccessControlException {
+    public boolean addPrincipals(@NotNull Principal... principals) throws AccessControlException {
         boolean modified = false;
         for (Principal principal : principals) {
             if (isValidPrincipal(principal)) {
@@ -83,7 +83,7 @@ class CugPolicyImpl implements CugPolicy {
     }
 
     @Override
-    public boolean removePrincipals(@Nonnull Principal... principals) {
+    public boolean removePrincipals(@NotNull Principal... principals) {
         boolean modified = false;
         for (Principal principal : principals) {
             if (principal != null) {
@@ -117,7 +117,7 @@ class CugPolicyImpl implements CugPolicy {
      * if {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior#ABORT} is
      * configured and this principal is not known to the repository.
      */
-    private boolean isValidPrincipal(@CheckForNull Principal principal) throws AccessControlException {
+    private boolean isValidPrincipal(@Nullable Principal principal) throws AccessControlException {
         if (principal == null) {
             log.debug("Ignoring null principal.");
             return false;

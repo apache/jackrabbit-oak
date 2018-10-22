@@ -21,13 +21,12 @@ package org.apache.jackrabbit.oak.segment.file.proc;
 
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 abstract class AbstractNode extends AbstractNodeState {
 
@@ -37,29 +36,29 @@ abstract class AbstractNode extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return NodeUtils.hasChildNode(getChildNodeEntries(), name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         return NodeUtils.getChildNode(getChildNodeEntries(), name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         throw new UnsupportedOperationException();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Collections.emptyList();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return Collections.emptyList();

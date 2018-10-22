@@ -35,9 +35,6 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -48,6 +45,8 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * In-memory node state builder.
@@ -117,7 +116,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * The base state of this builder, possibly non-existent if this builder
      * represents a new node that didn't yet exist in the base content tree.
      */
-    @Nonnull
+    @NotNull
     private NodeState base;
 
     /**
@@ -151,7 +150,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * and based on the passed {@code base} state.
      * @param base base state of the new builder
      */
-    public MemoryNodeBuilder(@Nonnull NodeState base) {
+    public MemoryNodeBuilder(@NotNull NodeState base) {
         this.parent = null;
         this.name = null;
         this.rootBuilder = this;
@@ -183,7 +182,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * from its parent builder.
      * @return  base state of this builder
      */
-    @Nonnull
+    @NotNull
     private NodeState base() {
         if (rootBuilder.baseRevision != baseRevision) {
             base = parent.base().getChildNode(name);
@@ -235,7 +234,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *
      * @param newBase new base state
      */
-    public void reset(@Nonnull NodeState newBase) {
+    public void reset(@NotNull NodeState newBase) {
         checkState(parent == null);
         base = checkNotNull(newBase);
         baseRevision = rootHead.setState(newBase) + 1;
@@ -258,12 +257,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     //--------------------------------------------------------< NodeBuilder >---
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getNodeState() {
         return head().getImmutableNodeState();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getBaseState() {
         return base();
     }
@@ -303,20 +302,20 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getChildNodeCount(max);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
         return head().getCurrentNodeState().getChildNodeNames();
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return head().getCurrentNodeState().hasChildNode(checkNotNull(name));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder child(@Nonnull String name) {
+    public NodeBuilder child(@NotNull String name) {
         if (hasChildNode(name)) {
             return getChildNode(name);
         } else {
@@ -324,22 +323,22 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder getChildNode(@Nonnull String name) {
+    public NodeBuilder getChildNode(@NotNull String name) {
         checkValidName(name);
         return createChildBuilder(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setChildNode(@Nonnull String name) {
+    public NodeBuilder setChildNode(@NotNull String name) {
         return setChildNode(name, EMPTY_NODE);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState state) {
+    public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState state) {
         checkState(exists(), "This builder does not exist: " + this.name);
         head().getMutableNodeState().setChildNode(name, checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
@@ -376,7 +375,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *                                  or contains the forward slash character
      */
     @Override
-    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName)
+    public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName)
             throws IllegalArgumentException {
         checkNotNull(newParent);
         checkValidName(newName);
@@ -464,7 +463,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return head().getCurrentNodeState().getPropertyCount();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return head().getCurrentNodeState().getProperties();
@@ -481,49 +480,49 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return head().getCurrentNodeState().getBoolean(checkNotNull(name));
     }
 
-    @Override @CheckForNull
-    public String getString(@Nonnull String name) {
+    @Override @Nullable
+    public String getString(@NotNull String name) {
         return head().getCurrentNodeState().getString(checkNotNull(name));
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
+    @Override @Nullable
+    public String getName(@NotNull String name) {
         return head().getCurrentNodeState().getName(checkNotNull(name));
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getNames(@NotNull String name) {
         return head().getCurrentNodeState().getNames(checkNotNull(name));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setProperty(@Nonnull PropertyState property) {
+    public NodeBuilder setProperty(@NotNull PropertyState property) {
         checkState(exists(), "This builder does not exist: " + name);
         head().getMutableNodeState().setProperty(checkNotNull(property));
         updated();
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> NodeBuilder setProperty(String name, @Nonnull T value) {
+    public <T> NodeBuilder setProperty(String name, @NotNull T value) {
         setProperty(PropertyStates.createProperty(name, value));
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type) {
+    public <T> NodeBuilder setProperty(String name, @NotNull T value, Type<T> type) {
         setProperty(PropertyStates.createProperty(name, value, type));
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder removeProperty(String name) {
         checkState(exists(), "This builder does not exist: " + name);

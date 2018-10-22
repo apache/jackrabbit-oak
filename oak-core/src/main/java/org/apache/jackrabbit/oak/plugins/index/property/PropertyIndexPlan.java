@@ -27,9 +27,11 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -39,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -47,6 +51,8 @@ import com.google.common.collect.Lists;
  * Plan for querying a given property index using a given filter.
  */
 public class PropertyIndexPlan {
+    
+    static final Logger LOG = LoggerFactory.getLogger(PropertyIndexPlan.class);
 
     /**
      * The cost overhead to use the index in number of read operations.
@@ -82,6 +88,8 @@ public class PropertyIndexPlan {
 
     private final boolean unique;
     
+    private final boolean deprecated;
+    
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -100,6 +108,7 @@ public class PropertyIndexPlan {
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
         // if there is no such property, then all nodetypes are matched
         this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
+        this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
         this.matchesNodeTypes =
                 matchesAllTypes || any(types, in(filter.getSupertypes()));
 
@@ -198,6 +207,10 @@ public class PropertyIndexPlan {
     }
 
     Cursor execute() {
+        if (deprecated) {
+            LOG.warn("This index is deprecated: {}; it is used for query {}. " + 
+                    "Please change the query or the index definitions.", name, filter);
+        }
         QueryLimits settings = filter.getQueryLimits();
         List<Iterable<String>> iterables = Lists.newArrayList();
         for (IndexStoreStrategy s : strategies) {

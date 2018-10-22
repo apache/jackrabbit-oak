@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import org.apache.jackrabbit.oak.api.jmx.Description;
 import org.apache.jackrabbit.oak.api.jmx.Name;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
@@ -68,7 +68,7 @@ public interface BlobGCMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull
+    @NotNull
     CompositeData getBlobGCStatus();
     
     /**
@@ -77,7 +77,14 @@ public interface BlobGCMBean {
      * @return List of available repositories and their status
      */
     TabularData getGlobalMarkStats();
-    
+
+    /**
+     * Show details of the data Store garbage collection invocations.
+     *
+     * @return Data about all the previous gc invocations
+     */
+    TabularData getOperationStats();
+
     /**
      * Data Store consistency check
      * 
@@ -91,6 +98,6 @@ public interface BlobGCMBean {
      * @return the status of the ongoing operation or if none the terminal
      * status of the last operation or <em>Status not available</em> if none.
      */
-    @Nonnull 
+    @NotNull 
     CompositeData getConsistencyCheckStatus();
 }

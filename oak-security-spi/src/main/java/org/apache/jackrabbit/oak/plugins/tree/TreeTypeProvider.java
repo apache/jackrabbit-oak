@@ -16,22 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
 
 public final class TreeTypeProvider {
 
     private final TreeContext ctx;
 
-    public TreeTypeProvider(@Nonnull TreeContext authorizationContext) {
+    public TreeTypeProvider(@NotNull TreeContext authorizationContext) {
         this.ctx = authorizationContext;
     }
 
-    public TreeType getType(@Nonnull Tree tree) {
+    public TreeType getType(@NotNull Tree tree) {
         if (tree.isRoot()) {
             return TreeType.DEFAULT;
         } else {
@@ -49,7 +48,7 @@ public final class TreeTypeProvider {
         }
     }
 
-    public TreeType getType(@Nonnull Tree tree, @Nonnull TreeType parentType) {
+    public TreeType getType(@NotNull Tree tree, @NotNull TreeType parentType) {
         if (tree.isRoot()) {
             return TreeType.DEFAULT;
         }
@@ -67,7 +66,7 @@ public final class TreeTypeProvider {
         return type;
     }
 
-    private TreeType internalGetType(@Nonnull Tree tree) {
+    private TreeType internalGetType(@NotNull Tree tree) {
         Tree t = tree;
         while (!t.isRoot()) {
             TreeType type = internalGetType(t.getName(), t);
@@ -80,7 +79,7 @@ public final class TreeTypeProvider {
         return TreeType.DEFAULT;
     }
 
-    private TreeType internalGetType(@Nonnull Tree tree, @Nonnull TreeType parentType) {
+    private TreeType internalGetType(@NotNull Tree tree, @NotNull TreeType parentType) {
         TreeType type;
         switch (parentType) {
             case HIDDEN:
@@ -101,7 +100,7 @@ public final class TreeTypeProvider {
         return type;
     }
 
-    private TreeType internalGetType(@Nonnull String name, @Nonnull Tree tree) {
+    private TreeType internalGetType(@NotNull String name, @NotNull Tree tree) {
         TreeType type;
         if (NodeStateUtils.isHidden(name)) {
             type = TreeType.HIDDEN;

@@ -23,9 +23,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.io.Closer;
+
+import org.jetbrains.annotations.NotNull;
 
 public class CloseableIterable<T> implements Iterable<T>, Closeable {
     private final Iterable<T> iterable;
@@ -51,7 +51,7 @@ public class CloseableIterable<T> implements Iterable<T>, Closeable {
         closer.close();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<T> iterator() {
         Iterator<T> it = iterable.iterator();

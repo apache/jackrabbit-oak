@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static junit.framework.Assert.assertTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashSet;
@@ -30,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test the BlobReferenceIterator.

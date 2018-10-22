@@ -17,14 +17,13 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,17 +40,17 @@ class NodeTypePattern implements RestrictionPattern {
 
     private final Set<String> nodeTypeNames;
 
-    NodeTypePattern(@Nonnull Iterable<String> nodeTypeNames) {
+    NodeTypePattern(@NotNull Iterable<String> nodeTypeNames) {
         this.nodeTypeNames = ImmutableSet.copyOf(nodeTypeNames);
     }
 
     @Override
-    public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+    public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
         return nodeTypeNames.contains(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
-    public boolean matches(@Nonnull String path) {
+    public boolean matches(@NotNull String path) {
         log.debug("Unable to validate node type restriction.");
         return false;
     }

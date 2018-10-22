@@ -26,8 +26,6 @@ import java.io.StringWriter;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -60,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -68,7 +67,7 @@ import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
@@ -452,8 +451,8 @@ public class IndexImporterTest {
         ClusterNodeStoreLock lock = new ClusterNodeStoreLock(store);
         provider = new PropertyIndexEditorProvider() {
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                         @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                 throw new RuntimeException(exceptionMessage);
             }
         };

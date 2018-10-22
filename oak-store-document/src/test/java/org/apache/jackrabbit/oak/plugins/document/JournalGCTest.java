@@ -124,6 +124,7 @@ public class JournalGCTest {
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setDocumentStore(docStore).setUpdateLimit(100)
                 .setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1))
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .clock(c).setAsyncDelay(0).getNodeStore();
 
         NodeBuilder builder = ns.getRoot().builder();

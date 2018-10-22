@@ -31,13 +31,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A map. The top level record is either a record of type "BRANCH" or "LEAF"
@@ -53,7 +52,7 @@ public class MapRecord extends Record {
     private static final int A = 0xB;
     static final long HASH_MASK = 0xFFFFFFFFL;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     /**
@@ -98,7 +97,7 @@ public class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
-    MapRecord(@Nonnull SegmentReader reader, @Nonnull RecordId id) {
+    MapRecord(@NotNull SegmentReader reader, @NotNull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
     }
@@ -307,7 +306,7 @@ public class MapRecord extends Record {
                     newArrayListWithCapacity(buckets.size());
             for (final MapRecord bucket : buckets) {
                 keys.add(new Iterable<String>() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterator<String> iterator() {
                         return bucket.getKeys().iterator();
@@ -357,7 +356,7 @@ public class MapRecord extends Record {
                     newArrayListWithCapacity(buckets.size());
             for (final MapRecord bucket : buckets) {
                 entries.add(new Iterable<MapEntry>() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public Iterator<MapEntry> iterator() {
                         return bucket.getEntries(diffKey, diffValue).iterator();

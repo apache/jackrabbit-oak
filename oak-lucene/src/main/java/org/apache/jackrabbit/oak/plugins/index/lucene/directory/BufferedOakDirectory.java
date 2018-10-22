@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Set;
+
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -27,16 +33,10 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
 import org.apache.lucene.store.LockFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
@@ -88,7 +88,7 @@ public final class BufferedOakDirectory extends Directory {
 
     private final String dataNodeName;
 
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
 
     private final OakDirectory base;
 
@@ -101,18 +101,18 @@ public final class BufferedOakDirectory extends Directory {
     private int deleteCount;
 
 
-    public BufferedOakDirectory(@Nonnull NodeBuilder builder,
-                                @Nonnull String dataNodeName,
-                                @Nonnull IndexDefinition definition,
+    public BufferedOakDirectory(@NotNull NodeBuilder builder,
+                                @NotNull String dataNodeName,
+                                @NotNull LuceneIndexDefinition definition,
                                 @Nullable BlobStore blobStore) {
         this(builder, dataNodeName, definition, blobStore, BlobDeletionCallback.NOOP);
     }
 
-    public BufferedOakDirectory(@Nonnull NodeBuilder builder,
-                                @Nonnull String dataNodeName,
-                                @Nonnull IndexDefinition definition,
+    public BufferedOakDirectory(@NotNull NodeBuilder builder,
+                                @NotNull String dataNodeName,
+                                @NotNull LuceneIndexDefinition definition,
                                 @Nullable BlobStore blobStore,
-                                @Nonnull BlobDeletionCallback blobDeletionCallback) {
+                                @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
         this.blobFactory = blobStore != null ?
                 BlobFactory.getBlobStoreBlobFactory(blobStore) :
                 BlobFactory.getNodeBuilderBlobFactory(builder);

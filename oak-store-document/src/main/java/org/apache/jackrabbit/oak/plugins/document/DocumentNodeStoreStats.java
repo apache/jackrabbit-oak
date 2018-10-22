@@ -36,6 +36,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String BGR_TOTAL_TIME = "DOCUMENT_NS_BGR_TOTAL_TIME";
     static final String BGR_NUM_CHANGES_RATE = "DOCUMENT_NS_BGR_NUM_CHANGES_RATE";
     private static final String BGR_NUM_CHANGES_HISTO = "DOCUMENT_NS_BGR_NUM_CHANGES_HISTO";
+    static final String BGR_LAG = "DOCUMENT_NS_BGR_LAG";
 
     private static final String BGW_CLEAN = "DOCUMENT_NS_BGW_CLEAN";
     private static final String BGW_SPLIT = "DOCUMENT_NS_BGW_SPLIT";
@@ -44,6 +45,8 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     static final String BGW_NUM = "DOCUMENT_NS_BGW_NUM";
     static final String BGW_NUM_WRITES_RATE = "DOCUMENT_NS_BGW_NUM_WRITE_RATE";
     private static final String BGW_TOTAL = "DOCUMENT_NS_BGW_TOTAL_TIME";
+
+    static final String LEASE_UPDATE = "DOCUMENT_NS_LEASE_UPDATE";
 
     private static final String MERGE_SUCCESS_NUM_RETRY = "DOCUMENT_NS_MERGE_SUCCESS_RETRY";
     static final String MERGE_SUCCESS_COUNT = "DOCUMENT_NS_MERGE_SUCCESS_COUNT";
@@ -55,6 +58,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     static final String BRANCH_COMMIT_COUNT = "DOCUMENT_NS_BRANCH_COMMIT_COUNT";
     static final String MERGE_BRANCH_COMMIT_COUNT = "DOCUMENT_NS_MERGE_BRANCH_COMMIT_COUNT";
 
+    // background read
     private final TimerStats readHead;
     private final TimerStats readCacheInvalidate;
     private final TimerStats readDiffCache;
@@ -63,7 +67,9 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final TimerStats readTotalTime;
     private final MeterStats numChangesRate;
     private final HistogramStats numChangesHisto;
+    private final MeterStats changesLag;
 
+    // background update
     private final TimerStats writeClean;
     private final TimerStats writeSplit;
     private final TimerStats writeSweep;
@@ -72,6 +78,10 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final TimerStats writeTotal;
     private final MeterStats numWritesRate;
 
+    // lease update
+    private final TimerStats leaseUpdate;
+
+    // merge stats
     private final HistogramStats mergeSuccessRetries;
     private final MeterStats mergeSuccessRate;
     private final TimerStats mergeSuccessTime;
@@ -79,6 +89,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final MeterStats mergeSuccessSuspended;
     private final MeterStats mergeFailedExclusive;
 
+    // branch stats
     private final MeterStats branchCommitRate;
     private final MeterStats mergeBranchCommitRate;
 
@@ -92,6 +103,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         readTotalTime = sp.getTimer(BGR_TOTAL_TIME, StatsOptions.METRICS_ONLY);
         numChangesRate = sp.getMeter(BGR_NUM_CHANGES_RATE, StatsOptions.DEFAULT); //Enable time series
         numChangesHisto = sp.getHistogram(BGR_NUM_CHANGES_HISTO, StatsOptions.METRICS_ONLY);
+        changesLag = sp.getMeter(BGR_LAG, StatsOptions.METRICS_ONLY);
 
         writeClean = sp.getTimer(BGW_CLEAN, StatsOptions.METRICS_ONLY);
         writeSplit = sp.getTimer(BGW_SPLIT, StatsOptions.METRICS_ONLY);
@@ -100,6 +112,8 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         writeTotal = sp.getTimer(BGW_TOTAL, StatsOptions.METRICS_ONLY);
         writeNum = sp.getHistogram(BGW_NUM, StatsOptions.METRICS_ONLY);
         numWritesRate = sp.getMeter(BGW_NUM_WRITES_RATE, StatsOptions.DEFAULT); //Enable time series
+
+        leaseUpdate = sp.getTimer(LEASE_UPDATE, StatsOptions.METRICS_ONLY);
 
         mergeSuccessRetries = sp.getHistogram(MERGE_SUCCESS_NUM_RETRY, StatsOptions.METRICS_ONLY);
         mergeSuccessRate = sp.getMeter(MERGE_SUCCESS_COUNT, StatsOptions.DEFAULT); //Enable time series
@@ -124,6 +138,9 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         //Record rate of num of external changes pulled per second
         numChangesRate.mark(stats.numExternalChanges);
         numChangesHisto.update(stats.numExternalChanges);
+
+        // update lag of external changes
+        changesLag.mark(stats.externalChangesLag);
     }
 
     @Override
@@ -138,6 +155,11 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
 
         //Record rate of num of bg writes pushed per second
         numWritesRate.mark(stats.num);
+    }
+
+    @Override
+    public void doneLeaseUpdate(long timeMicros) {
+        leaseUpdate.update(timeMicros, TimeUnit.MICROSECONDS);
     }
 
     @Override
@@ -166,7 +188,7 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
-    public void failedMerge(int numRetries, long time, boolean suspended, boolean exclusive) {
+    public void failedMerge(int numRetries, long timeMillis, boolean suspended, boolean exclusive) {
         if (exclusive){
             mergeFailedExclusive.mark();
         }

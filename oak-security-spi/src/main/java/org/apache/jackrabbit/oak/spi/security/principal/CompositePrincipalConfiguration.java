@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link PrincipalConfiguration} that combines different principal provider
@@ -36,17 +35,17 @@ public class CompositePrincipalConfiguration extends CompositeConfiguration<Prin
         super(PrincipalConfiguration.NAME);
     }
 
-    public CompositePrincipalConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public CompositePrincipalConfiguration(@NotNull SecurityProvider securityProvider) {
         super(PrincipalConfiguration.NAME, securityProvider);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
         return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalProvider getPrincipalProvider(final Root root, final NamePathMapper namePathMapper) {
         List<PrincipalConfiguration> configurations = getConfigurations();

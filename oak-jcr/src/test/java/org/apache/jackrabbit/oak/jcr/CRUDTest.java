@@ -67,6 +67,31 @@ public class CRUDTest extends AbstractRepositoryTest {
         assertEquals(Arrays.toString(types), 0, types.length);
     }
 
+    // OAK-7652
+    @Test
+    public void testMixinsDescendant() throws Exception {
+        Session session = getAdminSession();
+        String parentName = "parent";
+        String nodeName = "mixintest";
+        String nodeType = "nt:folder";
+        Node mixinTest = session.getRootNode()
+                .addNode(parentName, nodeType)
+                .addNode(nodeName, nodeType);
+        NodeType[] types;
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 0, types.length);
+        mixinTest.addMixin("mix:versionable");
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 1, types.length);
+        session.save();
+        session.getRootNode().getNode(parentName).remove();
+        mixinTest = session.getRootNode()
+                .addNode(parentName, nodeType)
+                .addNode(nodeName, nodeType);
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 0, types.length);
+    }
+
     @Test
     public void testCRUD() throws RepositoryException {
         Session session = getAdminSession();

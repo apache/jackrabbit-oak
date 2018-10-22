@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -36,13 +35,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
-import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
-import org.apache.jackrabbit.oak.spi.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.lock.LockConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -108,13 +108,13 @@ public class WorkspaceDelegate {
         private final Tree destParent;
         private final String destName;
 
-        public WorkspaceCopy(@Nonnull Tree source, @Nonnull Tree destParent, @Nonnull String destName) {
+        public WorkspaceCopy(@NotNull Tree source, @NotNull Tree destParent, @NotNull String destName) {
             this.source = source;
             this.destParent = destParent;
             this.destName = destName;
         }
 
-        public void perform(@Nonnull Root root, @Nonnull String userId) throws RepositoryException {
+        public void perform(@NotNull Root root, @NotNull String userId) throws RepositoryException {
             try {
                 Tree typeRoot = root.getTree(NODE_TYPES_PATH);
                 copy(source, destParent, destName, typeRoot, userId);

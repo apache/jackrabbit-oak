@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.spi.mount;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Refers to a set of paths from a <tt>ContentRepository</tt> that are possibly 
+ * Refers to a set of paths from a {@code ContentRepository}x that are possibly 
  * stored in a separate physical persistent store.
  * 
  * <p>In a default setup all paths belong to a default Mount.</p>
@@ -30,7 +30,7 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface Mount {
     /**
-     * Name of the mount. If this <code>Mount</code>
+     * Name of the mount. If this <code>@Mount</code>
      * is the default mount, an empty string is returned
      */
     String getName();

@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 
 import static java.util.Arrays.asList;
 
@@ -79,12 +79,12 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     private PrivilegeBits getNext() {
         return next;
     }
 
-    @Nonnull
+    @NotNull
     private PrivilegeBits next() {
         PrivilegeBits bits = next;
         next = bits.nextBits();
@@ -140,6 +140,9 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             bits = PrivilegeBits.BUILT_IN.get(name);
         } else if (isAggregate) {
             bits = bitsMgr.getBits(declAggrNames);
+            if (bits.isEmpty()) {
+                throw new RepositoryException("Illegal aggregation of non-exising privileges on '" + name + "'.");
+            }
         } else {
             bits = next();
         }

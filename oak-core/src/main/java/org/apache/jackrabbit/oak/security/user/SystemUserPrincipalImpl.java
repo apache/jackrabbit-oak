@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of the {@code SystemUserPrincipal} for this user management
@@ -28,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
  */
 final class SystemUserPrincipalImpl extends TreeBasedPrincipal implements SystemUserPrincipal {
 
-    SystemUserPrincipalImpl(@Nonnull String principalName, @Nonnull Tree tree, @Nonnull PathMapper pathMapper) {
+    SystemUserPrincipalImpl(@NotNull String principalName, @NotNull Tree tree, @NotNull NamePathMapper pathMapper) {
         super(principalName, tree, pathMapper);
     }
 }

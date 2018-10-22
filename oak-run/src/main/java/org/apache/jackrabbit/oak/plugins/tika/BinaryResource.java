@@ -19,12 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.io.ByteSource;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.Nullable;
 
 class BinaryResource {
     private final ByteSource byteSource;
@@ -49,12 +48,12 @@ class BinaryResource {
         return byteSource;
     }
 
-    @CheckForNull
+    @Nullable
     public String getMimeType() {
         return mimeType;
     }
 
-    @CheckForNull
+    @Nullable
     public String getEncoding() {
         return encoding;
     }

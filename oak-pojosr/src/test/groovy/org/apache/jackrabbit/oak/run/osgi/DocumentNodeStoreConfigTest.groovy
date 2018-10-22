@@ -385,7 +385,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     public void tearDown() {
         super.tearDown()
         if (mongoConn) {
-            MongoUtils.dropCollections(mongoConn.DB)
+            MongoUtils.dropCollections(mongoConn.database)
         }
     }
 
@@ -396,7 +396,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     }
 
     private Collection<String> getCollectionNames() {
-        return mongoConn.DB.getCollectionNames().collect { it.toUpperCase() }
+        return mongoConn.database.listCollectionNames().collect { it.toUpperCase() }
     }
 
     private List<String> getExistingTables(DataSource ds) {

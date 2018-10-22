@@ -35,9 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -52,6 +49,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
@@ -71,6 +69,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
@@ -98,6 +98,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
     private final PermissionProviderFactory permissionProviderFactory;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * Create a new instance based on a {@link ContentSession} that needs to implement
@@ -121,9 +122,10 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         this.statisticManager = sessionContext.getStatisticManager();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.blobAccessProvider = sessionContext.getBlobAccessProvider();
         this.permissionProviderFactory = new PermissionProviderFactory() {
             Set<Principal> principals = sessionDelegate.getAuthInfo().getPrincipals();
-            @Nonnull
+            @NotNull
             @Override
             public PermissionProvider create(Root root) {
                 return authorizationConfig.getPermissionProvider(root,
@@ -162,7 +164,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             // session. See OAK-1368.
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
                     tracker, filterProvider, statisticManager, queueLength,
-                    commitRateLimiter);
+                    commitRateLimiter, blobAccessProvider);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
@@ -438,7 +440,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
      * @throws javax.jcr.RepositoryException     if an error occurs while reading from the
      *                                 node type manager.
      */
-    @CheckForNull
+    @Nullable
     private String[] validateNodeTypeNames(@Nullable String[] nodeTypeNames)
             throws NoSuchNodeTypeException, RepositoryException {
         if (nodeTypeNames == null) {

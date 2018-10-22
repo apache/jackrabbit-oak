@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Test the effect of multiple authorization configurations on the general read
@@ -48,7 +48,7 @@ public class CugOakTest extends CugTest {
     private ContentSession cs;
     private Subject subject;
 
-    protected CugOakTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @Nonnull List<String> supportedPaths, boolean reverseOrder) {
+    protected CugOakTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @NotNull List<String> supportedPaths, boolean reverseOrder) {
         super(runAsAdmin, itemsToRead, singleSession, supportedPaths, reverseOrder);
     }
 

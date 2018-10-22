@@ -21,12 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.lucene.document.Document;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +57,7 @@ class ExternalIndexObserver implements Observer, Filter {
     }
 
     @Override
-    public boolean excludes(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public boolean excludes(@NotNull NodeState root, @NotNull CommitInfo info) {
         //Only interested in external changes
         if (!info.isExternal()) {
             return true;
@@ -85,7 +84,7 @@ class ExternalIndexObserver implements Observer, Filter {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState after, @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState after, @NotNull CommitInfo info) {
         //Only interested in external changes
         if (excludes(after, info)) {
             return;

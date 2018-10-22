@@ -23,9 +23,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +48,7 @@ public class StopwatchLogger implements Closeable {
      * 
      * @param clazz
      */
-    public StopwatchLogger(@Nonnull final String clazz) {
+    public StopwatchLogger(@NotNull final String clazz) {
         this(null, checkNotNull(clazz));
     }
 
@@ -58,7 +57,7 @@ public class StopwatchLogger implements Closeable {
      * 
      * @param clazz
      */
-    public StopwatchLogger(@Nonnull final Class<?> clazz) {
+    public StopwatchLogger(@NotNull final Class<?> clazz) {
         this(checkNotNull(clazz).getName().toString());
     }
 
@@ -69,7 +68,7 @@ public class StopwatchLogger implements Closeable {
      * @param customLog
      * @param clazz
      */
-    public StopwatchLogger(@Nullable final Logger customLog, @Nonnull final Class<?> clazz) {
+    public StopwatchLogger(@Nullable final Logger customLog, @NotNull final Class<?> clazz) {
         this(customLog, checkNotNull(clazz).getName().toString());
     }
 
@@ -80,7 +79,7 @@ public class StopwatchLogger implements Closeable {
      * @param customLog
      * @param clazz
      */
-    public StopwatchLogger(@Nullable final Logger customLog, @Nonnull final String clazz) {
+    public StopwatchLogger(@Nullable final Logger customLog, @NotNull final String clazz) {
         this.clazz = checkNotNull(clazz);
         this.customLog = customLog;
     }
@@ -120,7 +119,7 @@ public class StopwatchLogger implements Closeable {
      * @param clazz the class to be used during the tracking of times
      * @param message a custom message for the tracking.
      */
-    private static void track(@Nonnull final StopwatchLogger swl,
+    private static void track(@NotNull final StopwatchLogger swl,
                               @Nullable final String message) {
 
         checkNotNull(swl);

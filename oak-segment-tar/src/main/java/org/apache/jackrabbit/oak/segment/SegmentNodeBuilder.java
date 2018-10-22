@@ -23,13 +23,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.MeterStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,11 +52,13 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     @Nullable
     private final BlobStore blobStore;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
+
+    private final MeterStats readStats;
 
     /**
      * Local update counter for the root builder.
@@ -73,28 +75,34 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private long updateCount;
 
     SegmentNodeBuilder(
-            @Nonnull SegmentNodeState base,
-            @Nullable BlobStore blobStore,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer) {
+        @NotNull SegmentNodeState base,
+        @Nullable BlobStore blobStore,
+        @NotNull SegmentReader reader,
+        @NotNull SegmentWriter writer,
+        MeterStats readStats
+    ) {
         super(base);
         this.blobStore = blobStore;
         this.reader = reader;
         this.writer = checkNotNull(writer);
         this.updateCount = 0;
+        this.readStats = readStats;
     }
 
     private SegmentNodeBuilder(
-            @Nonnull SegmentNodeBuilder parent,
-            @Nonnull String name,
-            @Nullable BlobStore blobStore,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer) {
+        @NotNull SegmentNodeBuilder parent,
+        @NotNull String name,
+        @Nullable BlobStore blobStore,
+        @NotNull SegmentReader reader,
+        @NotNull SegmentWriter writer,
+        MeterStats readStats
+    ) {
         super(parent, name);
         this.blobStore = blobStore;
         this.reader = reader;
         this.writer = checkNotNull(writer);
         this.updateCount = -1;
+        this.readStats = readStats;
     }
 
     /**
@@ -124,12 +132,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     //-------------------------------------------------------< NodeBuilder >--
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentNodeState getNodeState() {
         try {
             NodeState state = super.getNodeState();
-            SegmentNodeState sState = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(state));
+            SegmentNodeState sState = new SegmentNodeState(reader, writer, blobStore, writer.writeNode(state), readStats);
             if (state != sState) {
                 set(sState);
                 if(!isChildBuilder()) {
@@ -145,7 +153,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     @Override
     protected MemoryNodeBuilder createChildBuilder(String name) {
-        return new SegmentNodeBuilder(this, name, blobStore, reader, writer);
+        return new SegmentNodeBuilder(this, name, blobStore, reader, writer, readStats);
     }
 
     @Override

@@ -610,7 +610,7 @@
   + jcr:configurations (rep:Configurations) = rep:Configurations protected ABORT
   + * (nt:base) = nt:base IGNORE
   // @since oak 1.0
-  + rep:privileges (rep:Privileges) = rep:Privileges mandatory protected ABORT
+  + rep:privileges (rep:Privileges) = rep:Privileges protected ABORT
 
 
 /**

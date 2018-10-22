@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -41,6 +40,7 @@ import javax.jcr.observation.EventListener;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,6 +173,7 @@ class ChangeProcessor implements FilteringAwareObserver {
     private final TimeSeriesMax maxQueueLengthRecorder;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private final BlobAccessProvider blobAccessProvider;
 
     /**
      * Lazy initialization via the {@link #start(Whiteboard)} method
@@ -206,7 +208,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             FilterProvider filter,
             StatisticManager statisticManager,
             int queueLength,
-            CommitRateLimiter commitRateLimiter) {
+            CommitRateLimiter commitRateLimiter,
+            BlobAccessProvider blobAccessProvider) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
@@ -217,6 +220,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         this.maxQueueLengthRecorder = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.blobAccessProvider = blobAccessProvider;
     }
 
     /**
@@ -232,7 +236,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         return filterProvider.get();
     }
 
-    @Nonnull
+    @NotNull
     public ChangeProcessorMBean getMBean() {
         return new ChangeProcessorMBean() {
 
@@ -480,9 +484,9 @@ class ChangeProcessor implements FilteringAwareObserver {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState before, 
-                               @Nonnull NodeState after,
-                               @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState before, 
+                               @NotNull NodeState after,
+                               @NotNull CommitInfo info) {
         checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
         checkNotNull(after);
         checkNotNull(info);
@@ -492,7 +496,8 @@ class ChangeProcessor implements FilteringAwareObserver {
             // FIXME don't rely on toString for session id
             if (provider.includeCommit(contentSession.toString(), info)) {
                 EventFilter filter = provider.getFilter(before, after);
-                EventIterator events = new EventQueue(namePathMapper, info, before, after,
+                EventIterator events = new EventQueue(namePathMapper,
+                        blobAccessProvider, info, before, after,
                         provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER), 
                         provider.getEventAggregator());
 

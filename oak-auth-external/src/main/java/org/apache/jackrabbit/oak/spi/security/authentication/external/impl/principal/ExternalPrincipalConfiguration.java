@@ -25,9 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -61,6 +58,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
@@ -109,13 +108,13 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     }
 
     //---------------------------------------------< PrincipalConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
         return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
         if (dynamicMembershipEnabled()) {
@@ -127,25 +126,25 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return new ExternalIdentityRepositoryInitializer(protectedExternalIds());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return ImmutableList.<ProtectedItemImporter>of(new ExternalIdentityImporter());
@@ -197,7 +196,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         private Set<ServiceReference> enablingRefs = new HashSet();
         private boolean isEnabled = false;
 
-        public SyncConfigTracker(@Nonnull BundleContext context, @Nonnull SyncHandlerMappingTracker mappingTracker) {
+        public SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
             super(context, SyncHandler.class.getName(), null);
             this.mappingTracker = mappingTracker;
         }
@@ -263,7 +262,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         private Map<ServiceReference, String[]> referenceMap = new HashMap<ServiceReference, String[]>();
 
-        public SyncHandlerMappingTracker(@Nonnull BundleContext context) {
+        public SyncHandlerMappingTracker(@NotNull BundleContext context) {
             super(context, SyncHandlerMapping.class.getName(), null);
         }
 
@@ -296,7 +295,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
             }
         }
 
-        private Iterable<String> getIdpNames(@Nonnull final String syncHandlerName) {
+        private Iterable<String> getIdpNames(@NotNull final String syncHandlerName) {
             return Iterables.filter(Iterables.transform(referenceMap.values(), new Function<String[], String>() {
                         @Nullable
                         @Override

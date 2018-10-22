@@ -21,9 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
@@ -55,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +71,10 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     private final ConfigurationParameters config;
     private final PrincipalManager principalManager;
 
-    public CugAccessControlManager(@Nonnull Root root,
-                                   @Nonnull NamePathMapper namePathMapper,
-                                   @Nonnull SecurityProvider securityProvider,
-                                   @Nonnull Set<String> supportedPaths) {
+    public CugAccessControlManager(@NotNull Root root,
+                                   @NotNull NamePathMapper namePathMapper,
+                                   @NotNull SecurityProvider securityProvider,
+                                   @NotNull Set<String> supportedPaths) {
         super(root, namePathMapper, securityProvider);
 
         this.supportedPaths = supportedPaths;
@@ -86,7 +85,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //-----------------------------------------------< AccessControlManager >---
 
-    @Nonnull
+    @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
         if (isSupportedPath(getOakPath(absPath))) {
@@ -221,7 +220,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //--------------------------------------------------------< PolicyOwner >---
     @Override
-    public boolean defines(@Nullable String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
+    public boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy) {
         return isValidPolicy(absPath, accessControlPolicy);
     }
 
@@ -238,13 +237,13 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
-    @CheckForNull
-    private CugPolicy getCugPolicy(@Nonnull String oakPath) throws RepositoryException {
+    @Nullable
+    private CugPolicy getCugPolicy(@NotNull String oakPath) throws RepositoryException {
         return getCugPolicy(oakPath, getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true));
     }
 
-    @CheckForNull
-    private CugPolicy getCugPolicy(@Nonnull String oakPath, @Nonnull Tree tree) {
+    @Nullable
+    private CugPolicy getCugPolicy(@NotNull String oakPath, @NotNull Tree tree) {
         Tree cug = tree.getChild(REP_CUG_POLICY);
         if (CugUtil.definesCug(cug)) {
             return new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), getPrincipals(cug));
@@ -253,7 +252,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
-    private Set<Principal> getPrincipals(@Nonnull Tree cugTree) {
+    private Set<Principal> getPrincipals(@NotNull Tree cugTree) {
         PropertyState property = cugTree.getProperty(REP_PRINCIPAL_NAMES);
         if (property == null) {
             return Collections.emptySet();
@@ -269,11 +268,11 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
-    private static boolean isValidPolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) {
+    private static boolean isValidPolicy(@Nullable String absPath, @NotNull AccessControlPolicy policy) {
         return policy instanceof CugPolicyImpl && ((CugPolicyImpl) policy).getPath().equals(absPath);
     }
 
-    private static void checkValidPolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
+    private static void checkValidPolicy(@Nullable String absPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
         if (!(policy instanceof CugPolicyImpl)) {
             throw new AccessControlException("Unsupported policy implementation: " + policy);
         }

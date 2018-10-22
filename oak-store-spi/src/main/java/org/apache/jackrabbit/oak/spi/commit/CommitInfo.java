@@ -24,12 +24,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Objects;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Commit info instances associate some meta data with a commit.
@@ -69,7 +68,7 @@ public final class CommitInfo {
      * @param userId The user id.
      */
     public CommitInfo(
-            @Nonnull String sessionId, @Nullable String userId) {
+            @NotNull String sessionId, @Nullable String userId) {
         this(sessionId, userId, Collections.<String, Object>emptyMap());
     }
 
@@ -80,7 +79,7 @@ public final class CommitInfo {
      * @param userId The user id.
      * @param info info map
      */
-    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, Map<String, Object> info) {
+    public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info) {
         this(sessionId, userId, info, false);
     }
 
@@ -91,7 +90,7 @@ public final class CommitInfo {
      * @param info info map
      * @param external indicates if the commit info is from external change
      */
-    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, Map<String, Object> info, boolean external) {
+    public CommitInfo(@NotNull String sessionId, @Nullable String userId, Map<String, Object> info, boolean external) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
         this.info = checkNotNull(info);
@@ -101,7 +100,7 @@ public final class CommitInfo {
     /**
      * @return  id of the committing session
      */
-    @Nonnull
+    @NotNull
     public String getSessionId() {
         return sessionId;
     }
@@ -109,7 +108,7 @@ public final class CommitInfo {
     /**
      * @return  user id of the committing user
      */
-    @Nonnull
+    @NotNull
     public String getUserId() {
         return userId;
     }

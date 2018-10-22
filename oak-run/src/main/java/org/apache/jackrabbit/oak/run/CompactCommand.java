@@ -24,6 +24,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 class CompactCommand implements Command {
@@ -36,13 +37,13 @@ class CompactCommand implements Command {
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> directoryArg = parser.nonOptions(
-                "Path to segment store (required)").ofType(String.class);
+                "Path/URI to TAR/remote segment store (required)").ofType(String.class);
         OptionSpec<Boolean> mmapArg = parser.accepts("mmap",
                 "Use memory mapped access if true, use file access if false. " +
                     "If not specified, memory mapped access is used on 64 bit " +
-                    "systems and file access is used on 32 bit systems. On " +
-                    "Windows, regular file access is always enforced and this " +
-                    "option is ignored.")
+                    "systems and file access is used on 32 bit systems. For " +
+                    "remote segment stores and on Windows, regular file access " +
+                    "is always enforced and this option is ignored.")
                 .withOptionalArg()
                 .ofType(Boolean.class);
         OptionSpec<Boolean> forceArg = parser.accepts("force",
@@ -61,15 +62,27 @@ class CompactCommand implements Command {
             System.exit(-1);
         }
 
-        int code = Compact.builder()
-            .withPath(new File(path))
-            .withForce(isTrue(forceArg.value(options)))
-            .withMmap(mmapArg.value(options))
-            .withOs(StandardSystemProperty.OS_NAME.value())
-            .withSegmentCacheSize(Integer.getInteger("cache", 256))
-            .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
-            .build()
-            .run();
+        int code = 0;
+
+        if (path.startsWith("az:")) {
+            code = AzureCompact.builder()
+                    .withPath(path.substring(3))
+                    .withForce(isTrue(forceArg.value(options)))
+                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .build()
+                    .run();
+        } else {
+            code = Compact.builder()
+                    .withPath(new File(path))
+                    .withForce(isTrue(forceArg.value(options)))
+                    .withMmap(mmapArg.value(options))
+                    .withOs(StandardSystemProperty.OS_NAME.value())
+                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .build()
+                    .run();
+        }
 
         System.exit(code);
     }

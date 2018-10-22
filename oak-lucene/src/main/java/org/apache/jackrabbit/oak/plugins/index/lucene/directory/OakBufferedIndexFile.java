@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.util.List;
+
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -24,13 +30,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
-
-import javax.annotation.Nonnull;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -116,7 +116,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     private final BlobFactory blobFactory;
 
     public OakBufferedIndexFile(String name, NodeBuilder file, String dirDetails,
-                                @Nonnull BlobFactory blobFactory) {
+                                @NotNull BlobFactory blobFactory) {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;

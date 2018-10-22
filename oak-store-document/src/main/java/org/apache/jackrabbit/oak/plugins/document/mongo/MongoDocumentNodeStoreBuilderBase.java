@@ -16,13 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
-import com.mongodb.DB;
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -37,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +48,10 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentNodeStoreBuilder.class);
 
-    private String mongoUri;
     private boolean socketKeepAlive = true;
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
+    private boolean clientSessionDisabled = false;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -70,21 +66,17 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      *             any database name given in the {@code uri}.
      * @param blobCacheSizeMB the blob cache size in MB.
      * @return this
-     * @throws UnknownHostException if one of the hosts given in the URI
-     *          is unknown.
      */
-    public T setMongoDB(@Nonnull String uri,
-                        @Nonnull String name,
-                        int blobCacheSizeMB)
-            throws UnknownHostException {
-        this.mongoUri = uri;
-
-        MongoClusterListener listener = new MongoClusterListener();
+    public T setMongoDB(@NotNull String uri,
+                        @NotNull String name,
+                        int blobCacheSizeMB) {
+        CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
         MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addClusterListener(listener);
+        options.addServerMonitorListener(serverMonitorListener);
         options.socketKeepAlive(socketKeepAlive);
         MongoClient client = new MongoClient(new MongoClientURI(uri, options));
-        MongoStatus status = new MongoStatus(client, name, listener);
+        MongoStatus status = new MongoStatus(client, name);
+        serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
@@ -101,25 +93,13 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     /**
      * Use the given MongoDB as backend storage for the DocumentNodeStore.
      *
-     * @param db the MongoDB connection
-     * @return this
-     * @deprecated use {@link #setMongoDB(MongoClient, String, int)} instead.
-     */
-    public T setMongoDB(@Nonnull DB db,
-                        int blobCacheSizeMB) {
-        return setMongoDB(mongoClientFrom(db), db.getName(), blobCacheSizeMB);
-    }
-
-    /**
-     * Use the given MongoDB as backend storage for the DocumentNodeStore.
-     *
      * @param client the MongoDB connection
      * @param dbName the database name
      * @param blobCacheSizeMB the size of the blob cache in MB.
      * @return this
      */
-    public T setMongoDB(@Nonnull MongoClient client,
-                        @Nonnull String dbName,
+    public T setMongoDB(@NotNull MongoClient client,
+                        @NotNull String dbName,
                         int blobCacheSizeMB) {
         return setMongoDB(client, client.getDatabase(dbName),
                 new MongoStatus(client, dbName), blobCacheSizeMB);
@@ -128,23 +108,12 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     /**
      * Use the given MongoDB as backend storage for the DocumentNodeStore.
      *
-     * @param db the MongoDB connection
-     * @return this
-     * @deprecated use {@link #setMongoDB(MongoClient, String)} instead.
-     */
-    public T setMongoDB(@Nonnull DB db) {
-        return setMongoDB(mongoClientFrom(db), db.getName());
-    }
-
-    /**
-     * Use the given MongoDB as backend storage for the DocumentNodeStore.
-     *
      * @param client the MongoDB connection
      * @param dbName the database name
      * @return this
      */
-    public T setMongoDB(@Nonnull MongoClient client,
-                        @Nonnull String dbName) {
+    public T setMongoDB(@NotNull MongoClient client,
+                        @NotNull String dbName) {
         return setMongoDB(client, dbName, 16);
     }
 
@@ -165,6 +134,26 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      */
     public boolean isSocketKeepAlive() {
         return socketKeepAlive;
+    }
+
+    /**
+     * Disables the use of a client session available with MongoDB 3.6 and
+     * newer. By default the MongoDocumentStore will use a client session if
+     * available. That is, when connected to MongoDB 3.6 and newer.
+     *
+     * @param b whether to disable the use of a client session.
+     * @return this
+     */
+    public T setClientSessionDisabled(boolean b) {
+        this.clientSessionDisabled = b;
+        return thisBuilder();
+    }
+
+    /**
+     * @return whether the use of a client session is disabled.
+     */
+    boolean isClientSessionDisabled() {
+        return clientSessionDisabled;
     }
 
     public T setMaxReplicationLag(long duration, TimeUnit unit){
@@ -200,16 +189,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     }
 
     /**
-     * Returns the Mongo URI used in the {@link #setMongoDB(String, String, int)} method.
-     *
-     * @return the Mongo URI or null if the {@link #setMongoDB(String, String, int)} method hasn't
-     * been called.
-     */
-    String getMongoUri() {
-        return mongoUri;
-    }
-
-    /**
      * Returns the status of the Mongo server configured in the {@link #setMongoDB(String, String, int)} method.
      *
      * @return the status or null if the {@link #setMongoDB(String, String, int)} method hasn't
@@ -223,8 +202,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return maxReplicationLagMillis;
     }
 
-    private T setMongoDB(@Nonnull MongoClient client,
-                         @Nonnull MongoDatabase db,
+    private T setMongoDB(@NotNull MongoClient client,
+                         @NotNull MongoDatabase db,
                          MongoStatus status,
                          int blobCacheSizeMB) {
         if (!MongoConnection.isSufficientWriteConcern(client, db.getWriteConcern())) {
@@ -245,20 +224,12 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
 
         this.mongoStatus = status;
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
-                client, db.getName(), MongoDocumentNodeStoreBuilderBase.this));
+                client, db, MongoDocumentNodeStoreBuilderBase.this));
 
         if (this.blobStore == null) {
             GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
             setGCBlobStore(s);
         }
         return thisBuilder();
-    }
-
-    private static MongoClient mongoClientFrom(DB db) {
-        Mongo mongo = db.getMongo();
-        if (mongo instanceof MongoClient) {
-            return (MongoClient) mongo;
-        }
-        throw new UnsupportedOperationException("DB must be constructed from MongoClient");
     }
 }

@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
@@ -275,7 +276,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
                 Map<String, String> propMap = Maps.newHashMap();
-                propMap.put(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+                propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(DATE_PROP, propMap);
             case LUCENE:
                 OakIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,

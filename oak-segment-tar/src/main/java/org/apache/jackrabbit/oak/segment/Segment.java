@@ -35,21 +35,16 @@ import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGener
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.PrintStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.AbstractIterator;
 import org.apache.commons.io.HexDump;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -59,6 +54,8 @@ import org.apache.jackrabbit.oak.segment.data.RecordIdData;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.data.StringData;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A list of records.
@@ -134,10 +131,10 @@ public class Segment {
 
     static final int RECORD_NUMBER_COUNT_OFFSET = 18;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final SegmentId id;
 
     private final SegmentData data;
@@ -145,7 +142,7 @@ public class Segment {
     /**
      * Version of the segment storage format.
      */
-    @Nonnull
+    @NotNull
     private final SegmentVersion version;
 
     /**
@@ -171,12 +168,12 @@ public class Segment {
     }
 
     Segment(
-        @Nonnull SegmentId id,
-        @Nonnull SegmentReader reader,
-        @Nonnull byte[] buffer,
-        @Nonnull RecordNumbers recordNumbers,
-        @Nonnull SegmentReferences segmentReferences,
-        @Nonnull String info
+        @NotNull SegmentId id,
+        @NotNull SegmentReader reader,
+        @NotNull byte[] buffer,
+        @NotNull RecordNumbers recordNumbers,
+        @NotNull SegmentReferences segmentReferences,
+        @NotNull String info
     ) {
         this.id = checkNotNull(id);
         this.reader = checkNotNull(reader);
@@ -192,10 +189,10 @@ public class Segment {
         id.loaded(this);
     }
 
-    public Segment(@Nonnull SegmentIdProvider idProvider,
-                   @Nonnull SegmentReader reader,
-                   @Nonnull final SegmentId id,
-                   @Nonnull final ByteBuffer data) {
+    public Segment(@NotNull SegmentIdProvider idProvider,
+                   @NotNull SegmentReader reader,
+                   @NotNull final SegmentId id,
+                   @NotNull final ByteBuffer data) {
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
         if (id.isDataSegmentId()) {
@@ -295,7 +292,7 @@ public class Segment {
                 return id;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<SegmentId> iterator() {
                 return new AbstractIterator<SegmentId>() {
@@ -358,7 +355,7 @@ public class Segment {
      * generations (i.e. stay at 0).
      * @return  the gc generation of this segment or 0 if this is bulk segment.
      */
-    @Nonnull
+    @NotNull
     public GCGeneration getGcGeneration() {
         return getGcGeneration(data, id.asUUID());
     }
@@ -380,7 +377,7 @@ public class Segment {
      * </ul>
      * @return the segment meta data
      */
-    @CheckForNull
+    @Nullable
     public String getSegmentInfo() {
         if (info == null && id.isDataSegmentId()) {
             info = readString(recordNumbers.iterator().next().getRecordNumber());
@@ -424,7 +421,7 @@ public class Segment {
         return data.readBytes(recordNumbers.getOffset(recordNumber) + position, length);
     }
 
-    @Nonnull
+    @NotNull
     RecordId readRecordId(int recordNumber, int rawOffset, int recordIdOffset) {
         int offset = recordNumbers.getOffset(recordNumber) + rawOffset + recordIdOffset * RecordIdData.BYTES;
         RecordIdData recordIdData = data.readRecordId(offset);
@@ -439,7 +436,7 @@ public class Segment {
         return readRecordId(recordNumber, 0, 0);
     }
 
-    @Nonnull
+    @NotNull
     private SegmentId dereferenceSegmentId(int reference) {
         if (reference == 0) {
             return id;
@@ -454,7 +451,7 @@ public class Segment {
         return id;
     }
 
-    @Nonnull
+    @NotNull
     String readString(int recordNumber) {
         StringData data = this.data.readString(recordNumbers.getOffset(recordNumber));
 
@@ -474,7 +471,7 @@ public class Segment {
         throw new IllegalStateException("Invalid return value");
     }
 
-    @Nonnull
+    @NotNull
     Template readTemplate(int recordNumber) {
         int head = readInt(recordNumber);
         boolean hasPrimaryType = (head & (1 << 31)) != 0;
@@ -548,34 +545,21 @@ public class Segment {
 
     @Override
     public String toString() {
-        StringWriter string = new StringWriter();
-        try (PrintWriter writer = new PrintWriter(string)) {
-            writer.format("Segment %s (%d bytes)%n", id, data.size());
-            String segmentInfo = getSegmentInfo();
-            if (segmentInfo != null) {
-                writer.format("Info: %s, Generation: %s%n", segmentInfo, getGcGeneration());
-            }
-            if (id.isDataSegmentId()) {
-                writer.println("--------------------------------------------------------------------------");
-                int i = 1;
-                for (SegmentId segmentId : segmentReferences) {
-                    writer.format("reference %02x: %s%n", i++, segmentId);
-                }
-                for (Entry entry : recordNumbers) {
-                    int offset = entry.getOffset();
-                    writer.format("%10s record %08x: %08x @ %08x%n",
-                                  entry.getType(), entry.getRecordNumber(), offset, getAddress(offset));
+        return SegmentDump.dumpSegment(
+            id,
+            data.size(),
+            info,
+            getGcGeneration(),
+            segmentReferences,
+            recordNumbers,
+            stream -> {
+                try {
+                    data.hexDump(stream);
+                } catch (IOException e) {
+                    e.printStackTrace(new PrintStream(stream));
                 }
             }
-            writer.println("--------------------------------------------------------------------------");
-            try {
-                data.hexDump(new WriterOutputStream(writer, Charsets.UTF_8));
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            writer.println("--------------------------------------------------------------------------");
-        }
-        return string.toString();
+        );
     }
 
     public void writeTo(OutputStream stream) throws IOException {

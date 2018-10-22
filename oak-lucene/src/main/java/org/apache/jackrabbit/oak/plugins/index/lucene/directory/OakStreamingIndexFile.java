@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
+
 import com.google.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -23,14 +28,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.SequenceInputStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
@@ -92,7 +92,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     private final BlobFactory blobFactory;
 
     OakStreamingIndexFile(String name, NodeBuilder file, String dirDetails,
-                                 @Nonnull BlobFactory blobFactory) {
+                          @NotNull BlobFactory blobFactory) {
         this.name = name;
         this.file = file;
         this.dirDetails = dirDetails;
@@ -195,7 +195,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
             if (blobInputStream == null) {
                 position = pos;
             } else if (pos < position) {
-                LOG.warn("Seeking back on streaming index file {}. Current position {}, requested position {}." +
+                LOG.warn("Seeking back on streaming index file {}. Current position {}, requested position {}. " +
                                 "Please make sure that CopyOnRead and prefetch of index files are enabled.",
                         getName(), position(), pos);
 
@@ -270,7 +270,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
             }
 
             @Override
-            public int read(@Nonnull byte[] target, int off, int len) throws IOException {
+            public int read(@NotNull byte[] target, int off, int len) throws IOException {
                 if (available() <= 0) {
                     return -1;
                 }
@@ -309,7 +309,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
             }
 
             @Override
-            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+            public int read(@NotNull byte[] b, int off, int len) throws IOException {
                 if (bytesLeftToRead == 0) {
                     return -1;
                 }

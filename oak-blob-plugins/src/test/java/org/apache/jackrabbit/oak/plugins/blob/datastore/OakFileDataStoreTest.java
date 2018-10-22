@@ -24,8 +24,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -33,12 +31,21 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.jetbrains.annotations.Nullable;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class OakFileDataStoreTest {
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     @Test
     public void testGetAllIdentifiersRelative1() throws Exception {
@@ -88,5 +95,12 @@ public class OakFileDataStoreTest {
         noop.put("a","b");
         noop.remove("foo");
         assertTrue(noop.isEmpty());
+    }
+
+    private static OakFileDataStore datastore(String path) {
+        OakFileDataStore fds = new OakFileDataStore();
+        fds.setPath(path);
+        fds.init(null);
+        return fds;
     }
 }

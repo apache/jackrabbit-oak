@@ -23,9 +23,8 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
@@ -50,7 +49,7 @@ public final class GroupPrincipals {
      *
      * @return true if the principal is of type group.
      */
-    public static boolean isGroup(@Nonnull Principal principal) {
+    public static boolean isGroup(@NotNull Principal principal) {
         return principal instanceof Group || principal instanceof GroupPrincipal;
     }
 
@@ -59,7 +58,7 @@ public final class GroupPrincipals {
      * @param principal the principal whose membership is listed.
      * @return an enumeration of the group members.
      */
-    public static Enumeration<? extends Principal> members(@Nonnull Principal principal) {
+    public static Enumeration<? extends Principal> members(@NotNull Principal principal) {
         if (principal instanceof Group) {
             return ((Group) principal).members();
         }
@@ -75,7 +74,7 @@ public final class GroupPrincipals {
      * @param member the principal whose membership is to be checked.
      * @return true if the principal is a member of this group, false otherwise.
      */
-    public static boolean isMember(@Nonnull Principal principal, @Nonnull Principal member) {
+    public static boolean isMember(@NotNull Principal principal, @NotNull Principal member) {
         if (principal instanceof Group) {
             return ((Group) principal).isMember(member);
         }

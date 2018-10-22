@@ -21,11 +21,10 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.CacheWeights.OBJECT_HEADER_SIZE;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ComparisonChain;
 
@@ -73,7 +72,7 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(@Nonnull PropertyTemplate template) {
+    public int compareTo(@NotNull PropertyTemplate template) {
         checkNotNull(template);
         return ComparisonChain.start()
                 .compare(hashCode(), template.hashCode()) // important

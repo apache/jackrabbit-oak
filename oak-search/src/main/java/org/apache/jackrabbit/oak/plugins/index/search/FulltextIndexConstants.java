@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-
+/**
+ * Internal constants used in index definition, and index implementations.
+ */
 public interface FulltextIndexConstants {
 
     enum IndexingMode {
-        SYNC,
-        NRT,
-        ASYNC;
+        SYNC, NRT, ASYNC;
 
-        public String asyncValueName(){
+        public String asyncValueName() {
             return name().toLowerCase();
         }
 
-        public static IndexingMode from(String indexingMode){
+        public static IndexingMode from(String indexingMode) {
             return valueOf(indexingMode.toUpperCase());
         }
     }
@@ -48,6 +48,8 @@ public interface FulltextIndexConstants {
     String PERSISTENCE_NAME = "persistence";
 
     String PERSISTENCE_OAK = "repository";
+
+  String TEST_MODE = "testMode";
 
     String PERSISTENCE_FILE = "file";
 
@@ -190,6 +192,7 @@ public interface FulltextIndexConstants {
 
     /**
      * Config node which include Tika related configuration
+     * Its value should match {@link FieldNames#NODE_NAME}
      */
     String TIKA = "tika";
 
@@ -246,6 +249,11 @@ public interface FulltextIndexConstants {
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 
+  /**
+   * whether use this property values for similarity
+   */
+  String PROP_USE_IN_SIMILARITY = "useInSimilarity";
+
     /**
      * Property definition config indicating that null check support should be
      * enabled for this property
@@ -282,10 +290,16 @@ public interface FulltextIndexConstants {
     String SUGGEST_ANALYZED = "suggestAnalyzed";
 
     /**
-     * Integer property indicating that LuceneIndex should be
+     * Integer property indicating that the index should be
      * used in compat mode to specific version
      */
     String COMPAT_MODE = "compatVersion";
+
+    /**
+     * Optional (index definition) property indicating whether facets should be ACL checked.
+     * Default is true
+     */
+    String PROP_SECURE_FACETS = "secure";
 
     /**
      * Optional (index definition) property indicating max number of facets that will be retrieved
@@ -311,7 +325,7 @@ public interface FulltextIndexConstants {
     String PROP_FUNCTION = "function";
 
     /**
-     * Boolean property which signal LuceneIndexEditor to refresh the stored index definition
+     * Boolean property which signal FulltextIndexEditor to refresh the stored index definition
      */
     String PROP_REFRESH_DEFN = "refresh";
 
@@ -320,4 +334,11 @@ public interface FulltextIndexConstants {
      * should be indexed
      */
     String PROP_INDEX_NODE_TYPE = "nodeTypeIndex";
+
+    /**
+     * The property of an index. If the given node or property exists, then the
+     * index is used for queries; otherwise, it is not used (returns infinite
+     * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
+     */
+     String USE_IF_EXISTS = "useIfExists";
 }

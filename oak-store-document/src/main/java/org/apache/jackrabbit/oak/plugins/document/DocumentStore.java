@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The interface for the backend storage for documents.
@@ -56,7 +55,7 @@ public interface DocumentStore {
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
      */
-    @CheckForNull
+    @Nullable
     <T extends Document> T find(Collection<T> collection, String key)
             throws DocumentStoreException;
 
@@ -78,7 +77,7 @@ public interface DocumentStore {
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
      */
-    @CheckForNull
+    @Nullable
     <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge)
             throws DocumentStoreException;
 
@@ -97,7 +96,7 @@ public interface DocumentStore {
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
      */
-    @Nonnull
+    @NotNull
     <T extends Document> List<T> query(Collection<T> collection,
                                        String fromKey,
                                        String toKey,
@@ -125,7 +124,7 @@ public interface DocumentStore {
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
      */
-    @Nonnull
+    @NotNull
     <T extends Document> List<T> query(Collection<T> collection,
                                        String fromKey,
                                        String toKey,
@@ -258,7 +257,9 @@ public interface DocumentStore {
 
     /**
      * Atomically checks if the document exists and updates it, otherwise the
-     * document is created (aka upsert). The returned document is immutable.
+     * document is created (aka "upsert"), unless the update operation requires
+     * the document to be present (see {@link UpdateOp#isNew()}). The returned
+     * document is immutable.
      * <p>
      * If this method fails with a {@code DocumentStoreException}, then the
      * document may or may not have been created or updated. It is the
@@ -268,15 +269,22 @@ public interface DocumentStore {
      * cache. That is, an implementation could simply evict documents with the
      * given keys from the cache.
      *
-     * @param <T> the document type
-     * @param collection the collection
-     * @param update the update operation (where {@link Condition}s are not allowed)
-     * @return the old document or <code>null</code> if it didn't exist before.
-     * @throws IllegalArgumentException when the {@linkplain UpdateOp} is conditional
-     * @throws DocumentStoreException if the operation failed. E.g. because of
-     *          an I/O error.
+     * @param <T>
+     *            the document type
+     * @param collection
+     *            the collection
+     * @param update
+     *            the update operation (where {@link Condition}s are not
+     *            allowed)
+     * @return the old document or {@code null} if it either didn't exist
+     *            before, or the {@linkplain UpdateOp} required the document to be
+     *            present but {@link UpdateOp#isNew()} was {@code false}.
+     * @throws IllegalArgumentException
+     *             when the {@linkplain UpdateOp} is conditional
+     * @throws DocumentStoreException
+     *             if the operation failed. E.g. because of an I/O error.
      */
-    @CheckForNull
+    @Nullable
     <T extends Document> T createOrUpdate(Collection<T> collection,
                                           UpdateOp update)
             throws IllegalArgumentException, DocumentStoreException;
@@ -329,7 +337,7 @@ public interface DocumentStore {
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
      */
-    @CheckForNull
+    @Nullable
     <T extends Document> T findAndUpdate(Collection<T> collection,
                                          UpdateOp update)
             throws DocumentStoreException;
@@ -355,7 +363,7 @@ public interface DocumentStore {
      * @return cache invalidation statistics or {@code null} if none are
      *          available.
      */
-    @CheckForNull
+    @Nullable
     CacheInvalidationStats invalidateCache();
 
     /**
@@ -369,7 +377,7 @@ public interface DocumentStore {
      * @return cache invalidation statistics or {@code null} if none are
      *          available.
      */
-    @CheckForNull
+    @Nullable
     CacheInvalidationStats invalidateCache(Iterable<String> keys);
 
     /**
@@ -400,7 +408,7 @@ public interface DocumentStore {
      * @param key the key
      * @return cached document if present. Otherwise {@code null}.
      */
-    @CheckForNull
+    @Nullable
     <T extends Document> T getIfCached(Collection<T> collection, String key);
 
     /**
@@ -413,7 +421,7 @@ public interface DocumentStore {
     /**
      * @return status information about the cache
      */
-    @CheckForNull
+    @Nullable
     Iterable<CacheStats> getCacheStats();
 
     /**
@@ -431,7 +439,7 @@ public interface DocumentStore {
      *
      * @return statistics about this document store.
      */
-    @Nonnull
+    @NotNull
     Map<String, String> getStats();
 
     /**

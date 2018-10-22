@@ -21,13 +21,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -128,8 +127,8 @@ public class WhiteboardUtils {
      * @param type the service type
      * @return a list of services
      */
-    @Nonnull
-    public static <T> List<T> getServices(@Nonnull Whiteboard wb, @Nonnull Class<T> type) {
+    @NotNull
+    public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type) {
         return getServices(wb, type, null);
     }
 
@@ -140,8 +139,8 @@ public class WhiteboardUtils {
      *
      * @return one service or {@code null}
      */
-    @CheckForNull
-    public static <T> T getService(@Nonnull Whiteboard wb, @Nonnull Class<T> type) {
+    @Nullable
+    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type) {
         return getService(wb, type, null);
     }
 
@@ -156,8 +155,8 @@ public class WhiteboardUtils {
      * @param predicate filtering predicate or {@code null}
      * @return a list of services
      */
-    @Nonnull
-    public static <T> List<T> getServices(@Nonnull Whiteboard wb, @Nonnull Class<T> type, @Nullable Predicate<T> predicate) {
+    @NotNull
+    public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type, @Nullable Predicate<T> predicate) {
         Tracker<T> tracker = wb.track(type);
         try {
             if (predicate == null) {
@@ -181,8 +180,8 @@ public class WhiteboardUtils {
      * @param predicate filtering predicate or {@code null}
      * @return one service or {@code null}
      */
-    @CheckForNull
-    public static <T> T getService(@Nonnull Whiteboard wb, @Nonnull Class<T> type, @Nullable Predicate<T> predicate) {
+    @Nullable
+    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type, @Nullable Predicate<T> predicate) {
         Tracker<T> tracker = wb.track(type);
         try {
             for (T service : tracker.getServices()) {

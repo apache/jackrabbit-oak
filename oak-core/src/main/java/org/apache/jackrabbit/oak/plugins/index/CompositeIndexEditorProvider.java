@@ -20,13 +20,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -36,14 +35,14 @@ import com.google.common.collect.Lists;
  */
 public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
-    @Nonnull
+    @NotNull
     public static IndexEditorProvider compose(
-            @Nonnull Collection<IndexEditorProvider> providers) {
+            @NotNull Collection<IndexEditorProvider> providers) {
         if (providers.isEmpty()) {
             return new IndexEditorProvider() {
                 @Override
                 public Editor getIndexEditor(
-                        @Nonnull String type, @Nonnull NodeBuilder builder, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+                        @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                     return null;
                 }
             };
@@ -67,7 +66,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder builder, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         List<Editor> indexes = Lists.newArrayList();
         for (IndexEditorProvider provider : providers) {

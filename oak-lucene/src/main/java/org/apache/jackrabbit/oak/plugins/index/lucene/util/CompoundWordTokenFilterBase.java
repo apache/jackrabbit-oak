@@ -25,14 +25,11 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.Version;
 
 /**
  * Base class for decomposition token filters.
- * <p>
- *
- * <a name="version"></a>
+ * <p id="version">
  * You must specify the required {@link Version} compatibility when creating
  * CompoundWordTokenFilterBase:
  * <ul>
@@ -68,7 +65,7 @@ public abstract class CompoundWordTokenFilterBase extends TokenFilter {
   protected final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
   private final PositionIncrementAttribute posIncAtt = addAttribute(PositionIncrementAttribute.class);
   
-  private AttributeSource.State current;
+  private State current;
 
   protected CompoundWordTokenFilterBase(Version matchVersion, TokenStream input, CharArraySet dictionary, boolean onlyLongestMatch) {
     this(matchVersion, input,dictionary,DEFAULT_MIN_WORD_SIZE,DEFAULT_MIN_SUBWORD_SIZE,DEFAULT_MAX_SUBWORD_SIZE, onlyLongestMatch);
@@ -153,7 +150,11 @@ public abstract class CompoundWordTokenFilterBase extends TokenFilter {
     public final CharSequence txt;
     public final int startOffset, endOffset;
 
-    /** Construct the compound token based on a slice of the current {@link CompoundWordTokenFilterBase#termAtt}. */
+    /** Construct the compound token based on a slice of the current {@link CompoundWordTokenFilterBase#termAtt}.
+     *
+     * @param offset  the initial offset
+     * @param length  the token length
+     * */
     public CompoundToken(int offset, int length) {
       this.txt = CompoundWordTokenFilterBase.this.termAtt.subSequence(offset, offset + length);
       

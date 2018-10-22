@@ -20,23 +20,17 @@ package org.apache.jackrabbit.oak;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
 public final class OakInitializer {
 
@@ -45,37 +39,31 @@ public final class OakInitializer {
     private OakInitializer() {
     }
 
-    public static void initialize(@Nonnull NodeStore store,
-                                  @Nonnull RepositoryInitializer initializer,
-                                  @Nonnull IndexEditorProvider indexEditor) {
+    public static void initialize(@NotNull NodeStore store,
+                                  @NotNull RepositoryInitializer initializer,
+                                  @NotNull CommitHook hook) {
         try {
             NodeBuilder builder = store.getRoot().builder();
             initializer.initialize(builder);
-            store.merge(builder, createHook(indexEditor), createCommitInfo());
+            store.merge(builder, hook, createCommitInfo());
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void initialize(@Nonnull Iterable<WorkspaceInitializer> initializer,
-                                  @Nonnull NodeStore store,
-                                  @Nonnull String workspaceName,
-                                  @Nonnull IndexEditorProvider indexEditor) {
+    public static void initialize(@NotNull Iterable<WorkspaceInitializer> initializer,
+                                  @NotNull NodeStore store,
+                                  @NotNull String workspaceName,
+                                  @NotNull CommitHook hook) {
         NodeBuilder builder = store.getRoot().builder();
         for (WorkspaceInitializer wspInit : initializer) {
             wspInit.initialize(builder, workspaceName);
         }
         try {
-            store.merge(builder, createHook(indexEditor), createCommitInfo());
+            store.merge(builder, hook, createCommitInfo());
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static CommitHook createHook(@Nonnull IndexEditorProvider indexEditor) {
-        return new CompositeHook(
-                        ResetCommitAttributeHook.INSTANCE,
-                        new EditorHook(new IndexUpdateProvider(indexEditor)));
     }
 
     private static CommitInfo createCommitInfo(){

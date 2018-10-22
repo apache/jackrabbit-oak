@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Test the performance of removing members from groups. The
@@ -100,7 +100,7 @@ public class RemoveMembersTest extends AbstractTest {
     }
 
 
-    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+    protected void createUsers(@NotNull UserManager userManager) throws Exception {
         // nothing to do here as we add|remove members by ID in the setup and the test
     }
 
@@ -166,7 +166,7 @@ public class RemoveMembersTest extends AbstractTest {
         }
     }
 
-    protected void removeMembers(@Nonnull UserManager userManger, @Nonnull Group group, @Nonnull Session s) throws Exception {
+    protected void removeMembers(@NotNull UserManager userManger, @NotNull Group group, @NotNull Session s) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             if (batchSize <= DEFAULT_BATCH_SIZE) {
                 group.removeMembers(USER + random.nextInt(numberOfMembers));

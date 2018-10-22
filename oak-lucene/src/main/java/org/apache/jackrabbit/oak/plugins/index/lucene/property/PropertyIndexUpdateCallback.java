@@ -22,21 +22,21 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.UniqueEntryStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +75,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
 
     @Override
     public void propertyUpdated(String nodePath, String propertyRelativePath, PropertyDefinition pd,
-                                @Nullable PropertyState before,  @Nullable PropertyState after) {
+                                @Nullable PropertyState before, @Nullable PropertyState after) {
         if (!pd.sync) {
             return;
         }

@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This interface represents a read-only segment archive. Since the underlying
@@ -79,7 +79,7 @@ public interface SegmentArchiveReader extends Closeable {
      *
      * @return byte buffer representing the binary references structure.
      */
-    @Nonnull
+    @NotNull
     ByteBuffer getBinaryReferences() throws IOException;
 
     /**
@@ -94,7 +94,7 @@ public interface SegmentArchiveReader extends Closeable {
      *
      * @return archive name
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**

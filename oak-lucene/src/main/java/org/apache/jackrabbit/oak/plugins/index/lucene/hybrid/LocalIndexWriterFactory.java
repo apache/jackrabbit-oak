@@ -21,13 +21,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-public class LocalIndexWriterFactory implements LuceneIndexWriterFactory {
+public class LocalIndexWriterFactory implements FulltextIndexWriterFactory {
     private final LuceneDocumentHolder documentHolder;
     private final String indexPath;
 

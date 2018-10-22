@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
@@ -39,13 +44,8 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @SuppressWarnings("UnusedDeclaration")
 @Component
@@ -83,14 +83,14 @@ public class IndexAugmentorFactory {
         resetState();
     }
 
-    @Nonnull
+    @NotNull
     public IndexFieldProvider getIndexFieldProvider(String nodeType) {
         IndexFieldProvider provider = indexFieldProviderMap.get(nodeType);
         return (provider != null) ? provider : IndexFieldProvider.DEFAULT;
     }
 
-    @Nonnull
-    public FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
+    @NotNull
+    FulltextQueryTermsProvider getFulltextQueryTermsProvider(String nodeType) {
         FulltextQueryTermsProvider provider = fulltextQueryTermsProviderMap.get(nodeType);
         return (provider != null) ? provider : FulltextQueryTermsProvider.DEFAULT;
     }
@@ -161,8 +161,8 @@ public class IndexAugmentorFactory {
         indexFieldProviders.clear();
         fulltextQueryTermsProviders.clear();
 
-        indexFieldProviderMap = Collections.EMPTY_MAP;
-        fulltextQueryTermsProviderMap = Collections.EMPTY_MAP;
+        indexFieldProviderMap = Collections.emptyMap();
+        fulltextQueryTermsProviderMap = Collections.emptyMap();
     }
 
     boolean isStateEmpty() {
@@ -182,7 +182,7 @@ public class IndexAugmentorFactory {
             this.providers = ImmutableList.copyOf(providers);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<Field> getAugmentedFields(final String path,
                                               final NodeState document, final NodeState indexDefinition) {
@@ -199,7 +199,7 @@ public class IndexAugmentorFactory {
             return fields;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return Collections.singleton(nodeType);
@@ -244,7 +244,7 @@ public class IndexAugmentorFactory {
             return ret;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return Collections.singleton(nodeType);

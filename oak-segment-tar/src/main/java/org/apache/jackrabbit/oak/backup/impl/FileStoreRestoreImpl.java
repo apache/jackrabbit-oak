@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,10 +86,9 @@ public class FileStoreRestoreImpl implements FileStoreRestore {
                     store.getReader(),
                     writer,
                     store.getBlobStore(),
-                    Suppliers.ofInstance(false),
                     GCNodeWriteMonitor.EMPTY
             );
-            SegmentNodeState after = compactor.compact(current, head, current);
+            SegmentNodeState after = compactor.compact(current, head, current, Canceller.newCanceller());
             writer.flush();
             store.getRevisions().setHead(current.getRecordId(), after.getRecordId());
         } finally {

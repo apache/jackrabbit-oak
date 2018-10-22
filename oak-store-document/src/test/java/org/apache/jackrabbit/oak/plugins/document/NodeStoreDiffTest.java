@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -41,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -124,7 +123,7 @@ public class NodeStoreDiffTest {
         tds.reset();
         //3. Merge which does a rebase
         ns.merge(b2, new CommitHook() {
-            @Nonnull
+            @NotNull
             public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
                 NodeBuilder rb = after.builder();
                 createNodes(rb, "/oak:index/prop-a/a1");

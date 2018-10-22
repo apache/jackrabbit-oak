@@ -23,9 +23,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A blob as a file in the file system.
@@ -49,7 +48,7 @@ public class FileBlob implements Blob {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public InputStream getNewStream() {
         try {

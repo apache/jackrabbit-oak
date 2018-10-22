@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ValueFormatException;
 
@@ -29,6 +27,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -41,10 +41,10 @@ public class PropertyDelegate extends ItemDelegate {
     /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this property's parent */
     private final Tree parent;
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @CheckForNull
+    @Nullable
     private PropertyState state;
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
@@ -65,17 +65,17 @@ public class PropertyDelegate extends ItemDelegate {
         state = parent.getProperty(name);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getName() {
         return name;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getPath() {
         return PathUtils.concat(parent.getPath(), name);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public NodeDelegate getParent() {
         return parent.exists() ? new NodeDelegate(sessionDelegate, parent) : null;
     }
@@ -85,7 +85,7 @@ public class PropertyDelegate extends ItemDelegate {
         return state != null;
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Status getStatus() {
         return parent.getPropertyStatus(name);
     }
@@ -95,7 +95,7 @@ public class PropertyDelegate extends ItemDelegate {
         return getParent().isProtected(name);
     }
 
-    @Nonnull
+    @NotNull
     public PropertyState getPropertyState() throws InvalidItemStateException {
         if (state != null) {
             return state;
@@ -105,7 +105,7 @@ public class PropertyDelegate extends ItemDelegate {
         }
     }
 
-    @Nonnull
+    @NotNull
     public PropertyState getSingleState() throws InvalidItemStateException, ValueFormatException {
         PropertyState p = getPropertyState();
         if (p.isArray()) {
@@ -126,7 +126,7 @@ public class PropertyDelegate extends ItemDelegate {
         return getSingleState().getValue(Type.DATE);
     }
 
-    @Nonnull
+    @NotNull
     public PropertyState getMultiState() throws InvalidItemStateException, ValueFormatException {
         PropertyState p = getPropertyState();
         if (!p.isArray()) {
@@ -135,7 +135,7 @@ public class PropertyDelegate extends ItemDelegate {
         return p;
     }
 
-    public void setState(@Nonnull PropertyState propertyState) {
+    public void setState(@NotNull PropertyState propertyState) {
         parent.setProperty(propertyState);
     }
 

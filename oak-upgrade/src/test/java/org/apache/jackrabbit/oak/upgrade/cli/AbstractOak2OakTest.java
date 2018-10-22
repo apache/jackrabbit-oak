@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import static java.util.Collections.singletonMap;
-import static junit.framework.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -166,8 +165,6 @@ public abstract class AbstractOak2OakTest {
         verifyBlob(session);
         if (supportsCheckpointMigration()) {
             verifyCheckpoint();
-        } else {
-            verifyEmptyAsync();
         }
     }
 
@@ -256,12 +253,6 @@ public abstract class AbstractOak2OakTest {
         } else {
             return null;
         }
-    }
-
-    // OAK-2869
-    protected void verifyEmptyAsync() {
-        NodeState state = destination.getRoot().getChildNode(":async");
-        assertFalse(state.hasProperty("test"));
     }
 
     protected boolean supportsCheckpointMigration() {

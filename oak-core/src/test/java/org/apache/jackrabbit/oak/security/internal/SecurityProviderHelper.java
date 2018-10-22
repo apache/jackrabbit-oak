@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 public final class SecurityProviderHelper {
 
     private SecurityProviderHelper() {
     }
 
-    public static SecurityProvider updateConfig(@Nonnull SecurityProvider securityProvider,
-            @Nonnull SecurityConfiguration sc, @Nonnull Class<? extends SecurityConfiguration> cls) {
+    public static SecurityProvider updateConfig(@NotNull SecurityProvider securityProvider,
+            @NotNull SecurityConfiguration sc, @NotNull Class<? extends SecurityConfiguration> cls) {
 
         Object cc = securityProvider.getConfiguration(cls);
         if (!(cc instanceof CompositeConfiguration)) {

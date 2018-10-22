@@ -57,7 +57,7 @@ public class DocumentToExternalMigrationTest extends AbstractMigratorTest {
     }
 
     private void dropDB() {
-        connectionFactory.getConnection().getDB().dropDatabase();
+        connectionFactory.getConnection().getDatabase().drop();
     }
 
     @Override

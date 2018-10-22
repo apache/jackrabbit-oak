@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
@@ -33,9 +31,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
@@ -49,6 +49,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
     private final NamePathMapper namePathMapper;
+    private final PartialValueFactory valueFactory;
 
     private int hashCode;
 
@@ -63,21 +64,22 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.isAllow = isAllow;
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
+        this.valueFactory = new PartialValueFactory(namePathMapper);
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     public PrivilegeBits getPrivilegeBits() {
         return privilegeBits;
     }
 
-    @Nonnull
+    @NotNull
     public Set<Restriction> getRestrictions() {
         return restrictions;
     }
 
     //-------------------------------------------------< AccessControlEntry >---
-    @Nonnull
+    @NotNull
     @Override
     public Principal getPrincipal() {
         return principal;
@@ -89,7 +91,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         return isAllow;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
@@ -100,33 +102,33 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         }).toArray(new String[restrictions.size()]);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
                 if (restriction.getDefinition().getRequiredType().isArray()) {
-                    List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                    List<Value> values = valueFactory.createValues(restriction.getProperty());
                     switch (values.size()) {
                         case 1: return values.get(0);
                         default : throw new ValueFormatException("Attempt to retrieve single value from multivalued property");
                     }
                 } else {
-                    return ValueFactoryImpl.createValue(restriction.getProperty(), namePathMapper);
+                    return valueFactory.createValue(restriction.getProperty());
                 }
             }
         }
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Value[] getRestrictions(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
-                List<Value> values = ValueFactoryImpl.createValues(restriction.getProperty(), namePathMapper);
+                List<Value> values = valueFactory.createValues(restriction.getProperty());
                 return values.toArray(new Value[values.size()]);
             }
         }

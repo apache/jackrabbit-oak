@@ -18,16 +18,16 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.security.Principal;
 import java.util.Date;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ class TokenAuthentication implements Authentication {
         return false;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getUserId() {
         if (tokenInfo == null) {
@@ -74,7 +74,7 @@ class TokenAuthentication implements Authentication {
         return tokenInfo.getUserId();
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Principal getUserPrincipal() {
         if (tokenInfo == null) {
@@ -88,7 +88,7 @@ class TokenAuthentication implements Authentication {
     }
 
     //-----------------------------------------------------------< internal >---
-    @Nonnull
+    @NotNull
     TokenInfo getTokenInfo() {
         if (tokenInfo == null) {
             throw new IllegalStateException("Token info can only be retrieved after successful authentication.");
@@ -117,7 +117,12 @@ class TokenAuthentication implements Authentication {
         }
 
         if (tokenInfo.matches(tokenCredentials)) {
-            tokenInfo.resetExpiration(loginTime);
+            if (tokenCredentials.getAttribute(TokenConstants.TOKEN_SKIP_REFRESH) == null) {
+                boolean reset = tokenInfo.resetExpiration(loginTime);
+                log.debug("Token reset={}", reset);
+            } else {
+                log.debug("Token reset skipped.");
+            }
             return true;
         }
 

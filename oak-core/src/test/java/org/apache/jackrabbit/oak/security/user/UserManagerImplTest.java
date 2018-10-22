@@ -66,7 +66,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userMgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+        userMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
         beforeAuthorizables.clear();
         Iterator<Authorizable> iter = userMgr.findAuthorizables("jcr:primaryType", null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         while (iter.hasNext()) {
@@ -305,7 +305,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
                     try {
                         ContentSession admin = login(getAdminCredentials());
                         Root root = admin.getLatestRoot();
-                        UserManager userManager = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+                        UserManager userManager = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
                         userManager.createUser(userId, "pass");
                         root.commit();
                         admin.close();

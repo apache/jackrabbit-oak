@@ -31,12 +31,12 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory
     .ActiveDeletedBlobCollectorImpl;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -51,7 +51,6 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.intersection;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 import static org.junit.Assert.assertEquals;

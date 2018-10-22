@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.plugins.tree;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,27 +44,27 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         typeProvider = new TreeTypeProvider(new TreeContext(){
 
             @Override
-            public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+            public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
                 return false;
             }
 
             @Override
-            public boolean definesContextRoot(@Nonnull Tree tree) {
+            public boolean definesContextRoot(@NotNull Tree tree) {
                 return tree.getName().equals("ctxRoot");
             }
 
             @Override
-            public boolean definesTree(@Nonnull Tree tree) {
+            public boolean definesTree(@NotNull Tree tree) {
                 return false;
             }
 
             @Override
-            public boolean definesLocation(@Nonnull TreeLocation location) {
+            public boolean definesLocation(@NotNull TreeLocation location) {
                 return false;
             }
 
             @Override
-            public boolean definesInternal(@Nonnull Tree tree) {
+            public boolean definesInternal(@NotNull Tree tree) {
                 return tree.getName().equals("internal");
             }
         });
@@ -170,11 +169,11 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
         private final TreeType type;
         private final TreeType parentType;
 
-        private TypeTest(@Nonnull String path, TreeType type) {
+        private TypeTest(@NotNull String path, TreeType type) {
             this(path, type, TreeType.DEFAULT);
         }
         
-        private TypeTest(@Nonnull String path, TreeType type, TreeType parentType) {
+        private TypeTest(@NotNull String path, TreeType type, TreeType parentType) {
             this.path = path;
             this.type = type;
             this.parentType = parentType;

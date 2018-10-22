@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
@@ -59,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl.QuerySelectionMode;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -318,7 +318,7 @@ public abstract class AbstractQueryTest {
 
     }
 
-    protected static void assertResult(@Nonnull List<String> expected, @Nonnull List<String> actual) {
+    protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
         for (String p : checkNotNull(expected)) {
             assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
                 .contains(p));
@@ -331,7 +331,7 @@ public abstract class AbstractQueryTest {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
 
-    protected void setQuerySelectionMode(@Nonnull QuerySelectionMode querySelectionMode) {
+    protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
         ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
     }
 

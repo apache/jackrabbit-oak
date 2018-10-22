@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Dynamic {@link AuthorizableNodeName} based on the available
@@ -34,9 +33,9 @@ public class WhiteboardAuthorizableNodeName
         super(AuthorizableNodeName.class);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String generateNodeName(@Nonnull String authorizableId) {
+    public String generateNodeName(@NotNull String authorizableId) {
         List<AuthorizableNodeName> services = getServices();
         if (services.isEmpty()) {
             return AuthorizableNodeName.DEFAULT.generateNodeName(authorizableId);

@@ -25,6 +25,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
@@ -380,14 +381,14 @@ public class PersistentCache implements Broadcaster.Listener {
         writeBuffer.remove();
     }
     
-    public synchronized <K, V> Cache<K, V> wrap(
+    public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrap(
             DocumentNodeStore docNodeStore, 
             DocumentStore docStore,
             Cache<K, V> base, CacheType type) {
        return wrap(docNodeStore, docStore, base, type, StatisticsProvider.NOOP);
     }
 
-    public synchronized <K, V> Cache<K, V> wrap(
+    public synchronized <K extends CacheValue, V extends CacheValue> Cache<K, V> wrap(
             DocumentNodeStore docNodeStore,
             DocumentStore docStore,
             Cache<K, V> base, CacheType type,

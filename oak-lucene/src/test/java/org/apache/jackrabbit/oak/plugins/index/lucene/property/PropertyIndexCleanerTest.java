@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -33,11 +31,11 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner.CleanupStats;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -49,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
@@ -349,13 +348,13 @@ public class PropertyIndexCleanerTest {
             throw new UnsupportedOperationException();
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public AsyncIndexInfo getInfo(String name) {
             return infos.get(name);
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public AsyncIndexInfo getInfo(String name, NodeState root) {
             return null;

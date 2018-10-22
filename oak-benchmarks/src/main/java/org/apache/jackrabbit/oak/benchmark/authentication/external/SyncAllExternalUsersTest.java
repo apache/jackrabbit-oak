@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Benchmark for {@link SynchronizationMBean#syncAllExternalUsers()}
@@ -33,7 +33,7 @@ public class SyncAllExternalUsersTest extends AbstractExternalTest {
     private SynchronizationMBean bean;
 
     public SyncAllExternalUsersTest(int numberOfUsers, int membershipSize, long expTime,
-                                    boolean dynamicMembership, @Nonnull List<String> autoMembership) {
+                                    boolean dynamicMembership, @NotNull List<String> autoMembership) {
         super(numberOfUsers, membershipSize, expTime, dynamicMembership, autoMembership);
     }
 

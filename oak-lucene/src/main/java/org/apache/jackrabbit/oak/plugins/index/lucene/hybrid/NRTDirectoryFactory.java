@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.lucene.store.Directory;
 
 interface NRTDirectoryFactory {

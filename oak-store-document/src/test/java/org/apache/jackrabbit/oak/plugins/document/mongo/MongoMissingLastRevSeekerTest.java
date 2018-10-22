@@ -52,18 +52,18 @@ public class MongoMissingLastRevSeekerTest {
     private DocumentNodeStore ns;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         c = MongoUtils.getConnection();
         assumeTrue(c != null);
-        dbName = c.getDB().getName();
-        MongoUtils.dropCollections(c.getDB());
+        dbName = c.getDatabase().getName();
+        MongoUtils.dropCollections(c.getDatabase());
         builder = new DocumentMK.Builder().setMongoDB(c.getMongoClient(), c.getDBName());
         store = (MongoDocumentStore) builder.getDocumentStore();
         ns = builder.getNodeStore();
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         if (ns != null) {
             ns.dispose();
         }

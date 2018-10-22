@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Common utilities used for user/group queries.
@@ -45,7 +45,7 @@ public final class QueryUtil {
      * @param config The configuration parameters.
      * @return The path of search root for the specified authorizable type.
      */
-    @Nonnull
+    @NotNull
     public static String getSearchRoot(AuthorizableType type, ConfigurationParameters config) {
         String path = UserUtil.getAuthorizableRootPath(config, type);
         return QueryConstants.SEARCH_ROOT_PATH + path;
@@ -57,8 +57,8 @@ public final class QueryUtil {
      * @param type The authorizable type.
      * @return The corresponding node type name.
      */
-    @Nonnull
-    public static String getNodeTypeName(@Nonnull AuthorizableType type) {
+    @NotNull
+    public static String getNodeTypeName(@NotNull AuthorizableType type) {
         if (type == AuthorizableType.USER) {
             return UserConstants.NT_REP_USER;
         } else if (type == AuthorizableType.GROUP) {
@@ -74,13 +74,13 @@ public final class QueryUtil {
      * @param string string to escape
      * @return escaped string
      */
-    @Nonnull
-    public static String escapeNodeName(@Nonnull String string) {
+    @NotNull
+    public static String escapeNodeName(@NotNull String string) {
         return QueryUtils.escapeNodeName(string);
     }
 
-    @Nonnull
-    public static String format(@Nonnull Value value) throws RepositoryException {
+    @NotNull
+    public static String format(@NotNull Value value) throws RepositoryException {
         switch (value.getType()) {
             case PropertyType.STRING:
             case PropertyType.BOOLEAN:
@@ -98,18 +98,18 @@ public final class QueryUtil {
         }
     }
 
-    @Nonnull
-    public static String escapeForQuery(@Nonnull String oakName, @Nonnull NamePathMapper namePathMapper) {
+    @NotNull
+    public static String escapeForQuery(@NotNull String oakName, @NotNull NamePathMapper namePathMapper) {
         return escapeForQuery(namePathMapper.getJcrName(oakName));
     }
 
-    @Nonnull
-    public static String escapeForQuery(@Nonnull String value) {
+    @NotNull
+    public static String escapeForQuery(@NotNull String value) {
         return QueryUtils.escapeForQuery(value);
     }
 
-    @Nonnull
-    public static RelationOp getCollation(@Nonnull QueryBuilder.Direction direction) throws RepositoryException {
+    @NotNull
+    public static RelationOp getCollation(@NotNull QueryBuilder.Direction direction) throws RepositoryException {
         switch (direction) {
             case ASCENDING:
                 return RelationOp.GT;

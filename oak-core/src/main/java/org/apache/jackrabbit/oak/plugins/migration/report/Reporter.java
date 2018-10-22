@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code Reporter} receives callbacks for every NodeState
@@ -32,7 +32,7 @@ public interface Reporter {
      *
      * @param nodeState The accessed {@code ReportingNodeState} instance.
      */
-    void reportNode(@Nonnull final ReportingNodeState nodeState);
+    void reportNode(@NotNull final ReportingNodeState nodeState);
 
     /**
      * Callback reporting that the property named {@code propertyName}
@@ -41,5 +41,5 @@ public interface Reporter {
      * @param parent The parent node state of the reported property.
      * @param propertyName The name of the reported property.
      */
-    void reportProperty(@Nonnull final ReportingNodeState parent, @Nonnull final String propertyName);
+    void reportProperty(@NotNull final ReportingNodeState parent, @NotNull final String propertyName);
 }

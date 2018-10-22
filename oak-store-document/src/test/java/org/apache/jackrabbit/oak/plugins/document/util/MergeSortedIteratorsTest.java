@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link MergeSortedIterators}.

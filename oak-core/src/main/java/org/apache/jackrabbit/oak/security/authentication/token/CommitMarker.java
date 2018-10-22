@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Marker object to help the {@link org.apache.jackrabbit.oak.security.authentication.token.TokenValidatorProvider.TokenValidator}
@@ -40,7 +39,7 @@ final class CommitMarker {
         return Collections.<String, Object>singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
     }
 
-    static boolean isValidCommitInfo(@Nonnull CommitInfo commitInfo) {
+    static boolean isValidCommitInfo(@NotNull CommitInfo commitInfo) {
         return CommitMarker.INSTANCE == commitInfo.getInfo().get(CommitMarker.KEY);
     }
 

@@ -27,8 +27,6 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
@@ -42,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
@@ -74,7 +73,7 @@ public abstract class BlobStoreFixture implements Closeable{
      * @param fallbackToFDS if true then FileDataStore would be used in absence of
      *                      any explicitly defined BlobStore
      */
-    @CheckForNull
+    @Nullable
     public static BlobStoreFixture create(File basedir, boolean fallbackToFDS,
                                           int fdsCacheInMB,
                                           StatisticsProvider statisticsProvider) {

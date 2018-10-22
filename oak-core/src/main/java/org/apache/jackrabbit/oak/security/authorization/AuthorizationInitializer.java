@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -45,8 +46,8 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
 
     private final MountInfoProvider mountInfoProvider;
 
-    public AuthorizationInitializer(MountInfoProvider mountInfoProvider) {
-            this.mountInfoProvider = mountInfoProvider;
+    public AuthorizationInitializer(@NotNull MountInfoProvider mountInfoProvider) {
+        this.mountInfoProvider = mountInfoProvider;
     }
 
     @Override
@@ -57,9 +58,7 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
             NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
                     ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
-            acPrincipalName.setProperty("info",
-                    "Oak index used by authorization to quickly search a principal by name."
-                    );
+            acPrincipalName.setProperty("info", "Oak index used by authorization to quickly search a principal by name.");
         }
 
         // create the permission store and the root for this workspace.

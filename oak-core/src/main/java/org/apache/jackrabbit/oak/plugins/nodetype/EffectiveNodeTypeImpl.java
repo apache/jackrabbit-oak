@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -38,8 +37,9 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,10 +61,13 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
     private final ReadOnlyNodeTypeManager ntMgr;
 
+    private final PartialValueFactory valueFactory;
+
     EffectiveNodeTypeImpl(
             NodeTypeImpl primary, NodeTypeImpl[] mixins,
             ReadOnlyNodeTypeManager ntMgr) {
         this.ntMgr = ntMgr;
+        this.valueFactory = new PartialValueFactory(ntMgr.getNamePathMapper());
 
         addNodeType(checkNotNull(primary));
         for (NodeTypeImpl mixin : checkNotNull(mixins)) {
@@ -217,7 +220,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All node definitions that match the given internal oak name.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<NodeDefinition> getNamedNodeDefinitions(
             final String oakName) {
         return Iterables.concat(Iterables.transform(
@@ -237,7 +240,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All property definitions that match the given internal oak name.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(
             String oakName) {
         List<PropertyDefinition> definitions = newArrayList();
@@ -253,7 +256,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All residual node definitions.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
         List<NodeDefinition> definitions = newArrayList();
         for (NodeTypeImpl type : nodeTypes.values()) {
@@ -268,7 +271,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
      * @return All residual property definitions.
      */
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
         List<PropertyDefinition> definitions = newArrayList();
         for (NodeTypeImpl type : nodeTypes.values()) {
@@ -286,12 +289,12 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
         NodeType nt = definition.getDeclaringNodeType();
         if (definition.isMultiple()) {
-            List<Value> values = ValueFactoryImpl.createValues(property, ntMgr.getNamePathMapper());
+            List<Value> values = valueFactory.createValues(property);
             if (!nt.canSetProperty(property.getName(), values.toArray(new Value[values.size()]))) {
                 throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + values + '\'');
             }
         } else {
-            Value v = ValueFactoryImpl.createValue(property, ntMgr.getNamePathMapper());
+            Value v = valueFactory.createValue(property);
             if (!nt.canSetProperty(property.getName(), v)) {
                 throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + v + '\'');
             }

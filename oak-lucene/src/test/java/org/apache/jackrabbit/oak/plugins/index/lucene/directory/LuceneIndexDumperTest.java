@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 
-import org.apache.jackrabbit.oak.InitialContent;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -38,7 +38,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class LuceneIndexDumperTest {
-    private NodeState rootState = InitialContent.INITIAL_CONTENT;
+    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
     private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
 
     @Rule
@@ -46,7 +46,7 @@ public class LuceneIndexDumperTest {
 
     @Test
     public void directoryDump() throws Exception{
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
 
         long size = 0;
 

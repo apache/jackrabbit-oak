@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A CommitContext instance can be obtained from {@link CommitInfo#getInfo()}
@@ -58,7 +58,7 @@ public interface CommitContext {
      * @return an <code>Object</code> containing the value
      * of the attribute, or <code>null</code> if the attribute does not exist
      */
-    @CheckForNull
+    @Nullable
     Object get(String name);
 
     /**

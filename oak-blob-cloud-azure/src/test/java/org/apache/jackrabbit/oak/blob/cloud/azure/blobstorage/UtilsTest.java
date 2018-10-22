@@ -25,6 +25,14 @@ import static org.junit.Assert.assertEquals;
 public class UtilsTest {
 
     @Test
+    public void testConnectionStringIsBasedOnProperty() {
+        Properties properties = new Properties();
+        properties.put(AzureConstants.AZURE_CONNECTION_STRING, "DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+        String connectionString = Utils.getConnectionStringFromProperties(properties);
+        assertEquals(connectionString,"DefaultEndpointsProtocol=https;AccountName=accountName;AccountKey=accountKey");
+    }
+
+    @Test
     public void testConnectionStringIsBasedOnSAS() {
         Properties properties = new Properties();
         properties.put(AzureConstants.AZURE_SAS, "sas");

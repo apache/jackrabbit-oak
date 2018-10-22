@@ -20,12 +20,11 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -102,9 +101,9 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     }
 
     //-----------------------------------------< AuthorizableActionProvider >---
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
         List<AuthorizableAction> actions = Lists.newArrayListWithExpectedSize(enabledActions.length);
         for (String className : enabledActions) {
             try {

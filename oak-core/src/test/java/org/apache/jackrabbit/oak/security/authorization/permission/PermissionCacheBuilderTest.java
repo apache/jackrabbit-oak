@@ -16,24 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.lang.reflect.Field;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -61,7 +55,7 @@ public class PermissionCacheBuilderTest {
 
     @Test
     public void testBuildForEmptyPrincipals() {
-        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(), Long.MAX_VALUE).isEmpty());
+        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(), Long.MAX_VALUE));
         permissionCacheBuilder.init(ImmutableSet.of(), Long.MAX_VALUE);
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -74,7 +68,7 @@ public class PermissionCacheBuilderTest {
 
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
-        assertTrue(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE).isEmpty());
+        assertTrue(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
     }
@@ -92,7 +86,7 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE).isEmpty());
+        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(SIMPLE_CLASS_NAME, cache.getClass().getName());
@@ -111,7 +105,7 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE).isEmpty());
+        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(SIMPLE_CLASS_NAME, cache.getClass().getName());
@@ -124,7 +118,7 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, false));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE).isEmpty());
+        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -144,7 +138,7 @@ public class PermissionCacheBuilderTest {
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
         long maxSize = 1;
-        assertFalse(permissionCacheBuilder.init(principalNames, maxSize).isEmpty());
+        assertFalse(permissionCacheBuilder.init(principalNames, maxSize));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());

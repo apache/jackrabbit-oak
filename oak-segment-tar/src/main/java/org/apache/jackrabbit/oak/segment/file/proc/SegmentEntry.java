@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file.proc;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 class SegmentEntry implements ChildNodeEntry {
 
@@ -36,13 +35,13 @@ class SegmentEntry implements ChildNodeEntry {
         this.segmentId = segmentId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return segmentId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getNodeState() {
         return SegmentNode.newSegmentNode(backend, segmentId);

@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.spell.DirectSpellChecker;
 import org.apache.lucene.search.spell.SuggestWord;
 
 /**
- * Helper class for getting spellcheck results for a given term, calling a {@link org.apache.lucene.search.spell.DirectSpellChecker}
+ * Helper class for getting spellcheck results for a given term, calling a {@link DirectSpellChecker}
  * under the hood.
  */
 public class SpellcheckHelper {

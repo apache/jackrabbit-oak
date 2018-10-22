@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.privilege;
 
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

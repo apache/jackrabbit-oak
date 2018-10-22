@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 final class Utils {
 
     private Utils() {}
 
-    static boolean isSupportedPath(@Nonnull String configuredPath, @Nonnull String path) {
+    static boolean isSupportedPath(@NotNull String configuredPath, @NotNull String path) {
         return Text.isDescendantOrEqual(configuredPath, path);
     }
 

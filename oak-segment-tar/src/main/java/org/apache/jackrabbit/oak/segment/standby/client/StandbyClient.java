@@ -23,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLException;
 
 import io.netty.bootstrap.Bootstrap;
@@ -55,6 +54,7 @@ import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequest;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentRequestEncoder;
 import org.apache.jackrabbit.oak.segment.standby.codec.GetSegmentResponse;
 import org.apache.jackrabbit.oak.segment.standby.codec.ResponseDecoder;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

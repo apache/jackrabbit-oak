@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -69,27 +71,27 @@ public class ExcerptTest extends AbstractQueryTest {
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
 
-        Tree properties = def.addChild(LuceneIndexConstants.INDEX_RULES)
+        Tree properties = def.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
-                .addChild(LuceneIndexConstants.PROP_NODE);
+                .addChild(FulltextIndexConstants.PROP_NODE);
 
         Tree notIndexedProp = properties.addChild("baz");
-        notIndexedProp.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        notIndexedProp.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
 
         Tree relativeProp = properties.addChild("relative-baz");
-        relativeProp.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
-        relativeProp.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
-        relativeProp.setProperty(LuceneIndexConstants.PROP_NAME, "relative/baz");
+        relativeProp.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        relativeProp.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
+        relativeProp.setProperty(FulltextIndexConstants.PROP_NAME, "relative/baz");
 
         Tree allProps = properties.addChild("allProps");
-        allProps.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
-        allProps.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
-        allProps.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
-        allProps.setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS);
-        allProps.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+        allProps.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+        allProps.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        allProps.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
+        allProps.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+        allProps.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
 
         root.commit();
     }

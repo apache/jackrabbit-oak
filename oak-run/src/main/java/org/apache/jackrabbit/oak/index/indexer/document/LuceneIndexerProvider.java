@@ -22,23 +22,22 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
-import org.apache.jackrabbit.oak.plugins.index.lucene.ExtractedTextCache;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.binary.BinaryTextExtractor;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -58,17 +57,17 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public NodeStateIndexer getIndexer(@Nonnull String type, @Nonnull String indexPath,
-                                       @Nonnull NodeBuilder definition, @Nonnull NodeState root,
+    public NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath,
+                                       @NotNull NodeBuilder definition, @NotNull NodeState root,
                                        IndexingProgressReporter progressReporter) {
         if (!TYPE_LUCENE.equals(definition.getString(TYPE_PROPERTY_NAME))) {
             return null;
         }
 
-        IndexDefinition idxDefinition = IndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
+        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
 
         LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, true);
-        BinaryTextExtractor textExtractor = new BinaryTextExtractor(textCache, idxDefinition, true);
+        FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
         return new LuceneIndexer(
                 idxDefinition,
                 indexWriter,

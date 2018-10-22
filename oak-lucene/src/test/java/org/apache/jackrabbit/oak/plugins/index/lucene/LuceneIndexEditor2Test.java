@@ -25,9 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -36,18 +33,28 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
+import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexableField;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -191,12 +198,12 @@ public class LuceneIndexEditor2Test {
 
     private EditorHook createHook(LuceneIndexEditorContext context) {
         IndexEditorProvider provider = new IndexEditorProvider() {
-            @CheckForNull
+            @Nullable
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                         @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                     throws CommitFailedException {
-                if ("lucene".equals(type)) {
+                if (TYPE_LUCENE.equals(type)) {
                     return new LuceneIndexEditor(context);
                 }
                 return null;
@@ -257,7 +264,7 @@ public class LuceneIndexEditor2Test {
 
 
         public CallbackState(String nodePath, String propertyPath, PropertyDefinition pd,
-                              PropertyState before, PropertyState after) {
+                             PropertyState before, PropertyState after) {
             this.nodePath = nodePath;
             this.propertyPath = propertyPath;
             this.pd = pd;
@@ -278,7 +285,7 @@ public class LuceneIndexEditor2Test {
     }
 
 
-    private class TestWriterFactory implements LuceneIndexWriterFactory {
+    private class TestWriterFactory implements FulltextIndexWriterFactory {
         @Override
         public LuceneIndexWriter newInstance(IndexDefinition definition,
                                              NodeBuilder definitionBuilder, boolean reindex) {

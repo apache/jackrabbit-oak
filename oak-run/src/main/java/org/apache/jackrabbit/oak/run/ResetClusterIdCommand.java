@@ -104,7 +104,7 @@ class ResetClusterIdCommand implements Command {
                 MongoClientURI uri = new MongoClientURI(source);
                 MongoClient client = new MongoClient(uri);
                 final DocumentNodeStore dns = newMongoDocumentNodeStoreBuilder()
-                        .setMongoDB(client.getDB(uri.getDatabase()))
+                        .setMongoDB(client, uri.getDatabase())
                         .build();
                 closer.register(Utils.asCloseable(dns));
                 store = dns;

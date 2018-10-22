@@ -201,7 +201,7 @@ public abstract class DocumentStoreFixture {
     }
 
     public static class MongoFixture extends DocumentStoreFixture {
-        private List<MongoConnection> connections = Lists.newArrayList();
+        protected List<MongoConnection> connections = Lists.newArrayList();
 
         @Override
         public String getName() {
@@ -214,7 +214,7 @@ public abstract class DocumentStoreFixture {
                 MongoConnection connection = MongoUtils.getConnection();
                 connections.add(connection);
                 return new MongoDocumentStore(connection.getMongoClient(),
-                        connection.getDBName(), builder);
+                        connection.getDatabase(), builder);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -232,7 +232,11 @@ public abstract class DocumentStoreFixture {
             } catch (Exception ignore) {
             }
             for (MongoConnection c : connections) {
-                c.close();
+                try {
+                    c.close();
+                } catch (IllegalStateException e) {
+                    // may happen when connection is already closed (OAK-7447)
+                }
             }
             connections.clear();
         }

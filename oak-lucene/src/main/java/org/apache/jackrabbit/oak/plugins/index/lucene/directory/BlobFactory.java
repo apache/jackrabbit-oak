@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 

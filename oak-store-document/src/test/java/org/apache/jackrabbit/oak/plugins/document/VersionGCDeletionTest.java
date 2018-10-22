@@ -38,8 +38,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +70,7 @@ public class VersionGCDeletionTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         if (store != null) {
             store.dispose();
         }
@@ -83,6 +82,7 @@ public class VersionGCDeletionTest {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -127,6 +127,7 @@ public class VersionGCDeletionTest {
         TestDocumentStore ts = new TestDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -175,6 +176,7 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(new MemoryDocumentStore())
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -220,7 +222,8 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
-                .setDocumentStore(new MemoryDocumentStore())
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
+                .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
 
@@ -257,6 +260,7 @@ public class VersionGCDeletionTest {
         DocumentStore ts = new MemoryDocumentStore();
         store = new DocumentMK.Builder()
                 .clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ts)
                 .setAsyncDelay(0)
                 .getNodeStore();
@@ -312,7 +316,7 @@ public class VersionGCDeletionTest {
         final Semaphore queries = new Semaphore(0);
         final CountDownLatch ready = new CountDownLatch(1);
         MemoryDocumentStore ms = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -327,6 +331,7 @@ public class VersionGCDeletionTest {
             }
         };
         store = new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
                 .setDocumentStore(ms).setAsyncDelay(0).getNodeStore();
 
         // create nodes
@@ -365,7 +370,7 @@ public class VersionGCDeletionTest {
         Future<List<String>> f = newSingleThreadExecutor().submit(
                 new Callable<List<String>>() {
             @Override
-            public List<String> call() throws Exception {
+            public List<String> call() {
                 List<String> names = Lists.newArrayList();
                 NodeState n = store.getRoot().getChildNode("node");
                 for (ChildNodeEntry entry : n.getChildNodeEntries()) {
@@ -404,7 +409,7 @@ public class VersionGCDeletionTest {
         }
 
         @SuppressWarnings("unchecked")
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
                                                   String toKey, String indexedProperty, long startValue, int limit) {

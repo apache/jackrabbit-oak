@@ -103,14 +103,15 @@ can be used
 
 #### DocumentNodeStore
 
-By default DocumentNodeStore when running on Mongo uses `MongoBlobStore`. Depending on requirements 
-one of the following can be used  
+By default DocumentNodeStore when running on Mongo uses `MongoBlobStore`.
+Depending on requirements one of the following can be used
                   
-* MongoBlobStore - Used by default
+* MongoBlobStore - Used by default and recommended only for development and testing.
 * FileDataStore - This should be used if the binaries have to be stored on the file system. This 
   would also be used when a JR2 repository is migrated to Oak
 * S3DataStore - This should be used when binaries are stored in Amazon S3. Typically used when running
   in Amazon AWS
+* AzureDataStore - This should be used when binaries are stored in Microsoft Azure Blob storage
 
 #### Caching DataStore
 
@@ -394,6 +395,18 @@ the steps:
     * AzureDataStore - Remove the file from the `META` folder of the Azure container.
 * Remove other files corresponding to the particular repositoryId e.g. `markedTimestamp-[repositoryId]` or 
 `references-[repositoryId]`.
+
+##### Reset Repository ID
+If any of the repositories sharing a DataStore is cloned then it would have the same `repositoryId` 
+registered in the datastore as the repository from which cloned and running a shared DSGC would lead to data loss/missing blobs.
+So, care must be taken to reset the `repositoryId`. 
+
+[oak-run](http://mvnrepository.com/artifact/org.apache.jackrabbit/oak-run/) 
+cli utility has a `resetclusterid` command to reset the repository id.
+The command can be executed as below and more details can be found at the [readme](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
+for oak-run:
+
+`java -jar oak-run.jar resetclusterid < repository path | Mongo URI >`  
 
 <a name="consistency-check"></a>  
 #### Consistency Check

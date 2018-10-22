@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 
 public class MountPermissionProviderRandomTestIT extends AbstractPermissionRandomTestIT {
@@ -49,8 +48,8 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     }
 
     @Override
-    protected PermissionProvider candidatePermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-            @Nonnull Set<Principal> principals) {
+    protected PermissionProvider candidatePermissionProvider(@NotNull Root root, @NotNull String workspaceName,
+            @NotNull Set<Principal> principals) {
         SecurityProvider sp = SecurityProviderBuilder.newBuilder().build();
         AuthorizationConfiguration acConfig = MountUtils.bindMountInfoProvider(sp, mountInfoProvider);
         PermissionProvider composite = acConfig.getPermissionProvider(root, workspaceName, principals);

@@ -26,13 +26,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +68,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * Note: the constructor is private to avoid creation of empty maps.
      * @param options the source options.
      */
-    private ConfigurationParameters(@Nonnull Map<String, ?> options) {
+    private ConfigurationParameters(@NotNull Map<String, ?> options) {
         this.options = Collections.unmodifiableMap(options);
     }
 
@@ -81,8 +79,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param params source parameters to merge
      * @return merged configuration parameters or {@link #EMPTY} if all source params were empty.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull ConfigurationParameters... params) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull ConfigurationParameters... params) {
         Map<String, Object> m = new HashMap<String, Object>();
         for (ConfigurationParameters cp : params) {
             if (cp != null) {
@@ -97,8 +95,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param properties source properties
      * @return configuration parameters or {@link #EMPTY} if the source properties were empty.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull Properties properties) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull Properties properties) {
         if (properties.isEmpty()) {
             return EMPTY;
         }
@@ -115,8 +113,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param properties source properties
      * @return configuration parameters or {@link #EMPTY} if the source properties were empty.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull Dictionary<String, Object> properties) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull Dictionary<String, Object> properties) {
         if (properties.isEmpty()) {
             return EMPTY;
         }
@@ -133,8 +131,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param map source map
      * @return configuration parameters or {@link #EMPTY} if the source map was empty.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull Map<?, ?> map) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull Map<?, ?> map) {
         if (map.isEmpty()) {
             return EMPTY;
         }
@@ -156,8 +154,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param value The value
      * @return a new instance of configuration parameters.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull String key, @Nonnull Object value) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull String key, @NotNull Object value) {
         return new ConfigurationParameters(ImmutableMap.of(key, value));
     }
 
@@ -171,9 +169,9 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param value2 The value of the second pair.
      * @return a new instance of configuration parameters.
      */
-    @Nonnull
-    public static ConfigurationParameters of(@Nonnull String key1, @Nonnull Object value1,
-                                             @Nonnull String key2, @Nonnull Object value2) {
+    @NotNull
+    public static ConfigurationParameters of(@NotNull String key1, @NotNull Object value1,
+                                             @NotNull String key2, @NotNull Object value2) {
         return new ConfigurationParameters(ImmutableMap.of(key1, value1, key2, value2));
     }
 
@@ -185,7 +183,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @return {@code true} if this instance contains a configuration entry with
      * the specified key irrespective of the defined value; {@code false} otherwise.
      */
-    public boolean contains(@Nonnull String key) {
+    public boolean contains(@NotNull String key) {
         return options.containsKey(key);
     }
 
@@ -211,8 +209,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * @param targetClass The target class
      * @return The original or converted configuration value or {@code null}.
      */
-    @CheckForNull
-    public <T> T getConfigValue(@Nonnull String key, @Nullable T defaultValue,
+    @Nullable
+    public <T> T getConfigValue(@NotNull String key, @Nullable T defaultValue,
                                 @Nullable Class<T> targetClass) {
         if (options.containsKey(key)) {
             return convert(options.get(key), defaultValue, targetClass);
@@ -237,8 +235,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * or to use for conversion.
      * @return The original or converted configuration value or {@code null}.
      */
-    @Nonnull
-    public <T> T getConfigValue(@Nonnull String key, @Nonnull T defaultValue) {
+    @NotNull
+    public <T> T getConfigValue(@NotNull String key, @NotNull T defaultValue) {
         Object property = options.get(key);
         if (property == null) {
             return defaultValue;
@@ -372,7 +370,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      * {@inheritDoc}
      */
     @Override
-    public void putAll(@Nonnull Map<? extends String, ?> m) {
+    public void putAll(@NotNull Map<? extends String, ?> m) {
         // we rely on the immutability of the delegated map to throw the correct exceptions.
         options.putAll(m);
     }
@@ -389,7 +387,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> keySet() {
         return options.keySet();
@@ -398,7 +396,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Collection<Object> values() {
         return options.values();
@@ -407,7 +405,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public Set<Entry<String,Object>> entrySet() {
         return options.entrySet();
@@ -471,7 +469,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
          * @param str the string to parse
          * @return the new Milliseconds object or null.
          */
-        @CheckForNull
+        @Nullable
         public static Milliseconds of(@Nullable String str) {
             if (str == null) {
                 return null;
@@ -500,8 +498,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             return current < 0 ? null : new Milliseconds(current + 1);
         }
 
-        @Nonnull
-        public static Milliseconds of(@Nullable String str, @Nonnull Milliseconds defaultValue) {
+        @NotNull
+        public static Milliseconds of(@Nullable String str, @NotNull Milliseconds defaultValue) {
             if (str == null) {
                 return defaultValue;
             }

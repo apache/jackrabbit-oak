@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -231,8 +232,8 @@ public class ConsistencyChecker implements Closeable {
                     if (overallValid) {
                         lastValidJournalEntry = journalEntry;
                     }
-                } catch (IllegalArgumentException e) {
-                    checker.printError("Skipping invalid record id {0}", revision);
+                } catch (IllegalArgumentException | SegmentNotFoundException e) {
+                    checker.printError("Skipping invalid record id {0}: {1}", revision, e);
                 }
             }
             

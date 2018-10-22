@@ -28,7 +28,8 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
@@ -47,7 +48,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -61,7 +62,7 @@ public class MultiplexingIndexWriterTest {
 
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
     private MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
 

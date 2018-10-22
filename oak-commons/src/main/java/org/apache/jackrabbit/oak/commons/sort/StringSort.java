@@ -19,13 +19,19 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -33,8 +39,6 @@ import java.util.List;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -184,7 +188,7 @@ public class StringSort implements Iterable<String>, Closeable {
             if (idFile == null) {
                 idFile = new File(workDir, "strings.txt");
                 sortedFile = new File(workDir, "strings-sorted.txt");
-                writer = Files.newWriter(idFile, charset);
+                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(idFile), charset));
             }
             return writer;
         }
@@ -210,7 +214,8 @@ public class StringSort implements Iterable<String>, Closeable {
         }
 
         public Iterator<String> getIterator() throws IOException {
-            CloseableIterator itr = new CloseableIterator(Files.newReader(sortedFile, charset));
+            CloseableIterator itr = new CloseableIterator(
+                    new BufferedReader(new InputStreamReader(new FileInputStream(sortedFile), charset)));
             openedIterators.add(itr);
             return itr;
         }
@@ -222,21 +227,21 @@ public class StringSort implements Iterable<String>, Closeable {
 
         @Override
         public void close() throws IOException {
-            Closer closer = Closer.create();
+            List<Closeable> closer = new ArrayList<Closeable>();
             try {
-                //Closing is done in LIFO manner!
-                closer.register(new Closeable() {
+                // Closing is done in LIFO manner!
+                closer.add(0, new Closeable() {
                     @Override
                     public void close() throws IOException {
                         FileUtils.deleteDirectory(workDir);
                     }
                 });
-                closer.register(writer);
+                closer.add(0, writer);
                 for (CloseableIterator citr : openedIterators) {
-                    closer.register(citr);
+                    closer.add(0, citr);
                 }
             } finally {
-                closer.close();
+                closeAll(closer);
             }
         }
 
@@ -261,6 +266,25 @@ public class StringSort implements Iterable<String>, Closeable {
             throw new IllegalStateException("Failed to create directory within "
                     + TEMP_DIR_ATTEMPTS + " attempts (tried "
                     + baseName + "0 to " + baseName + (TEMP_DIR_ATTEMPTS - 1) + ')');
+        }
+
+        // inspired by Guava Closer, see
+        // https://google.github.io/guava/releases/19.0/api/docs/com/google/common/io/Closer.html
+        private static void closeAll(List<Closeable> closer) throws IOException {
+            IOException ioex = null;
+            for (Closeable c : closer) {
+                try {
+                    c.close();
+                } catch (IOException mostlyIgnored) {
+                    if (ioex == null) {
+                        ioex = mostlyIgnored;
+                    }
+                }
+
+                if (ioex != null) {
+                    throw ioex;
+                }
+            }
         }
     }
 

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

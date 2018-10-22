@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The collection types.
@@ -39,7 +39,7 @@ public abstract class Collection<T extends Document> {
     public static final Collection<NodeDocument> NODES =
             new Collection<NodeDocument>("nodes") {
                 @Override
-                @Nonnull
+                @NotNull
                 public NodeDocument newDocument(DocumentStore store) {
                     return new NodeDocument(store);
                 }
@@ -52,7 +52,7 @@ public abstract class Collection<T extends Document> {
     public static final Collection<ClusterNodeInfoDocument> CLUSTER_NODES =
             new Collection<ClusterNodeInfoDocument>("clusterNodes") {
                 @Override
-                @Nonnull
+                @NotNull
                 public ClusterNodeInfoDocument newDocument(DocumentStore store) {
                     return new ClusterNodeInfoDocument();
                 }
@@ -64,7 +64,7 @@ public abstract class Collection<T extends Document> {
     public static final Collection<Document> SETTINGS =
             new Collection<Document>("settings") {
                 @Override
-                @Nonnull
+                @NotNull
                 public Document newDocument(DocumentStore store) {
                     return new Document();
                 }
@@ -77,7 +77,7 @@ public abstract class Collection<T extends Document> {
      */
     public static final Collection<JournalEntry> JOURNAL =
             new Collection<JournalEntry>("journal") {
-        @Nonnull
+        @NotNull
         @Override
         public JournalEntry newDocument(DocumentStore store) {
             return new JournalEntry(store);
@@ -92,7 +92,7 @@ public abstract class Collection<T extends Document> {
      */
     public static final Collection<Document> BLOBS =
             new Collection<Document>("blobs") {
-        @Nonnull
+        @NotNull
         @Override
         public Document newDocument(DocumentStore store) {
             throw new UnsupportedOperationException();
@@ -115,6 +115,6 @@ public abstract class Collection<T extends Document> {
      * @param store the document store.
      * @return a new document for this collection.
      */
-    @Nonnull
+    @NotNull
     public abstract T newDocument(DocumentStore store);
 }

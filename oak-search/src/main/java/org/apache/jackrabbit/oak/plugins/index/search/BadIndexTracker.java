@@ -30,7 +30,17 @@ import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class BadIndexTracker {
+/**
+ * Track of bad (corrupt) indexes.
+ *
+ * An index can be corrupt for reads (an exception was thrown when index was
+ * opened for query), and persistent (an exception was thrown when index is
+ * reopened after an update).
+ *
+ * Indexes marked bad for reads might become good again later, if another
+ * cluster node fixed the corruption (eg. by reindexing).
+ */
+public class BadIndexTracker {
     /**
      * Time interval in millis after which a bad index would be accessed again
      * to check if it has been fixed
@@ -81,10 +91,10 @@ class BadIndexTracker {
         BadIndexInfo badIndex = badPersistedIndexes.get(path);
         if (badIndex == null) {
             badPersistedIndexes.put(path, new BadIndexInfo(path, e, true));
-            log.error("Could not open the Lucene index at [{}]", path, e);
+            log.error("Could not open the Fulltext index at [{}]", path, e);
         } else {
             badIndex.failedAccess(e);
-            log.error("Could not open the Lucene index at [{}] . {}",
+            log.error("Could not open the Fulltext index at [{}] . {}",
                     path, badIndex.getStats(), e);
         }
     }
@@ -97,10 +107,10 @@ class BadIndexTracker {
         BadIndexInfo badIndex = badIndexesForRead.get(path);
         if (badIndex == null) {
             badIndexesForRead.put(path, new BadIndexInfo(path, e, false));
-            log.error("Could not access the Lucene index at [{}]", path, e);
+            log.error("Could not access the Fulltext index at [{}]", path, e);
         } else {
             badIndex.failedAccess(e);
-            log.error("Could not access the Lucene index at [{}] . {}",
+            log.error("Could not access the Fulltext index at [{}] . {}",
                     path, badIndex.getStats(), e);
         }
     }
@@ -117,15 +127,15 @@ class BadIndexTracker {
         return badIndexesForRead.keySet();
     }
 
-    BadIndexInfo getInfo(String indexPath){
+    public BadIndexInfo getInfo(String indexPath){
         return badIndexesForRead.get(indexPath);
     }
 
-    Set<String> getBadPersistedIndexPaths() {
+    public Set<String> getBadPersistedIndexPaths() {
         return badPersistedIndexes.keySet();
     }
 
-    BadIndexInfo getPersistedIndexInfo(String indexPath){
+    public BadIndexInfo getPersistedIndexInfo(String indexPath){
         return badPersistedIndexes.get(indexPath);
     }
 
@@ -133,7 +143,7 @@ class BadIndexTracker {
         return recheckIntervalMillis;
     }
 
-    void setTicker(Ticker ticker) {
+    public void setTicker(Ticker ticker) {
         this.ticker = ticker;
     }
 
@@ -141,8 +151,8 @@ class BadIndexTracker {
         return !(badIndexesForRead.isEmpty() && badPersistedIndexes.isEmpty());
     }
 
-    class BadIndexInfo {
-        final String path;
+    public class BadIndexInfo {
+        public final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
         private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
         private final boolean persistedIndex;

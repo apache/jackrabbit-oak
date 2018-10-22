@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 interface PermissionCache {
 
-    Collection<PermissionEntry> getEntries(@Nonnull String path);
+    Collection<PermissionEntry> getEntries(@NotNull String path);
 
-    Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree);
+    Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree);
 }

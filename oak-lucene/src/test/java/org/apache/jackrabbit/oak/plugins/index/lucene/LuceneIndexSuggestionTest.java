@@ -20,8 +20,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -44,6 +44,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.After;
@@ -68,9 +70,9 @@ public class LuceneIndexSuggestionTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
 
         Jcr jcr = new Jcr()
-                .with(((QueryIndexProvider) provider))
-                .with((Observer) provider)
-                .with(new LuceneIndexEditorProvider());
+            .with(((QueryIndexProvider) provider))
+            .with((Observer) provider)
+            .with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
         session = (JackrabbitSession) repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -84,27 +86,27 @@ public class LuceneIndexSuggestionTest {
     }
 
     private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName)
-            throws Exception {
+        throws Exception {
         createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
     }
 
     private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
-            throws Exception {
+        throws Exception {
         Node def = root.getNode(INDEX_DEFINITIONS_NAME)
-                .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
+            .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty("name", name);
-        def.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+        def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         if (suggestAnalyzed) {
-            def.addNode(LuceneIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", suggestAnalyzed);
+            def.addNode(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", suggestAnalyzed);
         }
 
 
         Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(LuceneIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+            .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
+            .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
+            .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
@@ -122,11 +124,11 @@ public class LuceneIndexSuggestionTest {
                                   final String indexPropName, final String indexPropValue,
                                   final boolean addFullText, final boolean useUserSession,
                                   final String suggestQueryText, final boolean shouldSuggest, final boolean suggestAnalyzed)
-            throws Exception {
+        throws Exception {
         checkSuggestions(nodeType, nodeType,
-                indexPropName, indexPropValue,
-                addFullText, useUserSession,
-                suggestQueryText, shouldSuggest, suggestAnalyzed);
+            indexPropName, indexPropValue,
+            addFullText, useUserSession,
+            suggestQueryText, shouldSuggest, suggestAnalyzed);
     }
 
     /**
@@ -138,7 +140,7 @@ public class LuceneIndexSuggestionTest {
                                   final boolean addFullText, final boolean useUserSession,
                                   final String suggestQueryText, final boolean shouldSuggest,
                                   final boolean suggestAnalyzed)
-            throws Exception {
+        throws Exception {
         createSuggestIndex("lucene-suggest", indexNodeType, indexPropName, addFullText, suggestAnalyzed);
 
         Node indexedNode = root.addNode("indexedNode1", queryNodeType);
@@ -191,7 +193,7 @@ public class LuceneIndexSuggestionTest {
     public void suggestNodeName() throws Exception {
         final String nodeType = "nt:unstructured";
 
-        createSuggestIndex("lucene-suggest", nodeType, LuceneIndexConstants.PROPDEF_PROP_NODE_NAME);
+        createSuggestIndex("lucene-suggest", nodeType, FulltextIndexConstants.PROPDEF_PROP_NODE_NAME);
 
         root.addNode("indexedNode", nodeType);
         session.save();
@@ -221,9 +223,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = true;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                false, false,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            false, false,
+            suggestQueryText, shouldSuggest, false);
     }
 
     //OAK-4126
@@ -236,9 +238,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = true;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                false, false,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            false, false,
+            suggestQueryText, shouldSuggest, false);
     }
 
     @Test
@@ -279,9 +281,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = true;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                false, true,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            false, true,
+            suggestQueryText, shouldSuggest, false);
     }
 
     //OAK-3156
@@ -295,9 +297,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = false;
 
         checkSuggestions(indexNodeType, queryNodeType,
-                indexPropName, indexPropValue,
-                true, false,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            true, false,
+            suggestQueryText, shouldSuggest, false);
     }
 
     //OAK-3156
@@ -310,9 +312,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = true;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                true, false,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            true, false,
+            suggestQueryText, shouldSuggest, false);
     }
 
     //OAK-3509
@@ -325,9 +327,9 @@ public class LuceneIndexSuggestionTest {
         final boolean shouldSuggest = true;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                true, false,
-                suggestQueryText, shouldSuggest, false);
+            indexPropName, indexPropValue,
+            true, false,
+            suggestQueryText, shouldSuggest, false);
     }
 
     //OAK-3407
@@ -339,9 +341,9 @@ public class LuceneIndexSuggestionTest {
         final String suggestQueryText = "sa";
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                true, true,
-                suggestQueryText, true, true);
+            indexPropName, indexPropValue,
+            true, true,
+            suggestQueryText, true, true);
     }
 
     //OAK-3149
@@ -353,9 +355,9 @@ public class LuceneIndexSuggestionTest {
         final String suggestQueryText = "sa";
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                true, true,
-                suggestQueryText, true, false);
+            indexPropName, indexPropValue,
+            true, true,
+            suggestQueryText, true, false);
     }
 
     //OAK-4067
@@ -367,8 +369,8 @@ public class LuceneIndexSuggestionTest {
         final String suggestQueryText = null;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
-                true, true,
-                suggestQueryText, false, false);
+            indexPropName, indexPropValue,
+            true, true,
+            suggestQueryText, false, false);
     }
 }

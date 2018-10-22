@@ -28,13 +28,15 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Tests for {@code DocumentMK#read(String, long, byte[], int, int)} using
  * {@link DataStore}
  */
 public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
+    public static void setUpBeforeClass() {
         try {
             Assume.assumeNotNull(DataStoreUtils.getBlobStore());
         } catch (Exception e) {
@@ -46,6 +48,7 @@ public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
+        checkNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
@@ -57,6 +60,6 @@ public class DocumentMKDataStoreReadTest extends DocumentMKReadTest {
     public void tearDownConnection() throws Exception {
         FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
     }
 }

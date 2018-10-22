@@ -20,8 +20,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -442,17 +441,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 writeSimulationThread.join();
             }
         }
-
-        /** OAK-3292 : when on a machine without a mac address, the 'random:' prefix is used and instances
-         * that have timed out are automagially removed by ClusterNodeInfo.createInstance - that poses
-         * a problem to testing - so this method exposes whether the instance has such a 'random:' prefix
-         * and thus allows to take appropriate action
-         */
-        public boolean hasRandomMachineId() {
-            //TODO: this might not be the most stable way - but avoids having to change ClusterNodeInfo
-            return ns.getClusterInfo().toString().contains("random:");
-        }
-
     }
 
     interface Expectation {
@@ -616,7 +604,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         ComponentContext c = mock(ComponentContext.class);
         when(c.getBundleContext()).thenReturn(bc);
         final Map<String, Object> registeredServices = new HashMap<String, Object>();
-        when(bc.registerService(anyString(), anyObject(), (Properties) anyObject())).then(new Answer<ServiceRegistration>() {
+        when(bc.registerService(anyString(), any(), any())).then(new Answer<ServiceRegistration>() {
             @Override
             public ServiceRegistration answer(InvocationOnMock invocation) {
                 registeredServices.put((String) invocation.getArguments()[0], invocation.getArguments()[1]);
@@ -700,7 +688,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             MongoConnection connection = connectionFactory.getConnection();
             return register(new DocumentMK.Builder()
                     .setMongoDB(connection.getMongoClient(), connection.getDBName())
-                    .setLeaseCheck(false).setClusterId(clusterId)
+                    .setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(clusterId)
                     .setAsyncDelay(asyncDelay).open());
         } else {
             if (ds == null) {
@@ -714,7 +702,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs) {
-        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setLeaseCheck(false)
+        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setAsyncDelay(asyncDelay).open());
     }
 
@@ -760,19 +748,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         workingDir = reactivatedWorkingDir;
                         logger.info("Case 0: creating instance");
                         final SimplifiedInstance newInstance = createInstance(workingDir);
-                        if (newInstance.hasRandomMachineId()) {
-                            // OAK-3292 : on an instance which has no networkInterface with a mac address,
-                            // the machineId chosen by ClusterNodeInfo will be 'random:'.. and
-                            // ClusterNodeInfo.createInstance will feel free to remove it when the lease
-                            // has timed out
-                            // that really renders it very difficult to continue testing here,
-                            // since this test is all about keeping track who became inactive etc 
-                            // and ClusterNodeInfo.createInstance removing it 'at a certain point' is difficult
-                            // and not very useful to test..
-                            //
-                            // so: stop testing at this point:
-                            return;
-                        }
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 0: created instance: " + newInstance.ns.getClusterId());
@@ -794,19 +769,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                     if (instances.size() < MAX_NUM_INSTANCES) {
                         logger.info("Case 1: creating instance");
                         final SimplifiedInstance newInstance = createInstance(workingDir);
-                        if (newInstance.hasRandomMachineId()) {
-                            // OAK-3292 : on an instance which has no networkInterface with a mac address,
-                            // the machineId chosen by ClusterNodeInfo will be 'random:'.. and
-                            // ClusterNodeInfo.createInstance will feel free to remove it when the lease
-                            // has timed out
-                            // that really renders it very difficult to continue testing here,
-                            // since this test is all about keeping track who became inactive etc 
-                            // and ClusterNodeInfo.createInstance removing it 'at a certain point' is difficult
-                            // and not very useful to test..
-                            //
-                            // so: stop testing at this point:
-                            return;
-                        }
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());

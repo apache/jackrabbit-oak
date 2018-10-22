@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 public final class QueryUtils {
 
@@ -30,8 +29,8 @@ public final class QueryUtils {
      * @param string string to escape
      * @return escaped string
      */
-    @Nonnull
-    public static String escapeNodeName(@Nonnull String string) {
+    @NotNull
+    public static String escapeNodeName(@NotNull String string) {
         StringBuilder result = new StringBuilder();
 
         int k = 0;
@@ -55,8 +54,8 @@ public final class QueryUtils {
         return result.toString();
     }
 
-    @Nonnull
-    public static String escapeForQuery(@Nonnull String value) {
+    @NotNull
+    public static String escapeForQuery(@NotNull String value) {
         StringBuilder ret = new StringBuilder();
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);

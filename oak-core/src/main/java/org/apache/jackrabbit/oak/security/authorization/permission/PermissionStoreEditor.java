@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
@@ -41,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,12 +57,12 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
     private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
     private final NodeBuilder permissionRoot;
 
-    PermissionStoreEditor(@Nonnull String aclPath, @Nonnull String name,
-                          @Nonnull NodeState node, @Nonnull NodeBuilder permissionRoot,
-                          @Nonnull TypePredicate isACE, @Nonnull TypePredicate isGrantACE,
-                          @Nonnull PrivilegeBitsProvider bitsProvider,
-                          @Nonnull RestrictionProvider restrictionProvider,
-                          @Nonnull TreeProvider treeProvider) {
+    PermissionStoreEditor(@NotNull String aclPath, @NotNull String name,
+                          @NotNull NodeState node, @NotNull NodeBuilder permissionRoot,
+                          @NotNull TypePredicate isACE, @NotNull TypePredicate isGrantACE,
+                          @NotNull PrivilegeBitsProvider bitsProvider,
+                          @NotNull RestrictionProvider restrictionProvider,
+                          @NotNull TreeProvider treeProvider) {
         this.permissionRoot = permissionRoot;
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
@@ -92,7 +91,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                         new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
                 List<AcEntry> list = entries.get(entry.principalName);
                 if (list == null) {
-                    list = new ArrayList<AcEntry>();
+                    list = new ArrayList<>();
                     entries.put(entry.principalName, list);
                 }
                 list.add(entry);
@@ -161,7 +160,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                     }
                 }
                 if (removed) {
-                    updateNumEntries(principalRoot, -1);
+                    updateNumEntries(principalName, principalRoot, -1);
                 }
             } else {
                 log.error("Unable to remove permission entry {}: Principal root missing.", this);
@@ -218,7 +217,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             updateEntries(parent, entry.getValue());
 
             if (parent.isNew()) {
-                updateNumEntries(principalRoot, +1);
+                updateNumEntries(principalName, principalRoot, +1);
             }
         }
     }
@@ -235,24 +234,28 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
-    private static void updateNumEntries(@Nonnull NodeBuilder principalRoot, int cnt) {
+    private static void updateNumEntries(@NotNull String principalName, @NotNull NodeBuilder principalRoot, int cnt) {
         PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
         long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
-        if (ps == null && !principalRoot.isNew() || numEntries < 0) {
+        if (ps == null && !principalRoot.isNew()) {
             // existing principal root that doesn't have the rep:numEntries set
-            // or numEntries turned negative
             return;
+        } else if  (numEntries < 0) {
+            // numEntries unexpectedly turned negative
+            log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
+            principalRoot.removeProperty(REP_NUM_PERMISSIONS);
+        } else {
+            principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
         }
-        principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
     }
 
     private final class JcrAllAcEntry extends AcEntry {
 
-        private JcrAllAcEntry(@Nonnull NodeState node,
-                              @Nonnull String accessControlledPath,
+        private JcrAllAcEntry(@NotNull NodeState node,
+                              @NotNull String accessControlledPath,
                               int index, boolean isAllow,
-                              @Nonnull PrivilegeBits privilegeBits,
-                              @Nonnull Set<Restriction> restrictions) {
+                              @NotNull PrivilegeBits privilegeBits,
+                              @NotNull Set<Restriction> restrictions) {
             super(node, accessControlledPath, index, isAllow, privilegeBits, restrictions);
         }
 
@@ -272,9 +275,9 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         private final int index;
         private int hashCode = -1;
 
-        private AcEntry(@Nonnull NodeState node, @Nonnull String accessControlledPath, int index,
-                        boolean isAllow, @Nonnull PrivilegeBits privilegeBits,
-                        @Nonnull Set<Restriction> restrictions) {
+        AcEntry(@NotNull NodeState node, @NotNull String accessControlledPath, int index,
+                        boolean isAllow, @NotNull PrivilegeBits privilegeBits,
+                        @NotNull Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 

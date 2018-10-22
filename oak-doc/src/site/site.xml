@@ -36,11 +36,13 @@ under the License.
     </menu>
     <menu name="Main APIs">
       <item href="http://www.day.com/specs/jcr/2.0/index.html" name="JCR API" />
+      <item href="https://jackrabbit.apache.org/jcr/jcr-api.html" name="Jackrabbit API" />
       <item href="oak_api/overview.html" name="Oak API" />
     </menu>
     <menu name="Features and Plugins">
       <item href="nodestore/overview.html" name="Node Storage" collapse="false">
         <item href="nodestore/documentmk.html" name="Document NodeStore" collapse="false">
+          <item href="nodestore/document/mongo-document-store.html" name="MongoDB DocumentStore" />
           <item href="nodestore/document/node-bundling.html" name="Node Bundling" />
           <item href="nodestore/document/secondary-store.html" name="Secondary Store" />
           <item href="nodestore/persistent-cache.html" name="Persistent Cache" />
@@ -49,7 +51,9 @@ under the License.
         <item href="nodestore/segment/overview.html" name="Segment NodeStore" />
         <item href="nodestore/compositens.html" name="Composite NodeStore" />
       </item>
-      <item href="plugins/blobstore.html" name="Blob Storage" />
+      <item href="plugins/blobstore.html" name="Blob Storage" collapse="false">
+          <item href="features/direct-binary-access.html" name="Direct Binary Access" />
+      </item>
       <item href="query/query.html" name="Query" collapse="false">
         <item href="query/query-engine.html" name="Query Engine" />
         <item href="query/grammar-xpath.html" name="XPath Grammar" />

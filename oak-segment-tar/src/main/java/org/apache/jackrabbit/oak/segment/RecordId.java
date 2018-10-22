@@ -27,7 +27,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The record id. This includes the segment id and the offset within the
@@ -93,7 +93,7 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId.asUUID();
     }
 
-    @Nonnull
+    @NotNull
     public Segment getSegment() {
         return segmentId.getSegment();
     }
@@ -102,7 +102,7 @@ public final class RecordId implements Comparable<RecordId> {
      * Serialise this record id into an array of bytes: {@code (msb, lsb, offset >> 2)}
      * @return  this record id as byte array
      */
-    @Nonnull
+    @NotNull
     ByteBuffer getBytes() {
         byte[] buffer = new byte[SERIALIZED_RECORD_ID_BYTES];
         BinaryUtils.writeLong(buffer, 0, segmentId.getMostSignificantBits());
@@ -114,7 +114,7 @@ public final class RecordId implements Comparable<RecordId> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(@Nonnull RecordId that) {
+    public int compareTo(@NotNull RecordId that) {
         checkNotNull(that);
         int diff = segmentId.compareTo(that.segmentId);
         if (diff == 0) {

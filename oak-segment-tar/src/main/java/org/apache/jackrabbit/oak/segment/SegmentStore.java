@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The backend storage interface used by the segment node store.
@@ -43,7 +43,7 @@ public interface SegmentStore {
         /**
          * @throws SegmentNotFoundException always
          */
-        @Nonnull
+        @NotNull
         @Override
         public Segment readSegment(SegmentId segmentId) {
             throw new SegmentNotFoundException(segmentId);
@@ -73,7 +73,7 @@ public interface SegmentStore {
      * @param segmentId segment identifier
      * @return identified segment, or a {@link SegmentNotFoundException} thrown if not found
      */
-    @Nonnull
+    @NotNull
     Segment readSegment(SegmentId segmentId);
 
     /**

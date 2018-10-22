@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <code>DocumentStoreException</code> is a runtime exception for
@@ -110,7 +110,7 @@ public class DocumentStoreException extends RuntimeException {
      * @param t a {@code Throwable}.
      * @return a {@link Type#GENERIC} DocumentStoreException.
      */
-    public static DocumentStoreException convert(@Nonnull Throwable t) {
+    public static DocumentStoreException convert(@NotNull Throwable t) {
         return convert(t, t.getMessage());
     }
 
@@ -127,7 +127,7 @@ public class DocumentStoreException extends RuntimeException {
      * @param msg a message for the {@code DocumentStoreException}.
      * @return a {@link Type#GENERIC} DocumentStoreException.
      */
-    public static DocumentStoreException convert(@Nonnull Throwable t, String msg) {
+    public static DocumentStoreException convert(@NotNull Throwable t, String msg) {
         return asDocumentStoreException(msg, t, Type.GENERIC, emptyList());
     }
 
@@ -145,7 +145,7 @@ public class DocumentStoreException extends RuntimeException {
      *            operation that triggered this exception.
      * @return a {@link Type#GENERIC} DocumentStoreException.
      */
-    public static DocumentStoreException convert(@Nonnull Throwable t,
+    public static DocumentStoreException convert(@NotNull Throwable t,
                                                  Iterable<String> ids) {
         return asDocumentStoreException(t.getMessage(), t, Type.GENERIC, ids);
     }
@@ -187,7 +187,7 @@ public class DocumentStoreException extends RuntimeException {
         return type;
     }
 
-    @CheckForNull
+    @Nullable
     private static String getMessage(Throwable t) {
         return t == null ? null : t.toString();
     }

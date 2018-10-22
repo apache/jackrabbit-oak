@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import java.util.Collection;
 import java.util.Collections;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
@@ -37,13 +36,13 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getPathField() {
         return OakSolrConfigurationDefaults.PATH_FIELD_NAME;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
         String fieldName = null;
@@ -78,7 +77,7 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.SOFT;
@@ -109,13 +108,13 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return OakSolrConfigurationDefaults.PATH_RESTRICTIONS;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<String> getIgnoredProperties() {
         return ignoredProperties;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<String> getUsedProperties() {
         return usedProperties;
@@ -126,7 +125,7 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getCollapsedPathField() {
         return OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD;

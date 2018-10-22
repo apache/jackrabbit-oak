@@ -21,31 +21,30 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Statistics for {@link RecordCache}.
  */
 public class RecordCacheStats extends AbstractCacheStats {
 
-    @Nonnull
+    @NotNull
     private final Supplier<CacheStats> stats;
 
-    @Nonnull
+    @NotNull
     private final Supplier<Long> elementCount;
 
-    @Nonnull
+    @NotNull
     private final Supplier<Long> weight;
 
     public RecordCacheStats(
-            @Nonnull String name,
-            @Nonnull Supplier<CacheStats> stats,
-            @Nonnull Supplier<Long> elementCount,
-            @Nonnull Supplier<Long> weight) {
+            @NotNull String name,
+            @NotNull Supplier<CacheStats> stats,
+            @NotNull Supplier<Long> elementCount,
+            @NotNull Supplier<Long> weight) {
         super(name);
         this.stats = checkNotNull(stats);
         this.elementCount = checkNotNull(elementCount);

@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 
 /**
@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
  */
 class AdminPrincipalImpl extends TreeBasedPrincipal implements AdminPrincipal {
 
-    AdminPrincipalImpl(String principalName, Tree tree, PathMapper pathMapper) {
+    AdminPrincipalImpl(String principalName, Tree tree, NamePathMapper pathMapper) {
         super(principalName, tree, pathMapper);
     }
 }

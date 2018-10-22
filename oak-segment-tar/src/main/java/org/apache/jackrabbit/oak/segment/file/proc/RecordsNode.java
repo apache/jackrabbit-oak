@@ -23,12 +23,11 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.jetbrains.annotations.NotNull;
 
 class RecordsNode extends AbstractNode {
     
@@ -41,7 +40,7 @@ class RecordsNode extends AbstractNode {
         this.segmentId = segmentId;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return backend.getSegmentRecords(segmentId)

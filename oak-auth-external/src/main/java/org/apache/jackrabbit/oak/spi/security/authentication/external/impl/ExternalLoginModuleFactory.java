@@ -64,7 +64,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
 
     @SuppressWarnings("UnusedDeclaration")
     @Property(
-            intValue = 50,
+            intValue = 150,
             label = "JAAS Ranking",
             description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
                     "in a descending order (i.e. higher value ranked configurations come first)."

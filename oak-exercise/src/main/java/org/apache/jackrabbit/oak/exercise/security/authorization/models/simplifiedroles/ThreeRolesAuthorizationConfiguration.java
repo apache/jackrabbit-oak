@@ -21,7 +21,6 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
@@ -59,18 +58,17 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-@Component(metatype = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
+@Component(metatype = true, immediate = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
 @Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
 @Properties({
         @Property(name = "supportedPath",
@@ -105,35 +103,35 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
         supportedPath = null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new ThreeRolesAccessControlManager(root, supportedPath, getSecurityProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return RestrictionProvider.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
-        if (supportedPath == null || isAdminOrSystem(principals)) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
+        if (supportedPath == null) {
             return EmptyPermissionProvider.getInstance();
         } else {
             return new ThreeRolesPermissionProvider(root, principals, supportedPath, getContext(), getRootProvider());
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return AuthorizationConfiguration.NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         String cnd = "<rep='internal'>\n" +
@@ -164,9 +162,9 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new ValidatorProvider() {
             @Override
             protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
@@ -183,14 +181,14 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
         });
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // EXERCISE
         return ImmutableList.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         /**
@@ -200,48 +198,35 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
          */
         return new Context() {
             @Override
-            public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+            public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
                 return definesTree(parent) && NAMES.contains(property.getName());
             }
 
             @Override
-            public boolean definesContextRoot(@Nonnull Tree tree) {
+            public boolean definesContextRoot(@NotNull Tree tree) {
                 return definesTree(tree);
             }
 
             @Override
-            public boolean definesTree(@Nonnull Tree tree) {
+            public boolean definesTree(@NotNull Tree tree) {
                 return REP_3_ROLES_POLICY.equals(tree.getName());
             }
 
             @Override
-            public boolean definesLocation(@Nonnull TreeLocation location) {
+            public boolean definesLocation(@NotNull TreeLocation location) {
                 String name = location.getName();
                 return NAMES.contains(name);
             }
 
             @Override
-            public boolean definesInternal(@Nonnull Tree tree) {
+            public boolean definesInternal(@NotNull Tree tree) {
                 return false;
             }
         };
     }
 
-    private static boolean isAdminOrSystem(@Nonnull Set<Principal> principals) {
-        if (principals.contains(SystemPrincipal.INSTANCE)) {
-            return true;
-        } else {
-            for (Principal principal : principals) {
-                if (principal instanceof AdminPrincipal) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     @Override
-    public void setParameters(@Nonnull ConfigurationParameters config) {
+    public void setParameters(@NotNull ConfigurationParameters config) {
         super.setParameters(config);
         supportedPath = config.getConfigValue("supportedPath", null);
     }

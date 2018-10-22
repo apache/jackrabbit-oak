@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -44,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.WorkspaceDelegate;
+import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
+import org.jetbrains.annotations.NotNull;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -85,19 +86,19 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
             }
 
             @Override
-            @Nonnull
+            @NotNull
             protected ValueFactory getValueFactory() {
                 return sessionContext.getValueFactory();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return sessionContext;
@@ -107,7 +108,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     //----------------------------------------------------------< Workspace >---
     @Override
-    @Nonnull
+    @NotNull
     public Session getSession() {
         return sessionContext.getSession();
     }
@@ -197,7 +198,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public LockManagerImpl getLockManager() {
+    public LockManagerImpl getLockManager() throws UnsupportedRepositoryOperationException {
+        LockDeprecation.handleCall("get LockManager");
         return new LockManagerImpl(sessionContext);
     }
 

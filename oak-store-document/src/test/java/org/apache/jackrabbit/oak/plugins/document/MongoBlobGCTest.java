@@ -31,8 +31,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
@@ -42,8 +40,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import junit.framework.Assert;
+import com.mongodb.ReadPreference;
+import com.mongodb.client.MongoCollection;
+
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
@@ -56,12 +55,14 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -87,8 +88,20 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         return setUp(deleteDirect, 10);
     }
 
+    @Override
+    protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
+        // Disable client session because this test modifies
+        // data directly in MongoDB.
+        return super.addToBuilder(mk)
+                .setClientSessionDisabled(true)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED);
+    }
+
     public DataStoreState setUp(boolean deleteDirect, int count) throws Exception {
         DocumentNodeStore s = mk.getNodeStore();
+        // ensure primary read preference for this test because we modify data
+        // directly in MongoDB without going through the MongoDocumentStore
+        MongoTestUtils.setReadPreference(s, ReadPreference.primary());
         NodeBuilder a = s.getRoot().builder();
 
         int number = count;
@@ -140,12 +153,12 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
             VersionGarbageCollector vGC = s.getVersionGarbageCollector();
             VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
-            Assert.assertEquals(processed.size(), stats.deletedDocGCCount);
+            assertEquals(processed.size(), stats.deletedDocGCCount);
         }
 
         return state;
     }
-    
+
     private class DataStoreState {
         Set<String> blobsAdded = Sets.newHashSet();
         Set<String> blobsPresent = Sets.newHashSet();
@@ -184,10 +197,11 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private void deleteFromMongo(String nodeId) {
-        DBCollection coll = mongoConnection.getDB().getCollection("nodes");
+        MongoCollection<BasicDBObject> coll = mongoConnection.getDatabase()
+                .getCollection("nodes", BasicDBObject.class);
         BasicDBObject blobNodeObj = new BasicDBObject();
         blobNodeObj.put("_id", "1:/" + nodeId);
-        coll.remove(blobNodeObj);
+        coll.deleteOne(blobNodeObj);
     }
 
     @Test
@@ -284,7 +298,10 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void consistencyCheckWithGc() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue("blobsAdded: " + state.blobsAdded +
+                        ", blobsPresent: " + state.blobsPresent +
+                        ", existingAfterGC: " + existingAfterGC,
+                Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);

@@ -21,8 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -160,7 +159,7 @@ public class DocumentNodeStoreBranchesTest {
 
         TestHook(final String prefix) {
             super(new EditorProvider() {
-                @CheckForNull
+                @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
                         throws CommitFailedException {

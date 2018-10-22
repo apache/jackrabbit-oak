@@ -116,6 +116,13 @@ unrelated to the diff cache type are ignored. The default configuration is
 `journalCache="diff-cache"` and can be disabled the same way as the
 regular persistent cache with a dash: `journalCache="-"`.
 
+### Cache statistics
+
+The persistent cache expose access statistics as `CacheStatsMBean` or via
+`ConsolidatedCacheStatsMBean`. Some of the fields exposed by the persistent
+caches do not have meaningful values. These are: `totalLoadTime`, 
+`averageLoadPenalty`, `evictionCount`, `elementCount` and `maxTotalWeight`.
+
 ### Dependencies
 
 Internally, the persistent cache uses a key-value store 

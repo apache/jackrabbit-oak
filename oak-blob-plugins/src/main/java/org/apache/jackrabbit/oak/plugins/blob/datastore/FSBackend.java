@@ -29,10 +29,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -44,9 +43,11 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.LazyFileInputStream;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -173,6 +174,9 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public void addMetadataRecord(InputStream input, String name)
         throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         try {
             File file = new File(fsPathDir, name);
             FileOutputStream os = new FileOutputStream(file);
@@ -191,6 +195,9 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
+        checkArgument(input != null, "input should not be null");
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         try {
             File file = new File(fsPathDir, name);
             FileUtils.copyFile(input, file);
@@ -203,6 +210,8 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         for (File file : FileFilterUtils
             .filter(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
             if (!file.isDirectory()) {
@@ -214,6 +223,8 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be null");
+
         List<DataRecord> rootRecords = new ArrayList<DataRecord>();
         for (File file : FileFilterUtils
             .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
@@ -227,6 +238,8 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
+        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+
         for (File file : FileFilterUtils
             .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
@@ -243,6 +256,8 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
+        checkArgument(null != prefix, "prefix should not be empty");
+
         for (File file : FileFilterUtils
             .filterList(FileFilterUtils.prefixFileFilter(prefix), fsPathDir.listFiles())) {
             if (!file.isDirectory()) { // skip directories which are actual data store files
@@ -252,6 +267,22 @@ public class FSBackend extends AbstractSharedBackend {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean metadataRecordExists(String name) {
+        for (File file : FileFilterUtils
+            .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
+            if (!file.isDirectory()) { // skip directories which are actual data store files
+                if (!file.exists()) {
+                    LOG.debug("File does not exist {} ",
+                        new Object[] {file.getAbsolutePath()});
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -413,7 +444,7 @@ public class FSBackend extends AbstractSharedBackend {
         private File file;
 
         public FSBackendDataRecord(AbstractSharedBackend backend,
-            @Nonnull DataIdentifier identifier, @Nonnull File file) {
+            @NotNull DataIdentifier identifier, @NotNull File file) {
             super(backend, identifier);
             this.file = file;
             this.length = file.length();

@@ -17,15 +17,13 @@
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
 import java.util.List;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dynamic {@link org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory}
@@ -43,9 +41,9 @@ public class WhiteboardUserAuthenticationFactory
         this.defaultFactory = defaultFactory;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public Authentication getAuthentication(@Nonnull UserConfiguration userConfiguration, @Nonnull Root root, @Nullable String userId) {
+    public Authentication getAuthentication(@NotNull UserConfiguration userConfiguration, @NotNull Root root, @Nullable String userId) {
         List<UserAuthenticationFactory> services = getServices();
         if (services.isEmpty() && defaultFactory != null) {
             return defaultFactory.getAuthentication(userConfiguration, root, userId);

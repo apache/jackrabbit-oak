@@ -19,9 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -135,7 +134,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     }
 
     @Override
-    public AbstractDocumentNodeState withRootRevision(@Nonnull RevisionVector root, boolean externalChange) {
+    public AbstractDocumentNodeState withRootRevision(@NotNull RevisionVector root, boolean externalChange) {
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
         } else {
@@ -161,24 +160,24 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         return true;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Iterables.filter(delegate.getProperties(), NOT_META_PROPS);
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return delegate.hasChildNode(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         return decorate(name, delegate.getChildNode(name));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return Iterables.transform(delegate.getChildNodeEntries(), new Function<ChildNodeEntry, ChildNodeEntry>() {
@@ -190,7 +189,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         });
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         checkState(!denotesRoot(getPath()), "Builder cannot be opened for root " +
@@ -202,7 +201,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     //is not optimized
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return delegate.getProperty(name);
     }
 
@@ -212,12 +211,12 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return delegate.hasProperty(name);
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return delegate.getBoolean(name);
     }
 
@@ -231,20 +230,20 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
         return delegate.getString(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getStrings(@Nonnull String name) {
+    public Iterable<String> getStrings(@NotNull String name) {
         return delegate.getStrings(name);
     }
 
     @Override
-    public String getName(@Nonnull String name) {
+    public String getName(@NotNull String name) {
         return delegate.getName(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getNames(@Nonnull String name) {
+    public Iterable<String> getNames(@NotNull String name) {
         return delegate.getNames(name);
     }
 

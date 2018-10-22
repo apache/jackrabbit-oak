@@ -24,8 +24,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.Subject;
@@ -52,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -219,13 +219,14 @@ public abstract class AbstractLoginModule implements LoginModule {
             } catch (IOException e) {
                 log.debug(e.getMessage());
             }
+            systemSession = null;
         }
     }
 
     /**
      * @return A set of supported credential classes.
      */
-    @Nonnull
+    @NotNull
     protected abstract Set<Class> getSupportedCredentials();
 
     /**
@@ -239,7 +240,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      *
      * @return Valid (supported) credentials or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected Credentials getCredentials() {
         Set<Class> supported = getSupportedCredentials();
         if (callbackHandler != null) {
@@ -284,7 +285,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The credentials passed to this login module with the shared state.
      * @see #SHARED_KEY_CREDENTIALS
      */
-    @CheckForNull
+    @Nullable
     protected Credentials getSharedCredentials() {
         Credentials shared = null;
         if (sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
@@ -303,7 +304,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The login name passed to this login module with the shared state.
      * @see #SHARED_KEY_LOGIN_NAME
      */
-    @CheckForNull
+    @Nullable
     protected String getSharedLoginName() {
         if (sharedState.containsKey(SHARED_KEY_LOGIN_NAME)) {
             return sharedState.get(SHARED_KEY_LOGIN_NAME).toString();
@@ -316,7 +317,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The pre authenticated login or {@code null}
      * @see #SHARED_KEY_PRE_AUTH_LOGIN
      */
-    @CheckForNull
+    @Nullable
     protected PreAuthenticatedLogin getSharedPreAuthLogin() {
         Object login = sharedState.get(SHARED_KEY_PRE_AUTH_LOGIN);
         if (login instanceof PreAuthenticatedLogin) {
@@ -335,7 +336,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The {@code SecurityProvider} associated with this
      *         {@code LoginModule} or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null && callbackHandler != null) {
             RepositoryCallback rcb = new RepositoryCallback();
@@ -358,7 +359,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The {@code Whiteboard} associated with this
      *         {@code LoginModule} or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected Whiteboard getWhiteboard() {
         if (whiteboard == null && callbackHandler != null) {
             WhiteboardCallback cb = new WhiteboardCallback();
@@ -381,7 +382,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The {@code Root} associated with this {@code LoginModule} or
      *         {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected Root getRoot() {
         if (root == null && callbackHandler != null) {
             try {
@@ -414,7 +415,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      *
      * @return A instance of {@code UserManager} or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected UserManager getUserManager() {
         UserManager userManager = null;
         SecurityProvider sp = getSecurityProvider();
@@ -444,7 +445,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      *
      * @return A instance of {@code PrincipalProvider} or {@code null}.
      */
-    @CheckForNull
+    @Nullable
     protected PrincipalProvider getPrincipalProvider() {
         PrincipalProvider principalProvider = null;
         SecurityProvider sp = getSecurityProvider();
@@ -474,8 +475,8 @@ public abstract class AbstractLoginModule implements LoginModule {
      * @return The set of principals associated with the given {@code userId}.
      * @see #getPrincipalProvider()
      */
-    @Nonnull
-    protected Set<? extends Principal> getPrincipals(@Nonnull String userId) {
+    @NotNull
+    protected Set<? extends Principal> getPrincipals(@NotNull String userId) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
@@ -485,8 +486,8 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
-    @Nonnull
-    protected Set<? extends Principal> getPrincipals(@Nonnull Principal userPrincipal) {
+    @NotNull
+    protected Set<? extends Principal> getPrincipals(@NotNull Principal userPrincipal) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
@@ -499,7 +500,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
-    protected static void setAuthInfo(@Nonnull AuthInfo authInfo, @Nonnull Subject subject) {
+    protected static void setAuthInfo(@NotNull AuthInfo authInfo, @NotNull Subject subject) {
         Set<AuthInfo> ais = subject.getPublicCredentials(AuthInfo.class);
         if (!ais.isEmpty()) {
             subject.getPublicCredentials().removeAll(ais);

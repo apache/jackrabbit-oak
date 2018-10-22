@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -53,16 +53,17 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
     private PrivilegeManagerImpl privilegeManager;
 
     @Before
+    @Override
     public void before() throws Exception {
         super.before();
         privilegeManager = create(root);
     }
 
-    private static PrivilegeManagerImpl create(@Nonnull Root root) {
+    private static PrivilegeManagerImpl create(@NotNull Root root) {
         return new PrivilegeManagerImpl(root, NamePathMapper.DEFAULT);
     }
 
-    private static PrivilegeManagerImpl create(@Nonnull Root root, @Nonnull NamePathMapper mapper) {
+    private static PrivilegeManagerImpl create(@NotNull Root root, @NotNull NamePathMapper mapper) {
         return new PrivilegeManagerImpl(root, mapper);
     }
 
@@ -167,6 +168,16 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
     @Test(expected = RepositoryException.class)
     public void testRegisterPrivilegeReservedNamespace() throws Exception {
         privilegeManager.registerPrivilege("jcr:customPrivilege", true, new String[]{"jcr:read", "jcr:write"});
+    }
+
+    @Test
+    public void testRegisterAggregated() throws Exception {
+        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "jcr:read", "jcr:write" });
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testRegisterAggregatedNonExisting() throws Exception {
+        privilegeManager.registerPrivilege("test:customPrivilege", false, new String[] { "test:nan" });
     }
 
     @Test(expected = RepositoryException.class)

@@ -24,25 +24,20 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 
 public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
@@ -55,18 +50,18 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
     }
 
     @Override
-    public List<LuceneIndexReader> createReaders(IndexDefinition definition, NodeState defnState,
+    public List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition, NodeState defnState,
                                                  String indexPath) throws IOException {
         if (!mountInfoProvider.hasNonDefaultMounts()) {
             LuceneIndexReader reader = createReader(definition, defnState, indexPath,
-                    INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME);
+                    FulltextIndexConstants.INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME);
             return reader != null ? ImmutableList.of(reader) : Collections.<LuceneIndexReader>emptyList();
         } else {
             return createMountedReaders(definition, defnState, indexPath);
         }
     }
 
-    private List<LuceneIndexReader> createMountedReaders(IndexDefinition definition, NodeState defnState, String
+    private List<LuceneIndexReader> createMountedReaders(LuceneIndexDefinition definition, NodeState defnState, String
             indexPath) throws IOException {
         ImmutableList.Builder<LuceneIndexReader> readers = ImmutableList.builder();
         LuceneIndexReader reader = createReader(mountInfoProvider.getDefaultMount(), definition, defnState, indexPath);
@@ -84,15 +79,15 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         return readers.build();
     }
 
-    @CheckForNull
-    private LuceneIndexReader createReader(Mount mount, IndexDefinition definition, NodeState defnNodeState,
+    @Nullable
+    private LuceneIndexReader createReader(Mount mount, LuceneIndexDefinition definition, NodeState defnNodeState,
                                            String indexPath) throws IOException {
         return createReader(definition, defnNodeState, indexPath, MultiplexersLucene.getIndexDirName(mount),
                 MultiplexersLucene.getSuggestDirName(mount));
     }
 
-    @CheckForNull
-    private LuceneIndexReader createReader(IndexDefinition definition, NodeState defnNodeState, String indexPath,
+    @Nullable
+    private LuceneIndexReader createReader(LuceneIndexDefinition definition, NodeState defnNodeState, String indexPath,
                                            String indexDataNodeName, String suggestDataNodeName) throws IOException {
         Directory directory = null;
         NodeState data = defnNodeState.getChildNode(indexDataNodeName);
@@ -101,8 +96,9 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
             if (cloner != null) {
                 directory = cloner.wrapForRead(indexPath, definition, directory, indexDataNodeName);
             }
-        } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
-            String path = defnNodeState.getString(PERSISTENCE_PATH);
+        } else if (FulltextIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
+                defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_NAME))) {
+            String path = defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_PATH);
             if (path != null && new File(path).exists()) {
                 directory = FSDirectory.open(new File(path));
             }

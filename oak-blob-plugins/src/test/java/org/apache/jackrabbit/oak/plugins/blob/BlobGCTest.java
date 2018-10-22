@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,26 +35,25 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.Closer;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -69,6 +69,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,7 +82,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.CONSISTENCY_NAME;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.FINISH_FAILURE;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.NAME;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.NUM_BLOBS_DELETED;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.NUM_CANDIDATES;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.START;
+import static org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector.GarbageCollectionOperationStats.TOTAL_SIZE_DELETED;
+import static org.apache.jackrabbit.oak.plugins.blob.OperationsStatsMBean.TYPE;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -90,21 +105,19 @@ public class BlobGCTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    protected GarbageCollectableBlobStore blobStore;
-    protected NodeStore nodeStore;
     protected Whiteboard wb;
-    protected long startReferenceTime;
 
-    protected BlobReferenceRetriever referenceRetriever;
-    protected CheckpointMBean checkpointMBean;
+    protected Closer closer;
+
+    protected Cluster cluster;
 
     protected Clock clock;
 
     @Before
-    public void before() {
+    public void before() throws Exception {
+        closer = Closer.create();
         clock = getClock();
-        blobStore = new TimeLapsedBlobStore();
-        nodeStore = new MemoryBlobStoreNodeStore(blobStore);
+
         // add whiteboard
         final AtomicReference<Map<?, ?>> props = new AtomicReference<Map<?, ?>>();
         wb = new DefaultWhiteboard(){
@@ -114,50 +127,201 @@ public class BlobGCTest {
                 return super.register(type, service, properties);
             }
         };
-        referenceRetriever = ((MemoryBlobStoreNodeStore) nodeStore).getBlobReferenceRetriever();
-        startReferenceTime = ((TimeLapsedBlobStore) blobStore).startTime;
+
+        TimeLapsedBlobStore blobStore = new TimeLapsedBlobStore();
+        MemoryBlobStoreNodeStore nodeStore = new MemoryBlobStoreNodeStore(blobStore);
+        cluster = new Cluster(folder.newFolder(), blobStore, nodeStore, 0);
+        closer.register(cluster);
+    }
+
+    @After
+    public void after() {
+        try {
+            closer.close();
+        } catch (IOException e) {
+            log.error("Error closing cluster instances", e);
+        }
     }
 
     protected Clock getClock() {
         return new Clock.Virtual();
     }
 
+    class Cluster implements Closeable {
+        protected final BlobStoreState blobStoreState;
+        private final File root;
+        String repoId;
+        protected final GarbageCollectableBlobStore blobStore;
+        protected final NodeStore nodeStore;
+        private MarkSweepGarbageCollector collector;
+        protected BlobReferenceRetriever referenceRetriever;
+        protected ScheduledExecutorService scheduledExecutor;
+        protected ThreadPoolExecutor executor;
+        protected DefaultStatisticsProvider statsProvider;
+        protected long startReferenceTime;
+
+        public Cluster(File root, GarbageCollectableBlobStore blobStore, NodeStore nodeStore, int seed) throws Exception {
+            this.root = root;
+            this.nodeStore = nodeStore;
+            this.blobStore = blobStore;
+            if (SharedDataStoreUtils.isShared(blobStore)) {
+                repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
+                ((SharedDataStore) blobStore).addMetadataRecord(
+                    new ByteArrayInputStream(new byte[0]),
+                    REPOSITORY.getNameFromId(repoId));
+            }
+            referenceRetriever = ((MemoryBlobStoreNodeStore) nodeStore).getBlobReferenceRetriever();
+            startReferenceTime = clock.getTime();
+            log.info("Reference time {}", startReferenceTime);
+            scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+            executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+            statsProvider = new DefaultStatisticsProvider(scheduledExecutor);
+
+            blobStoreState = setUp(nodeStore, blobStore, 10, 5, 100, seed);
+        }
+
+        public void setRepoId(String id) {
+            this.repoId = id;
+        }
+
+        public MarkSweepGarbageCollector getCollector(long blobGcMaxAgeInSecs) throws Exception {
+            collector =
+                new MarkSweepGarbageCollector(referenceRetriever, blobStore, executor, root.getAbsolutePath(), 2048,
+                    blobGcMaxAgeInSecs, repoId, wb, statsProvider);
+            return collector;
+        }
+
+        @Override public void close() throws IOException {
+            new ExecutorCloser(scheduledExecutor).close();
+            new ExecutorCloser(executor).close();
+        }
+    }
+
+    @Test
+    public void sharedGC() throws Exception {
+        log.info("Staring sharedGC()");
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        Sets.SetView<String> totalPresent =
+            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+        Sets.SetView<String> totalAdded =
+            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+
+        // Execute mark on the default cluster
+        executeGarbageCollection(cluster, cluster.getCollector(0), true);
+        Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
+
+        assertTrue(Sets.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
+        assertStats(secondCluster.statsProvider, 1, 0, totalAdded.size() - totalPresent.size(),
+            totalAdded.size() - totalPresent.size(), NAME);
+    }
+
+    @Test
+    public void noSharedGC() throws Exception {
+        log.info("Starting noSharedGC()");
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        Sets.SetView<String> totalAdded =
+            Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
+
+        Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
+
+        assertEquals(totalAdded, existingAfterGC);
+        assertStats(secondCluster.statsProvider, 1, 0, 0, 0, NAME);
+    }
+
+    @Test
+    public void sharedGCRepositoryCloned() throws Exception {
+        log.debug("Starting sharedGCRepoCloned()");
+
+        // Setup a different cluster/repository sharing the blob store and the repository id
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        ((SharedDataStore) secondCluster.blobStore).deleteMetadataRecord(REPOSITORY.getNameFromId(secondCluster.repoId));
+        secondCluster.setRepoId(cluster.repoId);
+
+        Sets.SetView<String> totalPresent =
+            Sets.union(cluster.blobStoreState.blobsPresent, secondCluster.blobStoreState.blobsPresent);
+
+        // Execute mark on the default cluster
+        executeGarbageCollection(cluster, cluster.getCollector(0), true);
+        Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
+
+        assertTrue(Sets.symmetricDifference(totalPresent, existingAfterGC).isEmpty());
+    }
+
     @Test
     public void gc() throws Exception {
-        log.info("Staring gc()");
+        log.info("Starting gc()");
 
-        BlobStoreState state = setUp(10, 5, 100);
-
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
-        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
-
-        Set<String> existingAfterGC = gcInternal(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
     }
 
     @Test
     public void noGc() throws Exception {
-        log.info("Staring noGc()");
-        startReferenceTime = clock.getTime();
+        log.info("Starting noGc()");
 
-        BlobStoreState state = setUp(10, 5, 100);
         long afterSetupTime = clock.getTime();
+        log.info("after setup time {}", afterSetupTime);
 
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
-        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
+        Set<String> existingAfterGC =
+            executeGarbageCollection(cluster, cluster.getCollector(afterSetupTime - cluster.startReferenceTime + 2),
+                false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+    }
 
-        Set<String> existingAfterGC = gcInternal(afterSetupTime - startReferenceTime + 2);
-        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+    @Test
+    public void checkConsistency() throws Exception {
+        log.info("Starting checkConsistency()");
+
+        long afterSetupTime = clock.getTime();
+        log.info("after setup time {}", afterSetupTime);
+
+        MarkSweepGarbageCollector collector = cluster.getCollector(0);
+        long missing = collector.checkConsistency();
+
+        assertEquals(0, missing);
+        assertStats(cluster.statsProvider, 1, 0, 0, 0, CONSISTENCY_NAME);
+        assertStatsBean(collector.getConsistencyOperationStats(), 1, 0, 0);
+    }
+
+    @Test
+    public void checkConsistencyFailure() throws Exception {
+        log.info("Starting checkConsistencyFailure()");
+
+        long afterSetupTime = clock.getTime();
+        log.info("after setup time {}", afterSetupTime);
+
+        cluster.blobStore
+            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+                0);
+        MarkSweepGarbageCollector collector = cluster.getCollector(0);
+        long missing = collector.checkConsistency();
+
+        assertEquals(1, missing);
+        assertStats(cluster.statsProvider, 1, 1, 1, 0, CONSISTENCY_NAME);
+        assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
     }
 
     @Test
     public void gcCheckDeletedSize() throws Exception {
-        log.info("Staring gcCheckDeletedSize()");
-
-        BlobStoreState state = setUp(10, 5, 100);
-
-        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
-        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
+        log.info("Starting gcCheckDeletedSize()");
 
         // Capture logs for the second round of gc
         LogCustomizer customLogs = LogCustomizer
@@ -168,49 +332,62 @@ public class BlobGCTest {
             .create();
         customLogs.starting();
 
-        Set<String> existingAfterGC = gcInternal(0);
+        Set<String> existingAfterGC =
+            executeGarbageCollection(cluster, cluster.getCollector(0),false);
         assertEquals(1, customLogs.getLogs().size());
-        long deletedSize = (state.blobsAdded.size() - state.blobsPresent.size()) * 100;
+        long deletedSize = (cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size()) * 100;
         assertTrue(customLogs.getLogs().get(0).contains(String.valueOf(deletedSize)));
-
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+        assertEquals(deletedSize, getStatCount(cluster.statsProvider, NAME, TOTAL_SIZE_DELETED));
         customLogs.finished();
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
-    protected Set<String> gcInternal(long maxBlobGcInSecs) throws Exception {
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
-        MarkSweepGarbageCollector gc = initGC(maxBlobGcInSecs, executor);
-        gc.collectGarbage(false);
+    @Test
+    public void gcMarkOnly() throws Exception {
+        log.info("Starting gcMarkOnly()");
 
-        assertEquals(0, executor.getTaskCount());
-        Set<String> existingAfterGC = iterate();
+        Set<String> existingAfterGC =
+            executeGarbageCollection(cluster, cluster.getCollector(0),true);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0, 0, 0, NAME);
+    }
+
+    protected Set<String> executeGarbageCollection(Cluster cluster, MarkSweepGarbageCollector collector, boolean markOnly)
+        throws Exception {
+        collector.collectGarbage(markOnly);
+
+        assertEquals(0, cluster.executor.getTaskCount());
+        Set<String> existingAfterGC = iterate(cluster.blobStore);
         log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
+
         return existingAfterGC;
     }
 
-    private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor)
-        throws Exception {
-        return initGC(blobGcMaxAgeInSecs, executor, folder.newFolder().getAbsolutePath());
+    private void assertStats(StatisticsProvider statsProvider, int start, int failure, long deleted, long candidates,
+        String typeName) {
+
+        assertEquals("Start counter mismatch", start, getStatCount(statsProvider, typeName, START));
+        assertEquals("Finish error mismatch", failure, getStatCount(statsProvider, typeName, FINISH_FAILURE));
+        assertEquals("Num deleted mismatch", deleted, getStatCount(statsProvider, typeName, NUM_BLOBS_DELETED));
+        assertEquals("Num candidates mismatch", candidates, getStatCount(statsProvider, typeName, NUM_CANDIDATES));
     }
 
-    private MarkSweepGarbageCollector initGC(long blobGcMaxAgeInSecs, ThreadPoolExecutor executor,
-        String root) throws Exception {
-        String repoId = null;
-        if (SharedDataStoreUtils.isShared(blobStore)) {
-            repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-            ((SharedDataStore) blobStore).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
-        }
 
-        MarkSweepGarbageCollector gc =
-            new MarkSweepGarbageCollector(referenceRetriever,
-                blobStore, executor,
-                root, 2048, blobGcMaxAgeInSecs, repoId, wb);
-        return gc;
+    private void assertStatsBean(OperationsStatsMBean mbean, int start, int failure, long deleted) {
+        assertEquals("Start counter mismatch", start, mbean.getStartCount());
+        assertEquals("Finish error mismatch", failure, mbean.getFailureCount());
+        assertEquals("Num deleted mismatch", deleted, mbean.numDeleted());
     }
 
-    protected Set<String> iterate() throws Exception {
+    private long getStatCount(StatisticsProvider statsProvider, String typeName, String name) {
+        return statsProvider.getCounterStats(
+            TYPE + "." + typeName + "." + name, METRICS_ONLY).getCount();
+    }
+
+    protected Set<String> iterate(GarbageCollectableBlobStore blobStore) throws Exception {
         Iterator<String> cur = blobStore.getAllChunkIds(0);
 
         Set<String> existing = Sets.newHashSet();
@@ -220,10 +397,12 @@ public class BlobGCTest {
         return existing;
     }
 
-    public BlobStoreState setUp(
+    public BlobStoreState setUp (NodeStore nodeStore,
+        GarbageCollectableBlobStore blobStore,
         int count,
         int deletions,
-        int blobSize) throws Exception {
+        int blobSize,
+        int seed) throws Exception {
 
         preSetup();
 
@@ -242,7 +421,8 @@ public class BlobGCTest {
 
         BlobStoreState state = new BlobStoreState();
         for (int i = 0; i < numBlobs; i++) {
-            Blob b = nodeStore.createBlob(randomStream(i, blobSize));
+            Blob b = nodeStore.createBlob(
+                randomStream(Integer.parseInt(String.valueOf(seed) + String.valueOf(i)), blobSize));
             Iterator<String> idIter = blobStore.resolveChunks(b.getContentIdentity());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
@@ -265,15 +445,18 @@ public class BlobGCTest {
         // Sleep a little to make eligible for cleanup
         clock.waitUntil(5);
 
-        postSetup(state);
+        postSetup(nodeStore, state);
+
+        log.info("{} blobs added : {}", state.blobsAdded.size(), state.blobsAdded);
+        log.info("{} blobs remaining : {}", state.blobsPresent.size(), state.blobsPresent);
 
         return state;
     }
 
-    protected Set<String> createBlobs(int count, int size) throws Exception {
+    protected Set<String> createBlobs(GarbageCollectableBlobStore blobStore, int count, int size) throws Exception {
         HashSet<String> blobSet = new HashSet<String>();
         for  (int i = 0; i < count; i++) {
-            String id = blobStore.writeBlob(randomStream(100 + i, size));
+            String id = blobStore.writeBlob(randomStream(10 + i, size));
             Iterator<String> idIter = blobStore.resolveChunks(id);
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
@@ -284,9 +467,9 @@ public class BlobGCTest {
         return blobSet;
     }
 
-    protected void preSetup() {}
+    void preSetup() {}
 
-    protected void postSetup(BlobStoreState state) {
+    protected void postSetup(NodeStore nodeStore, BlobStoreState state) {
         ((MemoryBlobStoreNodeStore) nodeStore).setReferencedBlobs(state.blobsPresent);
     }
 
@@ -295,13 +478,6 @@ public class BlobGCTest {
         builder.child(nodeId).remove();
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    static InputStream randomStream(int seed, int size) {
-        Random r = new Random(seed);
-        byte[] data = new byte[size];
-        r.nextBytes(data);
-        return new ByteArrayInputStream(data);
     }
 
     /**
@@ -315,7 +491,7 @@ public class BlobGCTest {
     /**
      * MemoryNodeStore extension which created blobs in the in-memory blob store
      */
-    static class MemoryBlobStoreNodeStore extends MemoryNodeStore {
+    public static class MemoryBlobStoreNodeStore extends MemoryNodeStore {
         private final BlobStore blobStore;
         Set<String> referencedBlobs;
 
@@ -360,7 +536,7 @@ public class BlobGCTest {
             public String getContentIdentity() {
                 return id;
             }
-            @Nonnull
+            @NotNull
             @Override
             public InputStream getNewStream() {
                 try {
@@ -471,11 +647,11 @@ public class BlobGCTest {
             return null;
         }
 
-        @CheckForNull @Override public String getBlobId(@Nonnull String reference) {
+        @Nullable @Override public String getBlobId(@NotNull String reference) {
             return reference;
         }
 
-        @CheckForNull @Override public String getReference(@Nonnull String blobId) {
+        @Nullable @Override public String getReference(@NotNull String blobId) {
             return blobId;
         }
 
@@ -504,6 +680,10 @@ public class BlobGCTest {
 
         @Override public DataRecord getMetadataRecord(String name) {
             return metadata.get(name);
+        }
+
+        @Override public boolean metadataRecordExists(String name) {
+            return metadata.containsKey(name);
         }
 
         @Override public List<DataRecord> getAllMetadataRecords(String prefix) {

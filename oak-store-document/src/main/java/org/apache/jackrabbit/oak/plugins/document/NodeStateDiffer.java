@@ -19,15 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 public interface NodeStateDiffer {
     NodeStateDiffer DEFAULT_DIFFER = new NodeStateDiffer() {
         @Override
-        public boolean compare(@Nonnull AbstractDocumentNodeState node,
-                               @Nonnull AbstractDocumentNodeState base, @Nonnull NodeStateDiff diff) {
+        public boolean compare(@NotNull AbstractDocumentNodeState node,
+                               @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
             return node.compareAgainstBaseState(base, diff);
         }
     };
@@ -44,7 +43,7 @@ public interface NodeStateDiffer {
      *         {@code false} if it was aborted as requested by the handler
      *         (see the {@link NodeStateDiff} contract for more details)
      */
-    boolean compare(@Nonnull final AbstractDocumentNodeState node,
-                    @Nonnull final AbstractDocumentNodeState base,
-                    @Nonnull NodeStateDiff diff);
+    boolean compare(@NotNull final AbstractDocumentNodeState node,
+                    @NotNull final AbstractDocumentNodeState base,
+                    @NotNull NodeStateDiff diff);
 }

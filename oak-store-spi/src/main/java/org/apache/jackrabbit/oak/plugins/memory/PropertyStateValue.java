@@ -23,8 +23,6 @@ import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Iterator;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -32,6 +30,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@link PropertyValue} implementation that wraps a {@link PropertyState}
@@ -50,19 +50,19 @@ public class PropertyStateValue implements PropertyValue {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Type<?> getType() {
         return ps.getType();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T> T getValue(Type<T> type) {
         return ps.getValue(type);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T> T getValue(Type<T> type, int index) {
         return ps.getValue(type, index);
     }
@@ -82,13 +82,13 @@ public class PropertyStateValue implements PropertyValue {
         return ps.count();
     }
 
-    @CheckForNull
+    @Nullable
     public PropertyState unwrap() {
         return ps;
     }
 
     @Override
-    public int compareTo(@Nonnull PropertyValue p2) {
+    public int compareTo(@NotNull PropertyValue p2) {
         if (getType().tag() != p2.getType().tag()) {
             return Integer.signum(p2.getType().tag() - getType().tag());
         }

@@ -24,11 +24,10 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
+import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.spell.Dictionary;
@@ -38,11 +37,12 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Helper class for getting suggest results for a given term, calling a {@link org.apache.lucene.search.suggest.Lookup}
+ * Helper class for getting suggest results for a given term, calling a {@link Lookup}
  * implementation under the hood.
  */
 public class SuggestHelper {
@@ -51,13 +51,15 @@ public class SuggestHelper {
 
     private static final Analyzer analyzer = new Analyzer() {
         @Override
-        protected Analyzer.TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new Analyzer.TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
+        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
+            return new TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
         }
     };
 
-    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader) throws IOException {
+    public static void updateSuggester(Directory directory, Analyzer analyzer, IndexReader reader, final Closer closer)
+            throws IOException {
         File tempDir = null;
+        boolean shouldCloseDirectory = true;
         try {
             //Analyzing infix suggester takes a file parameter. It uses its path to getDirectory()
             //for actual storage of suggester data. BUT, while building it also does getDirectory() to
@@ -70,11 +72,16 @@ public class SuggestHelper {
 
             if (reader.getDocCount(FieldNames.SUGGEST) > 0) {
                 Dictionary dictionary = new LuceneDictionary(reader, FieldNames.SUGGEST);
-                getLookup(directory, analyzer, tempSubChild).build(dictionary);
+                AnalyzingInfixSuggester suggester = closer.register(getLookup(directory, analyzer, tempSubChild));
+                shouldCloseDirectory = false;
+                suggester.build(dictionary);
             }
         } catch (RuntimeException e) {
             log.debug("could not update the suggester", e);
         } finally {
+            if (shouldCloseDirectory) {
+                closer.register(directory);
+            }
             //cleanup temp dir
             if (tempDir != null && !FileUtils.deleteQuietly(tempDir)) {
                 log.error("Cleanup failed for temp dir {}", tempDir.getAbsolutePath());

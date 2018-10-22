@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.security;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
@@ -26,6 +24,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * AccessManager
@@ -40,9 +40,9 @@ public class AccessManager {
         this.permissionProvider = permissionProvider;
     }
 
-    public boolean hasPermissions(@Nonnull final String oakPath, @Nonnull final String actions) {
+    public boolean hasPermissions(@NotNull final String oakPath, @NotNull final String actions) {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return permissionProvider.isGranted(oakPath, actions);
@@ -50,9 +50,9 @@ public class AccessManager {
         });
     }
 
-    public boolean hasPermissions(@Nonnull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
+    public boolean hasPermissions(@NotNull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return permissionProvider.isGranted(tree, property, permissions);
@@ -60,13 +60,13 @@ public class AccessManager {
         });
     }
 
-    public void checkPermissions(@Nonnull String oakPath, @Nonnull String actions) throws RepositoryException {
+    public void checkPermissions(@NotNull String oakPath, @NotNull String actions) throws RepositoryException {
         if (!hasPermissions(oakPath, actions)) {
             throw new AccessDeniedException("Access denied.");
         }
     }
 
-    public void checkPermissions(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
+    public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
         if (!hasPermissions(tree, property, permissions)) {
             throw new AccessDeniedException("Access denied.");
         }

@@ -22,8 +22,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Optional;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterators.size;
@@ -54,12 +53,12 @@ class ChildNodeStateProvider {
         this.preferredPathElements = preferredPathElements;
     }
 
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return getChildNode(name).exists();
     }
 
-    @Nonnull
-    public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+    @NotNull
+    public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
         boolean isPreferred = preferredPathElements.contains(name);
         Optional<NodeStateEntry> o = Iterators.tryFind(children(isPreferred), p -> name.equals(name(p)));
         return o.isPresent() ? o.get().getNodeState() : MISSING_NODE;
@@ -76,7 +75,7 @@ class ChildNodeStateProvider {
         return () -> transform(children(), p -> name(p));
     }
 
-    @Nonnull
+    @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         return () -> transform(children(), p -> new MemoryChildNodeEntry(name(p), p.getNodeState()));
     }

@@ -25,12 +25,14 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import static org.junit.Assert.assertNotNull;
+
 /**
  * Tests for {@code DocumentMK#getLength(String)} with {@link CloudBlobStore}
  */
 public class DocumentMKCloudGetLengthTest extends DocumentMKGetLengthTest {
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
+    public static void setUpBeforeClass() {
         try {
             Assume.assumeNotNull(CloudStoreUtils.getBlobStore());
         } catch (Exception e) {
@@ -42,6 +44,7 @@ public class DocumentMKCloudGetLengthTest extends DocumentMKGetLengthTest {
     @Before
     public void setUpConnection() throws Exception {
         mongoConnection = connectionFactory.getConnection();
+        assertNotNull(mongoConnection);
         MongoUtils.dropCollections(mongoConnection.getDBName());
         mk = new DocumentMK.Builder()
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
@@ -50,9 +53,9 @@ public class DocumentMKCloudGetLengthTest extends DocumentMKGetLengthTest {
 
     @Override
     @After
-    public void tearDownConnection() throws Exception {
+    public void tearDownConnection() {
         ((CloudBlobStore) mk.getNodeStore().getBlobStore()).deleteBucket();
         mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+        MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
     }
 }

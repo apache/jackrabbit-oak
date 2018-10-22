@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefi
 import static org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor.COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
@@ -717,7 +717,7 @@ public class PropertyIndexTest {
 
     @Test
     public void traversalWarning() throws Exception {
-        ListAppender appender = createAndRegisterAppender();
+        ListAppender<ILoggingEvent> appender = createAndRegisterAppender();
 
         int testDataSize = ContentMirrorStoreStrategy.TRAVERSING_WARN;
         NodeState indexed = createTestData(testDataSize);
@@ -993,6 +993,47 @@ public class PropertyIndexTest {
         assertTrue(getNode(indexed, pathInIndex(defMount, "/oak:index/foo", "/content", "abc")).exists());
     }
 
+    @Test
+    public void mountWithCommitInWritableMountForUniqueIndex() throws Exception{
+        NodeState root = INITIAL_CONTENT;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, true, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder.child("content").setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        MountInfoProvider mip = Mounts.newBuilder()
+                .readOnlyMount("foo",  "/readOnly")
+                .build();
+
+        CompositeHook hook = new CompositeHook(
+                new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip))),
+                new EditorHook(new ValidatorProvider(){
+                    protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+                        return new PrivateStoreValidator("/", mip);
+                    }
+                })
+        );
+
+        NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+
+        Mount defMount = mip.getDefaultMount();
+        NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
+        assertTrue(indexedState.exists());
+        Iterable<String> values = indexedState.getStrings("entry");
+        assertEquals(1, Iterables.size(values));
+        assertEquals("/content", Iterables.getFirst(values, null));
+
+        Mount roMount = mip.getMountByName("foo");
+        assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());
+    }
+
     @Test(expected = CommitFailedException.class)
     public void mountAndUniqueIndexes() throws Exception {
         NodeState root = INITIAL_CONTENT;
@@ -1062,10 +1103,10 @@ public class PropertyIndexTest {
         return HOOK.processCommit(before, after, CommitInfo.EMPTY);
     }
 
-    private ListAppender createAndRegisterAppender() {
+    private ListAppender<ILoggingEvent> createAndRegisterAppender() {
         TraversingWarningFilter filter = new TraversingWarningFilter();
         filter.start();
-        ListAppender appender = new ListAppender<ILoggingEvent>();
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.setContext(getContext());
         appender.setName("TestLogCollector");
         appender.addFilter(filter);

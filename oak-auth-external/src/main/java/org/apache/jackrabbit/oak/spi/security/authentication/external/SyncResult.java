@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Defines the result of a sync operation
@@ -28,14 +28,14 @@ public interface SyncResult {
      * The synchronized identity
      * @return the identity
      */
-    @CheckForNull
+    @Nullable
     SyncedIdentity getIdentity();
 
     /**
      * The status of the sync operation
      * @return the status
      */
-    @Nonnull
+    @NotNull
     Status getStatus();
 
     /**

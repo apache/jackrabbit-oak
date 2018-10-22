@@ -33,24 +33,27 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.util.ISO8601;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 
 public class LuceneIndexInfoProvider implements IndexInfoProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -116,7 +119,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     private void computeSize(NodeState idxState, LuceneIndexInfo info) throws IOException {
-        IndexDefinition defn = IndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName) && MultiplexersLucene.isIndexDirName(dirName)) {
                 try (Directory dir = new OakDirectory(new ReadOnlyBuilder(idxState), dirName, defn, true)) {

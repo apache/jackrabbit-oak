@@ -40,8 +40,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
@@ -53,12 +51,14 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ConsumerType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,14 +123,14 @@ public class TypeEditor extends DefaultEditor {
     };
     
     /**
-     * Creates a new <tt>TypeEditor</tt> instance
+     * Creates a new {@linkplain TypeEditor} instance
      * 
      * @param callback the callback to use when a constraint violation is found. The client must
      *   check the results of the callback invocations if the specified callback does not
      *   immediately propagate constraint violations as checked exceptions.
-     * @param typesToCheck the types to check for. If <tt>null</tt>, this node is checked. Otherwise
+     * @param typesToCheck the types to check for. If {@code null}, this node is checked. Otherwise
      *  it is checked if its primary type or one of it's mixin types is contained in this parameters
-     * @param types the <tt>/jcr:system/jcr:nodeTypes</tt> node
+     * @param types the {@code /jcr:system/jcr:nodeTypes} node
      * @param primary the node's primary type
      * @param mixins the node's mixins
      * @param builder a builder containing the current state of the node to check. May be used to set
@@ -138,13 +138,15 @@ public class TypeEditor extends DefaultEditor {
      * @return a new TypeEditor instance
      * @throws CommitFailedException when the primary type of mixin definition is incorrect
      */
-    public static TypeEditor create(@Nonnull ConstraintViolationCallback callback, Set<String> typesToCheck,
-            @Nonnull NodeState types, String primary, Iterable<String> mixins, 
-            @Nonnull NodeBuilder builder) throws CommitFailedException {
+    public static TypeEditor create(@NotNull ConstraintViolationCallback callback, Set<String> typesToCheck,
+            @NotNull NodeState types, String primary, Iterable<String> mixins, 
+            @NotNull NodeBuilder builder) throws CommitFailedException {
         return new TypeEditor(callback, typesToCheck, types, primary, mixins, builder);
     }
 
     private static final Logger log = LoggerFactory.getLogger(TypeEditor.class);
+
+    private final PartialValueFactory valueFactory;
 
     private final Set<String> typesToCheck;
 
@@ -168,6 +170,7 @@ public class TypeEditor extends DefaultEditor {
             ConstraintViolationCallback callback, Set<String> typesToCheck, NodeState types,
             String primary, Iterable<String> mixins, NodeBuilder builder)
             throws CommitFailedException {
+        this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
         this.callback = checkNotNull(callback);
         this.typesToCheck = typesToCheck;
         this.checkThisNode =
@@ -183,11 +186,12 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private TypeEditor(
-            @Nonnull TypeEditor parent, @Nonnull String name,
-            @CheckForNull String primary, @Nonnull Iterable<String> mixins, @Nonnull NodeBuilder builder,
+            @NotNull TypeEditor parent, @NotNull String name,
+            @Nullable String primary, @NotNull Iterable<String> mixins, @NotNull NodeBuilder builder,
             boolean validate)
             throws CommitFailedException {
-        this.callback= parent.callback;
+        this.valueFactory = parent.valueFactory;
+        this.callback = parent.callback;
         this.typesToCheck = parent.typesToCheck;
         this.checkThisNode =
                 typesToCheck == null
@@ -205,6 +209,7 @@ public class TypeEditor extends DefaultEditor {
      * Test constructor.
      */
     TypeEditor(EffectiveType effective) {
+        this.valueFactory = new PartialValueFactory(NamePathMapper.DEFAULT);
         this.callback = TypeEditor.THROW_ON_CONSTRAINT_VIOLATION;
         this.typesToCheck = null;
         this.checkThisNode = true;
@@ -320,10 +325,10 @@ public class TypeEditor extends DefaultEditor {
     }
 
     //-----------------------------------------------------------< private >--
-    @Nonnull
+    @NotNull
     private EffectiveType createEffectiveType(
-            @CheckForNull EffectiveType parent, @CheckForNull String name,
-            @CheckForNull String primary, @Nonnull Iterable<String> mixins)
+            @Nullable EffectiveType parent, @Nullable String name,
+            @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
         List<NodeState> list = Lists.newArrayList();
 
@@ -364,7 +369,7 @@ public class TypeEditor extends DefaultEditor {
         return new EffectiveType(list);
     }
 
-    @Nonnull
+    @NotNull
     private EffectiveType getEffective() {
         return effective;
     }
@@ -421,7 +426,7 @@ public class TypeEditor extends DefaultEditor {
 
         for (String constraint : constraints.getValue(STRINGS)) {
             Predicate<Value> predicate = valueConstraint(requiredType, constraint);
-            for (Value v : ValueFactoryImpl.createValues(property, NamePathMapper.DEFAULT)) {
+            for (Value v : valueFactory.createValues(property)) {
                 if (predicate.apply(v)) {
                     return;
                 }

@@ -25,17 +25,20 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.update.IndexUpdateListener;
+import org.apache.jackrabbit.oak.plugins.index.search.update.RefreshOnWritePolicy;
+import org.apache.jackrabbit.oak.plugins.index.search.update.TimedRefreshPolicy;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.NRTCachingDirectory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,8 +48,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class NRTIndexFactory implements Closeable{
     /**
      * Maximum numbers of NRTIndex to keep at a time. At runtime for a given index
-     * /oak:index/fooIndex at max 2 IndexNode would be opened at a time and those 2
-     * IndexNode would keep reference to at max 3 NRT Indexes
+     * /oak:index/fooIndex at max 2 LuceneIndexNode would be opened at a time and those 2
+     * LuceneIndexNode would keep reference to at max 3 NRT Indexes
      */
     private static final int MAX_INDEX_COUNT = 3;
     private static final int REFRESH_DELTA_IN_SECS = Integer.getInteger("oak.lucene.refreshDeltaSecs", 1);
@@ -74,8 +77,8 @@ public class NRTIndexFactory implements Closeable{
 
     //This would not be invoked concurrently
     // but still mark it synchronized for safety
-    @CheckForNull
-    public synchronized NRTIndex createIndex(IndexDefinition definition) {
+    @Nullable
+    public synchronized NRTIndex createIndex(LuceneIndexDefinition definition) {
         if (!(definition.isNRTIndexingEnabled() || definition.isSyncIndexingEnabled())){
             return null;
         }

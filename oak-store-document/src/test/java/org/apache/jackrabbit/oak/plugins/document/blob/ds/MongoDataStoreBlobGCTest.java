@@ -45,22 +45,16 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
         }
     }
 
+    @Override
+    protected DocumentMK.Builder addToBuilder(DocumentMK.Builder mk) {
+        return super.addToBuilder(mk).setBlobStore(blobStore);
+    }
+
     @Before
     @Override
     public void setUpConnection() throws Exception {
         startDate = new Date();
-        mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDBName());
         blobStore = DataStoreUtils.getBlobStore(folder.newFolder());
-        mk = new DocumentMK.Builder().clock(getTestClock())
-                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
-                .setBlobStore(blobStore).open();
-    }
-
-    @After
-    @Override
-    public void tearDownConnection() throws Exception {
-        mk.dispose();
-        MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+        super.setUpConnection();
     }
 }

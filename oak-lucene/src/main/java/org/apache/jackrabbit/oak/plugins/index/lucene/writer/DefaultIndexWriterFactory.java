@@ -19,10 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -41,14 +44,20 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     }
 
     @Override
-    public LuceneIndexWriter newInstance(IndexDefinition definition,
+    public LuceneIndexWriter newInstance(IndexDefinition def,
                                          NodeBuilder definitionBuilder, boolean reindex) {
+        Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
+                "Expected {} but found {} for index definition",
+                LuceneIndexDefinition.class, def.getClass());
+
+        LuceneIndexDefinition definition = (LuceneIndexDefinition)def;
+
         if (mountInfoProvider.hasNonDefaultMounts()){
             return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
                 definitionBuilder, reindex, writerConfig);
         }
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
-            LuceneIndexConstants.INDEX_DATA_CHILD_NAME,
-            LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
+                FulltextIndexConstants.INDEX_DATA_CHILD_NAME,
+                LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
     }
 }

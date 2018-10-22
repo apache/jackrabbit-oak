@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -116,7 +115,7 @@ public final class LocalIndexFile {
         return dir != null ? new File(dir, name).length() : 0;
     }
 
-    static File getFSDir(Directory dir) {
+    public static File getFSDir(Directory dir) {
         if (dir instanceof FilterDirectory){
             dir = ((FilterDirectory) dir).getDelegate();
         }

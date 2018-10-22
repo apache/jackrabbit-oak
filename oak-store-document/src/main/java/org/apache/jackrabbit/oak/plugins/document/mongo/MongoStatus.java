@@ -19,21 +19,29 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
+import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientException;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.event.ServerHeartbeatFailedEvent;
+import com.mongodb.event.ServerHeartbeatStartedEvent;
+import com.mongodb.event.ServerHeartbeatSucceededEvent;
+import com.mongodb.event.ServerMonitorListener;
+import com.mongodb.session.ClientSession;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-public class MongoStatus {
+public class MongoStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
 
@@ -46,8 +54,6 @@ public class MongoStatus {
 
     private final String dbName;
 
-    private final ClusterDescriptionProvider descriptionProvider;
-
     private BasicDBObject serverStatus;
 
     private BasicDBObject buildInfo;
@@ -58,17 +64,14 @@ public class MongoStatus {
 
     private Boolean majorityReadConcernEnabled;
 
-    public MongoStatus(@Nonnull MongoClient client,
-                       @Nonnull String dbName) {
-        this(client, dbName, () -> null);
-    }
+    private Boolean clientSessionSupported;
 
-    public MongoStatus(@Nonnull MongoClient client,
-                       @Nonnull String dbName,
-                       @Nonnull ClusterDescriptionProvider descriptionProvider) {
+    private final ReplicaSetStatus replicaSetStatus = new ReplicaSetStatus();
+
+    public MongoStatus(@NotNull MongoClient client,
+                       @NotNull String dbName) {
         this.client = client;
         this.dbName = dbName;
-        this.descriptionProvider = descriptionProvider;
     }
 
     public void checkVersion() {
@@ -128,7 +131,7 @@ public class MongoStatus {
         return majorityReadConcernEnabled;
     }
 
-    @Nonnull
+    @NotNull
     public String getServerDetails() {
         Map<String, Object> details = Maps.newHashMap();
         for (String key : SERVER_DETAIL_FIELD_NAMES) {
@@ -140,7 +143,7 @@ public class MongoStatus {
         return details.toString();
     }
 
-    @Nonnull
+    @NotNull
     public String getVersion() {
         if (version == null) {
             String v = getServerStatus().getString("version");
@@ -172,10 +175,80 @@ public class MongoStatus {
         }
     }
 
+    /**
+     * @return {@code true} if client sessions are supported.
+     */
+    boolean isClientSessionSupported() {
+        if (clientSessionSupported == null) {
+            // must be at least 3.6
+            if (isVersion(3, 6)) {
+                ClientSessionOptions options = ClientSessionOptions.builder()
+                        .causallyConsistent(true).build();
+                try (ClientSession ignored = client.startSession(options)) {
+                    clientSessionSupported = true;
+                } catch (MongoClientException e) {
+                    clientSessionSupported = false;
+                }
+            } else {
+                clientSessionSupported = false;
+            }
+        }
+        return clientSessionSupported;
+    }
+
+    /**
+     * Returns an estimate of the replica-set lag in milliseconds. The returned
+     * value is not an accurate measurement of the replication lag and should
+     * only be used as a rough estimate to decide whether secondaries can be
+     * used for queries in general. 
+     * <p>
+     * This method may return {@link ReplicaSetStatus#UNKNOWN_LAG} if the value
+     * is currently unknown.
+     *
+     * @return an estimate of the
+     */
+    long getReplicaSetLagEstimate() {
+        return replicaSetStatus.getLagEstimate();
+    }
+
+    //------------------------< ServerMonitorListener >-------------------------
+
+    @Override
+    public void serverHearbeatStarted(ServerHeartbeatStartedEvent event) {
+        LOG.debug("serverHeartbeatStarted {}", event.getConnectionId());
+        replicaSetStatus.serverHearbeatStarted(event);
+    }
+
+    @Override
+    public void serverHeartbeatSucceeded(ServerHeartbeatSucceededEvent event) {
+        LOG.debug("serverHeartbeatSucceeded {}, {}", event.getConnectionId(), event.getReply());
+        replicaSetStatus.serverHeartbeatSucceeded(event);
+    }
+
+    @Override
+    public void serverHeartbeatFailed(ServerHeartbeatFailedEvent event) {
+        LOG.debug("serverHeartbeatFailed {} ({} ms)", event.getConnectionId(),
+                event.getElapsedTime(TimeUnit.MILLISECONDS),
+                event.getThrowable());
+        replicaSetStatus.serverHeartbeatFailed(event);
+    }
+
+    //-------------------------------< internal >-------------------------------
+
     private BasicDBObject getServerStatus() {
         if (serverStatus == null) {
-            serverStatus = client.getDatabase(dbName).runCommand(
-                    new BasicDBObject("serverStatus", 1), BasicDBObject.class);
+            try {
+                serverStatus = client.getDatabase(dbName).runCommand(
+                        new BasicDBObject("serverStatus", 1), BasicDBObject.class);
+            } catch (MongoCommandException e) {
+                if (e.getErrorCode() == -1) {
+                    // OAK-7485: workaround when running on
+                    // MongoDB Atlas shared instances
+                    serverStatus = new BasicDBObject();
+                } else {
+                    throw e;
+                }
+            }
         }
         return serverStatus;
     }

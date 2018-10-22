@@ -41,7 +41,9 @@
                     <instructions>
                         <Import-Package>
                           <!-- OAK-7182 -->${guava.osgi.import},
-                          *
+                            org.apache.jackrabbit.oak.segment.spi*,
+                            !org.apache.jackrabbit.oak.segment*,
+                            *
                         </Import-Package>
                         <Export-Package />
                         <Embed-Dependency>
@@ -139,9 +141,20 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob-plugins</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -151,10 +164,15 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+         <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.10.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -165,7 +183,16 @@
         <dependency>
             <groupId>com.arakelian</groupId>
             <artifactId>docker-junit-rule</artifactId>
-            <version>2.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implements a simple sync result with and id and a status.
@@ -31,24 +29,24 @@ public class DefaultSyncResultImpl implements SyncResult {
 
     private Status status = Status.NOP;
 
-    public DefaultSyncResultImpl(@Nullable DefaultSyncedIdentity id, @Nonnull Status status) {
+    public DefaultSyncResultImpl(@Nullable DefaultSyncedIdentity id, @NotNull Status status) {
         this.id = id;
         this.status = status;
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public DefaultSyncedIdentity getIdentity() {
         return id;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Status getStatus() {
         return status;
     }
 
-    public void setStatus(@Nonnull Status status) {
+    public void setStatus(@NotNull Status status) {
         this.status = status;
     }
 }

@@ -18,29 +18,46 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.Lists;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.jetbrains.annotations.Nullable;
 import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
+import static org.junit.Assume.assumeNotNull;
 
 public class MongoConnectionFactory extends ExternalResource {
 
+    private final MongoDockerRule mongo = new MongoDockerRule();
+
     private final List<MongoConnection> connections = Lists.newArrayList();
 
-    @CheckForNull
-    public MongoConnection getConnection() {
-        MongoConnection c = MongoUtils.getConnection();
-        if (c != null) {
-            connections.add(c);
+    @Override
+    public Statement apply(Statement base, Description description) {
+        Statement s = super.apply(base, description);
+        if (mongo.isDockerAvailable()) {
+            s = mongo.apply(s, description);
         }
-        return c;
+        return s;
     }
 
-    @CheckForNull
+    @Nullable
+    public MongoConnection getConnection() {
+        return getConnection(MongoUtils.DB);
+    }
+
+    @Nullable
     public MongoConnection getConnection(String dbName) {
+        // first try MongoDB running on configured host and port
         MongoConnection c = MongoUtils.getConnection(dbName);
+        if (c == null && mongo.isDockerAvailable()) {
+            // fall back to docker if available
+            c = new MongoConnection("localhost", mongo.getPort(), dbName);
+        }
+        assumeNotNull(c);
         if (c != null) {
             connections.add(c);
         }
@@ -50,7 +67,11 @@ public class MongoConnectionFactory extends ExternalResource {
     @Override
     protected void after() {
         for (MongoConnection c : connections) {
-            c.close();
+            try {
+                c.close();
+            } catch (IllegalStateException e) {
+                // may happen when connection is already closed (OAK-7447)
+            }
         }
     }
 }

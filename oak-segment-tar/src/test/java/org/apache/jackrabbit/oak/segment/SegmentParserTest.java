@@ -49,8 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -64,6 +62,7 @@ import org.apache.jackrabbit.oak.segment.SegmentParser.ValueInfo;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -172,7 +171,7 @@ public class SegmentParserTest {
     @Before
     public void setup() throws IOException {
         store = new MemoryStore() {
-            @CheckForNull
+            @Nullable
             @Override
             public BlobStore getBlobStore() {
                 return blobStore;

@@ -35,6 +35,7 @@
     <groovy.version>2.4.7</groovy.version>
     <!--
       Size History:
+      + 51 MB AWS java sdk update (OAK-7536)
       + 49 MB MongoDB Java driver 3.6.3 is bigger (OAK-7359)
       + 48 MB Transitive dependencies needed for aws-java-sdk (OAK-6899)
       + 47 MB release profile build slightly bigger jar (OAK-6252)
@@ -42,7 +43,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>49000000</max.jar.size>
+    <max.jar.size>51000000</max.jar.size>
   </properties>
 
   <build>
@@ -155,7 +156,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.4.1</version>
+        <version>3.0.0-M2</version>
         <executions>
           <execution>
             <id>enforce-file-size</id>
@@ -356,28 +357,33 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpcore-osgi</artifactId>
-      <version>4.4.5</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient-osgi</artifactId>
-      <version>4.5.2</version>
     </dependency>
     <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>2.8.1</version>
     </dependency>
-    <!-- Findbugs annotations -->
+    <!-- Nullability annotations -->
     <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
     
     <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-commons</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -411,13 +417,17 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
       <version>1.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.arakelian</groupId>
+      <artifactId>docker-junit-rule</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

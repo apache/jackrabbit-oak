@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Initializer of repository content. A component that needs to add specific
@@ -35,7 +34,7 @@ public interface RepositoryInitializer {
      */
     RepositoryInitializer DEFAULT = new RepositoryInitializer() {
         @Override
-        public void initialize(@Nonnull NodeBuilder builder) {
+        public void initialize(@NotNull NodeBuilder builder) {
         }
     };
 
@@ -47,5 +46,5 @@ public interface RepositoryInitializer {
      *
      * @param builder builder for accessing and modifying repository content
      */
-    void initialize(@Nonnull NodeBuilder builder);
+    void initialize(@NotNull NodeBuilder builder);
 }

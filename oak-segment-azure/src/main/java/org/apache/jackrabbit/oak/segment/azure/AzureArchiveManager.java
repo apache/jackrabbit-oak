@@ -98,6 +98,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     }
 
     @Override
+    public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
+        CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
+        return new AzureSegmentArchiveReader(archiveDirectory, ioMonitor);
+    }
+
+    @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
         return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor);
     }
@@ -232,8 +238,15 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             String blobName = getName(blob);
             CloudBlockBlob newBlob = newParent.getBlockBlobReference(blobName);
             newBlob.startCopy(blob.getUri());
-            while (newBlob.getCopyState().getStatus() == CopyStatus.PENDING) {
-                Thread.sleep(100);
+
+            boolean isStatusPending = true;
+            while (isStatusPending) {
+                newBlob.downloadAttributes();
+                if (newBlob.getCopyState().getStatus() == CopyStatus.PENDING) {
+                    Thread.sleep(100);
+                } else {
+                    isStatusPending = false;
+                }
             }
 
             CopyStatus finalStatus = newBlob.getCopyState().getStatus();

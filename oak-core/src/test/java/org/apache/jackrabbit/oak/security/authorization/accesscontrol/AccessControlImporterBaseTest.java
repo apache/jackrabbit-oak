@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -135,7 +135,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         return importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider());
     }
 
-    TextValue createTextValue(@Nonnull String val) {
+    TextValue createTextValue(@NotNull String val) {
         return new TextValue() {
             @Override
             public String getString() {
@@ -155,7 +155,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         };
     }
 
-    List<TextValue> createTextValues(@Nonnull String... values) {
+    List<TextValue> createTextValues(@NotNull String... values) {
         List<TextValue> l = new ArrayList();
         for (String v : values) {
             l.add(createTextValue(v));
@@ -445,7 +445,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         assertImport(aclTree, principalName);
     }
 
-    private static void assertImport(@Nonnull Tree aclTree, @Nonnull String principalName) {
+    private static void assertImport(@NotNull Tree aclTree, @NotNull String principalName) {
         assertTrue(aclTree.getChildren().iterator().hasNext());
         Tree aceTree = aclTree.getChildren().iterator().next();
 

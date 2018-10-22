@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -44,6 +43,7 @@ import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,14 +69,14 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
      * @param executor              executor for running the garbage collection task
      */
     public BlobGC(
-            @Nonnull BlobGarbageCollector blobGarbageCollector,
-            @Nonnull Executor executor) {
+            @NotNull BlobGarbageCollector blobGarbageCollector,
+            @NotNull Executor executor) {
         super(BlobGCMBean.class);
         this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
         this.executor = checkNotNull(executor);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startBlobGC(final boolean markOnly) {
         if (gcOp.isDone()) {
@@ -109,19 +109,43 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getBlobGCStatus();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getBlobGCStatus() {
         return gcOp.getStatus().toCompositeData();
     }
-    
+
+
+    @Override
+    public CompositeData checkConsistency() {
+        if (consistencyOp.isDone()) {
+            consistencyOp = newManagementOperation(CONSISTENCY_OP_NAME, new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                    long t0 = nanoTime();
+                    long missing = blobGarbageCollector.checkConsistency();
+                    return "Consistency check completed in "
+                        + formatTime(nanoTime() - t0) + ". " +
+                        + missing + " missing blobs found (details in the log).";
+                }
+            });
+            executor.execute(consistencyOp);
+        }
+        return getConsistencyCheckStatus();
+    }
+
+    @NotNull
+    @Override
+    public CompositeData getConsistencyCheckStatus() {
+        return consistencyOp.getStatus().toCompositeData();
+    }
+
     @Override 
     public TabularData getGlobalMarkStats() {
         TabularDataSupport tds;
         try {
             TabularType tt = new TabularType(BlobGC.class.getName(),
-                                                "Garbage collection global mark phase Stats", 
-                                                TYPE,
+                                                "Garbage collection global mark phase Stats", MARK_TYPE,
                                                 new String[] {"repositoryId"});
             tds = new TabularDataSupport(tt);           
             List<GarbageCollectionRepoStats> stats = blobGarbageCollector.getStats();
@@ -133,31 +157,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         }
         return tds;
     }
-    
-    @Override 
-    public CompositeData checkConsistency() {
-        if (consistencyOp.isDone()) {
-            consistencyOp = newManagementOperation(CONSISTENCY_OP_NAME, new Callable<String>() {
-                @Override
-                public String call() throws Exception {
-                    long t0 = nanoTime();
-                    long missing = blobGarbageCollector.checkConsistency();
-                    return "Consistency check completed in "
-                                + formatTime(nanoTime() - t0) + ". " +
-                                + missing + " missing blobs found (details in the log).";
-                }
-            });
-            executor.execute(consistencyOp);
-        }
-        return getConsistencyCheckStatus();
-    }
-    
-    @Nonnull
-    @Override
-    public CompositeData getConsistencyCheckStatus() {
-        return consistencyOp.getStatus().toCompositeData();
-    }
-    
+
     private CompositeDataSupport toCompositeData(GarbageCollectionRepoStats statObj) throws OpenDataException {
         Object[] values = new Object[] {
                 statObj.getRepositoryId() + (statObj.isLocal() ? " *" : ""),
@@ -167,10 +167,10 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
                 humanReadableByteCount(statObj.getLength()),
                 statObj.getNumLines()
         };
-        return new CompositeDataSupport(TYPE, FIELD_NAMES, values);
+        return new CompositeDataSupport(MARK_TYPE, MARK_FIELD_NAMES, values);
     }
     
-    private static final String[] FIELD_NAMES = new String[] {
+    private static final String[] MARK_FIELD_NAMES = new String[] {
             "repositoryId",
             "markStartTime",
             "markEndTime",
@@ -179,16 +179,16 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
             "numReferences",
     };
     
-    private static final String[] FIELD_DESCRIPTIONS = new String[] {
-           "Repository ID", 
+    private static final String[] MARK_FIELD_DESCRIPTIONS = new String[] {
+           "Repository ID",
            "Start time of mark",
            "End time of mark",
            "References file size in bytes",
            "References file size in human readable format",
-           "Number of references" 
+           "Number of references"
     };
     
-    private static final OpenType[] FIELD_TYPES = new OpenType[] {
+    private static final OpenType[] MARK_FIELD_TYPES = new OpenType[] {
             SimpleType.STRING,
             SimpleType.STRING,
             SimpleType.STRING,
@@ -197,18 +197,72 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
             SimpleType.INTEGER
     };
     
-    private static final CompositeType TYPE = createCompositeType();
+    private static final CompositeType MARK_TYPE = createMarkCompositeType();
     
-    private static CompositeType createCompositeType() {
+    private static CompositeType createMarkCompositeType() {
         try {
             return new CompositeType(
                     GarbageCollectionRepoStats.class.getName(),
-                    "Composite data type for datastore GC statistics",
-                    FIELD_NAMES,
-                    FIELD_DESCRIPTIONS,
-                    FIELD_TYPES);
+                    "Composite data type for datastore GC statistics", MARK_FIELD_NAMES, MARK_FIELD_DESCRIPTIONS,
+                MARK_FIELD_TYPES);
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
         }
-    }    
+    }
+
+    @Override
+    public TabularData getOperationStats() {
+        TabularDataSupport tds;
+        try {
+            TabularType tt = new TabularType(BlobGC.class.getName(),
+                "Garbage Collection Operation Stats", OP_STATS_TYPE,
+                OP_STATS_FIELD_NAMES);
+            tds = new TabularDataSupport(tt);
+            OperationsStatsMBean operationStats = blobGarbageCollector.getOperationStats();
+            tds.put(toCompositeData(operationStats));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    private CompositeData toCompositeData(OperationsStatsMBean statObj) throws OpenDataException {
+        Object[] values = new Object[] {
+            statObj.getStartCount(),
+            statObj.getFailureCount(),
+            statObj.duration()
+        };
+        return new CompositeDataSupport(OP_STATS_TYPE, OP_STATS_FIELD_NAMES, values);
+    }
+
+    private static final String[] OP_STATS_FIELD_NAMES = new String[] {
+        "count",
+        "failureCount",
+        "duration"
+    };
+
+    private static final String[] OP_STATS_FIELD_DESCRIPTIONS = new String[] {
+        "Count",
+        "Failure Count",
+        "Duration"
+    };
+
+    private static final OpenType[] OP_STATS_FIELD_TYPES = new OpenType[] {
+        SimpleType.LONG,
+        SimpleType.LONG,
+        SimpleType.LONG
+    };
+
+    private static final CompositeType OP_STATS_TYPE = createOpStatsCompositeType();
+
+    private static CompositeType createOpStatsCompositeType() {
+        try {
+            return new CompositeType(
+                GarbageCollectionRepoStats.class.getName(),
+                "Composite data type for datastore GC operation stats", OP_STATS_FIELD_NAMES, OP_STATS_FIELD_DESCRIPTIONS,
+                OP_STATS_FIELD_TYPES);
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

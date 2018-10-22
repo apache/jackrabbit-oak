@@ -23,8 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -41,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Abstra
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ abstract class ACL extends AbstractAccessControlList {
     private final List<ACE> entries = new ArrayList<ACE>();
 
     ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
-        @Nonnull NamePathMapper namePathMapper) {
+        @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
@@ -64,7 +64,7 @@ abstract class ACL extends AbstractAccessControlList {
     abstract PrivilegeBits getPrivilegeBits(Privilege[] privileges);
 
     //------------------------------------------< AbstractAccessControlList >---
-    @Nonnull
+    @NotNull
     @Override
     public List<ACE> getEntries() {
         return entries;
@@ -185,7 +185,7 @@ abstract class ACL extends AbstractAccessControlList {
         return (ACE) entry;
     }
 
-    private boolean internalAddEntry(@Nonnull ACE entry) throws RepositoryException {
+    private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
         final Principal principal = entry.getPrincipal();
         List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<ACE>() {
             @Override
@@ -234,7 +234,7 @@ abstract class ACL extends AbstractAccessControlList {
         return true;
     }
 
-    private ACE createACE(@Nonnull ACE existing, @Nonnull PrivilegeBits newPrivilegeBits) throws RepositoryException {
+    private ACE createACE(@NotNull ACE existing, @NotNull PrivilegeBits newPrivilegeBits) throws RepositoryException {
         return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions());
     }
 }

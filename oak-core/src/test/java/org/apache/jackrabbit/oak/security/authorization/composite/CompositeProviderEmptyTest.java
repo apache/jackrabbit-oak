@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -34,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -272,47 +272,47 @@ public class CompositeProviderEmptyTest extends AbstractCompositeProviderTest {
 
         private static final PermissionProvider BASE = EmptyPermissionProvider.getInstance();
 
-        public EmptyAggregatedProvider(@Nonnull Root root) {
+        public EmptyAggregatedProvider(@NotNull Root root) {
             super(root);
         }
 
         //---------------------------------------------< PermissionProvider >---
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
             return BASE.getPrivileges(tree);
         }
 
         @Override
-        public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+        public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
             return BASE.hasPrivileges(tree, privilegeNames);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RepositoryPermission getRepositoryPermission() {
             return BASE.getRepositoryPermission();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
             return BASE.getTreePermission(tree, parentPermission);
         }
 
         @Override
-        public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
             return BASE.isGranted(tree, property, permissions);
         }
 
         @Override
-        public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+        public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
             return BASE.isGranted(oakPath, jcrActions);
         }
 
         //-----------------------------------< AggregatedPermissionProvider >---
         @Override
-        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+        public boolean isGranted(@NotNull TreeLocation location, long permissions) {
             return false;
         }
     }

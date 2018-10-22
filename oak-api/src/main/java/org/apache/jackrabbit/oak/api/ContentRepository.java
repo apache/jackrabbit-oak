@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Oak content repository. The repository may be local or remote, or a cluster
@@ -75,7 +76,7 @@ public interface ContentRepository {
      * @throws LoginException           if authentication failed
      * @throws NoSuchWorkspaceException if the specified workspace name is invalid.
      */
-    @Nonnull
+    @NotNull
     ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 
@@ -85,6 +86,6 @@ public interface ContentRepository {
      *
      * @return the repository descriptors
      */
-    @Nonnull
+    @NotNull
     Descriptors getDescriptors();
 }

@@ -27,13 +27,16 @@ import static com.google.common.util.concurrent.Futures.addCallback;
 import static com.google.common.util.concurrent.Futures.dereference;
 import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
+import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
 import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
@@ -65,7 +68,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.Nonnull;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -83,6 +85,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
@@ -94,6 +97,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarReader;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -105,11 +109,13 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,6 +141,10 @@ public class SegmentCompactionIT {
     private static final boolean ENABLED =
             SegmentCompactionIT.class.getSimpleName().equals(getProperty("test"));
 
+    private static final boolean MMAP = parseBoolean(getProperty("mmap", "true"));
+
+    private static final int SEGMENT_CACHE_SIZE = getInteger("segment-cache", DEFAULT_SEGMENT_CACHE_MB);
+
     private static final Logger LOG = LoggerFactory.getLogger(SegmentCompactionIT.class);
 
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -159,8 +169,8 @@ public class SegmentCompactionIT {
 
     private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
     private volatile ReadWriteLock compactionLock = null;
-    private volatile int maxReaders = Integer.getInteger("SegmentCompactionIT.maxReaders", 10);
-    private volatile int maxWriters = Integer.getInteger("SegmentCompactionIT.maxWriters", 10);
+    private volatile int maxReaders = getInteger("SegmentCompactionIT.maxReaders", 10);
+    private volatile int maxWriters = getInteger("SegmentCompactionIT.maxWriters", 10);
     private volatile long maxStoreSize = 200000000000L;
     private volatile int maxBlobSize = 1000000;
     private volatile int maxStringSize = 100;
@@ -184,6 +194,11 @@ public class SegmentCompactionIT {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public TestRule logLevelModifier = new LogLevelModifier()
+            .setLoggerLevel(SegmentTarReader.class.getName(), "debug");
+
 
     public synchronized void stop() {
         stopping = true;
@@ -247,10 +262,12 @@ public class SegmentCompactionIT {
         MetricStatisticsProvider statisticsProvider = new MetricStatisticsProvider(mBeanServer, executor);
         FileStoreBuilder builder = fileStoreBuilder(folder.getRoot());
         fileStore = builder
-                .withMemoryMapping(true)
+                .withMemoryMapping(MMAP)
+                .withSegmentCacheSize(SEGMENT_CACHE_SIZE)
                 .withGCMonitor(gcMonitor)
                 .withGCOptions(gcOptions)
                 .withIOMonitor(new MetricsIOMonitor(statisticsProvider))
+                .withIOLogging(LoggerFactory.getLogger(SegmentTarReader.class))
                 .withStatisticsProvider(statisticsProvider)
                 .build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore)
@@ -766,7 +783,7 @@ public class SegmentCompactionIT {
         private volatile String checkpoint;
         private volatile boolean cancelled;
 
-        private Checkpoint(@Nonnull NodeStore nodeStore) {
+        private Checkpoint(@NotNull NodeStore nodeStore) {
             this.nodeStore = nodeStore;
         }
 

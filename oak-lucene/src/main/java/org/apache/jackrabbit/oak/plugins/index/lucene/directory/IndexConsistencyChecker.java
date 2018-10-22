@@ -43,8 +43,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -273,7 +273,7 @@ public class IndexConsistencyChecker {
 
     private void checkIndex(Result result, Closer closer) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-        IndexDefinition defn = IndexDefinition.newBuilder(rootState, idx, indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
         workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
 
         for (String dirName : idx.getChildNodeNames()){
@@ -296,7 +296,7 @@ public class IndexConsistencyChecker {
         }
     }
 
-    private void checkIndexDirectory(DirectoryStatus dirStatus, NodeState idx, IndexDefinition defn,
+    private void checkIndexDirectory(DirectoryStatus dirStatus, NodeState idx, LuceneIndexDefinition defn,
                                      File workDir, String dirName, Closer closer) throws IOException {
         File idxDir = createWorkDir(workDir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);

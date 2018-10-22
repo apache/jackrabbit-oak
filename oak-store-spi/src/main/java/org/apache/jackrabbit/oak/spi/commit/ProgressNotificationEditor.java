@@ -21,13 +21,11 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -40,8 +38,8 @@ public class ProgressNotificationEditor implements Editor {
     private final String path;
     private final Function<String, Void> onProgress;
 
-    @CheckForNull
-    public static Editor wrap(@CheckForNull Editor editor, final Logger logger, final String message) {
+    @Nullable
+    public static Editor wrap(@Nullable Editor editor, final Logger logger, final String message) {
         if (editor != null && !(editor instanceof ProgressNotificationEditor)) {
             return new ProgressNotificationEditor(editor, "/", new Function<String, Void>() {
                 int count;

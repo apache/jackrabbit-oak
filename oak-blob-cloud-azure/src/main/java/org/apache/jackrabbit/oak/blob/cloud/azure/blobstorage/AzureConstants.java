@@ -31,6 +31,11 @@ public final class AzureConstants {
     public static final String AZURE_STORAGE_ACCOUNT_KEY = "secretKey";
 
     /**
+     * Azure connection string (overrides {@link #AZURE_SAS} and {@link #AZURE_BLOB_ENDPOINT}).
+     */
+    public static final String AZURE_CONNECTION_STRING = "azureConnectionString";
+
+    /**
      * Azure shared access signature token
      */
     public static final String AZURE_SAS = "azureSas";
@@ -69,6 +74,21 @@ public final class AzureConstants {
      *  Proxy port
      */
     public static final String PROXY_PORT = "proxyPort";
+
+    /**
+     * TTL for presigned HTTP upload URIs - default is 0 (disabled)
+     */
+    public static final String PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS = "presignedHttpUploadURIExpirySeconds";
+
+    /**
+     * TTL for presigned HTTP download URIs - default is 0 (disabled)
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS = "presignedHttpDownloadURIExpirySeconds";
+
+    /**
+     * Maximum size of presigned HTTP download URI cache - default is 0 (no cache)
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
 
     private AzureConstants() { }
 }

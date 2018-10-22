@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -230,7 +230,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             public String getUserID() {
                 return userId;
             }
-            @Nonnull
+            @NotNull
             @Override
             public String[] getAttributeNames() {
                 return new String[0];
@@ -239,7 +239,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             public Object getAttribute(String attributeName) {
                 return null;
             }
-            @Nonnull
+            @NotNull
             @Override
             public Set<Principal> getPrincipals() {
                 return null;

@@ -18,27 +18,19 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
 
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     public static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
 
     private static final long DEFAULT_SIZE = 250;
-
 
     /**
      * The set of principal names for which this {@code PermissionEntryProvider}
@@ -51,17 +43,14 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     private final long maxSize;
 
     /**
-     * The set of principal names for which the store contains any permission
-     * entries. This set is equals or just a subset of the {@code principalNames}
-     * defined above. The methods collecting the entries will shortcut in case
-     * this set is empty and thus no permission entries exist for the specified
-     * set of principal.
+     * Flag to indicate if the the store contains any permission entries for the
+     * given set of principal names.
      */
-    private Set<String> existingNames;
+    private boolean noExistingNames;
 
     private PermissionCache permissionCache;
 
-    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
+    PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames, @NotNull ConfigurationParameters options) {
         this.store = store;
         this.principalNames = Collections.unmodifiableSet(principalNames);
         this.maxSize = options.getConfigValue(EAGER_CACHE_SIZE_PARAM, DEFAULT_SIZE);
@@ -70,7 +59,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private void init() {
         PermissionCacheBuilder builder = new PermissionCacheBuilder(store);
-        existingNames = builder.init(principalNames, maxSize);
+        noExistingNames = builder.init(principalNames, maxSize);
         permissionCache = builder.build();
     }
 
@@ -81,9 +70,9 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
-        if (existingNames.isEmpty()) {
+    @NotNull
+    public Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate) {
+        if (noExistingNames) {
             return Collections.emptyIterator();
         } else {
             return new EntryIterator(predicate);
@@ -91,14 +80,14 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+    @NotNull
+    public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
         return permissionCache.getEntries(accessControlledTree);
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private Collection<PermissionEntry> getEntries(@Nonnull String path) {
+    @NotNull
+    private Collection<PermissionEntry> getEntries(@NotNull String path) {
         return permissionCache.getEntries(path);
     }
 
@@ -112,7 +101,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         // the next oak path for which to retrieve permission entries
         private String path;
 
-        private EntryIterator(@Nonnull EntryPredicate predicate) {
+        private EntryIterator(@NotNull EntryPredicate predicate) {
             this.predicate = predicate;
             this.path = Strings.nullToEmpty(predicate.getPath());
         }

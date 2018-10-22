@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code ChildNodeEntry} instance represents the child node states of a
@@ -40,14 +40,14 @@ public interface ChildNodeEntry {
      * The name of the child node state wrt. to its parent state.
      * @return  name of the child node
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
      * The child node state
      * @return child node state
      */
-    @Nonnull
+    @NotNull
     NodeState getNodeState();
 
     /**

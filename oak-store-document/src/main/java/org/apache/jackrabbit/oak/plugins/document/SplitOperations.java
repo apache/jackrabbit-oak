@@ -27,11 +27,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,10 +97,10 @@ class SplitOperations {
     private List<UpdateOp> splitOps;
     private UpdateOp main;
 
-    private SplitOperations(@Nonnull final NodeDocument doc,
-                            @Nonnull final RevisionContext context,
-                            @Nonnull final RevisionVector headRev,
-                            @Nonnull final Function<String, Long> binarySize,
+    private SplitOperations(@NotNull final NodeDocument doc,
+                            @NotNull final RevisionContext context,
+                            @NotNull final RevisionVector headRev,
+                            @NotNull final Function<String, Long> binarySize,
                             int numRevsThreshold) {
         this.doc = checkNotNull(doc);
         this.context = checkNotNull(context);
@@ -140,11 +139,11 @@ class SplitOperations {
      * @throws IllegalArgumentException if the given document is a split
      *                                  document.
      */
-    @Nonnull
-    static List<UpdateOp> forDocument(@Nonnull NodeDocument doc,
-                                      @Nonnull RevisionContext context,
-                                      @Nonnull RevisionVector headRevision,
-                                      @Nonnull Function<String, Long> binarySize,
+    @NotNull
+    static List<UpdateOp> forDocument(@NotNull NodeDocument doc,
+                                      @NotNull RevisionContext context,
+                                      @NotNull RevisionVector headRevision,
+                                      @NotNull Function<String, Long> binarySize,
                                       int numRevsThreshold) {
         if (doc.isSplitDocument()) {
             throw new IllegalArgumentException(
@@ -340,7 +339,7 @@ class SplitOperations {
      * @return the UpdateOp for the main document or {@code null} if there is
      *          not enough data to split.
      */
-    @CheckForNull
+    @Nullable
     private UpdateOp createSplitOps() {
         UpdateOp main = null;
         // check if we have enough data to split off
@@ -584,13 +583,13 @@ class SplitOperations {
 
     //----------------------------< internal modifiers >------------------------
 
-    private static void setSplitDocType(@Nonnull UpdateOp op,
-                                        @Nonnull SplitDocType type) {
+    private static void setSplitDocType(@NotNull UpdateOp op,
+                                        @NotNull SplitDocType type) {
         checkNotNull(op).set(NodeDocument.SD_TYPE, type.type);
     }
 
-    private static void setSplitDocMaxRev(@Nonnull UpdateOp op,
-                                          @Nonnull Revision maxRev) {
+    private static void setSplitDocMaxRev(@NotNull UpdateOp op,
+                                          @NotNull Revision maxRev) {
         checkNotNull(op).set(NodeDocument.SD_MAX_REV_TIME_IN_SECS, NodeDocument.getModifiedInSecs(maxRev.getTimestamp()));
     }
 

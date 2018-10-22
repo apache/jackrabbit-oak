@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
@@ -31,6 +28,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Osgi Service that provides Solr based {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor}s
@@ -49,9 +48,9 @@ public class SolrIndexEditorProviderService implements IndexEditorProvider {
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     @Override
-    @CheckForNull
-    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                 @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+    @Nullable
+    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                 @NotNull NodeState root, @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
             return new SolrIndexEditorProvider(solrServerProvider,
                     oakSolrConfigurationProvider).getIndexEditor(type, definition, root, callback);

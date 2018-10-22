@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -49,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -130,7 +130,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         acMgr = createAccessControlManager(root, getNamePathMapper());
     }
 
-    private AbstractAccessControlManager createAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    private AbstractAccessControlManager createAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new TestAcMgr(root, namePathMapper, securityProvider);
     }
 
@@ -144,7 +144,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         return invalid;
     }
 
-    private static Privilege mockPrivilege(@Nonnull String name) {
+    private static Privilege mockPrivilege(@NotNull String name) {
         Privilege p = Mockito.mock(Privilege.class);
         when(p.getName()).thenReturn(name);
         return p;
@@ -227,7 +227,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     public void testGetTreeDefinesAcContent() throws Exception {
         Context ctx = new Context.Default() {
             @Override
-            public boolean definesTree(@Nonnull Tree tree) {
+            public boolean definesTree(@NotNull Tree tree) {
                 return true;
             }
         };
@@ -436,7 +436,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     private final class TestAcMgr extends AbstractAccessControlManager {
 
-        protected TestAcMgr(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper, @Nonnull SecurityProvider securityProvider) {
+        protected TestAcMgr(@NotNull Root root, @NotNull NamePathMapper namePathMapper, @NotNull SecurityProvider securityProvider) {
             super(root, namePathMapper, securityProvider);
         }
 

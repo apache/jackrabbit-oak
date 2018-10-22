@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfi
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -96,7 +95,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
@@ -127,7 +126,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      * @param contentRepository The content repository.
      * @return An new instance of {@link LoginContextProvider}.
      */
-    @Nonnull
+    @NotNull
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);

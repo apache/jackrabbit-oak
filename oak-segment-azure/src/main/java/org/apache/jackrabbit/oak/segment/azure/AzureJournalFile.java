@@ -159,6 +159,8 @@ public class AzureJournalFile implements JournalFile {
                 for (CloudAppendBlob cloudAppendBlob : getJournalBlobs()) {
                     cloudAppendBlob.delete();
                 }
+
+                createNextFile(0);
             } catch (StorageException e) {
                 throw new IOException(e);
             }
@@ -167,7 +169,8 @@ public class AzureJournalFile implements JournalFile {
         @Override
         public void writeLine(String line) throws IOException {
             if (blockCount >= lineLimit) {
-                createNewFile();
+                int parsedSuffix = parseCurrentSuffix();
+                createNextFile(parsedSuffix);
             }
             try {
                 currentBlob.appendText(line + "\n");
@@ -177,7 +180,17 @@ public class AzureJournalFile implements JournalFile {
             }
         }
 
-        private void createNewFile() throws IOException {
+        private void createNextFile(int suffix) throws IOException {
+            try {
+                currentBlob = directory.getAppendBlobReference(getJournalFileName(suffix + 1));
+                currentBlob.createOrReplace();
+                blockCount = 0;
+            } catch (URISyntaxException | StorageException e) {
+                throw new IOException(e);
+            }
+        }
+
+        private int parseCurrentSuffix() {
             String name = AzureUtilities.getName(currentBlob);
             Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)" );
             Matcher matcher = pattern.matcher(name);
@@ -194,13 +207,7 @@ public class AzureJournalFile implements JournalFile {
                 log.warn("Can't parse journal file name {}", name);
                 parsedSuffix = 0;
             }
-            try {
-                currentBlob = directory.getAppendBlobReference(getJournalFileName(parsedSuffix + 1));
-                currentBlob.createOrReplace();
-                blockCount = 0;
-            } catch (URISyntaxException | StorageException e) {
-                throw new IOException(e);
-            }
+            return parsedSuffix;
         }
 
         @Override

@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import com.google.common.base.Joiner;
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -81,7 +81,7 @@ public class PermissionsTest {
         when(existingTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, "rep:root"));
     }
 
-    private static TreeLocation createNonExistingTreeLocation(@Nonnull String path) {
+    private static TreeLocation createNonExistingTreeLocation(@NotNull String path) {
         String name = Text.getName(path);
         Tree nonExistingTree = Mockito.mock(Tree.class);
         when(nonExistingTree.exists()).thenReturn(false);

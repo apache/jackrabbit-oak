@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.DigestOutputStream;
@@ -31,8 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.CacheLoader;
@@ -40,6 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
@@ -52,11 +52,14 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.util.LazyFileInputStream;
 import org.apache.jackrabbit.util.TransientFileFactory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 
 /**
@@ -129,7 +132,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     /**
      * DataStore cache
      */
-    private CompositeDataStoreCache cache;
+    protected CompositeDataStoreCache cache;
 
     /**
      * The delegate backend
@@ -169,6 +172,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                     @Override public void write(String id, File file) throws DataStoreException {
                         backend.write(new DataIdentifier(id), file);
                     }
+
+                @Override public void adopt(File f, File moved) throws IOException {
+                    FileUtils.moveFile(f, moved);
+                }
             }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
     }
@@ -196,13 +203,13 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         File cached = cache.getIfPresent(dataIdentifier.toString());
         if (cached != null && cached.exists()) {
             return new FileCacheDataRecord(this, backend, dataIdentifier, cached.length(),
-                cached.lastModified());
+                tmp, cached.lastModified());
         } else {
             // Return the metadata from backend and lazily load the stream
             try {
                 DataRecord rec = backend.getRecord(dataIdentifier);
                 return new FileCacheDataRecord(this, backend, dataIdentifier, rec.getLength(),
-                    rec.getLastModified());
+                    tmp, rec.getLastModified());
             } catch (Exception e) {
                 LOG.error("Error retrieving record [{}]", dataIdentifier, e);
             }
@@ -291,12 +298,14 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         private final long length;
         private final long lastModified;
         private final AbstractSharedCachingDataStore store;
+        private final File temp;
 
         public FileCacheDataRecord(AbstractSharedCachingDataStore store, AbstractSharedBackend backend,
-            DataIdentifier identifier, long length,
+            DataIdentifier identifier, long length, File temp,
             long lastModified) {
             super(backend, identifier);
             this.length = length;
+            this.temp = temp;
             this.lastModified = lastModified;
             this.store = store;
         }
@@ -319,7 +328,16 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             try {
                 // If cache configured to 0 will return null
                 if (cached == null || !cached.exists()) {
-                    return backend.getRecord(getIdentifier()).getStream();
+                    InputStream in = null;
+                    try {
+                        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+                        File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
+                        in = backend.getRecord(getIdentifier()).getStream();
+                        copyInputStreamToFile(in, tmpFile);
+                        return new LazyFileInputStream(tmpFile);
+                    } finally {
+                        Closeables.close(in, false);
+                    }
                 } else {
                     return new FileInputStream(cached);
                 }
@@ -408,6 +426,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public DataRecord getMetadataRecord(String name) {
         return backend.getMetadataRecord(name);
+    }
+
+    @Override
+    public boolean metadataRecordExists(String name) {
+        return backend.metadataRecordExists(name);
     }
 
     @Override

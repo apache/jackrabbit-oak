@@ -36,14 +36,13 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -91,7 +91,7 @@ public class CheckpointCompactorTest {
         String cp2 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
-        SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE);
+        SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
         assertNotNull(compacted1);
         assertFalse(uncompacted1 == compacted1);
         checkGeneration(compacted1, compactedGeneration);
@@ -108,7 +108,7 @@ public class CheckpointCompactorTest {
         String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted2 = fileStore.getHead();
-        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1);
+        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
         assertNotNull(compacted2);
         assertFalse(uncompacted2 == compacted2);
         checkGeneration(compacted2, compactedGeneration);
@@ -162,8 +162,8 @@ public class CheckpointCompactorTest {
                 ((SegmentNodeState) node2).getRecordId());
     }
 
-    @Nonnull
-    private static CheckpointCompactor createCompactor(@Nonnull FileStore fileStore, @Nonnull GCGeneration generation) {
+    @NotNull
+    private static CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
                 .build(fileStore);
@@ -173,11 +173,10 @@ public class CheckpointCompactorTest {
                 fileStore.getReader(),
                 writer,
                 fileStore.getBlobStore(),
-                Suppliers.ofInstance(false),
                 GCNodeWriteMonitor.EMPTY);
     }
 
-    private static void addTestContent(@Nonnull String parent, @Nonnull NodeStore nodeStore)
+    private static void addTestContent(@NotNull String parent, @NotNull NodeStore nodeStore)
     throws CommitFailedException, IOException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder parentBuilder = rootBuilder.child(parent);

@@ -21,11 +21,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Helper class to track when a node was last modified.
@@ -73,7 +71,7 @@ final class LastRevs implements Iterable<Revision> {
         }
     }
 
-    @CheckForNull
+    @Nullable
     Revision getBranchRevision() {
         return branchRev;
     }

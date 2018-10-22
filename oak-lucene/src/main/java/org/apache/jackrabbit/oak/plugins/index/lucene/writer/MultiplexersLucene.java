@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
 
 public final class MultiplexersLucene {
@@ -35,7 +35,7 @@ public final class MultiplexersLucene {
 
     public static String getIndexDirName(Mount mount) {
         if (mount.isDefault()){
-            return INDEX_DATA_CHILD_NAME;
+            return FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
         }
         String name = mount.getPathFragmentName();
         return ":" + name + INDEX_DIR_SUFFIX;
@@ -51,7 +51,7 @@ public final class MultiplexersLucene {
      */
     public static boolean isIndexDirName(String name) {
         return name.endsWith(INDEX_DIR_SUFFIX)
-                || name.equals(INDEX_DATA_CHILD_NAME);
+                || name.equals(FulltextIndexConstants.INDEX_DATA_CHILD_NAME);
     }
 
     public static String getSuggestDirName(Mount mount) {

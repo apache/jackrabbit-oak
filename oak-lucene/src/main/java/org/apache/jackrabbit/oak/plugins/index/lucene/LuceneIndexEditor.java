@@ -28,8 +28,12 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
+import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.Matcher;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -50,8 +54,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
-
-    public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
     private final LuceneIndexEditorContext context;
 

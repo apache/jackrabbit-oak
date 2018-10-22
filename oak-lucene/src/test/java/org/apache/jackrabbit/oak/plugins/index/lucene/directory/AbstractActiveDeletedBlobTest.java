@@ -24,12 +24,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 import com.google.common.collect.Iterators;
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -42,16 +39,19 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -70,7 +70,7 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder fileDataStoreRoot = new TemporaryFolder(new File("target"));
 
-    protected ExecutorService executorService = Executors.newFixedThreadPool(2);
+    protected ExecutorService executorService = MoreExecutors.sameThreadExecutor();
 
     protected CountingBlobStore blobStore = null;
 
@@ -100,8 +100,8 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(ASYNC_PROPERTY_NAME, "async");
-        def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
+        def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
+        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
@@ -197,11 +197,11 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             return delegate.deleteChunks(chunkIds, maxLastModifiedTime);
         }
 
-        @Override @CheckForNull public String getBlobId(@Nonnull String reference) {
+        @Override @Nullable public String getBlobId(@NotNull String reference) {
             return delegate.getBlobId(reference);
         }
 
-        @Override @CheckForNull public String getReference(@Nonnull String blobId) {
+        @Override @Nullable public String getReference(@NotNull String blobId) {
             return delegate.getReference(blobId);
         }
 
@@ -245,6 +245,13 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
                 return ((BlobTrackingStore) delegate).getMetadataRecord(name);
             }
             return null;
+        }
+
+        @Override public boolean metadataRecordExists(String name) {
+            if (delegate instanceof BlobTrackingStore) {
+                return ((BlobTrackingStore) delegate).metadataRecordExists(name);
+            }
+            return false;
         }
 
         @Override public List<DataRecord> getAllMetadataRecords(String prefix) {

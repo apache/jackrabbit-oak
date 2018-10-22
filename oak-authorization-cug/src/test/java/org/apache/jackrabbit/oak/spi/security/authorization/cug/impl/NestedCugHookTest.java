@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -41,8 +41,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 
 public class NestedCugHookTest extends AbstractCugTest {
 
-    protected static void assertNestedCugs(@Nonnull Root root, @Nonnull RootProvider rootProvider,
-            @Nonnull String cugHoldingPath, boolean hasCugPolicy, @Nonnull String... expectedNestedPaths) {
+    protected static void assertNestedCugs(@NotNull Root root, @NotNull RootProvider rootProvider,
+            @NotNull String cugHoldingPath, boolean hasCugPolicy, @NotNull String... expectedNestedPaths) {
         Root immutableRoot = rootProvider.createReadOnlyRoot(root);
 
         Tree tree = immutableRoot.getTree(cugHoldingPath);
@@ -77,7 +77,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         }
     }
 
-    protected boolean removeCug(@Nonnull String path, boolean doCommit) throws Exception {
+    protected boolean removeCug(@NotNull String path, boolean doCommit) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         for (AccessControlPolicy policy : acMgr.getPolicies(path)) {
             if (policy instanceof CugPolicy) {

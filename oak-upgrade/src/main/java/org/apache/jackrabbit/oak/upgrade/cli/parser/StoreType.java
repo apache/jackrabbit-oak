@@ -17,13 +17,25 @@
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
 import static org.apache.commons.lang.StringUtils.removeStart;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
+import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;
+
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.JdbcFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentAzureFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.SegmentTarFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.node.StoreFactory;
@@ -136,6 +148,44 @@ public enum StoreType {
             return true;
         }
     },
+    SEGMENT_AZURE {
+        @Override
+        public boolean matches(String argument) {
+            return argument.startsWith("az:");
+        }
+
+        @Override
+        public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
+            String path = removeStart(paths[0], SEGMENT_AZURE_PREFIX);
+
+            if (isCustomAzureConnectionString(path)) {
+                // azure configuration specified through connection string
+                Map<String, String> config = parseAzureConfigurationFromCustomConnection(path);
+                return new StoreFactory(
+                        new SegmentAzureFactory.Builder(config.get(KEY_DIR), migrationOptions.getCacheSizeInMB(),
+                                direction == MigrationDirection.SRC)
+                        .connectionString(config.get(KEY_CONNECTION_STRING))
+                        .containerName(config.get(KEY_CONTAINER_NAME))
+                        .build()
+                );
+            } else {
+                // azure configuration specified through URI
+                Map<String, String> config = parseAzureConfigurationFromUri(path);
+
+                return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR),
+                        migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC)
+                        .accountName(config.get(KEY_ACCOUNT_NAME))
+                        .uri(config.get(KEY_STORAGE_URI))
+                        .build()
+                );
+            }
+        }
+
+        @Override
+        public boolean isSupportLongNames() {
+            return true;
+        }
+    },
     SEGMENT_TAR {
         @Override
         public boolean matches(String argument) {
@@ -144,7 +194,8 @@ public enum StoreType {
 
         @Override
         public StoreFactory createFactory(String[] paths, MigrationDirection direction, MigrationOptions migrationOptions) {
-            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(), direction == MigrationDirection.SRC));
+            return new StoreFactory(new SegmentTarFactory(paths[0], migrationOptions.isDisableMmap(),
+                    migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC));
         }
 
         @Override
@@ -169,6 +220,6 @@ public enum StoreType {
     public abstract boolean isSupportLongNames();
 
     public boolean isSegment() {
-        return this == SEGMENT || this == SEGMENT_TAR;
+        return this == SEGMENT || this == SEGMENT_TAR || this == SEGMENT_AZURE;
     }
 }

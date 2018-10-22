@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * Applies a category of consistence checks specific to <tt>NodeStore</tt> mounts
+ * Applies a category of consistency checks specific to {@linkplain NodeStore} mounts
  * 
  * <p>Checks are only performed on non-default mounts.</p>
  * 

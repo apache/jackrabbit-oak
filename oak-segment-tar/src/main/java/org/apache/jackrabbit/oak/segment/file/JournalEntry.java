@@ -19,23 +19,23 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A value class representing an entry in the revisions journal.
  */
 public class JournalEntry {
-    @Nonnull
+    @NotNull
     private final String revision;
     
     private final long timestamp;
 
-    JournalEntry(@Nonnull String revision, long timestamp) {
+    JournalEntry(@NotNull String revision, long timestamp) {
         this.revision = revision;
         this.timestamp = timestamp;
     }
 
-    @Nonnull
+    @NotNull
     public String getRevision() {
         return revision;
     }

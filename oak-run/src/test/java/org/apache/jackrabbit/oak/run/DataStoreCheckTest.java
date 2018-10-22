@@ -39,8 +39,6 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -69,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -109,6 +108,8 @@ public class DataStoreCheckTest {
             Properties props = S3DataStoreUtils.getS3Config();
             props.setProperty("cacheSize", "0");
             container = props.getProperty(S3Constants.S3_BUCKET);
+            container = container + "-" + String.valueOf(System.currentTimeMillis());
+            props.setProperty(S3Constants.S3_BUCKET, container);
             DataStore ds = S3DataStoreUtils.getS3DataStore(S3DataStoreUtils.getFixtures().get(0),
                 props,
                 temporaryFolder.newFolder().getAbsolutePath());

@@ -24,16 +24,15 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class DepthFirstTraceTest {
 
-    @Nonnull
+    @NotNull
     private static NodeState createTree(int depth) {
         NodeBuilder root = EMPTY_NODE.builder();
         NodeBuilder child = root;

@@ -35,6 +35,8 @@ public class BlobStoreOptions implements OptionsBean {
     private final OptionSpec<String> azureOption;
     private final OptionSpec<String> fdsPathOption;
     private final OptionSpec<String> fakeDsPathOption;
+    private final OptionSpec<Void> readWriteOption;
+
     private OptionSet options;
 
     public BlobStoreOptions(OptionParser parser){
@@ -49,6 +51,9 @@ public class BlobStoreOptions implements OptionsBean {
                 .withRequiredArg().ofType(String.class);
         azureOption = parser.acceptsAll(asList("azureblobds", "azureds"), "AzureBlobStorageDataStore config path")
                 .withRequiredArg().ofType(String.class);
+        readWriteOption = parser.accepts("ds-read-write",
+            "Connect to datastore in read-write mode. Use this option if only the datastore has to be opened "
+                + " in read-write mode and not the node store (i.e. --read-write not to be specified)");
     }
 
     @Override
@@ -109,5 +114,9 @@ public class BlobStoreOptions implements OptionsBean {
             return Type.FAKE;
         }
         return Type.NONE;
+    }
+
+    public boolean isReadWrite(){
+        return options.has(readWriteOption);
     }
 }

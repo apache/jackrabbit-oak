@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -68,6 +66,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
@@ -103,8 +103,9 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <h3>Access Control Management</h3>
  *
- * <table align="left" summary="">
- *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ * <table style="text-align: left;">
+ *     <caption></caption>
+ *     <tr><th style="text-align: left;">Feature</th><th style="text-align: left;">Description</th></tr>
  *     <tr><td>Supported Privileges</td><td>all</td></tr>
  *     <tr><td>Supports Custom Privileges</td><td>yes</td></tr>
  *     <tr><td>Management by Path</td><td>not supported</td></tr>
@@ -116,8 +117,9 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *
  * <h3>Permission Evaluation</h3>
  *
- * <table summary="">
- *     <tr><th align="left">Feature</th><th align="left">Description</th></tr>
+ * <table>
+ *     <caption></caption>
+ *     <tr><th style="text-align: left;">Feature</th><th style="text-align: left;">Description</th></tr>
  *     <tr><td>Supported Permissions</td><td>all</td></tr>
  *     <tr><td>Aggregated Permission Provider</td><td>yes</td></tr>
  * </table>
@@ -169,9 +171,9 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
     private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;
     private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new AbstractAccessControlManager(root, namePathMapper, getSecurityProvider()) {
 
             @Override
@@ -216,21 +218,21 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return RestrictionProvider.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         if (principals.contains(SystemPrincipal.INSTANCE)) {
             return EmptyPermissionProvider.getInstance();
         } else {
             return new AggregatedPermissionProvider() {
 
-                @Nonnull
+                @NotNull
                 @Override
                 public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
                     return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
@@ -242,23 +244,23 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
                 }
 
                 @Override
-                public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+                public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
                     return permissions;
                 }
 
                 @Override
-                public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+                public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
                     return permissions;
                 }
 
                 @Override
-                public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+                public boolean isGranted(@NotNull TreeLocation location, long permissions) {
                     return onlyReadPermissions(permissions);
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission) {
+                public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
                     return new ReadOnlyPermissions();
                 }
 
@@ -266,39 +268,39 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
                 public void refresh() {
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Set<String> getPrivileges(@Nullable Tree tree) {
                     return READ_PRIVILEGE_NAMES;
                 }
 
                 @Override
-                public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+                public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
                     Set<String> privs = Sets.newHashSet(privilegeNames);
                     privs.removeAll(READ_PRIVILEGE_NAMES);
 
                     return privs.isEmpty();
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public RepositoryPermission getRepositoryPermission() {
                     return RepositoryPermission.EMPTY;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+                public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
                     return ReadOnlyPermissions.INSTANCE;
                 }
 
                 @Override
-                public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+                public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
                     return onlyReadPermissions(permissions);
                 }
 
                 @Override
-                public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+                public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
                     return onlyReadPermissions(Permissions.getPermissions(jcrActions, TreeLocation.create(root, oakPath), false));
                 }
             };
@@ -309,55 +311,55 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         return Permissions.diff(permissions, READ_PERMISSIONS) == Permissions.NO_PERMISSION;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return AuthorizationConfiguration.NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ConfigurationParameters getParameters() {
         return ConfigurationParameters.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
         return WorkspaceInitializer.DEFAULT;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return RepositoryInitializer.DEFAULT;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return ImmutableList.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
         return ImmutableList.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return ImmutableList.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return Context.DEFAULT;
@@ -367,9 +369,9 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
         private static final TreePermission INSTANCE = new ReadOnlyPermissions();
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return this;
         }
 
@@ -379,7 +381,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return true;
         }
 
@@ -399,7 +401,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return onlyReadPermissions(permissions);
         }
     }

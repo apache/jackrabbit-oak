@@ -129,7 +129,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
 
         return new DocumentMK.Builder().setBlobStore(bs).setDocumentStore(s)
                 .setClusterId(clusterId).clock(clock).setAsyncDelay(asyncDelay)
-                .setLeaseCheck(false).getNodeStore();
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
     }
 
     private static void crash(DocumentNodeStore ns,

@@ -33,6 +33,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 public class PasswordUtilTest {
 
@@ -115,6 +116,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testBuildPasswordHashNoSaltNoIterations() throws Exception {
+        assumeFalse(PasswordUtil.DEFAULT_ALGORITHM.startsWith(PasswordUtil.PBKDF2_PREFIX));
         String jr2Hash = "{"+PasswordUtil.DEFAULT_ALGORITHM+"}" + Text.digest(PasswordUtil.DEFAULT_ALGORITHM, "pw".getBytes("utf-8"));
         assertTrue(PasswordUtil.isSame(jr2Hash, "pw"));
     }
@@ -218,16 +220,19 @@ public class PasswordUtilTest {
     }
 
     @Test
-    public void testPBKDF2WithHmacSHA1() throws Exception {
-        String algo = "PBKDF2WithHmacSHA1";
+    public void testPBKDF2With() throws Exception {
+        // https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html
+        String algo = "PBKDF2WithHmacSHA512";
         // test vector from http://tools.ietf.org/html/rfc6070
         String pw = "pass\0word";
         int iterations = 4096;
 
         String hash = PasswordUtil.buildPasswordHash(pw, algo, 5, iterations);
-        assertTrue(hash.startsWith("{PBKDF2WithHmacSHA1}"));
-        int cntOctets = hash.substring(hash.lastIndexOf('-')+1).length() / 2;
+        assertTrue(hash.startsWith("{" + algo + "}"));
+        int cntOctets = hash.substring(hash.lastIndexOf('-') + 1).length() / 2;
         assertEquals(16, cntOctets);
+
+        assertFalse(PasswordUtil.isPlainTextPassword(hash));
+        assertTrue(PasswordUtil.isSame(hash, pw));
     }
-    
 }

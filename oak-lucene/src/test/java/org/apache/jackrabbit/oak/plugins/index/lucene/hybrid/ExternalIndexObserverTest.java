@@ -23,8 +23,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -39,7 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -193,11 +193,11 @@ public class ExternalIndexObserverTest {
                 ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
     }
 
-    private static IndexDefinition createNRTIndex(String ruleName) {
+    private static LuceneIndexDefinition createNRTIndex(String ruleName) {
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.indexRule(ruleName).property("foo").propertyIndex();
         idx.async("async", "sync");
-        return new IndexDefinition(INITIAL_CONTENT, idx.build(), "/oak:index/foo");
+        return new LuceneIndexDefinition(INITIAL_CONTENT, idx.build(), "/oak:index/foo");
     }
 
 }

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.composite;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfo;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
+import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -42,9 +44,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
+
 public class InitialContentMigrator {
 
     private static final int LOG_NODE_COPY = Integer.getInteger("oak.upgrade.logNodeCopy", 10000);
+
+    private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
+
+    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of("/" + CLUSTER_CONFIG_NODE);
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
@@ -71,28 +79,53 @@ public class InitialContentMigrator {
         this.excludeFragments = ImmutableSet.of(seedMount.getPathFragmentName());
 
         if (seedMount instanceof MountInfo) {
-            this.excludePaths = ((MountInfo) seedMount).getIncludedPaths();
+            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(), DEFAULT_IGNORED_PATHS);
             this.fragmentPaths = new HashSet<>();
             for (String p : ((MountInfo) seedMount).getPathsSupportingFragments()) {
                 fragmentPaths.add(stripPatternCharacters(p));
             }
         } else {
-            this.excludePaths = FilteringNodeState.NONE;
+            this.excludePaths = DEFAULT_IGNORED_PATHS;
             this.fragmentPaths = FilteringNodeState.ALL;
         }
     }
 
     private boolean isTargetInitialized() {
-        return targetNodeStore.getRoot().hasChildNode("jcr:system");
+        return targetNodeStore.getRoot().hasChildNode(":composite");
+    }
+
+    private void waitForInitialization() throws IOException {
+        do {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        } while (!isTargetInitialized());
     }
 
     public void migrate() throws IOException, CommitFailedException {
         if (isTargetInitialized()) {
             LOG.info("The target is already initialized, no need to copy the seed mount");
-            return;
+        } else if (targetNodeStore instanceof Clusterable) {
+            Clusterable dns = (Clusterable) targetNodeStore;
+            String clusterId = dns.getInstanceId();
+            LOG.info("The target isn't initialized and the cluster id = {}.", clusterId);
+            if (CLUSTER_ID.equals(clusterId)) {
+                LOG.info("This cluster id {} is configured to initialized the repository.", CLUSTER_ID);
+                doMigrate();
+            } else {
+                LOG.info("Waiting until the repository is initialized by instance {}.", CLUSTER_ID);
+                waitForInitialization();
+            }
+        } else {
+            LOG.info("Initializing the default mount.");
+            doMigrate();
         }
+    }
 
-        LOG.info("Initializing the default mount using seed {}", seedMount.getName());
+    protected void doMigrate() throws CommitFailedException {
+        LOG.info("Seed {}", seedMount.getName());
         LOG.info("Include: {}", includePaths);
         LOG.info("Exclude: {}", excludePaths);
         LOG.info("Exclude fragments: {} @ {}", excludeFragments, fragmentPaths);
@@ -107,17 +140,14 @@ public class InitialContentMigrator {
             NodeState checkpointRoot = seedNodeStore.retrieve(checkpointName);
             Map<String, String> checkpointInfo = seedNodeStore.checkpointInfo(checkpointName);
 
-            boolean tracePaths;
             if (previousRoot == initialRoot) {
                 LOG.info("Migrating first checkpoint: {}", checkpointName);
-                tracePaths = true;
             } else {
                 LOG.info("Applying diff to {}", checkpointName);
-                tracePaths = false;
             }
             LOG.info("Checkpoint metadata: {}", checkpointInfo);
 
-            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot, tracePaths);
+            targetRoot = copyDiffToTarget(previousRoot, checkpointRoot, targetRoot);
             previousRoot = checkpointRoot;
 
             String newCheckpointName = targetNodeStore.checkpoint(Long.MAX_VALUE, checkpointInfo);
@@ -128,16 +158,13 @@ public class InitialContentMigrator {
         }
 
         NodeState sourceRoot = seedNodeStore.getRoot();
-        boolean tracePaths;
         if (previousRoot == initialRoot) {
             LOG.info("No checkpoints found; migrating head");
-            tracePaths = true;
         } else {
             LOG.info("Applying diff to head");
-            tracePaths = false;
         }
 
-        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot, tracePaths);
+        targetRoot = copyDiffToTarget(previousRoot, sourceRoot, targetRoot);
 
         LOG.info("Rewriting checkpoint names in /:async {}", nameToRevision);
         NodeBuilder targetBuilder = targetRoot.builder();
@@ -157,22 +184,34 @@ public class InitialContentMigrator {
             }
             async.setProperty(e.getKey() + "-temp", tempValues, Type.STRINGS);
         }
+
         targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        markMigrationAsDone();
     }
 
-    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot, boolean tracePaths) throws IOException, CommitFailedException {
+    private void markMigrationAsDone() throws CommitFailedException {
+        NodeState root = targetNodeStore.getRoot();
+        NodeBuilder builder = root.builder();
+        builder.child(":composite");
+        targetNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    private NodeState copyDiffToTarget(NodeState before, NodeState after, NodeState targetRoot) throws CommitFailedException {
         NodeBuilder targetBuilder = targetRoot.builder();
-        NodeState currentRoot = wrapNodeState(after);
-        NodeState baseRoot = wrapNodeState(before);
+        NodeState currentRoot = wrapNodeState(after, true);
+        NodeState baseRoot = wrapNodeState(before, false);
         currentRoot.compareAgainstBaseState(baseRoot, new ApplyDiff(targetBuilder));
         return targetNodeStore.merge(targetBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 
-    private NodeState wrapNodeState(NodeState nodeState) {
+    private NodeState wrapNodeState(NodeState nodeState, boolean logPaths) {
         NodeState wrapped = nodeState;
         wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments);
-        wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+        if (logPaths) {
+            wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
+        }
         return wrapped;
     }
 

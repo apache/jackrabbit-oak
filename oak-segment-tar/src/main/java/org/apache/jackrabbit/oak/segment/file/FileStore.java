@@ -34,8 +34,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -48,11 +46,13 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.ShutDown.ShutDownCloser;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,10 +65,17 @@ public class FileStore extends AbstractFileStore {
 
     private static final int MB = 1024 * 1024;
 
-    @Nonnull
+    private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
+        if (Boolean.getBoolean("gc.classic")) {
+            return new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
+        }
+        return new SynchronizedGarbageCollectionStrategy(new CleanupFirstGarbageCollectionStrategy());
+    }
+
+    @NotNull
     private final SegmentWriter segmentWriter;
 
-    @Nonnull
+    @NotNull
     private final GarbageCollector garbageCollector;
 
     private final TarFiles tarFiles;
@@ -105,10 +112,10 @@ public class FileStore extends AbstractFileStore {
 
     private final ShutDown shutDown = new ShutDown();
 
-    @Nonnull
+    @NotNull
     private final SegmentNotFoundExceptionListener snfeListener;
 
-    private final GarbageCollectionStrategy garbageCollectionStrategy = new DefaultGarbageCollectionStrategy();
+    private final GarbageCollectionStrategy garbageCollectionStrategy = newGarbageCollectionStrategy();
 
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
@@ -156,11 +163,10 @@ public class FileStore extends AbstractFileStore {
             segmentCache,
             segmentWriter,
             stats,
-            new CancelCompactionSupplier(
-                () -> !sufficientDiskSpace.get(),
-                () -> !sufficientMemory.get(),
-                shutDown::isShutDown
-            ),
+            Canceller.newCanceller()
+                .withCondition("not enough disk space", () -> !sufficientDiskSpace.get())
+                .withCondition("not enough memory", () -> !sufficientMemory.get())
+                .withCondition("FileStore is shutting down", shutDown::isShutDown),
             this::flush,
             generation ->
                 defaultSegmentWriterBuilder("c")
@@ -188,9 +194,10 @@ public class FileStore extends AbstractFileStore {
            }
         });
 
-        log.info("TarMK opened at {}, mmap={}, size={}",
+        log.info("TarMK opened at {}, mmap={}, offHeapAccess={}, size={}",
             directory,
             memoryMapping,
+            offHeapAccess,
             newPrintableBytes(size)
         );
         log.debug("TAR files: {}", tarFiles);
@@ -204,7 +211,7 @@ public class FileStore extends AbstractFileStore {
         }
     }
 
-    @Nonnull
+    @NotNull
     private Supplier<RecordId> initialNode() {
         return new Supplier<RecordId>() {
             @Override
@@ -225,7 +232,7 @@ public class FileStore extends AbstractFileStore {
         };
     }
 
-    @Nonnull
+    @NotNull
     private GCGeneration getGcGeneration() {
         return revisions.getHead().getSegmentId().getGcGeneration();
     }
@@ -262,6 +269,15 @@ public class FileStore extends AbstractFileStore {
     public int readerCount() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return tarFiles.readerCount();
+        }
+    }
+
+    /**
+     * @return  the number of segments in the segment store
+     */
+    public int getSegmentCount() {
+        try (ShutDownCloser ignored = shutDown.keepAlive()) {
+            return tarFiles.segmentCount();
         }
     }
 
@@ -382,6 +398,7 @@ public class FileStore extends AbstractFileStore {
      * running.
      * @param collector  reference collector called back for each blob reference found
      */
+    @Override
     public void collectBlobReferences(Consumer<String> collector) throws IOException {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             garbageCollector.collectBlobReferences(collector);
@@ -397,7 +414,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public SegmentWriter getWriter() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentWriter;
@@ -405,7 +422,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public TarRevisions getRevisions() {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return revisions;
@@ -448,7 +465,7 @@ public class FileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Segment readSegment(final SegmentId id) {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));

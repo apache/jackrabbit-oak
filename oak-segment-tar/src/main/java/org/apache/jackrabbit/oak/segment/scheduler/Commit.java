@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.segment.scheduler;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -30,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code Commit} instance represents a set of related changes, which when
@@ -42,7 +41,7 @@ public class Commit {
     private final CommitHook hook;
     private final CommitInfo info;
 
-    public Commit(@Nonnull NodeBuilder changes, @Nonnull CommitHook hook, @Nonnull CommitInfo info) {
+    public Commit(@NotNull NodeBuilder changes, @NotNull CommitHook hook, @NotNull CommitInfo info) {
         checkNotNull(changes);
         checkArgument(changes instanceof SegmentNodeBuilder);
         this.changes = (SegmentNodeBuilder) changes;

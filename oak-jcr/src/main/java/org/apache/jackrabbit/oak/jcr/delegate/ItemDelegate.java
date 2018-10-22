@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
@@ -91,14 +91,14 @@ public abstract class ItemDelegate {
      * Get the name of this item
      * @return oak name of this item
      */
-    @Nonnull
+    @NotNull
     public abstract String getName();
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
-    @Nonnull
+    @NotNull
     public abstract String getPath();
 
     /**
@@ -106,14 +106,14 @@ public abstract class ItemDelegate {
      * @return  parent of this item or {@code null} for root or if the parent
      * is not accessible.
      */
-    @CheckForNull
+    @Nullable
     public abstract NodeDelegate getParent();
 
     /**
      * Get the status of this item.
      * @return  {@link Status} of this item or {@code null} if not available.
      */
-    @CheckForNull
+    @Nullable
     public abstract Status getStatus();
 
     public abstract boolean isProtected() throws InvalidItemStateException;

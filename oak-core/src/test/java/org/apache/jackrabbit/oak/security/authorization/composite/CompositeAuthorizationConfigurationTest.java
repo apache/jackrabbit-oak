@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.security.Principal;
 import java.util.Collections;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPerm
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -154,7 +154,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
                 createAuthorizationConfigurationImpl(),
                 new OpenAuthorizationConfiguration() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public RestrictionProvider getRestrictionProvider() {
                         return RestrictionProvider.EMPTY;
@@ -169,7 +169,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     @Test
     public void testOnlyEmptyRestrictionProvider() {
         AuthorizationConfiguration ac = new OpenAuthorizationConfiguration() {
-            @Nonnull
+            @NotNull
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return RestrictionProvider.EMPTY;

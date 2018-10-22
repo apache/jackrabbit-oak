@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -50,14 +49,15 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Builder class which encapsulates the details of building a JCR
- * <tt>Repository</tt> backed by an Oak <tt>ContentRepository</tt> instance
+ * {@link Repository} backed by an Oak {@link ContentRepository} instance
  *
- * <p>The backing <tt>ContentRepository</tt> instance will be constructed with
+ * <p>The backing {@linkplain ContentRepository} instance will be constructed with
  * reasonable defaults and additional components can be registered by calling
- * the <tt>with</tt> methods. Note that it is not possible to remove components
+ * the {@code with} methods. Note that it is not possible to remove components
  * once registered.</p>
  *
  * <p>The Jcr builder is a lazy initializer, to have a working repository make sure
@@ -98,7 +98,7 @@ public class Jcr {
         this.oak = oak;
 
         if (initialize) {
-            OakDefaultComponents defs = OakDefaultComponents.INSTANCE;
+            OakDefaultComponents defs = new OakDefaultComponents();
             with(defs.securityProvider());
             for (CommitHook ch : defs.commitHooks()) {
                 with(ch);
@@ -130,15 +130,15 @@ public class Jcr {
         this(new Oak(store));
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull Clusterable c) {
+    @NotNull
+    public Jcr with(@NotNull Clusterable c) {
         ensureRepositoryIsNotCreated();
         this.clusterable = checkNotNull(c);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull RepositoryInitializer initializer) {
+    @NotNull
+    public final Jcr with(@NotNull RepositoryInitializer initializer) {
         ensureRepositoryIsNotCreated();
         repositoryInitializers.add(checkNotNull(initializer));
         return this;
@@ -155,43 +155,43 @@ public class Jcr {
                 "Repository was already created");
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull QueryIndexProvider provider) {
+    @NotNull
+    public final Jcr with(@NotNull QueryIndexProvider provider) {
         ensureRepositoryIsNotCreated();
         queryIndexProviders.add(checkNotNull(provider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull IndexEditorProvider indexEditorProvider) {
+    @NotNull
+    public final Jcr with(@NotNull IndexEditorProvider indexEditorProvider) {
         ensureRepositoryIsNotCreated();
         indexEditorProviders.add(checkNotNull(indexEditorProvider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull CommitHook hook) {
+    @NotNull
+    public final Jcr with(@NotNull CommitHook hook) {
         ensureRepositoryIsNotCreated();
         commitHooks.add(checkNotNull(hook));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull EditorProvider provider) {
+    @NotNull
+    public final Jcr with(@NotNull EditorProvider provider) {
         ensureRepositoryIsNotCreated();
         editorProviders.add(checkNotNull(provider));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Editor editor) {
+    @NotNull
+    public final Jcr with(@NotNull Editor editor) {
         ensureRepositoryIsNotCreated();
         editors.add(checkNotNull(editor));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull SecurityProvider securityProvider) {
+    @NotNull
+    public final Jcr with(@NotNull SecurityProvider securityProvider) {
         ensureRepositoryIsNotCreated();
         this.securityProvider = checkNotNull(securityProvider);
         return this;
@@ -201,34 +201,34 @@ public class Jcr {
      * @deprecated Use {@link #with(ThreeWayConflictHandler)} instead
      */
     @Deprecated
-    @Nonnull
-    public final Jcr with(@Nonnull PartialConflictHandler conflictHandler) {
+    @NotNull
+    public final Jcr with(@NotNull PartialConflictHandler conflictHandler) {
         return with(ConflictHandlers.wrap(conflictHandler));
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull ThreeWayConflictHandler conflictHandler) {
+    @NotNull
+    public final Jcr with(@NotNull ThreeWayConflictHandler conflictHandler) {
         ensureRepositoryIsNotCreated();
         this.conflictHandler.addHandler(checkNotNull(conflictHandler));
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull ScheduledExecutorService executor) {
+    @NotNull
+    public final Jcr with(@NotNull ScheduledExecutorService executor) {
         ensureRepositoryIsNotCreated();
         this.scheduledExecutor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Executor executor) {
+    @NotNull
+    public final Jcr with(@NotNull Executor executor) {
         ensureRepositoryIsNotCreated();
         this.executor = checkNotNull(executor);
         return this;
     }
 
-    @Nonnull
-    public final Jcr with(@Nonnull Observer observer) {
+    @NotNull
+    public final Jcr with(@NotNull Observer observer) {
         ensureRepositoryIsNotCreated();
         observers.add(checkNotNull(observer));
         return this;
@@ -237,7 +237,7 @@ public class Jcr {
     /**
      * @deprecated Use {@link #withAsyncIndexing(String, long)} instead
      */
-    @Nonnull
+    @NotNull
     @Deprecated
     public Jcr withAsyncIndexing() {
         ensureRepositoryIsNotCreated();
@@ -245,50 +245,50 @@ public class Jcr {
         return this;
     }
 
-    @Nonnull
-    public Jcr withAsyncIndexing(@Nonnull String name, long delayInSeconds) {
+    @NotNull
+    public Jcr withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         ensureRepositoryIsNotCreated();
         oak.withAsyncIndexing(name, delayInSeconds);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public Jcr withObservationQueueLength(int observationQueueLength) {
         ensureRepositoryIsNotCreated();
         this.observationQueueLength = observationQueueLength;
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull CommitRateLimiter commitRateLimiter) {
+    @NotNull
+    public Jcr with(@NotNull CommitRateLimiter commitRateLimiter) {
         ensureRepositoryIsNotCreated();
         this.commitRateLimiter = checkNotNull(commitRateLimiter);
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull QueryLimits qs) {
+    @NotNull
+    public Jcr with(@NotNull QueryLimits qs) {
         ensureRepositoryIsNotCreated();
         this.queryEngineSettings = checkNotNull(qs);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     public Jcr withFastQueryResultSize(boolean fastQueryResultSize) {
         ensureRepositoryIsNotCreated();
         this.fastQueryResultSize = fastQueryResultSize;
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull String defaultWorkspaceName) {
+    @NotNull
+    public Jcr with(@NotNull String defaultWorkspaceName) {
         ensureRepositoryIsNotCreated();
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         return this;
     }
 
-    @Nonnull
-    public Jcr with(@Nonnull Whiteboard whiteboard) {
+    @NotNull
+    public Jcr with(@NotNull Whiteboard whiteboard) {
         ensureRepositoryIsNotCreated();
         this.whiteboard = checkNotNull(whiteboard);
         return this;
@@ -369,7 +369,7 @@ public class Jcr {
         }
     }
 
-    @Nonnull
+    @NotNull
     public ContentRepository createContentRepository() {
         if (contentRepository == null) {
             setUpOak();
@@ -378,7 +378,7 @@ public class Jcr {
         return contentRepository;
     }
 
-    @Nonnull
+    @NotNull
     public Repository createRepository() {
         if (repository == null) {
             repository = new RepositoryImpl(

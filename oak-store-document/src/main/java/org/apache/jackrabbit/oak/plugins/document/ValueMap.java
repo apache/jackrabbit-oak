@@ -28,9 +28,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
@@ -44,9 +43,9 @@ class ValueMap {
     static final SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
             new TreeMap<Revision, String>(StableRevisionComparator.REVERSE));
 
-    @Nonnull
-    static Map<Revision, String> create(@Nonnull final NodeDocument doc,
-                                        @Nonnull final String property) {
+    @NotNull
+    static Map<Revision, String> create(@NotNull final NodeDocument doc,
+                                        @NotNull final String property) {
         final SortedMap<Revision, String> map = doc.getLocalMap(property);
         if (doc.getPreviousRanges().isEmpty()) {
             return map;
@@ -55,7 +54,7 @@ class ValueMap {
                 = new AbstractSet<Map.Entry<Revision, String>>() {
 
             @Override
-            @Nonnull
+            @NotNull
             public Iterator<Map.Entry<Revision, String>> iterator() {
 
                 final Comparator<? super Revision> c = map.comparator();
@@ -138,7 +137,7 @@ class ValueMap {
             private final Map<Revision, String> map = doc.getLocalMap(property);
 
             @Override
-            @Nonnull
+            @NotNull
             public Set<Entry<Revision, String>> entrySet() {
                 return entrySet;
             }

@@ -38,8 +38,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,7 +79,7 @@ public class IOTracerTest extends IOMonitorAdapter {
         }
     }
 
-    @Nonnull
+    @NotNull
     private FileStore createFileStore(IOMonitor ioMonitor) {
         try {
             return fileStoreBuilder(folder.getRoot())
@@ -91,7 +91,7 @@ public class IOTracerTest extends IOMonitorAdapter {
     }
 
     @Test
-    public void collectBreadthFirstTrace() throws IOException, InvalidFileStoreVersionException {
+    public void collectBreadthFirstTrace() throws IOException {
         try (StringWriter out = new StringWriter()) {
             Function<IOMonitor, FileStore> factory = this::createFileStore;
 
@@ -131,7 +131,7 @@ public class IOTracerTest extends IOMonitorAdapter {
     }
 
     @Test
-    public void collectDepthFirstTrace() throws IOException, InvalidFileStoreVersionException {
+    public void collectDepthFirstTrace() throws IOException {
         try (StringWriter out = new StringWriter()) {
             Function<IOMonitor, FileStore> factory = this::createFileStore;
 
@@ -166,6 +166,39 @@ public class IOTracerTest extends IOMonitorAdapter {
                             .map(row -> parseInt(row[6])) // count
                             .max(Comparator.naturalOrder())
                             .map(max -> max <= 10));
+            }
+        }
+    }
+
+    @Test
+    public void collectRandomAccessTrace() throws IOException {
+        try (StringWriter out = new StringWriter()) {
+            Function<IOMonitor, FileStore> factory = this::createFileStore;
+
+            IOTracer ioTracer = newIOTracer(factory, out, RandomAccessTrace.CONTEXT_SPEC);
+            ImmutableList<String> paths = ImmutableList.of("/1a", "/1b", "/foo");
+            ioTracer.collectTrace(
+                    new RandomAccessTrace(paths, 0, 10, ioTracer::setContext));
+
+            try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
+                Optional<String> header = reader.lines().findFirst();
+                List<String[]> entries = reader.lines()
+                    .map(line -> line.split(","))
+                    .collect(toList());
+
+                assertTrue(header.isPresent());
+                assertEquals("timestamp,file,segmentId,length,elapsed,path", header.get());
+
+                long now = currentTimeMillis();
+                assertTrue("The timestamps of all entries must be in the past",
+                    entries.stream()
+                        .map(row -> parseLong(row[0]))  // ts
+                        .allMatch(ts -> ts <= now));
+
+                assertTrue("The path of all entries must be in " + paths,
+                    entries.stream()
+                       .map(row -> row[5])  // path
+                       .allMatch(paths::contains));
             }
         }
     }

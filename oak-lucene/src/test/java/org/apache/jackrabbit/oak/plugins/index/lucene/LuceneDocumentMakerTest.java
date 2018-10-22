@@ -20,13 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -43,7 +45,7 @@ public class LuceneDocumentMakerTest {
                 .analyzed()
                 .valueExcludedPrefixes("/jobs");
 
-        IndexDefinition defn = IndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
                 defn.getApplicableIndexingRule("nt:base"), "/x");
 

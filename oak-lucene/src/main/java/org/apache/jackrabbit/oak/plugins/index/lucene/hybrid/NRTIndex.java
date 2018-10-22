@@ -27,17 +27,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.update.IndexUpdateListener;
+import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -50,6 +49,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ public class NRTIndex implements Closeable {
      */
     public static final String NRT_DIR_PREFIX = "nrt-";
 
-    private final IndexDefinition definition;
+    private final LuceneIndexDefinition definition;
     private final IndexCopier indexCopier;
     private final IndexUpdateListener refreshPolicy;
 
@@ -92,7 +92,7 @@ public class NRTIndex implements Closeable {
     private final boolean assertAllReadersClosed;
 
 
-    public NRTIndex(IndexDefinition definition, IndexCopier indexCopier,
+    public NRTIndex(LuceneIndexDefinition definition, IndexCopier indexCopier,
                     IndexUpdateListener refreshPolicy, @Nullable NRTIndex previous,
                     StatisticsProvider statisticsProvider, NRTDirectoryFactory directoryFactory,
                     boolean assertAllReadersClosed) {
@@ -114,7 +114,7 @@ public class NRTIndex implements Closeable {
      * Note that this method is called from a different NRTIndex instance getReaders
      * call. So "dirReader" instance changed here is different
      */
-    @CheckForNull
+    @Nullable
     private LuceneIndexReader getPrimaryReader() {
         DirectoryReader latestReader = createReader(dirReaderUsedForPrevious);
         while (latestReader != null && !latestReader.tryIncRef()) {
@@ -271,7 +271,7 @@ public class NRTIndex implements Closeable {
      * If index was updated then a new reader would be returned otherwise
      * existing reader would be returned
      */
-    @CheckForNull
+    @Nullable
     private synchronized DirectoryReader createReader(DirectoryReader dirReader) {
         checkState(!closed);
         //Its possible that readers are obtained

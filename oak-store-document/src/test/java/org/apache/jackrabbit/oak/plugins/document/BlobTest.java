@@ -66,7 +66,7 @@ public class BlobTest {
 
     void dropCollections() {
         if (MONGO_DB) {
-            MongoUtils.dropCollections(connectionFactory.getConnection().getDB());
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
         }
     }
 

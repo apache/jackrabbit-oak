@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 import javax.jcr.nodetype.PropertyDefinition;
 
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,7 @@ class ExternalIdentityImporter implements ProtectedPropertyImporter, ExternalIde
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
+    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
         isSystemSession = root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE);
         return true;
     }
@@ -69,7 +69,7 @@ class ExternalIdentityImporter implements ProtectedPropertyImporter, ExternalIde
      * @return Always returns false.
      */
     @Override
-    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo, @Nonnull PropertyDefinition def) {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) {
         return false;
     }
 
@@ -82,7 +82,7 @@ class ExternalIdentityImporter implements ProtectedPropertyImporter, ExternalIde
      * @param protectedParent The protected parent tree.
      */
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) {
+    public void propertiesCompleted(@NotNull Tree protectedParent) {
         if (!isSystemSession) {
             if (protectedParent.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
                 log.debug("Found reserved property " + REP_EXTERNAL_PRINCIPAL_NAMES + " managed by the system => Removed from imported scope.");

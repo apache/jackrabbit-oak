@@ -20,23 +20,17 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class PermissionEntryProviderImplTest {
 
@@ -60,12 +54,10 @@ public class PermissionEntryProviderImplTest {
         implementation will fail.
         */
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        Field existingNamesField = provider.getClass().getDeclaredField("existingNames");
-        existingNamesField.setAccessible(true);
 
-        // test that PermissionEntryProviderImpl.existingNames nevertheless is
-        // properly filled with all principal names for which permission entries exist
-        assertEquals(principalNames, existingNamesField.get(provider));
+        // test that PermissionEntryProviderImpl.noExistingNames nevertheless is
+        // properly set
+        assertFalse(getNoExistingNames(provider));
         assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
     }
 
@@ -85,9 +77,8 @@ public class PermissionEntryProviderImplTest {
         Long.MAX_VALUE
         */
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        Set<String> existingNames = getExistingNames(provider);
+        assertFalse(getNoExistingNames(provider));
 
-        assertEquals(principalNames, existingNames);
         assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
     }
 
@@ -100,17 +91,10 @@ public class PermissionEntryProviderImplTest {
         Set<String> principalNames = Sets.newHashSet(GROUP_LONG_MAX_MINUS_10, GROUP_50, "noEntries");
 
         /*
-        same as before but principal-set contains a name for which not entries
-        exist -> the 'existingNames' set must properly reflect that
+        same as before but principal-set contains a name for which not entries exist
         */
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        Set<String> existingNames = getExistingNames(provider);
-        
-        assertFalse(principalNames.equals(existingNames));
-        assertEquals(2, existingNames.size());
-
-        principalNames.remove("noEntries");
-        assertEquals(principalNames, existingNames);
+        assertFalse(getNoExistingNames(provider));
     }
 
     @Test
@@ -119,9 +103,8 @@ public class PermissionEntryProviderImplTest {
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        Set<String> existingNames = getExistingNames(provider);
 
-        assertTrue(existingNames.isEmpty());
+        assertTrue(getNoExistingNames(provider));
     }
 
     /**
@@ -133,42 +116,48 @@ public class PermissionEntryProviderImplTest {
      * @return the existingNames set.
      * @throws Exception
      */
-    private static Set<String> getExistingNames(@Nonnull PermissionEntryProviderImpl provider) throws Exception {
-        Field existingNamesField = provider.getClass().getDeclaredField("existingNames");
-        existingNamesField.setAccessible(true);
-        return (Set<String>) existingNamesField.get(provider);
+    private static boolean getNoExistingNames(@NotNull PermissionEntryProviderImpl provider) throws Exception {
+        Field noExistingNamesField = provider.getClass().getDeclaredField("noExistingNames");
+        noExistingNamesField.setAccessible(true);
+        return (boolean) noExistingNamesField.get(provider);
     }
 
     // Inner Classes
     private class MockPermissionStore implements PermissionStore {
 
+        @Nullable
         @Override
         public Collection<PermissionEntry> load(
-                @Nonnull String principalName,
-                @Nonnull String path) {
+                @NotNull String principalName,
+                @NotNull String path) {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public PrincipalPermissionEntries load(@Nonnull String principalName) {
+        public PrincipalPermissionEntries load(@NotNull String principalName) {
             return new PrincipalPermissionEntries();
         }
 
+        @NotNull
         @Override
-        public NumEntries getNumEntries(@Nonnull String principalName, long max) {
+        public NumEntries getNumEntries(@NotNull String principalName, long max) {
             long cnt = 0;
-            if (GROUP_LONG_MAX_MINUS_10.equals(principalName)) {
-                cnt = Long.MAX_VALUE - 10;
-            } else if (GROUP_50.equals(principalName)) {
-                cnt = 50;
-            } else if (GROUP_LONG_MAX.equals(principalName)) {
-                cnt = Long.MAX_VALUE;
+            switch (principalName) {
+                case GROUP_LONG_MAX_MINUS_10:
+                    cnt = Long.MAX_VALUE - 10;
+                    break;
+                case GROUP_50:
+                    cnt = 50;
+                    break;
+                case GROUP_LONG_MAX:
+                    cnt = Long.MAX_VALUE;
+                    break;
             }
             return NumEntries.valueOf(cnt, true);
         }
 
-        public void flush(@Nonnull Root root) {
+        public void flush(@NotNull Root root) {
         }
     }
 }

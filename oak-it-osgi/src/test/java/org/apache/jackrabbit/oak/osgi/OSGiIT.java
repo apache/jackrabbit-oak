@@ -22,9 +22,11 @@ import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.systemProperties;
+import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
@@ -47,6 +49,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
+import org.osgi.framework.Version;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -63,7 +66,29 @@ public class OSGiIT {
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
-                jarBundles());
+                jarBundles(),
+                jpmsOptions());
+    }
+
+    private Option jpmsOptions(){
+        DefaultCompositeOption composite = new DefaultCompositeOption();
+        if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
+            if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
+                composite.add(vmOption("--add-modules=java.se.ee"));
+            }
+            composite.add(vmOption("--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.lang=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.io=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.net=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.nio=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.util=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.util.jar=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.util.regex=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/java.util.zip=ALL-UNNAMED"));
+            composite.add(vmOption("--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"));
+        }
+        return composite;
     }
 
     private String getConfigDir(){
@@ -91,7 +116,7 @@ public class OSGiIT {
                 Bundle.ACTIVE, bundle.getState());
         }
     }
-    
+
     @Test
     public void listBundles() {
         for (Bundle bundle : context.getBundles()) {

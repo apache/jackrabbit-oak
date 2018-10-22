@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
@@ -106,10 +106,10 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
         if (property == null) {
             return null;
         } else if (property.isArray()) {
-            List<Value> values = ValueFactoryImpl.createValues(property, mapper);
+            List<Value> values = new PartialValueFactory(mapper).createValues(property);
             return values.toArray(NO_VALUES);
         } else {
-            Value value = ValueFactoryImpl.createValue(property, mapper);
+            Value value = new PartialValueFactory(mapper).createValue(property);
             return new Value[] { value };
         }
     }

@@ -49,8 +49,8 @@ entries indexed.
 
 Bundling is enabled on per nodetype basis. 
 Bundling definitions are defined as content in the repository under `/jcr:system/rep:documentStore/bundlor`.
- 
-    + <node type name>
+
+    + < node type name >
       - pattern - multi 
       
 For example below content structure enables bundling for nodes of type `nt:file` and `app:Asset`
@@ -110,7 +110,7 @@ Lets take an example of `nt:file` node like below
       - jcr:createdBy = "admin"
       - jcr:primaryType = "nt:file"
       + jcr:content
-         - jcr:data = <blob id>
+         - jcr:data = < blob id >
          - jcr:mimeType = "text/plain"
          - jcr:uuid = "56befaee-f5fe-4252-87f8-0dcc8a624dd5"
          - jcr:lastModifiedBy = "admin"

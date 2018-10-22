@@ -20,9 +20,8 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 
 import java.security.SecureRandom;
 import java.util.Random;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -85,9 +84,9 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 
     private int length = DEFAULT_LENGTH;
 
-    @Nonnull
+    @NotNull
     @Override
-    public String generateNodeName(@Nonnull String authorizableId) {
+    public String generateNodeName(@NotNull String authorizableId) {
         Random random = new SecureRandom();
         char[] chars = new char[length];
         for (int i = 0; i < length; i++) {

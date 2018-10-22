@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +47,7 @@ final class BatchCommitQueue {
 
     private final DocumentStore store;
 
-    BatchCommitQueue(@Nonnull DocumentStore store) {
+    BatchCommitQueue(@NotNull DocumentStore store) {
         this.store = checkNotNull(store);
     }
 

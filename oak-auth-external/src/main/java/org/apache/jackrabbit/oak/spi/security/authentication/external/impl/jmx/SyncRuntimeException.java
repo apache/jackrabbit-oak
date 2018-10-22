@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 public class SyncRuntimeException extends RuntimeException {
 
-    public SyncRuntimeException(@Nonnull String message) {
+    public SyncRuntimeException(@NotNull String message) {
         super(message);
     }
 
-    public SyncRuntimeException(@Nonnull String message, @Nonnull Throwable throwable) {
+    public SyncRuntimeException(@NotNull String message, @NotNull Throwable throwable) {
         super(message, throwable);
     }
 }

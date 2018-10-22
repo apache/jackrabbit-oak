@@ -150,4 +150,7 @@ public interface VersionConstants extends JcrConstants {
             VersionConstants.REP_ACTIVITIES,
             VersionConstants.REP_CONFIGURATIONS
     );
+
+    // flag indicating the version store has been initialized
+    String VERSION_STORE_INIT = ":initialized";
 }

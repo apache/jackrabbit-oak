@@ -22,22 +22,21 @@ import static java.util.Arrays.asList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.Lists;
 
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 /**
  * Aggregation of a list of editors into a single editor.
  */
 public class CompositeEditor implements Editor {
 
-    @CheckForNull
-    public static Editor compose(@Nonnull Collection<? extends Editor> editors) {
+    @Nullable
+    public static Editor compose(@NotNull Collection<? extends Editor> editors) {
         checkNotNull(editors);
         switch (editors.size()) {
         case 0:

@@ -18,13 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+/**
+ * A size estimator, for example to estimate how many entries a result will
+ * have.
+ */
 public interface SizeEstimator {
 
     /**
      * Get the estimated size, or -1 if not known.
-     * 
+     *
      * @return the size
      */
     long getSize();
-    
+
 }

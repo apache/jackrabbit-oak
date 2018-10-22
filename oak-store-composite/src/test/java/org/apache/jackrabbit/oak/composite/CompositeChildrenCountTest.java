@@ -34,11 +34,9 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -71,7 +69,7 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void multipleContributingStores() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -122,7 +120,7 @@ public class CompositeChildrenCountTest {
 
     @Test
     public void contributingStoreReturnsInfinity() {
-        MountInfoProvider mip = Mounts.newBuilder().mount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+        MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
@@ -202,24 +200,24 @@ public class CompositeChildrenCountTest {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<? extends PropertyState> getProperties() {
             return emptyList();
         }
 
         @Override
-        public boolean hasChildNode(@Nonnull String name) {
+        public boolean hasChildNode(@NotNull String name) {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public NodeState getChildNode(@Nonnull String name) throws IllegalArgumentException {
+        public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
             return EmptyNodeState.MISSING_NODE;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
@@ -241,7 +239,7 @@ public class CompositeChildrenCountTest {
             return childrenCount;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public NodeBuilder builder() {
             return new MemoryNodeBuilder(this);

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An implementation of {@link SegmentReferences} that throws {@link
@@ -34,7 +34,7 @@ class IllegalSegmentReferences implements SegmentReferences {
         throw new IllegalStateException("invalid use");
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<SegmentId> iterator() {
         throw new IllegalStateException("invalid use");

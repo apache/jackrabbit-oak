@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Configurable provider taking care of building login contexts for
@@ -41,6 +42,6 @@ public interface LoginContextProvider {
      * @return a new login context
      * @throws LoginException If an error occurs while creating a new context.
      */
-    @Nonnull
+    @NotNull
     LoginContext getLoginContext(Credentials credentials, String workspaceName) throws LoginException;
 }

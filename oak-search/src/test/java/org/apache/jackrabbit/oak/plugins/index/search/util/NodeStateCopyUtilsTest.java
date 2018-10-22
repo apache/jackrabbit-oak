@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UN
 import static org.junit.Assert.assertEquals;
 
 public class NodeStateCopyUtilsTest {
-    private NodeBuilder builder = EMPTY_NODE.builder();
+    private final NodeBuilder builder = EMPTY_NODE.builder();
     private Repository repository;
 
     @After

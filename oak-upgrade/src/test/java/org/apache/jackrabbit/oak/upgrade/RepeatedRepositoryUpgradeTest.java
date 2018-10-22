@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -132,7 +132,7 @@ public class RepeatedRepositoryUpgradeTest extends AbstractRepositoryUpgradeTest
             repositoryUpgrade.setSkipInitialization(skipInit);
             repositoryUpgrade.copy(new RepositoryInitializer() {
                 @Override
-                public void initialize(@Nonnull NodeBuilder builder) {
+                public void initialize(@NotNull NodeBuilder builder) {
                     builder.child("foo").child("bar");
                 }
             });

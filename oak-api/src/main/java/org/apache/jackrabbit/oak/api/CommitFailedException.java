@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.api;
 
 import static java.lang.String.format;
 
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
@@ -31,6 +30,8 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Main exception thrown by methods defined on the {@code ContentSession}
@@ -220,7 +221,7 @@ public class CommitFailedException extends Exception {
      * @param message The exception message.
      * @return matching repository exception
      */
-    public RepositoryException asRepositoryException(@Nonnull String message) {
+    public RepositoryException asRepositoryException(@NotNull String message) {
         if (isConstraintViolation()) {
             return new ConstraintViolationException(message, this);
         } else if (isOfType(NAMESPACE)) {

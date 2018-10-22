@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import javax.annotation.Nonnull;
-
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Mongo specific version of MissingLastRevSeeker which uses mongo queries
@@ -53,13 +52,12 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
         Bson query = Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime));
         Bson sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()
-                .withReadPreference(ReadPreference.primary())
                 .find(query).sort(sortFields);
         return CloseableIterable.wrap(transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
@@ -69,18 +67,21 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     public boolean isRecoveryNeeded() {
         Bson query = Filters.and(
                 Filters.eq(ClusterNodeInfo.STATE, ClusterNodeInfo.ClusterNodeState.ACTIVE.name()),
-                Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime())
+                Filters.or(
+                        Filters.lt(ClusterNodeInfo.LEASE_END_KEY, clock.getTime()),
+                        Filters.eq(ClusterNodeInfo.REV_RECOVERY_LOCK, ClusterNodeInfo.RecoverLockState.ACQUIRED.name())
+                )
         );
 
         return getClusterNodeCollection().find(query).iterator().hasNext();
     }
 
     private MongoCollection<BasicDBObject> getNodeCollection() {
-        return store.getDBCollection(NODES);
+        return store.getDBCollection(NODES, ReadPreference.primary());
     }
 
     private MongoCollection<BasicDBObject> getClusterNodeCollection() {
-        return store.getDBCollection(CLUSTER_NODES);
+        return store.getDBCollection(CLUSTER_NODES, ReadPreference.primary());
     }
 }
 

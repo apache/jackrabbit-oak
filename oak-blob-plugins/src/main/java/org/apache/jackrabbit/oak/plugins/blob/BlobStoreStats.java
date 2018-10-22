@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.stats.TimeSeriesAverage;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
-    public BlobStoreStats(@Nonnull  StatisticsProvider sp) {
+    public BlobStoreStats(@NotNull  StatisticsProvider sp) {
         super(BlobStoreStatsMBean.class);
         this.statisticsProvider = checkNotNull(sp);
 
