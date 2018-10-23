@@ -558,6 +558,11 @@ public class S3Backend extends AbstractSharedBackend {
                 loadBatch();
             }
 
+            while (queue.isEmpty() && prevObjectListing.getNextMarker() != null) {
+                LOG.debug("Queue is empty, but there is more data in the S3 bucket");
+                loadBatch();
+            }
+
             if (!queue.isEmpty()) {
                 return transformer.apply(queue.remove());
             }
