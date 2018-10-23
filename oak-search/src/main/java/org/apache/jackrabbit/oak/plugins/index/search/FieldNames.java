@@ -60,6 +60,11 @@ public final class FieldNames {
     private static final String SIMILARITY_PREFIX = "sim:";
 
     /**
+     * Prefix for all field names that contains the similarity search binary values.
+     */
+    private static final String SIMILARITY_BINARY_PREFIX = "simbin:";
+
+    /**
      * Name of the field that contains the suggest index.
      */
     public static final String SUGGEST = ":suggest";
@@ -146,5 +151,9 @@ public final class FieldNames {
 
     public static String createSimilarityFieldName(String name) {
         return SIMILARITY_PREFIX + name;
+    }
+
+    public static String createBinSimilarityFieldName(String name) {
+        return SIMILARITY_BINARY_PREFIX + name;
     }
 }

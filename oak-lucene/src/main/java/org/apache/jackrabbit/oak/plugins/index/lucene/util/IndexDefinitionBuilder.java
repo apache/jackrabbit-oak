@@ -327,6 +327,12 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule useInSimilarity(boolean rerank) {
+            propTree.setProperty(LuceneIndexConstants.PROP_USE_IN_SIMILARITY, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_SIMILARITY_RERANK, rerank);
+            return this;
+        }
+
         public PropertyRule type(String type){
             //This would throw an IAE if type is invalid
             PropertyType.valueFromName(type);

@@ -127,6 +127,8 @@ public class PropertyDefinition {
 
     public final boolean useInSimilarity;
 
+    public final boolean similarityRerank;
+
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
@@ -156,6 +158,7 @@ public class PropertyDefinition {
         this.useInSuggest = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
         this.useInSimilarity = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
+        this.similarityRerank = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_RERANK, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
@@ -233,6 +236,7 @@ public class PropertyDefinition {
                 ", analyzed=" + analyzed +
                 ", ordered=" + ordered +
                 ", useInSuggest=" + useInSuggest+
+                ", useInSimilarity=" + useInSimilarity+
                 ", nullCheckEnabled=" + nullCheckEnabled +
                 ", notNullCheckEnabled=" + notNullCheckEnabled +
                 ", function=" + function +

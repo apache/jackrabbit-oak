@@ -18,10 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -39,6 +36,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +50,7 @@ public class SimSearchUtils {
     private static final Logger log = LoggerFactory.getLogger(SimSearchUtils.class);
 
     public static String toDoubleString(byte[] bytes) {
-        Double[] a = toDoubleArray(bytes);
+        double[] a = toDoubleArray(bytes);
         StringBuilder builder = new StringBuilder();
         for (Double d : a) {
             if (builder.length() > 0) {
@@ -63,11 +61,6 @@ public class SimSearchUtils {
         return builder.toString();
     }
 
-    private static Double[] toDoubleArray(byte[] array) {
-        List<Double> doubles = toDoubles(array);
-        return doubles.toArray(new Double[doubles.size()]);
-    }
-
     public static List<Double> toDoubles(byte[] array) {
         int blockSize = Double.SIZE / Byte.SIZE;
         ByteBuffer wrap = ByteBuffer.wrap(array);
@@ -76,6 +69,18 @@ public class SimSearchUtils {
         for (int i = 0; i < capacity; i++) {
             double e = wrap.getDouble(i * blockSize);
             doubles.add(e);
+        }
+        return doubles;
+    }
+
+    private static double[] toDoubleArray(byte[] array) {
+        int blockSize = Double.SIZE / Byte.SIZE;
+        ByteBuffer wrap = ByteBuffer.wrap(array);
+        int capacity = array.length / blockSize;
+        double[] doubles = new double[capacity];
+        for (int i = 0; i < capacity; i++) {
+            double e = wrap.getDouble(i * blockSize);
+            doubles[i] = e;
         }
         return doubles;
     }
@@ -159,6 +164,8 @@ public class SimSearchUtils {
                             BooleanQuery simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
                             booleanQuery.add(new BooleanClause(simQuery, SHOULD));
                             log.trace("similarity query generated for {}", pd.name);
+                        } else {
+                            log.warn("could not create query for similarity field {}", fvString);
                         }
                     }
                 }
@@ -172,6 +179,51 @@ public class SimSearchUtils {
         } catch (Exception e) {
             throw new RuntimeException("could not handle similarity query " + queryString);
         }
+    }
+
+    public static void bruteForceFVRerank(List<PropertyDefinition> sp, TopDocs docs, IndexSearcher indexSearcher) throws IOException {
+        double farthestDistance = 50d;
+        int k = 10;
+        ScoreDoc inputDoc = docs.scoreDocs[0]; // we assume the input doc is the first one returned
+        List<Integer> toDiscard = new LinkedList<>();
+        for (PropertyDefinition pd : sp) {
+            String fieldName = FieldNames.createBinSimilarityFieldName(pd.name);
+            BytesRef binaryValue = indexSearcher.doc(inputDoc.doc).getBinaryValue(fieldName);
+            double[] inputVector = toDoubleArray(binaryValue.bytes);
+            for (int j = 0; j < docs.scoreDocs.length; j++) {
+                double[] currentVector = toDoubleArray(indexSearcher.doc(docs.scoreDocs[j].doc)
+                        .getBinaryValue(fieldName).bytes);
+                double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
+
+                if (distance > farthestDistance) { // a threshold distance above which current vector is discarded
+                    toDiscard.add(docs.scoreDocs[j].doc);
+                }
+                docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
+            }
+        }
+        if (!toDiscard.isEmpty()) {
+            docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> !toDiscard.contains(e.doc)).toArray(ScoreDoc[]::new); // remove docs that are not close enough
+        }
+        Arrays.sort(docs.scoreDocs, 1, docs.scoreDocs.length, (o1, o2) -> {
+            float v = o2.score - o1.score;
+            if (v == 0) {
+                return 0;
+            } else {
+                return v > 0 ? 1 : -1;
+            }
+        }); // rerank scoreDocs
+        if (docs.scoreDocs.length > k) {
+            docs.scoreDocs = Arrays.copyOfRange(docs.scoreDocs, 0, k); // retain only the top k nearest neighbours
+        }
+        docs.setMaxScore(docs.scoreDocs[0].score);
+    }
+
+    private static double dist(double[] x, double[] y) { // euclidean distance
+        double d = 0;
+        for (int i = 0; i < x.length; i++) {
+            d += Math.pow(y[i] - x[i], 2);
+        }
+        return Math.sqrt(d);
     }
 
 }
