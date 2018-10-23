@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
@@ -28,6 +29,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -55,7 +57,7 @@ public class PrincipalPermissionEntriesTest {
 
     @Test
     public void testIsFullyLoadedUponCreation() {
-        assertFalse(new PrincipalPermissionEntries(0).isFullyLoaded());
+        assertTrue(new PrincipalPermissionEntries(0).isFullyLoaded());
         assertFalse(new PrincipalPermissionEntries(1).isFullyLoaded());
         assertFalse(new PrincipalPermissionEntries().isFullyLoaded());
     }
@@ -140,6 +142,30 @@ public class PrincipalPermissionEntriesTest {
         ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
 
         assertEquals(1, ppe.getEntries().size());
+        assertEquals(1, ppe.getSize());
+    }
+
+    @Test
+    public void testPutEmptyEntriesByPath() {
+        PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
+        ppe.putEntriesByPath("/path", ImmutableSet.of());
+
+        assertTrue(ppe.isFullyLoaded());
+        assertEquals(1, ppe.getSize());
+        assertEquals(1, ppe.getEntries().size());
+    }
+
+    @Test
+    public void testRememberNotAccessControlled() {
+        PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
+        ppe.rememberNotAccessControlled("/path");
+
+        assertFalse(ppe.isFullyLoaded());
+        assertEquals(1, ppe.getSize());
+        assertTrue(ppe.getEntries().isEmpty());
+        Collection c = ppe.getEntriesByPath("/path");
+        assertNotNull(c);
+        assertTrue(c.isEmpty());
     }
 
     @Test
@@ -154,6 +180,23 @@ public class PrincipalPermissionEntriesTest {
         assertEquals(collection, ppe.getEntriesByPath("/path"));
         assertEquals(collection, ppe.getEntriesByPath("/path2"));
         assertNull(ppe.getEntriesByPath("/nonExisting"));
+    }
+
+    @Test
+    public void testGetInitialSize() {
+        assertEquals(0, new PrincipalPermissionEntries().getSize());
+        assertEquals(0, new PrincipalPermissionEntries(1).getSize());
+    }
+
+    @Test
+    public void testGetSize() {
+        PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
+
+        ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
+        assertEquals(1, ppe.getSize());
+
+        ppe.rememberNotAccessControlled("/path2");
+        assertEquals(2, ppe.getSize());
     }
 
     private static final long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {

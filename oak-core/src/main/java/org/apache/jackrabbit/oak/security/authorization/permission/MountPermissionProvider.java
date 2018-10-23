@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -74,13 +75,13 @@ public class MountPermissionProvider extends PermissionProviderImpl {
             this.stores = stores;
         }
 
-        @NotNull
+        @Nullable
         @Override
         public Collection<PermissionEntry> load(@NotNull String principalName,
                                                 @NotNull String path) {
             for (PermissionStoreImpl store : stores) {
                 Collection<PermissionEntry> col = store.load(principalName, path);
-                if (col != null && !col.isEmpty()) {
+                if (col != null) {
                     return col;
                 }
             }
