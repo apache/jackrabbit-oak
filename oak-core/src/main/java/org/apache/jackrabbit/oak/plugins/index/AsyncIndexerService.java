@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -190,6 +191,7 @@ public class AsyncIndexerService {
         TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
         corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
         corruptIndexHandler.setErrorWarnInterval(errorWarnIntervalSeconds, TimeUnit.SECONDS);
+        corruptIndexHandler.setMeterStats(statisticsProvider.getMeter("corrupt-index", StatsOptions.METRICS_ONLY));
 
         if (failingIndexTimeoutSeconds <= 0){
             log.info("[failingIndexTimeoutSeconds] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
