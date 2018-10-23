@@ -17,8 +17,12 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,6 +42,7 @@ class PrincipalPermissionEntries {
      * map of permission entries, accessed by path
      */
     private Map<String, Collection<PermissionEntry>> entries = new HashMap<>();
+    private Set<String> emptyPaths = new HashSet();
 
     PrincipalPermissionEntries() {
         this(Long.MAX_VALUE);
@@ -45,10 +50,11 @@ class PrincipalPermissionEntries {
 
     PrincipalPermissionEntries(long expectedSize) {
         this.expectedSize = expectedSize;
+        fullyLoaded = (expectedSize == 0);
     }
 
     long getSize() {
-        return entries.size();
+        return entries.size() + emptyPaths.size();
     }
 
     boolean isFullyLoaded() {
@@ -66,7 +72,7 @@ class PrincipalPermissionEntries {
 
     @Nullable
     Collection<PermissionEntry> getEntriesByPath(@NotNull String path) {
-        return entries.get(path);
+        return (emptyPaths.contains(path)) ? Collections.emptySet() : entries.get(path);
     }
 
     void putEntriesByPath(@NotNull String path, @NotNull Collection<PermissionEntry> pathEntries) {
@@ -74,6 +80,10 @@ class PrincipalPermissionEntries {
         if (entries.size() >= expectedSize) {
             setFullyLoaded(true);
         }
+    }
+
+    void rememberNotAccessControlled(@NotNull String path) {
+        emptyPaths.add(path);
     }
 
     void putAllEntries(@NotNull Map<String, Collection<PermissionEntry>> allEntries) {

@@ -95,7 +95,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
                 }
             }
         }
-        return entries == null || entries.isEmpty() ? null : entries;
+        return entries;
     }
 
     @NotNull

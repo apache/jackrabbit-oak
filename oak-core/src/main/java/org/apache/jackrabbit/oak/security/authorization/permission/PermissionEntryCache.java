@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +70,7 @@ class PermissionEntryCache {
                     // nothing to add to the result collection 'ret'.
                     // nevertheless, remember the absence of any permission entries
                     // in the cache to avoid reading from store again.
-                    ppe.putEntriesByPath(path, Collections.emptySet());
+                    ppe.rememberNotAccessControlled(path);
                 } else {
                     ppe.putEntriesByPath(path, pes);
                     ret.addAll(pes);
