@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -52,6 +53,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.apache.jackrabbit.oak.stats.TimerStats.Context;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,8 +181,15 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS,
-                                                  this::tryFlush);
+        TimerStats flushTimer = builder.getStatsProvider().getTimer("oak.segment.flush", METRICS_ONLY);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
+            Context timer = flushTimer.time();
+            try {
+                tryFlush();
+            } finally {
+                timer.stop();
+            }
+        });
 
         fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
                                                   fileReaper::reap);
