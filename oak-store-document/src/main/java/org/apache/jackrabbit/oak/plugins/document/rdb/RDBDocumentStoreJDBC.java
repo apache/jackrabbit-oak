@@ -447,7 +447,7 @@ public class RDBDocumentStoreJDBC {
                 Long hasBinary = readLongOrNullFromResultSet(rs, field++);
                 Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
                 long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
-                long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
+                long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                 long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
                 String data = rs.getString(field++);
                 byte[] bdata = rs.getBytes(field++);
@@ -603,7 +603,7 @@ public class RDBDocumentStoreJDBC {
                     Long hasBinary = readLongOrNullFromResultSet(this.rs, field++);
                     Boolean deletedOnce = readBooleanOrNullFromResultSet(this.rs, field++);
                     long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
-                    long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
+                    long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                     long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
                     String data = this.rs.getString(field++);
                     byte[] bdata = this.rs.getBytes(field++);
@@ -749,7 +749,7 @@ public class RDBDocumentStoreJDBC {
                     Long hasBinary = readLongOrNullFromResultSet(rs, field++);
                     Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
                     long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
-                    long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
+                    long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                     long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
                     String data = rs.getString(field++);
                     byte[] bdata = rs.getBytes(field++);
@@ -827,7 +827,7 @@ public class RDBDocumentStoreJDBC {
                 Long hasBinary = readLongOrNullFromResultSet(rs, field++);
                 Boolean deletedOnce = readBooleanOrNullFromResultSet(rs, field++);
                 long schemaVersion = tmd.hasVersion() ? readLongFromResultSet(rs, field++) : 0;
-                long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
+                long sdType = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                 long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : 0;
                 String data = rs.getString(field++);
                 byte[] bdata = rs.getBytes(field++);
