@@ -301,6 +301,33 @@ public class RDBDocumentStoreSchemaUpgradeTest {
     }
 
     @Test
+    public void autoFixOAK7855() {
+        RDBOptions op = new RDBOptions().tablePrefix("OAK7855").dropTablesOnClose(true);
+        RDBDocumentStore rdb = null;
+        try {
+            rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
+            RDBTableMetaData meta = rdb.getTable(Collection.NODES);
+            assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
+            assertTrue(meta.hasVersion());
+            String id = Utils.getIdFromPath("/foo");
+            UpdateOp testInsert = new UpdateOp(id, true);
+            assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
+            UpdateOp testUpdate = new UpdateOp(id, false);
+            // set the invalid split doc type introduced by OAK-7855
+            testUpdate.set(NodeDocument.SD_TYPE, 0);
+            assertNotNull(rdb.findAndUpdate(Collection.NODES, testUpdate));
+            rdb.getNodeDocumentCache().invalidate(id);
+            NodeDocument doc = rdb.find(Collection.NODES, id);
+            assertNotNull(doc);
+            assertEquals(SplitDocType.NONE, doc.getSplitDocType());
+        } finally {
+            if (rdb != null) {
+                rdb.dispose();
+            }
+        }
+    }
+
+    @Test
     public void testVersionGCOnOldDB() {
         RDBOptions op = new RDBOptions().tablePrefix("T11").initialSchema(1).upgradeToSchema(1).dropTablesOnClose(true);
         RDBDocumentStore rdb = null;
