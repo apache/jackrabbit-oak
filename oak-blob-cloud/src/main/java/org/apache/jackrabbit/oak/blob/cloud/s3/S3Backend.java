@@ -558,6 +558,11 @@ public class S3Backend extends AbstractSharedBackend {
                 loadBatch();
             }
 
+            while (queue.isEmpty() && prevObjectListing.getNextMarker() != null) {
+                LOG.debug("Queue is empty, but there is more data in the S3 bucket");
+                loadBatch();
+            }
+
             if (!queue.isEmpty()) {
                 return transformer.apply(queue.remove());
             }
@@ -573,7 +578,13 @@ public class S3Backend extends AbstractSharedBackend {
 
                 // initialize the listing the first time
                 if (prevObjectListing == null) {
-                    prevObjectListing = s3service.listObjects(bucket);
+                    ListObjectsRequest listReq = new ListObjectsRequest();
+                    listReq.withBucketName(bucket);
+                    if (properties.containsKey(S3Constants.MAX_KEYS)) {
+                        listReq.setMaxKeys(Integer.valueOf(properties.getProperty(S3Constants.MAX_KEYS)));
+                    }
+
+                    prevObjectListing = s3service.listObjects(listReq);
                 } else if (prevObjectListing.isTruncated()) { //already initialized more objects available
                     prevObjectListing = s3service.listNextBatchOfObjects(prevObjectListing);
                 } else { // no more available
