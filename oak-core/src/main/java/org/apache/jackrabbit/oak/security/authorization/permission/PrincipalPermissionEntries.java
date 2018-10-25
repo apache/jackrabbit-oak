@@ -16,15 +16,25 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static java.util.Collections.emptySet;
+
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * {@code PermissionEntries} holds the permission entries of one principal
  */
 class PrincipalPermissionEntries {
+
+    /**
+     * max size of the emptyPaths cache.
+     */
+    private static int MAX_SIZE = Integer.getInteger("oak.PrincipalPermissionEntries.maxSize", 1000);
 
     /**
      * indicating if all entries were loaded.
@@ -34,13 +44,20 @@ class PrincipalPermissionEntries {
     /**
      * map of permission entries, accessed by path
      */
-    private Map<String, Collection<PermissionEntry>> entries = new HashMap<String, Collection<PermissionEntry>>();
+    private Map<String, Collection<PermissionEntry>> entries = new HashMap<>();
+    private final Map<String, Boolean> emptyPaths;
 
     PrincipalPermissionEntries() {
+        this.emptyPaths = new LinkedHashMap<String, Boolean>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                return size() > MAX_SIZE;
+            }
+        };
     }
 
     long getSize() {
-        return entries.size();
+        return entries.size() + emptyPaths.size();
     }
 
     boolean isFullyLoaded() {
@@ -54,5 +71,18 @@ class PrincipalPermissionEntries {
     @Nonnull
     Map<String, Collection<PermissionEntry>> getEntries() {
         return entries;
+    }
+
+    @Nullable
+    Collection<PermissionEntry> getEntriesByPath(@Nonnull String path) {
+        return (emptyPaths.containsKey(path)) ? emptySet() : entries.get(path);
+    }
+
+    void putEntriesByPath(@Nonnull String path, @Nonnull Collection<PermissionEntry> pathEntries) {
+        entries.put(path, pathEntries);
+    }
+
+    void rememberNotAccessControlled(@Nonnull String path) {
+        emptyPaths.put(path, null);
     }
 }
