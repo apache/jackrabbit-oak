@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExtern
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
@@ -492,7 +493,8 @@ public class BenchmarkRunner {
             new BundlingNodeTest(),
             new PersistentCacheTest(statsProvider),
             new StringWriteTest(),
-            new BasicWriteTest()
+            new BasicWriteTest(),
+            new CanReadNonExisting()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
