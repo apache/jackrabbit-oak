@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -81,15 +80,15 @@ class PermissionEntryCache {
             ppe = new PrincipalPermissionEntries();
             entries.put(principalName, ppe);
         }
-        Collection<PermissionEntry> pes = ppe.getEntries().get(path);
+        Collection<PermissionEntry> pes = ppe.getEntriesByPath(path);
         if (pes == null) {
             pes = store.load(null, principalName, path);
             if (pes == null) {
-                pes = Collections.emptySet();
+                ppe.rememberNotAccessControlled(path);
             } else {
+                ppe.putEntriesByPath(path, pes);
                 ret.addAll(pes);
             }
-            ppe.getEntries().put(path, pes);
         } else {
             ret.addAll(pes);
         }
