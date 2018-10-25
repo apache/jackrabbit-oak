@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
 
 public class ReplicaSetDefaultWriteConcernIT {
 
@@ -48,8 +49,12 @@ public class ReplicaSetDefaultWriteConcernIT {
     private Map<Integer, MongodProcess> executables = new HashMap<>();
 
     @Before
-    public void before() throws IOException {
-        executables.putAll(mongodProcessFactory.startReplicaSet("rs", 3));
+    public void before() {
+        try {
+            executables.putAll(mongodProcessFactory.startReplicaSet("rs", 3));
+        } catch (Exception e) {
+            assumeNoException(e);
+        }
     }
 
     @Test
