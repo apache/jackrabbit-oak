@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.split.SplitPersistence;
+import org.apache.jackrabbit.oak.segment.tool.LoggingHook;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -81,6 +82,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class SegmentNodeStoreRegistrar {
 
@@ -363,6 +365,11 @@ class SegmentNodeStoreRegistrar {
 
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(store).withStatisticsProvider(cfg.getStatisticsProvider());
         segmentNodeStoreBuilder.dispatchChanges(cfg.dispatchChanges());
+
+        Logger log = LoggerFactory.getLogger(LoggingHook.class.getName() + ".writer");
+        if (log.isTraceEnabled()) {
+            segmentNodeStoreBuilder.withLoggingHook(log::trace);
+        }
 
         SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
