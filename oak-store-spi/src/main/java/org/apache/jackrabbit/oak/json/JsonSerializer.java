@@ -25,9 +25,12 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableList;
@@ -38,18 +41,30 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for serializing node and property states to JSON.
  */
 public class JsonSerializer {
+    private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
+
     public static final String DEFAULT_FILTER_EXPRESSION =
         "{\"properties\":[\"*\", \"-:childNodeCount\"]}";
 
     private static final JsonFilter DEFAULT_FILTER = new JsonFilter(DEFAULT_FILTER_EXPRESSION);
+
+    private static final String ERROR_JSON_KEY = "_error";
+    private static final String ERROR_JSON_VALUE_PREFIX = "ERROR: ";
 
     private final JsopWriter json;
 
@@ -63,86 +78,167 @@ public class JsonSerializer {
 
     private final BlobSerializer blobs;
 
+    private final boolean catchExceptions;
+
     private JsonSerializer(
             JsopWriter json, int depth, long offset, int maxChildNodes,
-            JsonFilter filter, BlobSerializer blobs) {
+            JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
         this.json = checkNotNull(json);
         this.depth = depth;
         this.offset = offset;
         this.maxChildNodes = maxChildNodes;
         this.filter = checkNotNull(filter);
         this.blobs = checkNotNull(blobs);
+        this.catchExceptions = catchExceptions;
     }
 
     public JsonSerializer(
             int depth, long offset, int maxChildNodes,
             String filter, BlobSerializer blobs) {
         this(new JsopBuilder(), depth, offset, maxChildNodes,
-                new JsonFilter(filter), blobs);
+                new JsonFilter(filter), blobs, false);
     }
 
     public JsonSerializer(JsopWriter json,
             int depth, long offset, int maxChildNodes,
             String filter, BlobSerializer blobs) {
         this(json, depth, offset, maxChildNodes,
-                new JsonFilter(filter), blobs);
+                new JsonFilter(filter), blobs, false);
+    }
+
+    public JsonSerializer(JsopWriter json,
+                          int depth, long offset, int maxChildNodes,
+                          String filter, BlobSerializer blobs, boolean catchExceptions) {
+        this(json, depth, offset, maxChildNodes,
+            new JsonFilter(filter), blobs, catchExceptions);
     }
 
     public JsonSerializer(JsopWriter json, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
-                DEFAULT_FILTER, blobs);
+                DEFAULT_FILTER, blobs, false);
     }
 
     public JsonSerializer(JsopWriter json, String filter, BlobSerializer blobs) {
         this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
-                new JsonFilter(filter), blobs);
+                new JsonFilter(filter), blobs, false);
     }
 
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
-                json, depth - 1, 0, maxChildNodes, filter, blobs);
+                json, depth - 1, 0, maxChildNodes, filter, blobs, catchExceptions);
     }
 
     public void serialize(NodeState node) {
+        serialize(node, "");
+    }
+
+    public void serialize(NodeState node, String basePath) {
         json.object();
 
-        for (PropertyState property : node.getProperties()) {
-            String name = property.getName();
-            if (filter.includeProperty(name)) {
-                json.key(name);
-                serialize(property);
+        try {
+            for (PropertyState property : node.getProperties()) {
+                String name = property.getName();
+                if (filter.includeProperty(name)) {
+                    json.key(name);
+                    try {
+                        serialize(property);
+                    } catch (Throwable t) {
+                        if (catchExceptions) {
+                            String message = "Cannot read property value " + basePath + "/" + name + " : " + t.getMessage();
+                            log.error(message);
+                            json.value(ERROR_JSON_VALUE_PREFIX + message);
+                        } else {
+                            throw t;
+                        }
+                    }
+                }
             }
-        }
 
-        int index = 0;
-        int count = 0;
-        for (ChildNodeEntry child : getChildNodeEntries(node)) {
-            String name = child.getName();
-            if (filter.includeNode(name) && index++ >= offset) {
-                if (count++ >= maxChildNodes) {
-                    break;
-                }
+            int index = 0;
+            int count = 0;
+            for (ChildNodeEntry child : getChildNodeEntries(node, basePath)) {
+                String name = child.getName();
+                if (filter.includeNode(name) && index++ >= offset) {
+                    if (count++ >= maxChildNodes) {
+                        break;
+                    }
 
-                json.key(name);
-                if (depth > 0) {
-                    getChildSerializer().serialize(child.getNodeState());
-                } else {
-                    json.object();
-                    json.endObject();
+                    json.key(name);
+                    if (depth > 0) {
+                        getChildSerializer().serialize(child.getNodeState(), basePath + "/" + name);
+                    } else {
+                        json.object();
+                        json.endObject();
+                    }
                 }
+            }
+        } catch (Throwable t) {
+            if (catchExceptions) {
+                String message = "Cannot read node " + basePath + " : " + t.getMessage();
+                log.error(message);
+                json.key(ERROR_JSON_KEY);
+                json.value(ERROR_JSON_VALUE_PREFIX + message);
+            } else {
+                throw t;
             }
         }
 
         json.endObject();
     }
 
-    private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node) {
+    private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node, String basePath) {
         PropertyState order = node.getProperty(":childOrder");
         if (order != null) {
             List<String> names = ImmutableList.copyOf(order.getValue(NAMES));
             List<ChildNodeEntry> entries = Lists.newArrayListWithCapacity(names.size());
             for (String name : names) {
-                entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
+                try {
+                    entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
+                } catch (Throwable t) {
+                    if (catchExceptions) {
+                        String message = "Cannot read node " + basePath + "/" + name + " : " + t.getMessage();
+                        log.error(message);
+
+                        // return a placeholder child node entry for tracking the error into the JSON
+                        entries.add(new MemoryChildNodeEntry(name, new AbstractNodeState() {
+                            @Override
+                            public boolean exists() {
+                                return true;
+                            }
+
+                            @NotNull
+                            @Override
+                            public Iterable<? extends PropertyState> getProperties() {
+                                return Collections.singleton(new StringPropertyState(ERROR_JSON_KEY, ERROR_JSON_VALUE_PREFIX + message));
+                            }
+
+                            @Override
+                            public boolean hasChildNode(@NotNull String name) {
+                                return false;
+                            }
+
+                            @NotNull
+                            @Override
+                            public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
+                                return EmptyNodeState.MISSING_NODE;
+                            }
+
+                            @NotNull
+                            @Override
+                            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                                return Collections.EMPTY_LIST;
+                            }
+
+                            @NotNull
+                            @Override
+                            public NodeBuilder builder() {
+                                return new ReadOnlyBuilder(this);
+                            }
+                        }));
+                    } else {
+                        throw t;
+                    }
+                }
             }
             return entries;
         }
