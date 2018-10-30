@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.CompactionMap.sum;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.io.Closeable;
 import java.io.File;
@@ -82,6 +83,8 @@ import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.apache.jackrabbit.oak.stats.TimerStats.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -513,13 +516,19 @@ public class FileStore implements SegmentStore {
         }
 
         if (!readonly) {
+            final TimerStats flushTimer =  statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);
             flushThread = BackgroundThread.run(
                     "TarMK flush thread [" + directory + "]", 5000, // 5s interval
                     new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                flush();
+                                Context timer = flushTimer.time();
+                                try {
+                                    flush();
+                                } finally {
+                                    timer.stop();
+                                }
                             } catch (IOException e) {
                                 log.warn("Failed to flush the TarMK at" +
                                         directory, e);
