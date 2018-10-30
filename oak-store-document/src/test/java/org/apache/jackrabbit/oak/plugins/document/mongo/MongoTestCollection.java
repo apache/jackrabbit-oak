@@ -27,6 +27,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.DistinctIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.ListIndexesIterable;
@@ -37,6 +38,7 @@ import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.CreateIndexOptions;
 import com.mongodb.client.model.DeleteOptions;
 import com.mongodb.client.model.DropIndexOptions;
+import com.mongodb.client.model.EstimatedDocumentCountOptions;
 import com.mongodb.client.model.FindOneAndDeleteOptions;
 import com.mongodb.client.model.FindOneAndReplaceOptions;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
@@ -45,11 +47,11 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.InsertManyOptions;
 import com.mongodb.client.model.InsertOneOptions;
 import com.mongodb.client.model.RenameCollectionOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.session.ClientSession;
 
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -179,6 +181,40 @@ class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
         return collection.count(clientSession, filter, options);
     }
 
+    @Override
+    public long countDocuments() {
+        return collection.countDocuments();
+    }
+
+    @Override
+    public long countDocuments(@NotNull Bson filter) {
+        return collection.countDocuments(filter);
+    }
+
+    @Override
+    public long countDocuments(@NotNull Bson filter,
+                               @NotNull CountOptions options) {
+        return collection.countDocuments(filter, options);
+    }
+
+    @Override
+    public long countDocuments(@NotNull ClientSession clientSession) {
+        return collection.countDocuments(clientSession);
+    }
+
+    @Override
+    public long countDocuments(@NotNull ClientSession clientSession,
+                               @NotNull Bson filter) {
+        return collection.countDocuments(clientSession, filter);
+    }
+
+    @Override
+    public long countDocuments(@NotNull ClientSession clientSession,
+                               @NotNull Bson filter,
+                               @NotNull CountOptions options) {
+        return collection.countDocuments(clientSession, filter, options);
+    }
+
     @NotNull
     @Override
     public <TResult> DistinctIterable<TResult> distinct(@NotNull String fieldName,
@@ -209,6 +245,16 @@ class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
                                                         @NotNull Bson filter,
                                                         @NotNull Class<TResult> tResultClass) {
         return collection.distinct(clientSession, fieldName, filter, tResultClass);
+    }
+
+    @Override
+    public long estimatedDocumentCount() {
+        return collection.estimatedDocumentCount();
+    }
+
+    @Override
+    public long estimatedDocumentCount(@NotNull EstimatedDocumentCountOptions options) {
+        return collection.estimatedDocumentCount(options);
     }
 
     @NotNull
@@ -604,6 +650,29 @@ class MongoTestCollection<TDocument> implements MongoCollection<TDocument> {
                                    @NotNull UpdateOptions updateOptions) {
         maybeThrowExceptionBeforeUpdate();
         UpdateResult result = collection.replaceOne(clientSession, filter, replacement, updateOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult replaceOne(@NotNull Bson filter,
+                                   @NotNull TDocument replacement,
+                                   @NotNull ReplaceOptions replaceOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.replaceOne(filter, replacement, replaceOptions);
+        maybeThrowExceptionAfterUpdate();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public UpdateResult replaceOne(@NotNull ClientSession clientSession,
+                                   @NotNull Bson filter,
+                                   @NotNull TDocument replacement,
+                                   @NotNull ReplaceOptions replaceOptions) {
+        maybeThrowExceptionBeforeUpdate();
+        UpdateResult result = collection.replaceOne(clientSession, filter, replacement, replaceOptions);
         maybeThrowExceptionAfterUpdate();
         return result;
     }

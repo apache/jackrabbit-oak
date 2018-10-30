@@ -88,6 +88,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -101,7 +102,6 @@ import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.session.ClientSession;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
@@ -1864,9 +1864,9 @@ public class MongoDocumentStore implements DocumentStore {
             MongoCollection<?> c = nodes.withReadPreference(ReadPreference.primary());
             long count;
             if (session != null) {
-                count = c.count(session);
+                count = c.countDocuments(session);
             } else {
-                count = c.count();
+                count = c.countDocuments();
             }
             return count;
         });
