@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Sets.newTreeSet;
+import static org.apache.jackrabbit.oak.segment.SegmentWriterBuilder.segmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -33,15 +35,20 @@ import java.io.RandomAccessFile;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -235,6 +242,63 @@ public class FileStoreIT {
                 roStore.setRevision(id2.toString());
                 assertEquals(id2, roStore.getRevisions().getHead());
             }
+        }
+    }
+
+    @Test
+    public void snfeAfterOnRC()
+    throws IOException, InvalidFileStoreVersionException, InterruptedException {
+        Map<String, String> roots = newLinkedHashMap();
+        try (FileStore rwStore = fileStoreBuilder(getFileStoreFolder()).build()) {
+
+            // Block scheduled journal updates
+            CountDownLatch blockJournalUpdates = new CountDownLatch(1);
+
+            // Ensure we have a non empty journal
+            rwStore.flush();
+
+            // Add a revisions
+            if (!roots.containsKey("q")) {
+                roots.put(addNode(rwStore, "g"), "g");
+            }
+
+            // Simulate compaction by writing a new head state of the next generation
+            SegmentNodeState base = rwStore.getHead();
+            int gcGeneration = base.getRecordId().getSegmentId().getGcGeneration();
+            SegmentWriter nextGenerationWriter = segmentWriterBuilder("c")
+                    .withGeneration(gcGeneration + 1)
+                    .build(rwStore);
+            RecordId headId = nextGenerationWriter.writeNode(EmptyNodeState.EMPTY_NODE).getRecordId();
+            rwStore.getRevisions().setHead(base.getRecordId(), headId);
+
+            // Add another revisions
+            if (!roots.containsKey("g")) {
+                roots.put(addNode(rwStore, "g"), "g");
+            }
+            blockJournalUpdates.countDown();
+        }
+
+        // Open the store again in read only mode and check all revisions.
+        // This simulates accessing the store after an unclean shutdown.
+        try (ReadOnlyFileStore roStore = fileStoreBuilder(getFileStoreFolder()).buildReadOnly()) {
+            for (Entry<String, String> revision : roots.entrySet()) {
+                roStore.setRevision(revision.getKey());
+                checkNode(roStore.getHead());
+            }
+        }
+    }
+
+    private static String addNode(FileStore store, String name) throws InterruptedException {
+        SegmentNodeState base = store.getHead();
+        SegmentNodeBuilder builder = base.builder();
+        builder.setChildNode(name);
+        store.getRevisions().setHead(base.getRecordId(), builder.getNodeState().getRecordId());
+        return store.getRevisions().getHead().toString();
+    }
+
+    private static void checkNode(NodeState node) {
+        for (ChildNodeEntry cne : node.getChildNodeEntries()) {
+            checkNode(cne.getNodeState());
         }
     }
 
