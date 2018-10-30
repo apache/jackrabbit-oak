@@ -68,6 +68,11 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      */
     private final Set<SegmentBufferWriter> disposed = newHashSet();
 
+    /**
+     * Retired writers that have not yet been flushed from a previous GC generation
+     */
+    private final Set<SegmentBufferWriter> disposedOldGen = newHashSet();
+
     @Nonnull
     private final SegmentIdProvider idProvider;
 
@@ -115,6 +120,11 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             // the list so they won't get re-used anymore.
             toFlush.addAll(writers.values());
             writers.clear();
+
+            // Collect all writers from old GC generations that
+            // have been disposed
+            toFlush.addAll(disposedOldGen);
+            disposedOldGen.clear();
 
             // Collect all borrowed writers, which we need to wait for.
             // Clear the list so they will get disposed once returned.
@@ -192,7 +202,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                         gcGeneration.get()
                 );
             } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
-                disposed.add(writer);
+                disposedOldGen.add(writer);
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,
