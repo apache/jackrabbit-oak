@@ -47,10 +47,11 @@ OSGi configuration. By default both features are disabled.
 
 The following configuration options are supported:
 
-| Parameter                       | Type    | Default  | Description            |
-|-------------------------------------      |-------- -|------------------------|
-| `PARAM_PASSWORD_MAX_AGE`        | int     | 0        | Number of days until the password expires. |
-| `PARAM_PASSWORD_INITIAL_CHANGE` | boolean | false    | boolean flag to enable initial pw change.  |
+| Parameter                         | Type    | Default  | Description                                |
+|-----------------------------------|---------|----------|--------------------------------------------|
+| `PARAM_PASSWORD_MAX_AGE`          | int     | 0        | Number of days until the password expires. |
+| `PARAM_PASSWORD_INITIAL_CHANGE`   | boolean | false    | boolean flag to enable initial pw change.  |
+| `PARAM_PASSWORD_EXPIRY_FOR_ADMIN` | boolean | false    | flag to enable pw expiry for admin user.   |
 
 Note:
 

@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
@@ -71,6 +68,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 /**
  * AbstractOakTest is the base class for oak test execution.
  */
@@ -108,7 +107,7 @@ public abstract class AbstractSecurityTest {
         withEditors(oak);
         contentRepository = oak.createContentRepository();
 
-        adminSession = login(getAdminCredentials());
+        adminSession = createAdminSession(contentRepository);
         root = adminSession.getLatestRoot();
 
         Configuration.setConfiguration(getConfiguration());
@@ -175,6 +174,11 @@ public abstract class AbstractSecurityTest {
     protected Credentials getAdminCredentials() {
         String adminId = UserUtil.getAdminId(getUserConfiguration().getParameters());
         return new SimpleCredentials(adminId, adminId.toCharArray());
+    }
+
+    @NotNull
+    protected ContentSession createAdminSession(@NotNull ContentRepository repository) throws LoginException, NoSuchWorkspaceException {
+        return repository.login(getAdminCredentials(), null);
     }
 
     protected NamePathMapper getNamePathMapper() {

@@ -471,7 +471,7 @@ public class UserManagerImpl implements UserManager {
         boolean forceInitialPwChange = forceInitialPasswordChangeEnabled();
         boolean isNewUser = userTree.getStatus() == Tree.Status.NEW;
 
-        if (!UserUtil.isAdmin(config, userId)
+        if (Utils.canHavePasswordExpired(userId, config)
                 // only expiry is enabled, set in all cases
                 && ((expiryEnabled && !forceInitialPwChange)
                 // as soon as force initial pw is enabled, we set in all cases except new users,
