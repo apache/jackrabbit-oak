@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -218,7 +217,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
                 "Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
     }
 
-    @Ignore("OAK-7838")
     @Test
     public void testLargeJournal() throws IOException {
         StringWriter strOut = new StringWriter();

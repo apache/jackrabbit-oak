@@ -96,7 +96,6 @@ public class CommitsTrackerTest {
             queuedWritersMap = commitsTracker.getQueuedWritersMap();
             assertEquals(0, queuedWritersMap.size());
         } finally {
-            commitsTracker.close();
             new ExecutorCloser(executorService).close();
         }
     }
@@ -122,7 +121,7 @@ public class CommitsTrackerTest {
             
             latch.await();
             
-            Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroup();
+            Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroupLastMinute();
             assertEquals(3, commitsCountPerGroup.size());
             
             for (String group : groups) {
@@ -131,7 +130,6 @@ public class CommitsTrackerTest {
                 assertEquals(10, (long) groupCount);
             }
         } finally {
-            commitsTracker.close();
             new ExecutorCloser(executorService).close();
         }
     }
