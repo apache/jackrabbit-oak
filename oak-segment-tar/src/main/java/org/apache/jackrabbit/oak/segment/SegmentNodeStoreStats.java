@@ -181,7 +181,6 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setCollectStackTraces(boolean flag) {
         this.collectStackTraces = flag;
-        commitsTracker.close();
         commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
     }
     
@@ -198,7 +197,6 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setNumberOfOtherWritersToDetail(int otherWritersLimit) {
         this.otherWritersLimit = otherWritersLimit;
-        commitsTracker.close();
         commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
     }
     
@@ -210,7 +208,6 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setWriterGroupsForLastMinuteCounts(String[] writerGroups) {
         this.writerGroups = writerGroups;
-        commitsTracker.close();
         commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
     }
 
