@@ -232,6 +232,9 @@ public class RDBDocumentSerializer {
             }
             json.read(JsopReader.END);
 
+            // OAK-7855: check and fix _sdType
+            checkSdType(doc);
+
             return doc;
         } catch (Exception ex) {
             String message = String.format("Error processing persisted data for document '%s'", row.getId());
@@ -318,6 +321,17 @@ public class RDBDocumentSerializer {
                 doc.put(key, value);
             } while (json.matches(','));
             json.read('}');
+        }
+    }
+
+    private static void checkSdType(Document doc) {
+        Object sdType = doc.get(NodeDocument.SD_TYPE);
+        if (sdType instanceof Long) {
+            long value = (long) sdType;
+            if (value == 0) {
+                doc.remove(NodeDocument.SD_TYPE);
+                LOG.debug("Incorrect _sdType 0 in {}", doc.getId());
+            }
         }
     }
 
