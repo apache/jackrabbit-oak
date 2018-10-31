@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -291,6 +292,7 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             NodeDocument doc = rdb.find(Collection.NODES, id);
             assertNotNull(doc);
             assertEquals(SplitDocType.NONE, doc.getSplitDocType());
+            assertNull(doc.get(NodeDocument.SD_MAX_REV_TIME_IN_SECS));
         } finally {
             wds.setFailAlterTableAddColumnStatements(false);
             logCustomizer.finished();
