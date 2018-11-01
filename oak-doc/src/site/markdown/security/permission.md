@@ -18,7 +18,7 @@
 Permissions
 --------------------------------------------------------------------------------
 
-<a name="jcr_api"/>
+<a name="jcr_api"></a>
 ### JCR and Jackrabbit API
 
 While access control management is a optional feature, a JCR implementation is
@@ -88,7 +88,7 @@ Important: `absPath` refers to the node to be created
          session.save();
     }
 
-<a name="oak_permissions"/>
+<a name="oak_permissions"></a>
 ### Oak Permissions
 
 #### General Notes
@@ -310,7 +310,7 @@ to be reported to the `EventListener` will result in events being included
 or excluded according to the modified permissions. See [OAK-4196] for an example.
 
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 Due to the separation of access control management from permission evaluation,
@@ -328,7 +328,7 @@ defines the following interfaces and classes:
 - [Permissions]: The permissions defined, respected and evaluated by the repository.
 - [PermissionConstants]: Constants used throughout the permission evaluation.
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Characteristics of the Permission Evaluation
 
 As explained above permission evaluation is completely separated from the access
@@ -350,7 +350,7 @@ The behavior of the default permission implementation is described in sections
 [Permissions: The Default Implementation](permission/default.html) and 
 [Permission Evaluation in Detail: The Default Implementation](permission/evaluation.html).
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The configuration of the permission evaluation implementation is handled
@@ -364,7 +364,7 @@ methods:
 
 The supported configuration options of the default implementation are described in the corresponding [section](permission/default.html#configuration).
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Permissions vs Privileges](permission/permissionsandprivileges.html)

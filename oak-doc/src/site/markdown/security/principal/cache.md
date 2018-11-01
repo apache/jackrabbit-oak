@@ -81,7 +81,7 @@ as must any subsequent call never expose principal information that might not
 be accessible in the non-cache scenario where access to principals is protected
 by regular permission evalution.
 
-<a name="validation"/>
+<a name="validation"></a>
 ##### Validation
 
 The cache is system maintained, protected repository content that can only

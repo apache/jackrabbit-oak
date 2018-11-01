@@ -24,6 +24,7 @@ Since version 1.3.3 Oak provides functionality to remember a configurable number
 of passwords after password changes and to prevent a password to
 be set during changing a user's password if found in said history.
 
+<a href="configuration"></a>
 ### Configuration
 
 An administrator may enable password history via the
@@ -42,6 +43,7 @@ history and sets feature to remember the specified number of passwords for a use
 Note, that the current implementation has a limit of at most 1000 passwords
 remembered in the history.
 
+<a href="how"></a>
 ### How it works
 
 #### Representation in the Repository

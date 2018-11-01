@@ -76,7 +76,7 @@ LoginModule is configured and succeeds, then only the Required and Requisite Log
 LoginModule need to have succeeded for the overall authentication to succeed. If no Required or Requisite LoginModules 
 are configured for an application, then at least one Sufficient or Optional LoginModule must succeed.
 
-<a name="jcr_api"/>
+<a name="jcr_api"></a>
 ### JCR API
 
 Within the scope of JCR `Repository.login` is used to authenticate a given user.
@@ -104,7 +104,7 @@ for further details.
 In addition JCR defines `Session.impersonate(Credentials)` to impersonate another
 user or - as of JSR 333 -  clone an existing session.
 
-<a name="oak_api"/>
+<a name="oak_api"></a>
 ### Oak API
 
 The Oak API contains the following authentication related methods and interfaces
@@ -113,7 +113,7 @@ The Oak API contains the following authentication related methods and interfaces
 - `ContentRepository.login(Credentials, String)`: The Oak counterpart of the JCR login.
 - `ContentSession.getAuthInfo()`: exposes the `AuthInfo` associated with the `ContentSession`.
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extension
 
 #### Oak Authentication
@@ -185,7 +185,7 @@ Subclasses are required to implement the following methods:
         }
     }
 
-<a name="supported_credentials"/>
+<a name="supported_credentials"></a>
 #### Supported Credentials
 
 Since Oak 1.5.1 the extensions additionally contain a dedicated interface that
@@ -195,7 +195,7 @@ eases the support for different `Credentials` in the package space
 - [CredentialsSupport]: Interface definition exposing the set of supported `Credentials` classes and some common utility methods.
 - [SimpleCredentialsSupport]: Default implementation for the widely used `SimpleCredentials`
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Oak Authentication Implementation
 
 A description of the various requirements covered by Oak by default as well
@@ -205,7 +205,7 @@ section [Authentication: Implementation Details](authentication/default.html).
 See section [differences](authentication/differences.html) for comprehensive list 
 of differences wrt authentication between Jackrabbit 2.x and Oak.
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The configuration of the authentication setup is defined by the [AuthenticationConfiguration].
@@ -223,7 +223,7 @@ There also exists a utility class that allows to obtain different
     - `TokenLoginModule`: covers token based authentication
     - `LoginModuleImpl`: covering regular uid/pw login
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
@@ -238,7 +238,7 @@ implementation on various levels:
    by making the modules accessible to the framework and setting their execution
    order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Authentication: Implementation Details](authentication/default.html)

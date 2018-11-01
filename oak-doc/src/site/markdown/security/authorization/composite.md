@@ -34,7 +34,7 @@ models, this extension is only recommended for experts that have in-depth
 knowledge and understanding of Jackrabbit/Oak authorization concepts. Doing so 
 might otherwise result in severe security issues and heavily impact overall performance.
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 There are two interfaces required to make a given authorization model deployable 
@@ -70,7 +70,7 @@ this fact by just returning the subset of supported read permissions upon
 will consequently not consult this implementation for the evaluation of write 
 permissions and move on to other providers in the aggregate.
 
-<a name="details"/>
+<a name="details"></a>
 ### Implementation Details
 
 As soon as multiple authorization models are configured with the security setup, 
@@ -145,13 +145,13 @@ extensions and the permission evaluation, respectively. A given model may decide
 provide no support for restrictions. Examples include modules that deal with different 
 types of `AccessControlPolicy` where restriction management doesn't apply (see for example [oak-authorization-cug](cug.html#details)).
                
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 By default the `CompositeAuthorizationConfiguration` aggregates results by applying an `AND` operation to the current set of providers.
 This can be changed via configuration to an `OR`. See section [Introduction to Oak Security](../../introduction.html#configuration) for further details.
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The following steps are required to plug an additional authorization model into 

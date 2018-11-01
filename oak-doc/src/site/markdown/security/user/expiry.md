@@ -39,6 +39,7 @@ to obtain a session/login and the password needs to be changed prior
 to a next attempt. For specifying the new password, the initial password 
 has to be provided.
 
+<a href="configuration"></a>
 ### Configuration
 
 An administrator may enable password expiry and initial password change 
@@ -58,6 +59,7 @@ Note:
 - Maximum Password Age (`maxPasswordAge`) will only be enabled when a value greater 0 is set (expiration time in days).
 - Change Password On First Login (`initialPasswordChange`): When enabled, forces users to change their password upon first login.
 
+<a href="how"></a>
 ### How it works
 
 #### Definition of Expired Password
