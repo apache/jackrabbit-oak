@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.9
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.10
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.9 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.10 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,98 +15,81 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.9
+Changes in Oak 1.9.10
 --------------------
 
 Technical task
 
-    [OAK-7411] - Make oak-lucene extend from oak-search
-    [OAK-7729] - RDB*Store: update postgresql JDBC driver reference to 42.2.5
-    [OAK-7730] - RDB*Store: update Tomcat JDBC pool dependency to 8.5.33
-    [OAK-7732] - Use docker for MongoDB based tests when available
-    [OAK-7737] - Add edge cases checks and tests for metadata related methods S3/FileDataStore
-    [OAK-7738] - Add method to check for existence of metadata in SharedDataStore
+    [OAK-7809] - need to document oak-run for RDB
+    [OAK-7861] - update clustering documentation wrt rdbmk
 
 Bug
 
-    [OAK-7205] - Test failure: ActiveDeletedBlobSyncTrackerTest.syncActiveDeletionWithBlobTracker
-    [OAK-7485] - DocumentNodeStore doesn't work with shared Atlas MongoDB replica set
-    [OAK-7710] - CompositeNodeStore does not dispatch external events to observers
-    [OAK-7717] - Documentation for direct binary access is unclear
-    [OAK-7721] - Records of specific size bring SegmentBufferWriter#flush to fail
-    [OAK-7724] - BlobGCMbean not registered with SegmentNodeStoreFactory
-    [OAK-7749] - Fix random failures in S3 related tests
-    [OAK-7751] - CopyOnReadDirectory#removeDeletedFiles asks IndexCopier to check timestamp for (remote only) segments.gen leading to failure to clean up local files
-    [OAK-7765] - BlobGCMbean registered with SegmentNodeStoreFactory even if customBlobStore is false
-    [OAK-7766] - RepositoryId not registered in the DataStore with SegmentNodeStoreFactory
-    [OAK-7776] - Ignore copying of :clusterConfig in InitialContentMigrator
-    [OAK-7777] - Fix getStats in GC to account also for duplicate entries of references
-    [OAK-7783] - Default write concern and read concern level not applied
-    [OAK-7789] - javadoc link to JCR API not resolved anymore
-    [OAK-7794] - Changes are not dispatched when the segment node store is used as the global store
-    [OAK-7798] - Return stream for downloaded files rather than directly from backend
-    [OAK-7799] - CompositeNodeStore hides Clusterable
-    [OAK-7800] - LuceneIndexConstants should extend FulltextIndexConstants
-    [OAK-7801] - CompositeNodeStore.merge() may trigger conflicting branches
-    [OAK-7802] - LuceneIndexHelper should extend IndexHelper
-    [OAK-7805] - getBinaryReferences() may return null when using the split persistence
-    [OAK-7808] - Incorrect facet counts when some results are inaccessible due to ACLs
-    [OAK-7812] - Error running OffRC on Azure because of incorrect parsing
-
-Epic
-
-    [OAK-7648] - Oak should compile & test on Java 11
+    [OAK-7486] - mongo-srv schema doesn't work in OSGi
+    [OAK-7807] - [S3DataStore] S3DataStore unit tests not deleting
+    buckets created during test
+    [OAK-7818] - [DirectBinaryAccess] AzureDataStore not chaining
+    exceptions on upload completion
+    [OAK-7855] - rdbmk: Invalid SplitDocType when run on non-upgraded
+    DB
+    [OAK-7856] - PrincipalPermissionEntries: non-accesscontrolled path
+    must be ignored for fullyLoaded flag
+    [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
+    out metadata objects
+    [OAK-7871] - Broken headers in security documentation
 
 New Feature
 
-    [OAK-7770] - Azure Segment Store: Store segments off heap when memory mapping is disabled
-    [OAK-7771] - Make mmap and segment cache size configurable in SegmentCompactionIT
-    [OAK-7773] - Implement monitoring for allocated byte buffers
-
-Story
-
-    [OAK-7735] - Split segment store persistence
+    [OAK-7834] - Add a tool to identify super-root nodes
+    [OAK-7849] - CommitHook for recording write operations to the
+    segment store
+    [OAK-7864] - Recording read operations to the segment store
 
 Improvement
 
-    [OAK-6402] - SessionStats log access warning
-    [OAK-7510] - Run repository initializers with hooks
-    [OAK-7639] - Surface more DSGC operation stats
-    [OAK-7709] - DocumentNodeStore dispose aborts when store was disposed due to LeaseUpdate error
-    [OAK-7716] - Enable datastore command for Azure segment store
-    [OAK-7720] - Log hex dump of too big segments
-    [OAK-7722] - Support collectBlobReferences in ReadOnlyFileStore
-    [OAK-7727] - Aggregate references from repositories with same repositoryId
-    [OAK-7733] - Skip setup when DocumentStorePerformanceTest is not enabled
-    [OAK-7739] - Use an index only if a certain node or property exists
-    [OAK-7741] - Token LoginModule flag to skip refreshing the token expiration
-    [OAK-7753] - Enable collection of stats for DataStore checkConsistency operation
-    [OAK-7757] - CompositeNodeStore fixture on MongoDB
-    [OAK-7758] - Non-blocking CompositeNodeStore merges
-    [OAK-7760] - Use NIO in the implementation of FileAccess.Mapped#read
-    [OAK-7768] - Ability to deprecate an index
-    [OAK-7782] - Clarify error on aggregate privilege registration with non existing privileges
-    [OAK-7786] - Make the NamespaceEditor less strict when enforcing changes to rep:nsdata node
-    [OAK-7788] - Measure read rate for the Segment Store
-    [OAK-7796] - Remove the incomplete support for the writeable partial stores
-
-Test
-
-    [OAK-6517] - ActiveDeletedBlobCollectionIT.simpleAsyncIndexUpdateBasedBlobCollection failing intermittently
+    [OAK-7288] - Change default JAAS ranking of
+    ExternalLoginModuleFactory
+    [OAK-7645] - Update to MongoDB Java driver 3.8
+    [OAK-7813] - PrivilegeBits should also cache default privilege as
+    long values
+    [OAK-7815] - Obscure error message if AZURE_SECRET_KEY env
+    variable is not set for Azure persistence
+    [OAK-7820] - Make internal group principal impl classes static
+    [OAK-7821] - Revisit the need to download Mongo for running IT
+    tests
+    [OAK-7822] - More aggressive internal state cleanup of login
+    modules
+    [OAK-7832] - oak-run console export should handle exceptions such
+    as missing segments
+    [OAK-7860] - Make PermissionEntryCache more resilient against OOME
+    [OAK-7870] - Reduce permission store lookups for empty principal
+    sets
+    [OAK-7872] - Make LoggingHook private to o.a.j.o.segment
 
 Task
 
-    [OAK-7653] - upgrade to Jacoco version compatible with Java 11
-    [OAK-7658] - Allow to decide whether the composite node store checks should be enabled
-    [OAK-7734] - fix formatting in release notes
-    [OAK-7736] - fix comparisonVersion for baseline check
-    [OAK-7745] - Clarify update semantics on deleted nodes
-    [OAK-7748] - DocumentStore: test (and optionally optimize) bulk update fallback logic
-    [OAK-7767] - Update tika dependency to 1.19
-    [OAK-7785] - Update Oak trunk to Jackrabbit 2.17.6
-    [OAK-7787] - oak-it: NoClassDefFoundError in log with Java 11
-    [OAK-7790] - fix Javadoc (11) errors
+    [OAK-7795] - Log a debug message when two or more indices have
+    same or very close cost amounts
+    [OAK-7814] - Update tika dependency to 1.19.1
+    [OAK-7823] - examples: use project-wide logback version 1.2.3
+    instead of 1.1.7
+    [OAK-7827] - examples: update Spring dependencies to
+    1.5.16.RELEASE
+    [OAK-7828] - Log off heap access for segments when creating
+    FileStore
+    [OAK-7829] - oak-examples: update Tomcat dependency to 7.0.91
+    [OAK-7831] - examples: update htmlunit dependency to 2.33
+    [OAK-7833] - oak-examples/webapp: update groovy dependency
+    [OAK-7836] - Update jackson dependencies to 2.9.7
+    [OAK-7839] - Evaluate exporting of index corruption metrics with
+    Sling Metrics / DropWizard
+    [OAK-7842] - solr: suppress problematic commons-fileupload
+    dependency
+    [OAK-7848] - update maven-bundle-plugin to 3.5.1
 
+Documentation
+
+    [OAK-7233] - Improve rep:glob documentation
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
