@@ -21,10 +21,12 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.UnsupportedEncodingException;
+
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.segment.tool.LoggingHook;
+import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -129,10 +131,18 @@ public class CachingSegmentReader implements SegmentReader {
         });
     }
 
+    private static String safeEncode(String value) {
+        try {
+            return SafeEncode.safeEncode(value);
+        } catch (UnsupportedEncodingException e) {
+            return "ERROR: " + e;
+        }
+    }
+
     @NotNull
     @Override
     public SegmentNodeState readNode(@NotNull RecordId id) {
-        LOG.trace(System.currentTimeMillis() + " " + LoggingHook.urlEncode(Thread.currentThread().getName()) + " n? " + id.toString());
+        LOG.trace(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " n? " + id.toString());
         return new SegmentNodeState(this, writer, blobStore, id, readStats);
     }
 
@@ -146,7 +156,7 @@ public class CachingSegmentReader implements SegmentReader {
     @Override
     public SegmentPropertyState readProperty(
             @NotNull RecordId id, @NotNull PropertyTemplate template) {
-        LOG.trace(System.currentTimeMillis() + " " + LoggingHook.urlEncode(Thread.currentThread().getName()) + " p? " + id.toString());
+        LOG.trace(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " p? " + id.toString());
         return new SegmentPropertyState(this, id, template);
     }
 
