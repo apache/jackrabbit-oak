@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -252,7 +251,6 @@ public class FileStoreIT {
         }
     }
 
-    @Ignore("OAK-7867")
     @Test
     public void blockingBlob() throws Exception {
 

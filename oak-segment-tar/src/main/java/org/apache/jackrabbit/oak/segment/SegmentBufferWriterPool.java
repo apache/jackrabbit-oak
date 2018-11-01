@@ -27,6 +27,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
- * which it passes to its {@link #execute(WriteOperation) execute} method.
+ * which it passes to its {@link #execute(GCGeneration, WriteOperation) execute} method.
  * <p>
  * Instances of this class are thread safe.
  */
@@ -67,11 +68,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      */
     private final Set<SegmentBufferWriter> disposed = newHashSet();
 
-    /**
-     * Retired writers that have not yet been flushed from a previous GC generation
-     */
-    private final Set<SegmentBufferWriter> disposedOldGen = newHashSet();
-
     @NotNull
     private final SegmentIdProvider idProvider;
 
@@ -97,14 +93,23 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
+    @Override
+    @NotNull
+    public GCGeneration getGCGeneration() {
+        return gcGeneration.get();
+    }
+
     @NotNull
     @Override
-    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
-        SegmentBufferWriter writer = borrowWriter(currentThread());
+    public RecordId execute(@NotNull GCGeneration gcGeneration,
+                            @NotNull WriteOperation writeOperation)
+    throws IOException {
+        SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(currentThread(), gcGeneration);
+        SegmentBufferWriter writer = borrowWriter(key);
         try {
             return writeOperation.execute(writer);
         } finally {
-            returnWriter(currentThread(), writer);
+            returnWriter(key, writer);
         }
     }
 
@@ -119,11 +124,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             // the list so they won't get re-used anymore.
             toFlush.addAll(writers.values());
             writers.clear();
-
-            // Collect all writers from old GC generations that
-            // have been disposed
-            toFlush.addAll(disposedOldGen);
-            disposedOldGen.clear();
 
             // Collect all borrowed writers, which we need to wait for.
             // Clear the list so they will get disposed once returned.
@@ -179,7 +179,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             monitor.enterWhen(guard);
             return true;
         } catch (InterruptedException ignore) {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
             return false;
         }
     }
@@ -194,14 +194,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         try {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
-                writer = new SegmentBufferWriter(
-                        idProvider,
-                        reader,
-                        getWriterId(wid),
-                        gcGeneration.get()
-                );
-            } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
-                disposedOldGen.add(writer);
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,
