@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.tool;
+package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -25,13 +25,12 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -46,7 +45,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
         this.writer = writer;
     }
 
-    public static LoggingHook newLoggingHook(final Consumer<String> writer) {
+    static LoggingHook newLoggingHook(final Consumer<String> writer) {
         return new LoggingHook(writer);
     }
 
@@ -76,9 +75,17 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
         return true;
     }
 
+    private static String safeEncode(String value) {
+        try {
+            return SafeEncode.safeEncode(value);
+        } catch (UnsupportedEncodingException e) {
+            return "ERROR: " + e;
+        }
+    }
+
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        log("n+ " + urlEncode(name));
+        log("n+ " + safeEncode(name));
         this.enter(null, after);
         boolean ret = after.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE, this);
         this.leave(null, after);
@@ -87,7 +94,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        log("n^ " + urlEncode(name));
+        log("n^ " + safeEncode(name));
         this.enter(before, after);
         boolean ret = after.compareAgainstBaseState(before, this);
         this.leave(before, after);
@@ -96,13 +103,13 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        log("n- " + urlEncode(name));
+        log("n- " + safeEncode(name));
         return true;
     }
 
     private static String toString(final PropertyState ps) {
         final StringBuilder val = new StringBuilder(); // TODO: an output stream would certainly be better
-        val.append(urlEncode(ps.getName()));
+        val.append(safeEncode(ps.getName()));
         val.append(" <");
         val.append(ps.getType());
         val.append("> ");
@@ -120,24 +127,14 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
         } else if (ps.isArray()) {
             val.append("= [");
             ps.getValue(STRINGS).forEach((String s) -> {
-                val.append(urlEncode(s));
+                val.append(safeEncode(s));
                 val.append(',');
             });
             replaceOrAppendLastChar(val, ',', ']');
         } else {
-            val.append("= ").append(urlEncode(ps.getValue(STRING)));
+            val.append("= ").append(safeEncode(ps.getValue(STRING)));
         }
         return val.toString();
-    }
-
-    public static String urlEncode(String s) {
-        String ret;
-        try {
-            ret = URLEncoder.encode(s, "UTF-8").replace("%2F", "/").replace("%3A", ":");
-        } catch (UnsupportedEncodingException ex) {
-            ret = "ERROR: " + ex.toString();
-        }
-        return ret;
     }
 
     private static void replaceOrAppendLastChar(StringBuilder b, char oldChar, char newChar) {
@@ -149,7 +146,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
     }
 
     private void log(String s) {
-        writer.accept(System.currentTimeMillis() + " " + urlEncode(Thread.currentThread().getName()) + " " + s);
+        writer.accept(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " " + s);
     }
 
     private static void appendBlob(StringBuilder sb, Blob blob) {
@@ -168,10 +165,11 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @NotNull
     @Override
-    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) {
         this.enter(before, after);
         after.compareAgainstBaseState(before, this);
         this.leave(before, after);
         return after;
     }
+
 }
