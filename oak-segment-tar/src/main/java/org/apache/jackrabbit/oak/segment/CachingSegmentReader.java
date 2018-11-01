@@ -24,11 +24,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.segment.tool.LoggingHook;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This {@code SegmentReader} implementation implements caching for
@@ -37,6 +40,8 @@ import org.jetbrains.annotations.Nullable;
 public class CachingSegmentReader implements SegmentReader {
     public static final int DEFAULT_STRING_CACHE_MB = 256;
     public static final int DEFAULT_TEMPLATE_CACHE_MB = 64;
+
+    private static final Logger LOG = LoggerFactory.getLogger(LoggingHook.class.getName() + ".reader");
 
     @NotNull
     private final Supplier<SegmentWriter> writer;
@@ -127,6 +132,7 @@ public class CachingSegmentReader implements SegmentReader {
     @NotNull
     @Override
     public SegmentNodeState readNode(@NotNull RecordId id) {
+        LOG.trace(System.currentTimeMillis() + " " + LoggingHook.urlEncode(Thread.currentThread().getName()) + " n? " + id.toString());
         return new SegmentNodeState(this, writer, blobStore, id, readStats);
     }
 
@@ -140,6 +146,7 @@ public class CachingSegmentReader implements SegmentReader {
     @Override
     public SegmentPropertyState readProperty(
             @NotNull RecordId id, @NotNull PropertyTemplate template) {
+        LOG.trace(System.currentTimeMillis() + " " + LoggingHook.urlEncode(Thread.currentThread().getName()) + " p? " + id.toString());
         return new SegmentPropertyState(this, id, template);
     }
 
