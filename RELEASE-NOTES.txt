@@ -73,7 +73,6 @@ Task
     [OAK-7814] - Update tika dependency to 1.19.1
     [OAK-7823] - examples: use project-wide logback version 1.2.3
     instead of 1.1.7
-    [OAK-7826] - examples: remove unused slf4f related vars from pom
     [OAK-7827] - examples: update Spring dependencies to
     1.5.16.RELEASE
     [OAK-7828] - Log off heap access for segments when creating
