@@ -49,7 +49,7 @@ be applied to the repository without taking effect.
 effect upon being persisted, i.e. access to items located in a restricted are
 will be subject to the permission evaluation associated with the authorization model.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API defines an extension of the JCR [AccessControlPolicy] interface 
@@ -61,7 +61,7 @@ intended to grant the ability to perform certain actions to a set of
 See [Jackrabbit API](http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.java) 
 for details and the methods exposed by the interface.
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 The module comes with the following extension in the 
@@ -100,7 +100,7 @@ allows to excluded principals by their names at runtime.
 
 See also section [Pluggability](#pluggability) below.                            
 
-<a name="details"/>
+<a name="details"></a>
 ### Implementation Details
 
 #### Access Control Management
@@ -183,7 +183,7 @@ _Note:_ the multivalued `rep:principalNames` property reflects the fact
 that CUGs are intended to be used for small principal sets, preferably 
 `java.security.acl.Group` principals. 
 
-<a name="validation"/>
+<a name="validation"></a>
 ### Validation
 
 The consistency of this content structure both on creation and modification is
@@ -197,7 +197,7 @@ all of type `AccessControl` with the following codes:
 | 0022              | Access controlled not not of mixin 'rep:CugMixin'        |
 | 0023              | Wrong name of node with primary type 'rep:CugPolicy'     |
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The CUG authorization extension is an optional feature that requires mandatory
@@ -237,7 +237,7 @@ _Note:_ This implementation extends the [default](/oak/docs/apidocs/org/apache/j
 exclusion list. Alternatively, it is possible to plug a custom `CugExclude` implementation matching 
 specific needs (see [below](#pluggability)).
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The following section describes how to deploy the CUG authorization model into

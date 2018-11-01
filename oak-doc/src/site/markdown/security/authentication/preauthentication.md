@@ -25,7 +25,7 @@ validation.
 - [Pre-Authentication combined with Login Module Chain](#withloginchain)
 - [Pre-Authentication without Repository Involvement](#withoutrepository)
 
-<a name="withloginchain"/>
+<a name="withloginchain"></a>
 ### Pre-Authentication combined with Login Module Chain
 
 This first variant allows to support 3rd party login modules that wish to provide
@@ -99,7 +99,7 @@ marker to the shared state:
         }
     }
 
-<a name="withoutrepository"/>
+<a name="withoutrepository"></a>
 ### Pre-Authentication without Repository Involvement
 
 Like in Jackrabbit-core the repository internal authentication verification can

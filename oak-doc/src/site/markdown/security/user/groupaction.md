@@ -29,6 +29,7 @@ such as
 - add a set of member ids as members of a group
 - remove a set of member ids from a group
 
+<a name="api_extensions"></a>
 ### GroupAction API
 
 The following public interface is provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
@@ -49,22 +50,25 @@ Any group actions are executed with the editing session and the
 target operation will fail if any of the configured actions fails (e.g. due to
 insufficient permissions by the editing Oak ContentSession).
 
+<a name="default_implementation"></a>
 ### Default Implementations
 
 Oak 1.5 provides the following base implementation for `GroupAction` implementations to build upon:
 
 - `AbstractGroupAction`: abstract base implementation that doesn't perform any action.
 
-### Pluggability
-
-Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on how to plug
-a new group action into the system.
-
+<a name="xml_import"></a>
 ### XML Import
 
 During import the group actions are called in the same fashion as for regular groups as long as the member reference
 can be resolved to an existing authorizable. Member IDs of authorizables that do not exist at group import time  or
 failed member IDs are passed to the group actions if `ImportBehavior.BESTEFFORT` is set for the import.
+
+<a name="pluggability"></a>
+### Pluggability
+
+Refer to [Authorizable Actions | Pluggability ](authorizableaction.html#Pluggability) for details on how to plug
+a new group action into the system.
 
 ##### Examples
 

@@ -51,7 +51,7 @@ facing usage of restrictions i.e. access control management.
 In addition Oak provides it's own restriction API that adds support for internal 
 validation and permission evaluation.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API add the following extensions to JCR access control management
@@ -69,7 +69,7 @@ to read and create entries with restrictions:
     - `getRestriction(String restrictionName)`: returns the restriction as JCR value.
     - `getRestrictions(String restrictionName)`: returns the restriction as array of JCR values (since Oak 1.0, Jackrabbit API 2.8).
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### Oak Restriction API
 
 The following public interfaces are provided by Oak in the package 
@@ -82,7 +82,7 @@ repository internal permission evaluation:
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
@@ -158,7 +158,7 @@ Examples without wildcard char:
 
 See also [GlobPattern] for implementation details.
 
-<a name="representation"/>
+<a name="representation"></a>
 ### Representation in the Repository
 
 All restrictions defined by default in a Oak repository are stored as properties 
@@ -182,7 +182,7 @@ The node type definition used to represent restriction content is as follows:
       - * (UNDEFINED) protected multiple
 
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom

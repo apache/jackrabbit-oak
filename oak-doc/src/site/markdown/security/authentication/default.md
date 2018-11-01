@@ -39,7 +39,7 @@ dedicated `LoginModule` implementation(s) for each scenario:
 - [Pre-Authenticated Login](#pre_authenticated)
 - [External Login](#external)
 
-<a name="guest"/>
+<a name="guest"></a>
 #### Guest Login
 
 The proper way to obtain an guest session as of Oak is as specified by JSR 283:
@@ -89,7 +89,7 @@ The behavior of the `GuestLoginModule` is as follows:
   `EveryonePrincipal` the `Subject` in phase 2 of the login process and **returns** `true`
 - otherwise it **returns** `false`
 
-<a name="uid_pw"/>
+<a name="uid_pw"></a>
 #### UserId/Password Login
 
 Oak 1.0 comes with 2 different login module implementations that can handle
@@ -126,7 +126,7 @@ This login module implementations behaves as follows:
 * if the private state contains the credentials and principals, it adds them (both) to the subject and **returns `true`**
 * if the private state does not contain credentials and principals, it clears the state and **returns `false`**
 
-<a name="user_authentication"/>
+<a name="user_authentication"></a>
 ###### User Authentication
 
 The `LoginModuleImpl` uses a configured `Authentication`-implementation for 
@@ -142,7 +142,7 @@ will take precedence.
 
 See also section [user management](../user/default.html#pluggability).
 
-<a name="impersonation"/>
+<a name="impersonation"></a>
 #### Impersonation Login
 
 Another flavor of the Oak authentication implementation is covered by
@@ -201,7 +201,7 @@ following steps in order to get JCR impersonation working:
   with the editing session can be identified by the [AuthInfo] obtained from
   from `ImpersonationCredentials.getImpersonatorInfo()`.
 
-<a name="token"/>
+<a name="token"></a>
 #### Token Login
 
 See section [Token Authentication](tokenmanagement.html) for details
@@ -213,7 +213,7 @@ The `TokenLoginModule` is in charge of creating new login tokens and validate
 repository logins with `TokenCredentials`. The exact behavior of this login module is
 described in section [Token Authentication](tokenmanagement.html).
 
-<a name="pre_authenticated"/>
+<a name="pre_authenticated"></a>
 #### Pre-Authenticated Login
 
 Oak provides two different mechanisms to create pre-authentication that doesn't
@@ -226,7 +226,7 @@ validation.
 See section [Pre-Authentication Login](preauthentication.html) for
 further details and examples.
 
-<a name="external"/>
+<a name="external"></a>
 #### External Login
 
 While the default setup in Oak is solely relying on repository functionality to

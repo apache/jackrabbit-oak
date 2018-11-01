@@ -18,7 +18,7 @@
 User Management
 --------------------------------------------------------------------------------
 
-<a name="jcr_api"/>
+<a name="jcr_api"></a>
 ### JCR API
 
 JCR itself doesn't come with a dedicated user management API. The only method
@@ -26,7 +26,7 @@ related and ultimately used for user management tasks is `Session.getUserID()`.
 Therefore an API for user and group management has been defined as part of the
 extensions present with Jackrabbit API.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API provides the user management related extensions that are
@@ -41,7 +41,7 @@ missing in JCR. The relevant interfaces are defined in the
 - `QueryBuilder`
     - `Query`
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 The Oak project introduces the following user management related public
@@ -54,7 +54,7 @@ interfaces and classes:
 - `UserAuthenticationFactory`: see sections [pluggability](user/default.html#pluggability) 
 and [user authentication](authentication/default.html#user_authentication) for additional details.
 
-<a name="utilities"/>
+<a name="utilities"></a>
 ### Utilities
 
 `org.apache.jackrabbit.oak.spi.security.user.*`
@@ -70,13 +70,13 @@ and [user authentication](authentication/default.html#user_authentication) for a
   function for password generation.
 - `UserUtil` : Utilities related to general user management tasks.
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Oak User Management Implementation
 
 The behavior of the default user management implementation is described in section 
 [User Management: The Default Implementation](user/default.html).
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The Oak user management comes with a dedicated entry point called [UserConfiguration]. 
@@ -90,7 +90,7 @@ and provides the following two methods:
 
 The supported configuration options of the default implementation are described in the corresponding [section](user/default.html#configuration).
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to have the default
@@ -106,7 +106,7 @@ Alternatively the default user management implementation can be extended and
 adjusted using various means. See the corresponding [section](user/default.html#pluggability)
 for further details.
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](user/differences.html)

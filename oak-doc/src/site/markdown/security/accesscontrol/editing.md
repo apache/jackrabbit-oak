@@ -18,6 +18,7 @@
 Using the Access Control Management API
 --------------------------------------------------------------------------------
 
+<a name="read"></a>
 ### Reading
 
 #### Privilege Discovery
@@ -98,6 +99,7 @@ and privileges on `AccessControlManager`.
 - `JackrabbitAccessControlManager`
     - `getEffectivePolicies(Set<Principal>)`
 
+<a name="write"></a>
 ### Writing
 
 #### Adding Policies
@@ -266,6 +268,7 @@ or alternatively use `AccessControlUtils`:
         }
     }
 
+<a name="repository_level"></a>
 ### Access Control on Repository Level
 
 ##### Examples

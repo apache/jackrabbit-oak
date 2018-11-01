@@ -36,7 +36,7 @@ What it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
-<a name="details"/>
+<a name="details"></a>
 
 ### Implementation Details
 The external identity and login handling is split into 3 parts:
@@ -121,7 +121,7 @@ present on the IDP.
 See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
-<a name="configuration"/>
+<a name="configuration"></a>
 
 ### Configuration
 
@@ -157,7 +157,7 @@ are omitted):
          org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
      };
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 
 ### Pluggability
 

@@ -41,7 +41,7 @@ handle both in a consistent manner. Consequently the main entry point for
 authorization related operations is a single `AuthorizationConfiguration` (see 
 section [configuration](#configuration) below).
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 The API extensions provided by Oak are covered in the following sections:
@@ -50,7 +50,7 @@ The API extensions provided by Oak are covered in the following sections:
 - [Permissions](permission.html#api_extensions)
 - [Restriction Management](authorization/restriction.html#api_extensions)
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The configuration of the authorization related parts is handled by the [AuthorizationConfiguration]. 
@@ -66,7 +66,7 @@ The supported configuration options of the default implementation are described
 separately for [access control management](accesscontrol/default.html#configuration) 
 and [permission evalution](permission/default.html#configuration) .
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 There are multiple options for plugging authorization related custom implementations:
@@ -99,7 +99,7 @@ restriction management that allows to narrow the effect of permissions to
 items matching a given, defined behavior. Details can be found in section 
 [RestrictionManagement](authorization/restriction.html#pluggability).
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Access Control Management](accesscontrol.html)

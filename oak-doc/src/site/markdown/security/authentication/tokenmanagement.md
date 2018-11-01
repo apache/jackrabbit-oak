@@ -68,7 +68,7 @@ authentication phases behave as follows:
    };
 
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### Token Management API
 
 Oak 1.0 defines the following interfaces used to manage login tokens:
@@ -85,20 +85,20 @@ that is able to aggregate multiple `TokenProvider`s:
 
 See section [Pluggability](#pluggability) for an example.
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Characteristics of the Default Implementation
 
 The characteristics of the default token management implementation is
 described in section [Token Management : The Default Implementation](token/default.html). 
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The configuration options of the default implementation are described in
 the [Configuration](token/default.html#configuration) section.
 
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to deal with 
