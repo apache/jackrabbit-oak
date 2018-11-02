@@ -142,7 +142,9 @@ public class CachingSegmentReader implements SegmentReader {
     @NotNull
     @Override
     public SegmentNodeState readNode(@NotNull RecordId id) {
-        LOG.trace(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " n? " + id.toString());
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("{} n? {}", Thread.currentThread().getId(), id);
+        }
         return new SegmentNodeState(this, writer, blobStore, id, readStats);
     }
 
@@ -154,9 +156,10 @@ public class CachingSegmentReader implements SegmentReader {
 
     @NotNull
     @Override
-    public SegmentPropertyState readProperty(
-            @NotNull RecordId id, @NotNull PropertyTemplate template) {
-        LOG.trace(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " p? " + id.toString());
+    public SegmentPropertyState readProperty(@NotNull RecordId id, @NotNull PropertyTemplate template) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("{} p? {}", Thread.currentThread().getId(), id);
+        }
         return new SegmentPropertyState(this, id, template);
     }
 
