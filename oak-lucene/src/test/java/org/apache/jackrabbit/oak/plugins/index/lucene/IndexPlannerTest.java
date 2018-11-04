@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
@@ -41,6 +42,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -77,6 +79,7 @@ import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -1749,6 +1752,87 @@ public class IndexPlannerTest {
     }
     //------ END - Cost via doc count per field plan tests
 
+    @Test
+    public void facetGetsPlanned() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("facet").getBuilderTree().setProperty(FACETS, true);
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+
+        // just so that the index can be picked..
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull("Index supporting facet should participate", plan);
+    }
+
+    @Test
+    public void facetGetsPlanned2() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("facet1").getBuilderTree().setProperty(FACETS, true);
+        defnb.indexRule("nt:base").property("rel/facet2").getBuilderTree().setProperty(FACETS, true);
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet1)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(rel/facet2)"));
+
+        // just so that the index can be picked..
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull("Index supporting all facets should participate", plan);
+    }
+
+    @Test
+    public void noFacetPropIndexed() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+
+        // just so that the index can be picked..
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull("Index supporting none of the facets mustn't participate", plan);
+    }
+
+    @Test
+    public void someFacetPropIndexed() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("facet").getBuilderTree().setProperty(FACETS, true);
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+        filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(rel/facet)"));
+
+        // just so that the index can be picked..
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNull("Index supporting some of the facets mustn't participate", plan);
+    }
 
     private LuceneIndexNode createIndexNode(LuceneIndexDefinition  defn, long numOfDocs) throws IOException {
         return new LuceneIndexNodeManager("foo", defn, new TestReaderFactory(createSampleDirectory(numOfDocs)).createReaders(defn, EMPTY_NODE, "foo"), null).acquire();
