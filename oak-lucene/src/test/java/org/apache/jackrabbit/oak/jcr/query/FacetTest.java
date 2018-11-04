@@ -105,29 +105,6 @@ public class FacetTest extends AbstractQueryTest {
         super.tearDown();
     }
 
-    public void testFacetsNA() throws Exception {
-        if (superuser.itemExists(FACET_CONFING_PROP_PATH)) {
-            superuser.getItem(FACET_CONFING_PROP_PATH).remove();
-            markIndexForReindex();
-            superuser.save();
-        }
-        Session session = superuser;
-        QueryManager qm = session.getWorkspace().getQueryManager();
-        Node n1 = testRootNode.addNode("node1");
-        n1.setProperty("text", "foo");
-        Node n2 = testRootNode.addNode("node2");
-        n2.setProperty("text", "bar");
-        session.save();
-
-        String sql2 = "select [jcr:path], [rep:facet(text)] from [nt:base] " +
-                "where contains([text], 'foo OR bar')";
-        Query q = qm.createQuery(sql2, Query.JCR_SQL2);
-        QueryResult result = q.execute();
-        FacetResult facetResult = new FacetResult(result);
-        assertNotNull(facetResult);
-        assertTrue(facetResult.getDimensions().isEmpty());
-    }
-
     public void testFacetRetrieval() throws Exception {
         Session session = superuser;
         Node n1 = testRootNode.addNode("node1");
@@ -709,6 +686,55 @@ public class FacetTest extends AbstractQueryTest {
         FacetResult.Facet facet = facetResult.getFacets("jcr:title").get(0);
         assertEquals("Unexpected facet label", "test", facet.getLabel());
         assertEquals("Unexpected facet count", 1, facet.getCount());
+    }
+
+    public void testNoIndexedFacetedQuery() throws Exception {
+        Query q = qm.createQuery("//*[@jcr:title]/(rep:facet(non-indexed/jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+
+        try {
+            new FacetResult(result);
+
+            fail("Facet evaluation must fail if the index doesn't support the required faceted properties");
+        } catch (RuntimeException iae) {
+            if (iae.getCause() instanceof IllegalArgumentException) {
+                // expected and hence ignored
+            } else {
+                throw iae;
+            }
+        }
+
+        q = qm.createQuery("//*[@jcr:title]/(rep:facet(non-indexed1/jcr:title) | rep:facet(non-indexed2/jcr:title))", Query.XPATH);
+        result = q.execute();
+
+        try {
+            new FacetResult(result);
+
+            fail("Facet evaluation must fail if the index doesn't support any of the required faceted properties");
+        } catch (RuntimeException iae) {
+            if (iae.getCause() instanceof IllegalArgumentException) {
+                // expected and hence ignored
+            } else {
+                throw iae;
+            }
+        }
+    }
+
+    public void testSomeNonIndexedFacetedQuery() throws Exception {
+        Query q = qm.createQuery("//*[@jcr:title]/(rep:facet(non-indexed/jcr:title) | rep:facet(jcr:title))", Query.XPATH);
+        QueryResult result = q.execute();
+
+        try {
+            new FacetResult(result);
+
+            fail("Facet evaluation must fail if the index doesn't support some of the required faceted properties");
+        } catch (RuntimeException iae) {
+            if (iae.getCause() instanceof IllegalArgumentException) {
+                // expected and hence ignored
+            } else {
+                throw iae;
+            }
+        }
     }
 
     public void testAcRelativeFacetsAccessControl() throws Exception {
