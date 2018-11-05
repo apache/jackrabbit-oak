@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.8
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.9
 
 Introduction
 ------------
@@ -7,59 +7,56 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.8 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.9 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.8
+Changes in Oak 1.8.9
 ---------------------
 
 Technical task
 
-    [OAK-7472] - tests should pass with locking disabled
-    [OAK-7587] - RDB*Store: update mysql driver reference to 8.0.11
-    [OAK-7590] - RDB*Store: update Tomcat JDBC pool dependency to 8.5.32
-    [OAK-7670] - RDB*Store: update postgresql JDBC driver reference to 42.2.4
-    [OAK-7673] - RDB*Store: update mysql driver reference to 8.0.12
-    [OAK-7690] - RDB*Store: update SQLServer JDBC dependency to 7.0.0.jre*
-    [OAK-7704] - RDB*Store: log message after failed DB upgrade too verbose
+    [OAK-7729] - RDB*Store: update postgresql JDBC driver reference to
+    42.2.5
+    [OAK-7730] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.33
+    [OAK-7748] - DocumentStore: test (and optionally optimize) bulk
+    update fallback logic
 
 Bug
 
-    [OAK-7588] - Build failure: unapproved license
-    [OAK-7721] - Records of specific size bring SegmentBufferWriter#flush to fail
-
-New Feature
-
-    [OAK-7575] - Make it possible to index and search over similar feature vectors
+    [OAK-7638] - Race condition when simultaneous request to stage
+    file for async upload
+    [OAK-7798] - Return stream for downloaded files rather than
+    directly from backend
+    [OAK-7837] - oak-run check crashes with SNFE
+    [OAK-7853] - SegmentBufferWriter not flushed after OnRC
+    [OAK-7855] - rdbmk: Invalid SplitDocType when run on non-upgraded
+    DB
+    [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
+    out metadata objects
 
 Improvement
 
-    [OAK-7367] - Unify mockito versions and update to latest
-    [OAK-7720] - Log hex dump of too big segments
-
-Test
-
-    [OAK-6517] - ActiveDeletedBlobCollectionIT.simpleAsyncIndexUpdateBasedBlobCollection failing intermittently
+    [OAK-7832] - oak-run console export should handle exceptions such
+    as missing segments
+    [OAK-7854] - Add liveliness monitoring for FileStore background
+    operations
+    [OAK-7862] - Make PermissionEntryCache more resilient against OOME
+    (1.8)
 
 Task
 
-    [OAK-7578] - Update spotbugs plugin to 3.1.5
-    [OAK-7579] - remove obsolete findbugs reference from reactor pom
-    [OAK-7581] - oak-examples: remove special case for failsafe plugin
-    [OAK-7583] - oak-examples/webapp: update jetty-maven-plugin dependency
-    [OAK-7585] - oak-examples/standalone: update spring boot version
-    [OAK-7622] - Update httpcomponent dependencies to 4.4.10/4.5.6 (and declare the versions globally)
-    [OAK-7624] - Add "org.apache.jackrabbit.oak.plugins.document.spi" to package export filter
-    [OAK-7641] - various internal APIs missing in package export filter
-    [OAK-7653] - upgrade to Jacoco version compatible with Java 11
-    [OAK-7675] - oak-pojosr: replace mockito-all by mockito-core
-    [OAK-7678] - Update to default mockito version (defined in oak-parent)
-    [OAK-7679] - oak-core: update Mockito version and fix test case to be compatible with it
-    [OAK-7685] - Update easymock dependency to 3.6
+    [OAK-7767] - Update tika dependency to 1.19
+    [OAK-7814] - Update tika dependency to 1.19.1
+    [OAK-7823] - examples: use project-wide logback version 1.2.3
+    instead of 1.1.7
+    [OAK-7829] - oak-examples: update Tomcat dependency to 7.0.91
+    [OAK-7836] - Update jackson dependencies to 2.9.7
+    [OAK-7847] - complete "Indexing tooling via oak-run" in 1.8
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
