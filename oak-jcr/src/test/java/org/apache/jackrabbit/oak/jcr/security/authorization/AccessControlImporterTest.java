@@ -325,7 +325,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals(EveryonePrincipal.getInstance(), entry.getPrincipal());
+            assertEquals(EveryonePrincipal.getInstance().getName(), entry.getPrincipal().getName());
             List<Privilege> privs = Arrays.asList(entry.getPrivileges());
             assertEquals(1, privs.size());
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
