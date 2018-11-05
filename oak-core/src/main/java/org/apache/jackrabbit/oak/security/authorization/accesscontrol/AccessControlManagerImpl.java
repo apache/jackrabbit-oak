@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -29,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -70,6 +67,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -88,13 +86,14 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlManager} interface.
@@ -592,12 +591,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @NotNull
     private Principal getPrincipal(@NotNull Tree aceTree) {
         String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-        Principal principal = principalManager.getPrincipal(principalName);
-        if (principal == null) {
-            log.debug("Unknown principal " + principalName);
-            principal = new PrincipalImpl(principalName);
-        }
-        return principal;
+        return new PrincipalImpl(principalName);
     }
 
     private String getNodePath(ACE principalBasedAce) throws RepositoryException {

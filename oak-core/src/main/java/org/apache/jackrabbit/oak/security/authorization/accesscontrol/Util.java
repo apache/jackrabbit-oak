@@ -55,18 +55,22 @@ final class Util implements AccessControlConstants {
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
         }
-        if (!(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
-            switch (importBehavior) {
-                case ImportBehavior.ABORT:
-                    throw new AccessControlException("Unknown principal " + name);
-                case ImportBehavior.IGNORE:
-                    return false;
-                case ImportBehavior.BESTEFFORT:
-                    return true;
-                default: throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
+
+        if (importBehavior == ImportBehavior.BESTEFFORT) {
+            return true;
+        } else {
+            if (!(principal instanceof PrincipalImpl) && !principalManager.hasPrincipal(name)) {
+                switch (importBehavior) {
+                    case ImportBehavior.ABORT:
+                        throw new AccessControlException("Unknown principal " + name);
+                    case ImportBehavior.IGNORE:
+                        return false;
+                    default:
+                        throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
+                }
             }
+            return true;
         }
-        return true;
     }
 
     public static void checkValidPrincipals(@Nullable Set<Principal> principals,
