@@ -251,6 +251,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             private boolean noDocs = false;
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
+            private LuceneFacetProvider facetProvider = null;
 
             @Override
             protected FulltextResultRow computeNext() {
@@ -261,7 +262,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return endOfData();
             }
 
-            private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,  Facets facets,
+            private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,
+                                                   LuceneFacetProvider facetProvider,
                                                    String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -293,7 +295,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
                     LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
                     return shouldIncludeForHierarchy? new FulltextResultRow(path, doc.score, excerpts,
-                        new LuceneFacetProvider(facets), explanation)
+                            facetProvider, explanation)
                         : null;
                 }
                 return null;
@@ -347,8 +349,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                             long f = PERF_LOGGER.start();
-                            Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
-                            PERF_LOGGER.end(f, -1, "facets retrieved");
+                            if (facetProvider == null) {
+                                facetProvider = new LuceneFacetProvider(
+                                        FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets())
+                                );
+                                PERF_LOGGER.end(f, -1, "facets retrieved");
+                            }
 
                             Set<String> excerptFields = Sets.newHashSet();
                             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
@@ -384,7 +390,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                     explanation = searcher.explain(query, doc.doc).toString();
                                 }
 
-                                FulltextResultRow row = convertToRow(doc, searcher, excerpts, facets, explanation);
+                                FulltextResultRow row = convertToRow(doc, searcher, excerpts, facetProvider, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
