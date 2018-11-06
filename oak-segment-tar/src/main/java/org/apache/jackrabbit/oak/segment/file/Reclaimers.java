@@ -51,7 +51,7 @@ class Reclaimers {
      * past wrt. {@code referenceGeneration} <em>and</em> the segment is not in the same tail as
      * segments of the {@code referenceGeneration}. A segment is in the same tail as another segment
      * if it is a {@link GCGeneration#isCompacted() compacted segment} <em>and</em> both segments have
-     * the same {@link GCGeneration#fullGeneration full generation}.
+     * the same {@code full generation}.
      *
      * @param lastGCType  type of the most recent GC operation. {@link GCType#FULL} if unknown.
      * @param referenceGeneration  generation used as reference for determining the age of other segments.
