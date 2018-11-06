@@ -42,9 +42,9 @@ import org.jetbrains.annotations.NotNull;
  * SegmentId#isBulkSegmentId() bulk} segments.
  * <p>
  * Conceptually this cache serves as a 2nd level cache for segments. The 1st
- * level cache is implemented by memoising the segment in its id (see {@link
+ * level cache is implemented by memoising the segment in its id (see {@code
  * SegmentId#segment}. Every time an segment is evicted from this cache the
- * memoised segment is discarded (see {@link SegmentId#onAccess}.
+ * memoised segment is discarded (see {@code SegmentId#onAccess}.
  */
 public abstract class SegmentCache {
 
@@ -105,7 +105,7 @@ public abstract class SegmentCache {
     /**
      * Record a hit in this cache's underlying statistics.
      *
-     * @see SegmentId#onAccess
+     * See {@code SegmentId#onAccess}
      */
     public abstract void recordHit();
 
