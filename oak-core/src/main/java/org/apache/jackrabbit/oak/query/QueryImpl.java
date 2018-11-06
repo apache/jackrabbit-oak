@@ -425,7 +425,8 @@ public class QueryImpl implements Query {
         for (int i = 0; i < columns.length; i++) {
             ColumnImpl c = columns[i];
             boolean distinct = true;
-            if (QueryConstants.JCR_SCORE.equals(c.getPropertyName())) {
+            String propName = c.getPropertyName();
+            if (QueryConstants.JCR_SCORE.equals(propName) || propName.startsWith(QueryConstants.REP_FACET + "(")) {
                 distinct = false;
             }
             distinctColumns[i] = distinct;
