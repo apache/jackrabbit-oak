@@ -568,21 +568,33 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public boolean isGranted(long permissions) {
             EntryPredicate predicate = new EntryPredicate(tree, null, Permissions.respectParentPermissions(permissions));
-            Iterator<PermissionEntry> it = concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            Iterator<PermissionEntry> it = getIterator(predicate);
             return hasPermissions(it, predicate, permissions, tree.getPath());
         }
 
         @Override
         public boolean isGranted(long permissions, @NotNull PropertyState property) {
             EntryPredicate predicate = new EntryPredicate(tree, property, Permissions.respectParentPermissions(permissions));
-            Iterator<PermissionEntry> it = concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            Iterator<PermissionEntry> it = getIterator(predicate);
             return hasPermissions(it, predicate, permissions, tree.getPath());
         }
 
         //--------------------------------------------------------< private >---
         private Iterator<PermissionEntry> getIterator(@Nullable PropertyState property, long permissions) {
             EntryPredicate predicate = new EntryPredicate(tree, property, Permissions.respectParentPermissions(permissions));
-            return concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            return getIterator(predicate);
+        }
+
+        private Iterator<PermissionEntry> getIterator(@NotNull EntryPredicate predicate) {
+            if (userStore != null && groupStore != null) {
+                return concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            } else if (userStore != null) {
+                return new LazyIterator(this, true, predicate);
+            } else if (groupStore != null) {
+                return new LazyIterator(this, false, predicate);
+            } else {
+                return Collections.emptyIterator();
+            }
         }
 
         private Iterator<PermissionEntry> getUserEntries() {
