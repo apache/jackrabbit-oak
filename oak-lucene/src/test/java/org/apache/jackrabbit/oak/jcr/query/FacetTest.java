@@ -756,6 +756,26 @@ public class FacetTest extends AbstractQueryTest {
         assertEquals("Unexpected facet count", 1, facet.getCount());
     }
 
+    // OAK-7605
+    public void testDistinctUnionWithDifferentFacetsOnSubQueries() throws Exception {
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "t1");
+        n1.setProperty("name","Node1");
+        // make sure that facet values from both ends of OR clause are different
+        // the test is essentially that facet columns don't define uniqueness of a row
+        Node n3 = testRootNode.addNode("node3");
+        n3.setProperty("text", "t1");
+        n3.setProperty("name","Node3");
+        superuser.save();
+
+        String xpath = "//*[@text = 't1' or @name = 'Node1']/(rep:facet(text))";
+        Query q = qm.createQuery(xpath, Query.XPATH);
+        QueryResult result = q.execute();
+        RowIterator rows=result.getRows();
+
+        assertEquals(2, rows.getSize());
+    }
+
     public Node deny(Node node) throws RepositoryException {
         AccessControlUtils.deny(node, "anonymous", Privilege.JCR_ALL);
         return node;
