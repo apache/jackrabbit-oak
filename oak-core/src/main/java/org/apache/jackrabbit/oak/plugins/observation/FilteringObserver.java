@@ -23,12 +23,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Closeable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An observer that implements filtering of content changes
@@ -69,8 +68,8 @@ public class FilteringObserver implements Observer, Closeable {
      * are delivered after going through a chain of 
      * FilteringObserver-&gt;BackgroundObserver-&gt;FilteringDispatcher.
      */
-    public FilteringObserver(@Nonnull Executor executor, int queueLength, @Nonnull Filter filter,
-            @Nonnull FilteringAwareObserver observer) {
+    public FilteringObserver(@NotNull Executor executor, int queueLength, @NotNull Filter filter,
+            @NotNull FilteringAwareObserver observer) {
         this(new BackgroundObserver(new FilteringDispatcher(checkNotNull(observer)), checkNotNull(executor),
                 queueLength), filter);
     }
@@ -80,7 +79,7 @@ public class FilteringObserver implements Observer, Closeable {
      * @param backgroundObserver the BackgroundObserver to be used by this FilteringObserver
      * @param filter the Filter to be used for filtering
      */
-    public FilteringObserver(@Nonnull BackgroundObserver backgroundObserver, @Nonnull Filter filter) {
+    public FilteringObserver(@NotNull BackgroundObserver backgroundObserver, @NotNull Filter filter) {
         this.backgroundObserver = backgroundObserver;
         this.filter = checkNotNull(filter);
     }
@@ -90,7 +89,7 @@ public class FilteringObserver implements Observer, Closeable {
     }
 
     @Override
-    public final void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public final void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         if (filter.excludes(root, info)) {
             lastNoop = root;
             return;

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
 
 public class TestLoginModule extends AbstractLoginModule {
 
@@ -42,7 +42,7 @@ public class TestLoginModule extends AbstractLoginModule {
         credentialsSupport = (CredentialsSupport) options.get("credsSupport");
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
         return new TestCredentialsSupport().getCredentialClasses();

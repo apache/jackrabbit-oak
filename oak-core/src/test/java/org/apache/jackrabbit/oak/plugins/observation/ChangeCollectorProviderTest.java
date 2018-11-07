@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -58,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -86,7 +86,7 @@ public class ChangeCollectorProviderTest {
         List<ContentChange> changes = new LinkedList<ContentChange>();
 
         @Override
-        public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
             changes.add(new ContentChange(root, info));
         }
 

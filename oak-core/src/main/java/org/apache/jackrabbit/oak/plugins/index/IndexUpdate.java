@@ -44,9 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -65,6 +62,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -424,7 +423,7 @@ public class IndexUpdate implements Editor, PathSource {
         }
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         List<Editor> children = newArrayListWithCapacity(1 + editors.size());
@@ -438,7 +437,7 @@ public class IndexUpdate implements Editor, PathSource {
         return compose(children);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
@@ -453,7 +452,7 @@ public class IndexUpdate implements Editor, PathSource {
         return compose(children);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         List<Editor> children = newArrayListWithCapacity(editors.size());

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collections;
 import java.util.Iterator;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -33,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,8 +56,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private AuthorizableProperties properties;
     private int hashCode;
 
-    AuthorizableImpl(@Nonnull String id, @Nonnull Tree tree,
-                     @Nonnull UserManagerImpl userManager) throws RepositoryException {
+    AuthorizableImpl(@NotNull String id, @NotNull Tree tree,
+                     @NotNull UserManagerImpl userManager) throws RepositoryException {
         checkValidTree(tree);
 
         this.id = id;
@@ -65,7 +65,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         this.userManager = userManager;
     }
 
-    abstract void checkValidTree(@Nonnull Tree tree) throws RepositoryException;
+    abstract void checkValidTree(@NotNull Tree tree) throws RepositoryException;
 
     static boolean isValidAuthorizableImpl(Authorizable authorizable) {
         return authorizable instanceof AuthorizableImpl;
@@ -172,7 +172,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     Tree getTree() {
         if (tree.exists()) {
             return tree;
@@ -181,7 +181,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         }
     }
 
-    @Nonnull
+    @NotNull
     String getPrincipalName() throws RepositoryException {
         if (principalName == null) {
             PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
@@ -199,7 +199,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     /**
      * @return The user manager associated with this authorizable.
      */
-    @Nonnull
+    @NotNull
     UserManagerImpl getUserManager() {
         return userManager;
     }
@@ -207,7 +207,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     /**
      * @return The membership provider associated with this authorizable
      */
-    @Nonnull
+    @NotNull
     MembershipProvider getMembershipProvider() {
         return userManager.getMembershipProvider();
     }
@@ -245,7 +245,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @return Iterator of groups this authorizable is (declared) member of.
      * @throws RepositoryException If an error occurs.
      */
-    @Nonnull
+    @NotNull
     private Iterator<Group> getMembership(boolean includeInherited) throws RepositoryException {
         if (isEveryone()) {
             return Collections.<Group>emptySet().iterator();

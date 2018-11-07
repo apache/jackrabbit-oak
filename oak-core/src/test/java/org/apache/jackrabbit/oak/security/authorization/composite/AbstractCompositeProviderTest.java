@@ -20,8 +20,6 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 
@@ -52,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -196,34 +196,34 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         }
     }
 
-    private static void allow(@Nonnull AccessControlManager acMgr,
-                      @Nonnull Principal principal,
+    private static void allow(@NotNull AccessControlManager acMgr,
+                      @NotNull Principal principal,
                       @Nullable String path,
-                      @Nonnull String... privilegeNames) throws Exception {
+                      @NotNull String... privilegeNames) throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), true);
         acMgr.setPolicy(acl.getPath(), acl);
     }
 
-    private static void deny(@Nonnull AccessControlManager acMgr,
-                     @Nonnull Principal principal,
+    private static void deny(@NotNull AccessControlManager acMgr,
+                     @NotNull Principal principal,
                      @Nullable String path,
-                     @Nonnull String... privilegeNames) throws Exception {
+                     @NotNull String... privilegeNames) throws Exception {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
         acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), false);
         acMgr.setPolicy(acl.getPath(), acl);
     }
 
-    @Nonnull
-    static String getActionString(@Nonnull String... actions) {
+    @NotNull
+    static String getActionString(@NotNull String... actions) {
         return Text.implode(actions, ",");
     }
 
-    static void assertCompositeTreePermission(@Nonnull TreePermission tp) {
+    static void assertCompositeTreePermission(@NotNull TreePermission tp) {
         assertTrue(tp.getClass()+ "", tp instanceof CompositeTreePermission);
     }
 
-    static void assertCompositeTreePermission(boolean expected, @Nonnull TreePermission tp) {
+    static void assertCompositeTreePermission(boolean expected, @NotNull TreePermission tp) {
         assertEquals(expected, tp instanceof CompositeTreePermission);
     }
 
@@ -233,9 +233,9 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
         return false;
     }
 
-    List<AggregatedPermissionProvider> getAggregatedProviders(@Nonnull String workspaceName,
-                                                              @Nonnull AuthorizationConfiguration config,
-                                                              @Nonnull Set<Principal> principals) {
+    List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName,
+                                                              @NotNull AuthorizationConfiguration config,
+                                                              @NotNull Set<Principal> principals) {
         ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
                     (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
                     getTestPermissionProvider());

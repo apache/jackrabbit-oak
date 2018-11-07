@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
@@ -48,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
@@ -68,11 +68,11 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final TypePredicate isRepoAccessControllable;
     private final TypePredicate isAccessControllable;
 
-    AccessControlValidator(@Nonnull NodeState parentAfter,
-                           @Nonnull PrivilegeManager privilegeManager,
-                           @Nonnull PrivilegeBitsProvider privilegeBitsProvider,
-                           @Nonnull RestrictionProvider restrictionProvider,
-                           @Nonnull TreeProvider treeProvider) {
+    AccessControlValidator(@NotNull NodeState parentAfter,
+                           @NotNull PrivilegeManager privilegeManager,
+                           @NotNull PrivilegeBitsProvider privilegeBitsProvider,
+                           @NotNull RestrictionProvider restrictionProvider,
+                           @NotNull TreeProvider treeProvider) {
         this.parentAfter = treeProvider.createReadOnlyTree(parentAfter);
         this.privilegeBitsProvider = privilegeBitsProvider;
         this.privilegeManager = privilegeManager;
@@ -203,8 +203,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private static void checkValidAccessControlledNode(@Nonnull Tree accessControlledTree,
-                                                       @Nonnull TypePredicate requiredMixin) throws CommitFailedException {
+    private static void checkValidAccessControlledNode(@NotNull Tree accessControlledTree,
+                                                       @NotNull TypePredicate requiredMixin) throws CommitFailedException {
         if (AC_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(accessControlledTree))) {
             throw accessViolation(5, "Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
@@ -216,7 +216,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private void checkValidAccessControlEntry(@Nonnull Tree aceNode) throws CommitFailedException {
+    private void checkValidAccessControlEntry(@NotNull Tree aceNode) throws CommitFailedException {
         Tree parent = aceNode.getParent();
         if (!parent.exists() || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
@@ -226,7 +226,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         checkValidRestrictions(aceNode);
     }
 
-    private void checkValidPrincipal(@Nonnull Tree aceNode) throws CommitFailedException {
+    private void checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
         if (principalName == null || principalName.isEmpty()) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
@@ -235,7 +235,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         // enforced on the oak level.
     }
 
-    private void checkValidPrivileges(@Nonnull Tree aceNode) throws CommitFailedException {
+    private void checkValidPrivileges(@NotNull Tree aceNode) throws CommitFailedException {
         Iterable<String> privilegeNames = TreeUtil.getStrings(aceNode, REP_PRIVILEGES);
         if (privilegeNames == null || Iterables.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
@@ -254,7 +254,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private void checkValidRestrictions(@Nonnull Tree aceTree) throws CommitFailedException {
+    private void checkValidRestrictions(@NotNull Tree aceTree) throws CommitFailedException {
         String path;
         Tree aclTree = checkNotNull(aceTree.getParent());
         String aclPath = aclTree.getPath();

@@ -34,9 +34,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
@@ -51,6 +48,8 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * TODO document
@@ -84,11 +83,11 @@ public class IndexUtils {
      * @param declaringNodeTypeNames The declaring node type names or {@code null}.
      * @return the NodeBuilder of the new index definition.
      */
-    public static NodeBuilder createIndexDefinition(@Nonnull NodeBuilder index,
-                                                    @Nonnull String indexDefName,
+    public static NodeBuilder createIndexDefinition(@NotNull NodeBuilder index,
+                                                    @NotNull String indexDefName,
                                                     boolean reindex,
                                                     boolean unique,
-                                                    @Nonnull Collection<String> propertyNames,
+                                                    @NotNull Collection<String> propertyNames,
                                                     @Nullable Collection<String> declaringNodeTypeNames) {
         NodeBuilder entry = index.child(indexDefName)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
@@ -113,11 +112,11 @@ public class IndexUtils {
      * @param propertyNames
      * @param declaringNodeTypeNames
      */
-    public static Tree createIndexDefinition(@Nonnull Tree indexNode,
-                                             @Nonnull String indexDefName,
+    public static Tree createIndexDefinition(@NotNull Tree indexNode,
+                                             @NotNull String indexDefName,
                                              boolean unique,
-                                             @Nonnull String[] propertyNames,
-                                             @Nonnull String... declaringNodeTypeNames) throws RepositoryException {
+                                             @NotNull String[] propertyNames,
+                                             @NotNull String... declaringNodeTypeNames) throws RepositoryException {
 
         return createIndexDefinition(indexNode, indexDefName, unique, ImmutableList.copyOf(propertyNames), ImmutableList.copyOf(declaringNodeTypeNames), PropertyIndexEditorProvider.TYPE, null);
     }
@@ -135,13 +134,13 @@ public class IndexUtils {
      * @param properties any additional property to be added to the index definition.
      * @throws RepositoryException
      */
-    public static Tree createIndexDefinition(@Nonnull Tree indexNode,
-                                             @Nonnull String indexDefName,
+    public static Tree createIndexDefinition(@NotNull Tree indexNode,
+                                             @NotNull String indexDefName,
                                              boolean unique,
-                                             @Nonnull Collection<String> propertyNames,
-                                             @CheckForNull Collection<String> declaringNodeTypeNames,
-                                             @Nonnull String propertyIndexType,
-                                             @CheckForNull Map<String, String> properties) throws RepositoryException {
+                                             @NotNull Collection<String> propertyNames,
+                                             @Nullable Collection<String> declaringNodeTypeNames,
+                                             @NotNull String propertyIndexType,
+                                             @Nullable Map<String, String> properties) throws RepositoryException {
         Tree entry = TreeUtil.getOrAddChild(indexNode, indexDefName, INDEX_DEFINITIONS_NODE_TYPE);
         entry.setProperty(TYPE_PROPERTY_NAME, propertyIndexType);
         entry.setProperty(REINDEX_PROPERTY_NAME, true);
@@ -161,7 +160,7 @@ public class IndexUtils {
         return entry;
     }
 
-    public static void createReferenceIndex(@Nonnull NodeBuilder index) {
+    public static void createReferenceIndex(@NotNull NodeBuilder index) {
         index.child(NodeReferenceConstants.NAME)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
                 .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE)
@@ -196,12 +195,12 @@ public class IndexUtils {
      * @param properties                any additional property to be added to the index definition.
      * @throws RepositoryException
      */
-    public static NodeBuilder createIndexDefinition(@Nonnull NodeBuilder indexNode, 
-                                             @Nonnull String indexDefName, 
+    public static NodeBuilder createIndexDefinition(@NotNull NodeBuilder indexNode, 
+                                             @NotNull String indexDefName, 
                                              boolean unique, 
-                                             @Nonnull Iterable<String> propertyNames, 
+                                             @NotNull Iterable<String> propertyNames, 
                                              @Nullable String[] declaringNodeTypeNames, 
-                                             @Nonnull String propertyIndexType,
+                                             @NotNull String propertyIndexType,
                                              Map<String, String> properties) throws RepositoryException {
 
         NodeBuilder entry = indexNode.child(indexDefName)
@@ -225,12 +224,12 @@ public class IndexUtils {
         return entry;
     }
 
-    @CheckForNull
+    @Nullable
     public static String getAsyncLaneName(NodeState idxState, String indexPath) {
         return getAsyncLaneName(idxState, indexPath, idxState.getProperty(IndexConstants.ASYNC_PROPERTY_NAME));
     }
 
-    @CheckForNull
+    @Nullable
     public static String getAsyncLaneName(NodeState idxState, String indexPath, PropertyState async) {
         if (async != null) {
             Set<String> asyncNames = Sets.newHashSet(async.getValue(Type.STRINGS));

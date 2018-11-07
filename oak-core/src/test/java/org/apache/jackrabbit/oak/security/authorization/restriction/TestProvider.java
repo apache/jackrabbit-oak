@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * RestrictionProvider for tests.
@@ -48,9 +47,9 @@ final class TestProvider extends AbstractRestrictionProvider {
         this.nonValidatingRead = nonValidatingRead;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
+    public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
         if (nonValidatingRead) {
             Set<Restriction> restrictions = new HashSet();
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
@@ -65,9 +64,9 @@ final class TestProvider extends AbstractRestrictionProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
         boolean hasRestriction = false;
         for (RestrictionDefinition rd : getSupportedRestrictions(oakPath)) {
             if (tree.hasProperty(rd.getName())) {
@@ -78,9 +77,9 @@ final class TestProvider extends AbstractRestrictionProvider {
         return (hasRestriction) ? new MatchingPattern() : RestrictionPattern.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
         for (Restriction r : restrictions) {
             if (getSupportedRestrictions(oakPath).contains(r.getDefinition())) {
                 return new MatchingPattern();
@@ -92,12 +91,12 @@ final class TestProvider extends AbstractRestrictionProvider {
     private static final class MatchingPattern implements RestrictionPattern {
 
         @Override
-        public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+        public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
             return true;
         }
 
         @Override
-        public boolean matches(@Nonnull String path) {
+        public boolean matches(@NotNull String path) {
             return true;
         }
 

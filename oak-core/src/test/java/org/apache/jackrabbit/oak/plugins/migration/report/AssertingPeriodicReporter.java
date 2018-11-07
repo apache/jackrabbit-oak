@@ -21,13 +21,12 @@ package org.apache.jackrabbit.oak.plugins.migration.report;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.any;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -53,12 +52,12 @@ class AssertingPeriodicReporter extends PeriodicReporter {
     }
 
     @Override
-    protected void reportPeriodicNode(final long count, @Nonnull final ReportingNodeState nodeState) {
+    protected void reportPeriodicNode(final long count, @NotNull final ReportingNodeState nodeState) {
         reportedNodes.put(count, nodeState.getPath());
     }
 
     @Override
-    protected void reportPeriodicProperty(final long count, @Nonnull final ReportingNodeState parent, @Nonnull final String propertyName) {
+    protected void reportPeriodicProperty(final long count, @NotNull final ReportingNodeState parent, @NotNull final String propertyName) {
         reportedProperties.put(count, PathUtils.concat(parent.getPath(), propertyName));
     }
 

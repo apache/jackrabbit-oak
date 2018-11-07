@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableList;
@@ -42,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -80,7 +80,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
     }
 
     @Override
-    List<AggregatedPermissionProvider> getAggregatedProviders(@Nonnull String workspaceName, @Nonnull AuthorizationConfiguration config, @Nonnull Set<Principal> principals) {
+    List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName, @NotNull AuthorizationConfiguration config, @NotNull Set<Principal> principals) {
         return ImmutableList.of(getTestPermissionProvider());
     }
 
@@ -384,7 +384,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
             super(root);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
             PrivilegeBits supported = PrivilegeBits.getInstance(
@@ -407,32 +407,32 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         }
 
         @Override
-        public long supportedPermissions(@Nonnull TreeLocation location, long permissions) {
+        public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
             return permissions & Permissions.READ_NODE;
         }
 
         @Override
-        public long supportedPermissions(@Nonnull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
+        public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
             return permissions & Permissions.READ_NODE;
         }
 
         @Override
-        public boolean isGranted(@Nonnull TreeLocation location, long permissions) {
+        public boolean isGranted(@NotNull TreeLocation location, long permissions) {
             return permissions == Permissions.READ_NODE;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
             return (tree == null) ? ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT) : ImmutableSet.of(REP_READ_NODES);
         }
 
         @Override
-        public boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames) {
+        public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RepositoryPermission getRepositoryPermission() {
             return new RepositoryPermission() {
@@ -443,27 +443,27 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
             };
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
             return new LimitedTreePermission();
         }
 
         @Override
-        public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions) {
             return permissions == Permissions.READ_NODE;
         }
 
         @Override
-        public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
+        public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
             return true;
         }
     }
 
     private static final class LimitedTreePermission implements TreePermission {
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return this;
         }
 
@@ -473,7 +473,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return false;
         }
 
@@ -493,7 +493,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return false;
         }
     }

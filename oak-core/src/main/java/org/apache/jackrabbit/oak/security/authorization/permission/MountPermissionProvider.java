@@ -23,8 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -32,13 +30,14 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableSet;
 
 public class MountPermissionProvider extends PermissionProviderImpl {
 
-    @Nonnull
-    public static String getPermissionRootName(@Nonnull Mount mount, @Nonnull String workspace) {
+    @NotNull
+    public static String getPermissionRootName(@NotNull Mount mount, @NotNull String workspace) {
         if (mount.isDefault()) {
             return workspace;
         } else {
@@ -48,11 +47,11 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
     private final MountInfoProvider mountInfoProvider;
 
-    public MountPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName,
-                                   @Nonnull Set<Principal> principals, @Nonnull RestrictionProvider restrictionProvider,
-                                   @Nonnull ConfigurationParameters options, @Nonnull Context ctx,
-                                   @Nonnull MountInfoProvider mountInfoProvider,
-                                   @Nonnull RootProvider rootProvider) {
+    public MountPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
+                                   @NotNull Set<Principal> principals, @NotNull RestrictionProvider restrictionProvider,
+                                   @NotNull ConfigurationParameters options, @NotNull Context ctx,
+                                   @NotNull MountInfoProvider mountInfoProvider,
+                                   @NotNull RootProvider rootProvider) {
         super(root, workspaceName, principals, restrictionProvider, options, ctx, rootProvider);
         this.mountInfoProvider = mountInfoProvider;
     }

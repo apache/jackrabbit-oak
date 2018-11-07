@@ -20,8 +20,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -50,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -290,7 +289,7 @@ public class SecurityProviderRegistration {
         unbindConfiguration(tokenConfiguration, configuration, properties);
     }
 
-    private void bindConfiguration(@Nonnull CompositeConfiguration composite, @Nonnull SecurityConfiguration configuration, Map<String, Object> properties) {
+    private void bindConfiguration(@NotNull CompositeConfiguration composite, @NotNull SecurityConfiguration configuration, Map<String, Object> properties) {
         synchronized (this) {
             composite.addConfiguration(configuration, ConfigurationParameters.of(properties));
             addCandidate(properties);
@@ -298,7 +297,7 @@ public class SecurityProviderRegistration {
         maybeRegister();
     }
 
-    private void unbindConfiguration(@Nonnull CompositeConfiguration composite, @Nonnull SecurityConfiguration configuration, Map<String, Object> properties) {
+    private void unbindConfiguration(@NotNull CompositeConfiguration composite, @NotNull SecurityConfiguration configuration, Map<String, Object> properties) {
         synchronized (this) {
             composite.removeConfiguration(configuration);
             removeCandidate(properties);
@@ -513,7 +512,7 @@ public class SecurityProviderRegistration {
         log.info("SecurityProvider instance unregistered");
     }
 
-    private SecurityProvider createSecurityProvider(@Nonnull BundleContext context) {
+    private SecurityProvider createSecurityProvider(@NotNull BundleContext context) {
         InternalSecurityProvider securityProvider = new InternalSecurityProvider();
 
         // Static, mandatory references

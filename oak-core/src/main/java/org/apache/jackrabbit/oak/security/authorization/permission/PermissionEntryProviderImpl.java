@@ -24,14 +24,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
 
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
@@ -62,8 +61,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private Map<String, Collection<PermissionEntry>> pathEntryMap;
 
-    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache cache,
-                                @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
+    PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull PermissionEntryCache cache,
+                                @NotNull Set<String> principalNames, @NotNull ConfigurationParameters options) {
         this.store = store;
         this.cache = cache;
         this.principalNames = Collections.unmodifiableSet(principalNames);
@@ -120,8 +119,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Iterator<PermissionEntry> getEntryIterator(@Nonnull EntryPredicate predicate) {
+    @NotNull
+    public Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate) {
         if (existingNames.isEmpty()) {
             return Collections.emptyIterator();
         } else {
@@ -130,8 +129,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     @Override
-    @Nonnull
-    public Collection<PermissionEntry> getEntries(@Nonnull Tree accessControlledTree) {
+    @NotNull
+    public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
         if (existingNames.isEmpty()) {
             return Collections.emptyList();
         } else if (pathEntryMap != null) {
@@ -145,8 +144,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
-    private Collection<PermissionEntry> getEntries(@Nonnull String path) {
+    @NotNull
+    private Collection<PermissionEntry> getEntries(@NotNull String path) {
         if (existingNames.isEmpty()) {
             return Collections.emptyList();
         } else if (pathEntryMap != null) {
@@ -157,8 +156,8 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         }
     }
 
-    @Nonnull
-    private Collection<PermissionEntry> loadEntries(@Nonnull String path) {
+    @NotNull
+    private Collection<PermissionEntry> loadEntries(@NotNull String path) {
         Collection<PermissionEntry> ret = new TreeSet<PermissionEntry>();
         for (String name : existingNames) {
             cache.load(store, ret, name, path);
@@ -176,7 +175,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         // the next oak path for which to retrieve permission entries
         private String path;
 
-        private EntryIterator(@Nonnull EntryPredicate predicate) {
+        private EntryIterator(@NotNull EntryPredicate predicate) {
             this.predicate = predicate;
             this.path = Strings.nullToEmpty(predicate.getPath());
         }

@@ -27,7 +27,6 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
 import javax.jcr.query.Query;
 
 import com.google.common.collect.ImmutableList;
@@ -44,6 +43,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -56,7 +56,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         return new Oak().with(new InitialContent())
                 .with(new RepositoryInitializer() {
                     @Override
-                    public void initialize(@Nonnull NodeBuilder builder) {
+                    public void initialize(@NotNull NodeBuilder builder) {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,

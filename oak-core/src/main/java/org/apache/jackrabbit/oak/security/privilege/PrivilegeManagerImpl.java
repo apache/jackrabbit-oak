@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
@@ -33,6 +31,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,13 +91,13 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
+    @NotNull
     private Root getWriteRoot() {
         return root.getContentSession().getLatestRoot();
     }
 
-    @Nonnull
-    private Set<String> getOakNames(@CheckForNull String[] jcrNames) throws RepositoryException {
+    @NotNull
+    private Set<String> getOakNames(@Nullable String[] jcrNames) throws RepositoryException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
@@ -111,8 +111,8 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         return oakNames;
     }
 
-    @Nonnull
-    private String getOakName(@CheckForNull String jcrName) throws RepositoryException {
+    @NotNull
+    private String getOakName(@Nullable String jcrName) throws RepositoryException {
         if (jcrName == null) {
             throw new AccessControlException("Invalid privilege name 'null'");
         }
@@ -123,23 +123,23 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         return oakName;
     }
 
-    @Nonnull
-    private Privilege getPrivilege(@Nonnull PrivilegeDefinition definition) {
+    @NotNull
+    private Privilege getPrivilege(@NotNull PrivilegeDefinition definition) {
         return new PrivilegeImpl(definition);
     }
 
-    @Nonnull
+    @NotNull
     private PrivilegeDefinition[] getPrivilegeDefinitions() {
         Map<String, PrivilegeDefinition> definitions = getReader().readDefinitions();
         return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
     }
 
-    @CheckForNull
-    private PrivilegeDefinition getPrivilegeDefinition(@Nonnull String oakName) {
+    @Nullable
+    private PrivilegeDefinition getPrivilegeDefinition(@NotNull String oakName) {
         return getReader().readDefinition(oakName);
     }
 
-    @Nonnull
+    @NotNull
     private PrivilegeDefinitionReader getReader() {
         return new PrivilegeDefinitionReader(root);
     }
@@ -153,7 +153,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
         private final PrivilegeDefinition definition;
 
-        private PrivilegeImpl(@Nonnull PrivilegeDefinition definition) {
+        private PrivilegeImpl(@NotNull PrivilegeDefinition definition) {
             this.definition = definition;
         }
 

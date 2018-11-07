@@ -16,9 +16,8 @@ package org.apache.jackrabbit.oak.query;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -139,7 +138,7 @@ public interface Query {
      * @return {@code this} if no conversions are possible or a new instance of
      *         a {@link Query}. Cannot return null.
      */
-    @Nonnull
+    @NotNull
     Query buildAlternativeQuery();
     
     /**

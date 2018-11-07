@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Handler of content change events. Used to decouple processing of changes
@@ -72,7 +71,7 @@ public interface EventHandler {
      * @param after  after state of the child node, possibly non-existent
      * @return handler of events within the child node, or {@code null}
      */
-    @CheckForNull
+    @Nullable
     EventHandler getChildHandler(
             String name, NodeState before, NodeState after);
 

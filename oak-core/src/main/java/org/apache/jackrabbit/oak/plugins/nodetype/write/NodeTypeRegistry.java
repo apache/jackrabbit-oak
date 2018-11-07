@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -56,7 +56,7 @@ public final class NodeTypeRegistry {
                 return root.getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return root;

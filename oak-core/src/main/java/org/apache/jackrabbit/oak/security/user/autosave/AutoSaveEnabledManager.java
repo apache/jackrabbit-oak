@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.security.Principal;
 import java.util.Iterator;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -31,6 +28,8 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation of the user management that allows to set the autosave flag.
@@ -187,7 +186,7 @@ public class AutoSaveEnabledManager implements UserManager {
         }
     }
 
-    @CheckForNull
+    @Nullable
     Authorizable wrap(@Nullable Authorizable authorizable) {
         if (authorizable == null) {
             return null;
@@ -199,13 +198,13 @@ public class AutoSaveEnabledManager implements UserManager {
         }
     }
 
-    @Nonnull
-    User wrap(@Nonnull User user) {
+    @NotNull
+    User wrap(@NotNull User user) {
         return new UserImpl(user, this);
     }
 
-    @Nonnull
-    Group wrap(@Nonnull Group group) {
+    @NotNull
+    Group wrap(@NotNull Group group) {
         return new GroupImpl(group, this);
     }
 }

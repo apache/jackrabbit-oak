@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -31,6 +28,8 @@ import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +45,7 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private final Root root;
     private final AuthorizableType targetType;
 
-    ResultRowToAuthorizable(@Nonnull UserManagerImpl userManager, @Nonnull Root root,
+    ResultRowToAuthorizable(@NotNull UserManagerImpl userManager, @NotNull Root root,
                             @Nullable AuthorizableType targetType) {
         this.userManager = userManager;
         this.root = root;
@@ -60,8 +59,8 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
-    private Authorizable getAuthorizable(@CheckForNull ResultRow row) {
+    @Nullable
+    private Authorizable getAuthorizable(@Nullable ResultRow row) {
         Authorizable authorizable = null;
         if (row != null) {
             String resultPath = row.getValue(QueryConstants.JCR_PATH).getValue(Type.STRING);

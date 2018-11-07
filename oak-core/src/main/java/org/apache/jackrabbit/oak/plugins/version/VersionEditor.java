@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.RESTORE_PREFIX;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.version.OnParentVersionAction;
 
@@ -41,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * TODO document
@@ -57,18 +57,18 @@ class VersionEditor implements Editor {
     private boolean isReadOnly;
     private CommitInfo commitInfo;
 
-    public VersionEditor(@Nonnull NodeBuilder versionStore,
-                         @Nonnull NodeBuilder workspaceRoot,
-                         @Nonnull CommitInfo commitInfo) {
+    public VersionEditor(@NotNull NodeBuilder versionStore,
+                         @NotNull NodeBuilder workspaceRoot,
+                         @NotNull CommitInfo commitInfo) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
                 checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
-                  @Nonnull ReadWriteVersionManager vMgr,
-                  @Nonnull NodeBuilder node,
-                  @Nonnull String name,
-                  @Nonnull CommitInfo commitInfo) {
+                  @NotNull ReadWriteVersionManager vMgr,
+                  @NotNull NodeBuilder node,
+                  @NotNull String name,
+                  @NotNull CommitInfo commitInfo) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);

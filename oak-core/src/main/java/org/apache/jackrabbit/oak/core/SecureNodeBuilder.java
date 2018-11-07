@@ -18,10 +18,6 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.io.InputStream;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -33,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -95,8 +93,8 @@ class SecureNodeBuilder implements NodeBuilder {
      * @param permissionProvider The {@code PermissionProvider} used to evaluation read access.
      */
     SecureNodeBuilder(
-            @Nonnull NodeBuilder builder,
-            @Nonnull LazyValue<PermissionProvider> permissionProvider) {
+            @NotNull NodeBuilder builder,
+            @NotNull LazyValue<PermissionProvider> permissionProvider) {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
@@ -112,12 +110,12 @@ class SecureNodeBuilder implements NodeBuilder {
         this.builder = parent.builder.getChildNode(name);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getBaseState() {
         return new SecureNodeState(builder.getBaseState(), getTreePermission());
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getNodeState() {
         return new SecureNodeState(builder.getNodeState(), getTreePermission());
     }
@@ -169,11 +167,11 @@ class SecureNodeBuilder implements NodeBuilder {
 
 
     @Override
-    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName) {
+    public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName) {
         return exists() && builder.moveTo(newParent, newName);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
@@ -200,7 +198,7 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         if (getTreePermission().canReadProperties() || isNew()) {
@@ -213,14 +211,14 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         PropertyState property = getProperty(name);
         return isType(property, BOOLEAN)  && property.getValue(BOOLEAN);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getString(@Nonnull String name) {
+    public String getString(@NotNull String name) {
         PropertyState property = getProperty(name);
         if (isType(property, STRING)) {
             return property.getValue(STRING);
@@ -229,9 +227,9 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public String getName(@Nonnull String name) {
+    public String getName(@NotNull String name) {
         PropertyState property = getProperty(name);
         if (isType(property, NAME)) {
             return property.getValue(NAME);
@@ -240,9 +238,9 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getNames(@Nonnull String name) {
+    public Iterable<String> getNames(@NotNull String name) {
         PropertyState property = getProperty(name);
         if (isType(property, NAMES)) {
             return property.getValue(NAMES);
@@ -251,29 +249,29 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setProperty(@Nonnull PropertyState property) {
+    public NodeBuilder setProperty(@NotNull PropertyState property) {
         builder.setProperty(property);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> NodeBuilder setProperty(String name, @Nonnull T value) {
+    public <T> NodeBuilder setProperty(String name, @NotNull T value) {
         builder.setProperty(name, value);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> NodeBuilder setProperty(
-            String name, @Nonnull T value, Type<T> type) {
+            String name, @NotNull T value, Type<T> type) {
         builder.setProperty(name, value, type);
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder removeProperty(String name) {
         if (hasProperty(name)) { // only remove properties that we can see
@@ -282,7 +280,7 @@ class SecureNodeBuilder implements NodeBuilder {
         return this;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
         return filter(
@@ -291,7 +289,7 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         if (builder.hasChildNode(name)) {
             return getChildNode(name).exists();
         } else {
@@ -299,9 +297,9 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder child(@Nonnull String name) {
+    public NodeBuilder child(@NotNull String name) {
         if (hasChildNode(name)) {
             return getChildNode(name);
         } else {
@@ -309,23 +307,23 @@ class SecureNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setChildNode(@Nonnull String name) {
+    public NodeBuilder setChildNode(@NotNull String name) {
         builder.setChildNode(name);
         return new SecureNodeBuilder(this, name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState) {
+    public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState nodeState) {
         builder.setChildNode(name, nodeState);
         return new SecureNodeBuilder(this, name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder getChildNode(@Nonnull String name) {
+    public NodeBuilder getChildNode(@NotNull String name) {
         return new SecureNodeBuilder(this, name);
     }
 
@@ -348,7 +346,7 @@ class SecureNodeBuilder implements NodeBuilder {
      *
      * @return The permissions for this tree.
      */
-    @Nonnull
+    @NotNull
     private TreePermission getTreePermission() {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
@@ -365,7 +363,7 @@ class SecureNodeBuilder implements NodeBuilder {
         return treePermission;
     }
 
-    private static boolean isType(@CheckForNull PropertyState property, Type<?> type) {
+    private static boolean isType(@Nullable PropertyState property, Type<?> type) {
         Type<?> t = (property == null) ? null : property.getType();
         return t == type;
     }

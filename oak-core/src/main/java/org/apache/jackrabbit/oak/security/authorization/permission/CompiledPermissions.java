@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Internal interface to process methods defined by
@@ -45,7 +44,7 @@ interface CompiledPermissions {
      * @param workspaceName The workspace name.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#refresh()}
      */
-    void refresh(@Nonnull Root root, @Nonnull String workspaceName);
+    void refresh(@NotNull Root root, @NotNull String workspaceName);
 
     /**
      * Returns the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission}
@@ -54,7 +53,7 @@ interface CompiledPermissions {
      * @return an instance of {@code RepositoryPermission}.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getRepositoryPermission()}
      */
-    @Nonnull
+    @NotNull
     RepositoryPermission getRepositoryPermission();
 
     /**
@@ -66,8 +65,8 @@ interface CompiledPermissions {
      * @return The permissions for the specified tree.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
      */
-    @Nonnull
-    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
+    @NotNull
+    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission);
 
     /**
      * Returns the tree permissions for the specified {@code tree}.
@@ -78,8 +77,8 @@ interface CompiledPermissions {
      * @return The permissions for the specified tree.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#getChildPermission(String, org.apache.jackrabbit.oak.spi.state.NodeState)}
      */
-    @Nonnull
-    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull TreePermission parentPermission);
+    @NotNull
+    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission);
 
     /**
      * Returns {@code true} if the given {@code permissions} are granted on the
@@ -92,7 +91,7 @@ interface CompiledPermissions {
      * @return {@code true} if granted.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(org.apache.jackrabbit.oak.api.Tree, org.apache.jackrabbit.oak.api.PropertyState, long)}
      */
-    boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions);
+    boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions);
 
     /**
      * Returns {@code true} if the given {@code permissions} are granted on the
@@ -103,7 +102,7 @@ interface CompiledPermissions {
      * @return {@code true} if granted.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#isGranted(String, String)}
      */
-    boolean isGranted(@Nonnull String path, long permissions);
+    boolean isGranted(@NotNull String path, long permissions);
 
     /**
      * Retrieve the privileges granted at the specified {@code tree}.
@@ -113,7 +112,7 @@ interface CompiledPermissions {
      * @return the set of privileges or an empty set if no privileges are granted.
      * @see {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)}
      */
-    @Nonnull
+    @NotNull
     Set<String> getPrivileges(@Nullable Tree tree);
 
     /**
@@ -125,5 +124,5 @@ interface CompiledPermissions {
      * @param privilegeNames The privilege names to be tested.
      * @return {@code true} if the tree has privileges
      */
-    boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames);
+    boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames);
 }

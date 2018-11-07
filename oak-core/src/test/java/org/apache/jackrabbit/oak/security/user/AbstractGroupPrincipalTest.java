@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -183,11 +183,11 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         }
 
         @Override
-        boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException {
+        boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException {
             return member.getID().equals(authorizable.getID());
         }
 
-        @Nonnull
+        @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             return ImmutableList.of(member).iterator();
@@ -213,11 +213,11 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         }
 
         @Override
-        boolean isMember(@Nonnull Authorizable authorizable) throws RepositoryException {
+        boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException {
             throw new RepositoryException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             throw new RepositoryException();

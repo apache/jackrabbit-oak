@@ -24,12 +24,11 @@ import static org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilte
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This utility class provides common {@link EventFilter} instances
@@ -45,8 +44,8 @@ public final class Filters {
      * @param filter  filter which must not match
      * @return {@code true} if {@code filter} does not match.
      */
-    @Nonnull
-    public static EventFilter not(@Nonnull final EventFilter filter) {
+    @NotNull
+    public static EventFilter not(@NotNull final EventFilter filter) {
         return new EventFilter() {
             @Override
             public boolean includeAdd(PropertyState after) {
@@ -99,8 +98,8 @@ public final class Filters {
      * @param filters  filters of which any must match
      * @return {@code true} if any of {@code filters} match.
      */
-    @Nonnull
-    public static EventFilter any(@Nonnull final EventFilter... filters) {
+    @NotNull
+    public static EventFilter any(@NotNull final EventFilter... filters) {
         return any(Lists.newArrayList(checkNotNull(filters)));
     }
 
@@ -110,15 +109,15 @@ public final class Filters {
      * @param filters  filters of which all must match
      * @return {@code true} if all of {@code filters} match.
      */
-    @Nonnull
-    public static EventFilter all(@Nonnull final EventFilter... filters) {
+    @NotNull
+    public static EventFilter all(@NotNull final EventFilter... filters) {
         return all(Lists.newArrayList(checkNotNull(filters)));
     }
 
     /**
      * @return  Filter that includes everything
      */
-    @Nonnull
+    @NotNull
     public static EventFilter includeAll() {
         return INCLUDE_ALL;
     }
@@ -126,7 +125,7 @@ public final class Filters {
     /**
      * @return  Filter that excludes everything
      */
-    @Nonnull
+    @NotNull
     public static EventFilter excludeAll() {
         return EXCLUDE_ALL;
     }
@@ -137,8 +136,8 @@ public final class Filters {
      * @param filters  filters of which any must match
      * @return {@code true} if any of {@code filters} match.
      */
-    @Nonnull
-    public static EventFilter any(@Nonnull final List<EventFilter> filters) {
+    @NotNull
+    public static EventFilter any(@NotNull final List<EventFilter> filters) {
         if (checkNotNull(filters).isEmpty()) {
             return EXCLUDE_ALL;
         } else if (filters.size() == 1) {
@@ -236,8 +235,8 @@ public final class Filters {
      * @param filters  filters of which all must match
      * @return {@code true} if all of {@code filters} match.
      */
-    @Nonnull
-    public static EventFilter all(@Nonnull final List<EventFilter> filters) {
+    @NotNull
+    public static EventFilter all(@NotNull final List<EventFilter> filters) {
         if (checkNotNull(filters).isEmpty()) {
             return INCLUDE_ALL;
         } else if (filters.size() == 1) {

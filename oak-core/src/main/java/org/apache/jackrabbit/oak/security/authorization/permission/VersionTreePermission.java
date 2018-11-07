@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@link TreePermission} implementations for those items in the version storage
@@ -41,12 +40,12 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     private final Tree versionTree;
     private final TreePermission versionablePermission;
 
-    VersionTreePermission(@Nonnull Tree versionTree, @Nonnull TreePermission versionablePermission) {
+    VersionTreePermission(@NotNull Tree versionTree, @NotNull TreePermission versionablePermission) {
         this.versionTree = versionTree;
         this.versionablePermission = versionablePermission;
     }
 
-    VersionTreePermission createChildPermission(@Nonnull Tree versionTree) {
+    VersionTreePermission createChildPermission(@NotNull Tree versionTree) {
         TreePermission delegatee;
         if (JCR_FROZENNODE.equals(versionTree.getName()) || NT_NAMES.contains(TreeUtil.getPrimaryTypeName(versionTree))) {
             delegatee = versionablePermission;
@@ -58,9 +57,9 @@ class VersionTreePermission implements TreePermission, VersionConstants {
 
     //-----------------------------------------------------< TreePermission >---
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
         return createChildPermission(new ImmutableTree((ImmutableTree) versionTree, childName, childState));
     }
 
@@ -70,7 +69,7 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     }
 
     @Override
-    public boolean canRead(@Nonnull PropertyState property) {
+    public boolean canRead(@NotNull PropertyState property) {
         return versionablePermission.canRead(property);
     }
 
@@ -90,7 +89,7 @@ class VersionTreePermission implements TreePermission, VersionConstants {
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+    public boolean isGranted(long permissions, @NotNull PropertyState property) {
         return versionablePermission.isGranted(permissions, property);
     }
 }

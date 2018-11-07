@@ -21,9 +21,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -40,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,15 +55,15 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     private final AuthorizableImpl authorizable;
     private final NamePathMapper namePathMapper;
 
-    AuthorizablePropertiesImpl(@Nonnull AuthorizableImpl authorizable, @Nonnull NamePathMapper namePathMapper) {
+    AuthorizablePropertiesImpl(@NotNull AuthorizableImpl authorizable, @NotNull NamePathMapper namePathMapper) {
         this.authorizable = authorizable;
         this.namePathMapper = namePathMapper;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
-    @Nonnull
+    @NotNull
     @Override
-    public Iterator<String> getNames(@Nonnull String relPath) throws RepositoryException {
+    public Iterator<String> getNames(@NotNull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree tree = getTree();
         TreeLocation location = getLocation(tree, oakPath);
@@ -87,7 +86,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#hasProperty(String)
      */
     @Override
-    public boolean hasProperty(@Nonnull String relPath) throws RepositoryException {
+    public boolean hasProperty(@NotNull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         return isAuthorizableProperty(getTree(), getLocation(getTree(), oakPath), true);
     }
@@ -96,7 +95,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getProperty(String)
      */
     @Override
-    public Value[] getProperty(@Nonnull String relPath) throws RepositoryException {
+    public Value[] getProperty(@NotNull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree tree = getTree();
         Value[] values = null;
@@ -116,7 +115,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value)
      */
     @Override
-    public void setProperty(@Nonnull String relPath, @Nullable Value value) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException {
         if (value == null) {
             removeProperty(relPath);
         } else {
@@ -136,7 +135,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value[])
      */
     @Override
-    public void setProperty(@Nonnull String relPath, @Nullable Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value[] values) throws RepositoryException {
         if (values == null) {
             removeProperty(relPath);
         } else {
@@ -157,7 +156,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @see org.apache.jackrabbit.api.security.user.Authorizable#removeProperty(String)
      */
     @Override
-    public boolean removeProperty(@Nonnull String relPath) throws RepositoryException {
+    public boolean removeProperty(@NotNull String relPath) throws RepositoryException {
         String oakPath = getOakPath(relPath);
         Tree node = getTree();
         TreeLocation propertyLocation = getLocation(node, oakPath);
@@ -175,7 +174,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
+    @NotNull
     private Tree getTree() {
         return authorizable.getTree();
     }
@@ -195,7 +194,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      *         {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    private boolean isAuthorizableProperty(@Nonnull Tree authorizableTree, @Nonnull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+    private boolean isAuthorizableProperty(@NotNull Tree authorizableTree, @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
         return getAuthorizableProperty(authorizableTree, propertyLocation, verifyAncestor) != null;
     }
 
@@ -215,8 +214,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      *         node type or one of it's sub-node types.
      * @throws RepositoryException If an error occurs.
      */
-    @CheckForNull
-    private PropertyState getAuthorizableProperty(@Nonnull Tree authorizableTree, @Nonnull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+    @Nullable
+    private PropertyState getAuthorizableProperty(@NotNull Tree authorizableTree, @NotNull TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
         PropertyState property = propertyLocation.getProperty();
         if (property == null) {
             return null;
@@ -243,7 +242,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return property;
     }
 
-    private void checkProtectedProperty(@Nonnull Tree parent, @Nonnull PropertyState property) throws RepositoryException {
+    private void checkProtectedProperty(@NotNull Tree parent, @NotNull PropertyState property) throws RepositoryException {
         ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, false);
         if (def.isProtected()) {
@@ -262,8 +261,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @throws RepositoryException If an error occurs or if {@code relPath} refers
      *                             to a node that is outside of the scope of this authorizable.
      */
-    @Nonnull
-    private Tree getOrCreateTargetTree(@CheckForNull String relPath) throws RepositoryException {
+    @NotNull
+    private Tree getOrCreateTargetTree(@Nullable String relPath) throws RepositoryException {
         Tree targetTree;
         Tree userTree = getTree();
         if (relPath != null) {
@@ -281,8 +280,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return targetTree;
     }
 
-    @Nonnull
-    private static TreeLocation getLocation(@Nonnull Tree tree, @Nonnull String relativePath) {
+    @NotNull
+    private static TreeLocation getLocation(@NotNull Tree tree, @NotNull String relativePath) {
         TreeLocation loc = TreeLocation.create(tree);
         for (String element : Text.explode(relativePath, '/', false)) {
             if (PathUtils.denotesParent(element)) {
@@ -294,8 +293,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return loc;
     }
 
-    @Nonnull
-    private String getOakPath(@CheckForNull String relPath) throws RepositoryException {
+    @NotNull
+    private String getOakPath(@Nullable String relPath) throws RepositoryException {
         if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relPath);
         }
@@ -306,7 +305,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return oakPath;
     }
 
-    private static void checkScope(@Nonnull String userPath, @Nonnull String targetPath, @Nonnull String relPath) throws RepositoryException {
+    private static void checkScope(@NotNull String userPath, @NotNull String targetPath, @NotNull String relPath) throws RepositoryException {
         if (!Text.isDescendantOrEqual(userPath, targetPath)) {
             throw new RepositoryException("Relative path " + relPath + " outside of scope of " + userPath);
         }

@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
-import javax.annotation.CheckForNull;
-
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -42,7 +41,7 @@ public interface IndexInfo {
      * Returns name of the async index lane to which this index is bound to
      * or null if its not an async index
      */
-    @CheckForNull
+    @Nullable
     String getAsyncLaneName();
 
     /**
@@ -89,6 +88,6 @@ public interface IndexInfo {
      * definition
      * @return diff if the definition change otherwise null
      */
-    @CheckForNull
+    @Nullable
     String getIndexDefinitionDiff();
 }

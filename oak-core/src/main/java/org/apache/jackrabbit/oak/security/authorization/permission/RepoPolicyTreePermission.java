@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code TreePermission} implementation for the access control policy coverying
@@ -53,9 +52,9 @@ final class RepoPolicyTreePermission implements TreePermission {
     }
 
     //-----------------------------------------------------< TreePermission >---
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
         return getChildPermission();
     }
 
@@ -65,7 +64,7 @@ final class RepoPolicyTreePermission implements TreePermission {
     }
 
     @Override
-    public boolean canRead(@Nonnull PropertyState property) {
+    public boolean canRead(@NotNull PropertyState property) {
         return getReadStatus().allowsThis();
     }
 
@@ -85,7 +84,7 @@ final class RepoPolicyTreePermission implements TreePermission {
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+    public boolean isGranted(long permissions, @NotNull PropertyState property) {
         return repoPermission.isGranted(permissions);
     }
 

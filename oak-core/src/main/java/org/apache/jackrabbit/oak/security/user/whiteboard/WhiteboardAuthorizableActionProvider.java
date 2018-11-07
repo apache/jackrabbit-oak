@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.security.user.whiteboard;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.CompositeActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Dynamic {@link AuthorizableActionProvider} based on the available
@@ -38,9 +37,9 @@ public class WhiteboardAuthorizableActionProvider
         super(AuthorizableActionProvider.class);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
         AuthorizableActionProvider actionProvider = new CompositeActionProvider(getServices());
         return actionProvider.getAuthorizableActions(securityProvider);
     }

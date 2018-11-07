@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,12 +33,12 @@ public class SecurityProviderBuilder {
     private SecurityConfiguration sc;
     private Class<? extends SecurityConfiguration> cls;
 
-    public SecurityProviderBuilder with(@Nonnull ConfigurationParameters configuration) {
+    public SecurityProviderBuilder with(@NotNull ConfigurationParameters configuration) {
         this.configuration = checkNotNull(configuration);
         return this;
     }
 
-    public SecurityProviderBuilder with(@Nonnull SecurityConfiguration sc, @Nonnull Class<? extends SecurityConfiguration> cls) {
+    public SecurityProviderBuilder with(@NotNull SecurityConfiguration sc, @NotNull Class<? extends SecurityConfiguration> cls) {
         this.sc = sc;
         this.cls = cls;
         return this;

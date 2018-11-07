@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Field;
 import java.security.Principal;
 
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -117,7 +117,7 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         return tp;
     }
 
-    private void assertVersionPermission(@Nonnull TreePermission tp, @Nonnull String expectedPath, boolean canRead) throws Exception {
+    private void assertVersionPermission(@NotNull TreePermission tp, @NotNull String expectedPath, boolean canRead) throws Exception {
         assertTrue(tp instanceof VersionTreePermission);
         assertEquals(canRead, tp.canRead());
         assertEquals(canRead, tp.canRead(PropertyStates.createProperty("any", "Value")));

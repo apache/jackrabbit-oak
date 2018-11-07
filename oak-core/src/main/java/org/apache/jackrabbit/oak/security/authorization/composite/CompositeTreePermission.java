@@ -21,9 +21,6 @@ import static org.apache.jackrabbit.oak.security.authorization.composite.Composi
 
 import java.util.function.Supplier;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Aggregate
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code TreePermission} implementation that combines multiple {@code TreePermission}
@@ -53,9 +52,9 @@ final class CompositeTreePermission implements TreePermission {
     private Boolean canRead;
     private Boolean canReadProperties;
 
-    private CompositeTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreeType type,
-            @Nonnull TreeTypeProvider typeProvider, @Nonnull AggregatedPermissionProvider[] providers,
-            @Nonnull TreePermission[] treePermissions, int cnt, @Nonnull CompositionType compositionType) {
+    private CompositeTreePermission(@NotNull ImmutableTree tree, @NotNull TreeType type,
+            @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers,
+            @NotNull TreePermission[] treePermissions, int cnt, @NotNull CompositionType compositionType) {
         this.tree = tree;
         this.type = type;
 
@@ -66,8 +65,8 @@ final class CompositeTreePermission implements TreePermission {
         this.compositionType = compositionType;
     }
 
-    static TreePermission create(@Nonnull ImmutableTree rootTree, @Nonnull TreeTypeProvider typeProvider,
-            @Nonnull AggregatedPermissionProvider[] providers, @Nonnull CompositionType compositionType) {
+    static TreePermission create(@NotNull ImmutableTree rootTree, @NotNull TreeTypeProvider typeProvider,
+            @NotNull AggregatedPermissionProvider[] providers, @NotNull CompositionType compositionType) {
         switch (providers.length) {
             case 0 : return TreePermission.EMPTY;
             case 1 : return providers[0].getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
@@ -86,16 +85,16 @@ final class CompositeTreePermission implements TreePermission {
         }
     }
 
-    static TreePermission create(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission) {
+    static TreePermission create(@NotNull final ImmutableTree tree, @NotNull CompositeTreePermission parentPermission) {
         return create(() -> tree, tree.getName(), tree.getNodeState(), parentPermission, null);
     }
 
-    static TreePermission create(@Nonnull final ImmutableTree tree, @Nonnull CompositeTreePermission parentPermission,
+    static TreePermission create(@NotNull final ImmutableTree tree, @NotNull CompositeTreePermission parentPermission,
             @Nullable TreeType treeType) {
         return create(() -> tree, tree.getName(), tree.getNodeState(), parentPermission, treeType);
     }
 
-    private static TreePermission create(@Nonnull Supplier<ImmutableTree> lazyTree, @Nonnull String childName, @Nonnull NodeState childState, @Nonnull CompositeTreePermission parentPermission,
+    private static TreePermission create(@NotNull Supplier<ImmutableTree> lazyTree, @NotNull String childName, @NotNull NodeState childState, @NotNull CompositeTreePermission parentPermission,
             @Nullable TreeType treeType) {
         switch (parentPermission.childSize) {
             case 0: return TreePermission.EMPTY;
@@ -139,9 +138,9 @@ final class CompositeTreePermission implements TreePermission {
     }
 
     //-----------------------------------------------------< TreePermission >---
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getChildPermission(@Nonnull final String childName, @Nonnull final NodeState childState) {
+    public TreePermission getChildPermission(@NotNull final String childName, @NotNull final NodeState childState) {
         return create(() -> new ImmutableTree(tree, childName, childState), childName, childState, this, null);
     }
 
@@ -154,7 +153,7 @@ final class CompositeTreePermission implements TreePermission {
     }
 
     @Override
-    public boolean canRead(@Nonnull PropertyState property) {
+    public boolean canRead(@NotNull PropertyState property) {
         return grantsRead(property);
     }
 
@@ -191,7 +190,7 @@ final class CompositeTreePermission implements TreePermission {
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+    public boolean isGranted(long permissions, @NotNull PropertyState property) {
         return grantsPermission(permissions, property);
     }
 
@@ -250,11 +249,11 @@ final class CompositeTreePermission implements TreePermission {
         return supportedPermissions != Permissions.NO_PERMISSION;
     }
 
-    private static boolean isValid(@Nonnull TreePermission tp) {
+    private static boolean isValid(@NotNull TreePermission tp) {
         return NO_RECOURSE != tp;
     }
 
-    private static TreeType getType(@Nonnull Tree tree, @Nonnull CompositeTreePermission parent) {
+    private static TreeType getType(@NotNull Tree tree, @NotNull CompositeTreePermission parent) {
         return parent.typeProvider.getType(tree, parent.type);
     }
 }

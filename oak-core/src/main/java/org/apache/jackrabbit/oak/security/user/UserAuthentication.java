@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
@@ -50,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLog
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +84,7 @@ class UserAuthentication implements Authentication, UserConstants {
     private String userId;
     private Principal principal;
 
-    UserAuthentication(@Nonnull UserConfiguration config, @Nonnull Root root, @Nullable String loginId) {
+    UserAuthentication(@NotNull UserConfiguration config, @NotNull Root root, @Nullable String loginId) {
         this.config = config;
         this.root = root;
         this.loginId = loginId;
@@ -147,7 +146,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return success;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public String getUserId() {
         if (userId == null) {
@@ -156,7 +155,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return userId;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public Principal getUserPrincipal() {
         if (principal == null) {
@@ -173,7 +172,7 @@ class UserAuthentication implements Authentication, UserConstants {
         }
     }
 
-    private static boolean equalUserId(@Nonnull ImpersonationCredentials creds, @Nonnull String userId) {
+    private static boolean equalUserId(@NotNull ImpersonationCredentials creds, @NotNull String userId) {
         Credentials base = creds.getBaseCredentials();
         return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
     }
@@ -221,7 +220,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return false;
     }
 
-    @CheckForNull
+    @Nullable
     private Long getPasswordLastModified(User user) throws RepositoryException {
         Tree userTree;
         if (user instanceof UserImpl) {
@@ -233,7 +232,7 @@ class UserAuthentication implements Authentication, UserConstants {
         return (property != null) ? property.getValue(Type.LONG) : null;
     }
 
-    private boolean isPasswordExpired(@Nonnull User user) throws RepositoryException {
+    private boolean isPasswordExpired(@NotNull User user) throws RepositoryException {
         // the password of the "admin" user never expires
         if (user.isAdmin()) {
             return false;

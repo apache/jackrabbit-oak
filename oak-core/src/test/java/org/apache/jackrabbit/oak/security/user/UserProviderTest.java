@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -349,9 +349,9 @@ public class UserProviderTest {
     @Test
     public void testCollisions() throws Exception {
         ConfigurationParameters config = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new AuthorizableNodeName() {
-            @Nonnull
+            @NotNull
             @Override
-            public String generateNodeName(@Nonnull String authorizableId) {
+            public String generateNodeName(@NotNull String authorizableId) {
                 return "aaa";
             }
         });
@@ -389,7 +389,7 @@ public class UserProviderTest {
         assertAutoCreatedItems(up.createGroup("g", null), UserConstants.NT_REP_GROUP, root);
     }
 
-    private static void assertAutoCreatedItems(@Nonnull Tree authorizableTree, @Nonnull String ntName, @Nonnull Root root) throws Exception {
+    private static void assertAutoCreatedItems(@NotNull Tree authorizableTree, @NotNull String ntName, @NotNull Root root) throws Exception {
         NodeType repUser = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT).getNodeType(ntName);
         for (NodeDefinition cnd : repUser.getChildNodeDefinitions()) {
             if (cnd.isAutoCreated()) {

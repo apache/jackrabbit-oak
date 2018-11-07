@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Sets.newLinkedHashSet;
 
@@ -44,7 +43,7 @@ final class ChildOrderDiff {
      * @return the name of the first reordered child if any user-supplied node
      * reorder happened; {@code null} otherwise.
      */
-    @CheckForNull
+    @Nullable
     static String firstReordered(PropertyState before, PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
         Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));

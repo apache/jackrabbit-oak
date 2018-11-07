@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.net.URI;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -27,6 +24,8 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +87,7 @@ public class ValueConverter {
      * @return the converted value
      * @throws IllegalArgumentException if mapping is illegal
      */
-    public static PropertyValue convert(@Nonnull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
+    public static PropertyValue convert(@NotNull PropertyValue value, int targetType, @Nullable NamePathMapper mapper) {
         int sourceType = value.getType().tag();
         if (sourceType == targetType) {
             return value;
@@ -191,7 +190,7 @@ public class ValueConverter {
                         PropertyType.nameFromValue(targetType));
     }
 
-    private static String getOakPath(@Nonnull String jcrPath, @CheckForNull NamePathMapper mapper) {
+    private static String getOakPath(@NotNull String jcrPath, @Nullable NamePathMapper mapper) {
         if (mapper == null) {
             // to simplify testing, a getNamePathMapper isn't required
             return jcrPath;

@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -48,16 +47,16 @@ class VersionStorageEditor extends DefaultEditor {
     private final String path;
     private ReadWriteVersionManager vMgr;
 
-    VersionStorageEditor(@Nonnull NodeBuilder versionStorageNode,
-                         @Nonnull NodeBuilder workspaceRoot) {
+    VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
+                         @NotNull NodeBuilder workspaceRoot) {
         this(versionStorageNode, workspaceRoot, versionStorageNode,
                 VERSION_STORE_PATH);
     }
 
-    private VersionStorageEditor(@Nonnull NodeBuilder versionStorageNode,
-                                 @Nonnull NodeBuilder workspaceRoot,
-                                 @Nonnull NodeBuilder builder,
-                                 @Nonnull String path) {
+    private VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
+                                 @NotNull NodeBuilder workspaceRoot,
+                                 @NotNull NodeBuilder builder,
+                                 @NotNull String path) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
         this.builder = checkNotNull(builder);

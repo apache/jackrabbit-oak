@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfigur
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -110,7 +109,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         super();
     }
 
-    public TokenConfigurationImpl(@Nonnull SecurityProvider securityProvider) {
+    public TokenConfigurationImpl(@NotNull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
@@ -136,15 +135,15 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME), getTreeProvider());
         return ImmutableList.of(vp);
     }
@@ -156,7 +155,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
      * @param root The target root.
      * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      */
-    @Nonnull
+    @NotNull
     @Override
     public TokenProvider getTokenProvider(Root root) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);

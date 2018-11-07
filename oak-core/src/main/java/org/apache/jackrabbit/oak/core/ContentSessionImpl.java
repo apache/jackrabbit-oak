@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,13 +64,13 @@ class ContentSessionImpl implements ContentSession {
      */
     private boolean live = true;
 
-    public ContentSessionImpl(@Nonnull LoginContext loginContext,
-                              @Nonnull SecurityProvider securityProvider,
-                              @Nonnull String workspaceName,
-                              @Nonnull NodeStore store,
-                              @Nonnull CommitHook hook,
+    public ContentSessionImpl(@NotNull LoginContext loginContext,
+                              @NotNull SecurityProvider securityProvider,
+                              @NotNull String workspaceName,
+                              @NotNull NodeStore store,
+                              @NotNull CommitHook hook,
                               QueryEngineSettings queryEngineSettings,
-                              @Nonnull QueryIndexProvider indexProvider) {
+                              @NotNull QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
@@ -86,7 +86,7 @@ class ContentSessionImpl implements ContentSession {
     }
 
     //-----------------------------------------------------< ContentSession >---
-    @Nonnull
+    @NotNull
     @Override
     public AuthInfo getAuthInfo() {
         checkLive();
@@ -98,7 +98,7 @@ class ContentSessionImpl implements ContentSession {
         return workspaceName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Root getLatestRoot() {
         checkLive();

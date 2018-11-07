@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ValidatorProvider} implementation for permission evaluation associated
@@ -58,9 +57,9 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     private Context acCtx;
     private Context userCtx;
 
-    public PermissionValidatorProvider(@Nonnull SecurityProvider securityProvider, @Nonnull String workspaceName,
-                                       @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker,
-                                       @Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
+    public PermissionValidatorProvider(@NotNull SecurityProvider securityProvider, @NotNull String workspaceName,
+                                       @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker,
+                                       @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         this.securityProvider = securityProvider;
         this.acConfig = securityProvider.getConfiguration(AuthorizationConfiguration.class);
 
@@ -78,7 +77,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
 
     //--------------------------------------------------< ValidatorProvider >---
 
-    @Override @Nonnull
+    @Override @NotNull
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
         PermissionProvider pp = acConfig.getPermissionProvider(createReadOnlyRoot(before), workspaceName, principals);
@@ -110,11 +109,11 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return Permissions.includes(jr2Permissions, permission);
     }
 
-    Root createReadOnlyRoot(@Nonnull NodeState nodeState) {
+    Root createReadOnlyRoot(@NotNull NodeState nodeState) {
         return rootProvider.createReadOnlyRoot(nodeState);
     }
 
-    Tree createReadOnlyTree(@Nonnull NodeState nodeState) {
+    Tree createReadOnlyTree(@NotNull NodeState nodeState) {
         return treeProvider.createReadOnlyTree(nodeState);
     }
 }

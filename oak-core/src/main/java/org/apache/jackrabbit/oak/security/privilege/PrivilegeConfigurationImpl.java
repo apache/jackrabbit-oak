@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
@@ -45,7 +44,7 @@ import org.osgi.service.component.annotations.Component;
 public class PrivilegeConfigurationImpl extends ConfigurationBase implements PrivilegeConfiguration {
 
     //---------------------------------------------< PrivilegeConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
         return new PrivilegeManagerImpl(root, namePathMapper);
@@ -58,31 +57,31 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return new PrivilegeInitializer(getRootProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return Collections.singletonList(new JcrAllCommitHook());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return Collections.singletonList(new PrivilegeValidatorProvider(getRootProvider()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return PrivilegeContext.getInstance();

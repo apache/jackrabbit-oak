@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -30,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dynamic {@link RestrictionProvider} based on the available
@@ -43,27 +43,27 @@ public class WhiteboardRestrictionProvider
         super(RestrictionProvider.class);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         return getProvider().getSupportedRestrictions(oakPath);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, value);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws RepositoryException {
         return getProvider().createRestriction(oakPath, oakName, values);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+    public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
         return getProvider().readRestrictions(oakPath, aceTree);
     }
 
@@ -73,19 +73,19 @@ public class WhiteboardRestrictionProvider
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
         getProvider().validateRestrictions(oakPath, aceTree);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
         return getProvider().getPattern(oakPath, tree);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+    public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
         return getProvider().getPattern(oakPath, restrictions);
     }
 

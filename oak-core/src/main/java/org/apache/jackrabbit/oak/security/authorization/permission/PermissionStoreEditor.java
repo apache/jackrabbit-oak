@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
@@ -41,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,12 +57,12 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
     private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
     private final NodeBuilder permissionRoot;
 
-    PermissionStoreEditor(@Nonnull String aclPath, @Nonnull String name,
-                          @Nonnull NodeState node, @Nonnull NodeBuilder permissionRoot,
-                          @Nonnull TypePredicate isACE, @Nonnull TypePredicate isGrantACE,
-                          @Nonnull PrivilegeBitsProvider bitsProvider,
-                          @Nonnull RestrictionProvider restrictionProvider,
-                          @Nonnull TreeProvider treeProvider) {
+    PermissionStoreEditor(@NotNull String aclPath, @NotNull String name,
+                          @NotNull NodeState node, @NotNull NodeBuilder permissionRoot,
+                          @NotNull TypePredicate isACE, @NotNull TypePredicate isGrantACE,
+                          @NotNull PrivilegeBitsProvider bitsProvider,
+                          @NotNull RestrictionProvider restrictionProvider,
+                          @NotNull TreeProvider treeProvider) {
         this.permissionRoot = permissionRoot;
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
@@ -226,11 +225,11 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     private final class JcrAllAcEntry extends AcEntry {
 
-        private JcrAllAcEntry(@Nonnull NodeState node,
-                              @Nonnull String accessControlledPath,
+        private JcrAllAcEntry(@NotNull NodeState node,
+                              @NotNull String accessControlledPath,
                               int index, boolean isAllow,
-                              @Nonnull PrivilegeBits privilegeBits,
-                              @Nonnull Set<Restriction> restrictions) {
+                              @NotNull PrivilegeBits privilegeBits,
+                              @NotNull Set<Restriction> restrictions) {
             super(node, accessControlledPath, index, isAllow, privilegeBits, restrictions);
         }
 
@@ -250,9 +249,9 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         private final int index;
         private int hashCode = -1;
 
-        private AcEntry(@Nonnull NodeState node, @Nonnull String accessControlledPath, int index,
-                        boolean isAllow, @Nonnull PrivilegeBits privilegeBits,
-                        @Nonnull Set<Restriction> restrictions) {
+        private AcEntry(@NotNull NodeState node, @NotNull String accessControlledPath, int index,
+                        boolean isAllow, @NotNull PrivilegeBits privilegeBits,
+                        @NotNull Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 

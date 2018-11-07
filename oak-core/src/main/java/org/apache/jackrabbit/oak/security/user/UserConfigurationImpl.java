@@ -22,9 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -178,13 +177,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ConfigurationParameters getParameters() {
         ConfigurationParameters params = super.getParameters();
@@ -197,38 +196,38 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
         return new UserInitializer(getSecurityProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
         return ImmutableList.of(new RepMembersConflictHandler());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return Collections.<ProtectedItemImporter>singletonList(new UserImporter(getParameters()));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return UserContext.getInstance();
     }
 
     //--------------------------------------------------< UserConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         UserManager umgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
@@ -241,7 +240,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Nullable
     @Override
-    public PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
     }
 }

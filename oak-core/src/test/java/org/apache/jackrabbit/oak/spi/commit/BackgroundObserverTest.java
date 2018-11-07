@@ -36,14 +36,13 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.observation.Filter;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringAwareObserver;
 import org.apache.jackrabbit.oak.plugins.observation.FilteringObserver;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
@@ -118,7 +117,7 @@ public class BackgroundObserverTest {
             volatile NodeState previous;
 
             @Override
-            public void contentChanged(@Nonnull final NodeState root, @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull final NodeState root, @NotNull CommitInfo info) {
                 if (root.hasProperty("done")) {
                     done(assertions);
                 } else if (previous != null) {

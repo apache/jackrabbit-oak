@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -43,7 +43,7 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
     private final Value v = Mockito.mock(Value.class);
     private final String relPath = "re/l/path";
 
-    private void assertPropertyCondition(@Nonnull Condition condition, @Nonnull RelationOp expectedOp) {
+    private void assertPropertyCondition(@NotNull Condition condition, @NotNull RelationOp expectedOp) {
         assertTrue(condition instanceof Condition.Property);
         Condition.Property cp = (Condition.Property) condition;
 

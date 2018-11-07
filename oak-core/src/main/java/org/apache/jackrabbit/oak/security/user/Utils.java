@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 class Utils {
 
@@ -46,8 +46,8 @@ class Utils {
      * @throws AccessDeniedException If the any intermediate tree does not exist
      *                               and cannot be created.
      */
-    @Nonnull
-    static Tree getOrAddTree(@Nonnull Tree tree, @Nonnull String relativePath, @Nonnull String primaryTypeName) throws AccessDeniedException {
+    @NotNull
+    static Tree getOrAddTree(@NotNull Tree tree, @NotNull String relativePath, @NotNull String primaryTypeName) throws AccessDeniedException {
         if (PathUtils.denotesCurrent(relativePath)) {
             return tree;
         } else if (PathUtils.denotesParent(relativePath)) {
