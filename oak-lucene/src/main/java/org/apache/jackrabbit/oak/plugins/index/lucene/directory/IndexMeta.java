@@ -30,10 +30,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -72,7 +71,7 @@ final class IndexMeta implements Comparable<IndexMeta> {
         properties.put(keyFromFSDirName(fsDirName), jcrDirName);
     }
 
-    @CheckForNull
+    @Nullable
     public String getJcrNameFromFSName(String fsDirName) {
         String nameKey = keyFromFSDirName(fsDirName);
         for (Map.Entry<String, String> e : properties.entrySet()) {
@@ -87,7 +86,7 @@ final class IndexMeta implements Comparable<IndexMeta> {
      * Returns the file system name for the given JCR name which
      * represents a directory on the file system
      */
-    @CheckForNull
+    @Nullable
     public String getFSNameFromJCRName(String jcrDirName) {
         for (Map.Entry<String, String> e : properties.entrySet()) {
             if (e.getKey().startsWith(DIR_PREFIX) && jcrDirName.equals(e.getValue())){

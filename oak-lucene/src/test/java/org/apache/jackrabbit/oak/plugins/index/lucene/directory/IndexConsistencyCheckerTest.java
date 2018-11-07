@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -46,6 +44,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -223,7 +222,7 @@ public class IndexConsistencyCheckerTest {
             this.corruptLength = corruptLength;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
             if (corruptLength){

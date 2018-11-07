@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.toArray;
@@ -215,7 +214,7 @@ class Aggregate {
     }
 
     public static interface AggregateMapper {
-        @CheckForNull
+        @Nullable
         Aggregate getAggregate(String nodeTypeName);
     }
 
@@ -254,7 +253,7 @@ class Aggregate {
 
         public abstract boolean aggregatesProperty(String name);
 
-        @CheckForNull
+        @Nullable
         public Aggregate getAggregate(NodeState matchedNodeState) {
             return null;
         }

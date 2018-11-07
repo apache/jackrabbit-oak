@@ -37,10 +37,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import java.util.List;
 import java.util.Map;
@@ -76,16 +76,16 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
 
     Clock clock = Clock.SIMPLE; // package private for tests
 
-    @Nonnull
+    @NotNull
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
 
-    @Nonnull
+    @NotNull
     private Whiteboard whiteboard;
 
-    @Nonnull
+    @NotNull
     private final GarbageCollectableBlobStore blobStore;
 
-    @Nonnull
+    @NotNull
     private final Executor executor;
 
     private final NodeStore store;
@@ -110,13 +110,13 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      * @param executor                      executor for running the collection task
      */
     ActiveDeletedBlobCollectorMBeanImpl(
-            @Nonnull ActiveDeletedBlobCollector activeDeletedBlobCollector,
-            @Nonnull Whiteboard whiteboard,
-            @Nonnull NodeStore store,
-            @Nonnull IndexPathService indexPathService,
-            @Nonnull AsyncIndexInfoService asyncIndexInfoService,
-            @Nonnull GarbageCollectableBlobStore blobStore,
-            @Nonnull Executor executor) {
+            @NotNull ActiveDeletedBlobCollector activeDeletedBlobCollector,
+            @NotNull Whiteboard whiteboard,
+            @NotNull NodeStore store,
+            @NotNull IndexPathService indexPathService,
+            @NotNull AsyncIndexInfoService asyncIndexInfoService,
+            @NotNull GarbageCollectableBlobStore blobStore,
+            @NotNull Executor executor) {
         this.activeDeletedBlobCollector = checkNotNull(activeDeletedBlobCollector);
         this.whiteboard = checkNotNull(whiteboard);
         this.store = store;
@@ -128,7 +128,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startActiveCollection() {
         if (gcOp.isDone()) {
@@ -148,7 +148,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData cancelActiveCollection() {
         if (!gcOp.isDone()) {
@@ -163,7 +163,7 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getActiveCollectionStatus() {
         return gcOp.getStatus().toCompositeData();

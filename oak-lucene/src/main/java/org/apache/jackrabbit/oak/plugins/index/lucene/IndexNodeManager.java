@@ -29,9 +29,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -47,6 +44,7 @@ import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,17 +128,17 @@ public class IndexNodeManager {
         return definition;
     }
 
-    @CheckForNull
+    @Nullable
     private Directory getSuggestDirectory() {
         return readers.isEmpty() ? null : getDefaultReader().getSuggestDirectory();
     }
 
-    @CheckForNull
+    @Nullable
     private AnalyzingInfixSuggester getLookup() {
         return readers.isEmpty() ? null : getDefaultReader().getLookup();
     }
 
-    @CheckForNull
+    @Nullable
     IndexNode acquire() {
         lock.readLock().lock();
         if (closed) {
@@ -189,7 +187,7 @@ public class IndexNodeManager {
         return readers;
     }
 
-    @CheckForNull
+    @Nullable
     private LuceneIndexWriter getLocalWriter() throws IOException{
         return nrtIndex != null ? nrtIndex.getWriter() : null;
     }

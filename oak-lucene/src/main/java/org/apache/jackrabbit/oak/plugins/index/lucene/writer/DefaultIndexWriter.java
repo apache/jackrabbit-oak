@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -42,6 +40,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,9 +241,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         return -1;
     }
 
-    private static void trackIndexSizeInfo(@Nonnull IndexWriter writer,
-                                           @Nonnull IndexDefinition definition,
-                                           @Nonnull Directory directory) throws IOException {
+    private static void trackIndexSizeInfo(@NotNull IndexWriter writer,
+                                           @NotNull IndexDefinition definition,
+                                           @NotNull Directory directory) throws IOException {
         checkNotNull(writer);
         checkNotNull(definition);
         checkNotNull(directory);

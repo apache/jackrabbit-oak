@@ -19,14 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +38,7 @@ public class LocalIndexObserver implements Observer{
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         if (info.isExternal()){
            return;
         }

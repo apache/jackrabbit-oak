@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -49,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.Nullable;
 import org.json.simple.parser.ParseException;
 import org.junit.Before;
 import org.junit.Test;
@@ -349,13 +348,13 @@ public class PropertyIndexCleanerTest {
             throw new UnsupportedOperationException();
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public AsyncIndexInfo getInfo(String name) {
             return infos.get(name);
         }
 
-        @CheckForNull
+        @Nullable
         @Override
         public AsyncIndexInfo getInfo(String name, NodeState root) {
             return null;

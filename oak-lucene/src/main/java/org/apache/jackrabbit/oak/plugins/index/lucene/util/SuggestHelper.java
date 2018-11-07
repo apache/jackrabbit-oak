@@ -24,8 +24,6 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
@@ -39,6 +37,7 @@ import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

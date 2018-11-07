@@ -64,7 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.FileUtils;
@@ -117,6 +116,7 @@ import org.apache.lucene.queries.CustomScoreProvider;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -715,7 +715,7 @@ public class LuceneIndexTest {
         tracker = new IndexTracker();
         ((Observable)nodeStore).addObserver(new Observer() {
             @Override
-            public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+            public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
                 tracker.update(root);
             }
         });
@@ -1001,7 +1001,7 @@ public class LuceneIndexTest {
             super(b);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
             throw new UnsupportedOperationException();
