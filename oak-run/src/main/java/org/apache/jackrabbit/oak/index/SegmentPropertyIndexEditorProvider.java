@@ -23,9 +23,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -66,10 +65,10 @@ public class SegmentPropertyIndexEditorProvider implements IndexEditorProvider, 
         this.indexStoreDir = storeDir;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                 @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+    public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                 @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (!PropertyIndexEditorProvider.TYPE.equals(type)) {
             return null;

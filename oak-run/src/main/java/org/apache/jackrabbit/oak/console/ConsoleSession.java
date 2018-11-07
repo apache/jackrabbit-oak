@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.console;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -125,7 +124,7 @@ public class ConsoleSession {
      *
      * @return the working node state.
      */
-    @Nonnull
+    @NotNull
     public NodeState getWorkingNode() {
         NodeState current = getRoot();
         for (String element : PathUtils.elements(getWorkingPath())) {
