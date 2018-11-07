@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -53,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -130,7 +129,7 @@ public class CompactorTest {
         compactor.compact(nodeStore.getRoot());
     }
 
-    @Nonnull
+    @NotNull
     private static Compactor createCompactor(FileStore fileStore, Supplier<Boolean> cancel, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
@@ -182,13 +181,13 @@ public class CompactorTest {
     }
 
     private static class FailingSegmentWriter implements SegmentWriter {
-        @Nonnull
+        @NotNull
         private final SegmentWriter delegate;
 
-        @Nonnull
+        @NotNull
         private final String failOnName;
 
-        public FailingSegmentWriter(@Nonnull SegmentWriter delegate, @Nonnull String failOnName) {
+        public FailingSegmentWriter(@NotNull SegmentWriter delegate, @NotNull String failOnName) {
             this.delegate = delegate;
             this.failOnName = failOnName;
         }
@@ -198,54 +197,54 @@ public class CompactorTest {
             delegate.flush();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RecordId writeMap(
-                @Nullable MapRecord base, @Nonnull Map<String, RecordId> changes)
+                @Nullable MapRecord base, @NotNull Map<String, RecordId> changes)
         throws IOException {
             return delegate.writeMap(base, changes);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeList(@Nonnull List<RecordId> list) throws IOException {
+        public RecordId writeList(@NotNull List<RecordId> list) throws IOException {
             return delegate.writeList(list);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeString(@Nonnull String string) throws IOException {
+        public RecordId writeString(@NotNull String string) throws IOException {
             return delegate.writeString(string);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeBlob(@Nonnull Blob blob) throws IOException {
+        public RecordId writeBlob(@NotNull Blob blob) throws IOException {
             return delegate.writeBlob(blob);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length)
+        public RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
         throws IOException {
             return delegate.writeBlock(bytes, offset, length);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeStream(@Nonnull InputStream stream) throws IOException {
+        public RecordId writeStream(@NotNull InputStream stream) throws IOException {
             return delegate.writeStream(stream);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeProperty(@Nonnull PropertyState state) throws IOException {
+        public RecordId writeProperty(@NotNull PropertyState state) throws IOException {
             return delegate.writeProperty(state);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        public RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
         throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);

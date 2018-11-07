@@ -20,9 +20,8 @@ package org.apache.jackrabbit.oak.segment;
 import java.util.Collections;
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A table to translate record numbers to offsets.
@@ -38,7 +37,7 @@ interface RecordNumbers extends Iterable<Entry> {
             return -1;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterator<Entry> iterator() {
             return Collections.emptyIterator();

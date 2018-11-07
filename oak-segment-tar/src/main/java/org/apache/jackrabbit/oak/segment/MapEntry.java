@@ -24,13 +24,11 @@ import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Representation of a single key-value entry in a map.
@@ -38,22 +36,22 @@ import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 class MapEntry extends AbstractChildNodeEntry
         implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @Nonnull
+    @NotNull
     private final RecordId key;
 
-    @CheckForNull
+    @Nullable
     private final RecordId value;
 
     private MapEntry(
-            @Nonnull SegmentReader reader,
-            @Nonnull String name,
-            @Nonnull RecordId key,
+            @NotNull SegmentReader reader,
+            @NotNull String name,
+            @NotNull RecordId key,
             @Nullable RecordId value) {
         this.reader = checkNotNull(reader);
         this.name = checkNotNull(name);
@@ -70,10 +68,10 @@ class MapEntry extends AbstractChildNodeEntry
      * @param value  record id of the value
      */
     static MapEntry newMapEntry(
-            @Nonnull SegmentReader reader,
-            @Nonnull String name,
-            @Nonnull RecordId key,
-            @Nonnull RecordId value) {
+            @NotNull SegmentReader reader,
+            @NotNull String name,
+            @NotNull RecordId key,
+            @NotNull RecordId value) {
         return new MapEntry(reader, name, key, checkNotNull(value));
     }
 
@@ -92,9 +90,9 @@ class MapEntry extends AbstractChildNodeEntry
      * @see #getValue()
      */
     static MapEntry newModifiedMapEntry(
-            @Nonnull SegmentReader reader,
-            @Nonnull String name,
-            @Nonnull RecordId key,
+            @NotNull SegmentReader reader,
+            @NotNull String name,
+            @NotNull RecordId key,
             @Nullable RecordId value) {
         return new MapEntry(reader, name, key, value);
     }
@@ -112,12 +110,12 @@ class MapEntry extends AbstractChildNodeEntry
 
     //----------------------------------------------------< ChildNodeEntry >--
 
-    @Override @Nonnull
+    @Override @NotNull
     public String getName() {
         return name;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public SegmentNodeState getNodeState() {
         checkState(value != null);
         return reader.readNode(value);
@@ -125,7 +123,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     //---------------------------------------------------------< Map.Entry >--
 
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getKey() {
         return key;
@@ -135,7 +133,7 @@ class MapEntry extends AbstractChildNodeEntry
      * @return  the value of this mapping.
      * @throws IllegalStateException if {@link #isDeleted()} is {@code true}.
      */
-    @Nonnull
+    @NotNull
     @Override
     public RecordId getValue() {
         checkState(value != null);
@@ -150,7 +148,7 @@ class MapEntry extends AbstractChildNodeEntry
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(@Nonnull MapEntry that) {
+    public int compareTo(@NotNull MapEntry that) {
         return ComparisonChain.start()
                 .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
                 .compare(name, that.name)

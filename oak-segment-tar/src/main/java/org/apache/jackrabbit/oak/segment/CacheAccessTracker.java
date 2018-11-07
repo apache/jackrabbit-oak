@@ -18,12 +18,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code Cache} wrapper exposing the number of read accesses and the
@@ -42,9 +41,9 @@ public class CacheAccessTracker<K, V> implements Cache<K,V> {
      * @param delegate             the underlying, wrapped cache.
      */
     public CacheAccessTracker(
-            @Nonnull String name,
-            @Nonnull StatisticsProvider statisticsProvider,
-            @Nonnull Cache<K, V> delegate) {
+            @NotNull String name,
+            @NotNull StatisticsProvider statisticsProvider,
+            @NotNull Cache<K, V> delegate) {
         this.delegate = delegate;
         this.accessCount = statisticsProvider.getCounterStats(
                 name + ".access-count", StatsOptions.DEFAULT);
@@ -53,18 +52,18 @@ public class CacheAccessTracker<K, V> implements Cache<K,V> {
     }
 
     @Override
-    public void put(@Nonnull K key, @Nonnull V value) {
+    public void put(@NotNull K key, @NotNull V value) {
         delegate.put(key, value);
     }
 
     @Override
-    public void put(@Nonnull K key, @Nonnull V value, byte cost) {
+    public void put(@NotNull K key, @NotNull V value, byte cost) {
         delegate.put(key, value, cost);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public V get(@Nonnull K key) {
+    public V get(@NotNull K key) {
         V v = delegate.get(key);
         accessCount.inc();
         if (v == null) {

@@ -37,12 +37,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,12 +57,12 @@ public class GCJournal {
 
     public static final String GC_JOURNAL = "gc.log";
 
-    @Nonnull
+    @NotNull
     private final File directory;
 
     private GCJournalEntry latest;
 
-    public GCJournal(@Nonnull File directory) {
+    public GCJournal(@NotNull File directory) {
         this.directory = checkNotNull(directory);
     }
 
@@ -80,7 +79,7 @@ public class GCJournal {
      * @param root          record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+            @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
     ) {
         GCJournalEntry current = read();
         if (current.getGcGeneration().equals(gcGeneration)) {
@@ -152,16 +151,16 @@ public class GCJournal {
 
         private final long ts;
 
-        @Nonnull
+        @NotNull
         private final GCGeneration gcGeneration;
 
         private final long nodes;
 
-        @Nonnull
+        @NotNull
         private final String root;
 
         public GCJournalEntry(long repoSize, long reclaimedSize, long ts,
-                @Nonnull GCGeneration gcGeneration, long nodes, @Nonnull String root
+                @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
         ) {
             this.repoSize = repoSize;
             this.reclaimedSize = reclaimedSize;
@@ -209,7 +208,7 @@ public class GCJournal {
                     newGCGeneration(generation, fullGeneration, false), nodes, root);
         }
 
-        @CheckForNull
+        @Nullable
         private static String parseString(String[] items, int index) {
             if (index >= items.length) {
                 return null;
@@ -265,7 +264,7 @@ public class GCJournal {
         /**
          * Returns the gc generation
          */
-        @Nonnull
+        @NotNull
         public GCGeneration getGcGeneration() {
             return gcGeneration;
         }
@@ -280,7 +279,7 @@ public class GCJournal {
         /**
          * Returns the record id of the root created by the compactor
          */
-        @Nonnull
+        @NotNull
         public String getRoot() {
             return root;
         }

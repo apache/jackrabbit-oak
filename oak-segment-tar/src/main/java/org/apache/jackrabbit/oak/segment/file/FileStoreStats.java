@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
 
 public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
@@ -86,13 +86,13 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
         return store.readerCount() + 1; //1 for the writer
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getWriteStats() {
         return asCompositeData(getTimeSeries(SEGMENT_WRITES), SEGMENT_WRITES);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getRepositorySize() {
         return asCompositeData(getTimeSeries(SEGMENT_REPO_SIZE), SEGMENT_REPO_SIZE);

@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,7 @@ public interface SegmentNotFoundExceptionListener {
      */
     SegmentNotFoundExceptionListener IGNORE_SNFE = new SegmentNotFoundExceptionListener() {
         @Override
-        public void notify(@Nonnull SegmentId id, @Nonnull SegmentNotFoundException snfe) { }
+        public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) { }
     };
 
     /**
@@ -44,7 +43,7 @@ public interface SegmentNotFoundExceptionListener {
     SegmentNotFoundExceptionListener LOG_SNFE = new SegmentNotFoundExceptionListener() {
         private final Logger log = LoggerFactory.getLogger(SegmentNotFoundExceptionListener.class);
         @Override
-        public void notify(@Nonnull SegmentId id, @Nonnull SegmentNotFoundException snfe) {
+        public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) {
             log.error("Segment not found: {}. {}", id, id.gcInfo(), snfe);
         }
     };
@@ -55,5 +54,5 @@ public interface SegmentNotFoundExceptionListener {
      * @param id the segment id of the offending {@code Segment}
      * @param snfe the raised exception
      */
-    void notify(@Nonnull final SegmentId id, @Nonnull final SegmentNotFoundException snfe);
+    void notify(@NotNull final SegmentId id, @NotNull final SegmentNotFoundException snfe);
 }

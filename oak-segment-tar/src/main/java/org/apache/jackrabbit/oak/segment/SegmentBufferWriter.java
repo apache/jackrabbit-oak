@@ -43,12 +43,11 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.HexDump;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,19 +98,19 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     private MutableSegmentReferences segmentReferences = new MutableSegmentReferences();
 
-    @Nonnull
+    @NotNull
     private final SegmentIdProvider idProvider;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
     /**
      * Id of this writer.
      */
-    @Nonnull
+    @NotNull
     private final String wid;
 
-    @Nonnull
+    @NotNull
     private final GCGeneration gcGeneration;
 
     /**
@@ -142,10 +141,10 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     private boolean dirty;
 
-    public SegmentBufferWriter(@Nonnull SegmentIdProvider idProvider,
-                               @Nonnull SegmentReader reader,
-                               @CheckForNull String wid,
-                               @Nonnull GCGeneration gcGeneration) {
+    public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
+                               @NotNull SegmentReader reader,
+                               @Nullable String wid,
+                               @NotNull GCGeneration gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = (wid == null
@@ -155,13 +154,13 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
         return writeOperation.execute(this);
     }
 
-    @Nonnull
+    @NotNull
     GCGeneration getGCGeneration() {
         return gcGeneration;
     }
@@ -311,7 +310,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * enough space for a record. It can also be called explicitly.
      */
     @Override
-    public void flush(@Nonnull SegmentStore store) throws IOException {
+    public void flush(@NotNull SegmentStore store) throws IOException {
         if (dirty) {
             int referencedSegmentIdCount = segmentReferences.size();
             BinaryUtils.writeInt(buffer, Segment.REFERENCED_SEGMENT_ID_COUNT_OFFSET, referencedSegmentIdCount);

@@ -24,11 +24,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.Weigher;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link RecordId}. This is
@@ -50,14 +50,14 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
     public abstract long estimateCurrentWeight();
 
     @Override
-    public void put(@Nonnull K key, @Nonnull RecordId value, byte cost) {
+    public void put(@NotNull K key, @NotNull RecordId value, byte cost) {
         throw new UnsupportedOperationException();
     }
 
     /**
      * @return  access statistics for this cache
      */
-    @Nonnull
+    @NotNull
     public CacheStats getStats() {
         return new CacheStats(hitCount, missCount, loadCount, 0, 0, evictionCount);
     }
@@ -70,7 +70,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
      *
      * @return  A new {@code RecordCache} instance of the given {@code size}.
      */
-    @Nonnull
+    @NotNull
     public static <T> RecordCache<T> newRecordCache(int size) {
         if (size <= 0) {
             return new Empty<>();
@@ -86,8 +86,8 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
      *          when invoked.
      * @see #newRecordCache(int)
      */
-    @Nonnull
-    public static <T> Supplier<RecordCache<T>> factory(int size, @Nonnull Weigher<T, RecordId> weigher) {
+    @NotNull
+    public static <T> Supplier<RecordCache<T>> factory(int size, @NotNull Weigher<T, RecordId> weigher) {
         if (size <= 0) {
             return Empty.emptyFactory();
         } else {
@@ -101,7 +101,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
      *          when invoked.
      * @see #newRecordCache(int)
      */
-    @Nonnull
+    @NotNull
     public static <T> Supplier<RecordCache<T>> factory(int size) {
         if (size <= 0) {
             return Empty.emptyFactory();
@@ -121,10 +121,10 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         @Override
-        public synchronized void put(@Nonnull T key, @Nonnull RecordId value) { }
+        public synchronized void put(@NotNull T key, @NotNull RecordId value) { }
 
         @Override
-        public synchronized RecordId get(@Nonnull T key) {
+        public synchronized RecordId get(@NotNull T key) {
             super.missCount++;
             return null;
         }
@@ -142,15 +142,15 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
 
     private static class Default<K> extends RecordCache<K> {
 
-        @Nonnull
+        @NotNull
         private final Map<K, RecordId> records;
 
-        @Nonnull
+        @NotNull
         private final Weigher<K, RecordId> weigher;
 
         private long weight = 0;
 
-        static final <K> Supplier<RecordCache<K>> defaultFactory(final int size, @Nonnull final Weigher<K, RecordId> weigher) {
+        static final <K> Supplier<RecordCache<K>> defaultFactory(final int size, @NotNull final Weigher<K, RecordId> weigher) {
             return new Supplier<RecordCache<K>>() {
                 @Override
                 public RecordCache<K> get() {
@@ -159,7 +159,7 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
             };
         }
 
-        Default(final int size, @Nonnull final Weigher<K, RecordId> weigher) {
+        Default(final int size, @NotNull final Weigher<K, RecordId> weigher) {
             this.weigher = checkNotNull(weigher);
             records = new LinkedHashMap<K, RecordId>(size * 4 / 3, 0.75f, true) {
                 @Override
@@ -176,14 +176,14 @@ public abstract class RecordCache<K> implements Cache<K, RecordId> {
         }
 
         @Override
-        public synchronized void put(@Nonnull K key, @Nonnull RecordId value) {
+        public synchronized void put(@NotNull K key, @NotNull RecordId value) {
             super.loadCount++;
             records.put(key, value);
             weight += weigher.weigh(key, value);
         }
 
         @Override
-        public synchronized RecordId get(@Nonnull K key) {
+        public synchronized RecordId get(@NotNull K key) {
             RecordId value = records.get(key);
             if (value == null) {
                 super.missCount++;

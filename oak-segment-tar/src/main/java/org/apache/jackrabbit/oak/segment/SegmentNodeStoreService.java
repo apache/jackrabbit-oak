@@ -78,9 +78,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
@@ -134,6 +131,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -404,11 +403,11 @@ public class SegmentNodeStoreService {
      * @throws IOException In case an unrecoverable error occurs.
      */
     static SegmentNodeStore registerSegmentStore(
-            @Nonnull ComponentContext context,
+            @NotNull ComponentContext context,
             @Nullable BlobStore blobStore,
-            @Nonnull StatisticsProvider statisticsProvider,
-            @Nonnull Closer closer,
-            @Nonnull Whiteboard whiteboard,
+            @NotNull StatisticsProvider statisticsProvider,
+            @NotNull Closer closer,
+            @NotNull Whiteboard whiteboard,
             @Nullable String role,
             boolean descriptors
     ) throws IOException {

@@ -22,9 +22,9 @@ import static java.util.Arrays.fill;
 
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.AbstractIterator;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A thread-safe, mutable record table.
@@ -56,7 +56,7 @@ class MutableRecordNumbers implements RecordNumbers {
             : entries[index * 2];
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public synchronized Iterator<Entry> iterator() {
         return new AbstractIterator<Entry>() {

@@ -53,8 +53,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
@@ -66,6 +64,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -542,7 +541,7 @@ class TarReader implements Closeable {
      *
      * @return An array of {@link TarEntry}.
      */
-    @Nonnull
+    @NotNull
     TarEntry[] getEntries() {
         TarEntry[] entries = new TarEntry[index.count()];
         for (int i = 0; i < entries.length; i++) {
@@ -570,7 +569,7 @@ class TarReader implements Closeable {
      * @param graph The content of the graph of this TAR file.
      * @return The references of the provided TAR entry.
      */
-    @Nonnull
+    @NotNull
     private static List<UUID> getReferences(UUID id, Map<UUID, List<UUID>> graph) {
         List<UUID> references = graph.get(id);
 
@@ -598,7 +597,7 @@ class TarReader implements Closeable {
      * @param collector      An instance of {@link Consumer}.
      * @param skipGeneration An instance of {@link Predicate}.
      */
-    void collectBlobReferences(@Nonnull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
+    void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
         BinaryReferencesIndex references = getBinaryReferences();
 
         if (references == null) {
@@ -704,7 +703,7 @@ class TarReader implements Closeable {
      * @return Either this {@link TarReader}, or a new instance of {@link
      * TarReader}, or {@code null}.
      */
-    TarReader sweep(@Nonnull Set<UUID> reclaim, @Nonnull Set<UUID> reclaimed) throws IOException {
+    TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
         String name = file.getName();
         log.debug("Cleaning up {}", name);
 

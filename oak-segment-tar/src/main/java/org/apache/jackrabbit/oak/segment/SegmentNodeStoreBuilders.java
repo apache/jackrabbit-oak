@@ -19,12 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore.SegmentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Static factories for creating {@link SegmentNodeBuilder} instances
@@ -36,8 +35,8 @@ public final class SegmentNodeStoreBuilders {
     /**
      * Create a {@code SegmentNodeStoreBuilder} based on a {@code FileStore}.
      */
-    @Nonnull
-    public static SegmentNodeStoreBuilder builder(@Nonnull FileStore store) {
+    @NotNull
+    public static SegmentNodeStoreBuilder builder(@NotNull FileStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
                 store.getReader(), store.getWriter(), store.getBlobStore());
     }
@@ -45,8 +44,8 @@ public final class SegmentNodeStoreBuilders {
     /**
      * Create a {@code SegmentNodeStoreBuilder} based on a {@code MemoryStore}.
      */
-    @Nonnull
-    public static SegmentNodeStoreBuilder builder(@Nonnull MemoryStore store) {
+    @NotNull
+    public static SegmentNodeStoreBuilder builder(@NotNull MemoryStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
                 store.getReader(), store.getWriter(), store.getBlobStore());
     }
@@ -54,8 +53,8 @@ public final class SegmentNodeStoreBuilders {
     /**
      * Create a {@code SegmentNodeStoreBuilder} based on a {@code ReadOnlyFileStore@}.
      */
-    @Nonnull
-    public static SegmentNodeStoreBuilder builder(@Nonnull ReadOnlyFileStore store) {
+    @NotNull
+    public static SegmentNodeStoreBuilder builder(@NotNull ReadOnlyFileStore store) {
         return SegmentNodeStore.builder(store.getRevisions(),
                 store.getReader(), store.getWriter(), store.getBlobStore());
     }

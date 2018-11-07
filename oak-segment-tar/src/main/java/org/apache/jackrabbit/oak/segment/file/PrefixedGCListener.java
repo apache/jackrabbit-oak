@@ -20,9 +20,8 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@link GCListener} that adds a prefix to every log message and delegates to
@@ -45,12 +44,12 @@ class PrefixedGCListener implements GCListener {
     }
 
     @Override
-    public void compactionSucceeded(@Nonnull GCGeneration newGeneration) {
+    public void compactionSucceeded(@NotNull GCGeneration newGeneration) {
         listener.compactionSucceeded(newGeneration);
     }
 
     @Override
-    public void compactionFailed(@Nonnull GCGeneration failedGeneration) {
+    public void compactionFailed(@NotNull GCGeneration failedGeneration) {
         listener.compactionFailed(failedGeneration);
     }
 

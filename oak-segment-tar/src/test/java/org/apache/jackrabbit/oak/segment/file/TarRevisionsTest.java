@@ -35,9 +35,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -46,6 +43,8 @@ import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -84,7 +83,7 @@ public class TarRevisionsTest {
         }
     }
 
-    @Nonnull
+    @NotNull
     private JournalReader createJournalReader() throws IOException {
         return new JournalReader(new File(getFileStoreFolder(), TarRevisions.JOURNAL_FILE_NAME));
     }
@@ -97,7 +96,7 @@ public class TarRevisionsTest {
         }
     }
 
-    @Nonnull
+    @NotNull
     private static SegmentNodeState addChild(SegmentNodeState node, String name) {
         SegmentNodeBuilder builder = node.builder();
         builder.setChildNode(name);

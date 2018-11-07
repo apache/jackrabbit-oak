@@ -27,10 +27,9 @@ import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.max;
 import static java.util.Arrays.fill;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.CacheWeights;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -70,7 +69,7 @@ public class PriorityCache<K, V> {
     private long evictionCount;
     private long size;
 
-    @Nonnull
+    @NotNull
     private final Weigher<K, V> weigher;
     private long weight = 0;
 
@@ -79,7 +78,7 @@ public class PriorityCache<K, V> {
      * @param size  size of the cache. Must be a power of 2.
      * @return  a new {@code PriorityCache} instance of the given {@code size}.
      */
-    public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size, @Nonnull final Weigher<K, V> weigher) {
+    public static <K, V> Supplier<PriorityCache<K, V>> factory(final int size, @NotNull final Weigher<K, V> weigher) {
         checkArgument(bitCount(size) == 1);
         checkNotNull(weigher);
         return new Supplier<PriorityCache<K, V>>() {
@@ -156,7 +155,7 @@ public class PriorityCache<K, V> {
      *                  smaller than {@code 32 - numberOfTrailingZeros(size)}.
      * @param weigher   Needed to provide an estimation of the cache weight in memory
      */
-    public PriorityCache(int size, int rehash, @Nonnull Weigher<K, V> weigher) {
+    public PriorityCache(int size, int rehash, @NotNull Weigher<K, V> weigher) {
         checkArgument(bitCount(size) == 1);
         checkArgument(rehash >= 0);
         checkArgument(rehash < 32 - numberOfTrailingZeros(size));
@@ -171,7 +170,7 @@ public class PriorityCache<K, V> {
      * the maximum number allowed by the given {@code size}. ({@code 31 - numberOfTrailingZeros(size)}.
      * @param size      Size of the cache. Must be a power of {@code 2}.
      */
-    public PriorityCache(int size, @Nonnull Weigher<K, V> weigher) {
+    public PriorityCache(int size, @NotNull Weigher<K, V> weigher) {
         this(size, 31 - numberOfTrailingZeros(size), weigher);
     }
 
@@ -198,7 +197,7 @@ public class PriorityCache<K, V> {
      * @param initialCost    the initial cost associated with this mapping
      * @return  {@code true} if the mapping has been added, {@code false} otherwise.
      */
-    public synchronized boolean put(@Nonnull K key, @Nonnull V value, int generation, byte initialCost) {
+    public synchronized boolean put(@NotNull K key, @NotNull V value, int generation, byte initialCost) {
         int hashCode = key.hashCode();
         byte cheapest = initialCost;
         int index = -1;
@@ -265,8 +264,8 @@ public class PriorityCache<K, V> {
      *          cache does not contain such a mapping.
      */
     @SuppressWarnings("unchecked")
-    @CheckForNull
-    public synchronized V get(@Nonnull K key, int generation) {
+    @Nullable
+    public synchronized V get(@NotNull K key, int generation) {
         int hashCode = key.hashCode();
         for (int k = 0; k <= rehash; k++) {
             int i = project(hashCode, k);
@@ -290,7 +289,7 @@ public class PriorityCache<K, V> {
      * passed {@code purge} predicate.
      * @param purge
      */
-    public synchronized void purgeGenerations(@Nonnull Predicate<Integer> purge) {
+    public synchronized void purgeGenerations(@NotNull Predicate<Integer> purge) {
         for (int i = 0; i < entries.length; i++) {
             Entry<?, ?> entry = entries[i];
             if (entry != Entry.NULL && purge.apply(entry.generation)) {
@@ -328,7 +327,7 @@ public class PriorityCache<K, V> {
     /**
      * @return  access statistics for this cache
      */
-    @Nonnull
+    @NotNull
     public CacheStats getStats() {
         return new CacheStats(hitCount, missCount, loadCount, loadExceptionCount, 0, evictionCount);
     }

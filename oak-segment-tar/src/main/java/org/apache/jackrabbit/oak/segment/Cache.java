@@ -18,8 +18,8 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Partial mapping of keys of type {@code K} to values of type {@link V}. If supported by the
@@ -35,7 +35,7 @@ public interface Cache<K, V> {
      *         support values without an associated cost and {@link #put(Object, Object, byte)}
      *         should be used instead.
      */
-    void put(@Nonnull K key, @Nonnull V value);
+    void put(@NotNull K key, @NotNull V value);
 
     /**
      * Add a mapping from {@code key} to {@code value} with a given {@code cost}.
@@ -43,11 +43,11 @@ public interface Cache<K, V> {
      *         support values with an associated cost and {@link #put(Object, Object)}
      *         should be used instead.
      */
-    void put(@Nonnull K key, @Nonnull V value, byte cost);
+    void put(@NotNull K key, @NotNull V value, byte cost);
 
     /**
      * @return  The mapping for {@code key}, or {@code null} if none.
      */
-    @CheckForNull
-    V get(@Nonnull K key);
+    @Nullable
+    V get(@NotNull K key);
 }

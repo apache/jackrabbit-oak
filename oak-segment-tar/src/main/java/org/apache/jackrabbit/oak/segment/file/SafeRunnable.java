@@ -22,8 +22,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Thread.currentThread;
 
-import javax.annotation.Nonnull;
-
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +40,10 @@ class SafeRunnable implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(SafeRunnable.class);
 
-    @Nonnull
+    @NotNull
     private final String name;
 
-    @Nonnull
+    @NotNull
     private final Runnable runnable;
 
     /**
@@ -54,7 +53,7 @@ class SafeRunnable implements Runnable {
      * @param name     The name of the background operation.
      * @param runnable The background operation.
      */
-    SafeRunnable(@Nonnull String name, @Nonnull Runnable runnable) {
+    SafeRunnable(@NotNull String name, @NotNull Runnable runnable) {
         this.name = checkNotNull(name);
         this.runnable = checkNotNull(runnable);
     }

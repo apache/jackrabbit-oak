@@ -23,12 +23,11 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Converts nodes, properties, values, etc. to records and persists them.
@@ -46,9 +45,9 @@ public interface SegmentWriter {
      * @return the record id of the map written
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeMap(@Nullable MapRecord base, @Nonnull Map<String, RecordId> changes) throws IOException;
+    RecordId writeMap(@Nullable MapRecord base, @NotNull Map<String, RecordId> changes) throws IOException;
 
     /**
      * Write a list record.
@@ -57,9 +56,9 @@ public interface SegmentWriter {
      * @return the record id of the list written
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeList(@Nonnull List<RecordId> list) throws IOException;
+    RecordId writeList(@NotNull List<RecordId> list) throws IOException;
 
     /**
      * Write a string record.
@@ -68,9 +67,9 @@ public interface SegmentWriter {
      * @return the record id of the string written.
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeString(@Nonnull String string) throws IOException;
+    RecordId writeString(@NotNull String string) throws IOException;
 
     /**
      * Write a blob (as list of block records)
@@ -79,8 +78,8 @@ public interface SegmentWriter {
      * @return the record id of the blob written
      * @throws IOException
      */
-    @Nonnull
-    RecordId writeBlob(@Nonnull Blob blob) throws IOException;
+    @NotNull
+    RecordId writeBlob(@NotNull Blob blob) throws IOException;
 
     /**
      * Writes a block record containing the given block of bytes.
@@ -90,9 +89,9 @@ public interface SegmentWriter {
      * @param length number of bytes to write
      * @return the record id of the block written
      */
-    @Nonnull
+    @NotNull
     // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeBlock(@Nonnull byte[] bytes, int offset, int length) throws IOException;
+    RecordId writeBlock(@NotNull byte[] bytes, int offset, int length) throws IOException;
 
     /**
      * Writes a stream value record. The given stream is consumed <em>and
@@ -103,8 +102,8 @@ public interface SegmentWriter {
      * @throws IOException if the input stream could not be read or the output
      *                     could not be written
      */
-    @Nonnull
-    RecordId writeStream(@Nonnull InputStream stream) throws IOException;
+    @NotNull
+    RecordId writeStream(@NotNull InputStream stream) throws IOException;
 
     /**
      * Write a property.
@@ -113,9 +112,9 @@ public interface SegmentWriter {
      * @return the record id of the property state written
      * @throws IOException
      */
-    @Nonnull
+    @NotNull
     // TODO frm this method is only used from test code, should it be removed?
-    RecordId writeProperty(@Nonnull PropertyState state) throws IOException;
+    RecordId writeProperty(@NotNull PropertyState state) throws IOException;
 
     /**
      * Write a node state. If non null, the passed {@code stableId} will be assigned to
@@ -126,8 +125,8 @@ public interface SegmentWriter {
      * @return the record id of the segment node state written
      * @throws IOException
      */
-    @Nonnull
-    RecordId writeNode(@Nonnull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException;
+    @NotNull
+    RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException;
 
     /**
      * Write a node state.
@@ -136,8 +135,8 @@ public interface SegmentWriter {
      *
      * @see #writeNode(NodeState, ByteBuffer)
      */
-    @Nonnull
-    default RecordId writeNode(@Nonnull NodeState state) throws IOException {
+    @NotNull
+    default RecordId writeNode(@NotNull NodeState state) throws IOException {
         return writeNode(state, null);
     }
 }

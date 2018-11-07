@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Instances of this class represent the garbage collection generation related
  * information of a segment. It consists of the segment's generation, its full
@@ -85,7 +85,7 @@ public final class GCGeneration {
      * Create a new instance with the generation and the full generation incremented by one
      * and the compaction flag left unchanged.
      */
-    @Nonnull
+    @NotNull
     public GCGeneration nextFull() {
         return new GCGeneration(generation + 1, fullGeneration + 1, true);
     }
@@ -94,7 +94,7 @@ public final class GCGeneration {
      * Create a new instance with the generation incremented by one and the full
      * generation and the compaction flag left unchanged.
      */
-    @Nonnull
+    @NotNull
     public GCGeneration nextTail() {
         return new GCGeneration(generation + 1, fullGeneration, true);
     }
@@ -103,7 +103,7 @@ public final class GCGeneration {
      * Create a new instance with the compaction flag unset and the generation and the
      * full generation left unchanged.
      */
-    @Nonnull
+    @NotNull
     public GCGeneration nonGC() {
         return new GCGeneration(generation, fullGeneration, false);
     }
@@ -113,7 +113,7 @@ public final class GCGeneration {
      * @param gcGeneration  the generation this generation is compared against.
      * @return  Number of generations between this generation and {@code gcGeneration}
      */
-    public int compareWith(@Nonnull GCGeneration gcGeneration) {
+    public int compareWith(@NotNull GCGeneration gcGeneration) {
         return generation - checkNotNull(gcGeneration).generation;
     }
 
@@ -123,7 +123,7 @@ public final class GCGeneration {
      * @return  Number of generations between the full generations of this generation
      *          and {@code gcGeneration}
      */
-    public int compareFullGenerationWith(@Nonnull GCGeneration gcGeneration) {
+    public int compareFullGenerationWith(@NotNull GCGeneration gcGeneration) {
         return fullGeneration - checkNotNull(gcGeneration).fullGeneration;
     }
 

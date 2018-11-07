@@ -48,10 +48,9 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,7 +184,7 @@ public class TarFiles implements Closeable {
     private static Iterable<TarReader> iterable(final Node head) {
         return new Iterable<TarReader>() {
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<TarReader> iterator() {
                 return new Iterator<TarReader>() {
