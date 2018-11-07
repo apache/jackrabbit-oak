@@ -33,9 +33,9 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import java.util.HashMap;
 import java.util.List;
@@ -129,14 +129,14 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         Set<String> memberIds = Sets.newHashSet();
 
         @Override
-        public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
             this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
             onMembersAddedCalled = true;
         }
 
         @Override
-        public void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             memberIds.add(member.getID());
             onMemberAddedCalled = true;
         }
@@ -155,9 +155,9 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
             actions.add(action);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
             return actions;
         }
     }

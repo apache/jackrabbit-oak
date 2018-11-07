@@ -30,7 +30,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -92,9 +92,9 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
         }
     }
     
-    private ListenableFutureTask<Void> updateCounter(@Nonnull final String counterPath,
+    private ListenableFutureTask<Void> updateCounter(@NotNull final String counterPath,
                                                      final long delta,
-                                                     @Nonnull final AtomicLong expected) {
+                                                     @NotNull final AtomicLong expected) {
         checkNotNull(counterPath);
         checkNotNull(expected);
         

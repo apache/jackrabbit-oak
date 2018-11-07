@@ -21,7 +21,6 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 
@@ -91,11 +91,11 @@ public abstract class AbstractRandomizedTest {
         oakRepository = dispose(oakRepository);
     }
 
-    protected Principal getTestPrincipal(@Nonnull JackrabbitSession session) throws RepositoryException {
+    protected Principal getTestPrincipal(@NotNull JackrabbitSession session) throws RepositoryException {
         return session.getUserManager().getAuthorizable(userId).getPrincipal();
     }
 
-    protected Principal getPrincipal(@Nonnull JackrabbitSession session, int index) throws RepositoryException {
+    protected Principal getPrincipal(@NotNull JackrabbitSession session, int index) throws RepositoryException {
         return session.getPrincipalManager().getPrincipal(ids[index]);
 
     }

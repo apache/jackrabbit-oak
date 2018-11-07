@@ -24,9 +24,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
@@ -68,6 +65,8 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,7 +171,7 @@ public class ImporterImpl implements Importer {
         }
     }
 
-    private Tree createTree(@Nonnull Tree parent, @Nonnull NodeInfo nInfo, @CheckForNull String uuid) throws RepositoryException {
+    private Tree createTree(@NotNull Tree parent, @NotNull NodeInfo nInfo, @Nullable String uuid) throws RepositoryException {
         String ntName = nInfo.getPrimaryTypeName();
         Tree child = TreeUtil.addChild(
                 parent, nInfo.getName(), ntName, ntTypesRoot, userID);
@@ -262,8 +261,8 @@ public class ImporterImpl implements Importer {
         return tree;
     }
 
-    private void importProperties(@Nonnull Tree tree,
-                                  @Nonnull List<PropInfo> propInfos,
+    private void importProperties(@NotNull Tree tree,
+                                  @NotNull List<PropInfo> propInfos,
                                   boolean ignoreRegular) throws RepositoryException {
         // process properties
         for (PropInfo pi : propInfos) {
@@ -594,7 +593,7 @@ public class ImporterImpl implements Importer {
          */
         private final Set<String> importedUUIDs;
 
-        private IdResolver(@Nonnull Root root, @Nonnull ContentSession contentSession) {
+        private IdResolver(@NotNull Root root, @NotNull ContentSession contentSession) {
             currentStateIdManager = new IdentifierManager(root);
             baseStateIdManager = new IdentifierManager(contentSession.getLatestRoot());
 
@@ -606,8 +605,8 @@ public class ImporterImpl implements Importer {
         }
 
 
-        @CheckForNull
-        private Tree getConflictingTree(@Nonnull String id) {
+        @Nullable
+        private Tree getConflictingTree(@NotNull String id) {
             //1. First check from base state that tree corresponding to
             //this id exist
             Tree conflicting = baseStateIdManager.getTree(id);
@@ -627,7 +626,7 @@ public class ImporterImpl implements Importer {
             return conflicting;
         }
 
-        private void rememberImportedUUIDs(@CheckForNull Tree tree) {
+        private void rememberImportedUUIDs(@Nullable Tree tree) {
             if (tree == null || importedUUIDs == null) {
                 return;
             }
