@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import javax.annotation.Nullable;
-
 import org.apache.lucene.index.IndexableField;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

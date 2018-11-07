@@ -36,14 +36,13 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.hamcrest.CoreMatchers;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -177,13 +176,13 @@ public class IndexAugmentorFactoryTest {
             context.registerService(IndexFieldProvider.class, this);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
             return Lists.newArrayList(id);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return nodeTypes;
@@ -205,7 +204,7 @@ public class IndexAugmentorFactoryTest {
             return id;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<String> getSupportedTypes() {
             return nodeTypes;

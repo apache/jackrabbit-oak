@@ -37,9 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.Weigher;
@@ -49,6 +46,8 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +113,7 @@ public class ExtractedTextCache {
      * @return null if no pre extracted text entry found. Otherwise returns the pre extracted
      *  text
      */
-    @CheckForNull
+    @Nullable
     public String get(String nodePath, String propertyName, Blob blob, boolean reindexMode){
         String result = null;
         //Consult the PreExtractedTextProvider only in reindex mode and not in
@@ -143,7 +142,7 @@ public class ExtractedTextCache {
         return result;
     }
 
-    public void put(@Nonnull Blob blob, @Nonnull ExtractedText extractedText) {
+    public void put(@NotNull Blob blob, @NotNull ExtractedText extractedText) {
         String id = blob.getContentIdentity();
         if (cache != null && id != null) {
             if (extractedText.getExtractionResult() == ExtractionResult.SUCCESS
@@ -153,7 +152,7 @@ public class ExtractedTextCache {
         }
     }
 
-    public void putTimeout(@Nonnull Blob blob, @Nonnull ExtractedText extractedText) {
+    public void putTimeout(@NotNull Blob blob, @NotNull ExtractedText extractedText) {
         if (EXTRACT_FORGET_TIMEOUT) {
             return;
         }
@@ -228,7 +227,7 @@ public class ExtractedTextCache {
         };
     }
 
-    @CheckForNull
+    @Nullable
     public CacheStats getCacheStats() {
         return cacheStats;
     }
@@ -258,7 +257,7 @@ public class ExtractedTextCache {
         private EmpiricalWeigher() {
         }
 
-        private static long getMemory(@Nonnull String s) {
+        private static long getMemory(@NotNull String s) {
             return 16                              // shallow size
                     + 40 + (long)s.length() * 2;   // value
         }
@@ -341,7 +340,7 @@ public class ExtractedTextCache {
                 }
             };
             @Override
-            public Thread newThread(@Nonnull Runnable r) {
+            public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
                 thread.setDaemon(true);
                 thread.setPriority(Thread.MIN_PRIORITY);

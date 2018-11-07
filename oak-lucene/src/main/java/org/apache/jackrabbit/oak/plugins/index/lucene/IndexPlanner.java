@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -48,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -606,7 +605,7 @@ class IndexPlanner {
         return indexedProps;
     }
 
-    @CheckForNull
+    @Nullable
     private static PropertyDefinition getSimpleProperty(IndexingRule indexingRule, String relativePropertyName) {
         String name = PathUtils.getName(relativePropertyName);
         if (name.equals(relativePropertyName)){
@@ -806,7 +805,7 @@ class IndexPlanner {
         return orderEntries;
     }
 
-    @CheckForNull
+    @Nullable
     private IndexingRule getApplicableRule() {
         if (filter.matchesAllTypes()){
             return definition.getApplicableIndexingRule(JcrConstants.NT_BASE);
@@ -950,7 +949,7 @@ class IndexPlanner {
          * @return transformed path. Returns null if the path does not confirm to relative
          * path requirements
          */
-        @CheckForNull
+        @Nullable
         public String transformPath(String path){
             if (isPathTransformed()){
                 // get the base path
@@ -978,7 +977,7 @@ class IndexPlanner {
 
         public boolean evaluateNodeNameRestriction() {return nodeNameRestriction;}
 
-        @CheckForNull
+        @Nullable
         public PropertyIndexResult getPropertyIndexResult() {
             return propertyIndexResult;
         }

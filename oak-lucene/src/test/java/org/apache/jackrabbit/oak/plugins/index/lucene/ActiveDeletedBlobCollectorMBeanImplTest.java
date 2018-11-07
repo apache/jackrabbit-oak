@@ -58,13 +58,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -72,7 +72,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
@@ -230,10 +229,10 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         ));
 
         NodeStore failingNodeStore = new MemoryNodeStore() {
-            @Nonnull
+            @NotNull
             @Override
-            public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-                                                @Nonnull CommitInfo info) throws CommitFailedException {
+            public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                                                @NotNull CommitInfo info) throws CommitFailedException {
                 throw new CommitFailedException("TestFail", 1, "We must never merge");
             }
         };
@@ -455,7 +454,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
             implements ActiveDeletedBlobCollector {
         private final Callable callback;
 
-        PauseNotifyingActiveDeletedBlobCollector (@Nonnull Callable callback) {
+        PauseNotifyingActiveDeletedBlobCollector (Callable callback) {
             this.callback = callback;
         }
         @Override

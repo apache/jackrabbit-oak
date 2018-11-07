@@ -25,9 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -45,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexableField;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContent.INITIAL_CONTENT;
@@ -191,10 +190,10 @@ public class LuceneIndexEditor2Test {
 
     private EditorHook createHook(LuceneIndexEditorContext context) {
         IndexEditorProvider provider = new IndexEditorProvider() {
-            @CheckForNull
+            @Nullable
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                         @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                     throws CommitFailedException {
                 if ("lucene".equals(type)) {
                     return new LuceneIndexEditor(context);

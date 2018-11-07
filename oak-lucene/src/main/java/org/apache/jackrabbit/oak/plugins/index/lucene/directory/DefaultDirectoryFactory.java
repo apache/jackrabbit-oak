@@ -22,15 +22,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.*;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME;
@@ -45,7 +44,7 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
         this(indexCopier, blobStore, BlobDeletionCallback.NOOP);
     }
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore,
-                                   @Nonnull BlobDeletionCallback blobDeletionCallback) {
+                                   @NotNull BlobDeletionCallback blobDeletionCallback) {
         this.indexCopier = indexCopier;
         this.blobStore = blobStore;
         this.blobDeletionCallback = blobDeletionCallback;

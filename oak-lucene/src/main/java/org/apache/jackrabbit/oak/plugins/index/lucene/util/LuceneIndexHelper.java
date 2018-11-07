@@ -43,12 +43,11 @@ import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.USER_PRO
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LuceneIndexHelper {
 
@@ -71,13 +70,13 @@ public class LuceneIndexHelper {
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes) {
         return newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async) {
         return newLuceneIndexDefinition(index, name, propertyTypes, excludes,
@@ -85,7 +84,7 @@ public class LuceneIndexHelper {
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async,
             @Nullable Boolean stored) {
@@ -114,16 +113,16 @@ public class LuceneIndexHelper {
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
-            @Nullable Set<String> propertyTypes, @Nonnull String path) {
+            @NotNull NodeBuilder index, @NotNull String name,
+            @Nullable Set<String> propertyTypes, @NotNull String path) {
         return newLuceneFileIndexDefinition(index, name, propertyTypes, null,
                 path, null);
     }
 
     public static NodeBuilder newLuceneFileIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
+            @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes,
-            @Nullable Set<String> excludes, @Nonnull String path,
+            @Nullable Set<String> excludes, @NotNull String path,
             @Nullable String async) {
         if (index.hasChildNode(name)) {
             return index.child(name);
@@ -149,9 +148,9 @@ public class LuceneIndexHelper {
     }
 
     public static NodeBuilder newLucenePropertyIndexDefinition(
-            @Nonnull NodeBuilder index, @Nonnull String name,
-            @Nonnull Set<String> includes,
-            @Nonnull String async) {
+            @NotNull NodeBuilder index, @NotNull String name,
+            @NotNull Set<String> includes,
+            @NotNull String async) {
         checkArgument(!includes.isEmpty(), "Lucene property index " +
                 "requires explicit list of property names to be indexed");
 

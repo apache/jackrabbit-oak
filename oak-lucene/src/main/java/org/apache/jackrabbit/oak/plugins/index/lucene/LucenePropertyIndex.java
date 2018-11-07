@@ -30,9 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Joiner;
@@ -126,6 +123,8 @@ import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.util.Version;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -945,8 +944,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param qs the list of queries. Cannot be null.
      * @return
      */
-    @Nonnull
-    public static LuceneRequestFacade<Query> performAdditionalWraps(@Nonnull List<Query> qs) {
+    @NotNull
+    public static LuceneRequestFacade<Query> performAdditionalWraps(@NotNull List<Query> qs) {
         checkNotNull(qs);
         if (qs.size() == 1) {
             Query q = qs.get(0);
@@ -988,7 +987,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
      * @return true if there where at least one unwrapped NOT. false otherwise.
      */
-    private static boolean unwrapMustNot(@Nonnull BooleanQuery input, @Nonnull BooleanQuery output) {
+    private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery output) {
         checkNotNull(input);
         checkNotNull(output);
         boolean unwrapped = false;
@@ -1172,7 +1171,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    @CheckForNull
+    @Nullable
     private static Query createQuery(String propertyName, PropertyRestriction pr,
                                      PropertyDefinition defn) {
         int propType = determinePropertyType(defn, pr);

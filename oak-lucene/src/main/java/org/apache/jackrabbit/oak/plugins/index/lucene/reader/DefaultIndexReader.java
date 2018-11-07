@@ -21,9 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.IOException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.lucene.analysis.Analyzer;
@@ -31,6 +28,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
@@ -63,13 +61,13 @@ public class DefaultIndexReader implements LuceneIndexReader {
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public AnalyzingInfixSuggester getLookup() {
         return lookup;
     }
 
     @Override
-    @CheckForNull
+    @Nullable
     public Directory getSuggestDirectory() {
         return suggestDirectory;
     }

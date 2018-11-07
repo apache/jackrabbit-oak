@@ -27,8 +27,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -79,6 +77,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -487,7 +487,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         for (LuceneDoc doc : docs){
             TreeTraverser<LuceneDoc> traverser = new TreeTraverser<LuceneDoc>() {
                 @Override
-                public Iterable<LuceneDoc> children(@Nonnull LuceneDoc root) {
+                public Iterable<LuceneDoc> children(@NotNull LuceneDoc root) {
                     //Break at maxLevel
                     if (root.depth >= maxLevel) {
                         return Collections.emptyList();
