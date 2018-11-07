@@ -18,11 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.mt;
 
-import javax.annotation.Nonnull;
 import java.io.StringReader;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,6 +36,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +127,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         decoder.cleanUp();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getSupportedTypes() {
         return nodeTypes;
