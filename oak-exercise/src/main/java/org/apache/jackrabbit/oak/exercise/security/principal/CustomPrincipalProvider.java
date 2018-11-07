@@ -21,12 +21,11 @@ import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Custom principal provider that only knows of a predefined set of principals
@@ -43,35 +42,35 @@ class CustomPrincipalProvider implements PrincipalProvider {
     }
 
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         // EXERCISE: complete
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         // EXERCISE : expose the group membership of your known Principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
         return Collections.EMPTY_SET;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         // EXERCISE : expose the principal-sets of your known principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
         return Collections.EMPTY_SET;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         // EXERCISE
         return Collections.emptyIterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         // EXERCISE

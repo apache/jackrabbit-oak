@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise;
 
 import java.security.Principal;
 import java.util.UUID;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 
 public final class ExerciseUtility {
 
@@ -37,24 +37,24 @@ public final class ExerciseUtility {
 
     private ExerciseUtility() {}
 
-    public static String getTestId(@Nonnull String hint) {
+    public static String getTestId(@NotNull String hint) {
         return hint + UUID.randomUUID().toString();
     }
 
-    public static Principal getTestPrincipal(@Nonnull String hint) {
+    public static Principal getTestPrincipal(@NotNull String hint) {
         String name = hint  + UUID.randomUUID().toString();
         return new PrincipalImpl(name);
     }
 
-    public static User createTestUser(@Nonnull UserManager userMgr) throws RepositoryException {
+    public static User createTestUser(@NotNull UserManager userMgr) throws RepositoryException {
         return userMgr.createUser(getTestId(TEST_USER_HINT), TEST_PW, getTestPrincipal(TEST_PRINCIPAL_HINT), null);
     }
 
-    public static Group createTestGroup(@Nonnull UserManager userMgr) throws RepositoryException {
+    public static Group createTestGroup(@NotNull UserManager userMgr) throws RepositoryException {
         return userMgr.createGroup(getTestId(TEST_GROUP_HINT), getTestPrincipal(TEST_GROUP_PRINCIPAL_HINT), null);
     }
 
-    public static SimpleCredentials getTestCredentials(@Nonnull String userID) {
+    public static SimpleCredentials getTestCredentials(@NotNull String userID) {
         return new SimpleCredentials(userID, TEST_PW.toCharArray());
     }
 }
