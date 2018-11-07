@@ -24,10 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -48,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 import org.osgi.framework.Constants;
 
@@ -86,30 +84,30 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     private T defaultConfig;
 
-    public CompositeConfiguration(@Nonnull String name) {
+    public CompositeConfiguration(@NotNull String name) {
         this.name = name;
     }
 
-    public CompositeConfiguration(@Nonnull String name, @Nonnull SecurityProvider securityProvider) {
+    public CompositeConfiguration(@NotNull String name, @NotNull SecurityProvider securityProvider) {
         this.name = name;
         this.securityProvider = securityProvider;
     }
 
-    @CheckForNull
+    @Nullable
     public T getDefaultConfig() {
         return defaultConfig;
     }
 
-    public void setDefaultConfig(@Nonnull T defaultConfig) {
+    public void setDefaultConfig(@NotNull T defaultConfig) {
         this.defaultConfig = defaultConfig;
         ctx.defaultCtx = defaultConfig.getContext();
     }
 
-    public void addConfiguration(@Nonnull T configuration) {
+    public void addConfiguration(@NotNull T configuration) {
         addConfiguration(configuration, ConfigurationParameters.EMPTY);
     }
 
-    public void addConfiguration(@Nonnull T configuration, @Nonnull ConfigurationParameters params) {
+    public void addConfiguration(@NotNull T configuration, @NotNull ConfigurationParameters params) {
         int ranking = configuration.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
         if (ranking == NO_RANKING) {
             ranking = params.getConfigValue(Constants.SERVICE_RANKING, NO_RANKING);
@@ -132,13 +130,13 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         ctx.add(configuration);
     }
 
-    public void removeConfiguration(@Nonnull T configuration) {
+    public void removeConfiguration(@NotNull T configuration) {
         configurations.remove(configuration);
         rankings.remove(configuration);
         ctx.refresh(configurations);
     }
 
-    @Nonnull
+    @NotNull
     public List<T> getConfigurations() {
         if (configurations.isEmpty() && defaultConfig != null) {
             return ImmutableList.of(defaultConfig);
@@ -147,11 +145,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
     }
 
-    public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
+    public void setSecurityProvider(@NotNull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 
-    @Nonnull
+    @NotNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             throw new IllegalStateException("SecurityProvider missing => CompositeConfiguration is not ready.");
@@ -159,11 +157,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return securityProvider;
     }
 
-    public void setRootProvider(@Nonnull RootProvider rootProvider) {
+    public void setRootProvider(@NotNull RootProvider rootProvider) {
         this.rootProvider = rootProvider;
     }
 
-    @Nonnull
+    @NotNull
     protected RootProvider getRootProvider() {
         if (rootProvider == null) {
             throw new IllegalStateException("RootProvider missing.");
@@ -171,11 +169,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return rootProvider;
     }
 
-    public void setTreeProvider(@Nonnull TreeProvider treeProvider) {
+    public void setTreeProvider(@NotNull TreeProvider treeProvider) {
         this.treeProvider = treeProvider;
     }
 
-    @Nonnull
+    @NotNull
     protected TreeProvider getTreeProvider() {
         if (treeProvider == null) {
             throw new IllegalStateException("TreeProvider missing.");
@@ -184,13 +182,13 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     }
 
     //----------------------------------------------< SecurityConfiguration >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ConfigurationParameters getParameters() {
         List<T> configs = getConfigurations();
@@ -201,7 +199,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return ConfigurationParameters.of(params);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
         return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(), new Function<T, WorkspaceInitializer>() {
@@ -212,7 +210,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return new CompositeInitializer(Lists.transform(getConfigurations(), new Function<T, RepositoryInitializer>() {
@@ -223,9 +221,9 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull final String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
         Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
             @Override
             public List<? extends CommitHook> apply(T securityConfiguration) {
@@ -235,20 +233,20 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return ImmutableList.copyOf(t);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull final String workspaceName, @Nonnull final Set<Principal> principals, @Nonnull final MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName, @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
         Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
         return ImmutableList.copyOf(t);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
         return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
@@ -260,7 +258,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         return ImmutableList.copyOf(t);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return ctx;
@@ -270,7 +268,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
         private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap();
 
-        private int get(@Nonnull SecurityConfiguration configuration) {
+        private int get(@NotNull SecurityConfiguration configuration) {
             Integer ranking = m.get(configuration);
             if (ranking == null) {
                 return NO_RANKING;
@@ -279,25 +277,25 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             }
         }
 
-        private void set(@Nonnull SecurityConfiguration configuration, int ranking) {
+        private void set(@NotNull SecurityConfiguration configuration, int ranking) {
             if (ranking != NO_RANKING) {
                 m.put(configuration, ranking);
             }
         }
 
-        private void remove(@Nonnull SecurityConfiguration configuration) {
+        private void remove(@NotNull SecurityConfiguration configuration) {
             m.remove(configuration);
         }
     }
 
     private static final class CompositeContext implements Context {
 
-        @Nonnull
+        @NotNull
         private Context defaultCtx = DEFAULT;
         @Nullable
         private Context[] delegatees = null;
 
-        private void refresh(@Nonnull List<? extends SecurityConfiguration> configurations) {
+        private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
             Set<Context> s = Sets.newLinkedHashSetWithExpectedSize(configurations.size());
             for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE)) {
                 if (DEFAULT != c) {
@@ -307,7 +305,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             delegatees = (s.isEmpty()) ? null : s.toArray(new Context[s.size()]);
         }
 
-        private void add(@Nonnull SecurityConfiguration configuration) {
+        private void add(@NotNull SecurityConfiguration configuration) {
             Context c = configuration.getContext();
             if (DEFAULT != c) {
                 if (delegatees == null) {
@@ -324,7 +322,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
 
         @Override
-        public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+        public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
             if (delegatees == null) {
                 return defaultCtx.definesProperty(parent, property);
             }
@@ -337,7 +335,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
 
         @Override
-        public boolean definesContextRoot(@Nonnull Tree tree) {
+        public boolean definesContextRoot(@NotNull Tree tree) {
             if (delegatees == null) {
                 return defaultCtx.definesContextRoot(tree);
             }
@@ -350,7 +348,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
 
         @Override
-        public boolean definesTree(@Nonnull Tree tree) {
+        public boolean definesTree(@NotNull Tree tree) {
             if (delegatees == null) {
                 return defaultCtx.definesTree(tree);
             }
@@ -363,7 +361,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
 
         @Override
-        public boolean definesLocation(@Nonnull TreeLocation location) {
+        public boolean definesLocation(@NotNull TreeLocation location) {
             if (delegatees == null) {
                 return defaultCtx.definesLocation(location);
             }
@@ -376,7 +374,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         }
 
         @Override
-        public boolean definesInternal(@Nonnull Tree tree) {
+        public boolean definesInternal(@NotNull Tree tree) {
             if (delegatees == null) {
                 return defaultCtx.definesInternal(tree);
             }

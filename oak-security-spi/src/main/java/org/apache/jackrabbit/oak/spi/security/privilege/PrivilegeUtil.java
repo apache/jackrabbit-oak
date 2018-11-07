@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Privilege management related utility methods.
@@ -37,7 +36,7 @@ public final class PrivilegeUtil implements PrivilegeConstants {
      *
      * @return The privileges root.
      */
-    @Nonnull
+    @NotNull
     public static Tree getPrivilegesTree(Root root) {
         return root.getTree(PRIVILEGES_PATH);
     }
@@ -50,8 +49,8 @@ public final class PrivilegeUtil implements PrivilegeConstants {
      * @param definitionTree An existing tree storing a privilege definition.
      * @return A new instance of {@code PrivilegeDefinition}.
      */
-    @Nonnull
-    public static PrivilegeDefinition readDefinition(@Nonnull Tree definitionTree) {
+    @NotNull
+    public static PrivilegeDefinition readDefinition(@NotNull Tree definitionTree) {
         String name = definitionTree.getName();
         boolean isAbstract = TreeUtil.getBoolean(definitionTree, REP_IS_ABSTRACT);
         Iterable<String> declAggrNames = null;

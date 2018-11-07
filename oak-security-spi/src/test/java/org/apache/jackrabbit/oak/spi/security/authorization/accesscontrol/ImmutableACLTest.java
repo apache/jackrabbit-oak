@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -32,6 +30,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -65,9 +65,9 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     }
 
     protected ImmutableACL createACL(@Nullable String jcrPath,
-                                     @Nonnull List<JackrabbitAccessControlEntry> entries,
-                                     @Nonnull NamePathMapper namePathMapper,
-                                     @Nonnull RestrictionProvider restrictionProvider) {
+                                     @NotNull List<JackrabbitAccessControlEntry> entries,
+                                     @NotNull NamePathMapper namePathMapper,
+                                     @NotNull RestrictionProvider restrictionProvider) {
         String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
     }

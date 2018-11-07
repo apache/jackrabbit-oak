@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implementation of the authentication configuration provides login
@@ -30,11 +30,11 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
  */
 public class OpenAuthenticationConfiguration extends SecurityConfiguration.Default implements AuthenticationConfiguration {
 
-    @Nonnull
+    @NotNull
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         return new LoginContextProvider() {
-            @Nonnull
+            @NotNull
             @Override
             public LoginContext getLoginContext(final Credentials credentials, String workspaceName) {
                 return new LoginContext() {

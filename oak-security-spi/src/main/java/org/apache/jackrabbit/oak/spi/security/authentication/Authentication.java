@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.security.Principal;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.security.auth.login.LoginException;
 
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -63,7 +62,7 @@ public interface Authentication {
      *
      * @return a user identifier or {@code null}
      */
-    @CheckForNull
+    @Nullable
     String getUserId();
 
     /**
@@ -75,6 +74,6 @@ public interface Authentication {
      *
      * @return a valid {@code Principal} or {@code null}
      */
-    @CheckForNull
+    @Nullable
     Principal getUserPrincipal();
 }

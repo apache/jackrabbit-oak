@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Credentials implementation that only contains a {@code userId} but no password.
@@ -28,11 +29,11 @@ public final class UserIdCredentials implements Credentials {
 
     private final String userId;
 
-    public UserIdCredentials(@Nonnull String userId) {
+    public UserIdCredentials(@NotNull String userId) {
         this.userId = userId;
     }
 
-    @Nonnull
+    @NotNull
     public String getUserId() {
         return userId;
     }

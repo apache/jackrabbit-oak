@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code TreePermission} allow to evaluate permissions defined for a given
@@ -39,8 +38,8 @@ public interface TreePermission {
      * @return The tree permission for the child tree identified by {@code childName}
      * and {@code childState}.
      */
-    @Nonnull
-    TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState);
+    @NotNull
+    TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState);
 
     /**
      * Return if read access is granted for the {@code Tree} associated with
@@ -58,7 +57,7 @@ public interface TreePermission {
      * @param property The property to be tested for read access.
      * @return {@code true} If the specified property can be read; {@code false} otherwise.
      */
-    boolean canRead(@Nonnull PropertyState property);
+    boolean canRead(@NotNull PropertyState property);
 
     /**
      * Returns {@code true} if read access is granted to the {@code Tree} associated
@@ -103,16 +102,16 @@ public interface TreePermission {
      * @param property The property state for which the permissions must be granted.
      * @return {@code true} if all permissions are granted; {@code false} otherwise.
      */
-    boolean isGranted(long permissions, @Nonnull PropertyState property);
+    boolean isGranted(long permissions, @NotNull PropertyState property);
 
     /**
      * {@code TreePermission} which always returns {@code false} not granting
      * any permissions.
      */
     TreePermission EMPTY = new TreePermission() {
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return EMPTY;
         }
 
@@ -122,7 +121,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return false;
         }
 
@@ -142,7 +141,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return false;
         }
 
@@ -157,9 +156,9 @@ public interface TreePermission {
      * all permissions.
      */
     TreePermission ALL = new TreePermission() {
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             return ALL;
         }
 
@@ -169,7 +168,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             return true;
         }
 
@@ -189,7 +188,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             return true;
         }
 
@@ -201,9 +200,9 @@ public interface TreePermission {
 
     TreePermission NO_RECOURSE = new TreePermission() {
 
-        @Nonnull
+        @NotNull
         @Override
-        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             throw new UnsupportedOperationException();
         }
 
@@ -213,7 +212,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean canRead(@Nonnull PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             throw new UnsupportedOperationException();
         }
 
@@ -233,7 +232,7 @@ public interface TreePermission {
         }
 
         @Override
-        public boolean isGranted(long permissions, @Nonnull PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             throw new UnsupportedOperationException();
         }
 

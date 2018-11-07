@@ -20,12 +20,11 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Enumeration;
 import java.util.Iterator;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -45,7 +44,7 @@ public class PrincipalManagerImplTest {
         return p instanceof Group;
     }
 
-    private static void assertIterator(@Nonnull Iterator<? extends Principal> expected, @Nonnull Iterator<? extends Principal> result) {
+    private static void assertIterator(@NotNull Iterator<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
         assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
     }
 
@@ -168,7 +167,7 @@ public class PrincipalManagerImplTest {
         assertMembership(principalMgr, PrincipalManager.SEARCH_TYPE_ALL);
     }
 
-    private static void assertMembership(@Nonnull PrincipalManager mgr, int searchType) {
+    private static void assertMembership(@NotNull PrincipalManager mgr, int searchType) {
         PrincipalIterator it = mgr.getPrincipals(searchType);
         while (it.hasNext()) {
             Principal p = it.nextPrincipal();

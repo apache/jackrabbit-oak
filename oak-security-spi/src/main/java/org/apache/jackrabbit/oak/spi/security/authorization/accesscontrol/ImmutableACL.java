@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -31,6 +29,8 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * An implementation of the {@code JackrabbitAccessControlList} interface that only
@@ -52,9 +52,9 @@ public class ImmutableACL extends AbstractAccessControlList {
      * @param namePathMapper      The {@link NamePathMapper} used for conversion.
      */
     public ImmutableACL(@Nullable String oakPath,
-                        @Nonnull List<? extends JackrabbitAccessControlEntry> entries,
-                        @Nonnull RestrictionProvider restrictionProvider,
-                        @Nonnull NamePathMapper namePathMapper) {
+                        @NotNull List<? extends JackrabbitAccessControlEntry> entries,
+                        @NotNull RestrictionProvider restrictionProvider,
+                        @NotNull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         this.entries = ImmutableList.copyOf(entries);
         this.restrictionProvider = restrictionProvider;
@@ -86,13 +86,13 @@ public class ImmutableACL extends AbstractAccessControlList {
     }
 
     //------------------------------------------< AbstractAccessControlList >---
-    @Nonnull
+    @NotNull
     @Override
     public List<JackrabbitAccessControlEntry> getEntries() {
         return entries;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return restrictionProvider;

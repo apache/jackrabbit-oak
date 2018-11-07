@@ -20,9 +20,6 @@ import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -40,6 +37,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,9 +59,9 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
 
     private PermissionProvider permissionProvider;
 
-    protected AbstractAccessControlManager(@Nonnull Root root,
-                                           @Nonnull NamePathMapper namePathMapper,
-                                           @Nonnull SecurityProvider securityProvider) {
+    protected AbstractAccessControlManager(@NotNull Root root,
+                                           @NotNull NamePathMapper namePathMapper,
+                                           @NotNull SecurityProvider securityProvider) {
         this.root = root;
         this.workspaceName = root.getContentSession().getWorkspaceName();
         this.namePathMapper = namePathMapper;
@@ -72,16 +71,16 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     //-----------------------------------------------< AccessControlManager >---
-    @Nonnull
+    @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
         getTree(getOakPath(absPath), Permissions.NO_PERMISSION, false);
         return privilegeManager.getRegisteredPrivileges();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Privilege privilegeFromName(@Nonnull String privilegeName) throws RepositoryException {
+    public Privilege privilegeFromName(@NotNull String privilegeName) throws RepositoryException {
         return privilegeManager.getPrivilege(privilegeName);
     }
 
@@ -90,7 +89,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         return hasPrivileges(absPath, privileges, getPermissionProvider(), Permissions.NO_PERMISSION, false);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
         return getPrivileges(absPath, getPermissionProvider(), Permissions.NO_PERMISSION);
@@ -98,7 +97,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
 
     //-------------------------------------< JackrabbitAccessControlManager >---
     @Override
-    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals, @Nullable Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @Nullable Privilege[] privileges) throws RepositoryException {
         if (getPrincipals().equals(principals)) {
             return hasPrivileges(absPath, privileges);
         } else {
@@ -108,7 +107,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     @Override
-    public Privilege[] getPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals) throws RepositoryException {
+    public Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
         if (getPrincipals().equals(principals)) {
             return getPrivileges(absPath);
         } else {
@@ -118,32 +117,32 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     //----------------------------------------------------------< protected >---
-    @Nonnull
+    @NotNull
     protected AuthorizationConfiguration getConfig() {
         return config;
     }
 
-    @Nonnull
+    @NotNull
     protected Root getRoot() {
         return root;
     }
 
-    @Nonnull
+    @NotNull
     protected Root getLatestRoot() {
         return root.getContentSession().getLatestRoot();
     }
 
-    @Nonnull
+    @NotNull
     protected NamePathMapper getNamePathMapper() {
         return namePathMapper;
     }
 
-    @Nonnull
+    @NotNull
     protected PrivilegeManager getPrivilegeManager() {
         return privilegeManager;
     }
 
-    @CheckForNull
+    @Nullable
     protected String getOakPath(@Nullable String jcrPath) throws RepositoryException {
         if (jcrPath == null) {
             return null;
@@ -156,7 +155,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         }
     }
 
-    @Nonnull
+    @NotNull
     protected Tree getTree(@Nullable String oakPath, long permissions, boolean checkAcContent) throws RepositoryException {
         Tree tree = (oakPath == null) ? root.getTree("/") : root.getTree(oakPath);
         if (!tree.exists()) {
@@ -173,7 +172,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         return tree;
     }
 
-    @Nonnull
+    @NotNull
     protected PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
             permissionProvider = config.getPermissionProvider(root, workspaceName, getPrincipals());
@@ -184,7 +183,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
+    @NotNull
     private Set<Principal> getPrincipals() {
         return root.getContentSession().getAuthInfo().getPrincipals();
     }
@@ -201,9 +200,9 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         }
     }
 
-    @Nonnull
+    @NotNull
     private Privilege[] getPrivileges(@Nullable String absPath,
-                                      @Nonnull PermissionProvider provider,
+                                      @NotNull PermissionProvider provider,
                                       long permissions) throws RepositoryException {
         Tree tree;
         if (absPath == null) {
@@ -227,7 +226,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     }
 
     private boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges,
-                                  @Nonnull PermissionProvider provider, long permissions,
+                                  @NotNull PermissionProvider provider, long permissions,
                                   boolean checkAcContent) throws RepositoryException {
         Tree tree;
         if (absPath == null) {

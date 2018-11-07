@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s
@@ -29,6 +28,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  */
 public interface AuthorizableActionProvider {
 
-    @Nonnull
-    List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider);
+    @NotNull
+    List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider);
 }

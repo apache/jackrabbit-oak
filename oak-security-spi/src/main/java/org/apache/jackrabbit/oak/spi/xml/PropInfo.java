@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.spi.xml;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -31,6 +28,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Information about a property being imported. This class is used
@@ -72,7 +71,7 @@ public class PropInfo {
      * @param type type of the property being imported
      * @param value value of the property being imported
      */
-    public PropInfo(@Nullable String name, int type, @Nonnull TextValue value) {
+    public PropInfo(@Nullable String name, int type, @NotNull TextValue value) {
         this(name, type, ImmutableList.of(value), MultipleStatus.UNKNOWN);
     }
 
@@ -83,7 +82,7 @@ public class PropInfo {
      * @param type type of the property being imported
      * @param values value(s) of the property being imported
      */
-    public PropInfo(@Nullable String name, int type, @Nonnull List<? extends TextValue> values) {
+    public PropInfo(@Nullable String name, int type, @NotNull List<? extends TextValue> values) {
         this(name, type, values, ((values.size() == 1) ? MultipleStatus.UNKNOWN : MultipleStatus.MULTIPLE));
     }
 
@@ -96,8 +95,8 @@ public class PropInfo {
      * @param multipleStatus Hint indicating whether the property is
      */
     public PropInfo(@Nullable String name, int type,
-                    @Nonnull List<? extends TextValue> values,
-                    @Nonnull MultipleStatus multipleStatus) {
+                    @NotNull List<? extends TextValue> values,
+                    @NotNull MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
         this.values = ImmutableList.copyOf(values);
@@ -124,7 +123,7 @@ public class PropInfo {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public String getName() {
         return name;
     }
@@ -137,7 +136,7 @@ public class PropInfo {
         return multipleStatus == MultipleStatus.UNKNOWN;
     }
 
-    @Nonnull
+    @NotNull
     public TextValue getTextValue() throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("Multiple import values with single-valued property definition");
@@ -145,12 +144,12 @@ public class PropInfo {
         return values.get(0);
     }
 
-    @Nonnull
+    @NotNull
     public List<? extends TextValue> getTextValues() {
         return values;
     }
 
-    @Nonnull
+    @NotNull
     public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("Multiple import values with single-valued property definition");
@@ -158,7 +157,7 @@ public class PropInfo {
         return values.get(0).getValue(targetType);
     }
 
-    @Nonnull
+    @NotNull
     public List<Value> getValues(int targetType) throws RepositoryException {
         if (values.isEmpty()) {
             return Collections.emptyList();
@@ -171,7 +170,7 @@ public class PropInfo {
         }
     }
 
-    public PropertyState asPropertyState(@Nonnull PropertyDefinition propertyDefinition) throws RepositoryException {
+    public PropertyState asPropertyState(@NotNull PropertyDefinition propertyDefinition) throws RepositoryException {
         List<Value> vs = getValues(getTargetType(propertyDefinition));
         PropertyState propertyState;
         if (vs.size() == 1 && !propertyDefinition.isMultiple()) {

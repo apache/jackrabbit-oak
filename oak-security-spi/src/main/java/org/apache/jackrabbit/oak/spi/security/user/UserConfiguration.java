@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Configuration interface for user management.
@@ -39,7 +38,7 @@ public interface UserConfiguration extends SecurityConfiguration {
      * @param namePathMapper A name path mapper used for conversion of jcr/oak names/paths.
      * @return a new instance of {@code UserManager}
      */
-    @Nonnull
+    @NotNull
     UserManager getUserManager(Root root, NamePathMapper namePathMapper);
 
     /**
@@ -63,5 +62,5 @@ public interface UserConfiguration extends SecurityConfiguration {
      * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration
      */
     @Nullable
-    PrincipalProvider getUserPrincipalProvider(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper);
+    PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper);
 }

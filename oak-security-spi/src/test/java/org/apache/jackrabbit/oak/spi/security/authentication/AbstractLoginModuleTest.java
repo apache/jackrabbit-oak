@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -54,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TestPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -509,7 +509,7 @@ public class AbstractLoginModuleTest {
             this.supportedCredentialsClass = supportedCredentialsClass;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         protected Set<Class> getSupportedCredentials() {
             return Collections.singleton(supportedCredentialsClass);
@@ -538,15 +538,15 @@ public class AbstractLoginModuleTest {
         private TestCallbackHandler() {
         }
 
-        private TestCallbackHandler(@Nonnull Whiteboard whiteboard) {
+        private TestCallbackHandler(@NotNull Whiteboard whiteboard) {
             this.whiteboard = whiteboard;
         }
 
-        private TestCallbackHandler(@Nonnull UserManager userManager) {
+        private TestCallbackHandler(@NotNull UserManager userManager) {
             this.userManager = userManager;
         }
 
-        private TestCallbackHandler(@Nonnull PrincipalProvider principalProvider) {
+        private TestCallbackHandler(@NotNull PrincipalProvider principalProvider) {
             this.principalProvider = principalProvider;
         }
 
@@ -582,7 +582,7 @@ public class AbstractLoginModuleTest {
 
     private final class TestContentRepository implements ContentRepository {
 
-        @Nonnull
+        @NotNull
         @Override
         public ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName) {
             ContentSession cs = Mockito.mock(ContentSession.class);
@@ -592,7 +592,7 @@ public class AbstractLoginModuleTest {
 
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Descriptors getDescriptors() {
             throw new UnsupportedOperationException();

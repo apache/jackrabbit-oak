@@ -21,13 +21,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the AuthInfo interface.
@@ -45,7 +45,7 @@ public final class AuthInfoImpl implements AuthInfo {
         this.principals = (principals == null) ? Collections.<Principal>emptySet() : Collections.unmodifiableSet(principals);
     }
 
-    public static AuthInfo createFromSubject(@Nonnull Subject subject) {
+    public static AuthInfo createFromSubject(@NotNull Subject subject) {
         Set<AuthInfo> infoSet = subject.getPublicCredentials(AuthInfo.class);
         if (infoSet.isEmpty()) {
             Set<SimpleCredentials> scs = subject.getPublicCredentials(SimpleCredentials.class);
@@ -70,7 +70,7 @@ public final class AuthInfoImpl implements AuthInfo {
         return userID;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] getAttributeNames() {
         return attributes.keySet().toArray(new String[attributes.size()]);
@@ -81,7 +81,7 @@ public final class AuthInfoImpl implements AuthInfo {
         return attributes.get(attributeName);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<Principal> getPrincipals() {
         return principals;

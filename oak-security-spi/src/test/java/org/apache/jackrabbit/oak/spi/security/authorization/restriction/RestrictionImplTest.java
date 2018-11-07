@@ -18,12 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -128,13 +127,13 @@ public class RestrictionImplTest {
         rs.add(new RestrictionImpl(createProperty(name, value, type), !isMandatory));
         // - different impl
         rs.add(new Restriction() {
-            @Nonnull
+            @NotNull
             @Override
             public RestrictionDefinition getDefinition() {
                 return new RestrictionDefinitionImpl(name, type, isMandatory);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public PropertyState getProperty() {
                 return createProperty(name, value, type);
@@ -167,13 +166,13 @@ public class RestrictionImplTest {
         rs.add(new RestrictionImpl(createProperty(name, value, type), !isMandatory));
         // - different impl
         rs.add(new Restriction() {
-            @Nonnull
+            @NotNull
             @Override
             public RestrictionDefinition getDefinition() {
                 return new RestrictionDefinitionImpl(name, type, isMandatory);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public PropertyState getProperty() {
                 return createProperty(name, value, type);

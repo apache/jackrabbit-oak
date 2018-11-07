@@ -20,8 +20,8 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 /**
@@ -37,7 +37,7 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMemberAdded(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMemberAdded(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -45,7 +45,7 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersAdded(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -61,7 +61,7 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMemberRemoved(@Nonnull Group group, @Nonnull Authorizable member, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMemberRemoved(@NotNull Group group, @NotNull Authorizable member, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
@@ -69,7 +69,7 @@ public abstract class AbstractGroupAction extends AbstractAuthorizableAction imp
      * Doesn't perform any action.
      */
     @Override
-    public void onMembersRemoved(@Nonnull Group group, @Nonnull Iterable<String> memberIds, @Nonnull Iterable<String> failedIds, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper) throws RepositoryException {
+    public void onMembersRemoved(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 }

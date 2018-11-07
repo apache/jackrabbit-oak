@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Configuration for token management.
@@ -34,6 +33,6 @@ public interface TokenConfiguration extends SecurityConfiguration {
      * @param root The target root.
      * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      */
-    @Nonnull
+    @NotNull
     TokenProvider getTokenProvider(Root root);
 }

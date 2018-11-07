@@ -19,17 +19,17 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractCredentials implements Credentials {
 
     protected final Map<String,Object> attributes = new HashMap();
     protected final String userId;
 
-    public AbstractCredentials(@Nonnull String userId) {
+    public AbstractCredentials(@NotNull String userId) {
         this.userId = userId;
     }
 
@@ -38,7 +38,7 @@ public abstract class AbstractCredentials implements Credentials {
      *
      * @return the userId.
      */
-    @Nonnull
+    @NotNull
     public String getUserId() {
         return userId;
     }
@@ -52,7 +52,7 @@ public abstract class AbstractCredentials implements Credentials {
      * @param value
      *            the {@code Object} to be stored
      */
-    public void setAttribute(@Nonnull String name, @Nullable Object value) {
+    public void setAttribute(@NotNull String name, @Nullable Object value) {
         // name cannot be null
         if (name == null) {
             throw new IllegalArgumentException("name cannot be null");
@@ -78,8 +78,8 @@ public abstract class AbstractCredentials implements Credentials {
      * @return an <code>Object</code> containing the value of the attribute, or
      *         <code>null</code> if the attribute does not exist
      */
-    @CheckForNull
-    public Object getAttribute(@Nonnull String name) {
+    @Nullable
+    public Object getAttribute(@NotNull String name) {
         synchronized (attributes) {
             return (attributes.get(name));
         }
@@ -92,7 +92,7 @@ public abstract class AbstractCredentials implements Credentials {
      *            a <code>String</code> specifying the name of the attribute to
      *            remove
      */
-    public void removeAttribute(@Nonnull String name) {
+    public void removeAttribute(@NotNull String name) {
         synchronized (attributes) {
             attributes.remove(name);
         }
@@ -101,7 +101,7 @@ public abstract class AbstractCredentials implements Credentials {
     /**
      * @return an immutable map containing the attributes available to this credentials instance
      */
-    @Nonnull
+    @NotNull
     public Map<String,Object> getAttributes() {
         return Collections.unmodifiableMap(attributes);
     }
@@ -111,7 +111,7 @@ public abstract class AbstractCredentials implements Credentials {
      *
      * @param attributes The attributes to be stored
      */
-    public void setAttributes(@Nonnull Map<String,Object> attributes) {
+    public void setAttributes(@NotNull Map<String,Object> attributes) {
         synchronized (attributes) {
             this.attributes.putAll(attributes);
         }

@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -123,13 +123,13 @@ public class CompositeTokenProviderTest {
 
     private final class TestTokenProvider implements TokenProvider {
         @Override
-        public boolean doCreateToken(@Nonnull Credentials credentials) {
+        public boolean doCreateToken(@NotNull Credentials credentials) {
             return credentials instanceof SimpleCredentials;
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public TokenInfo createToken(@Nonnull Credentials credentials) {
+        public TokenInfo createToken(@NotNull Credentials credentials) {
             if (credentials instanceof SimpleCredentials) {
                 return info;
             } else {
@@ -137,16 +137,16 @@ public class CompositeTokenProviderTest {
             }
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+        public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
             throw new UnsupportedOperationException();
 
         }
 
-        @CheckForNull
+        @Nullable
         @Override
-        public TokenInfo getTokenInfo(@Nonnull String token) {
+        public TokenInfo getTokenInfo(@NotNull String token) {
             if (TOKEN.equals(token)) {
                 return info;
             } else {

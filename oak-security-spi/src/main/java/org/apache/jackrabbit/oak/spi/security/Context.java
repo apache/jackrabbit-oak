@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeContext;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code Context} represents item related information in relation to a
@@ -40,27 +39,27 @@ public interface Context extends TreeContext {
     class Default implements Context {
 
         @Override
-        public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+        public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
             return false;
         }
 
         @Override
-        public boolean definesContextRoot(@Nonnull Tree tree) {
+        public boolean definesContextRoot(@NotNull Tree tree) {
             return false;
         }
 
         @Override
-        public boolean definesTree(@Nonnull Tree tree) {
+        public boolean definesTree(@NotNull Tree tree) {
             return false;
         }
 
         @Override
-        public boolean definesLocation(@Nonnull TreeLocation location) {
+        public boolean definesLocation(@NotNull TreeLocation location) {
             return false;
         }
 
         @Override
-        public boolean definesInternal(@Nonnull Tree tree) {
+        public boolean definesInternal(@NotNull Tree tree) {
             return false;
         }
     }

@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
@@ -47,7 +46,7 @@ public abstract class TreeLocation {
     /**
      * Create a new {@code TreeLocation} instance for a {@code tree}
      */
-    public static TreeLocation create(@Nonnull Tree tree) {
+    public static TreeLocation create(@NotNull Tree tree) {
         return new NodeLocation(tree);
     }
 
@@ -75,7 +74,7 @@ public abstract class TreeLocation {
      * Navigate to the parent or an invalid location for the root of the hierarchy.
      * @return a {@code TreeLocation} for the parent of this location.
      */
-    @Nonnull
+    @NotNull
     public abstract TreeLocation getParent();
 
     /**
@@ -91,14 +90,14 @@ public abstract class TreeLocation {
      * The name of this location
      * @return name
      */
-    @Nonnull
+    @NotNull
     public abstract String getName();
 
     /**
      * The path of this location
      * @return  path
      */
-    @Nonnull
+    @NotNull
     public abstract String getPath();
 
     /**
@@ -113,7 +112,7 @@ public abstract class TreeLocation {
      * @param name  name of the child
      * @return  this default implementation return a non existing location
      */
-    @Nonnull
+    @NotNull
     public TreeLocation getChild(String name) {
         return new NullLocation(this, name);
     }
@@ -122,7 +121,7 @@ public abstract class TreeLocation {
      * Get the underlying {@link org.apache.jackrabbit.oak.api.Tree} for this {@code TreeLocation}.
      * @return  this default implementation return {@code null}.
      */
-    @CheckForNull
+    @Nullable
     public Tree getTree() {
         return null;
     }
@@ -131,7 +130,7 @@ public abstract class TreeLocation {
      * Get the underlying {@link org.apache.jackrabbit.oak.api.PropertyState} for this {@code TreeLocation}.
      * @return  this default implementation return {@code null}.
      */
-    @CheckForNull
+    @Nullable
     public PropertyState getProperty() {
         return null;
     }
@@ -152,7 +151,7 @@ public abstract class TreeLocation {
             this.tree = tree;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public TreeLocation getParent() {
             return tree.isRoot()
@@ -160,7 +159,7 @@ public abstract class TreeLocation {
                 : new NodeLocation(tree.getParent());
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public TreeLocation getChild(String name) {
             if (tree.hasProperty(name)) {
@@ -175,7 +174,7 @@ public abstract class TreeLocation {
             return tree.exists();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return tree.getName();
@@ -186,7 +185,7 @@ public abstract class TreeLocation {
             return exists() ? tree : null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getPath() {
             return tree.getPath();
@@ -211,7 +210,7 @@ public abstract class TreeLocation {
             this.name = name;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public TreeLocation getParent() {
             return new NodeLocation(parent);
@@ -222,7 +221,7 @@ public abstract class TreeLocation {
             return parent.hasProperty(name);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return name;
@@ -233,7 +232,7 @@ public abstract class TreeLocation {
             return parent.getProperty(name);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getPath() {
             return PathUtils.concat(parent.getPath(), name);
@@ -266,7 +265,7 @@ public abstract class TreeLocation {
             this.name = "";
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public TreeLocation getParent() {
             return parent;
@@ -280,13 +279,13 @@ public abstract class TreeLocation {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return name;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getPath() {
             return parent == this ? "" : PathUtils.concat(parent.getPath(), name);

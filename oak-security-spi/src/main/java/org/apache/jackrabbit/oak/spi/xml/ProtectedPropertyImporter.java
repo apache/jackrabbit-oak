@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ProtectedPropertyImporter} is in charge of importing single
@@ -43,8 +43,8 @@ public interface ProtectedPropertyImporter extends ProtectedItemImporter {
      * {@code false} otherwise.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo,
-                           @Nonnull PropertyDefinition def) throws RepositoryException;
+    boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo,
+                           @NotNull PropertyDefinition def) throws RepositoryException;
 
     /**
      * Informs this importer that all properties to be imported below
@@ -59,7 +59,7 @@ public interface ProtectedPropertyImporter extends ProtectedItemImporter {
      * properties was incomplete and the importer was not able to fix the problem.
      * @throws RepositoryException If another error occurs.
      */
-    void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException,
+    void propertiesCompleted(@NotNull Tree protectedParent) throws IllegalStateException,
             ConstraintViolationException, RepositoryException;
 
 }

@@ -23,15 +23,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +70,7 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If {@link #DEFAULT_ALGORITHM} is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(@Nonnull String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String buildPasswordHash(@NotNull String password) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         return buildPasswordHash(password, DEFAULT_ALGORITHM, DEFAULT_SALT_SIZE, DEFAULT_ITERATIONS);
     }
 
@@ -90,7 +89,7 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(@Nonnull String password,
+    public static String buildPasswordHash(@NotNull String password,
                                            @Nullable String algorithm,
                                            int saltSize, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         checkNotNull(password);
@@ -115,8 +114,8 @@ public final class PasswordUtil {
      * @throws NoSuchAlgorithmException If the specified algorithm is not supported.
      * @throws UnsupportedEncodingException If utf-8 is not supported.
      */
-    public static String buildPasswordHash(@Nonnull String password,
-                                           @Nonnull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String buildPasswordHash(@NotNull String password,
+                                           @NotNull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         checkNotNull(config);
         String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
         int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
@@ -146,7 +145,7 @@ public final class PasswordUtil {
      * @return If the hash created from the specified {@code password} equals
      * the given {@code hashedPassword} string.
      */
-    public static boolean isSame(@Nullable String hashedPassword, @Nonnull char[] password) {
+    public static boolean isSame(@Nullable String hashedPassword, @NotNull char[] password) {
         return isSame(hashedPassword, String.valueOf(password));
     }
 
@@ -159,7 +158,7 @@ public final class PasswordUtil {
      * @return If the hash created from the specified {@code password} equals
      * the given {@code hashedPassword} string.
      */
-    public static boolean isSame(@Nullable String hashedPassword, @Nonnull String password) {
+    public static boolean isSame(@Nullable String hashedPassword, @NotNull String password) {
         if (hashedPassword == null) {
             return false;
         }
@@ -193,7 +192,7 @@ public final class PasswordUtil {
      * @param b
      * @return true if both parameters contain the same data.
      */
-    private static boolean compareSecure(@Nonnull String a, @Nonnull String b) {
+    private static boolean compareSecure(@NotNull String a, @NotNull String b) {
         int len = a.length();
         if (len != b.length()) {
             return false;
@@ -210,8 +209,8 @@ public final class PasswordUtil {
         return bits == 0;
     }
 
-    @Nonnull
-    private static String generateHash(@Nonnull String pwd, @Nonnull String algorithm,
+    @NotNull
+    private static String generateHash(@NotNull String pwd, @NotNull String algorithm,
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
@@ -237,7 +236,7 @@ public final class PasswordUtil {
         return passwordHash.toString();
     }
 
-    @Nonnull
+    @NotNull
     private static String generateSalt(int saltSize) {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[saltSize];
@@ -252,7 +251,7 @@ public final class PasswordUtil {
      * @param bytes the byte array
      * @return the hex encoded string
      */
-    @Nonnull
+    @NotNull
     private static String convertBytesToHex(byte[] bytes) {
         StringBuilder res = new StringBuilder(bytes.length * 2);
         for (byte b : bytes) {
@@ -268,7 +267,7 @@ public final class PasswordUtil {
      * @param s the hex encoded string
      * @return the byte array
      */
-    @Nonnull
+    @NotNull
     private static byte[] convertHexToBytes(String s) {
         int len = s.length();
         if (len % 2 != 0) {
@@ -283,9 +282,9 @@ public final class PasswordUtil {
         return bytes;
     }
 
-    @Nonnull
-    private static String generatePBKDF2(@Nonnull String pwd, @Nonnull String salt,
-                                         @Nonnull String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
+    @NotNull
+    private static String generatePBKDF2(@NotNull String pwd, @NotNull String salt,
+                                         @NotNull String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
         // for example PBKDF2WithHmacSHA1
         SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm);
         byte[] saltBytes = convertHexToBytes(salt);
@@ -299,8 +298,8 @@ public final class PasswordUtil {
         }  
     }
 
-    @Nonnull
-    private static String generateDigest(@Nonnull String data, @Nonnull String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    @NotNull
+    private static String generateDigest(@NotNull String data, @NotNull String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
         byte[] bytes = data.getBytes(ENCODING);
         MessageDigest md = MessageDigest.getInstance(algorithm);
 
@@ -323,7 +322,7 @@ public final class PasswordUtil {
      * leading {@code algorithm} such as created by {@code buildPasswordHash}
      * or if the extracted string isn't a supported algorithm.
      */
-    @CheckForNull
+    @Nullable
     private static String extractAlgorithm(@Nullable String hashedPwd) {
         if (hashedPwd != null && !hashedPwd.isEmpty()) {
             int end = hashedPwd.indexOf('}');
@@ -342,7 +341,7 @@ public final class PasswordUtil {
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     private static String extractSalt(@Nullable String hashedPwd, int start) {
         if (hashedPwd != null) {
             int end = hashedPwd.indexOf(DELIMITER, start);

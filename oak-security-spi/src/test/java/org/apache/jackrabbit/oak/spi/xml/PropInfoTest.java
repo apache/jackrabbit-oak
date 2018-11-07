@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -29,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -40,11 +40,11 @@ import static org.mockito.Mockito.when;
 
 public class PropInfoTest {
 
-    private TextValue mockTextValue(@Nonnull String value, int type) throws Exception {
+    private TextValue mockTextValue(@NotNull String value, int type) throws Exception {
         return mockTextValue(value, type, false);
     }
 
-    private TextValue mockTextValue(@Nonnull String value, int type, boolean throwOnDispose) throws Exception {
+    private TextValue mockTextValue(@NotNull String value, int type, boolean throwOnDispose) throws Exception {
         Value jcrValue = Mockito.mock(Value.class);
         when(jcrValue.getType()).thenReturn(type);
         when(jcrValue.getString()).thenReturn(value);

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import javax.annotation.CheckForNull;
 import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Callback implementation used to access the repository. It allows to set and
@@ -34,7 +34,7 @@ public class RepositoryCallback implements Callback {
     private SecurityProvider securityProvider;
     private String workspaceName;
 
-    @CheckForNull
+    @Nullable
     public String getWorkspaceName() {
         return workspaceName;
     }
@@ -43,7 +43,7 @@ public class RepositoryCallback implements Callback {
         this.workspaceName = workspaceName;
     }
 
-    @CheckForNull
+    @Nullable
     public ContentRepository getContentRepository() {
         return contentRepository;
     }
@@ -52,7 +52,7 @@ public class RepositoryCallback implements Callback {
         this.contentRepository = contentRepository;
     }
 
-    @CheckForNull
+    @Nullable
     public SecurityProvider getSecurityProvider() {
         return securityProvider;
     }
