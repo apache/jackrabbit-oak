@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
@@ -28,6 +26,7 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * An Oak {@link org.apache.solr.client.solrj.SolrServer}, caching a {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
@@ -38,7 +37,7 @@ public class OakSolrServer extends SolrServer {
     private final SolrServerConfiguration solrServerConfiguration;
     private final SolrServerProvider solrServerProvider;
 
-    public OakSolrServer(@Nonnull SolrServerConfigurationProvider solrServerConfigurationProvider) {
+    public OakSolrServer(@NotNull SolrServerConfigurationProvider solrServerConfigurationProvider) {
         this.solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
         try {
             this.solrServerProvider = solrServerConfiguration.getProvider();

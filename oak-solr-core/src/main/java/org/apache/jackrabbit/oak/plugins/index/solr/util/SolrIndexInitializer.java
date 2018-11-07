@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.util;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
@@ -87,7 +86,7 @@ public class SolrIndexInitializer implements RepositoryInitializer {
     }
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         if (builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
                 && !builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME).hasChildNode(SOLR_IDX)) {
             NodeBuilder indexDefinitionsNode = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME);

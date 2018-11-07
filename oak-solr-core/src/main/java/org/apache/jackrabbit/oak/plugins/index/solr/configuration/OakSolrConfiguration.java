@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import java.util.Collection;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A Solr configuration holding all the possible customizable parameters that
@@ -36,7 +35,7 @@ public interface OakSolrConfiguration {
      * @return the name of the Solr field to be used for the given {@link org.apache.jackrabbit.oak.api.Type}, or {@code null}
      * if no specific field has been configured to handle the given {@code Type}.
      */
-    @CheckForNull
+    @Nullable
     String getFieldNameFor(Type<?> propertyType);
 
     /**
@@ -44,7 +43,7 @@ public interface OakSolrConfiguration {
      *
      * @return the name of the Solr field to be used for indexing and searching on paths (exact matching).
      */
-    @Nonnull
+    @NotNull
     String getPathField();
 
     /**
@@ -54,7 +53,7 @@ public interface OakSolrConfiguration {
      *                        search results or {@code null} if no specific field has been configured for it.
      * @return the name of the Solr field to be used for the given {@code PathRestriction}.
      */
-    @CheckForNull
+    @Nullable
     String getFieldForPathRestriction(Filter.PathRestriction pathRestriction);
 
     /**
@@ -64,7 +63,7 @@ public interface OakSolrConfiguration {
      * @return the name of the Solr field to be used for the given {@code PropertyRestriction} or {@code null} if no specific field
      * has been configured for it.
      */
-    @CheckForNull
+    @Nullable
     String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction);
 
     /**
@@ -72,7 +71,7 @@ public interface OakSolrConfiguration {
      *
      * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration.CommitPolicy}
      */
-    @Nonnull
+    @NotNull
     CommitPolicy getCommitPolicy();
 
     /**
@@ -81,7 +80,7 @@ public interface OakSolrConfiguration {
      * @return the name of the Solr field to be used as "catch all" field, or {@code null} if no specific field
      * has been configured for it.
      */
-    @CheckForNull
+    @Nullable
     String getCatchAllField();
 
     /**
@@ -120,7 +119,7 @@ public interface OakSolrConfiguration {
      *
      * @return a {@link java.util.Collection} of property names for properties to be ignored
      */
-    @Nonnull
+    @NotNull
     Collection<String> getIgnoredProperties();
 
     /**
@@ -128,7 +127,7 @@ public interface OakSolrConfiguration {
      *
      * @return a {@link java.util.Collection} of property names for properties to be ignored
      */
-    @Nonnull
+    @NotNull
     Collection<String> getUsedProperties();
 
     /**
@@ -147,7 +146,7 @@ public interface OakSolrConfiguration {
      *
      * @return the name of the Solr field to be used for indexing and searching on collapsed paths.
      */
-    @Nonnull
+    @NotNull
     String getCollapsedPathField();
 
     /**

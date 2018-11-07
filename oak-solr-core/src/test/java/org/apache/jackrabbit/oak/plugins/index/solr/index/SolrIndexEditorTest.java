@@ -21,8 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
@@ -35,6 +33,7 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -66,12 +65,12 @@ public class SolrIndexEditorTest {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrClient solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
-            @Nonnull
+            @NotNull
             @Override
             public Collection<String> getIgnoredProperties() {
                 return Collections.singletonList("foo2");
             }
-            @Nonnull
+            @NotNull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;

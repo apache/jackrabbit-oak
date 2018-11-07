@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -28,6 +25,8 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrClient;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.junit.Assert.assertTrue;
 
@@ -62,7 +61,7 @@ public class TestUtils
 
     public static OakSolrConfiguration getTestConfiguration() {
         return new DefaultSolrConfiguration() {
-            @Nonnull
+            @NotNull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;
@@ -89,25 +88,25 @@ public class TestUtils
 
     private final OakSolrConfiguration configuration = getTestConfiguration();
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSolrServer() {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getIndexingSolrServer() throws Exception {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSearchingSolrServer() throws Exception {
         return solrServer;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public OakSolrConfiguration getConfiguration() {
         return configuration;

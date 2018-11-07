@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.Closeable;
-import javax.annotation.CheckForNull;
-
 import org.apache.solr.client.solrj.SolrClient;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provider of {@link org.apache.solr.client.solrj.SolrClient}s instances
@@ -33,7 +32,7 @@ public interface SolrServerProvider extends Closeable {
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
      * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
      */
-    @CheckForNull
+    @Nullable
     SolrClient getSolrServer() throws Exception;
 
     /**
@@ -43,7 +42,7 @@ public interface SolrServerProvider extends Closeable {
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
      * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
      */
-    @CheckForNull
+    @Nullable
     SolrClient getIndexingSolrServer() throws Exception;
 
     /**
@@ -53,6 +52,6 @@ public interface SolrServerProvider extends Closeable {
      * @return a {@link org.apache.solr.client.solrj.SolrClient} instance
      * @throws Exception if anything goes wrong while initializing the {@link org.apache.solr.client.solrj.SolrClient}
      */
-    @CheckForNull
+    @Nullable
     SolrClient getSearchingSolrServer() throws Exception;
 }
