@@ -38,8 +38,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -56,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -229,7 +228,7 @@ public class NodeStoreTest extends OakBaseTest {
         ((Observable) store).addObserver(new Observer() {
             @Override
             public void contentChanged(
-                    @Nonnull NodeState root, @Nonnull CommitInfo info) {
+                    @NotNull NodeState root, @NotNull CommitInfo info) {
                 if (root.getChildNode("test").hasChildNode("newNode")) {
                     observedRoot.set(checkNotNull(root));
                     latch.countDown();
@@ -269,7 +268,7 @@ public class NodeStoreTest extends OakBaseTest {
         testBuilder.getChildNode("a").remove();
 
         store.merge(rootBuilder, new CommitHook() {
-            @Nonnull
+            @NotNull
             @Override
             public NodeState processCommit(
                     NodeState before, NodeState after, CommitInfo info) {
@@ -536,7 +535,7 @@ public class NodeStoreTest extends OakBaseTest {
 
         try {
             store.merge(rootBuilder, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(
                         NodeState before, NodeState after, CommitInfo info)
