@@ -26,14 +26,13 @@ import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
-
 /**
  * {@link Validator} which detects change commits to the read only mounts.
  */
@@ -55,7 +54,7 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
     private ServiceRegistration serviceRegistration;
 
-    @Nonnull
+    @NotNull
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         return new PrivateStoreValidator(ROOT_PATH);
     }
