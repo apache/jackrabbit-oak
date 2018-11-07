@@ -31,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.blob.split.SplitBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +116,7 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String startBlobMigration(final boolean resume) {
         if (migrationOp.isDone()) {
@@ -145,14 +145,14 @@ public class BlobMigration extends AnnotatedStandardMBean implements BlobMigrati
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String stopBlobMigration() {
         migrator.stop();
         return "Migration will be stopped";
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getBlobMigrationStatus() throws OpenDataException {
         Map<String, Object> status = new HashMap<String, Object>();

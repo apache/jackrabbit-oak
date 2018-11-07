@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -44,6 +43,7 @@ import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,14 +69,14 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
      * @param executor              executor for running the garbage collection task
      */
     public BlobGC(
-            @Nonnull BlobGarbageCollector blobGarbageCollector,
-            @Nonnull Executor executor) {
+            @NotNull BlobGarbageCollector blobGarbageCollector,
+            @NotNull Executor executor) {
         super(BlobGCMBean.class);
         this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
         this.executor = checkNotNull(executor);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startBlobGC(final boolean markOnly) {
         if (gcOp.isDone()) {
@@ -109,7 +109,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getBlobGCStatus();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getBlobGCStatus() {
         return gcOp.getStatus().toCompositeData();
@@ -152,7 +152,7 @@ public class  BlobGC extends AnnotatedStandardMBean implements BlobGCMBean {
         return getConsistencyCheckStatus();
     }
     
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getConsistencyCheckStatus() {
         return consistencyOp.getStatus().toCompositeData();

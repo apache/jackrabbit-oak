@@ -29,8 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.io.Closeables;
@@ -44,6 +42,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.LazyFileInputStream;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -413,7 +412,7 @@ public class FSBackend extends AbstractSharedBackend {
         private File file;
 
         public FSBackendDataRecord(AbstractSharedBackend backend,
-            @Nonnull DataIdentifier identifier, @Nonnull File file) {
+            @NotNull DataIdentifier identifier, @NotNull File file) {
             super(backend, identifier);
             this.file = file;
             this.length = file.length();

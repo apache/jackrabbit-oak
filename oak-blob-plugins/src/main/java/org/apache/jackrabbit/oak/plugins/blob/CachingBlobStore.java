@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.cache.Weigher;
 import org.slf4j.Logger;
@@ -42,7 +41,7 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
 
     private final Weigher<String, byte[]> weigher = new Weigher<String, byte[]>() {
         @Override
-        public int weigh(@Nonnull String key, @Nonnull byte[] value) {
+        public int weigh(@NotNull String key, @NotNull byte[] value) {
             long weight = (long)StringUtils.estimateMemoryUsage(key) + value.length;
             if (weight > Integer.MAX_VALUE) {
                 LOG.debug("Calculated weight larger than Integer.MAX_VALUE: {}.", weight);

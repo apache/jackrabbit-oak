@@ -40,9 +40,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -60,6 +57,8 @@ import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +130,7 @@ public class AbstractDataStoreCacheTest {
             }
         }
 
-        @Override public FileInputStream load(@Nonnull String key) throws Exception {
+        @Override public FileInputStream load(@NotNull String key) throws Exception {
             return FileUtils.openInputStream(getFile(key, root));
         }
     }
@@ -180,7 +179,7 @@ public class AbstractDataStoreCacheTest {
             this.max = max;
         }
 
-        @Override public FileInputStream load(@Nonnull String key) throws Exception {
+        @Override public FileInputStream load(@NotNull String key) throws Exception {
             return new ErrorInputStream(getFile(key, root), max);
         }
     }
@@ -234,7 +233,7 @@ public class AbstractDataStoreCacheTest {
             this.afterLatch = afterLatch;
         }
 
-        @Override @Nonnull public ListenableFuture<?> submit(@Nonnull Callable task) {
+        @Override @NotNull public ListenableFuture<?> submit(@NotNull Callable task) {
             LOG.trace("Before submitting to super....");
             ListenableFuture<Integer> submit = super.submit(task);
             LOG.trace("After submitting to super....");
@@ -246,7 +245,7 @@ public class AbstractDataStoreCacheTest {
             return submit;
         }
 
-        @Override public void execute(@Nonnull Runnable command) {
+        @Override public void execute(@NotNull Runnable command) {
             delegate.execute(command);
         }
 
@@ -254,7 +253,7 @@ public class AbstractDataStoreCacheTest {
             delegate.shutdown();
         }
 
-        @Override @Nonnull public List<Runnable> shutdownNow() {
+        @Override @NotNull public List<Runnable> shutdownNow() {
             return delegate.shutdownNow();
         }
 
@@ -266,7 +265,7 @@ public class AbstractDataStoreCacheTest {
             return delegate.isTerminated();
         }
 
-        @Override public boolean awaitTermination(long timeout, @Nonnull TimeUnit unit)
+        @Override public boolean awaitTermination(long timeout, @NotNull TimeUnit unit)
             throws InterruptedException {
             return delegate.awaitTermination(timeout, unit);
         }
@@ -288,7 +287,7 @@ public class AbstractDataStoreCacheTest {
                 }
             }
 
-            @Override public void onFailure(@Nonnull Throwable t) {
+            @Override public void onFailure(@NotNull Throwable t) {
                 try {
                     LOG.trace("Waiting for latch onFailure in callback");
                     latch.await(100, TimeUnit.MILLISECONDS);
