@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public class NodeStateSolrServerConfigurationProvider implements SolrServerConfigurationProvider {
 
@@ -57,7 +56,7 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
         return value;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SolrServerConfiguration<SolrServerProvider> getSolrServerConfiguration() {
         String type = getStringValueFor(Properties.SERVER_TYPE, null);

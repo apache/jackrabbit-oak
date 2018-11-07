@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import javax.annotation.CheckForNull;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
@@ -37,6 +35,7 @@ import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +52,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         this.remoteSolrServerConfiguration = remoteSolrServerConfiguration;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSolrServer() throws Exception {
 
@@ -80,7 +79,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         return solrServer;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getIndexingSolrServer() throws Exception {
         SolrClient server = getSolrServer();
@@ -97,7 +96,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         return server;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();
