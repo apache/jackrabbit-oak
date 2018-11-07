@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -25,6 +24,7 @@ import javax.security.auth.login.Configuration;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Login against the {@link ExternalLoginModule} with a randomly selected user.
@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 public class ExternalLoginTest extends AbstractExternalTest {
 
     public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime,
-                             boolean dynamicMembership, @Nonnull List<String> autoMembership) {
+                             boolean dynamicMembership, @NotNull List<String> autoMembership) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
     }
 

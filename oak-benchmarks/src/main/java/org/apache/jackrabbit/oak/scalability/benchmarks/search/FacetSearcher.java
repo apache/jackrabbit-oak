@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Scalability test for facet query implementation
@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
 public class FacetSearcher extends SearchScalabilityBenchmark {
 
     @Override
-    protected Query getQuery(@Nonnull QueryManager qm, ScalabilityAbstractSuite.ExecutionContext context) throws RepositoryException {
+    protected Query getQuery(@NotNull QueryManager qm, ScalabilityAbstractSuite.ExecutionContext context) throws RepositoryException {
 
         final String statement = "select [jcr:path], [facet(jcr:primaryType)] from [nt:base] where native('lucene','*:*')";
 

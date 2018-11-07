@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.StringReader;
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.commons.io.FileUtils;
@@ -45,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
                 @Override
                 public Jcr customize(Oak oak) {
                     OakSolrConfigurationProvider configurationProvider = new OakSolrConfigurationProvider() {
-                        @Nonnull
+                        @NotNull
                         public OakSolrConfiguration getConfiguration() {
                             return new DefaultSolrConfiguration() {
                                 @Override
