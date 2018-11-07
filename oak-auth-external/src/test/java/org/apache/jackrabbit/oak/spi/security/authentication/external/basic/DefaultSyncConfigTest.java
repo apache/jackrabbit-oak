@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -33,7 +32,7 @@ public class DefaultSyncConfigTest {
 
     private DefaultSyncConfig config = new DefaultSyncConfig();
 
-    private static void assertAuthorizableConfig(@Nonnull DefaultSyncConfig.Authorizable authorizableConfig) {
+    private static void assertAuthorizableConfig(@NotNull DefaultSyncConfig.Authorizable authorizableConfig) {
         assertEquals("", authorizableConfig.getPathPrefix());
         assertSame(authorizableConfig, authorizableConfig.setPathPrefix(null));
         assertEquals("", authorizableConfig.getPathPrefix());

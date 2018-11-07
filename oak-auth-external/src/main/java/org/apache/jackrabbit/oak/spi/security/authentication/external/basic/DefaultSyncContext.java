@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -55,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContex
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +96,7 @@ public class DefaultSyncContext implements SyncContext {
 
     protected final Value nowValue;
 
-    public DefaultSyncContext(@Nonnull DefaultSyncConfig config, @Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull ValueFactory valueFactory) {
+    public DefaultSyncContext(@NotNull DefaultSyncConfig config, @NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) {
         this.config = config;
         this.idp = idp;
         this.userManager = userManager;
@@ -115,7 +114,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return the id
      * @throws RepositoryException if an error occurs
      */
-    @CheckForNull
+    @Nullable
     public static DefaultSyncedIdentity createSyncedIdentity(@Nullable Authorizable auth) throws RepositoryException {
         if (auth == null) {
             return null;
@@ -135,7 +134,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return the ref
      * @throws RepositoryException if an error occurs
      */
-    @CheckForNull
+    @Nullable
     public static ExternalIdentityRef getIdentityRef(@Nullable Authorizable auth) throws RepositoryException {
         if (auth == null) {
             return null;
@@ -176,7 +175,7 @@ public class DefaultSyncContext implements SyncContext {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public SyncContext setKeepMissing(boolean keepMissing) {
         this.keepMissing = keepMissing;
@@ -194,7 +193,7 @@ public class DefaultSyncContext implements SyncContext {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
     public SyncContext setForceUserSync(boolean forceUserSync) {
         this.forceUserSync = forceUserSync;
@@ -210,7 +209,7 @@ public class DefaultSyncContext implements SyncContext {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public SyncContext setForceGroupSync(boolean forceGroupSync) {
         this.forceGroupSync = forceGroupSync;
         return this;
@@ -219,9 +218,9 @@ public class DefaultSyncContext implements SyncContext {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
-    public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
+    public SyncResult sync(@NotNull ExternalIdentity identity) throws SyncException {
         ExternalIdentityRef ref = identity.getExternalId();
         if (!isSameIDP(ref)) {
             // create result in accordance with sync(String) where status is FOREIGN
@@ -270,9 +269,9 @@ public class DefaultSyncContext implements SyncContext {
     /**
      * {@inheritDoc}
      */
-    @Nonnull
+    @NotNull
     @Override
-    public SyncResult sync(@Nonnull String id) throws SyncException {
+    public SyncResult sync(@NotNull String id) throws SyncException {
         try {
             DebugTimer timer = new DebugTimer();
             DefaultSyncResultImpl ret;
@@ -317,9 +316,9 @@ public class DefaultSyncContext implements SyncContext {
         }
     }
 
-    private DefaultSyncResultImpl handleMissingIdentity(@Nonnull String id,
-                                                        @Nonnull Authorizable authorizable,
-                                                        @Nonnull DebugTimer timer) throws RepositoryException {
+    private DefaultSyncResultImpl handleMissingIdentity(@NotNull String id,
+                                                        @NotNull Authorizable authorizable,
+                                                        @NotNull DebugTimer timer) throws RepositoryException {
         DefaultSyncedIdentity syncId = createSyncedIdentity(authorizable);
         SyncResult.Status status;
         if (authorizable.isGroup() && ((Group) authorizable).getDeclaredMembers().hasNext()) {
@@ -351,8 +350,8 @@ public class DefaultSyncContext implements SyncContext {
      * @throws RepositoryException if an error occurs.
      * @throws SyncException if the repository contains a colliding authorizable with the same name.
      */
-    @CheckForNull
-    protected <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, @Nonnull Class<T> type)
+    @Nullable
+    protected <T extends Authorizable> T getAuthorizable(@NotNull ExternalIdentity external, @NotNull Class<T> type)
             throws RepositoryException, SyncException {
         Authorizable authorizable = userManager.getAuthorizable(external.getId());
         if (authorizable == null) {
@@ -377,8 +376,8 @@ public class DefaultSyncContext implements SyncContext {
      * @return the repository user
      * @throws RepositoryException if an error occurs
      */
-    @Nonnull
-    protected User createUser(@Nonnull ExternalUser externalUser) throws RepositoryException {
+    @NotNull
+    protected User createUser(@NotNull ExternalUser externalUser) throws RepositoryException {
         Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
         String authId = config.user().isApplyRFC7613UsernameCaseMapped() ?
                         java.text.Normalizer.normalize(externalUser.getId().toLowerCase(), java.text.Normalizer.Form.NFKC) : externalUser.getId();
@@ -400,8 +399,8 @@ public class DefaultSyncContext implements SyncContext {
      * @return the repository group
      * @throws RepositoryException if an error occurs
      */
-    @Nonnull
-    protected Group createGroup(@Nonnull ExternalGroup externalGroup) throws RepositoryException {
+    @NotNull
+    protected Group createGroup(@NotNull ExternalGroup externalGroup) throws RepositoryException {
         Principal principal = new PrincipalImpl(externalGroup.getPrincipalName());
         Group group = userManager.createGroup(
                 externalGroup.getId(),
@@ -421,13 +420,13 @@ public class DefaultSyncContext implements SyncContext {
      * @param externalIdentity The {@link ExternalIdentity} from which to retrieve the value of the property.
      * @throws RepositoryException If setting the property using {@link Authorizable#setProperty(String, Value)} fails.
      */
-    private void setExternalId(@Nonnull Authorizable authorizable, @Nonnull ExternalIdentity externalIdentity) throws RepositoryException {
+    private void setExternalId(@NotNull Authorizable authorizable, @NotNull ExternalIdentity externalIdentity) throws RepositoryException {
         log.debug("Fallback: setting rep:externalId without adding the corresponding mixin type");
         authorizable.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalIdentity.getExternalId().getString()));
     }
 
-    @Nonnull
-    protected DefaultSyncResultImpl syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
+    @NotNull
+    protected DefaultSyncResultImpl syncUser(@NotNull ExternalUser external, @NotNull User user) throws RepositoryException {
         // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
         if (!isSameIDP(user)) {
             return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
@@ -455,8 +454,8 @@ public class DefaultSyncContext implements SyncContext {
         return new DefaultSyncResultImpl(createSyncedIdentity(user), status);
     }
 
-    @Nonnull
-    protected DefaultSyncResultImpl syncGroup(@Nonnull ExternalGroup external, @Nonnull Group group) throws RepositoryException {
+    @NotNull
+    protected DefaultSyncResultImpl syncGroup(@NotNull ExternalGroup external, @NotNull Group group) throws RepositoryException {
         // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
         if (!isSameIDP(group)) {
             return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
@@ -485,9 +484,9 @@ public class DefaultSyncContext implements SyncContext {
      * @param config The sync configuration
      * @throws RepositoryException If an error occurs.
      */
-    private void syncExternalIdentity(@Nonnull ExternalIdentity external,
-                                      @Nonnull Authorizable authorizable,
-                                      @Nonnull DefaultSyncConfig.Authorizable config) throws RepositoryException {
+    private void syncExternalIdentity(@NotNull ExternalIdentity external,
+                                      @NotNull Authorizable authorizable,
+                                      @NotNull DefaultSyncConfig.Authorizable config) throws RepositoryException {
         syncProperties(external, authorizable, config.getPropertyMapping());
         applyMembership(authorizable, config.getAutoMembership());
     }
@@ -501,7 +500,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param depth recursion depth.
      * @throws RepositoryException
      */
-    protected void syncMembership(@Nonnull ExternalIdentity external, @Nonnull Authorizable auth, long depth)
+    protected void syncMembership(@NotNull ExternalIdentity external, @NotNull Authorizable auth, long depth)
             throws RepositoryException {
         if (depth <= 0) {
             return;
@@ -598,7 +597,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param member the authorizable
      * @param groups set of groups.
      */
-    protected void applyMembership(@Nonnull Authorizable member, @Nonnull Set<String> groups) throws RepositoryException {
+    protected void applyMembership(@NotNull Authorizable member, @NotNull Set<String> groups) throws RepositoryException {
         for (String groupName : groups) {
             Authorizable group = userManager.getAuthorizable(groupName);
             if (group == null) {
@@ -620,7 +619,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param mapping the property mapping
      * @throws RepositoryException if an error occurs
      */
-    protected void syncProperties(@Nonnull ExternalIdentity ext, @Nonnull Authorizable auth, @Nonnull Map<String, String> mapping)
+    protected void syncProperties(@NotNull ExternalIdentity ext, @NotNull Authorizable auth, @NotNull Map<String, String> mapping)
             throws RepositoryException {
         Map<String, ?> properties = ext.getProperties();
         for (Map.Entry<String, String> entry : mapping.entrySet()) {
@@ -654,7 +653,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param authorizable the authorizable to check
      * @return {@code true} if the authorizable needs sync
      */
-    private boolean isExpired(@Nonnull Authorizable authorizable) throws RepositoryException {
+    private boolean isExpired(@NotNull Authorizable authorizable) throws RepositoryException {
         long expTime = (authorizable.isGroup()) ? config.group().getExpirationTime() : config.user().getExpirationTime();
         return isExpired(authorizable, expTime, "Properties");
     }
@@ -666,7 +665,7 @@ public class DefaultSyncContext implements SyncContext {
      * @param type debug message type
      * @return {@code true} if the authorizable needs sync
      */
-    protected boolean isExpired(@Nonnull Authorizable auth, long expirationTime, @Nonnull String type) throws RepositoryException {
+    protected boolean isExpired(@NotNull Authorizable auth, long expirationTime, @NotNull String type) throws RepositoryException {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
             if (log.isDebugEnabled()) {
@@ -694,7 +693,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return the JCR value or null
      * @throws RepositoryException if an error occurs
      */
-    @CheckForNull
+    @Nullable
     protected Value createValue(@Nullable Object v) throws RepositoryException {
         if (v == null) {
             return null;
@@ -732,8 +731,8 @@ public class DefaultSyncContext implements SyncContext {
      * @return and array of JCR values
      * @throws RepositoryException if an error occurs
      */
-    @CheckForNull
-    protected Value[] createValues(@Nonnull Collection<?> propValues) throws RepositoryException {
+    @Nullable
+    protected Value[] createValues(@NotNull Collection<?> propValues) throws RepositoryException {
         List<Value> values = new ArrayList<Value>();
         for (Object obj : propValues) {
             Value v = createValue(obj);
@@ -764,7 +763,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return {@code true} if {@link ExternalIdentityRef#getProviderName()} refers
      * to the IDP associated with this context instance.
      */
-    protected boolean isSameIDP(@Nonnull ExternalIdentityRef ref) {
+    protected boolean isSameIDP(@NotNull ExternalIdentityRef ref) {
         return idp.getName().equals(ref.getProviderName());
     }
 }

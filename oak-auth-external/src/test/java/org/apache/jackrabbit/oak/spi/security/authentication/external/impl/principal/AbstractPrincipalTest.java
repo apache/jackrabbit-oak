@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -65,7 +64,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         principalProvider = createPrincipalProvider();
     }
 
-    @Nonnull
+    @NotNull
     PrincipalProvider createPrincipalProvider() {
         Set<String> autoMembership = ImmutableSet.copyOf(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()));
         return new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class),
@@ -85,7 +84,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
         return getGroupPrincipal(externalUser.getDeclaredGroups().iterator().next());
     }
 
-    java.security.acl.Group getGroupPrincipal(@Nonnull ExternalIdentityRef ref) throws Exception {
+    java.security.acl.Group getGroupPrincipal(@NotNull ExternalIdentityRef ref) throws Exception {
         String principalName = idp.getIdentity(ref).getPrincipalName();
         Principal p = principalProvider.getPrincipal(principalName);
 

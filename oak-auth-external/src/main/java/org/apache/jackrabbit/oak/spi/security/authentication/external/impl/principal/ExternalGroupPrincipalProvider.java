@@ -27,9 +27,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -64,6 +61,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,9 +101,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private final UserManager userManager;
     private final AutoMembershipPrincipals autoMembershipPrincipals;
 
-    ExternalGroupPrincipalProvider(@Nonnull Root root, @Nonnull UserConfiguration uc,
-                                   @Nonnull NamePathMapper namePathMapper,
-                                   @Nonnull Map<String, String[]> autoMembershipMapping) {
+    ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserConfiguration uc,
+                                   @NotNull NamePathMapper namePathMapper,
+                                   @NotNull Map<String, String[]> autoMembershipMapping) {
         this.root = root;
         this.namePathMapper = namePathMapper;
 
@@ -114,7 +113,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         Result result = findPrincipals(principalName, true);
         if (result != null && result.getRows().iterator().hasNext()) {
             return new ExternalGroupPrincipal(principalName);
@@ -123,9 +122,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         if (!(principal instanceof Group)) {
             try {
                 if (principal instanceof ItemBasedPrincipal) {
@@ -142,9 +141,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         return ImmutableSet.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         try {
             return getGroupPrincipals(userManager.getAuthorizable(userID));
         } catch (RepositoryException e) {
@@ -153,7 +152,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         if (PrincipalManager.SEARCH_TYPE_NOT_GROUP != searchType) {
@@ -166,15 +165,15 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         return Collections.emptyIterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
-    private String getIdpName(@Nonnull Tree userTree) {
+    @Nullable
+    private String getIdpName(@NotNull Tree userTree) {
         PropertyState ps = userTree.getProperty(REP_EXTERNAL_ID);
         if (ps != null) {
             return ExternalIdentityRef.fromString(ps.getValue(Type.STRING)).getProviderName();
@@ -183,7 +182,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
-    private Set<Group> getGroupPrincipals(@CheckForNull Authorizable authorizable) throws RepositoryException {
+    private Set<Group> getGroupPrincipals(@Nullable Authorizable authorizable) throws RepositoryException {
         if (authorizable != null && !authorizable.isGroup()) {
             Tree userTree = root.getTree(authorizable.getPath());
             return getGroupPrincipals(userTree);
@@ -192,7 +191,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
     }
 
-    private Set<Group> getGroupPrincipals(@Nonnull Tree userTree) {
+    private Set<Group> getGroupPrincipals(@NotNull Tree userTree) {
         if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER) && userTree.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
             PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
@@ -224,8 +223,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      *                   exact matching.
      * @return The query result.
      */
-    @CheckForNull
-    private Result findPrincipals(@Nonnull String nameHint, boolean exactMatch) {
+    @Nullable
+    private Result findPrincipals(@NotNull String nameHint, boolean exactMatch) {
         try {
             Map<String, ? extends PropertyValue> bindings = buildBinding(nameHint, exactMatch);
             String op = (exactMatch) ? " = " : " LIKE ";
@@ -245,8 +244,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * @param exactMatch boolean flag indicating if the query should search for exact matching.
      * @return the bindings
      */
-    @Nonnull
-    private static Map<String, ? extends PropertyValue> buildBinding(@Nonnull String nameHint, boolean exactMatch) {
+    @NotNull
+    private static Map<String, ? extends PropertyValue> buildBinding(@NotNull String nameHint, boolean exactMatch) {
         String val = nameHint;
         if (!exactMatch) {
             // not-exact query matching required => add leading and trailing %
@@ -360,7 +359,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
         private Iterator<String> propValues = Collections.emptyIterator();
 
-        private GroupPrincipalIterator(@Nullable String queryString, @Nonnull Result queryResult) {
+        private GroupPrincipalIterator(@Nullable String queryString, @NotNull Result queryResult) {
             this.queryString = queryString;
             rows = queryResult.getRows().iterator();
         }
@@ -384,7 +383,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             return null;
         }
 
-        private boolean matchesQuery(@Nonnull String principalName) {
+        private boolean matchesQuery(@NotNull String principalName) {
             if (queryString == null) {
                 return true;
             } else {
@@ -414,7 +413,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
          */
         private final Iterator<? extends ResultRow> rows;
 
-        private MemberIterator(@Nonnull Result queryResult) {
+        private MemberIterator(@NotNull Result queryResult) {
             rows = queryResult.getRows().iterator();
         }
 
@@ -440,13 +439,13 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         private final Map<String, String[]> autoMembershipMapping;
         private final Map<String, Set<Group>> principalMap;
 
-        private AutoMembershipPrincipals(@Nonnull Map<String, String[]> autoMembershipMapping) {
+        private AutoMembershipPrincipals(@NotNull Map<String, String[]> autoMembershipMapping) {
             this.autoMembershipMapping = autoMembershipMapping;
             this.principalMap = new ConcurrentHashMap<String, Set<Group>>(autoMembershipMapping.size());
         }
 
-        @Nonnull
-        private Collection<Group> get(@CheckForNull String idpName) {
+        @NotNull
+        private Collection<Group> get(@Nullable String idpName) {
             if (idpName == null) {
                 return ImmutableSet.of();
             }

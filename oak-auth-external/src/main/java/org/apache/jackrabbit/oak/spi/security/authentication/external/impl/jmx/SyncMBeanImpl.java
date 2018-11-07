@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +45,9 @@ public class SyncMBeanImpl implements SynchronizationMBean {
 
     private final String idpName;
 
-    public SyncMBeanImpl(@Nonnull ContentRepository repository, @Nonnull SecurityProvider securityProvider,
-                         @Nonnull SyncManager syncManager, @Nonnull String syncName,
-                         @Nonnull ExternalIdentityProviderManager idpManager, @Nonnull String idpName) {
+    public SyncMBeanImpl(@NotNull ContentRepository repository, @NotNull SecurityProvider securityProvider,
+                         @NotNull SyncManager syncManager, @NotNull String syncName,
+                         @NotNull ExternalIdentityProviderManager idpManager, @NotNull String idpName) {
         this.repository = repository;
         this.securityProvider = securityProvider;
         this.syncManager = syncManager;
@@ -57,7 +56,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         this.idpName = idpName;
     }
 
-    @Nonnull
+    @NotNull
     private Delegatee getDelegatee() {
         SyncHandler handler = syncManager.getSyncHandler(syncName);
         if (handler == null) {
@@ -73,21 +72,21 @@ public class SyncMBeanImpl implements SynchronizationMBean {
     }
 
     //-----------------------------------------------< SynchronizationMBean >---
-    @Nonnull
+    @NotNull
     @Override
     public String getSyncHandlerName() {
         return syncName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getIDPName() {
         return idpName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String[] syncUsers(@Nonnull String[] userIds, boolean purge) {
+    public String[] syncUsers(@NotNull String[] userIds, boolean purge) {
         Delegatee delegatee = getDelegatee();
         try {
             return delegatee.syncUsers(userIds, purge);
@@ -96,7 +95,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] syncAllUsers(boolean purge) {
         Delegatee delegatee = getDelegatee();
@@ -107,9 +106,9 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String[] syncExternalUsers(@Nonnull String[] externalIds) {
+    public String[] syncExternalUsers(@NotNull String[] externalIds) {
         Delegatee delegatee = getDelegatee();
         try {
             return delegatee.syncExternalUsers(externalIds);
@@ -118,7 +117,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] syncAllExternalUsers() {
         Delegatee delegatee = getDelegatee();
@@ -129,7 +128,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] listOrphanedUsers() {
         Delegatee delegatee = getDelegatee();
@@ -140,7 +139,7 @@ public class SyncMBeanImpl implements SynchronizationMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] purgeOrphanedUsers() {
         Delegatee delegatee = getDelegatee();

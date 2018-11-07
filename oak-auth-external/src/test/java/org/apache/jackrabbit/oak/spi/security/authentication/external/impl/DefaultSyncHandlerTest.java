@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIden
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +82,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
         super.setSyncConfig(cfg);
     }
 
-    private void sync(@Nonnull String id, boolean isGroup) throws Exception {
+    private void sync(@NotNull String id, boolean isGroup) throws Exception {
         SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         ExternalIdentity exIdentity = (isGroup) ? idp.getGroup(id) : idp.getUser(id);
         assertNotNull(exIdentity);

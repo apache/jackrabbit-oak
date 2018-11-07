@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.PrivilegedExceptionAction;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -102,7 +102,7 @@ public class ExternalIdentityImporterTest {
         }
     }
 
-    @Nonnull
+    @NotNull
     ConfigurationParameters getConfigurationParameters() {
         return ConfigurationParameters.EMPTY;
     }
@@ -136,13 +136,13 @@ public class ExternalIdentityImporterTest {
         }
     }
 
-    static void assertHasProperties(@Nonnull Node node, @Nonnull String... propertyNames) throws Exception {
+    static void assertHasProperties(@NotNull Node node, @NotNull String... propertyNames) throws Exception {
         for (String pN : propertyNames) {
             assertTrue(node.hasProperty(pN));
         }
     }
 
-    static void assertNotHasProperties(@Nonnull Node node, @Nonnull String... propertyNames) throws Exception {
+    static void assertNotHasProperties(@NotNull Node node, @NotNull String... propertyNames) throws Exception {
         for (String pN : propertyNames) {
             assertFalse(node.hasProperty(pN));
         }
