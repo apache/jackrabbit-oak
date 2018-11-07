@@ -23,10 +23,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -35,6 +31,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -142,41 +140,41 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
 
     private final class TestPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
-        @Nonnull
+        @NotNull
         @Override
         public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
             return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
             return new PrincipalProvider() {
-                @CheckForNull
+                @Nullable
                 @Override
-                public Principal getPrincipal(@Nonnull String principalName) {
+                public Principal getPrincipal(@NotNull String principalName) {
                     return null;
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+                public Set<Group> getGroupMembership(@NotNull Principal principal) {
                     return ImmutableSet.of();
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
-                public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+                public Set<? extends Principal> getPrincipals(@NotNull String userID) {
                     return ImmutableSet.of();
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
                     return Collections.emptyIterator();
                 }
 
-                @Nonnull
+                @NotNull
                 @Override
                 public Iterator<? extends Principal> findPrincipals(int searchType) {
                     return Collections.emptyIterator();
@@ -184,7 +182,7 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
             };
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return PrincipalConfiguration.NAME;
@@ -193,19 +191,19 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
 
     private final class TestEmptyConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
-        @Nonnull
+        @NotNull
         @Override
         public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
             return new PrincipalManagerImpl(getPrincipalProvider(root, namePathMapper));
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
             return EmptyPrincipalProvider.INSTANCE;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getName() {
             return PrincipalConfiguration.NAME;

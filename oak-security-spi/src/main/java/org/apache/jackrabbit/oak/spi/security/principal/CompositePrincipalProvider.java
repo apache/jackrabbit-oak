@@ -22,12 +22,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code PrincipalProvider} implementation that aggregates a list of principal
@@ -41,7 +41,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         this.providers = checkNotNull(providers);
     }
 
-    public static PrincipalProvider of(@Nonnull List<PrincipalProvider> providers) {
+    public static PrincipalProvider of(@NotNull List<PrincipalProvider> providers) {
         PrincipalProvider pp;
         switch (providers.size()) {
             case 0 :
@@ -58,7 +58,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         Principal principal = null;
         for (int i = 0; i < providers.size() && principal == null; i++) {
             principal = providers.get(i).getPrincipal(principalName);
@@ -67,9 +67,9 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return principal;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         Set<Group> groups = new HashSet<Group>();
         for (PrincipalProvider provider : providers) {
             groups.addAll(provider.getGroupMembership(principal));
@@ -77,9 +77,9 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return groups;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Principal> getPrincipals(@Nonnull String userID) {
+    public Set<Principal> getPrincipals(@NotNull String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         for (PrincipalProvider provider : providers) {
             principals.addAll(provider.getPrincipals(userID));
@@ -87,7 +87,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return principals;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         Iterator<? extends Principal>[] iterators = new Iterator[providers.size()];
@@ -102,7 +102,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return Iterators.concat(iterators);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);

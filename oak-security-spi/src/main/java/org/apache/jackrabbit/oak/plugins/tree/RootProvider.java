@@ -16,22 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface RootProvider {
 
-    @Nonnull
-    Root createReadOnlyRoot(@Nonnull NodeState rootState);
+    @NotNull
+    Root createReadOnlyRoot(@NotNull NodeState rootState);
 
-    @Nonnull
-    Root createReadOnlyRoot(@Nonnull Root root);
+    @NotNull
+    Root createReadOnlyRoot(@NotNull Root root);
 
-    @Nonnull
-    Root createSystemRoot(@Nonnull NodeStore store, @Nullable CommitHook commitHook);
+    @NotNull
+    Root createSystemRoot(@NotNull NodeStore store, @Nullable CommitHook commitHook);
 }

@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface used to verify if a given {@code restriction} applies to a given
@@ -38,7 +37,7 @@ public interface RestrictionPattern {
      * @return {@code true} if the underlying restriction matches the specified
      * tree or property state; {@code false} otherwise.
      */
-    boolean matches(@Nonnull Tree tree, @Nullable PropertyState property);
+    boolean matches(@NotNull Tree tree, @Nullable PropertyState property);
 
     /**
      * Returns {@code true} if the underlying restriction matches the specified
@@ -48,7 +47,7 @@ public interface RestrictionPattern {
      * @return {@code true} if the underlying restriction matches the specified
      * path; {@code false} otherwise.
      */
-    boolean matches(@Nonnull String path);
+    boolean matches(@NotNull String path);
 
     /**
      * Returns {@code true} if the underlying restriction matches for repository
@@ -66,12 +65,12 @@ public interface RestrictionPattern {
      */
     RestrictionPattern EMPTY = new RestrictionPattern() {
         @Override
-        public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+        public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
             return true;
         }
 
         @Override
-        public boolean matches(@Nonnull String path) {
+        public boolean matches(@NotNull String path) {
             return true;
         }
 

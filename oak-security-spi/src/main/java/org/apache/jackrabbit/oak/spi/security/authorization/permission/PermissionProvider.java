@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Main entry point for permission evaluation in Oak. This provider covers
@@ -48,7 +47,7 @@ public interface PermissionProvider {
      * @param tree The {@code tree} for which the privileges should be retrieved.
      * @return set of privilege names
      */
-    @Nonnull
+    @NotNull
     Set<String> getPrivileges(@Nullable Tree tree);
 
     /**
@@ -67,7 +66,7 @@ public interface PermissionProvider {
      * @param privilegeNames The name of the privileges.
      * @return {@code true} if all privileges are granted; {@code false} otherwise.
      */
-    boolean hasPrivileges(@Nullable Tree tree, @Nonnull String... privilegeNames);
+    boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames);
 
     /**
      * Return the {@code RepositoryPermission} for the set of {@code Principal}s
@@ -76,7 +75,7 @@ public interface PermissionProvider {
      * @return The {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission}
      * for the set of {@code Principal}s this provider instance has been created for.
      */
-    @Nonnull
+    @NotNull
     RepositoryPermission getRepositoryPermission();
 
     /**
@@ -88,8 +87,8 @@ public interface PermissionProvider {
      * obtained before for the parent tree.
      * @return The {@code TreePermission} object for the specified {@code tree}.
      */
-    @Nonnull
-    TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
+    @NotNull
+    TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission);
 
     /**
      * Test if the specified permissions are granted for the set of {@code Principal}s
@@ -104,7 +103,7 @@ public interface PermissionProvider {
      * @return {@code true} if the specified permissions are granted for the item identified
      * by the given tree and optionally property state.
      */
-    boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions);
+    boolean isGranted(@NotNull Tree tree, @Nullable PropertyState property, long permissions);
 
     /**
      * Tests if the the specified actions are granted at the given path for
@@ -122,5 +121,5 @@ public interface PermissionProvider {
      * @return {@code true} if all actions are granted at the specified path;
      * {@code false} otherwise.
      */
-    boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions);
+    boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions);
 }

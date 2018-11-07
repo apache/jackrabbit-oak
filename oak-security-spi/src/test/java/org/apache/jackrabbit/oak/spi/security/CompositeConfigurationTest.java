@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.spi.security;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -35,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeWorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -54,21 +53,21 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     @Before
     public void before() throws Exception {
         compositeConfiguration = new CompositeConfiguration("test", new SecurityProvider() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters(@Nullable String name) {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
             public Iterable<? extends SecurityConfiguration> getConfigurations() {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+            public <T> T getConfiguration(@NotNull Class<T> configClass) {
                 throw new UnsupportedOperationException();
             }
         }) {};
@@ -132,7 +131,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(r200, ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
 
         SecurityConfiguration r150 = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters() {
                 return ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, 150);
@@ -141,7 +140,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(r150, ConfigurationParameters.EMPTY);
 
         SecurityConfiguration r50 = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters() {
                 return ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, 50);
@@ -245,7 +244,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getProtectedItemImporters().isEmpty());
 
         SecurityConfiguration withImporter = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public List<ProtectedItemImporter> getProtectedItemImporters() {
                 return ImmutableList.of(Mockito.mock(ProtectedItemImporter.class));
@@ -264,7 +263,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getConflictHandlers().isEmpty());
 
         SecurityConfiguration withConflictHandler = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public List<ThreeWayConflictHandler> getConflictHandlers() {
                 return ImmutableList.of(Mockito.mock(ThreeWayConflictHandler.class));
@@ -283,9 +282,9 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getCommitHooks(null).isEmpty());
 
         SecurityConfiguration withCommitHook = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
-            public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+            public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
                 return ImmutableList.of(Mockito.mock(CommitHook.class));
             }
         };
@@ -302,9 +301,9 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
 
         SecurityConfiguration withValidator = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
-            public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+            public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
                 return ImmutableList.of(Mockito.mock(ValidatorProvider.class));
             }
         };
@@ -321,7 +320,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getWorkspaceInitializer() instanceof CompositeWorkspaceInitializer);
 
         SecurityConfiguration withWorkspaceInitializer = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public WorkspaceInitializer getWorkspaceInitializer() {
                 return Mockito.mock(WorkspaceInitializer.class);
@@ -340,7 +339,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         assertTrue(compositeConfiguration.getRepositoryInitializer() instanceof CompositeInitializer);
 
         SecurityConfiguration withRepositoryInitializer = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public RepositoryInitializer getRepositoryInitializer() {
                 return Mockito.mock(RepositoryInitializer.class);
@@ -360,7 +359,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
         ConfigurationParameters params = ConfigurationParameters.of("a", "valueA", "b", "valueB");
         SecurityConfiguration withParams = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters() {
                 return params;
@@ -372,7 +371,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
 
         ConfigurationParameters params2 = ConfigurationParameters.of("a", "valueA2", "c", "valueC");
         SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
-            @Nonnull
+            @NotNull
             @Override
             public ConfigurationParameters getParameters() {
                 return params2;

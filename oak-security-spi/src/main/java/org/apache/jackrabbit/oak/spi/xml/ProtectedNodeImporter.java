@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.spi.xml;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code ProtectedNodeImporter} provides means to import protected
@@ -54,7 +54,7 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
      * this importer without having reached {@link #end(Tree)}.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    boolean start(@Nonnull Tree protectedParent) throws IllegalStateException,
+    boolean start(@NotNull Tree protectedParent) throws IllegalStateException,
             RepositoryException;
 
     /**
@@ -71,7 +71,7 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
      * that was imported is incomplete.
      * @throws RepositoryException If another error occurs.
      */
-    void end(@Nonnull Tree protectedParent) throws IllegalStateException,
+    void end(@NotNull Tree protectedParent) throws IllegalStateException,
             ConstraintViolationException, RepositoryException;
 
     /**
@@ -94,7 +94,7 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
      * handled by this importer.
      * @throws RepositoryException If another error occurs.
      */
-    void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos)
+    void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos)
             throws IllegalStateException, ConstraintViolationException, RepositoryException;
 
     /**

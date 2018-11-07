@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code RestrictionImpl}
@@ -32,24 +31,24 @@ public class RestrictionImpl implements Restriction {
 
     private int hashCode = 0;
 
-    public RestrictionImpl(@Nonnull PropertyState property, @Nonnull RestrictionDefinition def) {
+    public RestrictionImpl(@NotNull PropertyState property, @NotNull RestrictionDefinition def) {
         this.definition = def;
         this.property = property;
     }
 
-    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory) {
+    public RestrictionImpl(@NotNull PropertyState property, boolean isMandatory) {
         this.definition = new RestrictionDefinitionImpl(property.getName(), property.getType(), isMandatory);
         this.property = property;
     }
 
     //--------------------------------------------------------< Restriction >---
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionDefinition getDefinition() {
         return definition;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public PropertyState getProperty() {
         return property;

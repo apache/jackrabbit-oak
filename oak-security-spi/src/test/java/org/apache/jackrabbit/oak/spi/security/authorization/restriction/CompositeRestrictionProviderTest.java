@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -40,6 +38,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -64,15 +64,15 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
             REP_GLOB, GLOB_RESTRICTION.getDefinition(),
             REP_PREFIXES, NT_PREFIXES_RESTRICTION.getDefinition()
     )) {
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
             throw new UnsupportedOperationException();
         }
     };
@@ -80,15 +80,15 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
             NAME_BOOLEAN, MANDATORY_BOOLEAN_RESTRICTION.getDefinition(),
             NAME_LONGS, LONGS_RESTRICTION.getDefinition()
     )) {
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
             throw new UnsupportedOperationException();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
             throw new UnsupportedOperationException();
         }
     };
@@ -256,21 +256,21 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         Tree aceTree = getAceTree(rWithInvalidDefinition, MANDATORY_BOOLEAN_RESTRICTION);
 
         RestrictionProvider rp = new AbstractRestrictionProvider(ImmutableMap.of(REP_GLOB, GLOB_RESTRICTION.getDefinition())) {
-            @Nonnull
+            @NotNull
             @Override
-            public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
+            public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
                 return ImmutableSet.of(rWithInvalidDefinition);
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
             }
         };
@@ -283,21 +283,21 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         Tree aceTree = getAceTree(UNKNOWN_RESTRICTION, MANDATORY_BOOLEAN_RESTRICTION);
 
         RestrictionProvider rp = new AbstractRestrictionProvider(ImmutableMap.of(REP_GLOB, GLOB_RESTRICTION.getDefinition())) {
-            @Nonnull
+            @NotNull
             @Override
-            public Set<Restriction> readRestrictions(String oakPath, @Nonnull Tree aceTree) {
+            public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
                 return ImmutableSet.of(UNKNOWN_RESTRICTION);
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 throw new UnsupportedOperationException();
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 throw new UnsupportedOperationException();
             }
         };
@@ -314,15 +314,15 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testGetRestrictionPatternSingleEmpty() throws Exception {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(new AbstractRestrictionProvider(ImmutableMap.of()) {
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 return RestrictionPattern.EMPTY;
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 return RestrictionPattern.EMPTY;
             }
         }).getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
@@ -331,27 +331,27 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     @Test
     public void testGetRestrictionPatternAllEmpty() throws Exception {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(new AbstractRestrictionProvider(ImmutableMap.of()) {
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 return RestrictionPattern.EMPTY;
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 return RestrictionPattern.EMPTY;
             }
         }, new AbstractRestrictionProvider(ImmutableMap.of()) {
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
                 return RestrictionPattern.EMPTY;
             }
 
-            @Nonnull
+            @NotNull
             @Override
-            public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
                 return RestrictionPattern.EMPTY;
             }
         }).getPattern("/test", getAceTree(NT_PREFIXES_RESTRICTION)));

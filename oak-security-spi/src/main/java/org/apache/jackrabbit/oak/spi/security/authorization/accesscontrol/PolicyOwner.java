@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlPolicy;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface to improve pluggability of the {@link javax.jcr.security.AccessControlManager},
@@ -44,5 +45,5 @@ public interface PolicyOwner {
      * @return {@code true} If the {@code AccessControlManager} implementing this
      * interface can handle the specified {@code accessControlPolicy} at the given {@code path}.
      */
-    boolean defines(@Nullable String absPath, @Nonnull AccessControlPolicy accessControlPolicy);
+    boolean defines(@Nullable String absPath, @NotNull AccessControlPolicy accessControlPolicy);
 }

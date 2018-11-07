@@ -18,11 +18,10 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import java.lang.reflect.Field;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -208,7 +207,7 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
             this.ctx = new TestContext(returnValue);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Context getContext() {
             return ctx;
@@ -226,31 +225,31 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
         }
 
         @Override
-        public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
+        public boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property) {
             method = "definesProperty";
             return returnValue;
         }
 
         @Override
-        public boolean definesContextRoot(@Nonnull Tree tree) {
+        public boolean definesContextRoot(@NotNull Tree tree) {
             method = "definesContextRoot";
             return returnValue;
         }
 
         @Override
-        public boolean definesTree(@Nonnull Tree tree) {
+        public boolean definesTree(@NotNull Tree tree) {
             method = "definesTree";
             return returnValue;
         }
 
         @Override
-        public boolean definesLocation(@Nonnull TreeLocation location) {
+        public boolean definesLocation(@NotNull TreeLocation location) {
             method = "definesLocation";
             return returnValue;
         }
 
         @Override
-        public boolean definesInternal(@Nonnull Tree tree) {
+        public boolean definesInternal(@NotNull Tree tree) {
             method = "definesInternal";
             return returnValue;
         }

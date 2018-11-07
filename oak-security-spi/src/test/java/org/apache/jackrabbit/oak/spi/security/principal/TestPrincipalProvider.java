@@ -22,10 +22,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
@@ -35,6 +31,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class TestPrincipalProvider implements PrincipalProvider {
 
@@ -72,12 +70,12 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         return all;
     }
 
-    public static String getIDFromPrincipal(@Nonnull Principal principal) {
+    public static String getIDFromPrincipal(@NotNull Principal principal) {
         return principal.getName() + "_id";
     }
 
-    @CheckForNull
-    private static String getPrincipalNameFromID(@Nonnull String id) {
+    @Nullable
+    private static String getPrincipalNameFromID(@NotNull String id) {
         if (id.endsWith("_id")) {
             return id.substring(0, id.lastIndexOf("_id"));
         } else {
@@ -85,9 +83,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         if (exposesEveryone && EveryonePrincipal.NAME.equals(principalName)) {
             return EveryonePrincipal.getInstance();
         } else {
@@ -95,9 +93,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         if (principals.equals(TestPrincipals.asMap())) {
             return TestPrincipals.membership(principal.getName());
         } else if (principals.values().contains(principal)) {
@@ -107,9 +105,9 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         String pName = getPrincipalNameFromID(userID);
         if (pName != null) {
             Principal p = principals.get(pName);
@@ -123,13 +121,13 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         return ImmutableSet.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)).iterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);
@@ -211,7 +209,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
             return principals;
         }
 
-        private static Set<Group> membership(@Nonnull String name) {
+        private static Set<Group> membership(@NotNull String name) {
             if ("a".equals(name)) {
                 return ImmutableSet.of(EveryonePrincipal.getInstance(), gr2, gr3);
             } else if ("ac".equals(name)) {

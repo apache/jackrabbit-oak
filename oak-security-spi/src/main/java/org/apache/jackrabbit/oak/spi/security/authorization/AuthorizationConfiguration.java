@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Configuration for access control management and permission evaluation.
@@ -34,15 +34,15 @@ public interface AuthorizationConfiguration extends SecurityConfiguration {
 
     String NAME = "org.apache.jackrabbit.oak.authorization";
 
-    @Nonnull
-    AccessControlManager getAccessControlManager(@Nonnull Root root,
-                                                 @Nonnull NamePathMapper namePathMapper);
+    @NotNull
+    AccessControlManager getAccessControlManager(@NotNull Root root,
+                                                 @NotNull NamePathMapper namePathMapper);
 
-    @Nonnull
+    @NotNull
     RestrictionProvider getRestrictionProvider();
 
-    @Nonnull
-    PermissionProvider getPermissionProvider(@Nonnull Root root,
-                                             @Nonnull String workspaceName,
-                                             @Nonnull Set<Principal> principals);
+    @NotNull
+    PermissionProvider getPermissionProvider(@NotNull Root root,
+                                             @NotNull String workspaceName,
+                                             @NotNull Set<Principal> principals);
 }

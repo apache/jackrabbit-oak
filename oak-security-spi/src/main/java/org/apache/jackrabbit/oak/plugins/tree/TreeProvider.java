@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 public interface TreeProvider {
 
-    Tree createReadOnlyTree(@Nonnull NodeState rootState);
+    Tree createReadOnlyTree(@NotNull NodeState rootState);
 
-    Tree createReadOnlyTree(@Nonnull Tree readOnlyParent, @Nonnull String childName, @Nonnull NodeState childState);
+    Tree createReadOnlyTree(@NotNull Tree readOnlyParent, @NotNull String childName, @NotNull NodeState childState);
 }

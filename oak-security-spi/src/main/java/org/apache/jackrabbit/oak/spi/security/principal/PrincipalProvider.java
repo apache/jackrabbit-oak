@@ -20,9 +20,8 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The {@code PrincipalProvider} defines methods to provide access to sources
@@ -46,8 +45,8 @@ public interface PrincipalProvider {
      * @param principalName the name of the principal to retrieve
      * @return return the requested principal or {@code null}
      */
-    @CheckForNull
-    Principal getPrincipal(@Nonnull String principalName);
+    @Nullable
+    Principal getPrincipal(@NotNull String principalName);
 
     /**
      * Returns an iterator over all group principals for which the given
@@ -63,8 +62,8 @@ public interface PrincipalProvider {
      * @return an iterator returning all groups the given principal is member of.
      * @see java.security.acl.Group#isMember(java.security.Principal)
      */
-    @Nonnull
-    Set<Group> getGroupMembership(@Nonnull Principal principal);
+    @NotNull
+    Set<Group> getGroupMembership(@NotNull Principal principal);
 
     /**
      * Tries to resolve the specified {@code userID} to a valid principal and
@@ -75,8 +74,8 @@ public interface PrincipalProvider {
      * @return The set of principals associated with the specified {@code userID}
      * or an empty set if it cannot be resolved.
      */
-    @Nonnull
-    Set<? extends Principal> getPrincipals(@Nonnull String userID);
+    @NotNull
+    Set<? extends Principal> getPrincipals(@NotNull String userID);
 
     /**
      * Find the principals that match the specified nameHint and search type.
@@ -89,7 +88,7 @@ public interface PrincipalProvider {
      * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_GROUP}</li></ul>
      * @return An iterator of principals.
      */
-    @Nonnull
+    @NotNull
     Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType);
 
 
@@ -103,6 +102,6 @@ public interface PrincipalProvider {
      * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_GROUP}</li></ul>
      * @return An iterator of principals.
      */
-    @Nonnull
+    @NotNull
     Iterator<? extends Principal> findPrincipals(int searchType);
 }

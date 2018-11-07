@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Default implementation of the {@code PrivilegeDefinition} interface.
@@ -44,7 +44,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     }
 
     //------------------------------------------------< PrivilegeDefinition >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
@@ -55,7 +55,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
         return isAbstract;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Set<String> getDeclaredAggregateNames() {
         return declaredAggregateNames;

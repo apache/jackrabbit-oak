@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -161,9 +161,9 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(p.getName()).thenReturn("name");
 
         NamePathMapper mapper = new NamePathMapper.Default() {
-            @Nonnull
+            @NotNull
             @Override
-            public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+            public String getOakName(@NotNull String jcrName) throws RepositoryException {
                 throw new RepositoryException();
             }
         };

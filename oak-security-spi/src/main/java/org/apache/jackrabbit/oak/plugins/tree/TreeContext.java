@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code TreeContext} represents item related information in relation to a
@@ -38,7 +37,7 @@ public interface TreeContext {
      * @return {@code true} if the specified property state is related to or
      * defined by the security module.
      */
-    boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property);
+    boolean definesProperty(@NotNull Tree parent, @NotNull PropertyState property);
 
     /**
      * Reveals if the specified {@code Tree} is the root of a subtree defined by
@@ -51,7 +50,7 @@ public interface TreeContext {
      * @return {@code true} if the specified tree is the root of a subtree of items
      * that are defined by the security module.
      */
-    boolean definesContextRoot(@Nonnull Tree tree);
+    boolean definesContextRoot(@NotNull Tree tree);
 
     /**
      * Reveals if the specified {@code Tree} is defined by the
@@ -61,7 +60,7 @@ public interface TreeContext {
      * @return {@code true} if the specified tree is related to or defined by the
      * security module.
      */
-    boolean definesTree(@Nonnull Tree tree);
+    boolean definesTree(@NotNull Tree tree);
 
     /**
      * Reveals if the specified {@code TreeLocation} is defined by the
@@ -71,7 +70,7 @@ public interface TreeContext {
      * @return {@code true} if the specified tree location is related to or
      * defined by the security module.
      */
-    boolean definesLocation(@Nonnull TreeLocation location);
+    boolean definesLocation(@NotNull TreeLocation location);
 
     /**
      * Reveals if the specified {@code Tree} defines repository internal information,
@@ -82,5 +81,5 @@ public interface TreeContext {
      * @see org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHidden(String)
      * @see org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHiddenPath(String)
      */
-    boolean definesInternal(@Nonnull Tree tree);
+    boolean definesInternal(@NotNull Tree tree);
 }

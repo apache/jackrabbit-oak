@@ -21,10 +21,10 @@ import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implementation of the {@code PrincipalProvider} interface that never
@@ -37,29 +37,29 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
     private EmptyPrincipalProvider() {}
 
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         return ImmutableSet.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         return ImmutableSet.of();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
         return Collections.emptyIterator();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return Collections.emptyIterator();

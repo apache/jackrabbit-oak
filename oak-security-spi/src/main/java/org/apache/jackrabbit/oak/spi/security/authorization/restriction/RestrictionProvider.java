@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface to manage the supported restrictions present with a given access
@@ -43,7 +43,7 @@ public interface RestrictionProvider {
      * policies should be returned.
      * @return The set of supported restrictions at the given path.
      */
-    @Nonnull
+    @NotNull
     Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath);
 
     /**
@@ -58,10 +58,10 @@ public interface RestrictionProvider {
      * exists for the specified parameters.
      * @throws RepositoryException If another error occurs.
      */
-    @Nonnull
+    @NotNull
     Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String oakName,
-                                  @Nonnull Value value) throws AccessControlException, RepositoryException;
+                                  @NotNull String oakName,
+                                  @NotNull Value value) throws AccessControlException, RepositoryException;
 
     /**
      * Creates a new multi valued restriction for the specified parameters.
@@ -75,10 +75,10 @@ public interface RestrictionProvider {
      * exists for the specified parameters.
      * @throws RepositoryException If another error occurs.
      */
-    @Nonnull
+    @NotNull
     Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String oakName,
-                                  @Nonnull Value... values) throws AccessControlException, RepositoryException;
+                                  @NotNull String oakName,
+                                  @NotNull Value... values) throws AccessControlException, RepositoryException;
 
     /**
      * Read the valid restrictions stored in the specified ACE tree.
@@ -90,8 +90,8 @@ public interface RestrictionProvider {
      * @return The valid restrictions stored with the specified tree or an
      * empty set.
      */
-    @Nonnull
-    Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree);
+    @NotNull
+    Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree);
 
     /**
      * Writes the given restrictions to the specified ACE tree. Note, that this
@@ -118,7 +118,7 @@ public interface RestrictionProvider {
      * @throws AccessControlException If any invalid restrictions are detected.
      * @throws RepositoryException If another error occurs.
      */
-    void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException, RepositoryException;
+    void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws AccessControlException, RepositoryException;
 
     /**
      * Creates the {@link RestrictionPattern} for the restriction information
@@ -130,8 +130,8 @@ public interface RestrictionProvider {
      * @return A new {@link RestrictionPattern} representing the restriction
      * information present with the given tree.
      */
-    @Nonnull
-    RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree);
+    @NotNull
+    RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree);
 
     /**
      * Creates the {@link RestrictionPattern} for the specified restrictions.
@@ -144,8 +144,8 @@ public interface RestrictionProvider {
      * @return A new {@link RestrictionPattern} representing those restrictions
      * of the specified set that are supported by this implementation.
      */
-    @Nonnull
-    RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions);
+    @NotNull
+    RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions);
 
     /**
      * Empty restriction provider implementation that doesn't support any
@@ -153,27 +153,27 @@ public interface RestrictionProvider {
      */
     RestrictionProvider EMPTY = new RestrictionProvider() {
 
-        @Nonnull
+        @NotNull
         @Override
         public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
             return Collections.emptySet();
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws AccessControlException, RepositoryException {
+        public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws AccessControlException, RepositoryException {
             throw new AccessControlException("This implementation doesn't support any restrictions");
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws AccessControlException, RepositoryException {
+        public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value... values) throws AccessControlException, RepositoryException {
             throw new AccessControlException("This implementation doesn't support any restrictions");
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+        public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
             return Collections.emptySet();
         }
 
@@ -183,19 +183,19 @@ public interface RestrictionProvider {
         }
 
         @Override
-        public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
+        public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
             // nothing to do
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Tree tree) {
             return RestrictionPattern.EMPTY;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
             return RestrictionPattern.EMPTY;
         }
     };

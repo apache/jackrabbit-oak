@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Map;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code TokenInfo} provides data associated with a login token and
@@ -33,7 +32,7 @@ public interface TokenInfo {
      *
      * @return the ID of the user.
      */
-    @Nonnull
+    @NotNull
     String getUserId();
 
     /**
@@ -41,7 +40,7 @@ public interface TokenInfo {
      *
      * @return the login token.
      */
-    @Nonnull
+    @NotNull
     String getToken();
 
     /**
@@ -81,14 +80,14 @@ public interface TokenInfo {
      * validated against the information stored in this instance; {@code false}
      * otherwise.
      */
-    boolean matches(@Nonnull TokenCredentials tokenCredentials);
+    boolean matches(@NotNull TokenCredentials tokenCredentials);
 
     /**
      * Returns the private attributes stored with this info object.
      *
      * @return the private attributes stored with this info object.
      */
-    @Nonnull
+    @NotNull
     Map<String, String> getPrivateAttributes();
 
     /**
@@ -96,6 +95,6 @@ public interface TokenInfo {
      *
      * @return the public attributes stored with this info object.
      */
-    @Nonnull
+    @NotNull
     Map<String, String> getPublicAttributes();
 }
