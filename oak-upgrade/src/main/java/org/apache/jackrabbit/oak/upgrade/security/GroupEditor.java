@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.upgrade.security;
 
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ class GroupEditor extends DefaultEditor {
 
     private final UpgradeMembershipWriter writer = new UpgradeMembershipWriter();
 
-    GroupEditor(@Nonnull NodeBuilder builder, @Nonnull String groupsPath) {
+    GroupEditor(@NotNull NodeBuilder builder, @NotNull String groupsPath) {
         this.state = new State(builder);
         this.groupsRoot = Text.explode(groupsPath, '/', false);
         // writer.setMembershipSizeThreshold(10); // uncomment to test different split sizes
@@ -188,7 +187,7 @@ class GroupEditor extends DefaultEditor {
          * @param group node builder of group
          * @param members set of content ids to set
          */
-        public void setMembers(@Nonnull NodeBuilder group, @Nonnull Set<String> members) {
+        public void setMembers(@NotNull NodeBuilder group, @NotNull Set<String> members) {
             group.removeProperty(UserConstants.REP_MEMBERS);
             if (group.hasChildNode(UserConstants.REP_MEMBERS)) {
                 group.getChildNode(UserConstants.REP_MEMBERS).remove();

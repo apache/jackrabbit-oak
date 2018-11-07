@@ -21,13 +21,12 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -101,12 +100,12 @@ public class LoopbackBlobStore implements BlobStore {
     }
 
     @Override
-    public String getBlobId(@Nonnull String reference) {
+    public String getBlobId(@NotNull String reference) {
         return checkNotNull(reference);
     }
 
     @Override
-    public String getReference(@Nonnull String blobId) {
+    public String getReference(@NotNull String blobId) {
         return checkNotNull(blobId);
     }
 }
