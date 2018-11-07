@@ -23,6 +23,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -83,7 +84,17 @@ class CommitsTracker {
 
     public void trackExecutedCommitOf(Thread thread) {
         long t = System.currentTimeMillis();
-        commits.removeIf(c -> c.timeStamp < t - 60000);
+        final Iterator<Commit> it = commits.iterator();
+
+        // Purge the queue
+        // Avoiding removeIf allows us to bail out early. See OAK-7885
+        while (it.hasNext()) {
+            if (it.next().timeStamp < t - 60000) {
+                it.remove();
+            } else {
+                break;
+            }
+        }
         commits.offer(new Commit(t, thread.getName()));
     }
 
