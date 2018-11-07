@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Basic commit hook implementation that by default doesn't do anything.
@@ -43,7 +42,7 @@ public class EmptyHook implements CommitHook {
      */
     public static final CommitHook INSTANCE = new EmptyHook();
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)

@@ -22,11 +22,11 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +49,7 @@ public class BinaryBasedBlob implements Blob {
      * Delegates to {@link Binary#getStream()} and returns an input stream the always
      * throws an {@code IOException} if the underlying binary failed to produce one.
      */
-    @Nonnull
+    @NotNull
     @Override
     public InputStream getNewStream() {
         try {

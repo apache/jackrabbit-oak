@@ -34,11 +34,10 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PR
 
 import java.util.LinkedList;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code CompositeConflictHandler} delegates conflict handling
@@ -57,7 +56,7 @@ public class CompositeConflictHandler implements ThreeWayConflictHandler {
      * handlers.
      * @param handlers  the backing handlers
      */
-    public CompositeConflictHandler(@Nonnull Iterable<ThreeWayConflictHandler> handlers) {
+    public CompositeConflictHandler(@NotNull Iterable<ThreeWayConflictHandler> handlers) {
         this.handlers = newLinkedList(checkNotNull(handlers));
     }
 

@@ -22,10 +22,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Closeable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@code ChangeDispatcher} instance dispatches content changes
@@ -39,14 +38,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ChangeDispatcher implements Observable, Observer {
     private final CompositeObserver observers = new CompositeObserver();
 
-    @Nonnull
+    @NotNull
     private NodeState root;
 
     /**
      * Create a new instance for dispatching content changes
      * @param root  current root node state
      */
-    public ChangeDispatcher(@Nonnull NodeState root) {
+    public ChangeDispatcher(@NotNull NodeState root) {
         this.root = checkNotNull(root);
     }
 
@@ -61,7 +60,7 @@ public class ChangeDispatcher implements Observable, Observer {
      * @return  a {@link Closeable} instance
      */
     @Override
-    @Nonnull
+    @NotNull
     public synchronized Closeable addObserver(final Observer observer) {
         observer.contentChanged(root, CommitInfo.EMPTY_EXTERNAL);
         observers.addObserver(observer);
@@ -74,7 +73,7 @@ public class ChangeDispatcher implements Observable, Observer {
     }
 
     @Override
-    public synchronized void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+    public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
         checkNotNull(root);
         checkNotNull(info);
         observers.contentChanged(root, info);

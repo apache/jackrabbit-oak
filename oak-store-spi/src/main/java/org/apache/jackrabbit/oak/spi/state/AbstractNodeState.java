@@ -29,10 +29,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -224,12 +223,12 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return getProperty(name) != null;
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return getBoolean(this, name);
     }
 
@@ -243,24 +242,24 @@ public abstract class AbstractNodeState implements NodeState {
         return getString(this, name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterable<String> getStrings(@Nonnull String name) {
+    public Iterable<String> getStrings(@NotNull String name) {
         return getStrings(this, name);
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
+    @Override @Nullable
+    public String getName(@NotNull String name) {
         return getName(this, name);
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getNames(@NotNull String name) {
         return getNames(this, name);
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         for (PropertyState property : getProperties()) {
             if (name.equals(property.getName())) {
                 return property;

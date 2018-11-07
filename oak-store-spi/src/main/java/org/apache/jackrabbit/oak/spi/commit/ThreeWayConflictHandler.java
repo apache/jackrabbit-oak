@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A {@code ThreeWayConflictHandler} is responsible for handling conflicts which happen
@@ -73,9 +72,9 @@ public interface ThreeWayConflictHandler {
      * @param theirs  their version of the property
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution addExistingProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState theirs);
+    @NotNull
+    Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState theirs);
 
     /**
      * The property {@code ours} has been changed in {@code parent} while it was
@@ -86,9 +85,9 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the property
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution changeDeletedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState base);
+    @NotNull
+    Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState base);
 
     /**
      * The property {@code ours} has been changed in {@code parent} while it was
@@ -100,9 +99,9 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the property
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution changeChangedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState ours,
-            @Nonnull PropertyState theirs, @Nonnull PropertyState base);
+    @NotNull
+    Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
+            @NotNull PropertyState theirs, @NotNull PropertyState base);
 
     /**
      * The property {@code ours} has been removed in {@code parent} while it was
@@ -112,8 +111,8 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the property
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution deleteDeletedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState base);
+    @NotNull
+    Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base);
 
     /**
      * The property {@code theirs} changed in the persistence store while it has been
@@ -124,9 +123,9 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the property
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution deleteChangedProperty(@Nonnull NodeBuilder parent, @Nonnull PropertyState theirs,
-            @Nonnull PropertyState base);
+    @NotNull
+    Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs,
+            @NotNull PropertyState base);
 
     /**
      * The node {@code ours} has been added to {@code parent} which conflicts
@@ -138,9 +137,9 @@ public interface ThreeWayConflictHandler {
      * @param theirs  their version of the node
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution addExistingNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState ours,
-            @Nonnull NodeState theirs);
+    @NotNull
+    Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
+            @NotNull NodeState theirs);
 
     /**
      * The node {@code ours} has been changed in {@code parent} while it was
@@ -152,9 +151,9 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the node
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution changeDeletedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState ours,
-            @Nonnull NodeState base);
+    @NotNull
+    Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
+            @NotNull NodeState base);
 
     /**
      * The node {@code theirs} changed in the persistence store while it has been
@@ -166,9 +165,9 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the node
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution deleteChangedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState theirs,
-            @Nonnull NodeState base);
+    @NotNull
+    Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs,
+            @NotNull NodeState base);
 
     /**
      * The node {@code name} has been removed in {@code parent} while it was
@@ -179,6 +178,6 @@ public interface ThreeWayConflictHandler {
      * @param base  the base version of the node
      * @return  {@link Resolution} of the conflict
      */
-    @Nonnull
-    Resolution deleteDeletedNode(@Nonnull NodeBuilder parent, @Nonnull String name, @Nonnull NodeState base);
+    @NotNull
+    Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base);
 }

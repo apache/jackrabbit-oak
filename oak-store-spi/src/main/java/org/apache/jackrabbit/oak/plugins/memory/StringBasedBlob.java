@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Charsets;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Blob} implementations is based on a string.
@@ -44,7 +44,7 @@ public class StringBasedBlob extends AbstractBlob {
      * This implementation returns the bytes of the UTF-8 encoding
      * of the underlying string.
      */
-    @Nonnull
+    @NotNull
     @Override
     public InputStream getNewStream() {
         return new ByteArrayInputStream(value.getBytes(Charsets.UTF_8));

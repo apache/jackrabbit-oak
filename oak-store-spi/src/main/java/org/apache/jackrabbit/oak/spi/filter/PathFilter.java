@@ -25,12 +25,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Sets.newHashSet;
@@ -75,7 +74,7 @@ public class PathFilter {
 
     private static final PathFilter ALL = new PathFilter(INCLUDE_ROOT, Collections.<String>emptyList()) {
         @Override
-        public Result filter(@Nonnull String path) {
+        public Result filter(@NotNull String path) {
             return Result.INCLUDE;
         }
     };
@@ -93,7 +92,7 @@ public class PathFilter {
      *            be the nodestate representing the index definition
      * @return predicate based on the passed definition state
      */
-    public static PathFilter from(@Nonnull NodeBuilder defn) {
+    public static PathFilter from(@NotNull NodeBuilder defn) {
         if (!defn.hasProperty(PROP_EXCLUDED_PATHS) &&
                 !defn.hasProperty(PROP_INCLUDED_PATHS)) {
             return ALL;
@@ -128,7 +127,7 @@ public class PathFilter {
      * @param path path to check
      * @return result indicating if the path needs to be included, excluded or just traversed
      */
-    public Result filter(@Nonnull String path) {
+    public Result filter(@NotNull String path) {
         for (String excludedPath : excludedPaths) {
             if (excludedPath.equals(path) || isAncestor(excludedPath, path)) {
                 return Result.EXCLUDE;

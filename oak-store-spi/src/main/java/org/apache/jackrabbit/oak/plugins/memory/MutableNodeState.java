@@ -26,8 +26,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A <em>mutable</em> state being built.
@@ -69,7 +68,7 @@ class MutableNodeState extends AbstractNodeState {
      */
     private boolean replaced;
 
-    MutableNodeState(@Nonnull NodeState base) {
+    MutableNodeState(@NotNull NodeState base) {
         checkNotNull(base);
         this.base = ModifiedNodeState.unwrap(base, properties, nodes);
     }
@@ -100,7 +99,7 @@ class MutableNodeState extends AbstractNodeState {
      * @throws IllegalArgumentException if the given name string is empty
      *                                  or contains the forward slash character
      */
-    @Nonnull
+    @NotNull
     MutableNodeState setChildNode(String name, NodeState state)
             throws IllegalArgumentException {
         assert base != null;
@@ -245,16 +244,16 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return ModifiedNodeState.hasProperty(base, properties, name);
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return ModifiedNodeState.getProperty(base, properties, name);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         return ModifiedNodeState.getProperties(base, properties, true);
     }
@@ -266,7 +265,7 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         assert base != null;
         NodeState child = nodes.get(name);
         if (child != null) {
@@ -294,9 +293,9 @@ class MutableNodeState extends AbstractNodeState {
         return child;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         NodeState child = nodes.get(name);
         if (child == null) {
             child = base.getChildNode(name);
@@ -304,13 +303,13 @@ class MutableNodeState extends AbstractNodeState {
         return child;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<String> getChildNodeNames() {
         assert base != null;
         return ModifiedNodeState.getChildNodeNames(base, nodes, true);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         throw new UnsupportedOperationException();
     }
@@ -320,7 +319,7 @@ class MutableNodeState extends AbstractNodeState {
         throw new UnsupportedOperationException();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeBuilder builder() {
         throw new UnsupportedOperationException();
     }

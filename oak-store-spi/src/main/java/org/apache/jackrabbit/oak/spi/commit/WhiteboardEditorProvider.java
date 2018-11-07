@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Dynamic {@link EditorProvider} based on the available
@@ -44,7 +43,7 @@ public class WhiteboardEditorProvider
     //----------------------------------------------------< EditorProvider >--
 
     @Override
-    @CheckForNull
+    @Nullable
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder,
             CommitInfo info) throws CommitFailedException {

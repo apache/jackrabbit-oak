@@ -20,12 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class ProxyNodeStore implements NodeStore {
 
@@ -59,13 +58,13 @@ public abstract class ProxyNodeStore implements NodeStore {
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         return getNodeStore().getBlob(reference);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         return getNodeStore().checkpoint(lifetime, properties);
     }
 
@@ -74,13 +73,13 @@ public abstract class ProxyNodeStore implements NodeStore {
         return getNodeStore().checkpoint(lifetime);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         return getNodeStore().checkpointInfo(checkpoint);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> checkpoints() {
         return getNodeStore().checkpoints();

@@ -19,11 +19,10 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Editor wrapper that passes only changes to non-hidden nodes and properties
@@ -34,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class VisibleEditor implements Editor {
 
-    @CheckForNull
-    public static Editor wrap(@CheckForNull Editor editor) {
+    @Nullable
+    public static Editor wrap(@Nullable Editor editor) {
         if (editor != null && !(editor instanceof VisibleEditor)) {
             return new VisibleEditor(editor);
         }
@@ -83,7 +82,7 @@ public class VisibleEditor implements Editor {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         if (!isHidden(name)) {
@@ -93,7 +92,7 @@ public class VisibleEditor implements Editor {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
@@ -104,7 +103,7 @@ public class VisibleEditor implements Editor {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         if (!isHidden(name)) {
