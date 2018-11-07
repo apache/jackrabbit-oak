@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
@@ -41,6 +39,8 @@ import joptsimple.OptionSpec;
 import joptsimple.internal.Strings;
 
 import static com.google.common.base.StandardSystemProperty.LINE_SEPARATOR;
+
+import org.jetbrains.annotations.Nullable;
 
 public class OakHelpFormatter implements HelpFormatter {
     private static final int COL_WIDTH = 120;
