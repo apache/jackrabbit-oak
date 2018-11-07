@@ -21,9 +21,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -41,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DynamicSyncContext;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -51,7 +50,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
-    void sync(@Nonnull ExternalUser externalUser) throws Exception {
+    void sync(@NotNull ExternalUser externalUser) throws Exception {
         Root systemRoot = getSystemRoot();
         DynamicSyncContext syncContext = new DynamicSyncContext(syncConfig, idp, getUserManager(systemRoot), getValueFactory(systemRoot));
         syncContext.sync(externalUser);
@@ -61,7 +60,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         root.refresh();
     }
 
-    Set<Principal> getExpectedGroupPrincipals(@Nonnull String userId) throws Exception {
+    Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
             Set<Principal> principals = ImmutableSet.copyOf(Iterables.transform(idp.getUser(userId).getDeclaredGroups(), new Function<ExternalIdentityRef, Principal>() {
                 @Nullable
@@ -82,7 +81,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         }
     }
 
-    private void collectExpectedPrincipals(Set<Principal> grPrincipals, @Nonnull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
+    private void collectExpectedPrincipals(Set<Principal> grPrincipals, @NotNull Iterable<ExternalIdentityRef> declaredGroups, long depth) throws Exception {
         if (depth <= 0) {
             return;
         }
@@ -394,11 +393,11 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
         private final Iterable<ExternalIdentityRef> declaredGroups;
 
-        private TestUser(@Nonnull String id, @Nonnull Iterable<ExternalIdentityRef> declaredGroups) {
+        private TestUser(@NotNull String id, @NotNull Iterable<ExternalIdentityRef> declaredGroups) {
             super(id);
             this.declaredGroups = declaredGroups;
         }
-        @Nonnull
+        @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return declaredGroups;

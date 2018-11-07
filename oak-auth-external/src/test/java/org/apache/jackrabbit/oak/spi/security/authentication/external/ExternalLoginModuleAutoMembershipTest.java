@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.ValueFactory;
 import javax.security.auth.login.AppConfigurationEntry;
@@ -45,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -138,7 +138,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
         };
     }
 
-    private static void registerSyncHandlerMapping(@Nonnull OsgiContext ctx, @Nonnull ExternalSetup setup) {
+    private static void registerSyncHandlerMapping(@NotNull OsgiContext ctx, @NotNull ExternalSetup setup) {
         String syncHandlerName = setup.sc.getName();
         Map props = ImmutableMap.of(
                 DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
@@ -363,11 +363,11 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
 
         private SyncContext ctx;
 
-        private ExternalSetup(@Nonnull ExternalIdentityProvider idp, @Nonnull DefaultSyncConfig sc) throws Exception {
+        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc) throws Exception {
             this(idp, sc, new DefaultSyncHandler(sc), "gr_" + sc.getName());
         }
 
-        private ExternalSetup(@Nonnull ExternalIdentityProvider idp, @Nonnull DefaultSyncConfig sc, @Nonnull SyncHandler sh, @CheckForNull String groupId) throws Exception {
+        private ExternalSetup(@NotNull ExternalIdentityProvider idp, @NotNull DefaultSyncConfig sc, @NotNull SyncHandler sh, @Nullable String groupId) throws Exception {
             this.idp = idp;
             this.sc = sc;
             this.sh = sh;
@@ -394,7 +394,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
             registerSyncHandlerMapping(context, this);
         }
 
-        private void sync(@Nonnull String id, boolean isGroup) throws Exception {
+        private void sync(@NotNull String id, boolean isGroup) throws Exception {
             ctx = sh.createContext(idp, userManager, valueFactory);
             ExternalIdentity exIdentity = (isGroup) ? idp.getGroup(id) : idp.getUser(id);
             assertNotNull(exIdentity);

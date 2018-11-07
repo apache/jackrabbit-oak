@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import java.security.Principal;
 import java.util.Enumeration;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

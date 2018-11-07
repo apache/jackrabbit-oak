@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 public final class TestSecurityProvider {
 
     private TestSecurityProvider() {}
 
-    public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration,
-            @Nonnull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
+    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration,
+            @NotNull ExternalPrincipalConfiguration externalPrincipalConfiguration) {
         return new SecurityProviderBuilder().with(configuration).with(externalPrincipalConfiguration, PrincipalConfiguration.class).build();
     }
 }

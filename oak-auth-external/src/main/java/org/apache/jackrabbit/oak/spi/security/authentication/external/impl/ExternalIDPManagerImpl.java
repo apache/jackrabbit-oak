@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
 
 /**
@@ -68,7 +67,7 @@ public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdent
     }
 
     @Override
-    public ExternalIdentityProvider getProvider(@Nonnull String name) {
+    public ExternalIdentityProvider getProvider(@NotNull String name) {
         for (ExternalIdentityProvider provider: getServices()) {
             if (name.equals(provider.getName())) {
                 return provider;
