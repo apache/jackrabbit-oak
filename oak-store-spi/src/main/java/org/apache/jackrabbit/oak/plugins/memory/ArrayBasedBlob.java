@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@code Blob} implementations is based on an array of bytes.
@@ -33,7 +33,7 @@ public class ArrayBasedBlob extends AbstractBlob {
         this.value = value;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public InputStream getNewStream() {
         return new ByteArrayInputStream(value);

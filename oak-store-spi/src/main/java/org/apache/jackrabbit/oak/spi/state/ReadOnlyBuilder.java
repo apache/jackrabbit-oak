@@ -21,12 +21,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A node builder that throws an {@link UnsupportedOperationException} on
@@ -34,10 +33,10 @@ import org.apache.jackrabbit.oak.api.Type;
  */
 public class ReadOnlyBuilder implements NodeBuilder {
 
-    @Nonnull
+    @NotNull
     private final NodeState state;
 
-    public ReadOnlyBuilder(@Nonnull NodeState state) {
+    public ReadOnlyBuilder(@NotNull NodeState state) {
         this.state = checkNotNull(state);
     }
 
@@ -75,12 +74,12 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return false;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getNodeState() {
         return state;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getBaseState() {
         return state;
     }
@@ -91,18 +90,18 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         return state.hasChildNode(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
         return state.getChildNodeNames();
     }
 
-    @Override @Nonnull
-    public NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState) {
+    @Override @NotNull
+    public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState nodeState) {
         throw unsupported();
     }
 
@@ -112,7 +111,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName) {
+    public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName) {
         throw unsupported();
     }
 
@@ -121,7 +120,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getPropertyCount();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return state.getProperties();
@@ -138,51 +137,51 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean getBoolean(@Nonnull String name) {
+    public boolean getBoolean(@NotNull String name) {
         return state.getBoolean(name);
     }
 
-    @Override @CheckForNull
-    public String getString(@Nonnull String name) {
+    @Override @Nullable
+    public String getString(@NotNull String name) {
         return state.getString(name);
     }
 
-    @Override @CheckForNull
-    public String getName(@Nonnull String name) {
+    @Override @Nullable
+    public String getName(@NotNull String name) {
         return state.getName(name);
     }
 
-    @Override @Nonnull
-    public Iterable<String> getNames(@Nonnull String name) {
+    @Override @NotNull
+    public Iterable<String> getNames(@NotNull String name) {
         return state.getNames(name);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeBuilder removeProperty(String name) {
         throw unsupported();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeBuilder setProperty(@Nonnull PropertyState property) {
+    public NodeBuilder setProperty(@NotNull PropertyState property) {
         throw unsupported();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> NodeBuilder setProperty(String name, @Nonnull T value) {
+    public <T> NodeBuilder setProperty(String name, @NotNull T value) {
         throw unsupported();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type) {
+    public <T> NodeBuilder setProperty(String name, @NotNull T value, Type<T> type) {
         throw unsupported();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ReadOnlyBuilder child(@Nonnull String name) {
+    public ReadOnlyBuilder child(@NotNull String name) {
         NodeState child = state.getChildNode(name);
         if (child.exists()) {
             return new ReadOnlyBuilder(child);
@@ -191,13 +190,13 @@ public class ReadOnlyBuilder implements NodeBuilder {
         }
     }
 
-    @Override @Nonnull
-    public NodeBuilder getChildNode(@Nonnull String name) {
+    @Override @NotNull
+    public NodeBuilder getChildNode(@NotNull String name) {
         return new ReadOnlyBuilder(state.getChildNode(name));
     }
 
-    @Override @Nonnull
-    public NodeBuilder setChildNode(@Nonnull String name) {
+    @Override @NotNull
+    public NodeBuilder setChildNode(@NotNull String name) {
         throw unsupported();
     }
 

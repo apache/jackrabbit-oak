@@ -28,12 +28,12 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.newManag
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,19 +45,19 @@ public class RevisionGC implements RevisionGCMBean {
 
     public static final String OP_NAME = "Revision garbage collection";
 
-    @Nonnull
+    @NotNull
     private ManagementOperation<Void> gcOp = done(OP_NAME, null);
 
-    @Nonnull
+    @NotNull
     private final Runnable runGC;
 
-    @Nonnull
+    @NotNull
     private final Runnable cancelGC;
 
-    @Nonnull
+    @NotNull
     private final Supplier<String> statusMessage;
 
-    @Nonnull
+    @NotNull
     private final Executor executor;
 
     /**
@@ -68,10 +68,10 @@ public class RevisionGC implements RevisionGCMBean {
      * @param executor       Executor for initiating the garbage collection task
      */
     public RevisionGC(
-            @Nonnull Runnable runGC,
-            @Nonnull Runnable cancelGC,
-            @Nonnull Supplier<String> statusMessage,
-            @Nonnull Executor executor) {
+            @NotNull Runnable runGC,
+            @NotNull Runnable cancelGC,
+            @NotNull Supplier<String> statusMessage,
+            @NotNull Executor executor) {
         this.runGC = checkNotNull(runGC);
         this.cancelGC = checkNotNull(cancelGC);
         this.statusMessage = checkNotNull(statusMessage);
@@ -84,13 +84,13 @@ public class RevisionGC implements RevisionGCMBean {
      * @param executor     Executor for initiating the garbage collection task
      */
     public RevisionGC(
-            @Nonnull Runnable runGC,
-            @Nonnull Runnable cancelGC,
-            @Nonnull Executor executor) {
+            @NotNull Runnable runGC,
+            @NotNull Runnable cancelGC,
+            @NotNull Executor executor) {
         this(runGC, cancelGC, Suppliers.ofInstance(""), executor);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData startRevisionGC() {
         if (gcOp.isDone()) {
@@ -108,7 +108,7 @@ public class RevisionGC implements RevisionGCMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData cancelRevisionGC() {
         if (!gcOp.isDone()) {
@@ -126,7 +126,7 @@ public class RevisionGC implements RevisionGCMBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public CompositeData getRevisionGCStatus() {
         return gcOp.getStatus().toCompositeData();

@@ -32,9 +32,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -51,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Basic in-memory node store implementation. Useful as a base class for
@@ -122,8 +121,8 @@ public class MemoryNodeStore implements NodeStore, Observable {
      */
     @Override
     public synchronized NodeState merge(
-            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException {
+            @NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+            @NotNull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof MemoryNodeBuilder);
         MemoryNodeBuilder mnb = (MemoryNodeBuilder) builder;
         checkArgument(mnb.isRoot());
@@ -147,7 +146,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
      *                                  this store
      */
     @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
+    public NodeState rebase(@NotNull NodeBuilder builder) {
         checkArgument(builder instanceof MemoryNodeBuilder);
         NodeState head = checkNotNull(builder).getNodeState();
         NodeState base = builder.getBaseState();
@@ -170,7 +169,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
      *                                  this store
      */
     @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
+    public NodeState reset(@NotNull NodeBuilder builder) {
         checkArgument(builder instanceof MemoryNodeBuilder);
         NodeState head = getRoot();
         ((MemoryNodeBuilder) builder).reset(head);
@@ -191,13 +190,13 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         return null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         checkArgument(lifetime > 0);
         checkNotNull(properties);
         String checkpoint = "checkpoint" + checkpointCounter.incrementAndGet();
@@ -205,14 +204,14 @@ public class MemoryNodeStore implements NodeStore, Observable {
         return checkpoint;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public synchronized String checkpoint(long lifetime) {
         return checkpoint(lifetime, Collections.<String, String>emptyMap());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
         if (cp == null) {
             return Collections.emptyMap();
@@ -221,14 +220,14 @@ public class MemoryNodeStore implements NodeStore, Observable {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public synchronized Iterable<String> checkpoints() {
         return Lists.newArrayList(checkpoints.keySet());
     }
 
-    @Override @CheckForNull
-    public synchronized NodeState retrieve(@Nonnull String checkpoint) {
+    @Override @Nullable
+    public synchronized NodeState retrieve(@NotNull String checkpoint) {
         Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
         if (cp == null) {
             return null;
@@ -286,7 +285,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
         @Override
         public NodeState merge(
-                @Nonnull CommitHook hook, @Nonnull CommitInfo info)
+                @NotNull CommitHook hook, @NotNull CommitInfo info)
                 throws CommitFailedException {
             checkNotNull(hook);
             checkNotNull(info);

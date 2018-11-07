@@ -21,12 +21,12 @@ import static com.google.common.base.Objects.toStringHelper;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +85,7 @@ class BinaryImpl implements ReferenceBinary {
 
     //---------------------------------------------------< ReferenceBinary >--
 
-    @Override @CheckForNull
+    @Override @Nullable
     public String getReference() {
         try {
             return value.getBlob().getReference();

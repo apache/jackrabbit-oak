@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Editor wrapper that passes only changes in the specified subtree to
@@ -58,18 +57,18 @@ public class SubtreeEditor extends DefaultEditor {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeAdded(String name, NodeState after) {
         return descend(name);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
         return descend(name);
     }
 
-    @Override @CheckForNull
+    @Override @Nullable
     public Editor childNodeDeleted(String name, NodeState before) {
         return descend(name);
     }

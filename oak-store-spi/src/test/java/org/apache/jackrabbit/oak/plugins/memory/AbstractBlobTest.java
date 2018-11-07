@@ -22,9 +22,8 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.InputStream;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -74,7 +73,7 @@ public class AbstractBlobTest {
             return id;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public InputStream getNewStream() {
             checkState(allowAccessToContent, "Cannot access the stream");

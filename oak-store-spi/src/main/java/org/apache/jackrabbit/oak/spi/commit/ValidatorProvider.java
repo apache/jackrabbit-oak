@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import javax.annotation.CheckForNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension point for plugging in different kinds of validation rules
@@ -40,13 +39,13 @@ public abstract class ValidatorProvider implements EditorProvider {
      * @return validator for checking the modifications,
      *         or {@code null} if this validator is not needed for this commit
      */
-    @CheckForNull
+    @Nullable
     protected abstract Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info);
 
     //----------------------------------------------------< EditorProvider >--
 
-    @Override @CheckForNull
+    @Override @Nullable
     public final Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {

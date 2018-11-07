@@ -31,9 +31,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -41,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -85,9 +84,9 @@ public class ModifiedNodeState extends AbstractNodeState {
      * @return new {@link MutableNodeState} base state
      */
     static NodeState unwrap(
-            @Nonnull NodeState base,
-            @Nonnull Map<String, PropertyState> properties,
-            @Nonnull Map<String, MutableNodeState> nodes) {
+            @NotNull NodeState base,
+            @NotNull Map<String, PropertyState> properties,
+            @NotNull Map<String, MutableNodeState> nodes) {
         properties.clear();
         for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
             entry.getValue().reset(base.getChildNode(entry.getKey()));
@@ -263,9 +262,9 @@ public class ModifiedNodeState extends AbstractNodeState {
      * @param nodes current child node modifications
      */
     ModifiedNodeState(
-            @Nonnull NodeState base,
-            @Nonnull Map<String, PropertyState> properties,
-            @Nonnull Map<String, MutableNodeState> nodes) {
+            @NotNull NodeState base,
+            @NotNull Map<String, PropertyState> properties,
+            @NotNull Map<String, MutableNodeState> nodes) {
         this.base = checkNotNull(base);
 
         if (checkNotNull(properties).isEmpty()) {
@@ -284,14 +283,14 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
-    @Nonnull
+    @NotNull
     public NodeState getBaseState() {
         return base;
     }
 
     //---------------------------------------------------------< NodeState >--
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
@@ -308,16 +307,16 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return hasProperty(base, properties, name);
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return getProperty(base, properties, name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return getProperties(base, properties, false);
@@ -329,7 +328,7 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         NodeState child = nodes.get(name);
         if (child != null) {
             return child.exists();
@@ -338,9 +337,9 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         NodeState child = nodes.get(name);
         if (child == null) {
             child = base.getChildNode(name);
@@ -353,7 +352,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         return getChildNodeNames(base, nodes, false);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         if (!base.exists()) {

@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Basic content change observer that doesn't do anything. Useful as a
@@ -34,7 +33,7 @@ public class EmptyObserver implements Observer {
 
     @Override
     public void contentChanged(
-            @Nonnull NodeState root, @Nonnull CommitInfo info) {
+            @NotNull NodeState root, @NotNull CommitInfo info) {
         // do nothing
     }
 

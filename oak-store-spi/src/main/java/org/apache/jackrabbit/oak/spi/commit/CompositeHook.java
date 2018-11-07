@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.spi.commit;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Composite commit hook. Maintains a list of component hooks and takes
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class CompositeHook implements CommitHook {
 
-    public static CommitHook compose(@Nonnull Collection<CommitHook> hooks) {
+    public static CommitHook compose(@NotNull Collection<CommitHook> hooks) {
         switch (hooks.size()) {
         case 0:
             return EmptyHook.INSTANCE;
@@ -43,7 +42,7 @@ public class CompositeHook implements CommitHook {
 
     private final Collection<CommitHook> hooks;
 
-    private CompositeHook(@Nonnull Collection<CommitHook> hooks) {
+    private CompositeHook(@NotNull Collection<CommitHook> hooks) {
         this.hooks = hooks;
     }
 
@@ -51,7 +50,7 @@ public class CompositeHook implements CommitHook {
         this(Arrays.asList(hooks));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)
