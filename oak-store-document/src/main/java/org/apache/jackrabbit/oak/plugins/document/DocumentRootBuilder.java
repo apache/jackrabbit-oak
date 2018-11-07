@@ -21,14 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      * This differs from the base state of super since the latter one reflects
      * the base created by the last purge.
      */
-    @Nonnull
+    @NotNull
     private NodeState base;
 
     /**
@@ -70,8 +69,8 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
      */
     private int updates;
 
-    DocumentRootBuilder(@Nonnull DocumentNodeState base,
-                        @Nonnull DocumentNodeStore store) {
+    DocumentRootBuilder(@NotNull DocumentNodeState base,
+                        @NotNull DocumentNodeStore store) {
         super(checkNotNull(base));
         this.store = checkNotNull(store);
         this.base = base;
@@ -82,13 +81,13 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
     //--------------------------------------------------< MemoryNodeBuilder >---
 
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getBaseState() {
         return base;
     }
 
     @Override
-    public void reset(@Nonnull NodeState newBase) {
+    public void reset(@NotNull NodeState newBase) {
         base = checkNotNull(newBase);
         super.reset(newBase);
     }
@@ -105,7 +104,7 @@ class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getNodeState() {
         if (DocumentNodeStoreBranch.getCurrentBranch() != null) {

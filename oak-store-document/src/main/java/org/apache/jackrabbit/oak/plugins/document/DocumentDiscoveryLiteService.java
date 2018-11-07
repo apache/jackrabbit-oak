@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.Version;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -651,7 +651,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      * that's why this approach has been chosen).
      */
     @Override
-    public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
         // contentChanged is only used to react as quickly as possible
         // when we have instances that have a 'backlog' - ie when instances
         // crashed

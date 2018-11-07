@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionListener;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +90,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(final Collection<T> collection,
                                 final String fromKey,
@@ -112,7 +111,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T extends Document> List<T> query(final Collection<T> collection,
                                 final String fromKey,
                                 final String toKey,
@@ -207,7 +206,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection,
                                                  final UpdateOp update) {
@@ -352,7 +351,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore, RevisionListe
         return store.getMetadata();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         Map<String, String> result = store.getStats();

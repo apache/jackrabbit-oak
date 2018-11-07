@@ -21,13 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A DocumentStore "update" operation for one document.
@@ -49,12 +48,12 @@ public final class UpdateOp {
      * @param id the primary key
      * @param isNew whether this is a new document
      */
-    public UpdateOp(@Nonnull String id, boolean isNew) {
+    public UpdateOp(@NotNull String id, boolean isNew) {
         this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
-    private UpdateOp(@Nonnull String id, boolean isNew, boolean isDelete,
-                     @Nonnull Map<Key, Operation> changes,
+    private UpdateOp(@NotNull String id, boolean isNew, boolean isDelete,
+                     @NotNull Map<Key, Operation> changes,
                      @Nullable Map<Key, Condition> conditions) {
         this.id = checkNotNull(id, "id must not be null");
         this.isNew = isNew;
@@ -103,7 +102,7 @@ public final class UpdateOp {
                 new HashMap<Key, Operation>(changes), conditionMap);
     }
 
-    @Nonnull
+    @NotNull
     public String getId() {
         return id;
     }
@@ -154,7 +153,7 @@ public final class UpdateOp {
      * @param revision the revision
      * @param value the value
      */
-    void setMapEntry(@Nonnull String property, @Nonnull Revision revision, String value) {
+    void setMapEntry(@NotNull String property, @NotNull Revision revision, String value) {
         Operation op = new Operation(Operation.Type.SET_MAP_ENTRY, value);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
@@ -164,7 +163,7 @@ public final class UpdateOp {
      *
      * @param property the property name
      */
-    public void remove(@Nonnull String property) {
+    public void remove(@NotNull String property) {
         if (Document.ID.equals(property)) {
             throw new IllegalArgumentException(Document.ID + " must not be removed");
         }
@@ -179,7 +178,7 @@ public final class UpdateOp {
      * @param property the property
      * @param revision the revision
      */
-    public void removeMapEntry(@Nonnull String property, @Nonnull Revision revision) {
+    public void removeMapEntry(@NotNull String property, @NotNull Revision revision) {
         Operation op = new Operation(Operation.Type.REMOVE_MAP_ENTRY, null);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
@@ -242,7 +241,7 @@ public final class UpdateOp {
      * @param property the property name
      * @param revision the revision
      */
-    void unsetMapEntry(@Nonnull String property, @Nonnull Revision revision) {
+    void unsetMapEntry(@NotNull String property, @NotNull Revision revision) {
         changes.remove(new Key(property, checkNotNull(revision)));
     }
 
@@ -253,8 +252,8 @@ public final class UpdateOp {
      * @param property the property name
      * @param revision the revision
      */
-    void containsMapEntry(@Nonnull String property,
-                          @Nonnull Revision revision,
+    void containsMapEntry(@NotNull String property,
+                          @NotNull Revision revision,
                           boolean exists) {
         if (isNew) {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
@@ -269,7 +268,7 @@ public final class UpdateOp {
      * @param property the name of the property or map.
      * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
      */
-    void equals(@Nonnull String property, @Nullable Object value) {
+    void equals(@NotNull String property, @Nullable Object value) {
         equals(property, null, value);
     }
 
@@ -281,7 +280,7 @@ public final class UpdateOp {
      *                 is for a property.
      * @param value the value to compare to ({@code null} checks both for non-existence and the value being null)
      */
-    void equals(@Nonnull String property,
+    void equals(@NotNull String property,
                 @Nullable Revision revision,
                 @Nullable Object value) {
         if (isNew) {
@@ -297,7 +296,7 @@ public final class UpdateOp {
      * @param property the name of the property or map.
      * @param value the value to compare to.
      */
-    void notEquals(@Nonnull String property, @Nullable Object value) {
+    void notEquals(@NotNull String property, @Nullable Object value) {
         notEquals(property, null, value);
     }
 
@@ -309,7 +308,7 @@ public final class UpdateOp {
      *                 is for a property.
      * @param value the value to compare to.
      */
-    void notEquals(@Nonnull String property,
+    void notEquals(@NotNull String property,
                    @Nullable Revision revision,
                    @Nullable Object value) {
         if (isNew) {
@@ -325,7 +324,7 @@ public final class UpdateOp {
      * @param property the key
      * @param value the increment
      */
-    public void increment(@Nonnull String property, long value) {
+    public void increment(@NotNull String property, long value) {
         Operation op = new Operation(Operation.Type.INCREMENT, value);
         changes.put(new Key(property, null), op);
     }
@@ -541,17 +540,17 @@ public final class UpdateOp {
         private final String name;
         private final Revision revision;
 
-        public Key(@Nonnull String name, @Nullable Revision revision) {
+        public Key(@NotNull String name, @Nullable Revision revision) {
             this.name = checkNotNull(name);
             this.revision = revision;
         }
 
-        @Nonnull
+        @NotNull
         public String getName() {
             return name;
         }
 
-        @CheckForNull
+        @Nullable
         public Revision getRevision() {
             return revision;
         }

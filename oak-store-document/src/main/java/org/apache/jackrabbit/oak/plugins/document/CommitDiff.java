@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -27,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -49,8 +48,8 @@ class CommitDiff implements NodeStateDiff {
 
     private final BundlingHandler bundlingHandler;
 
-    CommitDiff(@Nonnull DocumentNodeStore store, @Nonnull Commit commit,
-               @Nonnull BlobSerializer blobs) {
+    CommitDiff(@NotNull DocumentNodeStore store, @NotNull Commit commit,
+               @NotNull BlobSerializer blobs) {
         this(checkNotNull(store), checkNotNull(commit), store.getBundlingConfigHandler().newBundlingHandler(),
                 new JsopBuilder(), checkNotNull(blobs));
     }

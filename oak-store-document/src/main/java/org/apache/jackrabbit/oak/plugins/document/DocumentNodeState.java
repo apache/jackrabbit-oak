@@ -26,10 +26,6 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.TreeTraverser;
@@ -52,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -95,14 +93,14 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     private AbstractDocumentNodeState cachedSecondaryState;
 
-    DocumentNodeState(@Nonnull DocumentNodeStore store,
-                      @Nonnull String path,
-                      @Nonnull RevisionVector rootRevision) {
+    DocumentNodeState(@NotNull DocumentNodeStore store,
+                      @NotNull String path,
+                      @NotNull RevisionVector rootRevision) {
         this(store, path, rootRevision, Collections.<PropertyState>emptyList(), false, null);
     }
 
-    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
-                      @Nonnull RevisionVector rootRevision,
+    DocumentNodeState(@NotNull DocumentNodeStore store, @NotNull String path,
+                      @NotNull RevisionVector rootRevision,
                       Iterable<? extends PropertyState> properties,
                       boolean hasChildren,
                       @Nullable RevisionVector lastRevision) {
@@ -110,10 +108,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 hasChildren, lastRevision, false);
     }
 
-    private DocumentNodeState(@Nonnull DocumentNodeStore store,
-                              @Nonnull String path,
-                              @Nonnull RevisionVector rootRevision,
-                              @Nonnull Map<String, PropertyState> properties,
+    private DocumentNodeState(@NotNull DocumentNodeStore store,
+                              @NotNull String path,
+                              @NotNull RevisionVector rootRevision,
+                              @NotNull Map<String, PropertyState> properties,
                               boolean hasChildren,
                               @Nullable RevisionVector lastRevision,
                               boolean fromExternalChange) {
@@ -121,8 +119,8 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                 fromExternalChange, createBundlingContext(checkNotNull(properties), hasChildren));
     }
 
-    private DocumentNodeState(@Nonnull DocumentNodeStore store,
-                              @Nonnull String path,
+    private DocumentNodeState(@NotNull DocumentNodeStore store,
+                              @NotNull String path,
                               @Nullable RevisionVector lastRevision,
                               @Nullable RevisionVector rootRevision,
                               boolean fromExternalChange,
@@ -151,7 +149,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      *          external change flag.
      */
     @Override
-    public DocumentNodeState withRootRevision(@Nonnull RevisionVector root,
+    public DocumentNodeState withRootRevision(@NotNull RevisionVector root,
                                                boolean externalChange) {
         if (rootRevision.equals(root) && fromExternalChange == externalChange) {
             return this;
@@ -164,7 +162,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      * @return a copy of this {@code DocumentNodeState} with the
      *          {@link #fromExternalChange} flag set to {@code true}.
      */
-    @Nonnull
+    @NotNull
     public DocumentNodeState fromExternalChange() {
         return new DocumentNodeState(store, path, lastRevision, rootRevision, true, bundlingContext);
     }
@@ -188,7 +186,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      *
      * @return the revision of the root node state.
      */
-    @Nonnull
+    @NotNull
     public RevisionVector getRootRevision() {
         return rootRevision;
     }
@@ -212,16 +210,16 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         return properties.get(name);
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return properties.containsKey(name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         //Filter out the meta properties related to bundling from
@@ -233,7 +231,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
+    public boolean hasChildNode(@NotNull String name) {
         if (!hasChildren || !isValidName(name)) {
             return false;
         } else {
@@ -241,9 +239,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState getChildNode(@Nonnull String name) {
+    public NodeState getChildNode(@NotNull String name) {
         if (!hasChildren) {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
@@ -300,7 +298,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return properties.size();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         if (!hasChildren) {
@@ -328,7 +326,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeBuilder builder() {
         if ("/".equals(getPath())) {
@@ -415,7 +413,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      *
      * @param revision the revision this node is created.
      */
-    UpdateOp asOperation(@Nonnull Revision revision) {
+    UpdateOp asOperation(@NotNull Revision revision) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, true);
         if (Utils.isLongPath(path)) {
@@ -482,7 +480,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
 
     //------------------------------< internal >--------------------------------
 
-    @CheckForNull
+    @Nullable
     private AbstractDocumentNodeState getChildNodeDoc(String childNodeName){
         AbstractDocumentNodeState secondaryState = getSecondaryNodeState();
         if (secondaryState != null){
@@ -507,7 +505,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return store.getNode(concat(getPath(), childNodeName), lastRevision);
     }
 
-    @CheckForNull
+    @Nullable
     private AbstractDocumentNodeState getSecondaryNodeState(){
         if (cachedSecondaryState == null){
             cachedSecondaryState = store.getSecondaryNodeState(getPath(), rootRevision, lastRevision);
@@ -526,7 +524,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
      * @param limit the maximum number of child node entries to return.
      * @return the child node entries.
      */
-    @Nonnull
+    @NotNull
     private Iterable<ChildNodeEntry> getChildNodeEntries(@Nullable String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
@@ -534,13 +532,13 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             @Override
             public ChildNodeEntry apply(final AbstractDocumentNodeState input) {
                 return new AbstractChildNodeEntry() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public String getName() {
                         return PathUtils.getName(input.getPath());
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return input;
@@ -781,13 +779,13 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
             @Override
             public ChildNodeEntry apply(final String childNodeName) {
                 return new AbstractChildNodeEntry() {
-                    @Nonnull
+                    @NotNull
                     @Override
                     public String getName() {
                         return childNodeName;
                     }
 
-                    @Nonnull
+                    @NotNull
                     @Override
                     public NodeState getNodeState() {
                         return createBundledState(childNodeName, bundlingContext.matcher.next(childNodeName));

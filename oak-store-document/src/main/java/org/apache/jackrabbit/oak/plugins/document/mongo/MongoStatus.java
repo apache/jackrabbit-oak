@@ -25,14 +25,13 @@ import com.mongodb.DBCursor;
 import com.mongodb.MongoQueryException;
 import com.mongodb.ReadConcern;
 import com.mongodb.client.model.DBCollectionFindOptions;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 public class MongoStatus {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
@@ -54,7 +53,7 @@ public class MongoStatus {
 
     private Boolean majorityReadConcernEnabled;
 
-    public MongoStatus(@Nonnull DB db) {
+    public MongoStatus(@NotNull DB db) {
         this.db = db;
     }
 
@@ -115,7 +114,7 @@ public class MongoStatus {
         return majorityReadConcernEnabled;
     }
 
-    @Nonnull
+    @NotNull
     public String getServerDetails() {
         Map<String, Object> details = Maps.newHashMap();
         for (String key : SERVER_DETAIL_FIELD_NAMES) {
@@ -127,7 +126,7 @@ public class MongoStatus {
         return details.toString();
     }
 
-    @Nonnull
+    @NotNull
     public String getVersion() {
         if (version == null) {
             String v = getServerStatus().getString("version");

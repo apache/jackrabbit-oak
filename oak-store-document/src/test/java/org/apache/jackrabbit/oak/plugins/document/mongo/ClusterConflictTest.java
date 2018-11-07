@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import javax.annotation.Nonnull;
-
 import com.mongodb.DB;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -31,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
@@ -102,7 +101,7 @@ public class ClusterConflictTest extends AbstractMongoConnectionTest {
         b2.child("z").setProperty("q", "v");
         try {
             ns2.merge(b2, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,

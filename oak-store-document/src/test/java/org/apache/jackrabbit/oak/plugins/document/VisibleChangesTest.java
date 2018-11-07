@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -82,7 +81,7 @@ public class VisibleChangesTest {
 
         private final Set<String> paths = Sets.newHashSet();
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
                                                   String fromKey,

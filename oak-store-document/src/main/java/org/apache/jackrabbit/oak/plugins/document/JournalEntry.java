@@ -24,10 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -41,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,11 +125,11 @@ public final class JournalEntry extends Document {
         });
     }
 
-    static void applyTo(@Nonnull Iterable<String> changedPaths,
-                        @Nonnull DiffCache diffCache,
-                        @Nonnull String path,
-                        @Nonnull RevisionVector from,
-                        @Nonnull RevisionVector to) throws IOException {
+    static void applyTo(@NotNull Iterable<String> changedPaths,
+                        @NotNull DiffCache diffCache,
+                        @NotNull String path,
+                        @NotNull RevisionVector from,
+                        @NotNull RevisionVector to) throws IOException {
         LOG.debug("applyTo: starting for {} from {} to {}", path, from, to);
         // note that it is not de-duplicated yet
         LOG.debug("applyTo: sorting done.");
@@ -233,11 +231,11 @@ public final class JournalEntry extends Document {
      * @throws IOException if adding external changes to the {@code StringSort}
      *          instances fails with an exception.
      */
-    static int fillExternalChanges(@Nonnull StringSort externalChanges,
-                                   @Nonnull StringSort invalidate,
-                                   @Nonnull Revision from,
-                                   @Nonnull Revision to,
-                                   @Nonnull DocumentStore store)
+    static int fillExternalChanges(@NotNull StringSort externalChanges,
+                                   @NotNull StringSort invalidate,
+                                   @NotNull Revision from,
+                                   @NotNull Revision to,
+                                   @NotNull DocumentStore store)
             throws IOException {
         return fillExternalChanges(externalChanges, invalidate, ROOT_PATH,
                 from, to, store, null, null);
@@ -268,12 +266,12 @@ public final class JournalEntry extends Document {
      * @throws IOException if adding external changes to the {@code StringSort}
      *          instances fails with an exception.
      */
-    static int fillExternalChanges(@Nonnull StringSort externalChanges,
-                                   @Nonnull StringSort invalidate,
-                                   @Nonnull String path,
-                                   @Nonnull Revision from,
-                                   @Nonnull Revision to,
-                                   @Nonnull DocumentStore store,
+    static int fillExternalChanges(@NotNull StringSort externalChanges,
+                                   @NotNull StringSort invalidate,
+                                   @NotNull String path,
+                                   @NotNull Revision from,
+                                   @NotNull Revision to,
+                                   @NotNull DocumentStore store,
                                    @Nullable ChangeSetBuilder changeSetBuilder,
                                    @Nullable JournalPropertyHandler journalPropertyHandler)
             throws IOException {
@@ -339,9 +337,9 @@ public final class JournalEntry extends Document {
         return numEntries;
     }
 
-    private static void fillFromJournalEntry(@Nonnull StringSort externalChanges,
-                                             @Nonnull StringSort invalidate,
-                                             @Nonnull String path,
+    private static void fillFromJournalEntry(@NotNull StringSort externalChanges,
+                                             @NotNull StringSort invalidate,
+                                             @NotNull String path,
                                              @Nullable ChangeSetBuilder changeSetBuilder,
                                              @Nullable JournalPropertyHandler journalPropertyHandler,
                                              JournalEntry d) throws IOException {
@@ -410,7 +408,7 @@ public final class JournalEntry extends Document {
         changeSetBuilder.add(set);
     }
 
-    void branchCommit(@Nonnull Iterable<Revision> revisions) {
+    void branchCommit(@NotNull Iterable<Revision> revisions) {
         if (!revisions.iterator().hasNext()) {
             return;
         }
@@ -428,7 +426,7 @@ public final class JournalEntry extends Document {
         put(BRANCH_COMMITS, branchCommits);
     }
 
-    UpdateOp asUpdateOp(@Nonnull Revision revision) {
+    UpdateOp asUpdateOp(@NotNull Revision revision) {
         String id = asId(revision);
         UpdateOp op = new UpdateOp(id, true);
         op.set(CHANGES, getChanges().serialize());
@@ -461,7 +459,7 @@ public final class JournalEntry extends Document {
      *
      * @param revisions the references to invalidate-only journal entries.
      */
-    void invalidate(@Nonnull Iterable<Revision> revisions) {
+    void invalidate(@NotNull Iterable<Revision> revisions) {
         String value = (String) get(INVALIDATE_ONLY);
         if (value == null) {
             value = "";
@@ -508,7 +506,7 @@ public final class JournalEntry extends Document {
      *
      * @return the branch commits.
      */
-    @Nonnull
+    @NotNull
     Iterable<JournalEntry> getBranchCommits() {
         return getLinkedEntries(BRANCH_COMMITS);
     }
@@ -548,7 +546,7 @@ public final class JournalEntry extends Document {
      *
      * @return the invalidate-only entries.
      */
-    @Nonnull
+    @NotNull
     private Iterable<JournalEntry> getInvalidateOnly() {
         return getLinkedEntries(INVALIDATE_ONLY);
     }
@@ -598,7 +596,7 @@ public final class JournalEntry extends Document {
         return builder.toString();
     }
 
-    static String asId(@Nonnull Revision revision) {
+    static String asId(@NotNull Revision revision) {
         checkNotNull(revision);
         String s = String.format(REVISION_FORMAT, revision.getClusterId(), revision.getTimestamp(), revision.getCounter());
         if (revision.isBranch()) {
@@ -607,7 +605,7 @@ public final class JournalEntry extends Document {
         return s;
     }
 
-    @CheckForNull
+    @Nullable
     private TreeNode getNode(String path) {
         TreeNode node = getChanges();
         for (String name : PathUtils.elements(path)) {
@@ -619,7 +617,7 @@ public final class JournalEntry extends Document {
         return node;
     }
 
-    @Nonnull
+    @NotNull
     private TreeNode getChanges() {
         if (changes == null) {
             TreeNode node = new TreeNode(concurrent);
@@ -678,7 +676,7 @@ public final class JournalEntry extends Document {
             return false;
         }
 
-        @Nonnull
+        @NotNull
         private TreeNode getRoot() {
             TreeNode n = this;
             while (n.parent != null) {
@@ -726,12 +724,12 @@ public final class JournalEntry extends Document {
             return builder.toString();
         }
 
-        @Nonnull
+        @NotNull
         Set<String> keySet() {
             return children.keySet();
         }
 
-        @CheckForNull
+        @Nullable
         TreeNode get(String name) {
             return children.get(name);
         }
@@ -752,7 +750,7 @@ public final class JournalEntry extends Document {
             }
         }
 
-        @Nonnull
+        @NotNull
         private TreeNode getOrCreate(String name) {
             if (children == NO_CHILDREN) {
                 children = mapFactory.newMap();

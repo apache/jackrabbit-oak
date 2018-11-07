@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.mongodb.DB;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ReadConcernLevel;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +68,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @throws UnknownHostException if one of the hosts given in the URI
      *          is unknown.
      */
-    public T setMongoDB(@Nonnull String uri,
-                        @Nonnull String name,
+    public T setMongoDB(@NotNull String uri,
+                        @NotNull String name,
                         int blobCacheSizeMB)
             throws UnknownHostException {
         this.mongoUri = uri;
@@ -95,7 +94,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @param db the MongoDB connection
      * @return this
      */
-    public T setMongoDB(@Nonnull DB db,
+    public T setMongoDB(@NotNull DB db,
                         int blobCacheSizeMB) {
         return setMongoDB(db, new MongoStatus(db), blobCacheSizeMB);
     }
@@ -106,7 +105,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @param db the MongoDB connection
      * @return this
      */
-    public T setMongoDB(@Nonnull DB db) {
+    public T setMongoDB(@NotNull DB db) {
         return setMongoDB(db, 16);
     }
 
@@ -178,7 +177,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return maxReplicationLagMillis;
     }
 
-    private T setMongoDB(@Nonnull DB db,
+    private T setMongoDB(@NotNull DB db,
                          MongoStatus status,
                          int blobCacheSizeMB) {
         if (!MongoConnection.hasSufficientWriteConcern(db)) {

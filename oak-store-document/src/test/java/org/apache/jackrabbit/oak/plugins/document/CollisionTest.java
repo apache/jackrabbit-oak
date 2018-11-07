@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -153,14 +152,14 @@ public class CollisionTest {
         assertTrue(col.isConflicting());
     }
 
-    @Nonnull
+    @NotNull
     private static RevisionVector merge(DocumentNodeStore ns, NodeBuilder nb)
             throws CommitFailedException {
         ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return ns.getHeadRevision();
     }
 
-    @Nonnull
+    @NotNull
     private static NodeDocument getDocument(DocumentStore store, String id) {
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);

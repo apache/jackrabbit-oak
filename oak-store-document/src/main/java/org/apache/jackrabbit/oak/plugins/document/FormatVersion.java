@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The format version currently in use by the DocumentNodeStore and written
@@ -135,8 +135,8 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      * @throws DocumentStoreException if an error occurs while reading from the
      *          store.
      */
-    @Nonnull
-    public static FormatVersion versionOf(@Nonnull DocumentStore store)
+    @NotNull
+    public static FormatVersion versionOf(@NotNull DocumentStore store)
             throws DocumentStoreException {
         checkNotNull(store);
         FormatVersion v = V0;
@@ -175,7 +175,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      *      are active cluster nodes using an existing version, 3) the version
      *      was changed concurrently.
      */
-    public boolean writeTo(@Nonnull DocumentStore store)
+    public boolean writeTo(@NotNull DocumentStore store)
             throws DocumentStoreException {
         checkNotNull(store);
         FormatVersion v = versionOf(store);
@@ -258,7 +258,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     }
 
     @Override
-    public int compareTo(@Nonnull FormatVersion other) {
+    public int compareTo(@NotNull FormatVersion other) {
         checkNotNull(other);
         return ComparisonChain.start()
                 .compare(major, other.major)

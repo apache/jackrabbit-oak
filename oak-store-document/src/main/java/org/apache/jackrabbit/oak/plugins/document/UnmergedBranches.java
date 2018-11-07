@@ -23,13 +23,11 @@ import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchReference;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,9 +99,9 @@ class UnmergedBranches {
      * @throws IllegalArgumentException if {@code base} is a branch revision
      *          or {@code initial} is not a branch revision.
      */
-    @Nonnull
-    Branch create(@Nonnull RevisionVector base,
-                  @Nonnull Revision initial,
+    @NotNull
+    Branch create(@NotNull RevisionVector base,
+                  @NotNull Revision initial,
                   @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(),
                 "base is not a trunk revision: %s", base);
@@ -123,8 +121,8 @@ class UnmergedBranches {
      * @param r a revision.
      * @return the branch containing the given revision or <code>null</code>.
      */
-    @CheckForNull
-    Branch getBranch(@Nonnull RevisionVector r) {
+    @Nullable
+    Branch getBranch(@NotNull RevisionVector r) {
         if (!r.isBranch()) {
             return null;
         }
@@ -144,7 +142,7 @@ class UnmergedBranches {
      * @param r the base revision of a branch.
      * @return {@code true} if such a branch exists, {@code false} otherwise.
      */
-    boolean isBranchBase(@Nonnull RevisionVector r) {
+    boolean isBranchBase(@NotNull RevisionVector r) {
         if (!r.isBranch()) {
             return false;
         }
@@ -164,8 +162,8 @@ class UnmergedBranches {
      * @param r a revision.
      * @return the branch commit or {@code null} if it doesn't exist.
      */
-    @CheckForNull
-    BranchCommit getBranchCommit(@Nonnull Revision r) {
+    @Nullable
+    BranchCommit getBranchCommit(@NotNull Revision r) {
         for (Branch b : branches) {
             BranchCommit c = b.getCommit(r);
             if (c != null) {

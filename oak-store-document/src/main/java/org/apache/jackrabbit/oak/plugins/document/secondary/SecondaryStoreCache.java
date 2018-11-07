@@ -19,9 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -35,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +71,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
         this.queue = EvictingQueue.create(maxSize);
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision,
                                                     RevisionVector lastRev) {
@@ -121,7 +120,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
         return pathFilter.filter(path) == PathFilter.Result.INCLUDE;
     }
 
-    @CheckForNull
+    @Nullable
     private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, String path,
                                                       RevisionVector lastRev){
         NodeState state = root;
@@ -148,7 +147,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
         return null;
     }
 
-    @CheckForNull
+    @Nullable
     private AbstractDocumentNodeState findMatchingRoot(RevisionVector rr) {
         if (isEmpty()){
             return null;
@@ -178,7 +177,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     }
 
     @Override
-    public void contentChanged(@Nonnull AbstractDocumentNodeState root) {
+    public void contentChanged(@NotNull AbstractDocumentNodeState root) {
         synchronized (queue){
             //TODO Possibly can be improved
             queue.add(root);

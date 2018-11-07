@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -86,7 +85,7 @@ public class ManyChildNodesTest {
 
         Map<String, Integer> queries = Maps.newHashMap();
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection,
                                                   String fromKey,

@@ -35,10 +35,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,6 +75,8 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -504,7 +502,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @param <T> the document type of the given collection.
      * @return the document or {@code null} if the document doesn't exist.
      */
-    @CheckForNull
+    @Nullable
     private <T extends Document> T findUncachedWithRetry(
             Collection<T> collection, String key,
             DocumentReadPreference docReadPref,
@@ -533,7 +531,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    @CheckForNull
+    @Nullable
     protected <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         log("findUncached", key, docReadPref);
         DBCollection dbCollection = getDBCollection(collection);
@@ -564,7 +562,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                 String fromKey,
@@ -573,7 +571,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
                                               String fromKey,
@@ -586,7 +584,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     <T extends Document> List<T> queryInternal(Collection<T> collection,
                                                        String fromKey,
                                                        String toKey,
@@ -801,7 +799,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
     }
 
     @SuppressWarnings("unchecked")
-    @CheckForNull
+    @Nullable
     private <T extends Document> T findAndModify(Collection<T> collection,
                                                  UpdateOp updateOp,
                                                  boolean upsert,
@@ -900,7 +898,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         }
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
             throws DocumentStoreException {
@@ -939,7 +937,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * point 2. It will stop after 3rd iteration.
      */
     @SuppressWarnings("unchecked")
-    @CheckForNull
+    @Nullable
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
@@ -1249,7 +1247,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @return map with key to modification stamp mapping.
      * @throws MongoException if the call fails
      */
-    @Nonnull
+    @NotNull
     private Map<String, ModificationStamp> getModStamps(Iterable<String> keys)
             throws MongoException {
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
@@ -1292,10 +1290,10 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return col == Collection.NODES ? DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH : DocumentReadPreference.PRIMARY;
     }
 
-    <T extends Document> ReadPreference getMongoReadPreference(@Nonnull Collection<T> collection,
+    <T extends Document> ReadPreference getMongoReadPreference(@NotNull Collection<T> collection,
                                                                @Nullable String parentId,
                                                                @Nullable String documentId,
-                                                               @Nonnull DocumentReadPreference preference) {
+                                                               @NotNull DocumentReadPreference preference) {
         switch(preference){
             case PRIMARY:
                 return ReadPreference.primary();
@@ -1358,8 +1356,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return getDBCollection(collection).getReadPreference();
     }
 
-    @CheckForNull
-    protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
+    @Nullable
+    protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection,
                                                          @Nullable DBObject n) {
         T copy = null;
         if (n != null) {
@@ -1385,8 +1383,8 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return copy;
     }
 
-    @Nonnull
-    private Map<Revision, Object> convertMongoMap(@Nonnull BasicDBObject obj) {
+    @NotNull
+    private Map<Revision, Object> convertMongoMap(@NotNull BasicDBObject obj) {
         Map<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
             map.put(Revision.fromString(entry.getKey()), entry.getValue());
@@ -1436,7 +1434,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return metadata;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
@@ -1476,7 +1474,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return doc;
     }
 
-    @Nonnull
+    @NotNull
     private static QueryBuilder createQueryForUpdate(String key,
                                                      Map<Key, Condition> conditions) {
         QueryBuilder query = getByKeyQuery(key);
@@ -1507,7 +1505,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
      * @param includeId whether to include the SET id operation
      * @return the DBObject.
      */
-    @Nonnull
+    @NotNull
     private static DBObject createUpdate(UpdateOp updateOp, boolean includeId) {
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject maxUpdates = new BasicDBObject();
@@ -1563,7 +1561,7 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
         return update;
     }
 
-    @Nonnull
+    @NotNull
     private <T extends Document> T applyChanges(Collection<T> collection, T oldDoc, UpdateOp update) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);

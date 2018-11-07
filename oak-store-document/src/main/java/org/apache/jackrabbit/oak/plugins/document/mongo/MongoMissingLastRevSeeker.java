@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import javax.annotation.Nonnull;
-
 import static com.google.common.collect.Iterables.transform;
 import static com.mongodb.QueryBuilder.start;
 
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Mongo specific version of MissingLastRevSeeker which uses mongo queries
@@ -54,7 +53,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
         DBObject query =
                 start(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(

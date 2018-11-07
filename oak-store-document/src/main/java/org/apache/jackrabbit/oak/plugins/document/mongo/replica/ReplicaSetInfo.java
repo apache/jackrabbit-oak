@@ -38,12 +38,11 @@ import java.util.concurrent.Future;
 import java.util.Set;
 import java.util.concurrent.FutureTask;
 
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.bson.BasicBSONObject;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

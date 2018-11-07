@@ -58,8 +58,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -83,6 +81,8 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -275,13 +275,13 @@ public class RDBDocumentStore implements DocumentStore {
         return readDocumentCached(collection, id, maxCacheAge);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, String indexedProperty,
             long startValue, int limit) {
@@ -292,7 +292,7 @@ public class RDBDocumentStore implements DocumentStore {
         return internalQuery(collection, fromKey, toKey, EMPTY_KEY_PATTERN, conditions, limit);
     }
 
-    @Nonnull
+    @NotNull
     protected <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey,
             List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit) {
         return internalQuery(collection, fromKey, toKey, excludeKeyPatterns, conditions, limit);
@@ -493,7 +493,7 @@ public class RDBDocumentStore implements DocumentStore {
         return result;
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, Set<String> keys) {
         if (collection == Collection.NODES) {
             return this.nodesCache.registerTracker(keys);
@@ -502,7 +502,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> CacheChangesTracker obtainTracker(Collection<T> collection, String fromKey, String toKey) {
         if (collection == Collection.NODES) {
             return this.nodesCache.registerTracker(fromKey, toKey);
@@ -675,7 +675,7 @@ public class RDBDocumentStore implements DocumentStore {
         private Set<String> columnOnlyProperties = Collections.unmodifiableSet(COLUMNPROPERTIES);
         private Set<String> columnProperties = Collections.unmodifiableSet(COLUMNPROPERTIES);
 
-        public RDBTableMetaData(@CheckForNull String catalog, @Nonnull String name) {
+        public RDBTableMetaData(@Nullable String catalog, @NotNull String name) {
             this.catalog = catalog == null ? "" : catalog;
             this.name = name;
         }
@@ -846,7 +846,7 @@ public class RDBDocumentStore implements DocumentStore {
      * {@link RDBDocumentStoreDB#getAdditionalStatistics(RDBConnectionHandler, String, String)}
      * for details.
      **/
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
@@ -1499,7 +1499,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
         final Stopwatch watch = startWatch();
         List<String> ids = new ArrayList<String>(updates.size());
@@ -1541,7 +1541,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update, boolean allowCreate,
             boolean checkConditions) {
         T oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
@@ -1595,7 +1595,7 @@ public class RDBDocumentStore implements DocumentStore {
     /**
      * @return previous version of document or <code>null</code>
      */
-    @CheckForNull
+    @Nullable
     private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
             int maxRetries) {
         if (checkConditions && !UpdateUtils.checkConditions(oldDoc, update.getConditions())) {
@@ -1664,7 +1664,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @Nonnull
+    @NotNull
     private <T extends Document> T createNewDocument(Collection<T> collection, T oldDoc, UpdateOp update) {
         T doc = collection.newDocument(this);
         oldDoc.deepCopy(doc);
@@ -1856,7 +1856,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @Nonnull
+    @NotNull
     protected <T extends Document> RDBTableMetaData getTable(Collection<T> collection) {
         RDBTableMetaData tmd = this.tableMeta.get(collection);
         if (tmd != null) {
@@ -1866,7 +1866,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> T readDocumentUncached(Collection<T> collection, String id, NodeDocument cachedDoc) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
@@ -1985,8 +1985,8 @@ public class RDBDocumentStore implements DocumentStore {
         return numDeleted;
     }
 
-    private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document,
-            @Nonnull UpdateOp update, Long oldmodcount) {
+    private <T extends Document> boolean updateDocument(@NotNull Collection<T> collection, @NotNull T document,
+            @NotNull UpdateOp update, Long oldmodcount) {
         Connection connection = null;
         RDBTableMetaData tmd = getTable(collection);
         String data = null;
@@ -2143,7 +2143,7 @@ public class RDBDocumentStore implements DocumentStore {
     private static final boolean BATCHUPDATES = Boolean.parseBoolean(System
             .getProperty("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.BATCHUPDATES", "true"));
 
-    public static byte[] asBytes(@Nonnull String data) {
+    public static byte[] asBytes(@NotNull String data) {
         byte[] bytes;
         try {
             bytes = data.getBytes("UTF-8");
@@ -2197,18 +2197,18 @@ public class RDBDocumentStore implements DocumentStore {
 
     private NodeDocumentLocks locks;
 
-    @CheckForNull
-    private static NodeDocument unwrap(@Nonnull NodeDocument doc) {
+    @Nullable
+    private static NodeDocument unwrap(@NotNull NodeDocument doc) {
         return doc == NodeDocument.NULL ? null : doc;
     }
 
-    @Nonnull
-    private static NodeDocument wrap(@CheckForNull NodeDocument doc) {
+    @NotNull
+    private static NodeDocument wrap(@Nullable NodeDocument doc) {
         return doc == null ? NodeDocument.NULL : doc;
     }
 
-    @Nonnull
-    private static String idOf(@Nonnull Document doc) {
+    @NotNull
+    private static String idOf(@NotNull Document doc) {
         String id = doc.getId();
         if (id == null) {
             throw new IllegalArgumentException("non-null ID expected");
@@ -2216,18 +2216,18 @@ public class RDBDocumentStore implements DocumentStore {
         return id;
     }
 
-    private static long modcountOf(@Nonnull Document doc) {
+    private static long modcountOf(@NotNull Document doc) {
         Long n = doc.getModCount();
         return n != null ? n : -1;
     }
 
-    private static long modifiedOf(@Nonnull Document doc) {
+    private static long modifiedOf(@NotNull Document doc) {
         Object l = doc.get(NodeDocument.MODIFIED_IN_SECS);
         return (l instanceof Long) ? ((Long)l).longValue() : -1;
     }
 
-    @Nonnull
-    protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection, @Nonnull RDBRow row) {
+    @NotNull
+    protected <T extends Document> T convertFromDBObject(@NotNull Collection<T> collection, @NotNull RDBRow row) {
         // this method is present here in order to facilitate unit testing for OAK-3566
         return ser.fromRow(collection, row);
     }

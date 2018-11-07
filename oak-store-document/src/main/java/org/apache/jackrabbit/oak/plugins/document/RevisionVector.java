@@ -22,9 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -32,6 +29,8 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     //lazily initialized
     private int hash;
 
-    private RevisionVector(@Nonnull Revision[] revisions,
+    private RevisionVector(@NotNull Revision[] revisions,
                            boolean checkUniqueClusterIds,
                            boolean sort) {
         checkNotNull(revisions);
@@ -75,15 +74,15 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         this.revisions = revisions;
     }
 
-    public RevisionVector(@Nonnull Revision... revisions) {
+    public RevisionVector(@NotNull Revision... revisions) {
         this(Arrays.copyOf(revisions, revisions.length), true, true);
     }
 
-    public RevisionVector(@Nonnull Iterable<Revision> revisions) {
+    public RevisionVector(@NotNull Iterable<Revision> revisions) {
         this(toArray(revisions, Revision.class), true, true);
     }
 
-    public RevisionVector(@Nonnull Set<Revision> revisions) {
+    public RevisionVector(@NotNull Set<Revision> revisions) {
         this(toArray(revisions, Revision.class), false, true);
     }
 
@@ -97,7 +96,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @param revision the revision set to use for the new vector.
      * @return the resulting revision vector.
      */
-    public RevisionVector update(@Nonnull Revision revision) {
+    public RevisionVector update(@NotNull Revision revision) {
         checkNotNull(revision);
         Revision existing = null;
         int i;
@@ -166,7 +165,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @param vector the other vector.
      * @return the parallel minimum of the two.
      */
-    public RevisionVector pmin(@Nonnull RevisionVector vector) {
+    public RevisionVector pmin(@NotNull RevisionVector vector) {
         // optimize single revision case
         if (revisions.length == 1 && vector.revisions.length == 1) {
             if (revisions[0].getClusterId() == vector.revisions[0].getClusterId()) {
@@ -197,7 +196,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @param vector the other vector.
      * @return the parallel maximum of the two.
      */
-    public RevisionVector pmax(@Nonnull RevisionVector vector) {
+    public RevisionVector pmax(@NotNull RevisionVector vector) {
         // optimize single revision case
         if (revisions.length == 1 && vector.revisions.length == 1) {
             if (revisions[0].getClusterId() == vector.revisions[0].getClusterId()) {
@@ -256,7 +255,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @param revision the revision to check.
      * @return {@code true} if considered newer, {@code false} otherwise.
      */
-    public boolean isRevisionNewer(@Nonnull Revision revision) {
+    public boolean isRevisionNewer(@NotNull Revision revision) {
         checkNotNull(revision);
         for (Revision r : revisions) {
             if (r.getClusterId() == revision.getClusterId()) {
@@ -287,7 +286,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @throws IllegalStateException if this vector does not contain a branch
      *          revision.
      */
-    @Nonnull
+    @NotNull
     public Revision getBranchRevision() {
         for (Revision r : revisions) {
             if (r.isBranch()) {
@@ -442,7 +441,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     //------------------------< Comparable >------------------------------------
 
     @Override
-    public int compareTo(@Nonnull RevisionVector other) {
+    public int compareTo(@NotNull RevisionVector other) {
         Iterator<Revision> it = other.iterator();
         for (Revision r : revisions) {
             if (!it.hasNext()) {
@@ -508,7 +507,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     //-------------------------< internal >-------------------------------------
 
-    @CheckForNull
+    @Nullable
     private Revision peekRevision(PeekingIterator<Revision> it,
                                   int minClusterId) {
         while (it.hasNext() && it.peek().getClusterId() < minClusterId) {

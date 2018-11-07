@@ -31,14 +31,13 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Contains commit information about a branch and its base revision.
@@ -75,9 +74,9 @@ class Branch {
      * @param guard controls the life time of this branch.
      * @throws IllegalArgumentException if base is a branch revision.
      */
-    Branch(@Nonnull SortedSet<Revision> commits,
-           @Nonnull RevisionVector base,
-           @Nonnull ReferenceQueue<Object> queue,
+    Branch(@NotNull SortedSet<Revision> commits,
+           @NotNull RevisionVector base,
+           @NotNull ReferenceQueue<Object> queue,
            @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
@@ -96,7 +95,7 @@ class Branch {
     /**
      * @return the initial base of this branch.
      */
-    @Nonnull
+    @NotNull
     RevisionVector getBase() {
         return base;
     }
@@ -109,8 +108,8 @@ class Branch {
      * @throws IllegalArgumentException if <code>r</code> is not a commit of
      *                                  this branch.
      */
-    @Nonnull
-    RevisionVector getBase(@Nonnull Revision r) {
+    @NotNull
+    RevisionVector getBase(@NotNull Revision r) {
         BranchCommit c = commits.get(checkNotNull(r).asBranchRevision());
         if (c == null) {
             throw new IllegalArgumentException(
@@ -127,7 +126,7 @@ class Branch {
      * @throws IllegalArgumentException if head is a trunk revision or base is a
      *                                  branch revision.
      */
-    void rebase(@Nonnull Revision head, @Nonnull RevisionVector base) {
+    void rebase(@NotNull Revision head, @NotNull RevisionVector base) {
         checkArgument(checkNotNull(head).isBranch(), "Not a branch revision: %s", head);
         checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
@@ -141,7 +140,7 @@ class Branch {
      * @param r the revision of the branch commit to add.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    void addCommit(@Nonnull Revision r) {
+    void addCommit(@NotNull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(r, last) > 0);
@@ -170,7 +169,7 @@ class Branch {
      * @return <code>true</code> if this branch contains a commit with the given
      *         revision; <code>false</code> otherwise.
      */
-    boolean containsCommit(@Nonnull Revision r) {
+    boolean containsCommit(@NotNull Revision r) {
         return commits.containsKey(checkNotNull(r).asBranchRevision());
     }
 
@@ -181,8 +180,8 @@ class Branch {
      * @param r the revision of a commit.
      * @return the branch commit or {@code null} if it doesn't exist.
      */
-    @CheckForNull
-    BranchCommit getCommit(@Nonnull Revision r) {
+    @Nullable
+    BranchCommit getCommit(@NotNull Revision r) {
         return commits.get(checkNotNull(r).asBranchRevision());
     }
 
@@ -190,7 +189,7 @@ class Branch {
      * @return the branch reference or {@code null} if no guard object was
      *         passed to the constructor of this branch. 
      */
-    @CheckForNull
+    @Nullable
     BranchReference getRef() {
         return ref;
     }
@@ -202,7 +201,7 @@ class Branch {
      * @param r the revision of the commit to remove.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    public void removeCommit(@Nonnull Revision r) {
+    public void removeCommit(@NotNull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         commits.remove(r);
     }
@@ -214,8 +213,8 @@ class Branch {
      * @param trunk the unsaved trunk modifications.
      * @param mergeCommit the revision of the merge commit.
      */
-    public void applyTo(@Nonnull UnsavedModifications trunk,
-                        @Nonnull Revision mergeCommit) {
+    public void applyTo(@NotNull UnsavedModifications trunk,
+                        @NotNull Revision mergeCommit) {
         checkNotNull(trunk);
         for (BranchCommit c : commits.values()) {
             c.applyTo(trunk, mergeCommit);
@@ -232,7 +231,7 @@ class Branch {
      * @return the most recent unsaved last revision or <code>null</code> if
      *         there is none in this branch.
      */
-    @CheckForNull
+    @Nullable
     public Revision getUnsavedLastRevision(String path,
                                            Revision readRevision) {
         readRevision = readRevision.asBranchRevision();
@@ -253,7 +252,7 @@ class Branch {
      * @return {@code true} if the given revision is the head of this branch,
      *          {@code false} otherwise.
      */
-    public boolean isHead(@Nonnull Revision rev) {
+    public boolean isHead(@NotNull Revision rev) {
         checkArgument(checkNotNull(rev).isBranch(),
                 "Not a branch revision: %s", rev);
         return checkNotNull(rev).equals(commits.lastKey());
@@ -267,7 +266,7 @@ class Branch {
      * @return modified paths until {@code r}.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    Iterable<String> getModifiedPathsUntil(@Nonnull final Revision r) {
+    Iterable<String> getModifiedPathsUntil(@NotNull final Revision r) {
         checkArgument(checkNotNull(r).isBranch(),
                 "Not a branch revision: %s", r);
         if (!commits.containsKey(r)) {
@@ -438,9 +437,9 @@ class Branch {
 
         private final Branch branch;
 
-        private BranchReference(@Nonnull ReferenceQueue<Object> queue,
-                                @Nonnull Branch branch,
-                                @Nonnull Object referent) {
+        private BranchReference(@NotNull ReferenceQueue<Object> queue,
+                                @NotNull Branch branch,
+                                @NotNull Object referent) {
             super(checkNotNull(referent), queue);
             this.branch = checkNotNull(branch);
         }

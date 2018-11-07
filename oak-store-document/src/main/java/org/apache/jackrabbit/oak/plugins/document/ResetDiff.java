@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -41,14 +40,14 @@ class ResetDiff implements NodeStateDiff {
     private final Map<String, UpdateOp> operations;
     private UpdateOp update;
 
-    ResetDiff(@Nonnull Revision revision,
-              @Nonnull Map<String, UpdateOp> operations) {
+    ResetDiff(@NotNull Revision revision,
+              @NotNull Map<String, UpdateOp> operations) {
         this(revision, "/", operations);
     }
 
-    private ResetDiff(@Nonnull Revision revision,
-                      @Nonnull String path,
-                      @Nonnull Map<String, UpdateOp> operations) {
+    private ResetDiff(@NotNull Revision revision,
+                      @NotNull String path,
+                      @NotNull Map<String, UpdateOp> operations) {
         this.revision = checkNotNull(revision);
         this.path = checkNotNull(path);
         this.operations = checkNotNull(operations);

@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.cache.CacheBuilder.newBuilder;
 import static com.google.common.collect.ImmutableList.of;
@@ -46,8 +45,8 @@ final class CommitValueResolver {
         this.sweepRevisions = sweepRevisions;
     }
 
-    String resolve(@Nonnull Revision changeRevision,
-                   @Nonnull NodeDocument doc) {
+    String resolve(@NotNull Revision changeRevision,
+                   @NotNull NodeDocument doc) {
         // check cache first
         String value = commitValueCache.getIfPresent(changeRevision);
         if (value != null) {
@@ -125,9 +124,9 @@ final class CommitValueResolver {
      * @return the document with the change or {@code null} if there is no
      *      document with such a change.
      */
-    @CheckForNull
-    private NodeDocument resolveDocument(@Nonnull NodeDocument doc,
-                                         @Nonnull Revision changeRevision) {
+    @Nullable
+    private NodeDocument resolveDocument(@NotNull NodeDocument doc,
+                                         @NotNull Revision changeRevision) {
         // check if the document contains the change or we need to
         // look up previous documents for the actual change
         if (doc.getLocalCommitRoot().containsKey(changeRevision)

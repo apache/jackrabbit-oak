@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
@@ -242,7 +241,7 @@ public class DocumentNodeStoreSweepTest {
         // restart with a document store that tracks queries
         final Map<String, Long> queries = Maps.newHashMap();
         store = new FailingDocumentStore(new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,

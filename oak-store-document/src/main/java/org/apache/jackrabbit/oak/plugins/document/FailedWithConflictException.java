@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -33,9 +32,9 @@ class FailedWithConflictException extends CommitFailedException {
 
     private final Set<Revision> conflictRevisions;
 
-    FailedWithConflictException(@Nonnull Set<Revision> conflictRevisions,
-                                @Nonnull String message,
-                                @Nonnull Throwable cause) {
+    FailedWithConflictException(@NotNull Set<Revision> conflictRevisions,
+                                @NotNull String message,
+                                @NotNull Throwable cause) {
         super(OAK, MERGE, 4, checkNotNull(message), checkNotNull(cause));
         this.conflictRevisions = checkNotNull(conflictRevisions);
     }
@@ -43,7 +42,7 @@ class FailedWithConflictException extends CommitFailedException {
     /**
      * @return the revision of another commit which caused a conflict.
      */
-    @Nonnull
+    @NotNull
     Set<Revision> getConflictRevisions() {
         return conflictRevisions;
     }

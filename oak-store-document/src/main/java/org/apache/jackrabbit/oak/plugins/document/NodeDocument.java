@@ -32,10 +32,6 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
@@ -52,6 +48,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -357,7 +355,7 @@ public final class NodeDocument extends Document {
 
     private final long creationTime;
 
-    NodeDocument(@Nonnull DocumentStore store) {
+    NodeDocument(@NotNull DocumentStore store) {
         this(store, Revision.getCurrentTimestamp());
     }
 
@@ -368,7 +366,7 @@ public final class NodeDocument extends Document {
      * @param creationTime time at which it was created. Would be different from current time
      *                     in case of being resurrected from a serialized for
      */
-    public NodeDocument(@Nonnull DocumentStore store, long creationTime) {
+    public NodeDocument(@NotNull DocumentStore store, long creationTime) {
         this.store = checkNotNull(store);
         this.creationTime = creationTime;
     }
@@ -382,8 +380,8 @@ public final class NodeDocument extends Document {
      * @param key a string key.
      * @return the map associated with the key.
      */
-    @Nonnull
-    public Map<Revision, String> getValueMap(@Nonnull String key) {
+    @NotNull
+    public Map<Revision, String> getValueMap(@NotNull String key) {
         return ValueMap.create(this, key);
     }
 
@@ -400,7 +398,7 @@ public final class NodeDocument extends Document {
      * @return the time in seconds this document was last modified with five
      *          seconds precision. Returns {@code null} if none is set.
      */
-    @CheckForNull
+    @Nullable
     public Long getModified() {
         return (Long) get(MODIFIED_IN_SECS);
     }
@@ -498,7 +496,7 @@ public final class NodeDocument extends Document {
      *
      * @return the path of the main document.
      */
-    @Nonnull
+    @NotNull
     public String getMainPath() {
         String p = getPath();
         if (p.startsWith("p")) {
@@ -516,7 +514,7 @@ public final class NodeDocument extends Document {
     /**
      * @return a map of the last known revision for each clusterId.
      */
-    @Nonnull
+    @NotNull
     public Map<Integer, Revision> getLastRev() {
         Map<Integer, Revision> map = Maps.newHashMap();
         Map<Revision, String> valueMap = getLocalMap(LAST_REV);
@@ -539,7 +537,7 @@ public final class NodeDocument extends Document {
      * @param revision the revision to check.
      * @return <code>true</code> if this document contains the given revision.
      */
-    public boolean containsRevision(@Nonnull Revision revision) {
+    public boolean containsRevision(@NotNull Revision revision) {
         if (getLocalRevisions().containsKey(revision)) {
             return true;
         }
@@ -621,8 +619,8 @@ public final class NodeDocument extends Document {
      * @param changes the changes to check.
      * @return the conflict revisions.
      */
-    @Nonnull
-    Set<Revision> getConflictsFor(@Nonnull Iterable<Revision> changes) {
+    @NotNull
+    Set<Revision> getConflictsFor(@NotNull Iterable<Revision> changes) {
         checkNotNull(changes);
 
         Set<Revision> conflicts = Sets.newHashSet();
@@ -649,7 +647,7 @@ public final class NodeDocument extends Document {
      * @param revision a revision.
      * @return the commit root path or <code>null</code>.
      */
-    @CheckForNull
+    @Nullable
     public String getCommitRootPath(Revision revision) {
         String depth = getCommitRootDepth(revision);
         if (depth != null) {
@@ -687,7 +685,7 @@ public final class NodeDocument extends Document {
      *              {@code null} if {@code changeRev} is not a branch commit.
      * @param collisions changes that happened after {@code baseRev}.
      */
-    @CheckForNull
+    @Nullable
     Revision getNewestRevision(final RevisionContext context,
                                final RevisionVector baseRev,
                                final Revision changeRev,
@@ -866,11 +864,11 @@ public final class NodeDocument extends Document {
      * @return <code>true</code> if the revision is valid; <code>false</code>
      *         otherwise.
      */
-    private boolean isValidRevision(@Nonnull RevisionContext context,
-                                    @Nonnull Revision rev,
+    private boolean isValidRevision(@NotNull RevisionContext context,
+                                    @NotNull Revision rev,
                                     @Nullable String commitValue,
-                                    @Nonnull RevisionVector readRevision,
-                                    @Nonnull Map<Revision, String> validRevisions) {
+                                    @NotNull RevisionVector readRevision,
+                                    @NotNull Map<Revision, String> validRevisions) {
         if (validRevisions.containsKey(rev)) {
             return true;
         }
@@ -906,9 +904,9 @@ public final class NodeDocument extends Document {
      * @return the node or <code>null</code> if the node doesn't exist at the
      *         given read revision.
      */
-    @CheckForNull
-    public DocumentNodeState getNodeAtRevision(@Nonnull DocumentNodeStore nodeStore,
-                                               @Nonnull RevisionVector readRevision,
+    @Nullable
+    public DocumentNodeState getNodeAtRevision(@NotNull DocumentNodeStore nodeStore,
+                                               @NotNull RevisionVector readRevision,
                                                @Nullable Revision lastModified) {
         Map<Revision, String> validRevisions = Maps.newHashMap();
         Branch branch = nodeStore.getBranches().getBranch(readRevision);
@@ -1031,7 +1029,7 @@ public final class NodeDocument extends Document {
      * @return the earliest revision, or null if the node is deleted at the
      *         given revision
      */
-    @CheckForNull
+    @Nullable
     public Revision getLiveRevision(RevisionContext context,
                                     RevisionVector readRevision,
                                     Map<Revision, String> validRevisions,
@@ -1056,9 +1054,9 @@ public final class NodeDocument extends Document {
      * @param enableConcurrentAddRemove feature flag for OAK-2673.
      * @return <code>true</code> if conflicting, <code>false</code> otherwise.
      */
-    boolean isConflicting(@Nonnull UpdateOp op,
-                          @Nonnull RevisionVector baseRevision,
-                          @Nonnull Revision commitRevision,
+    boolean isConflicting(@NotNull UpdateOp op,
+                          @NotNull RevisionVector baseRevision,
+                          @NotNull Revision commitRevision,
                           boolean enableConcurrentAddRemove) {
         // did existence of node change after baseRevision?
         // only check local deleted map, which contains the most
@@ -1169,10 +1167,10 @@ public final class NodeDocument extends Document {
      *                   JSON property value String.
      * @return the split operations.
      */
-    @Nonnull
-    public Iterable<UpdateOp> split(@Nonnull RevisionContext context,
-                                    @Nonnull RevisionVector head,
-                                    @Nonnull Function<String, Long> binarySize) {
+    @NotNull
+    public Iterable<UpdateOp> split(@NotNull RevisionContext context,
+                                    @NotNull RevisionVector head,
+                                    @NotNull Function<String, Long> binarySize) {
         return SplitOperations.forDocument(this, context, head,
                 binarySize, NUM_REVS_THRESHOLD);
     }
@@ -1186,7 +1184,7 @@ public final class NodeDocument extends Document {
      *
      * @return the previous ranges for this document.
      */
-    @Nonnull
+    @NotNull
     NavigableMap<Revision, Range> getPreviousRanges() {
         return getPreviousRanges(false);
     }
@@ -1198,7 +1196,7 @@ public final class NodeDocument extends Document {
      * @param includeStale whether stale revision ranges are included or not.
      * @return the previous ranges for this document.
      */
-    @Nonnull
+    @NotNull
     NavigableMap<Revision, Range> getPreviousRanges(boolean includeStale) {
         if (includeStale) {
             return createPreviousRanges(true);
@@ -1217,7 +1215,7 @@ public final class NodeDocument extends Document {
      * @param includeStale whether stale revision ranges are included or not.
      * @return the previous ranges for this document.
      */
-    @Nonnull
+    @NotNull
     private NavigableMap<Revision, Range> createPreviousRanges(boolean includeStale) {
         NavigableMap<Revision, Range> ranges;
         Map<Revision, String> map = getLocalMap(PREVIOUS);
@@ -1253,8 +1251,8 @@ public final class NodeDocument extends Document {
      * @param revision the revision to match or <code>null</code>.
      * @return previous documents.
      */
-    @Nonnull
-    Iterable<NodeDocument> getPreviousDocs(@Nonnull final String property,
+    @NotNull
+    Iterable<NodeDocument> getPreviousDocs(@NotNull final String property,
                                            @Nullable final Revision revision) {
         if (getPreviousRanges().isEmpty()) {
             return Collections.emptyList();
@@ -1312,7 +1310,7 @@ public final class NodeDocument extends Document {
         return doc;
     }
 
-    @Nonnull
+    @NotNull
     Iterator<NodeDocument> getAllPreviousDocs() {
         if (getPreviousRanges().isEmpty()) {
             return Collections.emptyIterator();
@@ -1347,7 +1345,7 @@ public final class NodeDocument extends Document {
      *
      * @return the leaf documents in descending order.
      */
-    @Nonnull
+    @NotNull
     Iterator<NodeDocument> getPreviousDocLeaves() {
         if (getPreviousRanges().isEmpty()) {
             return Collections.emptyIterator();
@@ -1384,7 +1382,7 @@ public final class NodeDocument extends Document {
         };
     }
 
-    @CheckForNull
+    @Nullable
     private NodeDocument getPreviousDoc(Revision rev, Range range){
         int h = range.height;
         String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h);
@@ -1458,9 +1456,9 @@ public final class NodeDocument extends Document {
      * @param min the lower bound revision (exclusive).
      * @return changes back to {@code min} revision.
      */
-    @Nonnull
-    Iterable<Revision> getChanges(@Nonnull final String property,
-                                  @Nonnull final RevisionVector min) {
+    @NotNull
+    Iterable<Revision> getChanges(@NotNull final String property,
+                                  @NotNull final RevisionVector min) {
         Predicate<Revision> p = new Predicate<Revision>() {
             @Override
             public boolean apply(Revision input) {
@@ -1494,9 +1492,9 @@ public final class NodeDocument extends Document {
      * @param readRevision the read revision vector.
      * @return property changes visible from the given read revision vector.
      */
-    @Nonnull
-    Iterable<Map.Entry<Revision, String>> getVisibleChanges(@Nonnull final String property,
-                                                            @Nonnull final RevisionVector readRevision) {
+    @NotNull
+    Iterable<Map.Entry<Revision, String>> getVisibleChanges(@NotNull final String property,
+                                                            @NotNull final RevisionVector readRevision) {
         Predicate<Map.Entry<Revision, String>> p = new Predicate<Map.Entry<Revision, String>>() {
             @Override
             public boolean apply(Map.Entry<Revision, String> input) {
@@ -1531,9 +1529,9 @@ public final class NodeDocument extends Document {
      * @param readRevision collect changes for this part of the readRevision.
      * @param changes where to add the changes to.
      */
-    private void collectVisiblePreviousChanges(@Nonnull final String property,
-                                               @Nonnull final Revision readRevision,
-                                               @Nonnull final List<Iterable<Entry<Revision, String>>> changes) {
+    private void collectVisiblePreviousChanges(@NotNull final String property,
+                                               @NotNull final Revision readRevision,
+                                               @NotNull final List<Iterable<Entry<Revision, String>>> changes) {
         List<Iterable<Map.Entry<Revision, String>>> revs = Lists.newArrayList();
 
         RevisionVector readRV = new RevisionVector(readRevision);
@@ -1627,7 +1625,7 @@ public final class NodeDocument extends Document {
      * @param key the key.
      * @return local value map.
      */
-    @Nonnull
+    @NotNull
     SortedMap<Revision, String> getLocalMap(String key) {
         @SuppressWarnings("unchecked")
         SortedMap<Revision, String> map = (SortedMap<Revision, String>) data.get(key);
@@ -1640,22 +1638,22 @@ public final class NodeDocument extends Document {
     /**
      * @return the {@link #REVISIONS} stored on this document.
      */
-    @Nonnull
+    @NotNull
     SortedMap<Revision, String> getLocalRevisions() {
         return getLocalMap(REVISIONS);
     }
 
-    @Nonnull
+    @NotNull
     SortedMap<Revision, String> getLocalCommitRoot() {
         return getLocalMap(COMMIT_ROOT);
     }
 
-    @Nonnull
+    @NotNull
     SortedMap<Revision, String> getLocalDeleted() {
         return getLocalMap(DELETED);
     }
 
-    @Nonnull
+    @NotNull
     SortedMap<Revision, String> getStalePrev() {
         return getLocalMap(STALE_PREV);
     }
@@ -1665,7 +1663,7 @@ public final class NodeDocument extends Document {
      * ({@link #BRANCH_COMMITS}). This method does not consider previous
      * documents, but only returns the entries on this document.
      */
-    @Nonnull
+    @NotNull
     public Set<Revision> getLocalBranchCommits() {
         return getLocalMap(BRANCH_COMMITS).keySet();
     }
@@ -1678,7 +1676,7 @@ public final class NodeDocument extends Document {
      * @param revision the revision of a change on this document.
      * @return the commit value associated with the change.
      */
-    @CheckForNull
+    @Nullable
     String resolveCommitValue(Revision revision) {
         NodeDocument commitRoot = getCommitRoot(revision);
         if (commitRoot == null) {
@@ -1694,7 +1692,7 @@ public final class NodeDocument extends Document {
      *
      * @return the sweep revisions as a {@link RevisionVector}.
      */
-    @Nonnull
+    @NotNull
     RevisionVector getSweepRevisions() {
         return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
                 new Function<String, Revision>() {
@@ -1707,25 +1705,25 @@ public final class NodeDocument extends Document {
 
     //-------------------------< UpdateOp modifiers >---------------------------
 
-    public static void setChildrenFlag(@Nonnull UpdateOp op,
+    public static void setChildrenFlag(@NotNull UpdateOp op,
                                        boolean hasChildNode) {
         checkNotNull(op).set(CHILDREN_FLAG, hasChildNode);
     }
 
-    public static void setModified(@Nonnull UpdateOp op,
-                                   @Nonnull Revision revision) {
+    public static void setModified(@NotNull UpdateOp op,
+                                   @NotNull Revision revision) {
         checkNotNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
     }
 
-    public static void setRevision(@Nonnull UpdateOp op,
-                                   @Nonnull Revision revision,
-                                   @Nonnull String commitValue) {
+    public static void setRevision(@NotNull UpdateOp op,
+                                   @NotNull Revision revision,
+                                   @NotNull String commitValue) {
         checkNotNull(op).setMapEntry(REVISIONS,
                 checkNotNull(revision), checkNotNull(commitValue));
     }
 
-    public static void unsetRevision(@Nonnull UpdateOp op,
-                                     @Nonnull Revision revision) {
+    public static void unsetRevision(@NotNull UpdateOp op,
+                                     @NotNull Revision revision) {
         checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
     }
 
@@ -1745,8 +1743,8 @@ public final class NodeDocument extends Document {
         return LAST_REV.equals(name);
     }
 
-    public static void removeRevision(@Nonnull UpdateOp op,
-                                      @Nonnull Revision revision) {
+    public static void removeRevision(@NotNull UpdateOp op,
+                                      @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
     }
 
@@ -1757,44 +1755,44 @@ public final class NodeDocument extends Document {
      * @param revision the commit for which a collision was detected.
      * @param other the revision for the commit, which detected the collision.
      */
-    public static void addCollision(@Nonnull UpdateOp op,
-                                    @Nonnull Revision revision,
-                                    @Nonnull Revision other) {
+    public static void addCollision(@NotNull UpdateOp op,
+                                    @NotNull Revision revision,
+                                    @NotNull Revision other) {
         checkNotNull(op).setMapEntry(COLLISIONS, checkNotNull(revision),
                 other.toString());
     }
 
-    public static void removeCollision(@Nonnull UpdateOp op,
-                                       @Nonnull Revision revision) {
+    public static void removeCollision(@NotNull UpdateOp op,
+                                       @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(COLLISIONS, checkNotNull(revision));
     }
 
-    public static void setLastRev(@Nonnull UpdateOp op,
-                                  @Nonnull Revision revision) {
+    public static void setLastRev(@NotNull UpdateOp op,
+                                  @NotNull Revision revision) {
         checkNotNull(op).setMapEntry(LAST_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
     }
 
-    public static void setCommitRoot(@Nonnull UpdateOp op,
-                                     @Nonnull Revision revision,
+    public static void setCommitRoot(@NotNull UpdateOp op,
+                                     @NotNull Revision revision,
                                      int commitRootDepth) {
         checkNotNull(op).setMapEntry(COMMIT_ROOT, checkNotNull(revision),
                 String.valueOf(commitRootDepth));
     }
 
-    public static void removeCommitRoot(@Nonnull UpdateOp op,
-                                        @Nonnull Revision revision) {
+    public static void removeCommitRoot(@NotNull UpdateOp op,
+                                        @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(COMMIT_ROOT, revision);
     }
 
-    public static void unsetCommitRoot(@Nonnull UpdateOp op,
-                                       @Nonnull Revision revision) {
+    public static void unsetCommitRoot(@NotNull UpdateOp op,
+                                       @NotNull Revision revision) {
         checkNotNull(op).unsetMapEntry(COMMIT_ROOT, revision);
     }
 
-    public static void setDeleted(@Nonnull UpdateOp op,
-                                  @Nonnull Revision revision,
+    public static void setDeleted(@NotNull UpdateOp op,
+                                  @NotNull Revision revision,
                                   boolean deleted) {
         if(deleted) {
             //DELETED_ONCE would be set upon every delete.
@@ -1804,60 +1802,60 @@ public final class NodeDocument extends Document {
         checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision), String.valueOf(deleted));
     }
 
-    public static void setDeletedOnce(@Nonnull UpdateOp op) {
+    public static void setDeletedOnce(@NotNull UpdateOp op) {
         checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
     }
 
-    public static void removeDeleted(@Nonnull UpdateOp op,
-                                     @Nonnull Revision revision) {
+    public static void removeDeleted(@NotNull UpdateOp op,
+                                     @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(DELETED, revision);
     }
 
-    public static void setPrevious(@Nonnull UpdateOp op,
-                                   @Nonnull Range range) {
+    public static void setPrevious(@NotNull UpdateOp op,
+                                   @NotNull Range range) {
         checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(range).high,
                 range.getLowValue());
     }
 
-    public static void removePrevious(@Nonnull UpdateOp op,
-                                      @Nonnull Range range) {
+    public static void removePrevious(@NotNull UpdateOp op,
+                                      @NotNull Range range) {
         removePrevious(op, checkNotNull(range).high);
     }
 
-    public static void removePrevious(@Nonnull UpdateOp op,
-                                      @Nonnull Revision revision) {
+    public static void removePrevious(@NotNull UpdateOp op,
+                                      @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
     }
 
-    public static void setStalePrevious(@Nonnull UpdateOp op,
-                                        @Nonnull Revision revision,
+    public static void setStalePrevious(@NotNull UpdateOp op,
+                                        @NotNull Revision revision,
                                         int height) {
         checkNotNull(op).setMapEntry(STALE_PREV,
                 checkNotNull(revision), String.valueOf(height));
     }
 
-    public static void removeStalePrevious(@Nonnull UpdateOp op,
-                                           @Nonnull Revision revision) {
+    public static void removeStalePrevious(@NotNull UpdateOp op,
+                                           @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(STALE_PREV, checkNotNull(revision));
     }
 
-    public static void setHasBinary(@Nonnull UpdateOp op) {
+    public static void setHasBinary(@NotNull UpdateOp op) {
         checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
     }
 
-    public static void setBranchCommit(@Nonnull UpdateOp op,
-                                       @Nonnull Revision revision) {
+    public static void setBranchCommit(@NotNull UpdateOp op,
+                                       @NotNull Revision revision) {
         checkNotNull(op).setMapEntry(BRANCH_COMMITS,
                 revision, String.valueOf(true));
     }
 
-    public static void removeBranchCommit(@Nonnull UpdateOp op,
-                                          @Nonnull Revision revision) {
+    public static void removeBranchCommit(@NotNull UpdateOp op,
+                                          @NotNull Revision revision) {
         checkNotNull(op).removeMapEntry(BRANCH_COMMITS, revision);
     }
 
-    public static void setSweepRevision(@Nonnull UpdateOp op,
-                                        @Nonnull Revision revision) {
+    public static void setSweepRevision(@NotNull UpdateOp op,
+                                        @NotNull Revision revision) {
         checkNotNull(op).setMapEntry(SWEEP_REV,
                 new Revision(0, 0, revision.getClusterId()),
                 revision.toString());
@@ -1891,8 +1889,8 @@ public final class NodeDocument extends Document {
         }
     }
 
-    private LastRevs createLastRevs(@Nonnull RevisionVector readRevision,
-                                    @Nonnull RevisionContext context,
+    private LastRevs createLastRevs(@NotNull RevisionVector readRevision,
+                                    @NotNull RevisionContext context,
                                     @Nullable Branch branch,
                                     @Nullable Revision pendingLastRev) {
         LastRevs lastRevs = new LastRevs(getLastRev(), readRevision, branch);
@@ -1975,8 +1973,8 @@ public final class NodeDocument extends Document {
      * @param rev a revision.
      * @return the commit root or <code>null</code> if there is none.
      */
-    @CheckForNull
-    private NodeDocument getCommitRoot(@Nonnull Revision rev) {
+    @Nullable
+    private NodeDocument getCommitRoot(@NotNull Revision rev) {
         // check local revisions and commitRoot first
         if (getLocalRevisions().containsKey(rev)) {
             return this;
@@ -2010,8 +2008,8 @@ public final class NodeDocument extends Document {
      * @throws NumberFormatException if {@code depth} cannot be parsed as an
      *              integer.
      */
-    @Nonnull
-    private String getPathAtDepth(@Nonnull String depth) {
+    @NotNull
+    private String getPathAtDepth(@NotNull String depth) {
         if (checkNotNull(depth).equals("0")) {
             return "/";
         }
@@ -2027,8 +2025,8 @@ public final class NodeDocument extends Document {
      * @return the depth or <code>null</code> if there is no commit root entry
      *         for the given revision on this document or previous documents.
      */
-    @CheckForNull
-    private String getCommitRootDepth(@Nonnull Revision revision) {
+    @Nullable
+    private String getCommitRootDepth(@NotNull Revision revision) {
         // check local map first
         Map<Revision, String> local = getLocalCommitRoot();
         String depth = local.get(revision);
@@ -2059,10 +2057,10 @@ public final class NodeDocument extends Document {
      * @return <code>true</code> if the revision is visible, otherwise
      *         <code>false</code>.
      */
-    private boolean isVisible(@Nonnull RevisionContext context,
-                              @Nonnull Revision revision,
+    private boolean isVisible(@NotNull RevisionContext context,
+                              @NotNull Revision revision,
                               @Nullable String commitValue,
-                              @Nonnull RevisionVector readRevision) {
+                              @NotNull RevisionVector readRevision) {
         if (commitValue == null) {
             commitValue = context.getCommitValue(revision, this);
         }
@@ -2105,7 +2103,7 @@ public final class NodeDocument extends Document {
      * @param revision a revision.
      * @return the commit value or <code>null</code> if the revision is unknown.
      */
-    @CheckForNull
+    @Nullable
     private String getCommitValue(Revision revision) {
         String value = getLocalRevisions().get(revision);
         if (value == null) {
@@ -2161,12 +2159,12 @@ public final class NodeDocument extends Document {
      * @param lastRevs to keep track of the most recent modification.
      * @return the latest value from the {@code readRevision} point of view.
      */
-    @CheckForNull
-    private Value getLatestValue(@Nonnull RevisionContext context,
-                                 @Nonnull Iterable<Map.Entry<Revision, String>> valueMap,
-                                 @Nonnull RevisionVector readRevision,
-                                 @Nonnull Map<Revision, String> validRevisions,
-                                 @Nonnull LastRevs lastRevs) {
+    @Nullable
+    private Value getLatestValue(@NotNull RevisionContext context,
+                                 @NotNull Iterable<Map.Entry<Revision, String>> valueMap,
+                                 @NotNull RevisionVector readRevision,
+                                 @NotNull Map<Revision, String> validRevisions,
+                                 @NotNull LastRevs lastRevs) {
         for (Map.Entry<Revision, String> entry : valueMap) {
             Revision propRev = entry.getKey();
             String commitValue = validRevisions.get(propRev);
@@ -2200,7 +2198,7 @@ public final class NodeDocument extends Document {
         return Utils.getPathFromId(getId());
     }
 
-    @Nonnull
+    @NotNull
     Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
     }
@@ -2384,7 +2382,7 @@ public final class NodeDocument extends Document {
          */
         final String value;
 
-        Value(@Nonnull Revision revision, @Nullable String value) {
+        Value(@NotNull Revision revision, @Nullable String value) {
             this.revision = checkNotNull(revision);
             this.value = value;
         }
