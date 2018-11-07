@@ -30,9 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
@@ -41,6 +38,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -246,7 +245,7 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
-        @Nonnull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
+        @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
         BufferedWriter writer =  newWriter(f, UTF_8);
         boolean threw = true;
 

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons.json;
 
-import javax.annotation.CheckForNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A reader for Json and Jsop strings.
@@ -83,7 +83,7 @@ public interface JsopReader {
      * @return the de-escaped string (null when reading a null value)
      * @throws IllegalStateException if the token type doesn't match
      */
-    @CheckForNull
+    @Nullable
     String readString();
 
     /**
@@ -106,7 +106,7 @@ public interface JsopReader {
      *
      * @return the escaped string (null when reading a null value)
      */
-    @CheckForNull
+    @Nullable
     String readRawValue();
 
     /**
@@ -116,7 +116,7 @@ public interface JsopReader {
      *
      * @return the token
      */
-    @CheckForNull
+    @Nullable
     String getToken();
 
     /**

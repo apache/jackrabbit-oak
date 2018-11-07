@@ -38,8 +38,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterators;
@@ -47,6 +45,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
