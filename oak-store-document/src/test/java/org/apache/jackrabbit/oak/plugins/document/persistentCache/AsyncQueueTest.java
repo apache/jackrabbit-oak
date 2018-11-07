@@ -27,18 +27,17 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheWriteQueue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -68,7 +67,7 @@ public class AsyncQueueTest {
         final AtomicReference<NodeCache<PathRev, StringValue>> nodeCacheRef = new AtomicReference<NodeCache<PathRev, StringValue>>();
         CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().maximumSize(1).evictionCallback(new CacheLIRS.EvictionCallback<PathRev, StringValue>() {
             @Override
-            public void evicted(@Nonnull PathRev key, @Nullable StringValue value, @Nonnull RemovalCause cause) {
+            public void evicted(@NotNull PathRev key, @Nullable StringValue value, @NotNull RemovalCause cause) {
                 if (nodeCacheRef.get() != null) {
                     nodeCacheRef.get().evicted(key, value, cause);
                 }

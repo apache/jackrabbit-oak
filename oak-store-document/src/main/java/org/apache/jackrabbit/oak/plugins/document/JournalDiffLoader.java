@@ -20,16 +20,14 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,9 +52,9 @@ class JournalDiffLoader implements DiffCache.Loader {
 
     private Stats stats;
 
-    JournalDiffLoader(@Nonnull AbstractDocumentNodeState base,
-                      @Nonnull AbstractDocumentNodeState node,
-                      @Nonnull DocumentNodeStore ns) {
+    JournalDiffLoader(@NotNull AbstractDocumentNodeState base,
+                      @NotNull AbstractDocumentNodeState node,
+                      @NotNull DocumentNodeStore ns) {
         this.base = checkNotNull(base);
         this.node = checkNotNull(node);
         this.ns = checkNotNull(ns);
@@ -181,7 +179,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
     }
 
-    @Nonnull
+    @NotNull
     private RevisionVector getBaseRevision(RevisionVector rv) {
         if (!rv.isBranch()) {
             return rv;
@@ -256,29 +254,29 @@ class JournalDiffLoader implements DiffCache.Loader {
             this.stats = stats;
         }
 
-        @CheckForNull
+        @Nullable
         String getChanges() {
             return changes;
         }
 
         @Override
-        String getChanges(@Nonnull RevisionVector from,
-                          @Nonnull RevisionVector to,
-                          @Nonnull String path,
+        String getChanges(@NotNull RevisionVector from,
+                          @NotNull RevisionVector to,
+                          @NotNull String path,
                           @Nullable Loader loader) {
             return cache.getChanges(from, to, path, loader);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        Entry newEntry(@Nonnull final RevisionVector from,
-                       @Nonnull final RevisionVector to,
+        Entry newEntry(@NotNull final RevisionVector from,
+                       @NotNull final RevisionVector to,
                        boolean local) {
             final Entry entry = cache.newEntry(from, to, local);
             return new Entry() {
                 @Override
-                public void append(@Nonnull String path,
-                                   @Nonnull String changes) {
+                public void append(@NotNull String path,
+                                   @NotNull String changes) {
                     trackStats(path, from, to, changes);
                     entry.append(path, changes);
                     if (path.equals(WrappedDiffCache.this.path)) {
@@ -304,7 +302,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             stats.valueMemory += new StringValue(changes).getMemory();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         Iterable<CacheStats> getStats() {
             return cache.getStats();

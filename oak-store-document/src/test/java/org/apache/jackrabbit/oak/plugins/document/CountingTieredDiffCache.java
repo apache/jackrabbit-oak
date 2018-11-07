@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CountingTieredDiffCache extends TieredDiffCache {
 
@@ -56,9 +56,9 @@ public class CountingTieredDiffCache extends TieredDiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull RevisionVector from,
-                             @Nonnull RevisionVector to,
-                             @Nonnull String path,
+    public String getChanges(@NotNull RevisionVector from,
+                             @NotNull RevisionVector to,
+                             @NotNull String path,
                              @Nullable Loader loader) {
         return super.getChanges(from, to, path, new CountingLoader(loader));
     }

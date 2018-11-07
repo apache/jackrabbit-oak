@@ -63,9 +63,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.management.NotCompliantMBeanException;
 
@@ -125,6 +122,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -252,7 +251,7 @@ public final class DocumentNodeStore
     /**
      * The cluster instance info.
      */
-    @Nonnull
+    @NotNull
     private final ClusterNodeInfo clusterNodeInfo;
 
     /**
@@ -320,13 +319,13 @@ public final class DocumentNodeStore
     /**
      * Background thread performing the clusterId lease renew.
      */
-    @Nonnull
+    @NotNull
     private Thread leaseUpdateThread;
 
     /**
      * Background thread performing the cluster update
      */
-    @Nonnull
+    @NotNull
     private Thread clusterUpdateThread;
 
     /**
@@ -767,7 +766,7 @@ public final class DocumentNodeStore
         Revision tombstone = commitQueue.createRevision();
         commitQueue.done(tombstone, new CommitQueue.Callback() {
             @Override
-            public void headOfQueue(@Nonnull Revision revision) {
+            public void headOfQueue(@NotNull Revision revision) {
                 setRoot(getHeadRevision().update(revision));
                 unsavedLastRevisions.put(ROOT_PATH, revision);
             }
@@ -840,12 +839,12 @@ public final class DocumentNodeStore
         return (readOnlyMode?"readOnly:true, ":"") + clusterNodeInfo.toString().replaceAll("[\r\n\t]", " ").trim();
     }
 
-    void setRoot(@Nonnull RevisionVector newHead) {
+    void setRoot(@NotNull RevisionVector newHead) {
         checkArgument(!newHead.isBranch());
         root = getRoot(newHead);
     }
 
-    @Nonnull
+    @NotNull
     public DocumentStore getDocumentStore() {
         return store;
     }
@@ -864,7 +863,7 @@ public final class DocumentNodeStore
      *               free to remove the commits associated with the branch.
      * @return a new commit.
      */
-    @Nonnull
+    @NotNull
     Commit newCommit(@Nullable RevisionVector base,
                      @Nullable DocumentNodeStoreBranch branch) {
         if (base == null) {
@@ -887,7 +886,7 @@ public final class DocumentNodeStore
      * @param numBranchCommits the number of branch commits to merge.
      * @return a new merge commit.
      */
-    @Nonnull
+    @NotNull
     MergeCommit newMergeCommit(@Nullable RevisionVector base, int numBranchCommits) {
         if (base == null) {
             base = getHeadRevision();
@@ -907,14 +906,14 @@ public final class DocumentNodeStore
         return c;
     }
 
-    RevisionVector done(final @Nonnull Commit c, boolean isBranch, final @Nonnull CommitInfo info) {
+    RevisionVector done(final @NotNull Commit c, boolean isBranch, final @NotNull CommitInfo info) {
         if (commitQueue.contains(c.getRevision())) {
             try {
                 inDoubtTrunkCommits.remove(c.getRevision());
                 final RevisionVector[] newHead = new RevisionVector[1];
                 commitQueue.done(c.getRevision(), new CommitQueue.Callback() {
                     @Override
-                    public void headOfQueue(@Nonnull Revision revision) {
+                    public void headOfQueue(@NotNull Revision revision) {
                         // remember before revision
                         RevisionVector before = getHeadRevision();
                         // apply changes to cache based on before revision
@@ -1025,7 +1024,7 @@ public final class DocumentNodeStore
         this.journalPushThreshold = journalPushThreshold;
     }
 
-    @Nonnull
+    @NotNull
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
     }
@@ -1038,7 +1037,7 @@ public final class DocumentNodeStore
         return nodeChildrenCacheStats;
     }
 
-    @Nonnull
+    @NotNull
     public Iterable<CacheStats> getDiffCacheStats() {
         return diffCache.getStats();
     }
@@ -1090,10 +1089,10 @@ public final class DocumentNodeStore
         splitCandidates.put(id, id);
     }
 
-    @CheckForNull
-    AbstractDocumentNodeState getSecondaryNodeState(@Nonnull final String path,
-                              @Nonnull final RevisionVector rootRevision,
-                              @Nonnull final RevisionVector rev) {
+    @Nullable
+    AbstractDocumentNodeState getSecondaryNodeState(@NotNull final String path,
+                              @NotNull final RevisionVector rootRevision,
+                              @NotNull final RevisionVector rev) {
         //Check secondary cache first
         return nodeStateCache.getDocumentNodeState(path, rootRevision, rev);
     }
@@ -1111,9 +1110,9 @@ public final class DocumentNodeStore
      * @return the node or <code>null</code> if the node does not exist at the
      *          given revision.
      */
-    @CheckForNull
-    public DocumentNodeState getNode(@Nonnull final String path,
-                              @Nonnull final RevisionVector rev) {
+    @Nullable
+    public DocumentNodeState getNode(@NotNull final String path,
+                              @NotNull final RevisionVector rev) {
         checkNotNull(rev);
         checkNotNull(path);
         final long start = PERFLOG.start();
@@ -1144,8 +1143,8 @@ public final class DocumentNodeStore
         }
     }
 
-    @Nonnull
-    DocumentNodeState.Children getChildren(@Nonnull final AbstractDocumentNodeState parent,
+    @NotNull
+    DocumentNodeState.Children getChildren(@NotNull final AbstractDocumentNodeState parent,
                               @Nullable final String name,
                               final int limit)
             throws DocumentStoreException {
@@ -1256,8 +1255,8 @@ public final class DocumentNodeStore
      * @param limit the maximum number of child documents to return.
      * @return the child documents.
      */
-    @Nonnull
-    private Iterable<NodeDocument> readChildDocs(@Nonnull final String path,
+    @NotNull
+    private Iterable<NodeDocument> readChildDocs(@NotNull final String path,
                                                  @Nullable String name,
                                                  final int limit) {
         final String to = Utils.getKeyUpperLimit(checkNotNull(path));
@@ -1281,8 +1280,8 @@ public final class DocumentNodeStore
      * @param limit the maximum number of child nodes to return.
      * @return the child nodes.
      */
-    @Nonnull
-    Iterable<DocumentNodeState> getChildNodes(@Nonnull final DocumentNodeState parent,
+    @NotNull
+    Iterable<DocumentNodeState> getChildNodes(@NotNull final DocumentNodeState parent,
                     @Nullable final String name,
                     final int limit) {
         // Preemptive check. If we know there are no children then
@@ -1338,7 +1337,7 @@ public final class DocumentNodeStore
         });
     }
 
-    @CheckForNull
+    @Nullable
     DocumentNodeState readNode(String path, RevisionVector readRevision) {
         final long start = PERFLOG.start();
         String id = Utils.getIdFromPath(path);
@@ -1483,7 +1482,7 @@ public final class DocumentNodeStore
      *
      * @param revisions the revisions of the merged branch commits.
      */
-    void revisionsMerged(@Nonnull Iterable<Revision> revisions) {
+    void revisionsMerged(@NotNull Iterable<Revision> revisions) {
         changes.branchCommit(revisions);
     }
 
@@ -1496,7 +1495,7 @@ public final class DocumentNodeStore
      *          if the update failed because of a collision.
      * @throws DocumentStoreException if the update fails with an error.
      */
-    @CheckForNull
+    @Nullable
     NodeDocument updateCommitRoot(UpdateOp commit, Revision commitRev)
             throws DocumentStoreException {
         // use batch commit when there are only revision and modified updates
@@ -1588,8 +1587,8 @@ public final class DocumentNodeStore
      * @param revision a revision.
      * @return the root node state at the given revision.
      */
-    @Nonnull
-    DocumentNodeState getRoot(@Nonnull RevisionVector revision) {
+    @NotNull
+    DocumentNodeState getRoot(@NotNull RevisionVector revision) {
         DocumentNodeState root = getNode("/", revision);
         if (root == null) {
             throw new IllegalStateException(
@@ -1598,7 +1597,7 @@ public final class DocumentNodeStore
         return root;
     }
 
-    @Nonnull
+    @NotNull
     DocumentNodeStoreBranch createBranch(DocumentNodeState base) {
         DocumentNodeStoreBranch b = DocumentNodeStoreBranch.getCurrentBranch();
         if (b != null) {
@@ -1607,9 +1606,9 @@ public final class DocumentNodeStore
         return new DocumentNodeStoreBranch(this, base, mergeLock);
     }
 
-    @Nonnull
-    RevisionVector rebase(@Nonnull RevisionVector branchHead,
-                          @Nonnull RevisionVector base) {
+    @NotNull
+    RevisionVector rebase(@NotNull RevisionVector branchHead,
+                          @NotNull RevisionVector base) {
         checkNotNull(branchHead);
         checkNotNull(base);
         if (disableBranches) {
@@ -1631,9 +1630,9 @@ public final class DocumentNodeStore
         return base.update(head);
     }
 
-    @Nonnull
-    RevisionVector reset(@Nonnull RevisionVector branchHead,
-                         @Nonnull RevisionVector ancestor) {
+    @NotNull
+    RevisionVector reset(@NotNull RevisionVector branchHead,
+                         @NotNull RevisionVector ancestor) {
         checkNotNull(branchHead);
         checkNotNull(ancestor);
         Branch b = getBranches().getBranch(branchHead);
@@ -1686,9 +1685,9 @@ public final class DocumentNodeStore
         return ancestor;
     }
 
-    @Nonnull
-    RevisionVector merge(@Nonnull RevisionVector branchHead,
-                         @Nonnull CommitInfo info)
+    @NotNull
+    RevisionVector merge(@NotNull RevisionVector branchHead,
+                         @NotNull CommitInfo info)
             throws CommitFailedException {
         Branch b = getBranches().getBranch(branchHead);
         RevisionVector base = branchHead;
@@ -1751,9 +1750,9 @@ public final class DocumentNodeStore
      *         (see the {@link NodeStateDiff} contract for more details)
      */
     @Override
-    public boolean compare(@Nonnull final AbstractDocumentNodeState node,
-                           @Nonnull final AbstractDocumentNodeState base,
-                           @Nonnull NodeStateDiff diff) {
+    public boolean compare(@NotNull final AbstractDocumentNodeState node,
+                           @NotNull final AbstractDocumentNodeState base,
+                           @NotNull NodeStateDiff diff) {
         if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
             return false;
         }
@@ -1777,7 +1776,7 @@ public final class DocumentNodeStore
      * @param isBranchCommit whether this is a branch commit.
      * @return a _lastRev tracker for the given commit revision.
      */
-    LastRevTracker createTracker(final @Nonnull Revision r,
+    LastRevTracker createTracker(final @NotNull Revision r,
                                  final boolean isBranchCommit) {
         if (isBranchCommit && !disableBranches) {
             Revision branchRev = r.asBranchRevision();
@@ -1801,7 +1800,7 @@ public final class DocumentNodeStore
      *
      * @param conflictRevisions the revision to become visible.
      */
-    void suspendUntilAll(@Nonnull Set<Revision> conflictRevisions) {
+    void suspendUntilAll(@NotNull Set<Revision> conflictRevisions) {
         // do not suspend if revision is from another cluster node
         // and background read is disabled
         if (getAsyncDelay() == 0) {
@@ -1826,34 +1825,34 @@ public final class DocumentNodeStore
 
     //-------------------------< NodeStore >------------------------------------
 
-    @Nonnull
+    @NotNull
     @Override
     public DocumentNodeState getRoot() {
         return root;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState merge(@Nonnull NodeBuilder builder,
-                           @Nonnull CommitHook commitHook,
-                           @Nonnull CommitInfo info)
+    public NodeState merge(@NotNull NodeBuilder builder,
+                           @NotNull CommitHook commitHook,
+                           @NotNull CommitInfo info)
             throws CommitFailedException {
         return asDocumentRootBuilder(builder).merge(commitHook, info);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
+    public NodeState rebase(@NotNull NodeBuilder builder) {
         return asDocumentRootBuilder(builder).rebase();
     }
 
     @Override
-    public NodeState reset(@Nonnull NodeBuilder builder) {
+    public NodeState reset(@NotNull NodeBuilder builder) {
         return asDocumentRootBuilder(builder).reset();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public BlobStoreBlob createBlob(InputStream inputStream) throws IOException {
         return new BlobStoreBlob(blobStore, blobStore.writeBlob(inputStream));
     }
@@ -1866,7 +1865,7 @@ public final class DocumentNodeStore
      * @return the blob.
      */
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         String blobId = blobStore.getBlobId(reference);
         if(blobId != null){
             return new BlobStoreBlob(blobStore, blobId);
@@ -1885,22 +1884,22 @@ public final class DocumentNodeStore
         return new BlobStoreBlob(blobStore, blobId);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         return checkpoints.create(lifetime, properties).toString();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String checkpoint(long lifetime) {
         Map<String, String> empty = Collections.emptyMap();
         return checkpoint(lifetime, empty);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         Revision r = Revision.fromString(checkpoint);
         Checkpoints.Info info = checkpoints.getCheckpoints().get(r);
         if (info == null) {
@@ -1911,7 +1910,7 @@ public final class DocumentNodeStore
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> checkpoints() {
         final long now = clock.getTime();
@@ -1929,9 +1928,9 @@ public final class DocumentNodeStore
         });
     }
 
-    @CheckForNull
+    @Nullable
     @Override
-    public NodeState retrieve(@Nonnull String checkpoint) {
+    public NodeState retrieve(@NotNull String checkpoint) {
         RevisionVector rv = getCheckpoints().retrieve(checkpoint);
         if (rv == null) {
             return null;
@@ -1942,7 +1941,7 @@ public final class DocumentNodeStore
     }
 
     @Override
-    public boolean release(@Nonnull String checkpoint) {
+    public boolean release(@NotNull String checkpoint) {
         checkpoints.release(checkpoint);
         return true;
     }
@@ -1965,13 +1964,13 @@ public final class DocumentNodeStore
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public RevisionVector getHeadRevision() {
         return root.getRootRevision();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Revision newRevision() {
         if (simpleRevisionCounter != null) {
             return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
@@ -1980,14 +1979,14 @@ public final class DocumentNodeStore
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Clock getClock() {
         return clock;
     }
 
     @Override
-    public String getCommitValue(@Nonnull Revision changeRevision,
-                                 @Nonnull NodeDocument doc) {
+    public String getCommitValue(@NotNull Revision changeRevision,
+                                 @NotNull NodeDocument doc) {
         return commitValueResolver.resolve(changeRevision, doc);
     }
 
@@ -2166,7 +2165,7 @@ public final class DocumentNodeStore
      *          started. The revision is derived from the start time of the
      *          cluster node.
      */
-    @Nonnull
+    @NotNull
     private RevisionVector getMinExternalRevisions() {
         return new RevisionVector(transform(filter(clusterNodes.values(),
                 new Predicate<ClusterNodeInfoDocument>() {
@@ -2189,7 +2188,7 @@ public final class DocumentNodeStore
     private BackgroundReadStats backgroundRead() {
         return new ExternalChange(this) {
             @Override
-            void invalidateCache(@Nonnull Iterable<String> paths) {
+            void invalidateCache(@NotNull Iterable<String> paths) {
                 stats.cacheStats = store.invalidateCache(pathToId(paths));
             }
 
@@ -2199,8 +2198,8 @@ public final class DocumentNodeStore
             }
 
             @Override
-            void updateHead(@Nonnull Set<Revision> externalChanges,
-                            @Nonnull RevisionVector sweepRevs,
+            void updateHead(@NotNull Set<Revision> externalChanges,
+                            @NotNull RevisionVector sweepRevs,
                             @Nullable Iterable<String> changedPaths) {
                 long time = clock.getTime();
                 // make sure no local commit is in progress
@@ -2244,7 +2243,7 @@ public final class DocumentNodeStore
         }.process();
     }
 
-    private static CommitInfo newCommitInfo(@Nonnull ChangeSet changeSet, JournalPropertyHandler journalPropertyHandler) {
+    private static CommitInfo newCommitInfo(@NotNull ChangeSet changeSet, JournalPropertyHandler journalPropertyHandler) {
         CommitContext commitContext = new SimpleCommitContext();
         commitContext.set(COMMIT_CONTEXT_OBSERVATION_CHANGESET, changeSet);
         journalPropertyHandler.addTo(commitContext);
@@ -2336,12 +2335,12 @@ public final class DocumentNodeStore
         }
     }
 
-    @Nonnull
+    @NotNull
     Set<String> getSplitCandidates() {
         return Collections.unmodifiableSet(splitCandidates.keySet());
     }
 
-    @Nonnull
+    @NotNull
     RevisionVector getSweepRevisions() {
         return sweepRevisions;
     }
@@ -2446,7 +2445,7 @@ public final class DocumentNodeStore
                         try {
                             commitQueue.done(r, new CommitQueue.Callback() {
                                 @Override
-                                public void headOfQueue(@Nonnull Revision revision) {
+                                public void headOfQueue(@NotNull Revision revision) {
                                     writeUpdates(updates, revision);
                                 }
                             });
@@ -2610,8 +2609,8 @@ public final class DocumentNodeStore
         setRoot(headRevision);
     }
 
-    @Nonnull
-    private Commit newTrunkCommit(@Nonnull RevisionVector base) {
+    @NotNull
+    private Commit newTrunkCommit(@NotNull RevisionVector base) {
         checkArgument(!checkNotNull(base).isBranch(),
                 "base must not be a branch revision: " + base);
 
@@ -2631,8 +2630,8 @@ public final class DocumentNodeStore
         return c;
     }
 
-    @Nonnull
-    private Commit newBranchCommit(@Nonnull RevisionVector base,
+    @NotNull
+    private Commit newBranchCommit(@NotNull RevisionVector base,
                                    @Nullable DocumentNodeStoreBranch branch) {
         checkArgument(checkNotNull(base).isBranch(),
                 "base must be a branch revision: " + base);
@@ -2920,8 +2919,8 @@ public final class DocumentNodeStore
         }
     }
 
-    private static PathRev childNodeCacheKey(@Nonnull String path,
-                                             @Nonnull RevisionVector readRevision,
+    private static PathRev childNodeCacheKey(@NotNull String path,
+                                             @NotNull RevisionVector readRevision,
                                              @Nullable String name) {
         String p = (name == null ? "" : name) + path;
         return new PathRev(p, readRevision);
@@ -2965,7 +2964,7 @@ public final class DocumentNodeStore
      * @param whiteboard
      * @return garbage collector of the BlobStore supports GC otherwise null
      */
-    @CheckForNull
+    @Nullable
     public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs, String repositoryId,
         Whiteboard whiteboard) {
         MarkSweepGarbageCollector blobGC = null;
@@ -3038,7 +3037,7 @@ public final class DocumentNodeStore
             this(nodeStore, isDisposed, null);
         }
 
-        protected abstract void execute(@Nonnull DocumentNodeStore nodeStore);
+        protected abstract void execute(@NotNull DocumentNodeStore nodeStore);
 
         @Override
         public void run() {
@@ -3084,7 +3083,7 @@ public final class DocumentNodeStore
         }
 
         @Override
-        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
             nodeStore.runBackgroundUpdateOperations();
         }
     }
@@ -3100,7 +3099,7 @@ public final class DocumentNodeStore
         }
 
         @Override
-        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
             nodeStore.runBackgroundReadOperations();
         }
     }
@@ -3116,7 +3115,7 @@ public final class DocumentNodeStore
         }
 
         @Override
-        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
             nodeStore.backgroundSweep();
         }
 
@@ -3146,7 +3145,7 @@ public final class DocumentNodeStore
         }
 
         @Override
-        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
             // OAK-4859 : keep track of invocation time of renewClusterIdLease
             // and warn if time since last call is longer than 5sec
             Clock clock = nodeStore.getClock();
@@ -3177,7 +3176,7 @@ public final class DocumentNodeStore
         }
 
         @Override
-        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
             if (nodeStore.updateClusterState()) {
                 nodeStore.signalClusterStateChange();
             }
@@ -3212,17 +3211,17 @@ public final class DocumentNodeStore
         return checkpoints;
     }
 
-    @Nonnull
+    @NotNull
     public VersionGarbageCollector getVersionGarbageCollector() {
         return versionGarbageCollector;
     }
 
-    @Nonnull
+    @NotNull
     public JournalGarbageCollector getJournalGarbageCollector() {
         return journalGarbageCollector;
     }
     
-    @Nonnull
+    @NotNull
     public LastRevRecoveryAgent getLastRevRecoveryAgent() {
         return lastRevRecoveryAgent;
     }
@@ -3253,7 +3252,7 @@ public final class DocumentNodeStore
     }
     
     @Override
-    public boolean isVisible(@Nonnull String visibilityToken, long maxWaitMillis) throws InterruptedException {
+    public boolean isVisible(@NotNull String visibilityToken, long maxWaitMillis) throws InterruptedException {
         if (Strings.isNullOrEmpty(visibilityToken)) {
             // we've asked for @Nonnull..
             // hence throwing an exception

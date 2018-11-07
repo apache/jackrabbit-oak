@@ -19,12 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +72,7 @@ public class MissingLastRevSeeker {
      *
      * @return the clusters
      */
-    @Nonnull
+    @NotNull
     public Iterable<ClusterNodeInfoDocument> getAllClusters() {
         return ClusterNodeInfoDocument.all(store);
     }
@@ -84,7 +83,7 @@ public class MissingLastRevSeeker {
      * @param clusterId the cluster id
      * @return the cluster node info
      */
-    @CheckForNull
+    @Nullable
     public ClusterNodeInfoDocument getClusterNodeInfo(final int clusterId) {
         // Fetch all documents.
         return store.find(CLUSTER_NODES, String.valueOf(clusterId));
@@ -97,7 +96,7 @@ public class MissingLastRevSeeker {
      * @param startTime the start time in milliseconds.
      * @return the candidates
      */
-    @Nonnull
+    @NotNull
     public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
         Iterable<NodeDocument> nodes = getSelectedDocuments(store,
@@ -183,7 +182,7 @@ public class MissingLastRevSeeker {
      * Check if _lastRev recovery needed for this cluster node
      * state is Active and currentTime past the leaseEnd time
      */
-    public boolean isRecoveryNeeded(@Nonnull ClusterNodeInfoDocument nodeInfo) {
+    public boolean isRecoveryNeeded(@NotNull ClusterNodeInfoDocument nodeInfo) {
         return nodeInfo.isActive() && clock.getTime() > nodeInfo.getLeaseEndTime();
     }
 

@@ -24,12 +24,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,8 +71,8 @@ class UnsavedModifications {
      * @return the previously set revision for the given path or null if there
      *          was none or the current revision is newer.
      */
-    @CheckForNull
-    public Revision put(@Nonnull String path, @Nonnull Revision revision) {
+    @Nullable
+    public Revision put(@NotNull String path, @NotNull Revision revision) {
         checkNotNull(path);
         checkNotNull(revision);
         for (;;) {
@@ -95,12 +94,12 @@ class UnsavedModifications {
         }
     }
 
-    @CheckForNull
+    @Nullable
     public Revision get(String path) {
         return map.get(path);
     }
 
-    @Nonnull
+    @NotNull
     public Collection<String> getPaths() {
         return map.keySet();
     }
@@ -112,8 +111,8 @@ class UnsavedModifications {
      * @param start the start revision (inclusive).
      * @return matching paths with pending modifications.
      */
-    @Nonnull
-    public Iterable<String> getPaths(@Nonnull final Revision start) {
+    @NotNull
+    public Iterable<String> getPaths(@NotNull final Revision start) {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
@@ -145,10 +144,10 @@ class UnsavedModifications {
      *             revisions to write back.
      * @return stats about the write operation.
      */
-    public BackgroundWriteStats persist(@Nonnull DocumentStore store,
-                                        @Nonnull Supplier<Revision> sweepRevision,
-                                        @Nonnull Snapshot snapshot,
-                                        @Nonnull Lock lock) {
+    public BackgroundWriteStats persist(@NotNull DocumentStore store,
+                                        @NotNull Supplier<Revision> sweepRevision,
+                                        @NotNull Snapshot snapshot,
+                                        @NotNull Lock lock) {
         BackgroundWriteStats stats = new BackgroundWriteStats();
         if (map.size() == 0) {
             return stats;

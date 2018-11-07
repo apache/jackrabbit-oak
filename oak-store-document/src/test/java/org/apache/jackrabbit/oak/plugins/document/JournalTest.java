@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -85,7 +84,7 @@ public class JournalTest extends AbstractJournalTest {
         }
         
         @Override
-        public void contentChanged(@Nonnull NodeState root,@Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root,@NotNull CommitInfo info) {
             synchronized(incomingRootStates1) {
                 incomingRootStates1.add((DocumentNodeState) root);
                 incomingRootStates1.notifyAll();

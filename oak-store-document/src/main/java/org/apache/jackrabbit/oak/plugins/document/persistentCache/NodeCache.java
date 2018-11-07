@@ -32,8 +32,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -44,6 +42,7 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;

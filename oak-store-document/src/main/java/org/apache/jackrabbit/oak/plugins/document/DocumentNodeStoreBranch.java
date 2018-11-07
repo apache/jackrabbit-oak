@@ -32,9 +32,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -49,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,13 +97,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         this.updateLimit = store.getUpdateLimit();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getBase() {
         return branchState.getBase();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState getHead() {
         return branchState.getHead();
@@ -115,9 +114,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         branchState.setRoot(checkNotNull(newRoot));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+    public NodeState merge(@NotNull CommitHook hook, @NotNull CommitInfo info)
             throws CommitFailedException {
         try {
             return merge0(hook, info, false);
@@ -146,14 +145,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /**
      * For test purposes only!
      */
-    @Nonnull
+    @NotNull
     ReadWriteLock getMergeLock() {
         return mergeLock;
     }
 
-    @Nonnull
-    private NodeState merge0(@Nonnull CommitHook hook,
-                             @Nonnull CommitInfo info,
+    @NotNull
+    private NodeState merge0(@NotNull CommitHook hook,
+                             @NotNull CommitInfo info,
                              boolean exclusive)
             throws CommitFailedException {
         CommitFailedException ex = null;
@@ -222,7 +221,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @throws CommitFailedException if the current thread is interrupted while
      *                               acquiring the lock
      */
-    @CheckForNull
+    @Nullable
     private Lock acquireMergeLock(boolean exclusive)
             throws CommitFailedException {
         final long start = perfLogger.start();
@@ -266,9 +265,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param info the commit info.
      * @return the state with the persisted changes.
      */
-    private DocumentNodeState persist(final @Nonnull NodeState toPersist,
-                                      final @Nonnull DocumentNodeState base,
-                                      final @Nonnull CommitInfo info) {
+    private DocumentNodeState persist(final @NotNull NodeState toPersist,
+                                      final @NotNull DocumentNodeState base,
+                                      final @NotNull CommitInfo info) {
         return persist(new Changes() {
             @Override
             public void with(Commit c) {
@@ -286,9 +285,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param info the commit info.
      * @return the result state.
      */
-    private DocumentNodeState persist(@Nonnull Changes op,
-                                      @Nonnull DocumentNodeState base,
-                                      @Nonnull CommitInfo info) {
+    private DocumentNodeState persist(@NotNull Changes op,
+                                      @NotNull DocumentNodeState base,
+                                      @NotNull CommitInfo info) {
         boolean success = false;
         Commit c = store.newCommit(base.getRootRevision(), this);
         RevisionVector rev;
@@ -329,7 +328,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * See also {@link #withCurrentBranch(Callable)}.
      *
      */
-    @CheckForNull
+    @Nullable
     static DocumentNodeStoreBranch getCurrentBranch() {
         return BRANCHES.get(Thread.currentThread());
     }
@@ -360,7 +359,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             return base;
         }
 
-        @Nonnull
+        @NotNull
         abstract NodeState getHead();
 
         abstract void setRoot(NodeState root);
@@ -387,9 +386,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          *          use the appropriate type in {@code CommitFailedException} to
          *          indicate the cause of the exception.
          */
-        @Nonnull
-        abstract NodeState merge(@Nonnull CommitHook hook,
-                                 @Nonnull CommitInfo info,
+        @NotNull
+        abstract NodeState merge(@NotNull CommitHook hook,
+                                 @NotNull CommitInfo info,
                                  boolean exclusive)
                 throws CommitFailedException;
     }
@@ -415,7 +414,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         NodeState getHead() {
             return base;
         }
@@ -433,9 +432,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
-        NodeState merge(@Nonnull CommitHook hook,
-                        @Nonnull CommitInfo info,
+        @NotNull
+        NodeState merge(@NotNull CommitHook hook,
+                        @NotNull CommitInfo info,
                         boolean exclusive) {
             branchState = new Merged(base);
             return base;
@@ -474,7 +473,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         NodeState getHead() {
             return head;
         }
@@ -502,9 +501,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
-        NodeState merge(@Nonnull CommitHook hook,
-                        @Nonnull CommitInfo info,
+        @NotNull
+        NodeState merge(@NotNull CommitHook hook,
+                        @NotNull CommitInfo info,
                         boolean exclusive)
                 throws CommitFailedException {
             checkNotNull(hook);
@@ -574,7 +573,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         NodeState getHead() {
             return head;
         }
@@ -595,9 +594,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
-        NodeState merge(@Nonnull final CommitHook hook,
-                        @Nonnull final CommitInfo info,
+        @NotNull
+        NodeState merge(@NotNull final CommitHook hook,
+                        @NotNull final CommitInfo info,
                         boolean exclusive)
                 throws CommitFailedException {
             boolean success = false;
@@ -700,7 +699,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         NodeState getHead() {
             throw new IllegalStateException("Branch has already been merged");
         }
@@ -716,9 +715,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
 
         @Override
-        @Nonnull
-        NodeState merge(@Nonnull CommitHook hook,
-                        @Nonnull CommitInfo info,
+        @NotNull
+        NodeState merge(@NotNull CommitHook hook,
+                        @NotNull CommitInfo info,
                         boolean exclusive) {
             throw new IllegalStateException("Branch has already been merged");
         }
@@ -742,7 +741,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             this.ex = e;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         NodeState getHead() {
             throw new IllegalStateException("Branch with failed reset", ex);
@@ -764,10 +763,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          *
          * @throws CommitFailedException the exception of the failed reset.
          */
-        @Nonnull
+        @NotNull
         @Override
-        NodeState merge(@Nonnull CommitHook hook,
-                        @Nonnull CommitInfo info,
+        NodeState merge(@NotNull CommitHook hook,
+                        @NotNull CommitInfo info,
                         boolean exclusive)
                 throws CommitFailedException {
             throw ex;

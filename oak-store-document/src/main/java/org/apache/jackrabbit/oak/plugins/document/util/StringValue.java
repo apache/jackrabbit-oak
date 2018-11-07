@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,7 @@ public final class StringValue implements CacheValue {
 
     private final String value;
 
-    public StringValue(@Nonnull String value) {
+    public StringValue(@NotNull String value) {
         this.value = checkNotNull(value);
     }
 
@@ -44,7 +43,7 @@ public final class StringValue implements CacheValue {
         return getMemory(value);
     }
 
-    public static int getMemory(@Nonnull String s) {
+    public static int getMemory(@NotNull String s) {
         long size = 16                            // shallow size
                     + 40 + (long)s.length() * 2;  // value
         if (size > Integer.MAX_VALUE) {

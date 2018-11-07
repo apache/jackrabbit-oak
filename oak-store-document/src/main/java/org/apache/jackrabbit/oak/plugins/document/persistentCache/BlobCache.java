@@ -23,14 +23,13 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.StreamStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,14 +153,14 @@ public class BlobCache implements GarbageCollectableBlobStore, GenerationCache, 
     }
 
     @Override
-    @CheckForNull
-    public String getBlobId(@Nonnull String reference) {
+    @Nullable
+    public String getBlobId(@NotNull String reference) {
         return base.getBlobId(reference);
     }
 
     @Override
-    @CheckForNull
-    public String getReference(@Nonnull String blobId) {
+    @Nullable
+    public String getReference(@NotNull String blobId) {
         return base.getReference(blobId);
     }
 

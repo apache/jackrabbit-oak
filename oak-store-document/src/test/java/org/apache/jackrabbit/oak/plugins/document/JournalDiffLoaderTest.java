@@ -21,8 +21,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
@@ -234,7 +233,7 @@ public class JournalDiffLoaderTest {
     public void useJournal() throws Exception {
         final AtomicInteger journalQueryCounter = new AtomicInteger();
         DocumentStore ds = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,

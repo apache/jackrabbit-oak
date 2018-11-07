@@ -23,8 +23,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -60,7 +59,7 @@ public class BundledTypesRegistry {
         return new BundledTypesRegistry(bundlors);
     }
 
-    @CheckForNull
+    @Nullable
     public DocumentBundlor getBundlor(NodeState state) {
         if (isVersionedNode(state)){
             return getBundlorForVersionedNode(state);

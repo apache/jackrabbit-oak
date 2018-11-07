@@ -27,8 +27,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -45,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -201,8 +200,8 @@ public class SecondaryStoreCacheService {
     private static class MultiplexingNodeStateDiffer implements NodeStateDiffer {
         private volatile NodeStateDiffer delegate = NodeStateDiffer.DEFAULT_DIFFER;
         @Override
-        public boolean compare(@Nonnull AbstractDocumentNodeState node,
-                               @Nonnull AbstractDocumentNodeState base, @Nonnull NodeStateDiff diff) {
+        public boolean compare(@NotNull AbstractDocumentNodeState node,
+                               @NotNull AbstractDocumentNodeState base, @NotNull NodeStateDiff diff) {
             return delegate.compare(node, base, diff);
         }
 

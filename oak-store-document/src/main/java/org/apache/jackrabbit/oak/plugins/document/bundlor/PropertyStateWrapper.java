@@ -19,11 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractPropertyState;
+import org.jetbrains.annotations.NotNull;
 
 //TODO Move this to org.apache.jackrabbit.oak.plugins.memory
 class PropertyStateWrapper extends AbstractPropertyState implements PropertyState {
@@ -33,7 +32,7 @@ class PropertyStateWrapper extends AbstractPropertyState implements PropertyStat
         this.delegate = delegate;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return delegate.getName();
@@ -49,13 +48,13 @@ class PropertyStateWrapper extends AbstractPropertyState implements PropertyStat
         return delegate.getType();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type) {
         return delegate.getValue(type);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         return delegate.getValue(type, index);

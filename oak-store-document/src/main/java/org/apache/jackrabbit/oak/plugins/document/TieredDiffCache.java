@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Implements a tiered diff cache which consists of a {@link LocalDiffCache} and
@@ -38,9 +37,9 @@ class TieredDiffCache extends DiffCache {
     }
 
     @Override
-    public String getChanges(@Nonnull RevisionVector from,
-                             @Nonnull RevisionVector to,
-                             @Nonnull String path,
+    public String getChanges(@NotNull RevisionVector from,
+                             @NotNull RevisionVector to,
+                             @NotNull String path,
                              @Nullable Loader loader) {
         // check local first without loader
         String changes = localCache.getChanges(from, to, path, null);
@@ -58,9 +57,9 @@ class TieredDiffCache extends DiffCache {
      * @param to the to revision.
      * @return the new entry.
      */
-    @Nonnull
+    @NotNull
     @Override
-    public Entry newEntry(@Nonnull RevisionVector from, @Nonnull RevisionVector to, boolean local) {
+    public Entry newEntry(@NotNull RevisionVector from, @NotNull RevisionVector to, boolean local) {
         if (local) {
             return localCache.newEntry(from, to, true);
         } else {
@@ -68,7 +67,7 @@ class TieredDiffCache extends DiffCache {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
         return Iterables.concat(localCache.getStats(), memoryCache.getStats());

@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Lists;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * PropertyState implementation with lazy parsing of the JSOP encoded value.
@@ -58,7 +58,7 @@ final class DocumentPropertyState implements PropertyState {
         this.value = value;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
@@ -74,13 +74,13 @@ final class DocumentPropertyState implements PropertyState {
         return parsed().getType();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type) {
         return parsed().getValue(type);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> T getValue(Type<T> type, int index) {
         return parsed().getValue(type, index);
@@ -114,7 +114,7 @@ final class DocumentPropertyState implements PropertyState {
      *
      * @return the raw un-parsed value.
      */
-    @Nonnull
+    @NotNull
     String getValue() {
         return value;
     }

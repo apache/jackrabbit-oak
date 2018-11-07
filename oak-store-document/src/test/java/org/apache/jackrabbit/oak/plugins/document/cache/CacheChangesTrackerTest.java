@@ -29,16 +29,15 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
 import static org.junit.Assert.assertFalse;

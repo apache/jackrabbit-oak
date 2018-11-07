@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Set;
 import java.util.SortedSet;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A merge commit containing multiple commit revisions. One for each branch
@@ -43,7 +43,7 @@ class MergeCommit extends Commit {
         return mergeRevs;
     }
 
-    void addBranchCommits(@Nonnull Branch branch) {
+    void addBranchCommits(@NotNull Branch branch) {
         for (Revision r : branch.getCommits()) {
             if (!branch.getCommit(r).isRebase()) {
                 branchCommits.add(r);

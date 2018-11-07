@@ -23,8 +23,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import com.google.common.collect.Lists;
@@ -49,6 +47,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -262,8 +262,8 @@ public class DocumentMK {
         }
     }
 
-    @Nonnull
-    public String rebase(@Nonnull String branchRevisionId,
+    @NotNull
+    public String rebase(@NotNull String branchRevisionId,
                          @Nullable String newBaseRevisionId)
             throws DocumentStoreException {
         RevisionVector r = RevisionVector.fromString(branchRevisionId);
@@ -273,9 +273,9 @@ public class DocumentMK {
         return nodeStore.rebase(r, base).toString();
     }
 
-    @Nonnull
-    public String reset(@Nonnull String branchRevisionId,
-                        @Nonnull String ancestorRevisionId)
+    @NotNull
+    public String reset(@NotNull String branchRevisionId,
+                        @NotNull String ancestorRevisionId)
             throws DocumentStoreException {
         RevisionVector branch = RevisionVector.fromString(branchRevisionId);
         if (!branch.isBranch()) {

@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -213,7 +212,7 @@ public class ClusterConflictTest {
 
         TestHook() {
             super(new EditorProvider() {
-                @CheckForNull
+                @Nullable
                 @Override
                 public Editor getRootEditor(NodeState before,
                                             NodeState after,

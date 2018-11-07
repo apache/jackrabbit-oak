@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -243,7 +242,7 @@ public class ExternalChangesTest {
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
-        public void contentChanged(@Nonnull NodeState root, @Nonnull CommitInfo info) {
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
            infos.add(info);
         }
 

@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.mongodb.DB;
@@ -33,6 +31,8 @@ import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
@@ -97,7 +97,7 @@ public class MongoConnection {
      *
      * @return The {@link DB}.
      */
-    public DB getDB(@Nonnull String name) {
+    public DB getDB(@NotNull String name) {
         return mongo.getDB(name);
     }
 
@@ -142,7 +142,7 @@ public class MongoConnection {
      * @return {@code true} if the URI has a write concern set, {@code false}
      *      otherwise.
      */
-    public static boolean hasWriteConcern(@Nonnull String uri) {
+    public static boolean hasWriteConcern(@NotNull String uri) {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         builder.writeConcern(WC_UNKNOWN);
         WriteConcern wc = new MongoClientURI(checkNotNull(uri), builder)
@@ -156,7 +156,7 @@ public class MongoConnection {
      * @return {@code true} if the URI has a read concern set, {@code false}
      *      otherwise.
      */
-    public static boolean hasReadConcern(@Nonnull String uri) {
+    public static boolean hasReadConcern(@NotNull String uri) {
         ReadConcern rc = new MongoClientURI(checkNotNull(uri))
                 .getOptions().getReadConcern();
         return readConcernLevel(rc) != null;
@@ -172,7 +172,7 @@ public class MongoConnection {
      * @param db the connection to MongoDB.
      * @return the default write concern to use for Oak.
      */
-    public static WriteConcern getDefaultWriteConcern(@Nonnull DB db) {
+    public static WriteConcern getDefaultWriteConcern(@NotNull DB db) {
         WriteConcern w;
         if (checkNotNull(db).getMongo().getReplicaSetStatus() != null) {
             w = WriteConcern.MAJORITY;
@@ -192,7 +192,7 @@ public class MongoConnection {
      * @param db the connection to MongoDB.
      * @return the default write concern to use for Oak.
      */
-    public static ReadConcern getDefaultReadConcern(@Nonnull DB db) {
+    public static ReadConcern getDefaultReadConcern(@NotNull DB db) {
         ReadConcern r;
         if (checkNotNull(db).getMongo().getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
@@ -208,7 +208,7 @@ public class MongoConnection {
      * @param db the connection to MongoDB.
      * @return true if the majority write concern has been configured; false otherwise
      */
-    public static boolean isMajorityWriteConcern(@Nonnull DB db) {
+    public static boolean isMajorityWriteConcern(@NotNull DB db) {
         return "majority".equals(db.getWriteConcern().getWObject());
     }
 
@@ -220,7 +220,7 @@ public class MongoConnection {
      * @param db the database.
      * @return whether the write concern is sufficient.
      */
-    public static boolean hasSufficientWriteConcern(@Nonnull DB db) {
+    public static boolean hasSufficientWriteConcern(@NotNull DB db) {
         Object wObj = checkNotNull(db).getWriteConcern().getWObject();
         int w;
         if (wObj instanceof Number) {
@@ -250,7 +250,7 @@ public class MongoConnection {
      * @param db the database.
      * @return whether the read concern is sufficient.
      */
-    public static boolean hasSufficientReadConcern(@Nonnull DB db) {
+    public static boolean hasSufficientReadConcern(@NotNull DB db) {
         ReadConcernLevel r = readConcernLevel(checkNotNull(db).getReadConcern());
         if (db.getMongo().getReplicaSetStatus() == null) {
             return true;

@@ -38,8 +38,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -312,7 +311,7 @@ public class VersionGCDeletionTest {
         final Semaphore queries = new Semaphore(0);
         final CountDownLatch ready = new CountDownLatch(1);
         MemoryDocumentStore ms = new MemoryDocumentStore() {
-            @Nonnull
+            @NotNull
             @Override
             public <T extends Document> List<T> query(Collection<T> collection,
                                                       String fromKey,
@@ -404,7 +403,7 @@ public class VersionGCDeletionTest {
         }
 
         @SuppressWarnings("unchecked")
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> List<T> query(Collection<T> collection, String fromKey,
                                                   String toKey, String indexedProperty, long startValue, int limit) {

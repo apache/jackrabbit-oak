@@ -21,12 +21,11 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -49,14 +48,14 @@ public class RDBConnectionHandler implements Closeable {
     private static final boolean CHECKCONNECTIONONCLOSE = Boolean
             .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE");
 
-    public RDBConnectionHandler(@Nonnull DataSource ds) {
+    public RDBConnectionHandler(@NotNull DataSource ds) {
         this.ds = ds;
     }
 
     /**
      * Obtain a {@link Connection} suitable for read-only operations.
      */
-    public @Nonnull Connection getROConnection() throws SQLException {
+    public @NotNull Connection getROConnection() throws SQLException {
         Connection c = getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, true);
@@ -66,7 +65,7 @@ public class RDBConnectionHandler implements Closeable {
     /**
      * Obtain a {@link Connection} suitable for read-write operations.
      */
-    public @Nonnull Connection getRWConnection() throws SQLException {
+    public @NotNull Connection getRWConnection() throws SQLException {
         Connection c = getConnection();
         c.setAutoCommit(false);
         setReadOnly(c, false);
@@ -111,7 +110,7 @@ public class RDBConnectionHandler implements Closeable {
     /**
      * Return current schema name or {@code null} when unavailable
      */
-    @CheckForNull
+    @Nullable
     public String getSchema(Connection c) {
         try {
             return (String) c.getClass().getMethod("getSchema").invoke(c);
@@ -131,7 +130,7 @@ public class RDBConnectionHandler implements Closeable {
         this.closedTime = System.currentTimeMillis();
     }
 
-    @Nonnull
+    @NotNull
     private DataSource getDataSource() throws IllegalStateException {
         DataSource result = this.ds;
         if (result == null) {
@@ -141,7 +140,7 @@ public class RDBConnectionHandler implements Closeable {
         return result;
     }
 
-    @Nonnull
+    @NotNull
     private Connection getConnection() throws IllegalStateException, SQLException {
         long ts = System.currentTimeMillis();
         Connection c = getDataSource().getConnection();

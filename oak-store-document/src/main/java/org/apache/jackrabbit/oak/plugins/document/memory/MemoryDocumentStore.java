@@ -26,10 +26,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -44,6 +40,8 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
@@ -129,7 +127,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
                                 String fromKey,
                                 String toKey,
@@ -138,7 +136,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public <T extends Document> List<T> query(Collection<T> collection,
                                 String fromKey,
                                 String toKey,
@@ -244,7 +242,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return num;
     }
 
-    @CheckForNull
+    @Nullable
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         assertUnconditional(update);
@@ -268,7 +266,7 @@ public class MemoryDocumentStore implements DocumentStore {
     /**
      * @return a copy of this document store.
      */
-    @Nonnull
+    @NotNull
     public MemoryDocumentStore copy() {
         MemoryDocumentStore copy = new MemoryDocumentStore();
         copyDocuments(Collection.NODES, copy);
@@ -313,7 +311,7 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private <T extends Document> T internalCreateOrUpdate(Collection<T> collection,
                                                           UpdateOp update,
                                                           boolean checkConditions) {
@@ -455,7 +453,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return metadata;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, String> getStats() {
         return ImmutableMap.<String, String>builder()

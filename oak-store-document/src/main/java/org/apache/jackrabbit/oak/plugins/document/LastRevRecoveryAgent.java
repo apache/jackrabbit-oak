@@ -34,9 +34,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -47,6 +44,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -464,7 +463,7 @@ public class LastRevRecoveryAgent {
      * @return the commit revision of the last modification by {@code clusterId}
      *          to the given document.
      */
-    @CheckForNull
+    @Nullable
     private Revision determineLastModification(NodeDocument doc, int clusterId) {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
@@ -583,27 +582,27 @@ public class LastRevRecoveryAgent {
             return clusterId;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public RevisionVector getHeadRevision() {
             return new RevisionVector(root.getLastRev().values());
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Revision newRevision() {
             return Revision.newRevision(clusterId);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Clock getClock() {
             return context.getClock();
         }
 
         @Override
-        public String getCommitValue(@Nonnull Revision changeRevision,
-                                     @Nonnull NodeDocument doc) {
+        public String getCommitValue(@NotNull Revision changeRevision,
+                                     @NotNull NodeDocument doc) {
             return context.getCommitValue(changeRevision, doc);
         }
     }

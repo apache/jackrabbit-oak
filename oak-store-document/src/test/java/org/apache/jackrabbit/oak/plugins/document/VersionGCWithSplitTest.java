@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -208,7 +207,7 @@ public class VersionGCWithSplitTest {
             this.docStore = base;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public <T extends Document> T createOrUpdate(final Collection<T> collection,
                                                      final UpdateOp update) {

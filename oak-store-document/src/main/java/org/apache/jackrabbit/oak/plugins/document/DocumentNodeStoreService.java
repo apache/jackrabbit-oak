@@ -46,7 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import com.google.common.base.Predicate;
@@ -105,6 +104,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
@@ -863,11 +863,11 @@ public class DocumentNodeStoreService {
         return result;
     }
 
-    private void addRegistration(@Nonnull Registration reg) {
+    private void addRegistration(@NotNull Registration reg) {
         closer.register(asCloseable(reg));
     }
 
-    private static Closeable asCloseable(@Nonnull final Registration reg) {
+    private static Closeable asCloseable(@NotNull final Registration reg) {
         checkNotNull(reg);
         return new Closeable() {
             @Override
@@ -877,7 +877,7 @@ public class DocumentNodeStoreService {
         };
     }
 
-    private static Closeable asCloseable(@Nonnull final AbstractServiceTracker t) {
+    private static Closeable asCloseable(@NotNull final AbstractServiceTracker t) {
         checkNotNull(t);
         return new Closeable() {
             @Override

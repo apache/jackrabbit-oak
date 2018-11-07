@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -30,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 /**
@@ -40,7 +39,7 @@ public class MergeRetryTest {
 
     // this hook adds a 'foo' child if it does not exist
     private static final CommitHook HOOK = new EditorHook(new EditorProvider() {
-        @CheckForNull
+        @Nullable
         @Override
         public Editor getRootEditor(
                 NodeState before, NodeState after, final NodeBuilder builder,
