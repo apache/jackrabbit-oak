@@ -25,11 +25,10 @@ import static org.apache.jackrabbit.util.ISO8601.parse;
 
 import java.util.Calendar;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Conflict Handler that merges concurrent updates to
@@ -44,7 +43,7 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
         super(Resolution.IGNORED);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
         if (isModifiedOrCreated(ours.getName())) {
@@ -54,7 +53,7 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
         return Resolution.IGNORED;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
             PropertyState base) {

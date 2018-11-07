@@ -36,7 +36,6 @@ import static org.junit.Assert.assertTrue;
 import java.text.ParseException;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -157,10 +157,10 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertOrToUnionResults(expected, original, optimised, cheapest);
     }
     
-    private static void assertOrToUnionResults(@Nonnull List<String> expected, 
-                                               @Nonnull List<String> original,
-                                               @Nonnull List<String> optimised,
-                                               @Nonnull List<String> cheapest) {
+    private static void assertOrToUnionResults(@NotNull List<String> expected, 
+                                               @NotNull List<String> original,
+                                               @NotNull List<String> optimised,
+                                               @NotNull List<String> cheapest) {
         // checks that all the three list are the expected content
         assertThat(checkNotNull(original), is(checkNotNull(expected)));        
         assertThat(checkNotNull(optimised), is(expected));
@@ -172,8 +172,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertThat(cheapest, is(original));
     }
 
-    private static Tree addChildWithProperty(@Nonnull Tree father, @Nonnull String name,
-                                             @Nonnull String propName, @Nonnull String propValue) {
+    private static Tree addChildWithProperty(@NotNull Tree father, @NotNull String name,
+                                             @NotNull String propName, @NotNull String propValue) {
         Tree t = checkNotNull(father).addChild(checkNotNull(name));
         t.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
         t.setProperty(checkNotNull(propName), checkNotNull(propValue));

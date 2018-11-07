@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -277,7 +277,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
         //----------------------------------------------------< PolicyOwner >---
         @Override
-        public boolean defines(String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
+        public boolean defines(String absPath, @NotNull AccessControlPolicy accessControlPolicy) {
             return TEST_PATH.equals(absPath) && accessControlPolicy == TestPolicy.INSTANCE;
         }
     }

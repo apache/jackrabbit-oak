@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code AccessControlValidatorProvider} aimed to provide a root validator
@@ -45,14 +44,14 @@ public class AccessControlValidatorProvider extends ValidatorProvider {
     private final RootProvider rootProvider;
     private final TreeProvider treeProvider;
 
-    public AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider, @Nonnull RootProvider rootProvider, @Nonnull TreeProvider treeProvider) {
+    public AccessControlValidatorProvider(@NotNull SecurityProvider securityProvider, @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         this.securityProvider = securityProvider;
         this.rootProvider = rootProvider;
         this.treeProvider = treeProvider;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
 

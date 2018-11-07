@@ -19,10 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -75,7 +73,7 @@ public class AsyncIndexInfo {
      * the async indexer is active. For other cluster nodes
      * the values may not reflect the current state
      */
-    @CheckForNull
+    @Nullable
     public IndexStatsMBean getStatsMBean() {
         return statsMBean;
     }

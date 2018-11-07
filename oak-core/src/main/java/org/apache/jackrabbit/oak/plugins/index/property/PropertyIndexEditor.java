@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Supplier;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.base.Predicate;
 
@@ -423,7 +423,7 @@ class PropertyIndexEditor implements IndexEditor {
      * @param name the name of the child node
      * @return an instance of the PropertyIndexEditor
      */
-    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name, PathFilter.Result filterResult) {
+    PropertyIndexEditor getChildIndexEditor(@NotNull PropertyIndexEditor parent, @NotNull String name, PathFilter.Result filterResult) {
        return new PropertyIndexEditor(parent, name, filterResult);
     }
     

@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -43,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,15 +57,15 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     private final UserManager userManager;
 
-    PrincipalProviderImpl(@Nonnull Root root,
-                          @Nonnull UserConfiguration userConfiguration,
-                          @Nonnull NamePathMapper namePathMapper) {
+    PrincipalProviderImpl(@NotNull Root root,
+                          @NotNull UserConfiguration userConfiguration,
+                          @NotNull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(@Nonnull String principalName) {
+    public Principal getPrincipal(@NotNull String principalName) {
         Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
         if (authorizable != null) {
             try {
@@ -79,9 +79,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<Group> getGroupMembership(@Nonnull Principal principal) {
+    public Set<Group> getGroupMembership(@NotNull Principal principal) {
         Authorizable authorizable = getAuthorizable(principal);
         if (authorizable == null) {
             return Collections.emptySet();
@@ -90,9 +90,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Set<? extends Principal> getPrincipals(@Nonnull String userID) {
+    public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         Set<Principal> principals = new HashSet<Principal>();
         try {
             Authorizable authorizable = userManager.getAuthorizable(userID);
@@ -106,7 +106,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         return principals;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
                                                         final int searchType) {
@@ -128,7 +128,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);

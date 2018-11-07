@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code PermissionEntryCache} caches the permission entries of principals.
@@ -39,9 +39,9 @@ class PermissionEntryCache {
 
     private final Map<String, PrincipalPermissionEntries> entries = new HashMap<String, PrincipalPermissionEntries>();
 
-    @Nonnull
-    PrincipalPermissionEntries getEntries(@Nonnull PermissionStore store,
-                                                 @Nonnull String principalName) {
+    @NotNull
+    PrincipalPermissionEntries getEntries(@NotNull PermissionStore store,
+                                                 @NotNull String principalName) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null) {
             ppe = store.load(principalName);
@@ -55,9 +55,9 @@ class PermissionEntryCache {
         return ppe;
     }
 
-    void load(@Nonnull PermissionStore store,
-              @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
-              @Nonnull String principalName) {
+    void load(@NotNull PermissionStore store,
+              @NotNull Map<String, Collection<PermissionEntry>> pathEntryMap,
+              @NotNull String principalName) {
         // todo: conditionally load entries if too many
         PrincipalPermissionEntries ppe = getEntries(store, principalName);
         for (Map.Entry<String, Collection<PermissionEntry>> e: ppe.getEntries().entrySet()) {
@@ -71,10 +71,10 @@ class PermissionEntryCache {
         }
     }
 
-    void load(@Nonnull PermissionStore store,
-              @Nonnull Collection<PermissionEntry> ret,
-              @Nonnull String principalName,
-              @Nonnull String path) {
+    void load(@NotNull PermissionStore store,
+              @NotNull Collection<PermissionEntry> ret,
+              @NotNull String principalName,
+              @NotNull String path) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         if (ppe == null) {
             ppe = new PrincipalPermissionEntries();
@@ -94,8 +94,8 @@ class PermissionEntryCache {
         }
     }
 
-    long getNumEntries(@Nonnull PermissionStore store,
-                       @Nonnull String principalName,
+    long getNumEntries(@NotNull PermissionStore store,
+                       @NotNull String principalName,
                        long max) {
         PrincipalPermissionEntries ppe = entries.get(principalName);
         return ppe == null
@@ -103,7 +103,7 @@ class PermissionEntryCache {
                 : ppe.getEntries().size();
     }
 
-    void flush(@Nonnull Set<String> principalNames) {
+    void flush(@NotNull Set<String> principalNames) {
         entries.keySet().removeAll(principalNames);
     }
 }

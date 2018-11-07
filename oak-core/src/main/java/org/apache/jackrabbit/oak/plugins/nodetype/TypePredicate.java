@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import java.util.Arrays;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
@@ -29,6 +26,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
@@ -51,8 +50,8 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PRIMA
  */
 public class TypePredicate implements Predicate<NodeState> {
 
-    @Nonnull
-    public static TypePredicate isOrderable(@Nonnull NodeState root) {
+    @NotNull
+    public static TypePredicate isOrderable(@NotNull NodeState root) {
         Set<String> orderable = newHashSet();
         NodeState types = checkNotNull(root)
                 .getChildNode(JCR_SYSTEM)
@@ -84,7 +83,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param name Oak name of the node type to check for
      */
-    public TypePredicate(@Nonnull NodeState root, @Nonnull String name) {
+    public TypePredicate(@NotNull NodeState root, @NotNull String name) {
         this(root, singleton(name));
     }
 
@@ -96,7 +95,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(@Nonnull NodeState root, @Nonnull Iterable<String> names) {
+    public TypePredicate(@NotNull NodeState root, @NotNull Iterable<String> names) {
         this.root = root;
         this.names = names;
     }
@@ -109,7 +108,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(@Nonnull NodeState root, @Nonnull String[] names) {
+    public TypePredicate(@NotNull NodeState root, @NotNull String[] names) {
         this(root, Arrays.asList(names));
     }
 

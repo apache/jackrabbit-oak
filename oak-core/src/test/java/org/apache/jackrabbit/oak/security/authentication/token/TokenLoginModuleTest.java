@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -44,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProvi
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -210,25 +209,25 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         TokenProvider tp = new TokenProvider() {
 
             @Override
-            public boolean doCreateToken(@Nonnull Credentials credentials) {
+            public boolean doCreateToken(@NotNull Credentials credentials) {
                 return true;
             }
 
-            @CheckForNull
+            @Nullable
             @Override
-            public TokenInfo createToken(@Nonnull Credentials credentials) {
+            public TokenInfo createToken(@NotNull Credentials credentials) {
                 return null;
             }
 
-            @CheckForNull
+            @Nullable
             @Override
-            public TokenInfo createToken(@Nonnull String userId, @Nonnull Map<String, ?> attributes) {
+            public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
                 return null;
             }
 
-            @CheckForNull
+            @Nullable
             @Override
-            public TokenInfo getTokenInfo(@Nonnull String token) {
+            public TokenInfo getTokenInfo(@NotNull String token) {
                 return null;
             }
         };
@@ -273,7 +272,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
         private final Class<? extends Exception> e;
 
-        private ThrowingCallbackHandler(@Nonnull Class<? extends Exception> e) {
+        private ThrowingCallbackHandler(@NotNull Class<? extends Exception> e) {
             this.e = e;
         }
 

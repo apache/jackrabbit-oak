@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -94,6 +92,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1341,7 +1340,7 @@ public class QueryImpl implements Query {
         return result;
     }
     
-    private static String recomposeStatement(@Nonnull QueryImpl query) {
+    private static String recomposeStatement(@NotNull QueryImpl query) {
         checkNotNull(query);
         String original = query.getStatement();
         String origUpper = original.toUpperCase();
@@ -1369,7 +1368,7 @@ public class QueryImpl implements Query {
      * @param right the second subquery
      * @return the union query
      */
-    private UnionQueryImpl newAlternativeUnionQuery(@Nonnull Query left, @Nonnull Query right) {
+    private UnionQueryImpl newAlternativeUnionQuery(@NotNull Query left, @NotNull Query right) {
         UnionQueryImpl u = new UnionQueryImpl(
             false, 
             checkNotNull(left, "`left` cannot be null"), 

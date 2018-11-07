@@ -22,13 +22,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -141,7 +140,7 @@ public class PermissionEntryProviderImplTest {
      * @return the existingNames set.
      * @throws Exception
      */
-    private static Set<String> getExistingNames(@Nonnull PermissionEntryProviderImpl provider) throws Exception {
+    private static Set<String> getExistingNames(@NotNull PermissionEntryProviderImpl provider) throws Exception {
         Field existingNamesField = provider.getClass().getDeclaredField("existingNames");
         existingNamesField.setAccessible(true);
         return (Set<String>) existingNamesField.get(provider);
@@ -152,19 +151,19 @@ public class PermissionEntryProviderImplTest {
 
         @Override
         public Collection<PermissionEntry> load(
-                Collection<PermissionEntry> entries, @Nonnull String principalName,
-                @Nonnull String path) {
+                Collection<PermissionEntry> entries, @NotNull String principalName,
+                @NotNull String path) {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public PrincipalPermissionEntries load(@Nonnull String principalName) {
+        public PrincipalPermissionEntries load(@NotNull String principalName) {
             return new PrincipalPermissionEntries();
         }
 
         @Override
-        public long getNumEntries(@Nonnull String principalName, long max) {
+        public long getNumEntries(@NotNull String principalName, long max) {
             long cnt = 0;
             if (GROUP_LONG_MAX_MINUS_10.equals(principalName)) {
                 cnt = Long.MAX_VALUE - 10;
@@ -176,16 +175,16 @@ public class PermissionEntryProviderImplTest {
             return cnt;
         }
 
-        public void flush(@Nonnull Root root) {
+        public void flush(@NotNull Root root) {
         }
 
     }
 
     private class MockPermissionEntryCache extends PermissionEntryCache {
         @Override
-        public void load(@Nonnull PermissionStore store,
-                @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
-                @Nonnull String principalName) {
+        public void load(@NotNull PermissionStore store,
+                @NotNull Map<String, Collection<PermissionEntry>> pathEntryMap,
+                @NotNull String principalName) {
             fail("The number of  entries exceeds the max cache size");
         }
     }

@@ -31,12 +31,11 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -86,8 +85,8 @@ public class EventGenerator {
      * Creates a new generator instance for processing the given changes.
      */
     public EventGenerator(
-            @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull EventHandler handler) {
+            @NotNull NodeState before, @NotNull NodeState after,
+            @NotNull EventHandler handler) {
         continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 

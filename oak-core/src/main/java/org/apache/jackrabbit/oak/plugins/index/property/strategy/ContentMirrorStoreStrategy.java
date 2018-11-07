@@ -25,9 +25,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -42,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,8 +186,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         };
     }
 
-    @Nonnull
-    Iterable<? extends ChildNodeEntry> getChildNodeEntries(@Nonnull
+    @NotNull
+    Iterable<? extends ChildNodeEntry> getChildNodeEntries(@NotNull
     final NodeState index) {
         return index.getChildNodeEntries();
     }
@@ -590,8 +589,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      *            the 'key' to fetch from the repo
      * @return the node representing the key
      */
-    NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, 
-                             @Nonnull String key) {
+    NodeBuilder fetchKeyNode(@NotNull NodeBuilder index, 
+                             @NotNull String key) {
         return index.child(key);
     }
 

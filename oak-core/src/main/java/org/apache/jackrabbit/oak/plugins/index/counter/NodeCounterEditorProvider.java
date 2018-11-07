@@ -20,9 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -50,10 +49,10 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     @Override
-    @CheckForNull
-    public Editor getIndexEditor(@Nonnull String type,
-            @Nonnull NodeBuilder definition, @Nonnull NodeState root,
-            @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+    @Nullable
+    public Editor getIndexEditor(@NotNull String type,
+            @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (!TYPE.equals(type)) {
             return null;
         }

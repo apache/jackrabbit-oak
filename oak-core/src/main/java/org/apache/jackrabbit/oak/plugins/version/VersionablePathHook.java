@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -56,7 +55,7 @@ public class VersionablePathHook implements CommitHook {
         this.workspaceName = workspaceName;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState processCommit(
             NodeState before, NodeState after, CommitInfo info)
@@ -84,9 +83,9 @@ public class VersionablePathHook implements CommitHook {
         private final Node nodeAfter;
         private final List<CommitFailedException> exceptions;
 
-        private Diff(@Nonnull ReadWriteVersionManager versionManager,
-                     @Nonnull Node node,
-                     @Nonnull List<CommitFailedException> exceptions) {
+        private Diff(@NotNull ReadWriteVersionManager versionManager,
+                     @NotNull Node node,
+                     @NotNull List<CommitFailedException> exceptions) {
             this.versionManager = versionManager;
             this.nodeAfter = node;
             this.exceptions = exceptions;

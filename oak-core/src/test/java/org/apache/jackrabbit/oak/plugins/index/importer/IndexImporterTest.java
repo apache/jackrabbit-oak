@@ -26,8 +26,6 @@ import java.io.StringWriter;
 import java.util.Properties;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -60,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -452,8 +451,8 @@ public class IndexImporterTest {
         ClusterNodeStoreLock lock = new ClusterNodeStoreLock(store);
         provider = new PropertyIndexEditorProvider() {
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                         @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                 throw new RuntimeException(exceptionMessage);
             }
         };

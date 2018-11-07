@@ -23,16 +23,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 final class MutableTree extends AbstractMutableTree {
 
@@ -56,13 +54,13 @@ final class MutableTree extends AbstractMutableTree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    MutableTree(@Nonnull MutableRoot root, @Nonnull NodeBuilder nodeBuilder,
-            @Nonnull Move pendingMoves) {
+    MutableTree(@NotNull MutableRoot root, @NotNull NodeBuilder nodeBuilder,
+            @NotNull Move pendingMoves) {
         this(root, pendingMoves, null, nodeBuilder, "");
     }
 
-    private MutableTree(@Nonnull MutableRoot root, @Nonnull Move pendingMoves,
-            @Nullable MutableTree parent, @Nonnull NodeBuilder nodeBuilder, @Nonnull String name) {
+    private MutableTree(@NotNull MutableRoot root, @NotNull Move pendingMoves,
+            @Nullable MutableTree parent, @NotNull NodeBuilder nodeBuilder, @NotNull String name) {
         this.root = checkNotNull(root);
         this.parent = parent;
         this.name = checkNotNull(name);
@@ -73,12 +71,12 @@ final class MutableTree extends AbstractMutableTree {
     //------------------------------------------------------------< AbstractMutableTree >---
 
     @Override
-    @CheckForNull
+    @Nullable
     protected AbstractMutableTree getParentOrNull() {
         return parent;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected NodeBuilder getNodeBuilder() {
         return nodeBuilder;
@@ -87,8 +85,8 @@ final class MutableTree extends AbstractMutableTree {
     //-----------------------------------------------------< AbstractTree >---
 
     @Override
-    @Nonnull
-    protected MutableTree createChild(@Nonnull String name) throws IllegalArgumentException {
+    @NotNull
+    protected MutableTree createChild(@NotNull String name) throws IllegalArgumentException {
         return new MutableTree(root, pendingMoves, this,
                 nodeBuilder.getChildNode(checkNotNull(name)), name);
     }
@@ -96,21 +94,21 @@ final class MutableTree extends AbstractMutableTree {
     //------------------------------------------------------------< Tree >---
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         beforeRead();
         return name;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         beforeRead();
         return super.getPath();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Status getStatus() {
         beforeRead();
         return super.getStatus();
@@ -123,13 +121,13 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    public PropertyState getProperty(@Nonnull String name) {
+    public PropertyState getProperty(@NotNull String name) {
         beforeRead();
         return super.getProperty(checkNotNull(name));
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         beforeRead();
         return super.hasProperty(checkNotNull(name));
     }
@@ -141,28 +139,28 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    @CheckForNull
-    public Status getPropertyStatus(@Nonnull String name) {
+    @Nullable
+    public Status getPropertyStatus(@NotNull String name) {
         beforeRead();
         return super.getPropertyStatus(checkNotNull(name));
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<? extends PropertyState> getProperties() {
         beforeRead();
         return super.getProperties();
     }
 
     @Override
-    @Nonnull
-    public Tree getChild(@Nonnull String name) {
+    @NotNull
+    public Tree getChild(@NotNull String name) {
         beforeRead();
         return super.getChild(checkNotNull(name));
     }
 
     @Override
-    public boolean hasChild(@Nonnull String name) {
+    public boolean hasChild(@NotNull String name) {
         beforeRead();
         return super.hasChild(checkNotNull(name));
     }
@@ -174,7 +172,7 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<Tree> getChildren() {
         beforeRead();
         return super.getChildren();
@@ -191,8 +189,8 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    @Nonnull
-    public Tree addChild(@Nonnull String name) {
+    @NotNull
+    public Tree addChild(@NotNull String name) {
         beforeWrite();
         Tree child;
         if (hasChild(name)) {
@@ -221,28 +219,28 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    public void setProperty(@Nonnull PropertyState property) {
+    public void setProperty(@NotNull PropertyState property) {
         beforeWrite();
         super.setProperty(property);
         root.updated();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value) {
         beforeWrite();
         super.setProperty(name, value);
         root.updated();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type) {
         beforeWrite();
         super.setProperty(name, value, type);
         root.updated();
     }
 
     @Override
-    public void removeProperty(@Nonnull String name) {
+    public void removeProperty(@NotNull String name) {
         beforeWrite();
         super.removeProperty(name);
         root.updated();
@@ -254,7 +252,7 @@ final class MutableTree extends AbstractMutableTree {
      * @param parent  parent of this tree
      * @param name  name of this tree
      */
-    void setParentAndName(@Nonnull MutableTree parent, @Nonnull String name) {
+    void setParentAndName(@NotNull MutableTree parent, @NotNull String name) {
         this.name = checkNotNull(name);
         this.parent = checkNotNull(parent);
     }
@@ -265,7 +263,7 @@ final class MutableTree extends AbstractMutableTree {
      * @param newParent new parent for this tree
      * @param newName   new name for this tree
      */
-    boolean moveTo(@Nonnull MutableTree newParent, @Nonnull String newName) {
+    boolean moveTo(@NotNull MutableTree newParent, @NotNull String newName) {
         name = checkNotNull(newName);
         parent = checkNotNull(newParent);
         boolean success = nodeBuilder.moveTo(newParent.nodeBuilder, newName);
@@ -281,8 +279,8 @@ final class MutableTree extends AbstractMutableTree {
      * @param path the path to the tree
      * @return a {@link Tree} instance for the child at {@code path}.
      */
-    @Nonnull
-    MutableTree getTree(@Nonnull String path) {
+    @NotNull
+    MutableTree getTree(@NotNull String path) {
         checkArgument(isAbsolute(checkNotNull(path)));
         beforeRead();
         MutableTree child = this;
@@ -292,7 +290,7 @@ final class MutableTree extends AbstractMutableTree {
         return child;
     }
 
-    @Nonnull
+    @NotNull
     String getPathInternal() {
         if (parent == null) {
             return "/";
@@ -304,7 +302,7 @@ final class MutableTree extends AbstractMutableTree {
     }
 
     @Override
-    protected void buildPath(@Nonnull StringBuilder sb) {
+    protected void buildPath(@NotNull StringBuilder sb) {
         if (parent != null) {
             parent.buildPath(checkNotNull(sb));
             sb.append('/').append(name);

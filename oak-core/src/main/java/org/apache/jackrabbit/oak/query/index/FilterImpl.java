@@ -27,8 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 
@@ -44,6 +42,8 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A filter or lookup condition.
@@ -270,7 +270,7 @@ public class FilterImpl implements Filter {
         return matchesAllTypes;
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Set<String> getSupertypes() {
         if (selector == null) {
             return Collections.emptySet();
@@ -278,7 +278,7 @@ public class FilterImpl implements Filter {
         return selector.getSupertypes();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Set<String> getPrimaryTypes() {
         if (selector == null) {
             return Collections.emptySet();
@@ -286,7 +286,7 @@ public class FilterImpl implements Filter {
         return selector.getPrimaryTypes();
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Set<String> getMixinTypes() {
         if (selector == null) {
             return Collections.emptySet();

@@ -22,8 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
@@ -67,6 +65,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
@@ -225,7 +225,7 @@ public abstract class AbstractSecurityTest {
         return getValueFactory(root);
     }
 
-    protected ValueFactory getValueFactory(@Nonnull Root root) {
+    protected ValueFactory getValueFactory(@NotNull Root root) {
         return new ValueFactoryImpl(root, getNamePathMapper());
     }
 

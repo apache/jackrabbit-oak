@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,12 +48,12 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
 
     private final RootProvider rootProvider;
 
-    PrivilegeInitializer(@Nonnull RootProvider rootProvider) {
+    PrivilegeInitializer(@NotNull RootProvider rootProvider) {
         this.rootProvider = rootProvider;
     }
 
     @Override
-    public void initialize(@Nonnull NodeBuilder builder) {
+    public void initialize(@NotNull NodeBuilder builder) {
         NodeBuilder system = builder.child(JcrConstants.JCR_SYSTEM);
         system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
 

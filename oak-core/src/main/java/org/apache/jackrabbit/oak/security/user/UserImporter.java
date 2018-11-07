@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -65,6 +64,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,9 +168,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
+            @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
 
         if (!(session instanceof JackrabbitSession)) {
             log.debug("Importing protected user content requires a JackrabbitSession");
@@ -199,7 +199,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return initialized;
     }
 
-    private static boolean canInitUserManager(@Nonnull JackrabbitSession session, boolean isWorkspaceImport, @Nonnull SecurityProvider securityProvider) {
+    private static boolean canInitUserManager(@NotNull JackrabbitSession session, boolean isWorkspaceImport, @NotNull SecurityProvider securityProvider) {
         try {
             if (!isWorkspaceImport && session.getUserManager().isAutoSave()) {
                 log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
@@ -216,7 +216,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // -----------------------------------------< ProtectedPropertyImporter >---
     @Override
-    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
         String propName = propInfo.getName();
@@ -326,7 +326,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) throws RepositoryException {
+    public void propertiesCompleted(@NotNull Tree protectedParent) throws RepositoryException {
         if (isCacheNode(protectedParent)) {
             // remove the cache if present
             protectedParent.remove();
@@ -387,7 +387,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
-    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
+    public boolean start(@NotNull Tree protectedParent) throws RepositoryException {
         Authorizable auth = null;
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
@@ -410,7 +410,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
         checkState(currentMembership != null);
 
         String ntName = childInfo.getPrimaryTypeName();
@@ -439,12 +439,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
+    public void end(@NotNull Tree protectedParent) throws RepositoryException {
         currentMembership = null;
     }
 
     //------------------------------------------------------------< private >---
-    @Nonnull
+    @NotNull
     private IdentifierManager getIdentifierManager() {
         if (identifierManager == null) {
             identifierManager = new IdentifierManager(root);
@@ -452,13 +452,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return identifierManager;
     }
 
-    @Nonnull
+    @NotNull
     private PrincipalManager getPrincipalManager() throws RepositoryException {
         return userManager.getPrincipalManager();
     }
 
-    @Nonnull
-    private Membership getMembership(@Nonnull String authId) {
+    @NotNull
+    private Membership getMembership(@NotNull String authId) {
         Membership membership = memberships.get(authId);
         if (membership == null) {
             membership = new Membership(authId);
@@ -473,25 +473,25 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
     }
 
-    private boolean isValid(@Nonnull PropertyDefinition definition, @Nonnull String oakNodeTypeName, boolean multipleStatus) {
+    private boolean isValid(@NotNull PropertyDefinition definition, @NotNull String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
                 definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
 
-    private static boolean isMemberNode(@Nonnull Tree tree) {
+    private static boolean isMemberNode(@NotNull Tree tree) {
         //noinspection deprecation
         return tree.exists() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isMemberReferencesListNode(@Nonnull Tree tree) {
+    private static boolean isMemberReferencesListNode(@NotNull Tree tree) {
         return tree.exists() && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isPwdNode(@Nonnull Tree tree) {
+    private static boolean isPwdNode(@NotNull Tree tree) {
         return REP_PWD.equals(tree.getName()) && NT_REP_PASSWORD.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean importPwdNodeProperty(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+    private static boolean importPwdNodeProperty(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         String propName = propInfo.getName();
         if (propName == null) {
             propName = def.getName();
@@ -517,7 +517,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         return true;
     }
 
-    private static boolean isCacheNode(@Nonnull Tree tree) {
+    private static boolean isCacheNode(@NotNull Tree tree) {
         return tree.exists() && CacheConstants.REP_CACHE.equals(tree.getName()) && CacheConstants.NT_REP_CACHE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 

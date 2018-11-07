@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.security.Principal;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.AccessControlEntry;
@@ -27,6 +26,7 @@ import javax.jcr.security.AccessControlPolicy;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,8 +52,8 @@ public class PrincipalACLTest extends AbstractAccessControlTest {
         principalAcl = getPrincipalAcl(acMgr, testPrincipal);
     }
 
-    @Nonnull
-    private static ACL getPrincipalAcl(@Nonnull JackrabbitAccessControlManager acMgr, @Nonnull Principal testPrincipal) throws RepositoryException {
+    @NotNull
+    private static ACL getPrincipalAcl(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal testPrincipal) throws RepositoryException {
         for (AccessControlPolicy acp : acMgr.getPolicies(testPrincipal)) {
             if (acp instanceof ACL) {
                 return (ACL) acp;

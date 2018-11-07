@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 
@@ -52,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.value.StringValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -264,9 +264,9 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
             return RestrictionPattern.EMPTY;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
             if (oakPath != null) {
                 for (Restriction r : restrictions) {
                     String name = r.getDefinition().getName();
@@ -285,7 +285,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
         private final boolean negate;
 
-        private HasPropertyPattern(@Nonnull String propertyName) {
+        private HasPropertyPattern(@NotNull String propertyName) {
             if (propertyName.startsWith("!")) {
                 this.propertyName = propertyName.substring(1);
                 negate = true;
@@ -304,7 +304,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+        public boolean matches(@NotNull Tree tree, @Nullable PropertyState property) {
             boolean match = false;
 
             // configured property name found on underlying jcr:content node has precedence
@@ -319,7 +319,7 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean matches(@Nonnull String path) {
+        public boolean matches(@NotNull String path) {
             return matches();
         }
 

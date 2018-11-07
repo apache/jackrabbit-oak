@@ -21,9 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -53,6 +50,8 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,9 +84,9 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //----------------------------------------------< ProtectedItemImporter >---
 
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
+            @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -122,7 +121,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     //----------------------------------------------< ProtectedNodeImporter >---
 
     @Override
-    public boolean start(@Nonnull Tree protectedParent) throws RepositoryException {
+    public boolean start(@NotNull Tree protectedParent) throws RepositoryException {
         checkInitialized();
 
         // the acl node must have been added during the regular import before
@@ -132,7 +131,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void end(@Nonnull Tree protectedParent) throws RepositoryException {
+    public void end(@NotNull Tree protectedParent) throws RepositoryException {
         if (acl != null) {
             acMgr.setPolicy(acl.getPath(), acl);
             acl = null;
@@ -142,7 +141,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void startChildInfo(@Nonnull NodeInfo childInfo, @Nonnull List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
         checkInitialized();
         String ntName = childInfo.getPrimaryTypeName();
         if (NT_REP_GRANT_ACE.equals(ntName) || NT_REP_DENY_ACE.equals(ntName)) {
@@ -198,7 +197,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         }
     }
 
-    @CheckForNull
+    @Nullable
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
 
@@ -226,7 +225,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         return acList;
     }
 
-    @CheckForNull
+    @Nullable
     private JackrabbitAccessControlList getACL(@Nullable String path) throws RepositoryException {
         JackrabbitAccessControlList acList = null;
         for (AccessControlPolicy p : acMgr.getPolicies(path)) {

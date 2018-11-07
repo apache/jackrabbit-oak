@@ -18,13 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.reference;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.collect.ImmutableList;
 import org.osgi.service.component.annotations.Component;
@@ -40,7 +39,7 @@ public class ReferenceIndexProvider implements QueryIndexProvider {
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     @Override
-    @Nonnull
+    @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
         return ImmutableList.<QueryIndex> of(new ReferenceIndex(mountInfoProvider));
     }

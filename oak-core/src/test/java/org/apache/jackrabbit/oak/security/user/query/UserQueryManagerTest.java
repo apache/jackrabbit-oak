@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -40,6 +38,8 @@ import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -117,7 +117,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         return g;
     }
 
-    private static void assertResultContainsAuthorizables(@Nonnull Iterator<Authorizable> result, Authorizable... expected) throws RepositoryException {
+    private static void assertResultContainsAuthorizables(@NotNull Iterator<Authorizable> result, Authorizable... expected) throws RepositoryException {
         switch (expected.length) {
             case 0:
                 assertFalse(result.hasNext());

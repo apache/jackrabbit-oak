@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 
@@ -33,7 +32,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  */
 public class PermissionStoreValidatorProvider extends ValidatorProvider implements PermissionConstants {
 
-    @Nonnull
+    @NotNull
     @Override
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {

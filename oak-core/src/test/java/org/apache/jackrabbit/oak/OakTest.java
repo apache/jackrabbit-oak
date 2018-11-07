@@ -24,7 +24,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 
 import com.google.common.collect.Lists;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.plugins.index.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.empty;
@@ -220,8 +220,8 @@ public class OakTest {
         List<CommitInfo> infos = Lists.newArrayList();
 
         @Override
-        public synchronized NodeState merge(@Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-                                            @Nonnull CommitInfo info) throws CommitFailedException {
+        public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+                                            @NotNull CommitInfo info) throws CommitFailedException {
             if (info.getSessionId().equals(OakInitializer.SESSION_ID)) {
                 this.infos.add(info);
             }

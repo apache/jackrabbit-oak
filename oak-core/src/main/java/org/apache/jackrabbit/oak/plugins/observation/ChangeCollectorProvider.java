@@ -20,9 +20,6 @@ package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
@@ -113,7 +112,7 @@ public class ChangeCollectorProvider extends ValidatorProvider {
         final int maxPathDepth;
         final ChangeSetBuilder changeSetBuilder;
 
-        public CollectorSupport(@Nonnull CommitInfo info, @Nonnull ChangeSetBuilder changeSetBuilder,
+        public CollectorSupport(@NotNull CommitInfo info, @NotNull ChangeSetBuilder changeSetBuilder,
                 int maxPathDepth) {
             this.info = info;
             this.changeSetBuilder = changeSetBuilder;
@@ -149,18 +148,18 @@ public class ChangeCollectorProvider extends ValidatorProvider {
 
         private boolean changed;
 
-        private static ChangeCollector newRootCollector(@Nonnull CommitInfo info, int maxItems, int maxPathDepth) {
+        private static ChangeCollector newRootCollector(@NotNull CommitInfo info, int maxItems, int maxPathDepth) {
             ChangeSetBuilder changeSetBuilder = new ChangeSetBuilder(maxItems, maxPathDepth);
             CollectorSupport support = new CollectorSupport(info, changeSetBuilder, maxPathDepth);
             return new ChangeCollector(support, true, null, null, "/", null, 0);
         }
 
-        private ChangeCollector newChildCollector(@Nullable NodeState beforeParentNodeOrNull, @Nullable NodeState afterParentNodeOrNull, @Nonnull String childName) {
+        private ChangeCollector newChildCollector(@Nullable NodeState beforeParentNodeOrNull, @Nullable NodeState afterParentNodeOrNull, @NotNull String childName) {
             return new ChangeCollector(support, false, beforeParentNodeOrNull, afterParentNodeOrNull, concat(path, childName), childName, level + 1);
         }
 
-        private ChangeCollector(@Nonnull CollectorSupport support, boolean isRoot, @Nullable NodeState beforeParentNodeOrNull,
-                @Nullable NodeState afterParentNodeOrNull, @Nonnull String path, @Nullable String childNameOrNull, int level) {
+        private ChangeCollector(@NotNull CollectorSupport support, boolean isRoot, @Nullable NodeState beforeParentNodeOrNull,
+                @Nullable NodeState afterParentNodeOrNull, @NotNull String path, @Nullable String childNameOrNull, int level) {
             this.support = support;
             this.isRoot = isRoot;
             this.beforeParentNodeOrNull = beforeParentNodeOrNull;

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -161,7 +160,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
                 true);
     }
 
-    private boolean isAdminUser(@Nonnull Tree userTree) {
+    private boolean isAdminUser(@NotNull Tree userTree) {
         if (userTree.exists() && isUser(userTree)) {
             String id = UserUtil.getAuthorizableId(userTree);
             return UserUtil.getAdminId(provider.getConfig()).equals(id);
@@ -170,7 +169,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private void validateAuthorizable(@Nonnull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {
+    private void validateAuthorizable(@NotNull Tree tree, @Nullable AuthorizableType type) throws CommitFailedException {
         boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
         String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
         if (isSystemUser) {
@@ -196,7 +195,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
+    private boolean isValidUUID(@NotNull Tree parent, @NotNull String uuid) {
         String id = UserUtil.getAuthorizableId(parent);
         return id != null && uuid.equals(provider.getMembershipProvider().getContentID(id));
     }
@@ -213,7 +212,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
      * @param pathConstraint The path constraint.
      * @throws CommitFailedException If the hierarchy isn't valid.
      */
-    private static void assertHierarchy(@Nonnull Tree tree, @Nonnull String pathConstraint) throws CommitFailedException {
+    private static void assertHierarchy(@NotNull Tree tree, @NotNull String pathConstraint) throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, tree.getPath())) {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             throw constraintViolation(28, msg);
@@ -230,7 +229,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private static CommitFailedException constraintViolation(int code, @Nonnull String message) {
+    private static CommitFailedException constraintViolation(int code, @NotNull String message) {
         return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 }

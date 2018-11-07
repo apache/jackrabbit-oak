@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Arrays;
 import java.util.Collections;
-import javax.annotation.Nullable;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;

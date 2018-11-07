@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
@@ -64,19 +64,19 @@ public class VersionStorageTest extends AbstractOakCoreTest {
 
     private String getVersionHistoryPath(String vUUID, final Tree vs) {
         ReadOnlyVersionManager vMgr = new ReadOnlyVersionManager() {
-            @Nonnull
+            @NotNull
             @Override
             protected Tree getVersionStorage() {
                 return vs;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWorkspaceRoot() {
                 return root;
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected ReadOnlyNodeTypeManager getNodeTypeManager() {
                 throw new UnsupportedOperationException();

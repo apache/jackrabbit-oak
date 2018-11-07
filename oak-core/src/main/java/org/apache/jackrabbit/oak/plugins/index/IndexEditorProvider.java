@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension point for plugging in different kinds of IndexEditor providers.
@@ -52,9 +51,9 @@ public interface IndexEditorProvider {
      * @param callback used to register for index update notifications
      * @return index update editor, or {@code null} if type is unknown
      */
-    @CheckForNull
+    @Nullable
     Editor getIndexEditor(
-            @Nonnull String type, @Nonnull NodeBuilder definition,
-            @Nonnull NodeState root, 
-            @Nonnull IndexUpdateCallback callback) throws CommitFailedException;
+            @NotNull String type, @NotNull NodeBuilder definition,
+            @NotNull NodeState root, 
+            @NotNull IndexUpdateCallback callback) throws CommitFailedException;
 }

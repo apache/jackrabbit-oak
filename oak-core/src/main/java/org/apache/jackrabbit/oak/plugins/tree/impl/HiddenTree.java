@@ -23,14 +23,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Instances of this class represent trees that are inaccessible because
@@ -57,7 +55,7 @@ class HiddenTree implements Tree {
 
     //------------------------------------------------------------< Tree >---
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return name;
@@ -68,13 +66,13 @@ class HiddenTree implements Tree {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getPath() {
         return PathUtils.concat(parent.getPath(), name);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Status getStatus() {
         return Status.UNCHANGED;
@@ -85,26 +83,26 @@ class HiddenTree implements Tree {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Tree getParent() {
         return parent;
     }
 
     @Override
-    @CheckForNull
-    public PropertyState getProperty(@Nonnull String name) {
+    @Nullable
+    public PropertyState getProperty(@NotNull String name) {
         return null;
     }
 
     @Override
-    @CheckForNull
-    public Status getPropertyStatus(@Nonnull String name) {
+    @Nullable
+    public Status getPropertyStatus(@NotNull String name) {
         return null;
     }
 
     @Override
-    public boolean hasProperty(@Nonnull String name) {
+    public boolean hasProperty(@NotNull String name) {
         return false;
     }
 
@@ -113,20 +111,20 @@ class HiddenTree implements Tree {
         return 0;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         return Collections.emptyList();
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree getChild(@Nonnull String name) {
+    public Tree getChild(@NotNull String name) {
         return new HiddenTree(this, checkNotNull(name));
     }
 
     @Override
-    public boolean hasChild(@Nonnull String name) {
+    public boolean hasChild(@NotNull String name) {
         return false;
     }
 
@@ -135,7 +133,7 @@ class HiddenTree implements Tree {
         return 0;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<Tree> getChildren() {
         return Collections.emptyList();
@@ -146,9 +144,9 @@ class HiddenTree implements Tree {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Tree addChild(@Nonnull String name) {
+    public Tree addChild(@NotNull String name) {
         throw nonExistingTree();
     }
 
@@ -163,22 +161,22 @@ class HiddenTree implements Tree {
     }
 
     @Override
-    public void setProperty(@Nonnull PropertyState property) {
+    public void setProperty(@NotNull PropertyState property) {
         throw nonExistingTree();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value) {
         throw nonExistingTree();
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type) {
+    public <T> void setProperty(@NotNull String name, @NotNull T value, @NotNull Type<T> type) {
         throw nonExistingTree();
     }
 
     @Override
-    public void removeProperty(@Nonnull String name) {
+    public void removeProperty(@NotNull String name) {
         throw nonExistingTree();
     }
 

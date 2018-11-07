@@ -23,8 +23,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code PermissionEntries} holds the permission entries of one principal
@@ -68,21 +68,21 @@ class PrincipalPermissionEntries {
         this.fullyLoaded = fullyLoaded;
     }
 
-    @Nonnull
+    @NotNull
     Map<String, Collection<PermissionEntry>> getEntries() {
         return entries;
     }
 
     @Nullable
-    Collection<PermissionEntry> getEntriesByPath(@Nonnull String path) {
+    Collection<PermissionEntry> getEntriesByPath(@NotNull String path) {
         return (emptyPaths.containsKey(path)) ? emptySet() : entries.get(path);
     }
 
-    void putEntriesByPath(@Nonnull String path, @Nonnull Collection<PermissionEntry> pathEntries) {
+    void putEntriesByPath(@NotNull String path, @NotNull Collection<PermissionEntry> pathEntries) {
         entries.put(path, pathEntries);
     }
 
-    void rememberNotAccessControlled(@Nonnull String path) {
+    void rememberNotAccessControlled(@NotNull String path) {
         emptyPaths.put(path, null);
     }
 }

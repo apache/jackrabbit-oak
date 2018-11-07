@@ -21,8 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
@@ -33,6 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,7 +60,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
         writer.setMembershipSizeThreshold(SIZE_TH);
     }
 
-    private static void assertContentStructure(@Nonnull Tree groupTree, int memberCnt) {
+    private static void assertContentStructure(@NotNull Tree groupTree, int memberCnt) {
         assertEquals(
                 "rep:members property must have correct number of references",
                 SIZE_TH,

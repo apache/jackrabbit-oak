@@ -47,8 +47,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -80,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -661,8 +660,8 @@ public class IndexUpdateTest {
         IndexUpdateCallback callback;
 
         @Override
-        public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                                     @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) {
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                                     @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
             Editor editor = super.getIndexEditor(type, definition, root, callback);
             if (editor != null){
                 this.callback = callback;
@@ -694,8 +693,8 @@ public class IndexUpdateTest {
     private static IndexEditorProvider emptyProvider() {
         return new IndexEditorProvider() {
             @Override
-            public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
-                    @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
+            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
+                    @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
                     throws CommitFailedException {
                 return null;
             }

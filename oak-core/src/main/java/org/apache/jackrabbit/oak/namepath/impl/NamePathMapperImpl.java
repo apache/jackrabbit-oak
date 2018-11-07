@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -29,6 +28,7 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser.Listener;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,23 +57,23 @@ public class NamePathMapperImpl implements NamePathMapper {
 
     //---------------------------------------------------------< NameMapper >---
     @Override
-    public String getOakNameOrNull(@Nonnull String jcrName) {
+    public String getOakNameOrNull(@NotNull String jcrName) {
         return nameMapper.getOakNameOrNull(jcrName);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+    public String getOakName(@NotNull String jcrName) throws RepositoryException {
         return nameMapper.getOakName(jcrName);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String getJcrName(@Nonnull String oakName) {
+    public String getJcrName(@NotNull String oakName) {
         return nameMapper.getJcrName(oakName);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public Map<String, String> getSessionLocalMappings() {
         return nameMapper.getSessionLocalMappings();
     }
@@ -158,7 +158,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getJcrPath(final String oakPath) {
         if ("/".equals(oakPath)) {
             // avoid the need to special case the root path later on
