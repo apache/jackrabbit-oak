@@ -22,11 +22,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.Weigher;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Cache statistics.
@@ -46,8 +46,8 @@ public class CacheStats extends AbstractCacheStats {
      */
     @SuppressWarnings("unchecked")
     public CacheStats(
-            @Nonnull Cache<?, ?> cache,
-            @Nonnull String name,
+            @NotNull Cache<?, ?> cache,
+            @NotNull String name,
             @Nullable Weigher<?, ?> weigher,
             long maxWeight) {
         super(name);

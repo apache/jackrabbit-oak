@@ -25,10 +25,9 @@ import static com.google.common.collect.Sets.newConcurrentHashSet;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link GCMonitor} implementation simply delegates all its call
@@ -41,7 +40,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * New instance with an initial set of delegates (which cannot be unregistered).
      * @param gcMonitors
      */
-    public DelegatingGCMonitor(@Nonnull Collection<? extends GCMonitor> gcMonitors) {
+    public DelegatingGCMonitor(@NotNull Collection<? extends GCMonitor> gcMonitors) {
         this.gcMonitors = newConcurrentHashSet();
         this.gcMonitors.addAll(gcMonitors);
     }
@@ -59,7 +58,7 @@ public class DelegatingGCMonitor implements GCMonitor {
      * @return  a {@link Registration} instance, which removes the registered
      *          {@code GCMonitor} instance when called.
      */
-    public Registration registerGCMonitor(@Nonnull final GCMonitor gcMonitor) {
+    public Registration registerGCMonitor(@NotNull final GCMonitor gcMonitor) {
         gcMonitors.add(checkNotNull(gcMonitor));
         return new Registration() {
             @Override

@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.spi.nodetype;
 
 import java.util.Iterator;
-import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -55,7 +55,7 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException If the given node type name is invalid or if
      * some other error occurs.
      */
-    boolean isNodeType(@Nonnull String primaryTypeName, @Nonnull Iterator<String> mixinTypes, @Nonnull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
