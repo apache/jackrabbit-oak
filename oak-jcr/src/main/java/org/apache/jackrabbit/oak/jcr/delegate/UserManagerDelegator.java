@@ -24,8 +24,6 @@ import static com.google.common.base.Preconditions.checkState;
 import java.security.Principal;
 import java.util.Iterator;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
@@ -38,6 +36,8 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.UserManagerOperation;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This implementation of {@code UserManager} delegates back to a
@@ -105,7 +105,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(final String relPath, final String value) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value);
@@ -123,7 +123,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(final String relPath, final String value, final int searchType) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value, searchType);
@@ -141,7 +141,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(final Query query) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
-            @Nonnull
+            @NotNull
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(query);
@@ -159,7 +159,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public User createUser(final String userID, final String password) throws AuthorizableExistsException, RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
-            @Nonnull
+            @NotNull
             @Override
             public User perform() throws RepositoryException {
                 User user = userManagerDelegate.createUser(userID, password);
@@ -171,7 +171,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public User createUser(final String userID, final String password, final Principal principal, final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
-            @Nonnull
+            @NotNull
             @Override
             public User perform() throws RepositoryException {
                 User user = userManagerDelegate.createUser(userID, password, principal, intermediatePath);
@@ -183,7 +183,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public User createSystemUser(final String userID, final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
-            @Nonnull
+            @NotNull
             @Override
             public User perform() throws RepositoryException {
                 User user = userManagerDelegate.createSystemUser(userID, intermediatePath);
@@ -195,7 +195,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Group createGroup(final String groupID) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
-            @Nonnull
+            @NotNull
             @Override
             public Group perform() throws RepositoryException {
                 Group group = userManagerDelegate.createGroup(groupID);
@@ -207,7 +207,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Group createGroup(final Principal principal) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
-            @Nonnull
+            @NotNull
             @Override
             public Group perform() throws RepositoryException {
                 Group group = userManagerDelegate.createGroup(principal);
@@ -219,7 +219,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Group createGroup(final Principal principal, final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
-            @Nonnull
+            @NotNull
             @Override
             public Group perform() throws RepositoryException {
                 Group group = userManagerDelegate.createGroup(principal, intermediatePath);
@@ -231,7 +231,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
-            @Nonnull
+            @NotNull
             @Override
             public Group perform() throws RepositoryException {
                 Group group = userManagerDelegate.createGroup(groupID, principal, intermediatePath);
@@ -243,7 +243,7 @@ public class UserManagerDelegator implements UserManager {
     @Override
     public boolean isAutoSave() {
         return sessionDelegate.safePerform(new UserManagerOperation<Boolean>(sessionDelegate, "isAutoSave") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 return userManagerDelegate.isAutoSave();

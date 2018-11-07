@@ -21,7 +21,6 @@ import static org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl.RELAXED_LO
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
@@ -54,11 +54,11 @@ public class LockManagerImpl implements LockManager {
         this.delegate = sessionContext.getSessionDelegate();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String[] getLockTokens() throws RepositoryException {
         return delegate.perform(new SessionOperation<String[]>("getLockTokens") {
-            @Nonnull
+            @NotNull
             @Override
             public String[] perform() {
                 Set<String> tokens = sessionContext.getOpenScopedLocks();
@@ -73,7 +73,7 @@ public class LockManagerImpl implements LockManager {
         try {
             delegate.performVoid(new LockOperation<Void>(sessionContext, lockToken, "addLockToken") {
                 @Override
-                protected void performVoid(@Nonnull NodeDelegate node) throws LockException {
+                protected void performVoid(@NotNull NodeDelegate node) throws LockException {
                     if (node.holdsLock(false)) { // TODO: check ownership?
                         String token = node.getPath();
                         sessionContext.getOpenScopedLocks().add(token);
@@ -90,7 +90,7 @@ public class LockManagerImpl implements LockManager {
     @Override
     public void removeLockToken(final String lockToken) throws RepositoryException {
         if (!delegate.perform(new SessionOperation<Boolean>("removeLockToken") {
-            @Nonnull
+            @NotNull
             @Override
             public Boolean perform() {
                 // TODO: name mapping?
@@ -104,9 +104,9 @@ public class LockManagerImpl implements LockManager {
     @Override
     public boolean isLocked(String absPath) throws RepositoryException {
         return delegate.perform(new LockOperation<Boolean>(sessionContext, absPath, "isLocked") {
-            @Nonnull
+            @NotNull
             @Override
-            protected Boolean perform(@Nonnull NodeDelegate node) {
+            protected Boolean perform(@NotNull NodeDelegate node) {
                 return node.isLocked();
             }
         });
@@ -115,21 +115,21 @@ public class LockManagerImpl implements LockManager {
     @Override
     public boolean holdsLock(String absPath) throws RepositoryException {
         return delegate.perform(new LockOperation<Boolean>(sessionContext, absPath, "holdsLock") {
-            @Nonnull
+            @NotNull
             @Override
-            protected Boolean perform(@Nonnull NodeDelegate node) {
+            protected Boolean perform(@NotNull NodeDelegate node) {
                 return node.holdsLock(false);
             }
         });
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Lock getLock(final String absPath) throws RepositoryException {
         NodeDelegate lock = delegate.perform(new LockOperation<NodeDelegate>(sessionContext, absPath, "getLock") {
-            @Nonnull
+            @NotNull
             @Override
-            protected NodeDelegate perform(@Nonnull NodeDelegate node) throws LockException {
+            protected NodeDelegate perform(@NotNull NodeDelegate node) throws LockException {
                 NodeDelegate lock = node.getLock();
                 if (lock == null) {
                     throw new LockException("Node " + absPath + " is not locked");
@@ -142,14 +142,14 @@ public class LockManagerImpl implements LockManager {
         return new LockImpl(sessionContext, lock);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Lock lock(String absPath, final boolean isDeep, final boolean isSessionScoped,
                      long timeoutHint, String ownerInfo) throws RepositoryException {
         return new LockImpl(sessionContext, delegate.perform(new LockOperation<NodeDelegate>(sessionContext, absPath, "lock") {
-            @Nonnull
+            @NotNull
             @Override
-            protected NodeDelegate perform(@Nonnull NodeDelegate node) throws RepositoryException {
+            protected NodeDelegate perform(@NotNull NodeDelegate node) throws RepositoryException {
                 if (node.getStatus() != Status.UNCHANGED) {
                     throw new InvalidItemStateException(
                             "Unable to lock a node with pending changes");
@@ -171,7 +171,7 @@ public class LockManagerImpl implements LockManager {
     public void unlock(String absPath) throws RepositoryException {
         delegate.performVoid(new LockOperation<Void>(sessionContext, absPath, "unlock") {
             @Override
-            protected void performVoid(@Nonnull NodeDelegate node)
+            protected void performVoid(@NotNull NodeDelegate node)
                     throws RepositoryException {
                 String path = node.getPath();
                 if (canUnlock(node)) {

@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
@@ -69,6 +68,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.stats.TimeSeriesMax;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -232,7 +232,7 @@ class ChangeProcessor implements FilteringAwareObserver {
         return filterProvider.get();
     }
 
-    @Nonnull
+    @NotNull
     public ChangeProcessorMBean getMBean() {
         return new ChangeProcessorMBean() {
 
@@ -480,9 +480,9 @@ class ChangeProcessor implements FilteringAwareObserver {
     }
 
     @Override
-    public void contentChanged(@Nonnull NodeState before, 
-                               @Nonnull NodeState after,
-                               @Nonnull CommitInfo info) {
+    public void contentChanged(@NotNull NodeState before, 
+                               @NotNull NodeState after,
+                               @NotNull CommitInfo info) {
         checkNotNull(before); // OAK-5160 before is now guaranteed to be non-null
         checkNotNull(after);
         checkNotNull(info);
