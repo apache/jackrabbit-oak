@@ -17,10 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,20 +44,20 @@ final class CugUtil implements CugConstants {
 
     private CugUtil(){}
 
-    public static boolean hasCug(@Nonnull Tree tree) {
+    public static boolean hasCug(@NotNull Tree tree) {
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@CheckForNull NodeState state) {
+    public static boolean hasCug(@Nullable NodeState state) {
         return state != null && state.hasChildNode(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@CheckForNull NodeBuilder builder) {
+    public static boolean hasCug(@Nullable NodeBuilder builder) {
         return builder != null && builder.hasChildNode(REP_CUG_POLICY);
     }
 
-    @CheckForNull
-    public static Tree getCug(@Nonnull Tree tree) {
+    @Nullable
+    public static Tree getCug(@NotNull Tree tree) {
         Tree cugTree = (CugUtil.hasCug(tree)) ? tree.getChild(REP_CUG_POLICY) : null;
         if (cugTree != null && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(cugTree))) {
             return cugTree;
@@ -68,23 +66,23 @@ final class CugUtil implements CugConstants {
         }
     }
 
-    public static boolean definesCug(@Nonnull Tree tree) {
+    public static boolean definesCug(@NotNull Tree tree) {
         return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    public static boolean definesCug(@Nonnull String name, @Nonnull NodeState state) {
+    public static boolean definesCug(@NotNull String name, @NotNull NodeState state) {
         return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(state));
     }
 
-    public static boolean definesCug(@Nonnull Tree tree, @Nonnull PropertyState property) {
+    public static boolean definesCug(@NotNull Tree tree, @NotNull PropertyState property) {
         return REP_PRINCIPAL_NAMES.equals(property.getName()) && definesCug(tree);
     }
 
-    public static boolean hasNestedCug(@Nonnull Tree cugTree) {
+    public static boolean hasNestedCug(@NotNull Tree cugTree) {
         return cugTree.hasProperty(CugConstants.HIDDEN_NESTED_CUGS);
     }
 
-    public static boolean isSupportedPath(@Nullable String oakPath, @Nonnull Set<String> supportedPaths) {
+    public static boolean isSupportedPath(@Nullable String oakPath, @NotNull Set<String> supportedPaths) {
         if (oakPath == null) {
             return false;
         } else {
@@ -97,7 +95,7 @@ final class CugUtil implements CugConstants {
         return false;
     }
 
-    public static Set<String> getSupportedPaths(@Nonnull ConfigurationParameters params, @Nonnull MountInfoProvider mountInfoProvider) {
+    public static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
         Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {

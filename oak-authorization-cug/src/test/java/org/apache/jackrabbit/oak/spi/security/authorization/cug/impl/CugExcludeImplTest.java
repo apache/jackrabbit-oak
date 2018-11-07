@@ -22,12 +22,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -43,7 +42,7 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
         return new CugExcludeImpl();
     }
 
-    private void activate(@Nonnull Map<String, Object> map) {
+    private void activate(@NotNull Map<String, Object> map) {
         ((CugExcludeImpl) exclude).activate(map);
     }
 

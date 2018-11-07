@@ -16,19 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 final class CugSecurityProvider {
 
     private CugSecurityProvider() {}
 
-    public static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters configuration) {
+    public static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters configuration) {
         CugConfiguration cugConfiguration = new CugConfiguration();
 
         ConfigurationParameters params = configuration.getConfigValue(AuthorizationConfiguration.NAME, ConfigurationParameters.EMPTY);
@@ -37,7 +36,7 @@ final class CugSecurityProvider {
         return new SecurityProviderBuilder().with(configuration).with(cugConfiguration, AuthorizationConfiguration.class).build();
     }
 
-    public static CugConfiguration getCugConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public static CugConfiguration getCugConfiguration(@NotNull SecurityProvider securityProvider) {
         AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
         if (!(ac instanceof CompositeAuthorizationConfiguration)) {
             throw new IllegalStateException();

@@ -20,7 +20,6 @@ import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,13 +60,13 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
     private PrincipalManager principalManager;
 
-    CugImporter(@Nonnull MountInfoProvider mountInfoProvider) {
+    CugImporter(@NotNull MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
 
     //----------------------------------------------< ProtectedItemImporter >---
     @Override
-    public boolean init(@Nonnull Session session, @Nonnull Root root, @Nonnull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @Nonnull ReferenceChangeTracker referenceTracker, @Nonnull SecurityProvider securityProvider) {
+    public boolean init(@NotNull Session session, @NotNull Root root, @NotNull NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, @NotNull ReferenceChangeTracker referenceTracker, @NotNull SecurityProvider securityProvider) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -96,7 +96,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     //------------------------------------------< ProtectedPropertyImporter >---
 
     @Override
-    public boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), supportedPaths)) {
             Set<String> principalNames = new HashSet<>();
             for (TextValue txtValue : protectedPropInfo.getTextValues()) {
@@ -128,7 +128,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     @Override
-    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, RepositoryException {
+    public void propertiesCompleted(@NotNull Tree protectedParent) throws IllegalStateException, RepositoryException {
         if (CugUtil.definesCug(protectedParent) && !protectedParent.hasProperty(REP_PRINCIPAL_NAMES)) {
             // remove the rep:cugPolicy node if mandatory property is missing
             // (which may also happen upon an attempt to create a cug at an unsupported path).
@@ -138,7 +138,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     //--------------------------------------------------------------------------
-    private boolean isValid(@Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) {
+    private boolean isValid(@NotNull PropInfo propInfo, @NotNull PropertyDefinition def) {
         if (REP_PRINCIPAL_NAMES.equals(propInfo.getName())) {
             return def.isMultiple() && NT_REP_CUG_POLICY.equals(def.getDeclaringNodeType().getName());
         }
