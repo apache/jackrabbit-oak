@@ -22,8 +22,9 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Instances of this class map Java types to {@link PropertyType property types}.
@@ -236,7 +237,7 @@ public final class Type<T> implements Comparable<Type<?>> {
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(@Nonnull Type<?> that) {
+    public int compareTo(@NotNull Type<?> that) {
         if (tag < that.tag) {
             return -1;
         }

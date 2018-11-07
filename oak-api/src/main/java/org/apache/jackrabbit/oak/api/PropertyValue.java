@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Immutable property value.
@@ -56,7 +56,7 @@ public interface PropertyValue extends Comparable<PropertyValue> {
      * @throws NumberFormatException  if conversion to a number failed.
      * @throws UnsupportedOperationException  if conversion to boolean failed.
      */
-    @Nonnull
+    @NotNull
     <T> T getValue(Type<T> type);
 
     /**
@@ -75,7 +75,7 @@ public interface PropertyValue extends Comparable<PropertyValue> {
      * @throws IllegalArgumentException  if {@code type} refers to an unknown type or if
      *         {@code type.isArray()} is true.
      */
-    @Nonnull
+    @NotNull
     <T> T getValue(Type<T> type, int index);
 
     /**
