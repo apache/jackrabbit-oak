@@ -23,12 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 import com.google.common.io.Closer;
 
@@ -96,7 +95,7 @@ public abstract class Checkpoints {
      */
     public abstract int setInfoProperty(String cp, String name, String value);
 
-    @Nonnull
+    @NotNull
     static Set<String> getReferencedCheckpoints(NodeState root) {
         Set<String> cps = new HashSet<String>();
         for (PropertyState ps : root.getChildNode(":async").getProperties()) {
