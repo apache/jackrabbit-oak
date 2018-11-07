@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -58,6 +57,7 @@ import org.apache.jackrabbit.oak.upgrade.RepositorySidegrade;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;

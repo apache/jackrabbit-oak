@@ -27,17 +27,16 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -65,18 +64,18 @@ public class PersistingDiff implements NodeStateDiff {
 
     private final Reporter reporter;
 
-    @Nonnull
+    @NotNull
     private MemoryNodeBuilder builder;
 
-    @Nonnull
+    @NotNull
     private final NodeState base;
 
-    @CheckForNull
+    @Nullable
     private IOException exception;
 
     private long modCount;
 
-    private PersistingDiff(PersistingDiff parent, String nodeName, @Nonnull NodeState base) {
+    private PersistingDiff(PersistingDiff parent, String nodeName, @NotNull NodeState base) {
         this.writer = parent.writer;
         this.reader = parent.reader;
         this.blobStore = parent.blobStore;
@@ -87,7 +86,7 @@ public class PersistingDiff implements NodeStateDiff {
         this.nodeName = nodeName;
     }
 
-    private PersistingDiff(SegmentWriter writer, SegmentReader reader, BlobStore blobStore, @Nonnull NodeState base) {
+    private PersistingDiff(SegmentWriter writer, SegmentReader reader, BlobStore blobStore, @NotNull NodeState base) {
         this.writer = writer;
         this.reader = reader;
         this.blobStore = blobStore;
@@ -100,9 +99,9 @@ public class PersistingDiff implements NodeStateDiff {
 
     public static SegmentNodeState applyDiffOnNodeState(
             FileStore fileStore,
-            @Nonnull NodeState before,
-            @Nonnull NodeState after,
-            @Nonnull NodeState onto) throws IOException {
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto) throws IOException {
         return new PersistingDiff(fileStore.getWriter(), fileStore.getReader(), fileStore.getBlobStore(), onto).diff(before, after);
     }
 
@@ -134,8 +133,8 @@ public class PersistingDiff implements NodeStateDiff {
         return path.toString();
     }
 
-    @CheckForNull
-    SegmentNodeState diff(@Nonnull NodeState before, @Nonnull NodeState after) throws IOException {
+    @Nullable
+    SegmentNodeState diff(@NotNull NodeState before, @NotNull NodeState after) throws IOException {
         boolean success = after.compareAgainstBaseState(before, this);
         if (exception != null) {
             throw new IOException(exception);
@@ -151,13 +150,13 @@ public class PersistingDiff implements NodeStateDiff {
     }
 
     @Override
-    public boolean propertyAdded(@Nonnull PropertyState after) {
+    public boolean propertyAdded(@NotNull PropertyState after) {
         builder.setProperty(after);
         return true;
     }
 
     @Override
-    public boolean propertyChanged(@Nonnull PropertyState before, @Nonnull PropertyState after) {
+    public boolean propertyChanged(@NotNull PropertyState before, @NotNull PropertyState after) {
         builder.setProperty(after);
         return true;
     }
@@ -169,7 +168,7 @@ public class PersistingDiff implements NodeStateDiff {
     }
 
     @Override
-    public boolean childNodeAdded(@Nonnull String name, @Nonnull NodeState after) {
+    public boolean childNodeAdded(@NotNull String name, @NotNull NodeState after) {
         try {
             SegmentNodeState segmentNodeState = new PersistingDiff(this, name, EMPTY_NODE).diff(EMPTY_NODE, after);
             if (segmentNodeState != null) {
@@ -186,7 +185,7 @@ public class PersistingDiff implements NodeStateDiff {
     }
 
     @Override
-    public boolean childNodeChanged(@Nonnull String name, @Nonnull NodeState before, @Nonnull NodeState after) {
+    public boolean childNodeChanged(@NotNull String name, @NotNull NodeState before, @NotNull NodeState after) {
         try {
             SegmentNodeState compacted = new PersistingDiff(this, name, base.getChildNode(name)).diff(before, after);
             if (compacted != null) {
@@ -214,7 +213,7 @@ public class PersistingDiff implements NodeStateDiff {
         }
     }
 
-    @CheckForNull
+    @Nullable
     private static ByteBuffer getStableIdBytes(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return ((SegmentNodeState) state).getStableIdBytes();
