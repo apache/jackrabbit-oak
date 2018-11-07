@@ -27,9 +27,8 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
+import org.jetbrains.annotations.NotNull;
 
 class SizeDeltaGcEstimation implements GCEstimation {
 
@@ -41,7 +40,7 @@ class SizeDeltaGcEstimation implements GCEstimation {
 
     private final boolean full;
 
-    SizeDeltaGcEstimation(long delta, @Nonnull GCJournal gcJournal, long currentSize, boolean full) {
+    SizeDeltaGcEstimation(long delta, @NotNull GCJournal gcJournal, long currentSize, boolean full) {
         this.delta = delta;
         this.gcJournal = checkNotNull(gcJournal);
         this.currentSize = currentSize;

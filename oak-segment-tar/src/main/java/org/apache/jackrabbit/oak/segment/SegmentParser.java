@@ -35,12 +35,11 @@ import static org.apache.jackrabbit.oak.segment.Template.ZERO_CHILD_NODES;
 
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * {@code SegmentParser} serves as a base class for parsing segments.
@@ -257,10 +256,10 @@ public class SegmentParser {
         }
     }
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    public SegmentParser(@Nonnull SegmentReader reader) {
+    public SegmentParser(@NotNull SegmentReader reader) {
         this.reader = checkNotNull(reader);
     }
 

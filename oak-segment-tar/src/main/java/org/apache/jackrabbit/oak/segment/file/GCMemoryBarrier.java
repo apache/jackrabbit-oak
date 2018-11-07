@@ -30,7 +30,6 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
 import javax.management.ListenerNotFoundException;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
@@ -38,6 +37,7 @@ import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Responsible for raising the low memory flag whenever the available memory
@@ -49,21 +49,21 @@ public class GCMemoryBarrier implements Closeable {
     // TODO possibly add a min value to the percentage, ie. skip gc if available
     // heap drops under 2GB
 
-    @Nonnull
+    @NotNull
     private final AtomicBoolean sufficientMemory;
 
-    @Nonnull
+    @NotNull
     private final GCListener gcListener;
 
-    @Nonnull
+    @NotNull
     private final SegmentGCOptions gcOptions;
 
     private final NotificationEmitter emitter;
     private final MemoryListener listener;
 
-    public GCMemoryBarrier(@Nonnull AtomicBoolean sufficientMemory,
-                           @Nonnull GCListener gcListener,
-                           @Nonnull SegmentGCOptions gcOptions) {
+    public GCMemoryBarrier(@NotNull AtomicBoolean sufficientMemory,
+                           @NotNull GCListener gcListener,
+                           @NotNull SegmentGCOptions gcOptions) {
         this.sufficientMemory = sufficientMemory;
         this.gcListener = gcListener;
         this.gcOptions = gcOptions;

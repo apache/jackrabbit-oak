@@ -34,14 +34,13 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -128,7 +127,7 @@ public class UpgradeIT {
                 true, version, version).checkManifest();
     }
 
-    private void checkSegmentVersion(@Nonnull SegmentVersion version) throws IOException {
+    private void checkSegmentVersion(@NotNull SegmentVersion version) throws IOException {
         try (TarFiles tarFiles = TarFiles.builder()
                 .withDirectory(fileStoreHome.getRoot())
                 .withTarRecovery((_1, _2, _3) -> fail("Unexpected recovery"))
@@ -145,7 +144,7 @@ public class UpgradeIT {
         }
     }
 
-    private static Iterable<SegmentData> getSegments(@Nonnull TarFiles tarFiles) {
+    private static Iterable<SegmentData> getSegments(@NotNull TarFiles tarFiles) {
         return transform(
                 tarFiles.getSegmentIds(),
                 uuid -> newSegmentData(tarFiles.readSegment(

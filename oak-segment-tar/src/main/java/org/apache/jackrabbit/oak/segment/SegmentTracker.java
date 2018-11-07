@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Tracker of references to segment identifiers and segment instances
@@ -47,7 +47,7 @@ public class SegmentTracker implements SegmentIdProvider {
     /**
      * The random number source for generating new segment identifiers.
      */
-    @Nonnull
+    @NotNull
     private final SecureRandom random = new SecureRandom();
 
     /**
@@ -59,19 +59,19 @@ public class SegmentTracker implements SegmentIdProvider {
      * (when there are no matching identifiers) or a list of weak references
      * to the matching identifiers.
      */
-    @Nonnull
+    @NotNull
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
     /**
      * Number of segment tracked since this tracker was instantiated
      */
-    @Nonnull
+    @NotNull
     private final AtomicInteger segmentCounter = new AtomicInteger();
 
-    @Nonnull
+    @NotNull
     private final SegmentIdFactory segmentIdFactory;
 
-    public SegmentTracker(@Nonnull SegmentIdFactory segmentIdFactory) {
+    public SegmentTracker(@NotNull SegmentIdFactory segmentIdFactory) {
         this.segmentIdFactory = checkNotNull(segmentIdFactory);
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable();
@@ -105,7 +105,7 @@ public class SegmentTracker implements SegmentIdProvider {
      * @return the segment id
      */
     @Override
-    @Nonnull
+    @NotNull
     public SegmentId newSegmentId(long msb, long lsb) {
         int index = ((int) msb) & (tables.length - 1);
         return tables[index].newSegmentId(msb, lsb, segmentIdFactory);
@@ -117,7 +117,7 @@ public class SegmentTracker implements SegmentIdProvider {
      * @return the segment id
      */
     @Override
-    @Nonnull
+    @NotNull
     public SegmentId newDataSegmentId() {
         return newSegmentId(DATA);
     }
@@ -128,12 +128,12 @@ public class SegmentTracker implements SegmentIdProvider {
      * @return the segment id
      */
     @Override
-    @Nonnull
+    @NotNull
     public SegmentId newBulkSegmentId() {
         return newSegmentId(BULK);
     }
 
-    @Nonnull
+    @NotNull
     private SegmentId newSegmentId(long type) {
         segmentCounter.incrementAndGet();
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
@@ -141,7 +141,7 @@ public class SegmentTracker implements SegmentIdProvider {
         return newSegmentId(msb, lsb);
     }
 
-    public synchronized void clearSegmentIdTables(@Nonnull Set<UUID> reclaimed, @Nonnull String gcInfo) {
+    public synchronized void clearSegmentIdTables(@NotNull Set<UUID> reclaimed, @NotNull String gcInfo) {
         for (SegmentIdTable table : tables) {
             table.clearSegmentIdTables(reclaimed, gcInfo);
         }

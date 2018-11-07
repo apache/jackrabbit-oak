@@ -30,10 +30,6 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -51,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,29 +63,29 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public static class SegmentNodeStoreBuilder {
         private static final Logger LOG = LoggerFactory.getLogger(SegmentNodeStoreBuilder.class);
 
-        @Nonnull
+        @NotNull
         private final Revisions revisions;
 
-        @Nonnull
+        @NotNull
         private final SegmentReader reader;
 
-        @Nonnull
+        @NotNull
         private final SegmentWriter writer;
 
-        @CheckForNull
+        @Nullable
         private final BlobStore blobStore;
         
         private boolean isCreated;
         
         private boolean dispatchChanges = true;
 
-        @Nonnull
+        @NotNull
         private StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         
         private SegmentNodeStoreBuilder(
-                @Nonnull Revisions revisions,
-                @Nonnull SegmentReader reader,
-                @Nonnull SegmentWriter writer,
+                @NotNull Revisions revisions,
+                @NotNull SegmentReader reader,
+                @NotNull SegmentWriter writer,
                 @Nullable BlobStore blobStore) {
             this.revisions = revisions;
             this.reader = reader;
@@ -96,7 +94,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
 
         
-        @Nonnull
+        @NotNull
         public SegmentNodeStoreBuilder dispatchChanges(boolean dispatchChanges) {
             this.dispatchChanges = dispatchChanges;
             return this;
@@ -107,13 +105,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
          * @param statisticsProvider
          * @return this instance
          */
-        @Nonnull
-        public SegmentNodeStoreBuilder withStatisticsProvider(@Nonnull StatisticsProvider statisticsProvider) {
+        @NotNull
+        public SegmentNodeStoreBuilder withStatisticsProvider(@NotNull StatisticsProvider statisticsProvider) {
             this.statsProvider = checkNotNull(statisticsProvider);
             return this;
         }
         
-        @Nonnull
+        @NotNull
         public SegmentNodeStore build() {
             checkState(!isCreated);
             isCreated = true;
@@ -121,8 +119,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
             return new SegmentNodeStore(this);
         }
 
-        @Nonnull
-        private static String getString(@CheckForNull BlobStore blobStore) {
+        @NotNull
+        private static String getString(@Nullable BlobStore blobStore) {
             return "blobStore=" + (blobStore == null ? "inline" : blobStore);
         }
         
@@ -134,11 +132,11 @@ public class SegmentNodeStore implements NodeStore, Observable {
         }
     }
 
-    @Nonnull
+    @NotNull
     public static SegmentNodeStoreBuilder builder(
-            @Nonnull Revisions revisions,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer,
+            @NotNull Revisions revisions,
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer,
             @Nullable BlobStore blobStore) {
         return new SegmentNodeStoreBuilder(checkNotNull(revisions),
                 checkNotNull(reader), checkNotNull(writer), blobStore);
@@ -148,13 +146,13 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     public static final String CHECKPOINTS = "checkpoints";
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
 
-    @Nonnull
+    @NotNull
     private final Scheduler scheduler;
 
-    @CheckForNull
+    @Nullable
     private final BlobStore blobStore;
     
     private final SegmentNodeStoreStats stats;
@@ -180,23 +178,23 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return () -> {};
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public NodeState getRoot() {
         return scheduler.getHeadNodeState().getChildNode(ROOT);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public NodeState merge(
-            @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nonnull CommitInfo info) throws CommitFailedException {
+            @NotNull NodeBuilder builder, @NotNull CommitHook commitHook,
+            @NotNull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkArgument(((SegmentNodeBuilder) builder).isRootBuilder());
         return scheduler.schedule(new Commit(builder, commitHook, info));
     }
 
-    @Override @Nonnull
-    public NodeState rebase(@Nonnull NodeBuilder builder) {
+    @Override @NotNull
+    public NodeState rebase(@NotNull NodeBuilder builder) {
         checkArgument(builder instanceof SegmentNodeBuilder);
 
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
@@ -213,8 +211,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return snb.getNodeState();
     }
 
-    @Override @Nonnull
-    public NodeState reset(@Nonnull NodeBuilder builder) {
+    @Override @NotNull
+    public NodeState reset(@NotNull NodeBuilder builder) {
         checkArgument(builder instanceof SegmentNodeBuilder);
 
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
@@ -225,14 +223,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return root;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return new SegmentBlob(blobStore, writer.writeStream(stream));
     }
 
     @Override
-    public Blob getBlob(@Nonnull String reference) {
+    public Blob getBlob(@NotNull String reference) {
         //Use of 'reference' here is bit overloaded. In terms of NodeStore API
         //a blob reference refers to the secure reference obtained from Blob#getReference()
         //However in SegmentStore terminology a blob is referred via 'external reference'
@@ -248,20 +246,20 @@ public class SegmentNodeStore implements NodeStore, Observable {
                 "without specifying BlobStore");
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+    public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
         return scheduler.checkpoint(lifetime, properties);
     }
 
-    @Override @Nonnull
+    @Override @NotNull
     public synchronized String checkpoint(long lifetime) {
         return checkpoint(lifetime, Collections.<String, String>emptyMap());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+    public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
         Map<String, String> properties = newHashMap();
         checkNotNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState()
@@ -276,14 +274,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return properties;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterable<String> checkpoints() {
         return getCheckpoints().getChildNodeNames();
     }
 
-    @Override @CheckForNull
-    public NodeState retrieve(@Nonnull String checkpoint) {
+    @Override @Nullable
+    public NodeState retrieve(@NotNull String checkpoint) {
         checkNotNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState()
                 .getChildNode("checkpoints")
@@ -296,7 +294,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public boolean release(@Nonnull String checkpoint) {
+    public boolean release(@NotNull String checkpoint) {
         return scheduler.removeCheckpoint(checkpoint);
     }
 

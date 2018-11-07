@@ -22,16 +22,15 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Random;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.jetbrains.annotations.NotNull;
 
 public class SegmentIdTableBenchmark {
 
     private static SegmentIdFactory newSegmentIdMaker(final SegmentStore store) {
         return new SegmentIdFactory() {
 
-            @Nonnull
+            @NotNull
             @Override
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(store, msb, lsb);

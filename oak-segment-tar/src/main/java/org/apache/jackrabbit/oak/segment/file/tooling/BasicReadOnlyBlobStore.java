@@ -23,10 +23,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Utility BlobStore implementation to be used in tooling that can work with a
@@ -74,12 +73,12 @@ public class BasicReadOnlyBlobStore implements BlobStore {
     }
 
     @Override
-    public String getBlobId(@Nonnull String reference) {
+    public String getBlobId(@NotNull String reference) {
         return reference;
     }
 
     @Override
-    public String getReference(@Nonnull String blobId) {
+    public String getReference(@NotNull String blobId) {
         return blobId;
     }
 }

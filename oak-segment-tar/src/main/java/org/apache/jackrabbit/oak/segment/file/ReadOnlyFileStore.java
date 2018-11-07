@@ -29,14 +29,13 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +52,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
 
     private final TarFiles tarFiles;
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
 
     private ReadOnlyRevisions revisions;
@@ -78,7 +77,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                 memoryMapping);
     }
 
-    ReadOnlyFileStore bind(@Nonnull ReadOnlyRevisions revisions) throws IOException {
+    ReadOnlyFileStore bind(@NotNull ReadOnlyRevisions revisions) throws IOException {
         this.revisions = revisions;
         this.revisions.bind(this, tracker);
         currentHead = revisions.getHead();
@@ -108,7 +107,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Segment readSegment(final SegmentId id) {
         try {
             return segmentCache.getSegment(id, new Callable<Segment>() {
@@ -132,7 +131,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         log.info("TarMK closed: {}", directory);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentWriter getWriter() {
         return writer;

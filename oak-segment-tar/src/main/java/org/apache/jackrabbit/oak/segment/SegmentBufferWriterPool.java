@@ -31,12 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
@@ -73,34 +72,34 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      */
     private final Set<SegmentBufferWriter> disposedOldGen = newHashSet();
 
-    @Nonnull
+    @NotNull
     private final SegmentIdProvider idProvider;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final Supplier<GCGeneration> gcGeneration;
 
-    @Nonnull
+    @NotNull
     private final String wid;
 
     private short writerId = -1;
 
     public SegmentBufferWriterPool(
-            @Nonnull SegmentIdProvider idProvider,
-            @Nonnull SegmentReader reader,
-            @Nonnull String wid,
-            @Nonnull Supplier<GCGeneration> gcGeneration) {
+            @NotNull SegmentIdProvider idProvider,
+            @NotNull SegmentReader reader,
+            @NotNull String wid,
+            @NotNull Supplier<GCGeneration> gcGeneration) {
         this.idProvider = checkNotNull(idProvider);
         this.reader = checkNotNull(reader);
         this.wid = checkNotNull(wid);
         this.gcGeneration = checkNotNull(gcGeneration);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
         SegmentBufferWriter writer = borrowWriter(currentThread());
         try {
             return writeOperation.execute(writer);
@@ -110,7 +109,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
     }
 
     @Override
-    public void flush(@Nonnull SegmentStore store) throws IOException {
+    public void flush(@NotNull SegmentStore store) throws IOException {
         List<SegmentBufferWriter> toFlush = newArrayList();
         List<SegmentBufferWriter> toReturn = newArrayList();
 
@@ -158,7 +157,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
      * Create a {@code Guard} that is satisfied if and only if {@link #disposed}
      * contains all items in {@code toReturn}
      */
-    @Nonnull
+    @NotNull
     private Guard allReturned(final List<SegmentBufferWriter> toReturn) {
         return new Guard(poolMonitor) {
 

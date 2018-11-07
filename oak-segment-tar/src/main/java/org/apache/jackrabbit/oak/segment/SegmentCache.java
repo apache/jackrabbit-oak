@@ -26,14 +26,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.RemovalNotification;
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.segment.CacheWeights.SegmentCacheWeigher;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A cache for {@link SegmentId#isDataSegmentId() data} {@link Segment}
@@ -60,14 +59,14 @@ public class SegmentCache {
     /**
      * Cache of recently accessed segments
      */
-    @Nonnull
+    @NotNull
     private final Cache<SegmentId, Segment> cache;
 
     /**
      * Statistics of this cache. Do to the special access patter (see class
      * comment), we cannot rely on {@link Cache#stats()}.
      */
-    @Nonnull
+    @NotNull
     private final Stats stats = new Stats("Segment Cache");
 
     /**
@@ -88,7 +87,7 @@ public class SegmentCache {
     /**
      * Removal handler called whenever an item is evicted from the cache.
      */
-    private void onRemove(@Nonnull RemovalNotification<SegmentId, Segment> notification) {
+    private void onRemove(@NotNull RemovalNotification<SegmentId, Segment> notification) {
         stats.evictionCount.incrementAndGet();
         if (notification.getValue() != null) {
             stats.currentWeight.addAndGet(-segmentWeight(notification.getValue()));
@@ -107,8 +106,8 @@ public class SegmentCache {
      * @return the segment identified by {@code id}
      * @throws ExecutionException when {@code loader} failed to load an segment
      */
-    @Nonnull
-    public Segment getSegment(@Nonnull final SegmentId id, @Nonnull final Callable<Segment> loader) throws ExecutionException {
+    @NotNull
+    public Segment getSegment(@NotNull final SegmentId id, @NotNull final Callable<Segment> loader) throws ExecutionException {
         if (id.isDataSegmentId()) {
             return cache.get(id, () -> {
                 try {
@@ -140,7 +139,7 @@ public class SegmentCache {
      *
      * @param segment the segment to cache
      */
-    public void putSegment(@Nonnull Segment segment) {
+    public void putSegment(@NotNull Segment segment) {
         SegmentId id = segment.getSegmentId();
 
         if (id.isDataSegmentId()) {
@@ -166,7 +165,7 @@ public class SegmentCache {
     /**
      * @return Statistics for this cache.
      */
-    @Nonnull
+    @NotNull
     public AbstractCacheStats getCacheStats() {
         return stats;
     }
@@ -187,28 +186,28 @@ public class SegmentCache {
      */
     private class Stats extends AbstractCacheStats {
 
-        @Nonnull
+        @NotNull
         final AtomicLong currentWeight = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong loadSuccessCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicInteger loadExceptionCount = new AtomicInteger();
 
-        @Nonnull
+        @NotNull
         final AtomicLong loadTime = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong evictionCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong hitCount = new AtomicLong();
 
-        @Nonnull
+        @NotNull
         final AtomicLong missCount = new AtomicLong();
 
-        protected Stats(@Nonnull String name) {
+        protected Stats(@NotNull String name) {
             super(name);
         }
 

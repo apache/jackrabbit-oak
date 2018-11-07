@@ -29,9 +29,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
@@ -56,6 +53,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,10 +101,10 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return !entries.isEmpty();
     }
 
-    @Nonnull
+    @NotNull
     final SegmentTracker tracker;
 
-    @Nonnull
+    @NotNull
     final CachingSegmentReader segmentReader;
 
     final File directory;
@@ -114,7 +113,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     final boolean memoryMapping;
 
-    @Nonnull
+    @NotNull
     final SegmentCache segmentCache;
 
     final TarRecovery recovery = new TarRecovery() {
@@ -131,7 +130,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
-            @Override @Nonnull
+            @Override @NotNull
             public SegmentId newSegmentId(long msb, long lsb) {
                 return new SegmentId(AbstractFileStore.this, msb, lsb, segmentCache::recordHit);
             }
@@ -150,30 +149,30 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         return new SegmentNotFoundException(id, e);
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getSegmentCacheStats() {
         return segmentCache.getCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getStringCacheStats() {
         return segmentReader.getStringCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public CacheStatsMBean getTemplateCacheStats() {
         return segmentReader.getTemplateCacheStats();
     }
 
-    @Nonnull
+    @NotNull
     public abstract SegmentWriter getWriter();
 
-    @Nonnull
+    @NotNull
     public SegmentReader getReader() {
         return segmentReader;
     }
 
-    @Nonnull
+    @NotNull
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
@@ -191,7 +190,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * </pre>
      * @return the current head node state
      */
-    @Nonnull
+    @NotNull
     public SegmentNodeState getHead() {
         return segmentReader.readHeadState(getRevisions());
     }
@@ -199,7 +198,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     /**
      * @return  the external BlobStore (if configured) with this store, {@code null} otherwise.
      */
-    @CheckForNull
+    @Nullable
     public BlobStore getBlobStore() {
         return blobStore;
     }

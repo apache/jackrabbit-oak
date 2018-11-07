@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A factory for {@link SegmentId} given their representation in MSB/LSB longs.
@@ -38,7 +38,7 @@ public interface SegmentIdFactory {
      * @return An instance of {@link SegmentId}. The returned instance is never
      * {@code null}.
      */
-    @Nonnull
+    @NotNull
     SegmentId newSegmentId(long msb, long lsb);
 
 }

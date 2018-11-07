@@ -27,8 +27,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.segment.Segment.RecordConsumer;
@@ -36,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -77,12 +76,12 @@ public class BlobIdRecordTest {
         }
 
         @Override
-        public String getBlobId(@Nonnull String s) {
+        public String getBlobId(@NotNull String s) {
             return bs.getBlobId(s);
         }
 
         @Override
-        public String getReference(@Nonnull String s) {
+        public String getReference(@NotNull String s) {
             return bs.getBlobId(mapId(s));
         }
 

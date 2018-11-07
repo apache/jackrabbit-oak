@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Instances of {@code SegmentReader} are responsible for reading records from segments.
@@ -38,51 +38,51 @@ public interface SegmentReader {
      * Read the string identified by {@code id}.
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    String readString(@Nonnull RecordId id);
+    @NotNull
+    String readString(@NotNull RecordId id);
 
     /**
      * Read the map identified by {@code id}.
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    MapRecord readMap(@Nonnull RecordId id);
+    @NotNull
+    MapRecord readMap(@NotNull RecordId id);
 
     /**
      * Read the template identified by {@code id}.
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    Template readTemplate(@Nonnull RecordId id);
+    @NotNull
+    Template readTemplate(@NotNull RecordId id);
 
     /**
      * Read the node identified by {@code id}.
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    SegmentNodeState readNode(@Nonnull RecordId id);
+    @NotNull
+    SegmentNodeState readNode(@NotNull RecordId id);
 
     /**
      * Read the current head state based on the head of {@code revisions}
      * @param revisions
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    SegmentNodeState readHeadState(@Nonnull Revisions revisions);
+    @NotNull
+    SegmentNodeState readHeadState(@NotNull Revisions revisions);
 
     /**
      * Read the property identified by {@code id} and {@code template}
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
+    @NotNull
     SegmentPropertyState readProperty(
-            @Nonnull RecordId id,
-            @Nonnull PropertyTemplate template);
+            @NotNull RecordId id,
+            @NotNull PropertyTemplate template);
 
     /**
      * Read the blob identified by {@code id}.
      * @throws SegmentNotFoundException  see class comment for exception semantics
      */
-    @Nonnull
-    SegmentBlob readBlob(@Nonnull RecordId id);
+    @NotNull
+    SegmentBlob readBlob(@NotNull RecordId id);
 }

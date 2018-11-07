@@ -23,13 +23,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +51,10 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     @Nullable
     private final BlobStore blobStore;
 
-    @Nonnull
+    @NotNull
     private final SegmentReader reader;
 
-    @Nonnull
+    @NotNull
     private final SegmentWriter writer;
 
     /**
@@ -73,10 +72,10 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private long updateCount;
 
     SegmentNodeBuilder(
-            @Nonnull SegmentNodeState base,
+            @NotNull SegmentNodeState base,
             @Nullable BlobStore blobStore,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer) {
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer) {
         super(base);
         this.blobStore = blobStore;
         this.reader = reader;
@@ -85,11 +84,11 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     }
 
     private SegmentNodeBuilder(
-            @Nonnull SegmentNodeBuilder parent,
-            @Nonnull String name,
+            @NotNull SegmentNodeBuilder parent,
+            @NotNull String name,
             @Nullable BlobStore blobStore,
-            @Nonnull SegmentReader reader,
-            @Nonnull SegmentWriter writer) {
+            @NotNull SegmentReader reader,
+            @NotNull SegmentWriter writer) {
         super(parent, name);
         this.blobStore = blobStore;
         this.reader = reader;
@@ -124,7 +123,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     //-------------------------------------------------------< NodeBuilder >--
 
-    @Nonnull
+    @NotNull
     @Override
     public SegmentNodeState getNodeState() {
         try {

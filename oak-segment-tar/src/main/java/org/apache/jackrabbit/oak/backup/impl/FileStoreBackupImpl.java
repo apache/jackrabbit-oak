@@ -24,8 +24,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
@@ -44,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,7 @@ public class FileStoreBackupImpl implements FileStoreBackup {
     public static final boolean USE_FAKE_BLOBSTORE = Boolean.getBoolean("oak.backup.UseFakeBlobStore");
 
     @Override
-    public void backup(@Nonnull SegmentReader reader, @Nonnull Revisions revisions, @Nonnull File destination) throws IOException, InvalidFileStoreVersionException {
+    public void backup(@NotNull SegmentReader reader, @NotNull Revisions revisions, @NotNull File destination) throws IOException, InvalidFileStoreVersionException {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions().setOffline();
 

@@ -30,13 +30,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 public class LockBasedSchedulerCheckpointTest {
@@ -156,7 +155,7 @@ public class LockBasedSchedulerCheckpointTest {
         a.setProperty(property, value);
         Commit blockingCommit = new Commit(a, new CommitHook() {
             @Override
-            @Nonnull
+            @NotNull
             public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) {
                 try {
                     callable.call();
