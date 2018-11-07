@@ -40,7 +40,6 @@ import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -51,6 +50,7 @@ import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -231,7 +231,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     //--------------------------------------------< Blob Reference >
 
     @Override
-    public String getReference(@Nonnull String blobId) {
+    public String getReference(@NotNull String blobId) {
         checkNotNull(blobId, "BlobId must be specified");
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
@@ -248,7 +248,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     }
 
     @Override
-    public String getBlobId(@Nonnull String reference) {
+    public String getBlobId(@NotNull String reference) {
         checkNotNull(reference, "BlobId must be specified");
         int colon = reference.indexOf(':');
         if (colon != -1) {
