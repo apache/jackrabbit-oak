@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.net.ssl.SSLContext;
@@ -80,6 +77,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +141,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
      * Constructor for non-OSGi cases.
      * @param config the configuration
      */
-    public LdapIdentityProvider(@Nonnull LdapProviderConfig config) {
+    public LdapIdentityProvider(@NotNull LdapProviderConfig config) {
         this.config = config;
         init();
     }
@@ -185,9 +184,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
     //----------------------------------------------< PrincipalNameResolver >---
-    @Nonnull
+    @NotNull
     @Override
-    public String fromExternalIdentityRef(@Nonnull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
+    public String fromExternalIdentityRef(@NotNull ExternalIdentityRef externalIdentityRef) throws ExternalIdentityException {
         if (!isMyRef(externalIdentityRef)) {
             throw new ExternalIdentityException("Foreign IDP " + externalIdentityRef.getString());
         }
@@ -195,14 +194,14 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
     //-------------------------------------------< ExternalIdentityProvider >---
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return config.getName();
     }
 
     @Override
-    public ExternalIdentity getIdentity(@Nonnull ExternalIdentityRef ref) throws ExternalIdentityException {
+    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException {
         if (!isMyRef(ref)) {
             return null;
         }
@@ -243,7 +242,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
     @Override
-    public ExternalUser getUser(@Nonnull String userId) throws ExternalIdentityException {
+    public ExternalUser getUser(@NotNull String userId) throws ExternalIdentityException {
         DebugTimer timer = new DebugTimer();
         LdapConnection connection = connect();
         timer.mark("connect");
@@ -266,7 +265,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
     @Override
-    public ExternalGroup getGroup(@Nonnull String name) throws ExternalIdentityException {
+    public ExternalGroup getGroup(@NotNull String name) throws ExternalIdentityException {
         DebugTimer timer = new DebugTimer();
         LdapConnection connection = connect();
         timer.mark("connect");
@@ -288,7 +287,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
         try {
@@ -312,7 +311,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
         try {
@@ -337,7 +336,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
     @Override
-    public ExternalUser authenticate(@Nonnull Credentials credentials) throws ExternalIdentityException, LoginException {
+    public ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException {
         if (!(credentials instanceof SimpleCredentials)) {
             log.debug("LDAP IDP can only authenticate SimpleCredentials.");
             return null;
@@ -555,7 +554,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
      * Creates a new connection config based on the config.
      * @return the connection config.
      */
-    @Nonnull
+    @NotNull
     private LdapConnectionConfig createConnectionConfig() {
         LdapConnectionConfig cc = new LdapConnectionConfig();
         cc.setLdapHost(config.getHostname());
@@ -575,8 +574,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         return cc;
     }
 
-    @CheckForNull
-    private Entry getEntry(@Nonnull LdapConnection connection, @Nonnull LdapProviderConfig.Identity idConfig, @Nonnull String id, @Nonnull String[] customAttributes)
+    @Nullable
+    private Entry getEntry(@NotNull LdapConnection connection, @NotNull LdapProviderConfig.Identity idConfig, @NotNull String id, @NotNull String[] customAttributes)
             throws CursorException, LdapException {
         String searchFilter = idConfig.getSearchFilter(id);
 
@@ -632,8 +631,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     }
 
 
-    @Nonnull
-    private SearchResultIterator getEntryIterator(@Nonnull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
+    @NotNull
+    private SearchResultIterator getEntryIterator(@NotNull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
         StringBuilder filter = new StringBuilder();
         int num = 0;
         for (String objectClass: idConfig.getObjectClasses()) {
@@ -665,8 +664,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         private int pos = -1;
 
         public SearchResultIterator(
-                @Nonnull String searchFilter,
-                @Nonnull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
+                @NotNull String searchFilter,
+                @NotNull LdapProviderConfig.Identity idConfig) throws LdapException, CursorException, ExternalIdentityException {
             this.searchFilter = searchFilter;
             this.idConfig = idConfig;
             findNextEntry();
@@ -700,7 +699,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
 
         //-------------------------------------------------------< internal >---
 
-        private SearchRequest createSearchRequest(LdapConnection connection, byte[] cookie, @Nonnull String[] userAttributes) throws LdapException {
+        private SearchRequest createSearchRequest(LdapConnection connection, byte[] cookie, @NotNull String[] userAttributes) throws LdapException {
             SearchRequest req = new SearchRequestImpl();
             req.setScope(SearchScope.SUBTREE);
             if (userAttributes.length == 0) {
@@ -788,20 +787,20 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         }
     }
 
-    @Nonnull
-    private ExternalUser createUser(@Nonnull Entry entry, @CheckForNull String id)
+    @NotNull
+    private ExternalUser createUser(@NotNull Entry entry, @Nullable String id)
             throws LdapInvalidAttributeValueException {
         return (ExternalUser) createIdentity(entry, id, false);
     }
 
-    @Nonnull
-    private ExternalGroup createGroup(@Nonnull Entry entry, @CheckForNull String id)
+    @NotNull
+    private ExternalGroup createGroup(@NotNull Entry entry, @Nullable String id)
             throws LdapInvalidAttributeValueException {
         return (ExternalGroup) createIdentity(entry, id, true);
     }
 
-    @Nonnull
-    private ExternalIdentity createIdentity(@Nonnull Entry entry, @CheckForNull String id, boolean isGroup)
+    @NotNull
+    private ExternalIdentity createIdentity(@NotNull Entry entry, @Nullable String id, boolean isGroup)
             throws LdapInvalidAttributeValueException {
         LdapProviderConfig.Identity cfg = isGroup ? config.getGroupConfig() : config.getUserConfig();
         if (id == null) {
@@ -845,7 +844,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         }
     }
 
-    @Nonnull
+    @NotNull
     private LdapConnection connect() throws ExternalIdentityException {
         try {
             if (adminPool == null) {
@@ -874,7 +873,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         }
     }
 
-    private boolean isMyRef(@Nonnull ExternalIdentityRef ref) {
+    private boolean isMyRef(@NotNull ExternalIdentityRef ref) {
         final String refProviderName = ref.getProviderName();
         return refProviderName == null || refProviderName.isEmpty() || getName().equals(refProviderName);
     }
@@ -895,7 +894,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         return path.toString();
     }
 
-    private static ExternalIdentityException lookupFailedException(@Nonnull Exception e, @CheckForNull DebugTimer timer) {
+    private static ExternalIdentityException lookupFailedException(@NotNull Exception e, @Nullable DebugTimer timer) {
         String msg = "Error during ldap lookup. ";
         log.error(msg + ((timer != null) ? timer.getString() : ""), e);
         return new ExternalIdentityException(msg, e);
