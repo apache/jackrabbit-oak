@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Same as {@link MemberBaseTest} but only reading the declared membership.
@@ -31,7 +30,7 @@ public class MemberMemberOf extends MemberBaseTest {
     }
 
     @Override
-    protected void testMembership(@Nonnull Group g, @Nonnull User member) throws Exception {
+    protected void testMembership(@NotNull Group g, @NotNull User member) throws Exception {
         member.memberOf();
     }
 }

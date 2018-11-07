@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -45,7 +45,7 @@ public class CugTest extends ReadDeepTreeTest {
     private final ConfigurationParameters params;
     private final boolean reverseOrder;
 
-    protected CugTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @Nonnull List<String> supportedPaths, boolean reverseOrder) {
+    protected CugTest(boolean runAsAdmin, int itemsToRead, boolean singleSession, @NotNull List<String> supportedPaths, boolean reverseOrder) {
         super(runAsAdmin, itemsToRead, false, singleSession);
         this.params = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
                     "cugSupportedPaths", supportedPaths.toArray(new String[supportedPaths.size()]),
@@ -81,7 +81,7 @@ public class CugTest extends ReadDeepTreeTest {
         return newTestSecurityProvider(params, reverseOrder);
     }
 
-    private static SecurityProvider newTestSecurityProvider(@Nonnull ConfigurationParameters params,
+    private static SecurityProvider newTestSecurityProvider(@NotNull ConfigurationParameters params,
             boolean reverseOrder) {
         SecurityProvider delegate = new SecurityProviderBuilder().with(params).build();
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate

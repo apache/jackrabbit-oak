@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -30,6 +29,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ public abstract class SearchScalabilityBenchmark extends ScalabilityBenchmark {
         }
     }
 
-    protected abstract Query getQuery(@Nonnull final QueryManager qm, ExecutionContext context) 
+    protected abstract Query getQuery(@NotNull final QueryManager qm, ExecutionContext context) 
             throws RepositoryException;
 }
 

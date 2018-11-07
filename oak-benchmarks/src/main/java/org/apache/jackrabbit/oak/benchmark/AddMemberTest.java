@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Test the performance of adding a configured number of members to groups. The
@@ -48,7 +48,7 @@ public class AddMemberTest extends AddMembersTest {
     }
 
     @Override
-    protected void createUsers(@Nonnull UserManager userManager) throws Exception {
+    protected void createUsers(@NotNull UserManager userManager) throws Exception {
         for (int i = 0; i <= numberOfMembers; i++) {
             String id = USER + i;
             User u = userManager.createUser(id, null, new PrincipalImpl(id), REL_TEST_PATH);
@@ -57,7 +57,7 @@ public class AddMemberTest extends AddMembersTest {
     }
 
     @Override
-    protected void addMembers(@Nonnull UserManager userManager, @Nonnull Group group, @Nonnull Session s) throws Exception {
+    protected void addMembers(@NotNull UserManager userManager, @NotNull Group group, @NotNull Session s) throws Exception {
         int j = 1;
         for (int i = 0; i <= numberOfMembers; i++) {
             String userPath = userPaths.get(random.nextInt(numberOfMembers));
