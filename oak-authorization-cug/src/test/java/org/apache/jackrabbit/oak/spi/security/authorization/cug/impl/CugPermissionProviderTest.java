@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
@@ -43,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -158,7 +158,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         }
     }
 
-    private static void assertPrivilegeBits(@Nonnull PrivilegeBits expected, @Nonnull PrivilegeBits toTest) {
+    private static void assertPrivilegeBits(@NotNull PrivilegeBits expected, @NotNull PrivilegeBits toTest) {
         assertEquals(expected, toTest.unmodifiable());
     }
 

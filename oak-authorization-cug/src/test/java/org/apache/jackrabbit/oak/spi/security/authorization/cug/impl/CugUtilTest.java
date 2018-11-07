@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import javax.annotation.Nonnull;
-
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -32,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -60,8 +59,8 @@ public class CugUtilTest extends AbstractCugTest {
         }
     }
 
-    @Nonnull
-    private static NodeState getNodeState(@Nonnull Tree tree) {
+    @NotNull
+    private static NodeState getNodeState(@NotNull Tree tree) {
         return ((AbstractTree) tree).getNodeState();
     }
 

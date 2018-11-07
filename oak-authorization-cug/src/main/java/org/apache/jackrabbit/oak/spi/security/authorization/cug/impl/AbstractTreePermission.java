@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 abstract class AbstractTreePermission implements TreePermission {
 
@@ -29,15 +28,15 @@ abstract class AbstractTreePermission implements TreePermission {
     final TreeType type;
     final CugPermissionProvider permissionProvider;
 
-    AbstractTreePermission(@Nonnull Tree tree, @Nonnull TreeType type, @Nonnull CugPermissionProvider permissionProvider) {
+    AbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull CugPermissionProvider permissionProvider) {
         this.tree = tree;
         this.type = type;
         this.permissionProvider = permissionProvider;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
+    public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
         return permissionProvider.getTreePermission(tree, type, childName, childState, this);
     }
 }

@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
@@ -70,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
@@ -117,25 +117,25 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         super();
     }
 
-    public CugConfiguration(@Nonnull SecurityProvider securityProvider) {
+    public CugConfiguration(@NotNull SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public AccessControlManager getAccessControlManager(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RestrictionProvider getRestrictionProvider() {
         return RestrictionProvider.EMPTY;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public PermissionProvider getPermissionProvider(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals) {
+    public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName, @NotNull Set<Principal> principals) {
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
@@ -146,13 +146,13 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getName() {
         return AuthorizationConfiguration.NAME;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return builder -> {
@@ -168,25 +168,25 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         };
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends CommitHook> getCommitHooks(@Nonnull String workspaceName) {
+    public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
         return Collections.singletonList(new NestedCugHook());
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<? extends ValidatorProvider> getValidators(@Nonnull String workspaceName, @Nonnull Set<Principal> principals, @Nonnull MoveTracker moveTracker) {
+    public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         return ImmutableList.of(new CugValidatorProvider());
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return Collections.<ProtectedItemImporter>singletonList(new CugImporter(mountInfoProvider));
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Context getContext() {
         return CugContext.INSTANCE;
@@ -226,12 +226,12 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
+    @NotNull
     private CugExclude getExclude() {
         return (exclude == null) ? new CugExclude.Default() : exclude;
     }
 
-    static boolean registerCugNodeTypes(@Nonnull final Root root) {
+    static boolean registerCugNodeTypes(@NotNull final Root root) {
         try {
             ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
                 @Override
