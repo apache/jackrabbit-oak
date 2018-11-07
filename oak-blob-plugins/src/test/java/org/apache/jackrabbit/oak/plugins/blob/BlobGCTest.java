@@ -37,9 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -69,6 +66,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -360,7 +359,7 @@ public class BlobGCTest {
             public String getContentIdentity() {
                 return id;
             }
-            @Nonnull
+            @NotNull
             @Override
             public InputStream getNewStream() {
                 try {
@@ -471,11 +470,11 @@ public class BlobGCTest {
             return null;
         }
 
-        @CheckForNull @Override public String getBlobId(@Nonnull String reference) {
+        @Nullable @Override public String getBlobId(@NotNull String reference) {
             return reference;
         }
 
-        @CheckForNull @Override public String getReference(@Nonnull String blobId) {
+        @Nullable @Override public String getReference(@NotNull String blobId) {
             return blobId;
         }
 
