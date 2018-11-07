@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import javax.annotation.CheckForNull;
-
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
@@ -47,12 +45,13 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 
 public class BlobStoreFixtureProvider {
 
-    @CheckForNull
+    @Nullable
     public static BlobStoreFixture create(Options options) throws Exception{
         BlobStoreOptions bsopts = options.getOptionBean(BlobStoreOptions.class);
 

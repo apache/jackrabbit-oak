@@ -23,8 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import javax.annotation.Nullable;
-
 import com.google.common.base.Function;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.Cache;
@@ -44,6 +42,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Helper class to access package private method of DocumentNodeStore and other
