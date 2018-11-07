@@ -18,7 +18,7 @@
 /**
  * Oak repository API
  */
-@Version("3.1.1")
+@Version("3.1.2")
 package org.apache.jackrabbit.oak.api;
 
 import org.osgi.annotation.versioning.Version;
