@@ -22,6 +22,7 @@ import static com.google.common.collect.ImmutableList.of;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
@@ -40,11 +41,14 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
@@ -66,6 +70,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadOnlyNamespaceRegistry;
+import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeDefDiff;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -75,9 +80,12 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class NodeTypeRegistryTest {
@@ -222,5 +230,55 @@ public class NodeTypeRegistryTest {
 
         NodeTypeDefDiff diff = NodeTypeDefDiff.create(beforeDef, afterDef);
         assertFalse(diff.isMajor());
+    }
+
+    // OAK-7886
+    @Ignore("OAK-7886")
+    @Test
+    public void reRegisterNtResource() throws Exception {
+        NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+            @Override
+            protected Tree getTypes() {
+                return root.getTree(NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+        };
+        ValueFactory vf = new ValueFactoryImpl(
+                root, new NamePathMapperImpl(new GlobalNameMapper(root)));
+        NamespaceRegistry nsReg = new ReadWriteNamespaceRegistry(root) {
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+        };
+        DefinitionBuilderFactory<NodeTypeTemplate, NamespaceRegistry> factory
+                = new TemplateBuilderFactory(ntMgr, vf, nsReg);
+
+        NodeType ntResource = ntMgr.getNodeType(NT_RESOURCE);
+        List<String> supertypeNames = Arrays.asList(ntResource.getDeclaredSupertypeNames());
+        assertThat(supertypeNames, hasItem(NT_BASE));
+
+        List<NodeTypeTemplate> templates;
+        InputStream in = NodeTypeRegistryTest.class.getResourceAsStream("ntResource.cnd");
+        try {
+            CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry> reader
+                    = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(
+                    new InputStreamReader(in, UTF_8), "ntResource.cnd", factory);
+            templates = reader.getNodeTypeDefinitions();
+        } finally {
+            in.close();
+        }
+        for (NodeTypeTemplate t : templates) {
+            ntMgr.registerNodeType(t, true);
+        }
+
+        ntResource = ntMgr.getNodeType(NT_RESOURCE);
+        supertypeNames = Arrays.asList(ntResource.getDeclaredSupertypeNames());
+        assertThat(supertypeNames, hasItem(NT_BASE));
     }
 }
