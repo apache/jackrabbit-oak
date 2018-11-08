@@ -80,7 +80,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -233,7 +232,6 @@ public class NodeTypeRegistryTest {
     }
 
     // OAK-7886
-    @Ignore("OAK-7886")
     @Test
     public void reRegisterNtResource() throws Exception {
         NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
