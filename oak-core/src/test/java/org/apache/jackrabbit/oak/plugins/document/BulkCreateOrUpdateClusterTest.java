@@ -31,12 +31,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
+import ch.qos.logback.classic.Level;
+
 public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTest {
-    
+
     final Logger logger = LoggerFactory.getLogger(getClass());
 
     public BulkCreateOrUpdateClusterTest(DocumentStoreFixture dsf) {
@@ -202,4 +208,64 @@ public class BulkCreateOrUpdateClusterTest extends AbstractMultiDocumentStoreTes
         }
     }
 
+    @Test
+    public void testSimpleConflictHandling() {
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.DEBUG)
+                .contains("invalidating cache and retrying").create();
+        logCustomizer.starting();
+
+        try {
+            String id1 = this.getClass().getName() + ".testSimpleConflictHandling1";
+            String id2 = this.getClass().getName() + ".testSimpleConflictHandling2";
+            String id3 = this.getClass().getName() + ".testSimpleConflictHandling3";
+
+            removeMe.add(id1);
+            removeMe.add(id2);
+            removeMe.add(id3);
+
+            {
+                UpdateOp op1a = new UpdateOp(id1, true);
+                op1a.set("foo", 1);
+                UpdateOp op2a = new UpdateOp(id2, true);
+                op2a.set("foo", 1);
+                UpdateOp op3a = new UpdateOp(id3, true);
+                op3a.set("foo", 1);
+
+                List<NodeDocument> resulta = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1a, op2a, op3a));
+                assertEquals(3, resulta.size());
+            }
+
+            {
+                UpdateOp op2b = new UpdateOp(id2, false);
+                op2b.increment("foo", 1);
+                NodeDocument prev2 = ds2.createOrUpdate(Collection.NODES, op2b);
+                assertNotNull(prev2);
+                assertEquals(1L, ((Long)prev2.get("foo")).longValue());
+            }
+
+            {
+                UpdateOp op1c = new UpdateOp(id1, true);
+                op1c.increment("foo", 1);
+                UpdateOp op2c = new UpdateOp(id2, true);
+                op2c.increment("foo", 1);
+                UpdateOp op3c = new UpdateOp(id3, true);
+                op3c.increment("foo", 1);
+
+                List<NodeDocument> resultc = ds1.createOrUpdate(Collection.NODES, Lists.newArrayList(op1c, op2c, op3c));
+                assertEquals(3, resultc.size());
+                for (NodeDocument d : resultc) {
+                    Long fooval = (Long) d.get("foo");
+                    assertEquals((d.getId().equals(id2)) ? 2L : 1L, fooval.longValue());
+                }
+            }
+
+            if (ds1 instanceof RDBDocumentStore) {
+                // for RDB, verify that the cache invalidation was reached
+                assertEquals(1, logCustomizer.getLogs().size());
+            }
+        }
+        finally {
+            logCustomizer.finished();
+        }
+    }
 }
