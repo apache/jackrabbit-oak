@@ -115,11 +115,27 @@ public class DataStoreUtils {
 
     @Test
     public void testPropertySetup() throws Exception {
+        final String dsClassName = System.getProperty(DS_CLASS_NAME);
+        final String dsMinRecordLength = System.getProperty("ds.minRecordLength");
+
         System.setProperty(DS_CLASS_NAME, FileDataStore.class.getName());
         System.setProperty("ds.minRecordLength", "1000");
 
         DataStoreBlobStore dbs = getBlobStore();
         assertEquals(1000, dbs.getDataStore().getMinRecordLength());
+
+        // Reset property values (can't set to null, must use clearProperty instead).
+        if (dsClassName == null) {
+            System.clearProperty(DS_CLASS_NAME);
+        } else {
+            System.setProperty(DS_CLASS_NAME, dsClassName);
+        }
+
+        if (dsMinRecordLength == null) {
+            System.clearProperty("ds.minRecordLength");
+        } else {
+            System.setProperty("ds.minRecordLength", dsMinRecordLength);
+        }
     }
 
     public static InputStream randomStream(int seed, long size) {
