@@ -728,6 +728,7 @@ Analyzers can also be composed based on `Tokenizers`, `TokenFilters` and
 ```
     + analyzers
       + default
+        - class = "org.apache.lucene.analysis.standard.StandardAnalyzer"
         + charFilters (nt:unstructured) //The filters needs to be ordered
           + HTMLStrip
           + Mapping
