@@ -723,12 +723,14 @@ the analyzer node
 
 Analyzers can also be composed based on `Tokenizers`, `TokenFilters` and
 `CharFilters`. This is similar to the support provided in Solr where you can
-[configure analyzers in xml][solr-analyzer]
+[configure analyzers in xml][solr-analyzer].
+In this case, the analyzer `class` property needs to be removed.
+The `tokenizer` needs to be specified,
+all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 ```
     + analyzers
       + default
-        - class = "org.apache.lucene.analysis.standard.StandardAnalyzer"
         + charFilters (nt:unstructured) //The filters needs to be ordered
           + HTMLStrip
           + Mapping
