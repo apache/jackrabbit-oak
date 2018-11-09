@@ -354,6 +354,11 @@ isRegexp
     * `jcr:content/metadata/.*` - This property definition is
       applicable for all properties of child node _jcr:content/metadata_
 
+  Note that the regular expression doesn't match intermediate nodes, so,
+  `jcr:content/.*/.*` would *not* index all properties for all children of
+  `jcr:content`. [OAK-5187][OAK-5187] is an open improvement to track supporting
+  arbitrary intermediate child nodes.
+
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
   done for the index value against the given property name. See
@@ -1801,6 +1806,7 @@ such fields
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
+[OAK-5187]: https://issues.apache.org/jira/browse/OAK-5187
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
