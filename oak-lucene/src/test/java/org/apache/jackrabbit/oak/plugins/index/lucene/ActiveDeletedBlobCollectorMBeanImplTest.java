@@ -340,7 +340,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
         editorProvider = new LuceneIndexEditorProvider(null, null,
                 new ExtractedTextCache(0, 0),
                 null, Mounts.defaultMountInfoProvider(),
-                deletedFileTrackingADBC);
+                deletedFileTrackingADBC, null, null);
         repository = new Oak(dns2)
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
