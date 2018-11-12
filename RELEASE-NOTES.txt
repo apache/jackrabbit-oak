@@ -43,7 +43,7 @@ Task
     [OAK-7892] - LogCustomizer should support slf4j log levels
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.7.x release.
+all changes included up to the Apache Jackrabbit Oak 1.9.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
