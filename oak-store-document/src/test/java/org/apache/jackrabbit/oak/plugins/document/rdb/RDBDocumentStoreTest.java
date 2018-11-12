@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
@@ -135,6 +137,49 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             assertThat(info.keySet(), hasItem("journal.count"));
             assertThat(info.keySet(), hasItem("settings.count"));
             // info.forEach((k, v) -> System.err.println(k +": " + v));
+        }
+    }
+
+    @Test
+    public void testRDBJDBCPerfLog() {
+        if (ds instanceof RDBDocumentStore) {
+            LogCustomizer logCustomizerRead = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
+                    .enable(Level.TRACE).matchesRegex("read: .*").create();
+            logCustomizerRead.starting();
+            LogCustomizer logCustomizerQuery = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
+                    .enable(Level.TRACE).matchesRegex("quer.*").create();
+            logCustomizerQuery.starting();
+
+            try {
+                String id1 = Utils.getIdFromPath("/testRDBJDBCPerfLog");
+                String id2 = Utils.getIdFromPath("/testRDBJDBCPerfLog/foo");
+                UpdateOp up1 = new UpdateOp(id1, true);
+                up1.set(NodeDocument.MODIFIED_IN_SECS, 12345L);
+                super.removeMe.add(id1);
+                super.ds.create(Collection.NODES, Collections.singletonList(up1));
+                super.ds.invalidateCache();
+                super.ds.find(Collection.NODES, id1);
+                int count = logCustomizerRead.getLogs().size();
+                assertTrue(count > 0);
+                super.ds.find(Collection.NODES, id1);
+                assertEquals("no new log entry expected but got: " + logCustomizerRead.getLogs(), count,
+                        logCustomizerRead.getLogs().size());
+                count = logCustomizerRead.getLogs().size();
+
+                // add a child node
+                UpdateOp up2 = new UpdateOp(id2, true);
+                up1.set(NodeDocument.MODIFIED_IN_SECS, 12346L);
+                super.removeMe.add(id2);
+                super.ds.create(Collection.NODES, Collections.singletonList(up2));
+
+                // query
+                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit("/testRDBJDBCPerfLog"), Utils.getKeyUpperLimit("/testRDBJDBCPerfLog"), 10);
+                assertEquals(1, results.size());
+                assertEquals(2, logCustomizerQuery.getLogs().size());
+            } finally {
+                logCustomizerRead.finished();
+                logCustomizerQuery.finished();
+            }
         }
     }
 }

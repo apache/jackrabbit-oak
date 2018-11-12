@@ -47,6 +47,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -70,6 +71,8 @@ import com.google.common.collect.Lists;
 public class RDBDocumentStoreJDBC {
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStoreJDBC.class);
+    private static final PerfLogger PERFLOG = new PerfLogger(
+            LoggerFactory.getLogger(RDBDocumentStoreJDBC.class.getName() + ".perf"));
 
     private static final String COLLISIONSMODCOUNT = RDBDocumentStore.COLLISIONSMODCOUNT;
     private static final String MODCOUNT = NodeDocument.MOD_COUNT;
@@ -430,6 +433,10 @@ public class RDBDocumentStoreJDBC {
         }
         ResultSet rs = null;
         try {
+            long pstart = PERFLOG.start(PERFLOG.isDebugEnabled()
+                    ? ("querying: table=" + tmd.getName() + ", minId=" + minId + ", maxId=" + maxId + ", excludeKeyPatterns="
+                            + excludeKeyPatterns + ", conditions=" + conditions + ", limit=" + limit)
+                    : null);
             stmt = prepareQuery(connection, tmd, fields, minId,
                     maxId, excludeKeyPatterns, conditions, limit, "ID");
             rs = stmt.executeQuery();
@@ -455,6 +462,8 @@ public class RDBDocumentStoreJDBC {
                         sdMaxRevTime, data, bdata));
                 dataTotal += data.length();
                 bdataTotal += bdata == null ? 0 : bdata.length;
+                PERFLOG.end(pstart, 10, "queried: table={} -> id={}, modcount={}, modified={}, data={}, bdata={}", tmd.getName(), id,
+                        modcount, modified, (data == null ? 0 : data.length()), (bdata == null ? 0 : bdata.length));
             }
         } finally {
             closeStatement(stmt);
@@ -540,6 +549,7 @@ public class RDBDocumentStoreJDBC {
         private long elapsed = 0;
         private String message = null;
         private long cnt = 0;
+        private long pstart;
 
         public ResultSetIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
                 List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
@@ -564,6 +574,10 @@ public class RDBDocumentStoreJDBC {
                 if (LOG.isDebugEnabled()) {
                     callstack = new Exception("call stack");
                 }
+                pstart = PERFLOG.start(PERFLOG.isDebugEnabled()
+                        ? ("querying: table=" + tmd.getName() + ", minId=" + minId + ", maxId=" + maxId + ", excludeKeyPatterns="
+                                + excludeKeyPatterns + ", conditions=" + conditions + ", limit=" + limit + ", sortBy=" + sortBy)
+                        : null);
             } finally {
                 this.elapsed += (System.currentTimeMillis() - start);
             }
@@ -607,6 +621,9 @@ public class RDBDocumentStoreJDBC {
                     long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                     String data = this.rs.getString(field++);
                     byte[] bdata = this.rs.getBytes(field++);
+                    PERFLOG.end(pstart, 10, "queried: table={} -> id={}, modcount={}, modified={}, data={}, bdata={}",
+                            tmd.getName(), id, modcount, modified, (data == null ? 0 : data.length()),
+                            (bdata == null ? 0 : bdata.length));
                     return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, sdType,
                             sdMaxRevTime, data, bdata);
                 } else {
@@ -721,6 +738,8 @@ public class RDBDocumentStoreJDBC {
         List<RDBRow> rows = new ArrayList<RDBRow>();
 
         for (List<String> keys : Iterables.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
+            long pstart = PERFLOG.start(PERFLOG.isDebugEnabled() ? ("reading: " + keys) : null);
+
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());
             StringBuilder query = new StringBuilder();
             if (tmd.hasSplitDocs()) {
@@ -756,9 +775,13 @@ public class RDBDocumentStoreJDBC {
                     RDBRow row = new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, sdType,
                             sdMaxRevTime, data, bdata);
                     rows.add(row);
+                    PERFLOG.end(pstart, 10, "read: table={}, id={} -> modcount={}, modified={}, data={}, bdata={}", tmd.getName(), id,
+                            modcount, modified, (data == null ? 0 : data.length()), (bdata == null ? 0 : bdata.length));
                 }
             } catch (SQLException ex) {
                 LOG.debug("attempting to read " + keys, ex);
+                PERFLOG.end(pstart, 10, "read: table={} -> exception={}", tmd.getName(), ex.getMessage());
+
                 // DB2 throws an SQLException for invalid keys; handle this more
                 // gracefully
                 if ("22001".equals(ex.getSQLState())) {
@@ -781,6 +804,8 @@ public class RDBDocumentStoreJDBC {
 
     @Nullable
     public RDBRow read(Connection connection, RDBTableMetaData tmd, String id, long lastmodcount, long lastmodified) throws SQLException {
+
+        long pstart = PERFLOG.start();
 
         boolean useCaseStatement = lastmodcount != -1 && lastmodified >= 1;
         StringBuffer sql = new StringBuffer();
@@ -831,13 +856,22 @@ public class RDBDocumentStoreJDBC {
                 long sdMaxRevTime = tmd.hasSplitDocs() ? readLongFromResultSet(rs, field++) : RDBRow.LONG_UNSET;
                 String data = rs.getString(field++);
                 byte[] bdata = rs.getBytes(field++);
+                PERFLOG.end(pstart, 10,
+                        "read: table={}, id={}, lastmodcount={}, lastmodified={} -> modcount={}, modified={}, data={}, bdata={}",
+                        tmd.getName(), id, lastmodcount, lastmodified, modcount, modified, (data == null ? 0 : data.length()),
+                        (bdata == null ? 0 : bdata.length));
                 return new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, sdType, sdMaxRevTime,
                         data, bdata);
             } else {
+                PERFLOG.end(pstart, 10, "read: table={}, id={}, lastmodcount={}, lastmodified={} -> not found", tmd.getName(), id,
+                        lastmodcount, lastmodified);
                 return null;
             }
         } catch (SQLException ex) {
             LOG.debug("attempting to read " + id + " (id length is " + id.length() + ")", ex);
+            PERFLOG.end(pstart, 10, "read: table={}, id={}, lastmodcount={}, lastmodified={} -> exception={}", tmd.getName(), id,
+                    lastmodcount, lastmodified, ex.getMessage());
+
             // DB2 throws an SQLException for invalid keys; handle this more
             // gracefully
             if ("22001".equals(ex.getSQLState())) {
