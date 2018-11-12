@@ -72,7 +72,7 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
             editorProvider =
                 new LuceneIndexEditorProvider(copier, null, new ExtractedTextCache(10 * FileUtils.ONE_MB,
                     100), null,
-                    Mounts.defaultMountInfoProvider(), adbc);
+                    Mounts.defaultMountInfoProvider(), adbc, null, null);
             provider = new LuceneIndexProvider(copier);
 
             OakFileDataStore ds = new OakFileDataStore();
