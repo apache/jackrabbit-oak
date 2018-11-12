@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.9.11</version>
+  <version>1.10-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -1231,10 +1231,4 @@
       </build>
     </profile>
   </profiles>
-
-  <scm>
-    <connection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/tags/jackrabbit-oak-1.9.11/oak-parent</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/tags/jackrabbit-oak-1.9.11/oak-parent</developerConnection>
-    <url>https://svn.apache.org/viewvc/maven/pom/tags/jackrabbit-oak-1.9.11/oak-parent</url>
-  </scm>
 </project>
