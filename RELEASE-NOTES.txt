@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.10
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.11
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.10 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.11 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,82 +15,32 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.10
+Changes in Oak 1.9.11
 --------------------
-
-Technical task
-
-    [OAK-7809] - need to document oak-run for RDB
-    [OAK-7861] - update clustering documentation wrt rdbmk
 
 Bug
 
-    [OAK-7486] - mongo-srv schema doesn't work in OSGi
-    [OAK-7807] - [S3DataStore] S3DataStore unit tests not deleting
-    buckets created during test
-    [OAK-7818] - [DirectBinaryAccess] AzureDataStore not chaining
-    exceptions on upload completion
-    [OAK-7855] - rdbmk: Invalid SplitDocType when run on non-upgraded
-    DB
-    [OAK-7856] - PrincipalPermissionEntries: non-accesscontrolled path
-    must be ignored for fullyLoaded flag
-    [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
-    out metadata objects
-    [OAK-7871] - Broken headers in security documentation
-
-New Feature
-
-    [OAK-7834] - Add a tool to identify super-root nodes
-    [OAK-7849] - CommitHook for recording write operations to the
-    segment store
-    [OAK-7864] - Recording read operations to the segment store
+    [OAK-7605] - Giving multiple result when executing query (for a
+    constraints with OR condition) for Facetextraction
+    [OAK-7608] - Throw exception if all properties name are given
+    wrong for faceting
+    [OAK-7613] - Taking more time for iterating row of query Result
+    which contain Facets
+    [OAK-7877] - Avoid unnecessary operations when logging read
+    operations
+    [OAK-7885] - Performance regression in FlatTreeUpdateTest
+    [OAK-7886] - Re-registering node type may corrupt registry
 
 Improvement
 
-    [OAK-7288] - Change default JAAS ranking of
-    ExternalLoginModuleFactory
-    [OAK-7645] - Update to MongoDB Java driver 3.8
-    [OAK-7813] - PrivilegeBits should also cache default privilege as
-    long values
-    [OAK-7815] - Obscure error message if AZURE_SECRET_KEY env
-    variable is not set for Azure persistence
-    [OAK-7820] - Make internal group principal impl classes static
-    [OAK-7821] - Revisit the need to download Mongo for running IT
-    tests
-    [OAK-7822] - More aggressive internal state cleanup of login
-    modules
-    [OAK-7832] - oak-run console export should handle exceptions such
-    as missing segments
-    [OAK-7860] - Make PermissionEntryCache more resilient against OOME
-    [OAK-7870] - Reduce permission store lookups for empty principal
-    sets
-    [OAK-7872] - Make LoggingHook private to o.a.j.o.segment
+    [OAK-7850] - Indexes that don't support facets being queried
+    should not participate in execution plan
+    [OAK-7873] - Delete o.a.j.o.segment.util.RoleUtils
+    [OAK-7874] - Upgrade docker-junit-rule to version 2.2.2
 
 Task
 
-    [OAK-7795] - Log a debug message when two or more indices have
-    same or very close cost amounts
-    [OAK-7814] - Update tika dependency to 1.19.1
-    [OAK-7823] - examples: use project-wide logback version 1.2.3
-    instead of 1.1.7
-    [OAK-7826] - examples: remove unused slf4f related vars from pom
-    [OAK-7827] - examples: update Spring dependencies to
-    1.5.16.RELEASE
-    [OAK-7828] - Log off heap access for segments when creating
-    FileStore
-    [OAK-7829] - oak-examples: update Tomcat dependency to 7.0.91
-    [OAK-7831] - examples: update htmlunit dependency to 2.33
-    [OAK-7833] - oak-examples/webapp: update groovy dependency
-    [OAK-7836] - Update jackson dependencies to 2.9.7
-    [OAK-7839] - Evaluate exporting of index corruption metrics with
-    Sling Metrics / DropWizard
-    [OAK-7842] - solr: suppress problematic commons-fileupload
-    dependency
-    [OAK-7848] - update maven-bundle-plugin to 3.5.1
-
-Documentation
-
-    [OAK-7233] - Improve rep:glob documentation
+    [OAK-7892] - LogCustomizer should support slf4j log levels
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.7.x release.
