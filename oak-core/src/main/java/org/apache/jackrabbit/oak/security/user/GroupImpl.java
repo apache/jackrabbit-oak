@@ -101,6 +101,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
         AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
         if (isEveryone() || authorizableImpl.isEveryone()) {
+            log.debug("Attempt to add member to everyone group or create membership for it.");
             return false;
         }
 
@@ -137,10 +138,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
             log.warn("Invalid Authorizable: {}", authorizable);
             return false;
         }
-        if (isEveryone()) {
+
+        AuthorizableImpl authorizableImpl = ((AuthorizableImpl) authorizable);
+        if (isEveryone() || authorizableImpl.isEveryone()) {
+            log.debug("Attempt to remove member from everyone group or remove membership for it.");
             return false;
         } else {
-            Tree memberTree = ((AuthorizableImpl) authorizable).getTree();
+            Tree memberTree = authorizableImpl.getTree();
 
             boolean success = getMembershipProvider().removeMember(getTree(), memberTree);
 

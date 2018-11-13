@@ -153,6 +153,11 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testRemoveEveryoneMembership() throws Exception {
+        assertFalse(getUserManager(root).getAuthorizable("testGroup", Group.class).removeMember(everyoneGroup));
+    }
+
+    @Test
     public void testRemoveMembers() throws Exception {
         assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
     }
