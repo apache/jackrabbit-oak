@@ -1910,6 +1910,7 @@ public class RDBDocumentStore implements DocumentStore {
             db.delete(connection, tmd, Collections.singletonList(id));
             connection.commit();
         } catch (Exception ex) {
+            this.ch.rollbackConnection(connection);
             throw handleException("removing " + id, ex, collection, id);
         } finally {
             this.ch.closeConnection(connection);
@@ -1928,6 +1929,7 @@ public class RDBDocumentStore implements DocumentStore {
                 numDeleted += db.delete(connection, tmd, sublist);
                 connection.commit();
             } catch (Exception ex) {
+                this.ch.rollbackConnection(connection);
                 throw handleException("removing " + ids, ex, collection, ids);
             } finally {
                 this.ch.closeConnection(connection);
@@ -1955,6 +1957,7 @@ public class RDBDocumentStore implements DocumentStore {
                     numDeleted += num;
                     connection.commit();
                 } catch (Exception ex) {
+                    this.ch.rollbackConnection(connection);
                     Set<String> ids = subMap.keySet();
                     throw handleException("deleting " + ids, ex, collection, ids);
                 } finally {
@@ -1977,6 +1980,7 @@ public class RDBDocumentStore implements DocumentStore {
             numDeleted = db.deleteWithCondition(connection, tmd, conditions);
             connection.commit();
         } catch (Exception ex) {
+            this.ch.rollbackConnection(connection);
             throw DocumentStoreException.convert(ex, "deleting " + collection + ": " + conditions);
         } finally {
             this.ch.closeConnection(connection);
