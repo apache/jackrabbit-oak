@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.6.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.6.15
 
 Introduction
 ------------
@@ -7,55 +7,36 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.6.14 is a patch release that contains fixes and
+Jackrabbit Oak 1.6.15 is a patch release that contains fixes and
 improvements over Oak 1.6. Jackrabbit Oak 1.6.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.6.14
+Changes in Oak 1.6.15
 ---------------------
 
 Technical task
 
-    [OAK-7359] - Update to MongoDB Java driver 3.6
+    [OAK-7748] - DocumentStore: test (and optionally optimize) bulk
+    update fallback logic
 
 Bug
 
-    [OAK-5750] - Test failure: PojoSR
-    run.osgi.SecurityProviderRegistrationTest
-    [OAK-6890] - Background threads might not be automatically
-    restarted
-    [OAK-7389] - Mongo/FileBlobStore does not update timestamp for
-    already existing blobs
-    [OAK-7428] - LdapIdentityProvider doesn't support creating
-    external ids from the uid attribute
-    [OAK-7447] - Sporadic test failures when connection is closed
-    twice
-    [OAK-7686] - Partial migration doesn't update Lucene indexing data
-    [OAK-7687] - :async node is being removed during the partial
-    migration
-    [OAK-7707] - DocumentNodeStoreServiceTest always connects to
-    localhost
-    [OAK-7713] - Test failure:
-    SecurityProviderRegistrationTest.testRequiredUserAuthenticationFactoryNotAvailable()
-    [OAK-7721] - Records of specific size bring
-    SegmentBufferWriter#flush to fail
+    [OAK-7638] - Race condition when simultaneous request to stage
+    file for async upload
+    [OAK-7755] - deadlock TarMK flush, lucene
+    [OAK-7798] - Return stream for downloaded files rather than
+    directly from backend
+    [OAK-7853] - SegmentBufferWriter not flushed after OnRC
+    [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
+    out metadata objects
 
 Improvement
 
-    [OAK-7706] - Update to MongoDB Java driver 3.6.4
-    [OAK-7720] - Log hex dump of too big segments
-
-Task
-
-    [OAK-7100] - update htmlunit test dependency
-    [OAK-7435] - Run travis build on MongoDB 3.6
-    [OAK-7677] - Announcement mail template lacks line feeds in front
-    of release notes
-    [OAK-7708] - Backport OAK-6648 to Oak 1.6
-    [OAK-7723] - Update Oak 1.6 to Jackrabbit 2.14.6
+    [OAK-7741] - Token LoginModule flag to skip refreshing the token
+    expiration
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.6.x release.
