@@ -44,7 +44,6 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.ValueFactory;
@@ -240,7 +239,7 @@ public class NodeTypeRegistryTest {
                 return root.getTree(NODE_TYPES_PATH);
             }
 
-            @Nonnull
+            @NotNull
             @Override
             protected Root getWriteRoot() {
                 return root;
