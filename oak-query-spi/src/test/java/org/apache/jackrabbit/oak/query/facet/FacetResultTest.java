@@ -16,16 +16,21 @@
  */
 package org.apache.jackrabbit.oak.query.facet;
 
+import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.query.facet.FacetResult.Facet;
+import org.apache.jackrabbit.oak.query.facet.FacetResult.FacetResultRow;
+import org.junit.Test;
+
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+import java.util.List;
+import java.util.Map;
 
-import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,4 +70,142 @@ public class FacetResultTest {
         assertEquals(1, facetResult.getFacets("jcr:title").get(1).getCount(), 0);
     }
 
+    @Test
+    public void simpleMergeFacets() {
+        String r1c1Facet = json(f("l1", 2), f("l2", 1));
+        String r2c1Facet = json(f("l2", 4), f("l1", 1));
+
+        FacetResult merged = facet(new FacetColumn("x", r1c1Facet, r2c1Facet));
+
+        FacetResult expected = facet(new FacetColumn("x", json(f("l2", 5), f("l1", 3))));
+
+        verify(expected, merged);
+    }
+
+    @Test
+    public void uniqueLabelsMergeFacets() {
+        String r1c1Facet = json(f("l1", 1));
+        String r2c1Facet = json(f("l2", 2));
+
+        FacetResult merged = facet(new FacetColumn("x", r1c1Facet, r2c1Facet));
+
+        FacetResult expected = facet(new FacetColumn("x", json(f("l2", 2), f("l1", 1))));
+
+        verify(expected, merged);
+    }
+
+    @Test
+    public void multipleColumns() {
+        String r1c1Facet = json(f("l1", 1));
+        String r2c1Facet = json(f("l2", 2));
+
+        String r1c2Facet = json(f("m1", 2));
+        String r2c2Facet = json(f("m2", 1));
+
+        FacetResult merged = facet(
+                new FacetColumn("x", r1c1Facet, r2c1Facet),
+                new FacetColumn("y", r1c2Facet, r2c2Facet)
+        );
+
+        FacetResult expected = facet(
+                new FacetColumn("x", json(f("l2", 2), f("l1", 1))),
+                new FacetColumn("y", json(f("m1", 2), f("m2", 1)))
+        );
+
+        verify(expected, merged);
+    }
+
+    @Test
+    public void multipleColumnsWithNullColumns() {
+        String r2c1Facet = json(f("l1", 1));
+        String r1c2Facet = json(f("m1", 1));
+
+        FacetResult merged = facet(
+                new FacetColumn("x", null, r2c1Facet),
+                new FacetColumn("y", r1c2Facet, null)
+        );
+
+        FacetResult expected = facet(
+                new FacetColumn("x", json(f("l1", 1))),
+                new FacetColumn("y", json(f("m1", 1)))
+        );
+
+        verify(expected, merged);
+    }
+
+    private FacetResult facet(FacetColumn ... facetColumns) {
+        String[] colNames = new String[facetColumns.length];
+        colNames[0] = facetColumns[0].colName;
+
+        int numRows = facetColumns[0].facets.length;
+
+        for (int i = 1; i < facetColumns.length; i++) {
+            assertEquals("numRows for col num " + i + " wasn't same as first", numRows, facetColumns[i].facets.length);
+
+            colNames[i] = facetColumns[i].colName;
+        }
+
+        FacetResultRow[] facetResultRows = new FacetResultRow[numRows];
+
+        for (int i = 0; i < numRows; i++) {
+            Map<String, String> columns = Maps.newHashMap();
+
+            for (FacetColumn col : facetColumns) {
+                columns.put(col.colName, col.facets[i]);
+            }
+
+            facetResultRows[i] = new FacetResultRow() {
+                final Map<String, String> cols = columns;
+                @Override
+                public String getValue(String columnName) {
+                    return cols.get(columnName);
+                }
+            };
+        }
+
+        return new FacetResult(colNames, facetResultRows);
+    }
+
+    private static String json(Facet ... facets) {
+        JsopBuilder builder = new JsopBuilder();
+        builder.object();
+        for (Facet facet : facets) {
+            builder.key(facet.getLabel());
+            builder.value(facet.getCount());
+        }
+        builder.endObject();
+
+        return builder.toString();
+    }
+
+    private static class FacetColumn {
+        final String colName;
+        final String[] facets;
+
+        FacetColumn(String colName, String ... facets) {
+            this.colName = REP_FACET + "(" + colName + ")";
+            this.facets = facets;
+        }
+    }
+
+    private static Facet f(String label, int count) {
+        return new Facet(label, count);
+    }
+
+    private static void verify(FacetResult expected, FacetResult result) {
+        assertEquals("Dimension mismatch", expected.getDimensions(), result.getDimensions());
+
+        for (String dim : expected.getDimensions()) {
+            List<Facet> expectedFacets = expected.getFacets(dim);
+            List<Facet> resultFacets = result.getFacets(dim);
+
+            for (int i = 0; i < expectedFacets.size(); i++) {
+                Facet expectedFacet = expectedFacets.get(i);
+                Facet resultFacet = resultFacets.get(i);
+
+                assertEquals("label mismatch for dim " + dim, expectedFacet.getLabel(), resultFacet.getLabel());
+                assertEquals("count mismatch for dim " + dim, expectedFacet.getCount(), resultFacet.getCount());
+            }
+        }
+    }
 }

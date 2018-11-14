@@ -29,6 +29,7 @@ import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 
 /**
@@ -774,6 +776,95 @@ public class FacetTest extends AbstractQueryTest {
         RowIterator rows=result.getRows();
 
         assertEquals(2, rows.getSize());
+    }
+
+    public void testMergedFacetsOverUnionUniqueLabels() throws Exception {
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "t1");
+        n1.setProperty("x", "x1");
+        n1.setProperty("name","Node1");
+
+        Node n2 = testRootNode.addNode("node2");
+        n2.setProperty("text", "t2");
+        n2.setProperty("x", "x2");
+        n2.setProperty("name","Node2");
+
+        Node n3 = testRootNode.addNode("node3");
+        n3.setProperty("text", "t3");
+        n3.setProperty("x", "x3");
+        n3.setProperty("name","Node3");
+        superuser.save();
+
+        String xpath = "//*[@name = 'Node1' or @text = 't2' or @x = 'x3']/(rep:facet(text))";
+
+        Query q = qm.createQuery(xpath, Query.XPATH);
+
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertEquals("Unexpected dimensions", newHashSet("text"), facetResult.getDimensions());
+
+        List<FacetResult.Facet> facets = facetResult.getFacets("text");
+
+        Set<String> facetLabels = newHashSet();
+        for (FacetResult.Facet facet : facets) {
+            assertEquals("Unexpected facet count for " + facet.getLabel(), 1, facet.getCount());
+            facetLabels.add(facet.getLabel());
+        }
+
+        assertEquals("Unexpected facet labels", newHashSet("t1", "t2", "t3"), facetLabels);
+    }
+
+    public void testMergedFacetsOverUnionSummingCount() throws Exception {
+        // the distribution of nodes with t1 and t2 are intentionally across first and second set (below)
+        // put such that second condition turns facet count around
+
+        // first set of nodes matching first condition (x1 = v1)
+        Node n11 = testRootNode.addNode("node11");
+        n11.setProperty("text", "t1");
+        n11.setProperty("x1","v1");
+        Node n12 = testRootNode.addNode("node12");
+        n12.setProperty("text", "t1");
+        n12.setProperty("x1","v1");
+        Node n13 = testRootNode.addNode("node13");
+        n13.setProperty("text", "t2");
+        n13.setProperty("x1","v1");
+
+        // second set of nodes matching second condition (x2 = v2)
+        Node n21 = testRootNode.addNode("node21");
+        n21.setProperty("text", "t2");
+        n21.setProperty("x2","v2");
+        Node n22 = testRootNode.addNode("node22");
+        n22.setProperty("text", "t1");
+        n22.setProperty("x2","v2");
+        Node n23 = testRootNode.addNode("node23");
+        n23.setProperty("text", "t1");
+        n23.setProperty("x2","v2");
+        Node n24 = testRootNode.addNode("node24");
+        n24.setProperty("text", "t1");
+        n24.setProperty("x2","v2");
+
+        superuser.save();
+
+        String xpath = "//*[@x1 = 'v1' or @x2 = 'v2']/(rep:facet(text))";
+
+        Query q = qm.createQuery(xpath, Query.XPATH);
+
+        QueryResult result = q.execute();
+        FacetResult facetResult = new FacetResult(result);
+
+        assertEquals("Unexpected dimensions", newHashSet("text"), facetResult.getDimensions());
+
+        List<FacetResult.Facet> facets = facetResult.getFacets("text");
+        assertEquals("Incorrect facet label list size", 2, facets.size());
+
+        FacetResult.Facet facet = facets.get(0);
+        assertEquals("t1", facet.getLabel());
+        assertEquals(5, facet.getCount());
+
+        facet = facets.get(1);
+        assertEquals("t2", facet.getLabel());
+        assertEquals(2, facet.getCount());
     }
 
     public Node deny(Node node) throws RepositoryException {

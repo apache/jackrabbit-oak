@@ -21,21 +21,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+import com.google.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 
 /**
  * Represents a union query.
@@ -296,9 +301,11 @@ public class UnionQueryImpl implements Query {
         boolean distinct = !unionAll;
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
 
+        FacetMerger facetMerger = new FacetMerger(left, right);
+
         Iterator<ResultRowImpl> it;
-        final Iterator<ResultRowImpl> leftRows = left.getRows();
-        final Iterator<ResultRowImpl> rightRows = right.getRows();
+        final Iterator<ResultRowImpl> leftRows = facetMerger.getLeftIterator();;
+        final Iterator<ResultRowImpl> rightRows = facetMerger.getRightIterator();
         Iterator<ResultRowImpl> leftIter = leftRows;
         Iterator<ResultRowImpl> rightIter = rightRows;
 
@@ -413,4 +420,88 @@ public class UnionQueryImpl implements Query {
         return left.getQueryExecutionStats();
     }
 
+    static class FacetMerger {
+
+        private final Iterator<ResultRowImpl> leftIterator;
+        private final Iterator<ResultRowImpl> rightIterator;
+
+        FacetMerger(Query left, Query right) {
+            ColumnImpl[] columns = left.getColumns();
+            String[] columnNames = new String[columns.length];
+            Arrays.setAll(columnNames, i -> columns[i].getColumnName());
+
+            Iterator<ResultRowImpl> lIter = left.getRows();
+            Iterator<ResultRowImpl> rIter = right.getRows();
+
+            if (!hasFacets(columnNames) || !bothHaveRows(lIter, rIter)) {
+                this.leftIterator = lIter;
+                this.rightIterator = rIter;
+
+                return;
+            }
+
+            PeekingIterator<ResultRowImpl> lPeekIter = Iterators.peekingIterator(lIter);
+            PeekingIterator<ResultRowImpl> rPeekIter = Iterators.peekingIterator(rIter);
+
+            ResultRow lRow = lPeekIter.peek();
+            ResultRow rRow = rPeekIter.peek();
+
+            FacetResult facetResult = new FacetResult(columnNames,
+                    columnName -> {
+                        PropertyValue value = lRow.getValue(columnName);
+                        return value == null ? null : value.getValue(Type.STRING);
+                    },
+                    columnName -> {
+                        PropertyValue value = rRow.getValue(columnName);
+                        return value == null ? null : value.getValue(Type.STRING);
+            });
+
+            Map<String, String> columnToFacetMap = facetResult.asColumnToFacetJsonMap();
+
+            this.leftIterator = new MappingRowIterator(columnToFacetMap, lPeekIter);
+            this.rightIterator = new MappingRowIterator(columnToFacetMap, rPeekIter);
+        }
+
+        Iterator<ResultRowImpl> getLeftIterator() {
+            return leftIterator;
+        }
+
+        Iterator<ResultRowImpl> getRightIterator() {
+            return rightIterator;
+        }
+
+        private boolean hasFacets(String[] columnNames) {
+            for (String c : columnNames) {
+                if (c.startsWith(QueryConstants.REP_FACET + "(")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean bothHaveRows(Iterator<ResultRowImpl> lIter, Iterator<ResultRowImpl> rIter) {
+            return lIter.hasNext() && rIter.hasNext();
+        }
+    }
+
+    static class MappingRowIterator extends AbstractIterator<ResultRowImpl> {
+
+        private final Map<String, String> columnToFacetMap;
+        private final Iterator<ResultRowImpl> delegate;
+
+        MappingRowIterator(Map<String, String> columnToFacetMap, Iterator<ResultRowImpl> delegate) {
+            super();
+            this.columnToFacetMap = columnToFacetMap;
+            this.delegate = delegate;
+        }
+
+        @Override
+        protected ResultRowImpl computeNext() {
+            if (delegate.hasNext()) {
+                return ResultRowImpl.getMappingResultRow(delegate.next(), columnToFacetMap);
+            } else {
+                return endOfData();
+            }
+        }
+    }
 }
