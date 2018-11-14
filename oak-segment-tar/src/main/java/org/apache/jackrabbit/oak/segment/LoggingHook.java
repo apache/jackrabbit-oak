@@ -54,24 +54,24 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
     }
 
     public void leave(NodeState before, NodeState after) {
-        log("n!");
+        writer.accept("n!");
     }
 
     @Override
     public boolean propertyAdded(PropertyState after) {
-        log("p+ " + toString(after));
+        writer.accept("p+ " + toString(after));
         return true;
     }
 
     @Override
     public boolean propertyChanged(PropertyState before, PropertyState after) {
-        log("p^ " + toString(after));
+        writer.accept("p^ " + toString(after));
         return true;
     }
 
     @Override
     public boolean propertyDeleted(PropertyState before) {
-        log("p- " + toString(before));
+        writer.accept("p- " + toString(before));
         return true;
     }
 
@@ -85,7 +85,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
-        log("n+ " + safeEncode(name));
+        writer.accept("n+ " + safeEncode(name));
         this.enter(null, after);
         boolean ret = after.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE, this);
         this.leave(null, after);
@@ -94,7 +94,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
-        log("n^ " + safeEncode(name));
+        writer.accept("n^ " + safeEncode(name));
         this.enter(before, after);
         boolean ret = after.compareAgainstBaseState(before, this);
         this.leave(before, after);
@@ -103,7 +103,7 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        log("n- " + safeEncode(name));
+        writer.accept("n- " + safeEncode(name));
         return true;
     }
 
@@ -143,10 +143,6 @@ public class LoggingHook implements CommitHook, NodeStateDiff {
         } else {
             b.append(newChar);
         }
-    }
-
-    private void log(String s) {
-        writer.accept(System.currentTimeMillis() + " " + safeEncode(Thread.currentThread().getName()) + " " + s);
     }
 
     private static void appendBlob(StringBuilder sb, Blob blob) {
