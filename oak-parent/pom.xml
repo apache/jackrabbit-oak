@@ -222,7 +222,6 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.version</filter>
                   <filter>!org.apache.jackrabbit.oak.query</filter>
                   <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
-                  <filter>!org.apache.jackrabbit.oak.security</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.cluster</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
