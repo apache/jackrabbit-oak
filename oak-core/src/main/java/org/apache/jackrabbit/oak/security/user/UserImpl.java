@@ -131,6 +131,9 @@ class UserImpl extends AuthorizableImpl implements User {
         if (isAdmin) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
+
+        getUserManager().onDisable(this, reason);
+
         Tree tree = getTree();
         if (reason == null) {
             if (tree.hasProperty(REP_DISABLED)) {
