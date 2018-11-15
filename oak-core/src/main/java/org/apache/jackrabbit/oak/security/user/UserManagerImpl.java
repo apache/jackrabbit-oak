@@ -20,13 +20,12 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -53,9 +53,9 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
+import org.apache.jackrabbit.oak.spi.security.user.action.UserAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -315,6 +315,22 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
+    void onDisable(@NotNull User user, @Nullable String disableReason) throws RepositoryException {
+        for (UserAction action : filterUserActions()) {
+            action.onDisable(user, disableReason, root, namePathMapper);
+        }
+    }
+
+    void onImpersonation(@NotNull User user, @NotNull Principal principal, boolean granting) throws RepositoryException {
+        for (UserAction action : filterUserActions()) {
+            if (granting) {
+                action.onGrantImpersonation(user, principal, root, namePathMapper);
+            } else {
+                action.onRevokeImpersonation(user, principal, root, namePathMapper);
+            }
+        }
+    }
+
     /**
      * Upon a group being updated (single {@code Authorizable} successfully added or removed),
      * call available {@code GroupAction}s and execute the method specific to removal or addition.
@@ -326,7 +342,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, @NotNull Authorizable member) throws RepositoryException {
-        for (GroupAction action : selectGroupActions()) {
+        for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMemberRemoved(group, member, root, namePathMapper);
             } else {
@@ -348,7 +364,7 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an error occurs.
      */
     void onGroupUpdate(@NotNull Group group, boolean isRemove, boolean isContentId, @NotNull Set<String> memberIds, @NotNull Set<String> failedIds) throws RepositoryException {
-        for (GroupAction action : selectGroupActions()) {
+        for (GroupAction action : filterGroupActions()) {
             if (isRemove) {
                 action.onMembersRemoved(group, memberIds, failedIds, root, namePathMapper);
             } else {
@@ -506,13 +522,12 @@ public class UserManagerImpl implements UserManager {
      * @return A {@code List} of {@code GroupAction}s. List may be empty.
      */
     @NotNull
-    private List<GroupAction> selectGroupActions() {
-        List<GroupAction> actions = Lists.newArrayList();
-        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
-            if (action instanceof GroupAction) {
-                actions.add((GroupAction) action);
-            }
-        }
-        return actions;
+    private Iterable<GroupAction> filterGroupActions() {
+        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
+    }
+
+    @NotNull
+    private Iterable<UserAction> filterUserActions() {
+        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
     }
 }

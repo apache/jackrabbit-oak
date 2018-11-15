@@ -91,6 +91,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         if (!isValidPrincipal(principal)) {
             return false;
         }
+
         String principalName = principal.getName();
         // make sure user does not impersonate himself
         Tree userTree = user.getTree();
@@ -99,6 +100,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             log.warn("Cannot grant impersonation to oneself.");
             return false;
         }
+
+        user.getUserManager().onImpersonation(user, principal, true);
 
         Set<String> impersonators = getImpersonatorNames(userTree);
         if (impersonators.add(principalName)) {
@@ -115,6 +118,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     @Override
     public boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException {
         String pName = principal.getName();
+
+        user.getUserManager().onImpersonation(user, principal, false);
 
         Tree userTree = user.getTree();
         Set<String> impersonators = getImpersonatorNames(userTree);
