@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.upgrade.security;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.NT_REP_ACE;
 
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -35,7 +37,7 @@ public class RestrictionEditorProvider implements EditorProvider {
     public Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
-        TypePredicate isACE = new TypePredicate(after, NT_REP_ACE);
+        Predicate<NodeState> isACE = TypePredicates.getNodeTypePredicate(after, NT_REP_ACE);
         return new RestrictionEditor(builder, isACE);
     }
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.observation.filter;
+package org.apache.jackrabbit.oak.spi.nodetype.predicate;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -30,7 +30,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -40,21 +39,21 @@ public class NodeTypePredicateTest {
     public void emptyNodeTypeList() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {});
-        assertFalse(p.apply(node));
+        assertFalse(p.test(node));
     }
 
     @Test
     public void singleNodeTypeMatch() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {NT_BASE});
-        assertTrue(p.apply(node));
+        assertTrue(p.test(node));
     }
 
     @Test
     public void singleNodeTypeMiss() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {NT_FILE});
-        assertFalse(p.apply(node));
+        assertFalse(p.test(node));
     }
 
     @Test
@@ -62,7 +61,7 @@ public class NodeTypePredicateTest {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, NT_FILE });
-        assertTrue(p.apply(node));
+        assertTrue(p.test(node));
     }
 
     @Test
@@ -70,7 +69,7 @@ public class NodeTypePredicateTest {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, JCR_CONTENT });
-        assertFalse(p.apply(node));
+        assertFalse(p.test(node));
     }
 
     private static NodeState createNodeOfType(String ntName) {

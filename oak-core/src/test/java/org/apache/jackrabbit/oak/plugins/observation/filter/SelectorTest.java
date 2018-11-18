@@ -19,18 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static com.google.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class SelectorTest {
-    public static final Predicate<NodeState> ALL = alwaysTrue();
+    public static final Predicate<NodeState> ALL = t -> true;
 
     private final NodeState root = createRoot();
 

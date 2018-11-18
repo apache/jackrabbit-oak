@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
@@ -27,7 +29,6 @@ import com.google.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -59,7 +60,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     PermissionStoreEditor(@NotNull String aclPath, @NotNull String name,
                           @NotNull NodeState node, @NotNull NodeBuilder permissionRoot,
-                          @NotNull TypePredicate isACE, @NotNull TypePredicate isGrantACE,
+                          @NotNull Predicate<NodeState> isACE, @NotNull Predicate<NodeState> isGrantACE,
                           @NotNull PrivilegeBitsProvider bitsProvider,
                           @NotNull RestrictionProvider restrictionProvider,
                           @NotNull TreeProvider treeProvider) {
@@ -81,8 +82,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         int index = 0;
         for (String childName : orderedChildNames) {
             NodeState ace = node.getChildNode(childName);
-            if (isACE.apply(ace)) {
-                boolean isAllow = isGrantACE.apply(ace);
+            if (isACE.test(ace)) {
+                boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
                 Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 

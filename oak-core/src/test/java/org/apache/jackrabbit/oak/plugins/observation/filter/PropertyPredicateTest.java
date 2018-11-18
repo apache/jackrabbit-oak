@@ -24,8 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -35,42 +33,27 @@ public class PropertyPredicateTest {
     public void propertyMatch() {
         String name = "foo";
         final String value = "bar";
-        PropertyPredicate p = new PropertyPredicate(name, new Predicate<PropertyState>() {
-            @Override
-            public boolean apply(PropertyState property) {
-                return value.equals(property.getValue(STRING));
-            }
-        });
+        PropertyPredicate p = new PropertyPredicate(name, t -> value.equals(t.getValue(STRING)));
 
-        assertTrue(p.apply(createWithProperty(name, value)));
+        assertTrue(p.test(createWithProperty(name, value)));
     }
 
     @Test
     public void propertyMiss() {
         String name = "foo";
         final String value = "bar";
-        PropertyPredicate p = new PropertyPredicate(name, new Predicate<PropertyState>() {
-            @Override
-            public boolean apply(PropertyState property) {
-                return "baz".equals(property.getValue(STRING));
-            }
-        });
+        PropertyPredicate p = new PropertyPredicate(name, t -> "baz".equals(t.getValue(STRING)));
 
-        assertFalse(p.apply(createWithProperty(name, value)));
+        assertFalse(p.test(createWithProperty(name, value)));
     }
 
     @Test
     public void nonExistingProperty() {
         String name = "foo";
         final String value = "bar";
-        PropertyPredicate p = new PropertyPredicate("any", new Predicate<PropertyState>() {
-            @Override
-            public boolean apply(PropertyState property) {
-                return value.equals(property.getValue(STRING));
-            }
-        });
+        PropertyPredicate p = new PropertyPredicate("any", t -> value.equals(t.getValue(STRING)));
 
-        assertFalse(p.apply(createWithProperty(name, value)));
+        assertFalse(p.test(createWithProperty(name, value)));
     }
 
     private static NodeState createWithProperty(String name, String value) {

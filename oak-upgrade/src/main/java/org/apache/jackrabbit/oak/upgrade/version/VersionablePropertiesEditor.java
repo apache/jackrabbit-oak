@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.upgrade.version;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
@@ -67,19 +68,19 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
 
     private final NodeBuilder builder;
 
-    private final TypePredicate isVersionable;
+    private final Predicate<NodeState> isVersionable;
 
-    private final TypePredicate isNtVersion;
+    private final Predicate<NodeState> isNtVersion;
 
-    private final TypePredicate isFrozenNode;
+    private final Predicate<NodeState> isFrozenNode;
 
     private VersionablePropertiesEditor(NodeBuilder rootBuilder) {
         this.builder = rootBuilder;
         this.rootBuilder = rootBuilder;
         this.versionStorage = getVersionStorage(rootBuilder);
-        this.isVersionable = new TypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
-        this.isNtVersion = new TypePredicate(rootBuilder.getNodeState(), NT_VERSION);
-        this.isFrozenNode = new TypePredicate(rootBuilder.getNodeState(), NT_FROZENNODE);
+        this.isVersionable = TypePredicates.getNodeTypePredicate(rootBuilder.getNodeState(), MIX_VERSIONABLE);
+        this.isNtVersion = TypePredicates.getNodeTypePredicate(rootBuilder.getNodeState(), NT_VERSION);
+        this.isFrozenNode = TypePredicates.getNodeTypePredicate(rootBuilder.getNodeState(), NT_FROZENNODE);
     }
 
     private VersionablePropertiesEditor(VersionablePropertiesEditor parent, NodeBuilder builder) {
@@ -107,9 +108,9 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     @Override
     public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
         NodeBuilder nodeBuilder = builder.getChildNode(name);
-        if (isVersionable.apply(after)) {
+        if (isVersionable.test(after)) {
             fixProperties(nodeBuilder);
-        } else if (isFrozenNode.apply(after)) {
+        } else if (isFrozenNode.test(after)) {
             updateFrozenMixins(nodeBuilder);
         }
         return new VersionablePropertiesEditor(this, nodeBuilder);
@@ -172,7 +173,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
         NodeState lastVersion = versionHistory.getChildNode(JCR_ROOTVERSION);
         for (ChildNodeEntry child : versionHistory.getChildNodeEntries()) {
             NodeState v = child.getNodeState();
-            if (!isNtVersion.apply(v)) {
+            if (!isNtVersion.test(v)) {
                 continue;
             }
             if (v.getProperty(JCR_SUCCESSORS).count() == 0) { // no successors

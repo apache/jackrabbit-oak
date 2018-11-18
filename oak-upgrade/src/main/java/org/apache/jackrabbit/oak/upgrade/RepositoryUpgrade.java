@@ -96,9 +96,9 @@ import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -565,7 +565,7 @@ public class RepositoryUpgrade {
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
         NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
-        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, TypePredicates.getNodeTypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             logger.info("Removing version histories for included paths");
             NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);

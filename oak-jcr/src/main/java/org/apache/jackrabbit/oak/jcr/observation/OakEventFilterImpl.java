@@ -30,13 +30,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.filter.OakEventFilter;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ConstantFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventAggregator;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathHelper;
 import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.predicate.TypePredicates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -62,7 +63,7 @@ public class OakEventFilterImpl extends OakEventFilter {
         private final String[] nodeTypes;
         private final String[] relativeGlobPaths;
         private final boolean includeThis;
-        private TypePredicate predicate;
+        private Predicate<NodeState> predicate;
 
         NodeTypeAggregationFilter(String[] nodeTypes, String[] relativeGlobPaths) {
             this.nodeTypes = nodeTypes;
@@ -103,31 +104,31 @@ public class OakEventFilterImpl extends OakEventFilter {
 
         @Override
         public boolean includeAdd(String name, NodeState after) {
-            return includeThis && predicate.apply(after);
+            return includeThis && predicate.test(after);
         }
 
         @Override
         public boolean includeDelete(String name, NodeState before) {
-            return includeThis && predicate.apply(before);
+            return includeThis && predicate.test(before);
         }
 
         @Override
         public boolean includeMove(String sourcePath, String name, NodeState moved) {
-            return includeThis && predicate.apply(moved);
+            return includeThis && predicate.test(moved);
         }
 
         @Override
         public boolean includeReorder(String destName, String name, NodeState reordered) {
-            return includeThis && predicate.apply(reordered);
+            return includeThis && predicate.test(reordered);
         }
 
         @Override
         public EventFilter create(String name, NodeState before, NodeState after) {
             boolean predicateMatches = false;
             if (after.exists()) {
-                predicateMatches = predicate.apply(after);
+                predicateMatches = predicate.test(after);
             } else {
-                predicateMatches = predicate.apply(before);
+                predicateMatches = predicate.test(before);
             }
             if (predicateMatches) {
                 // greedy match - we switch to the globbing path filters
@@ -149,9 +150,9 @@ public class OakEventFilterImpl extends OakEventFilter {
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             if (after.exists()) {
-                predicate = new TypePredicate(after, nodeTypes);
+                predicate = TypePredicates.getNodeTypePredicate(after, nodeTypes);
             } else {
-                predicate = new TypePredicate(before, nodeTypes);
+                predicate = TypePredicates.getNodeTypePredicate(before, nodeTypes);
             }
             return this;
         }
@@ -169,12 +170,12 @@ public class OakEventFilterImpl extends OakEventFilter {
 
         @Override
         public int aggregate(NodeState root, List<ChildNodeEntry> parents, ChildNodeEntry childNodeState) {
-            final TypePredicate nodeTypePredicate = new TypePredicate(root, nodeTypes);
+            Predicate<NodeState> nodeTypePredicate = TypePredicates.getNodeTypePredicate(root, nodeTypes);
             final int depth = parents.size();
             for (int i = 0; i < depth; i++) {
                 ChildNodeEntry child = parents.get(i);
                 NodeState nodeState = child.getNodeState();
-                if (!nodeTypePredicate.apply(nodeState)) {
+                if (!nodeTypePredicate.test(nodeState)) {
                     continue;
                 }
                 if (i + 1 <= depth) {
@@ -191,12 +192,12 @@ public class OakEventFilterImpl extends OakEventFilter {
 
         @Override
         public int aggregate(NodeState root, List<ChildNodeEntry> parents, PropertyState propertyState) {
-            final TypePredicate nodeTypePredicate = new TypePredicate(root, nodeTypes);
+            Predicate<NodeState> nodeTypePredicate = TypePredicates.getNodeTypePredicate(root, nodeTypes);
             final int depth = parents.size();
             for (int i = 0; i < depth; i++) {
                 ChildNodeEntry child = parents.get(i);
                 NodeState nodeState = child.getNodeState();
-                if (!nodeTypePredicate.apply(nodeState)) {
+                if (!nodeTypePredicate.test(nodeState)) {
                     continue;
                 }
                 if (i + 1 <= depth) {
