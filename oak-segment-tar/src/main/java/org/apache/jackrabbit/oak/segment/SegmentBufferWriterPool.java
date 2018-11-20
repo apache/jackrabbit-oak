@@ -27,6 +27,7 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link WriteOperationHandler} uses a pool of {@link SegmentBufferWriter}s,
- * which it passes to its {@link #execute(WriteOperation) execute} method.
+ * which it passes to its {@link #execute(GCGeneration, WriteOperation) execute} method.
  * <p>
  * Instances of this class are thread safe.
  */
@@ -99,12 +100,21 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
 
     @NotNull
     @Override
-    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
-        SegmentBufferWriter writer = borrowWriter(currentThread());
+    public GCGeneration getGCGeneration() {
+        return gcGeneration.get();
+    }
+
+    @NotNull
+    @Override
+    public RecordId execute(@NotNull GCGeneration gcGeneration,
+                            @NotNull WriteOperation writeOperation)
+    throws IOException {
+        SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(currentThread(), gcGeneration);
+        SegmentBufferWriter writer = borrowWriter(key);
         try {
             return writeOperation.execute(writer);
         } finally {
-            returnWriter(currentThread(), writer);
+            returnWriter(key, writer);
         }
     }
 
@@ -179,7 +189,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             monitor.enterWhen(guard);
             return true;
         } catch (InterruptedException ignore) {
-            Thread.currentThread().interrupt();
+            currentThread().interrupt();
             return false;
         }
     }
@@ -194,14 +204,6 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         try {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
-                writer = new SegmentBufferWriter(
-                        idProvider,
-                        reader,
-                        getWriterId(wid),
-                        gcGeneration.get()
-                );
-            } else if (!writer.getGCGeneration().equals(gcGeneration.get())) {
-                disposedOldGen.add(writer);
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,

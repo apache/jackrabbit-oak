@@ -23,12 +23,20 @@ import java.io.IOException;
 
 import org.jetbrains.annotations.NotNull;
 
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+
 /**
  * A {@code WriteOperationHandler} executes {@link WriteOperation
  * WriteOperation}s and as such serves as a bridge between a {@link
  * SegmentWriter} and {@link SegmentBufferWriter}.
  */
 interface WriteOperationHandler {
+
+    /**
+     * @return the current {@code GCGeneration} of the store.
+     */
+    @NotNull
+    GCGeneration getGCGeneration();
 
     /**
      * A {@code WriteOperation} encapsulates an operation on a {@link
@@ -50,12 +58,14 @@ interface WriteOperationHandler {
 
     /**
      * Execute the passed {@code writeOperation} by passing it a {@link SegmentBufferWriter}.
+     * @param gcGeneration    the {@code GCGeneration} the changes should persisted with.
      * @param writeOperation  {@link WriteOperation} to execute
      * @return                {@code RecordId} that resulted from persisting the changes.
      * @throws IOException
      */
     @NotNull
-    RecordId execute(@NotNull WriteOperation writeOperation) throws IOException;
+    RecordId execute(@NotNull GCGeneration gcGeneration, @NotNull WriteOperation writeOperation)
+    throws IOException;
 
     /**
      * Flush any pending changes on any {@link SegmentBufferWriter} managed by this instance.
