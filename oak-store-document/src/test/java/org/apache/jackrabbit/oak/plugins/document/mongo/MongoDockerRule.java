@@ -34,7 +34,9 @@ public class MongoDockerRule extends DockerRule {
 
     private static final String CONFIG_NAME = "MongoDB";
 
-    private static final String IMAGE = "mongo:" + MongoUtils.VERSION;
+    private static final String VERSION = System.getProperty("mongo.version", "3.6");
+
+    private static final String IMAGE = "mongo:" + VERSION;
 
     private static final boolean DOCKER_AVAILABLE;
 
