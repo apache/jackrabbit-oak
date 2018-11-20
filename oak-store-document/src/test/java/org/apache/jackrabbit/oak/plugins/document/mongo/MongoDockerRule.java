@@ -34,6 +34,8 @@ public class MongoDockerRule extends DockerRule {
 
     private static final String CONFIG_NAME = "MongoDB";
 
+    private static final String IMAGE = "mongo:" + MongoUtils.VERSION;
+
     private static final boolean DOCKER_AVAILABLE;
 
     static {
@@ -43,9 +45,10 @@ public class MongoDockerRule extends DockerRule {
                 .registryAuthSupplier(new FixedRegistryAuthSupplier())
                 .build()) {
             client.ping();
+            client.pull(IMAGE);
             available = true;
-        } catch (Exception e) {
-            LOG.info("Cannot connect to docker", e);
+        } catch (Throwable t) {
+            LOG.info("Cannot connect to docker or pull image", t);
         }
         DOCKER_AVAILABLE = available;
     }
@@ -53,7 +56,7 @@ public class MongoDockerRule extends DockerRule {
     public MongoDockerRule() {
         super(ImmutableDockerConfig.builder()
                 .name(CONFIG_NAME)
-                .image("mongo:" + MongoUtils.VERSION)
+                .image(IMAGE)
                 .ports("27017")
                 .allowRunningBetweenUnitTests(true)
                 .alwaysRemoveContainer(true)
