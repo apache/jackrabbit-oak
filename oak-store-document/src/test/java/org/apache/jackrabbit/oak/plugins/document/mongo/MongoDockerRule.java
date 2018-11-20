@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.slf4j.Logger;
@@ -38,7 +39,9 @@ public class MongoDockerRule extends DockerRule {
     static {
         boolean available = false;
         try (DefaultDockerClient client = DefaultDockerClient.fromEnv()
-                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L).build()) {
+                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L)
+                .registryAuthSupplier(new FixedRegistryAuthSupplier())
+                .build()) {
             client.ping();
             available = true;
         } catch (Exception e) {
