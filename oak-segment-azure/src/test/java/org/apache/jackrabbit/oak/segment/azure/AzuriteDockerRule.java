@@ -22,6 +22,8 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
+
 import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -32,11 +34,13 @@ import java.security.InvalidKeyException;
 
 public class AzuriteDockerRule implements TestRule {
 
+    private static final String IMAGE = "trekawek/azurite";
+
     private final DockerRule wrappedRule;
 
     public AzuriteDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
-                .image("trekawek/azurite")
+                .image(IMAGE)
                 .name("oak-test-azurite")
                 .ports("10000")
                 .addStartedListener(container -> {
@@ -61,11 +65,16 @@ public class AzuriteDockerRule implements TestRule {
     @Override
     public Statement apply(Statement statement, Description description) {
         try {
-            DefaultDockerClient client = DefaultDockerClient.fromEnv().connectTimeoutMillis(5000L).readTimeoutMillis(20000L).build();
+            DefaultDockerClient client = DefaultDockerClient.fromEnv()
+                    .connectTimeoutMillis(5000L)
+                    .readTimeoutMillis(20000L)
+                    .registryAuthSupplier(new FixedRegistryAuthSupplier())
+                    .build();
             client.ping();
+            client.pull(IMAGE);
             client.close();
-        } catch (Exception e) {
-            Assume.assumeNoException(e);
+        } catch (Throwable t) {
+            Assume.assumeNoException(t);
         }
 
         return wrappedRule.apply(statement, description);
