@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.IOException;
+
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.segment.WriterCacheManager.Empty;
@@ -171,7 +173,15 @@ public final class DefaultSegmentWriterBuilder {
                 new WriteOperationHandler() {
                     @NotNull
                     @Override
-                    public RecordId execute(@NotNull WriteOperation writeOperation) {
+                    public GCGeneration getGCGeneration() {
+                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                    }
+
+                    @NotNull
+                    @Override
+                    public RecordId execute(@NotNull GCGeneration gcGeneration,
+                                            @NotNull WriteOperation writeOperation)
+                    throws IOException {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
 
