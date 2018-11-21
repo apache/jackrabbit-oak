@@ -47,6 +47,8 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
 
+    private Repository repo;
+    private Session session;
     private Node testNode;
 
     private String unmappedNsPrefix;
@@ -61,8 +63,8 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws NamespaceException, RepositoryException {
-        Repository repo = createRepository(fixture);
-        Session session = repo.login(getAdminCredentials());
+        repo = createRepository(fixture);
+        session = repo.login(getAdminCredentials());
         Node root = session.getRootNode();
         testNode = root.addNode(TEST_NODE);
         session.save();
@@ -93,12 +95,15 @@ public class ValidNamesTest extends AbstractRepositoryTest {
 
     @After
     public void tearDown() throws RepositoryException {
-        Session s = testNode.getSession();
-        s.removeItem(TEST_PATH);
-        s.save();
-        Repository r = s.getRepository();
-        s.logout();
-        dispose(r);
+        if (session != null) {
+            session.removeItem(TEST_PATH);
+            session.save();
+            session.logout();
+        }
+
+        if (repo != null) {
+            dispose(repo);
+        }
     }
 
     @AfterClass
