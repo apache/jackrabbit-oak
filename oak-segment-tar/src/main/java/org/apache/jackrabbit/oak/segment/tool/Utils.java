@@ -28,13 +28,16 @@ import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tooling.BasicReadOnlyBlobStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 
@@ -112,6 +115,34 @@ final class Utils {
         }
 
         return false;
+    }
+
+    static Long parseSegmentInfoTimestamp(SegmentId segmentId) {
+        String segmentInfo = segmentId.getSegment().getSegmentInfo();
+
+        if (segmentInfo == null) {
+            return null;
+        }
+
+        JsopTokenizer t = new JsopTokenizer(segmentInfo, 0);
+        t.read('{');
+        JsonObject object = JsonObject.create(t);
+
+        String timestampString = object.getProperties().get("t");
+
+        if (timestampString == null) {
+            return null;
+        }
+
+        long timestamp;
+
+        try {
+            timestamp = Long.parseLong(timestampString);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        return timestamp;
     }
 
 }
