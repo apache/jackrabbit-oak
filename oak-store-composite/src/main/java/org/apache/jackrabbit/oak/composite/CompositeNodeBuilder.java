@@ -223,7 +223,9 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(final String name, NodeState nodeState) {
-        checkState(exists(), "This builder does not exist: " + PathUtils.getName(getPath()));
+        if (!exists()) {
+            throw new IllegalStateException("This builder does not exist: " + PathUtils.getName(getPath()));
+        }
         String childPath = simpleConcat(getPath(), name);
         final MountedNodeStore childStore = ctx.getOwningStore(childPath);
         if (childStore != ctx.getGlobalStore() && !nodeBuilders.get(childStore).exists()) {
