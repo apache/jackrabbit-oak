@@ -61,5 +61,6 @@ public final class AvailableModes {
             .put(DataStoreCommand.NAME, new DataStoreCommand())
             .put("segment-copy", new SegmentCopyCommand())
             .put("search-nodes", new SearchNodesCommand())
+            .put("recover-journal", new RecoverJournalCommand())
             .build());
 }
