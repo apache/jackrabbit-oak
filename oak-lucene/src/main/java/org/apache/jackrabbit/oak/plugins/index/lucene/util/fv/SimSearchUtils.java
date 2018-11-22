@@ -39,6 +39,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,31 +81,24 @@ public class SimSearchUtils {
         return doubles;
     }
 
-    private static Collection<String> getTokens(Analyzer analyzer, String field, String sampleTextString) throws IOException {
-        Collection<String> tokens = new LinkedList<>();
+    private static Collection<BytesRef> getTokens(Analyzer analyzer, String field, String sampleTextString) throws IOException {
+        Collection<BytesRef> tokens = new LinkedList<>();
         TokenStream ts = analyzer.tokenStream(field, sampleTextString);
-        ts.reset();
         ts.addAttribute(CharTermAttribute.class);
+        ts.reset();
         while (ts.incrementToken()) {
             CharTermAttribute charTermAttribute = ts.getAttribute(CharTermAttribute.class);
             String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
-            tokens.add(token);
+            tokens.add(new BytesRef(token));
         }
         ts.end();
         ts.close();
         return tokens;
     }
 
-    static BooleanQuery getSimQuery(Analyzer analyzer, String fieldName, String text) throws IOException {
-        Collection<String> tokens = getTokens(analyzer, fieldName, text);
-        BooleanQuery booleanQuery = new BooleanQuery(true);
-        booleanQuery.setMinimumNumberShouldMatch(3);
-        for (String token : tokens) {
-            booleanQuery.add(new ConstantScoreQuery(new TermQuery(new Term(fieldName, token))), BooleanClause.Occur.SHOULD);
-        }
-        return booleanQuery;
+    static Query getSimQuery(Analyzer analyzer, String fieldName, String text) throws IOException {
+        return createLSHQuery(fieldName, getTokens(analyzer, fieldName, text), 1f,1f);
     }
-
 
     public static byte[] toByteArray(List<Double> values) {
         int blockSize = Double.SIZE / Byte.SIZE;
@@ -156,7 +150,7 @@ public class SimSearchUtils {
                         String fvString = doc.get(similarityFieldName);
                         if (fvString != null && fvString.trim().length() > 0) {
                             log.trace("generating sim query on field {} and text {}", similarityFieldName, fvString);
-                            BooleanQuery simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
+                            Query simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
                             booleanQuery.add(new BooleanClause(simQuery, SHOULD));
                             log.trace("similarity query generated for {}", pd.name);
                         }
@@ -172,6 +166,65 @@ public class SimSearchUtils {
         } catch (Exception e) {
             throw new RuntimeException("could not handle similarity query " + queryString);
         }
+    }
+
+    private static Query createLSHQuery(String field, Collection<BytesRef> minhashes,
+                                        float similarity, float expectedTruePositive) {
+        int bandSize = 1;
+        if (expectedTruePositive < 1) {
+            bandSize = computeBandSize(minhashes.size(), similarity, expectedTruePositive);
+        }
+
+        BooleanQuery builder = new BooleanQuery();
+        BooleanQuery childBuilder = new BooleanQuery();
+        int rowInBand = 0;
+        for (BytesRef minHash : minhashes) {
+            TermQuery tq = new TermQuery(new Term(field, minHash));
+            if (bandSize == 1) {
+                builder.add(new ConstantScoreQuery(tq), BooleanClause.Occur.SHOULD);
+            } else {
+                childBuilder.add(new ConstantScoreQuery(tq), BooleanClause.Occur.MUST);
+                rowInBand++;
+                if (rowInBand == bandSize) {
+                    builder.add(new ConstantScoreQuery(childBuilder),
+                            BooleanClause.Occur.SHOULD);
+                    childBuilder = new BooleanQuery();
+                    rowInBand = 0;
+                }
+            }
+        }
+        // Avoid a dubious narrow band, wrap around and pad with the start
+        if (childBuilder.clauses().size() > 0) {
+            for (BytesRef token : minhashes) {
+                TermQuery tq = new TermQuery(new Term(field, token.toString()));
+                childBuilder.add(new ConstantScoreQuery(tq), BooleanClause.Occur.MUST);
+                rowInBand++;
+                if (rowInBand == bandSize) {
+                    builder.add(new ConstantScoreQuery(childBuilder),
+                            BooleanClause.Occur.SHOULD);
+                    break;
+                }
+            }
+        }
+
+        if (expectedTruePositive >= 1.0 && similarity < 1) {
+            builder.setMinimumNumberShouldMatch((int) (Math.ceil(minhashes.size() * similarity)));
+        }
+        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}", bandSize,
+                builder.getMinimumNumberShouldMatch(), builder.clauses().size());
+        return builder;
+
+    }
+
+    private static int computeBandSize(int numHash, double similarity, double expectedTruePositive) {
+        for (int bands = 1; bands <= numHash; bands++) {
+            int rowsInBand = numHash / bands;
+            double truePositive = 1 - Math.pow(1 - Math.pow(similarity, rowsInBand), bands);
+            if (truePositive > expectedTruePositive) {
+                return rowsInBand;
+            }
+        }
+        return 1;
     }
 
 }

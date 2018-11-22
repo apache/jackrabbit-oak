@@ -320,12 +320,22 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         for (Field f : FieldFactory.newSimilarityFields(pd.name, value)) {
             doc.add(f);
         }
+        if (pd.similarityRerank) {
+            for (Field f : FieldFactory.newBinSimilarityFields(pd.name, value)) {
+                doc.add(f);
+            }
+        }
     }
 
     @Override
     protected void indexSimilarityBinaries(Document doc, PropertyDefinition pd, Blob blob) throws IOException {
         for (Field f : FieldFactory.newSimilarityFields(pd.name, blob)) {
             doc.add(f);
+        }
+        if (pd.similarityRerank) {
+            for (Field f : FieldFactory.newBinSimilarityFields(pd.name, blob)) {
+                doc.add(f);
+            }
         }
     }
 }
