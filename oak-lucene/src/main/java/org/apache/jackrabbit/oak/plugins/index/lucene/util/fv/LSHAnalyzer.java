@@ -30,7 +30,7 @@ import org.apache.lucene.util.Version;
  */
 public class LSHAnalyzer extends Analyzer {
 
-  private static final int DEFAULT_SHINGLE_SIZE = 4;
+  private static final int DEFAULT_SHINGLE_SIZE = 5;
 
   private final int min;
   private final int max;

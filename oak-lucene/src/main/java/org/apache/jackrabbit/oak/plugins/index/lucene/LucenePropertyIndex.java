@@ -120,6 +120,7 @@ import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -128,6 +129,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -379,6 +381,37 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 mergedFieldInfos = MultiFields.getMergedFieldInfos(searcher.getIndexReader());
                             }
 
+                            boolean earlyStop = false;
+                            if (docs.scoreDocs.length > 1) {
+                                // reranking step for fv sim search
+                                PropertyRestriction pr = null;
+                                LuceneIndexDefinition defn = indexNode.getDefinition();
+                                if (defn.hasFunctionDefined()) {
+                                    pr = filter.getPropertyRestriction(defn.getFunctionName());
+                                }
+                                if (pr != null) {
+                                    String queryString = String.valueOf(pr.first.getValue(pr.first.getType()));
+                                    if (queryString.startsWith("mlt?")) {
+                                        List<PropertyDefinition> sp = new LinkedList<>();
+                                        for (IndexingRule r : defn.getDefinedRules()) {
+                                            List<PropertyDefinition> similarityProperties = r.getSimilarityProperties();
+                                            for (PropertyDefinition pd : similarityProperties) {
+                                                if (pd.similarityRerank) {
+                                                    sp.add(pd);
+                                                }
+                                            }
+                                        }
+                                        if (!sp.isEmpty()) {
+                                            long fvs = PERF_LOGGER.start();
+                                            SimSearchUtils.bruteForceFVRerank(sp, docs, indexSearcher);
+                                            PERF_LOGGER.end(fvs, -1, "fv reranking done");
+                                            LOG.info("reranking done");
+                                            earlyStop = true;
+                                        }
+                                    }
+                                }
+                            }
+
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 Map<String, String> excerpts = null;
                                 if (addExcerpt) {
@@ -397,6 +430,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 lastDocToRecord = doc;
                             }
 
+                            if (earlyStop) {
+                                noDocs = true;
+                                break;
+                            }
                             if (queue.isEmpty() && docs.scoreDocs.length > 0) {
                                 //queue is still empty but more results can be fetched
                                 //from Lucene so still continue
