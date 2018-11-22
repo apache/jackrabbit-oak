@@ -249,10 +249,15 @@ public interface FulltextIndexConstants {
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 
-  /**
-   * whether use this property values for similarity
-   */
-  String PROP_USE_IN_SIMILARITY = "useInSimilarity";
+    /**
+     * whether use this property values for similarity
+     */
+    String PROP_USE_IN_SIMILARITY = "useInSimilarity";
+
+    /**
+     * whether feature vector similarity search should rerank based on feature values
+     */
+    String PROP_SIMILARITY_RERANK = "similarityRerank";
 
     /**
      * Property definition config indicating that null check support should be
