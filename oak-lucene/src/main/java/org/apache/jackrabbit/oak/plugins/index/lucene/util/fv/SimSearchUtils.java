@@ -241,19 +241,21 @@ public class SimSearchUtils {
         for (PropertyDefinition pd : sp) {
             String fieldName = FieldNames.createBinSimilarityFieldName(pd.name);
             BytesRef binaryValue = indexSearcher.doc(inputDoc.doc).getBinaryValue(fieldName);
-            double[] inputVector = toDoubleArray(binaryValue.bytes);
-            for (int j = 0; j < docs.scoreDocs.length; j++) {
-                double[] currentVector = toDoubleArray(indexSearcher.doc(docs.scoreDocs[j].doc)
-                        .getBinaryValue(fieldName).bytes);
-                double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
+            if (binaryValue != null) {
+                double[] inputVector = toDoubleArray(binaryValue.bytes);
+                for (int j = 0; j < docs.scoreDocs.length; j++) {
+                    double[] currentVector = toDoubleArray(indexSearcher.doc(docs.scoreDocs[j].doc)
+                            .getBinaryValue(fieldName).bytes);
+                    double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
 
-                if (distance > farthestDistance) { // a threshold distance above which current vector is discarded
-                    toDiscard.add(docs.scoreDocs[j].doc);
+                    if (distance > farthestDistance) { // a threshold distance above which current vector is discarded
+                        toDiscard.add(docs.scoreDocs[j].doc);
+                    }
+                    if (Double.isNaN(distance) || Double.isInfinite(distance)) {
+                        toDiscard.add(docs.scoreDocs[j].doc);
+                    }
+                    docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
                 }
-                if (Double.isNaN(distance) || Double.isInfinite(distance)) {
-                    toDiscard.add(docs.scoreDocs[j].doc);
-                }
-                docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
             }
         }
         if (!toDiscard.isEmpty()) {
