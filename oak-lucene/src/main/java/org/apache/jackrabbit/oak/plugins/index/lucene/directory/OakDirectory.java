@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlo
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -174,7 +175,11 @@ public class OakDirectory extends Directory {
         } else {
             LOG.debug("Not marking {} under {} for active deletion", name, indexName);
         }
-        f.remove();
+        if (f instanceof ReadOnlyBuilder) {
+            LOG.debug("Preserve read-only node: " + name);
+        } else {
+            f.remove();
+        }
         markDirty();
     }
 
@@ -253,7 +258,11 @@ public class OakDirectory extends Directory {
     public void close() throws IOException {
         if (!readOnly && definition.saveDirListing()) {
             if (!fileNamesAtStart.equals(fileNames)) {
-                directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+                if (directoryBuilder instanceof ReadOnlyBuilder) {
+                    LOG.debug("Preserve files of read-only directory: " + fileNames);
+                } else {
+                    directoryBuilder.setProperty(createProperty(PROP_DIR_LISTING, fileNames, STRINGS));
+                }
             }
         }
     }
@@ -296,12 +305,16 @@ public class OakDirectory extends Directory {
         NodeBuilder file = directoryBuilder.getChildNode(name);
         if (file.exists()) {
             // overwrite potentially already existing child
-            NodeBuilder destFile = dest.directoryBuilder.setChildNode(name, EMPTY_NODE);
-            for (PropertyState p : file.getProperties()) {
-                destFile.setProperty(p);
+            if (dest.directoryBuilder instanceof ReadOnlyBuilder) {
+                LOG.debug("Preserve read-only child: " + name);
+            } else {
+                NodeBuilder destFile = dest.directoryBuilder.setChildNode(name, EMPTY_NODE);
+                for (PropertyState p : file.getProperties()) {
+                    destFile.setProperty(p);
+                }
+                dest.fileNames.add(name);
+                dest.markDirty();
             }
-            dest.fileNames.add(name);
-            dest.markDirty();
         }
     }
 

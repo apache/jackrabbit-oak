@@ -25,12 +25,13 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.composite.CompositeNodeState.STOP_COUNTING_CHILDREN;
@@ -39,6 +40,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 class CompositeNodeBuilder implements NodeBuilder {
+
+    private final static Logger LOG = LoggerFactory.getLogger(CompositeNodeBuilder.class);
 
     private final CompositionContext ctx;
 
@@ -227,9 +230,14 @@ class CompositeNodeBuilder implements NodeBuilder {
             throw new IllegalStateException("This builder does not exist: " + PathUtils.getName(getPath()));
         }
         String childPath = simpleConcat(getPath(), name);
-        final MountedNodeStore childStore = ctx.getOwningStore(childPath);
+        MountedNodeStore childStore = ctx.getOwningStore(childPath);
         if (childStore != ctx.getGlobalStore() && !nodeBuilders.get(childStore).exists()) {
-            throw new IllegalStateException("The mount root doesn't exist: " + getPath() + " for " + childStore);
+            // if it doesn't exist in the read-only repository, create it in the global repository
+            // (needed for example for a new index)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Creating node in the global store; will become invisible once overlayed: " + childPath);
+            }
+            childStore = ctx.getGlobalStore();
         }
         final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
         if (!ctx.shouldBeComposite(childPath)) {
