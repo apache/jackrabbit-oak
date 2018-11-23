@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
 import static java.util.Collections.reverseOrder;
-import static java.util.Comparator.comparingInt;
 import static org.apache.jackrabbit.oak.query.QueryImpl.REP_FACET;
 
 /**
