@@ -234,7 +234,9 @@ public class SimSearchUtils {
     }
 
     public static void bruteForceFVRerank(List<PropertyDefinition> sp, TopDocs docs, IndexSearcher indexSearcher) throws IOException {
-        double farthestDistance = 50d;
+        double distSum = 0d;
+        double counter = 0d;
+        Map<Integer, Double> distances = new HashMap<>();
         int k = 15;
         ScoreDoc inputDoc = docs.scoreDocs[0]; // we assume the input doc is the first one returned
         List<Integer> toDiscard = new LinkedList<>();
@@ -247,26 +249,37 @@ public class SimSearchUtils {
                     double[] currentVector = toDoubleArray(indexSearcher.doc(docs.scoreDocs[j].doc)
                             .getBinaryValue(fieldName).bytes);
                     double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
-
-                    if (distance > farthestDistance) { // a threshold distance above which current vector is discarded
-                        toDiscard.add(docs.scoreDocs[j].doc);
-                    }
                     if (Double.isNaN(distance) || Double.isInfinite(distance)) {
                         toDiscard.add(docs.scoreDocs[j].doc);
+                    } else {
+                        distSum += distance;
+                        counter++;
+                        distances.put(docs.scoreDocs[j].doc, distance);
+                        docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
                     }
-                    docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
                 }
             }
         }
+
+        // remove docs having invalid distance
         if (!toDiscard.isEmpty()) {
-            docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> !toDiscard.contains(e.doc)).toArray(ScoreDoc[]::new); // remove docs that are not close enough
+            docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> !toDiscard.contains(e.doc)).toArray(ScoreDoc[]::new);
         }
-        Arrays.parallelSort(docs.scoreDocs, 0, docs.scoreDocs.length, (o1, o2) -> { // rerank scoreDocs
+
+        // remove docs whose distance is one order of magnitude higher than average distance
+        final double distanceThreshold = 10 * distSum / counter;
+        docs.scoreDocs = Arrays.stream(docs.scoreDocs).filter(e -> distances.containsKey(e.doc) && distances.get(e.doc) < distanceThreshold).toArray(ScoreDoc[]::new);
+
+        // rerank scoreDocs
+        Arrays.parallelSort(docs.scoreDocs, 0, docs.scoreDocs.length, (o1, o2) -> {
             return -1 * Double.compare(o1.score, o2.score);
         });
+
+        // retain only the top k nearest neighbours
         if (docs.scoreDocs.length > k) {
-            docs.scoreDocs = Arrays.copyOfRange(docs.scoreDocs, 0, k); // retain only the top k nearest neighbours
+            docs.scoreDocs = Arrays.copyOfRange(docs.scoreDocs, 0, k);
         }
+
         if (docs.scoreDocs.length > 0) {
             docs.setMaxScore(docs.scoreDocs[0].score);
         }

@@ -393,7 +393,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "/jcr:root//element(*, nt:file)";
-        System.out.println(explainXpath(propabQuery));
         assertThat(explainXpath(propabQuery), containsString("nodeType"));
     }
 
