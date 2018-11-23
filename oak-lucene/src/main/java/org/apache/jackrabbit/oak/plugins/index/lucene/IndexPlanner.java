@@ -197,7 +197,16 @@ class IndexPlanner {
                 }
                 if (QueryConstants.REP_FACET.equals(pr.propertyName)) {
                     String value = pr.first.getValue(Type.STRING);
-                    facetFields.add(FacetHelper.parseFacetField(value));
+
+                    String facetProp = FacetHelper.parseFacetField(value);
+
+                    PropertyDefinition facetPropDef = indexingRule.getConfig(facetProp);
+                    if (facetPropDef == null || !facetPropDef.facet) {
+                        log.warn("{} not backed by index. Opting out", value);
+                        return null;
+                    }
+
+                    facetFields.add(facetProp);
                 }
 
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
