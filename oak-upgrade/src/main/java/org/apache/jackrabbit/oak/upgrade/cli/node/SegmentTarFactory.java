@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 import java.io.File;
