@@ -311,6 +311,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             private boolean noDocs = false;
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
+            private Facets facets = null;
+            private boolean facetsInitialized = false;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -404,7 +406,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                             long f = PERF_LOGGER.start();
-                            Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
+                            if (!facetsInitialized) {
+                                facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
+                                facetsInitialized = true;
+                            }
                             PERF_LOGGER.end(f, -1, "facets retrieved");
 
                             PropertyRestriction restriction = filter.getPropertyRestriction(QueryImpl.REP_EXCERPT);
