@@ -46,6 +46,7 @@ import com.google.common.collect.Queues;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.query.QueryImpl.REP_FACET;
 
 /**
  * This utility class provides factory methods to create commonly used types of
@@ -245,6 +246,12 @@ public class Cursors {
                 // OAK-4313: if no other index was found,
                 // then, for native queries, we won't match anything
                 return;
+            }
+
+            Filter.PropertyRestriction facetRestriction = filter.getPropertyRestriction(REP_FACET);
+            if (facetRestriction != null) {
+                // we don't evaluate facets by traversal
+                throw new IllegalArgumentException(facetRestriction + " can't be evaluated by traversal");
             }
 
             if (filter.isAlwaysFalse()) {
