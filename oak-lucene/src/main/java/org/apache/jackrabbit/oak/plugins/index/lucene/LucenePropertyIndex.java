@@ -405,7 +405,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                                             long fvs = PERF_LOGGER.start();
                                             SimSearchUtils.bruteForceFVRerank(sp, docs, indexSearcher);
                                             PERF_LOGGER.end(fvs, -1, "fv reranking done");
-                                            LOG.info("reranking done");
                                             earlyStop = true;
                                         }
                                     }
