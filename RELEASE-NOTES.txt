@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.12
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.11 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.12 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,32 +15,57 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.11
+Changes in Oak 1.9.12
 --------------------
+
+Sub-task
+
+    [OAK-7898] - Facet queries with UNION should do trivial merge of
+    facets from sub-queries
+
+Technical task
+
+    [OAK-6957] - Remove export for org.apache.jackrabbit.oak.security
+    [OAK-7894] - RDBDocumentStore: add perf logging for JDBC read
+    operations
+    [OAK-7896] - RDB*Store: update mysql driver reference to 8.0.13
 
 Bug
 
-    [OAK-7605] - Giving multiple result when executing query (for a
-    constraints with OR condition) for Facetextraction
-    [OAK-7608] - Throw exception if all properties name are given
-    wrong for faceting
-    [OAK-7613] - Taking more time for iterating row of query Result
-    which contain Facets
-    [OAK-7877] - Avoid unnecessary operations when logging read
-    operations
-    [OAK-7885] - Performance regression in FlatTreeUpdateTest
-    [OAK-7886] - Re-registering node type may corrupt registry
+    [OAK-7606] - Doing Faceting only on the resultset of one
+    constraints when query contain multiple constraint with OR
+    condition
+    [OAK-7889] - Test failure: Unable to start Docker container
+    [OAK-7901] - NodeTypeRegistryTest uses javax.annotation.Nonnull
+    [OAK-7903] - Corrupt index metric potentially reporting
+    corruptions on every index update
+    [OAK-7912] - ValidNamesTest: potential NPE in teardown
+    [OAK-7916] - Feature vectors similarity query is too selective
+
+New Feature
+
+    [OAK-7900] - Allow to spot User.disable with a new, dedicated
+    UserAction
 
 Improvement
 
-    [OAK-7850] - Indexes that don't support facets being queried
-    should not participate in execution plan
-    [OAK-7873] - Delete o.a.j.o.segment.util.RoleUtils
-    [OAK-7874] - Upgrade docker-junit-rule to version 2.2.2
+    [OAK-7323] - Log when trying to add "everyone" as member to other
+    groups or add user/groups to "everyone"
+    [OAK-7824] - Improve search by similar feature vectors with brute
+    force nearest neighbour
+    [OAK-7910] - Composite node store: Creating a new Lucene index;
+    reindex
 
 Task
 
-    [OAK-7892] - LogCustomizer should support slf4j log levels
+    [OAK-7893] - Export DW Metrics for Lucene index size and document
+    counts
+    [OAK-7913] - Update failsafe and surefire versions to 2.22.1
+
+Documentation
+
+    [OAK-7895] - RELEASE-NOTES: minor typo
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.9.x release.
