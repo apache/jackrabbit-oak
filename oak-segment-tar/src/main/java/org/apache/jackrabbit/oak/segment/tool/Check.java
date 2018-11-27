@@ -239,18 +239,15 @@ public class Check {
     }
 
     public int run() {
-        try {
-            ConsistencyChecker.checkConsistency(
+        try (ConsistencyChecker checker = new ConsistencyChecker(path, debugInterval, ioStatistics, outWriter, errWriter)) {
+            checker.checkConsistency(
                 path,
                 journal,
-                debugInterval,
                 checkBinaries,
                 checkHead,
                 checkpoints,
                 filterPaths,
-                ioStatistics,
-                outWriter,
-                errWriter
+                ioStatistics
             );
             return 0;
         } catch (Exception e) {
