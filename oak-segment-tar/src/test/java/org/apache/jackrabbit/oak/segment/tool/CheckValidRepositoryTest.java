@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment.file.tooling;
+
+package org.apache.jackrabbit.oak.segment.tool;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -26,11 +27,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.junit.Test;
 
 /**
- * Tests for {@link CheckCommand} assuming a consistent repository.
+ * Tests for {@link Check} assuming a consistent repository.
  */
 public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
@@ -38,43 +38,43 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
     public void testSuccessfulFullCheckWithBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withCheckBinaries(true)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withFilterPaths(filterPaths)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", 
-                "Checked 7 nodes and 21 properties", "Path / is consistent"));
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+            "Checked 7 nodes and 21 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testSuccessfulOnlyRootKidsCheckWithBinaryTraversalAndFilterPaths() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/a");
         filterPaths.add("/b");
@@ -82,268 +82,268 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
         filterPaths.add("/d");
         filterPaths.add("/e");
         filterPaths.add("/f");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withCheckBinaries(true)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withFilterPaths(filterPaths)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
+
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
-                "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties",
-                "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent",
-                "Path /f is consistent"));
+            "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties",
+            "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent",
+            "Path /f is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testSuccessfulFullCheckWithoutBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withFilterPaths(filterPaths)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", 
-                "Checked 7 nodes and 15 properties", "Path / is consistent"));
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+            "Checked 7 nodes and 15 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testSuccessfulPartialCheckWithoutBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/a");
         filterPaths.add("/b");
         filterPaths.add("/d");
         filterPaths.add("/e");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withFilterPaths(filterPaths)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", 
-                "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
-                "Path /a is consistent", "Path /b is consistent", "Path /d is consistent", "Path /e is consistent"));
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+            "Checked 1 nodes and 0 properties", "Checked 1 nodes and 4 properties", "Checked 1 nodes and 5 properties",
+            "Path /a is consistent", "Path /b is consistent", "Path /d is consistent", "Path /e is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testUnsuccessfulPartialCheckWithoutBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/g");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withFilterPaths(filterPaths)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withFilterPaths(filterPaths)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", 
-                "No good revision found"));
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+            "No good revision found"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
-    
+
     @Test
     public void testUnsuccessfulPartialCheckWithBinaryTraversal() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/a");
         filterPaths.add("/f");
         filterPaths.add("/g");
         filterPaths.add("/d");
         filterPaths.add("/e");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withFilterPaths(filterPaths)
-        .withCheckBinaries(true)
-        .withCheckHead(true)
-        .withCheckpoints(new HashSet<String>())
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withFilterPaths(filterPaths)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(new HashSet<String>())
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", 
-                "Checked 1 nodes and 1 properties", "Checked 1 nodes and 6 properties", "Checked 1 nodes and 4 properties", 
-                "Checked 1 nodes and 5 properties",
-                "Path /a is consistent", "Path /f is consistent", "Path /d is consistent", "Path /e is consistent"));
+
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints",
+            "Checked 1 nodes and 1 properties", "Checked 1 nodes and 6 properties", "Checked 1 nodes and 4 properties",
+            "Checked 1 nodes and 5 properties",
+            "Path /a is consistent", "Path /f is consistent", "Path /d is consistent", "Path /e is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
     }
-    
+
     @Test
     public void testSuccessfulCheckOfHeadAndCheckpointsWithoutFilterPaths() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withFilterPaths(filterPaths)
-        .withCheckBinaries(true)
-        .withCheckHead(true)
-        .withCheckpoints(checkpoints)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withFilterPaths(filterPaths)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(checkpoints)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
+
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
-                "Searched through 1 revisions and 2 checkpoints", "Checked 7 nodes and 21 properties", "Path / is consistent"));
+            "Searched through 1 revisions and 2 checkpoints", "Checked 7 nodes and 21 properties", "Path / is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testSuccessfulCheckOfHeadAndCheckpointsWithFilterPaths() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/f");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withFilterPaths(filterPaths)
-        .withCheckBinaries(true)
-        .withCheckHead(true)
-        .withCheckpoints(checkpoints)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withFilterPaths(filterPaths)
+            .withCheckBinaries(true)
+            .withCheckHead(true)
+            .withCheckpoints(checkpoints)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
-        
+
         assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints",
-                "Searched through 1 revisions and 2 checkpoints", "Checked 1 nodes and 6 properties", "Path /f is consistent"));
+            "Searched through 1 revisions and 2 checkpoints", "Checked 1 nodes and 6 properties", "Path /f is consistent"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
     }
-    
+
     @Test
     public void testMissingCheckpointCheck() throws Exception {
         StringWriter strOut = new StringWriter();
         StringWriter strErr = new StringWriter();
-        
+
         PrintWriter outWriter = new PrintWriter(strOut, true);
         PrintWriter errWriter = new PrintWriter(strErr, true);
-        
+
         Set<String> filterPaths = new LinkedHashSet<>();
         filterPaths.add("/");
-        
+
         HashSet<String> checkpoints = new HashSet<String>();
         checkpoints.add("bogus-checkpoint");
-        
+
         Check.builder()
-        .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-        .withJournal("journal.log")
-        .withDebugInterval(Long.MAX_VALUE)
-        .withFilterPaths(filterPaths)
-        .withCheckBinaries(true)
-        .withCheckpoints(checkpoints)
-        .withIOStatistics(true)
-        .withOutWriter(outWriter)
-        .withErrWriter(errWriter)
-        .build()
-        .run();
-        
+            .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
+            .withJournal("journal.log")
+            .withDebugInterval(Long.MAX_VALUE)
+            .withFilterPaths(filterPaths)
+            .withCheckBinaries(true)
+            .withCheckpoints(checkpoints)
+            .withIOStatistics(true)
+            .withOutWriter(outWriter)
+            .withErrWriter(errWriter)
+            .build()
+            .run();
+
         outWriter.close();
         errWriter.close();
 
-        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints", 
-                "No good revision found"));
+        assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking checkpoints", "Searched through 1 revisions and 1 checkpoints",
+            "No good revision found"));
         assertExpectedOutput(strErr.toString(), Lists.newArrayList("Checkpoint bogus-checkpoint not found in this revision!"));
     }
 }
