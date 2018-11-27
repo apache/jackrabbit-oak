@@ -41,9 +41,9 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate.ConsistencyCheckResult;
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate.Revision;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.ConsistencyCheckResult;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.Revision;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 
 /**
@@ -310,7 +310,49 @@ public class Check {
     }
 
     private void run(ReadOnlyFileStore store, JournalReader journal) {
-        ConsistencyCheckerTemplate template = new ConsistencyCheckerTemplate() {
+        Set<String> checkpoints = requestedCheckpoints;
+
+        if (requestedCheckpoints.contains("all")) {
+            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
+        }
+
+        ConsistencyCheckResult result = newConsistencyChecker().checkConsistency(
+            store,
+            journal,
+            checkHead,
+            checkpoints,
+            filterPaths,
+            checkBinaries
+        );
+
+        print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
+
+        if (hasAnyRevision(result)) {
+            if (checkHead) {
+                print("\nHead");
+                for (Entry<String, Revision> e : result.getHeadRevisions().entrySet()) {
+                    printRevision(0, e.getKey(), e.getValue());
+                }
+            }
+            if (checkpoints.size() > 0) {
+                print("\nCheckpoints");
+                for (String checkpoint : result.getCheckpointRevisions().keySet()) {
+                    print("- {0}", checkpoint);
+                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint).entrySet()) {
+                        printRevision(2, e.getKey(), e.getValue());
+                    }
+
+                }
+            }
+            print("\nOverall");
+            printOverallRevision(result.getOverallRevision());
+        } else {
+            print("No good revision found");
+        }
+    }
+
+    private ConsistencyChecker newConsistencyChecker() {
+        return new ConsistencyChecker() {
 
             @Override
             protected void onCheckRevision(String revision) {
@@ -391,46 +433,6 @@ public class Check {
             }
 
         };
-
-        Set<String> checkpoints = requestedCheckpoints;
-
-        if (requestedCheckpoints.contains("all")) {
-            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
-        }
-
-        ConsistencyCheckResult result = template.checkConsistency(
-            store,
-            journal,
-            checkHead,
-            checkpoints,
-            filterPaths,
-            checkBinaries
-        );
-
-        print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
-
-        if (hasAnyRevision(result)) {
-            if (checkHead) {
-                print("\nHead");
-                for (Entry<String, Revision> e : result.getHeadRevisions().entrySet()) {
-                    printRevision(0, e.getKey(), e.getValue());
-                }
-            }
-            if (checkpoints.size() > 0) {
-                print("\nCheckpoints");
-                for (String checkpoint : result.getCheckpointRevisions().keySet()) {
-                    print("- {0}", checkpoint);
-                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint).entrySet()) {
-                        printRevision(2, e.getKey(), e.getValue());
-                    }
-
-                }
-            }
-            print("\nOverall");
-            printOverallRevision(result.getOverallRevision());
-        } else {
-            print("No good revision found");
-        }
     }
 
     private void print(String format, Object... arguments) {

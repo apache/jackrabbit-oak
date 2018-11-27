@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-public abstract class ConsistencyCheckerTemplate {
+public abstract class ConsistencyChecker {
 
     private static NodeState getDescendantOrNull(NodeState root, String path) {
         NodeState descendant = NodeStateUtils.getNode(root, path);
