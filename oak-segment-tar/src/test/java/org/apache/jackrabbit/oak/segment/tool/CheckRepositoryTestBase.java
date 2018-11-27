@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segment.file.tooling;
+
+package org.apache.jackrabbit.oak.segment.tool;
 
 import static com.google.common.base.Charsets.UTF_8;
 
@@ -54,6 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CheckRepositoryTestBase {
+
     private static final int HEADER_SIZE = 512;
 
     private static final int MAX_SEGMENT_SIZE = 262144;
@@ -62,7 +64,7 @@ public class CheckRepositoryTestBase {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
-    
+
     protected Set<String> checkpoints = new LinkedHashSet<>();
 
     @Before
@@ -72,8 +74,8 @@ public class CheckRepositoryTestBase {
 
     protected void addValidRevision() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-                .withSegmentCacheSize(64).build();
-        
+            .withSegmentCacheSize(64).build();
+
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
 
@@ -86,26 +88,26 @@ public class CheckRepositoryTestBase {
         addChildWithProperties(nodeStore, builder, "f", 6);
 
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        
+
         // add checkpoints
         String cp1 = nodeStore.checkpoint(10_000);
         String cp2 = nodeStore.checkpoint(10_000);
         checkpoints.add(cp1);
         checkpoints.add(cp2);
-        
+
         fileStore.close();
     }
 
     protected void addInvalidRevision() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-                .withSegmentCacheSize(64).build();
+            .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         NodeBuilder builder = nodeStore.getRoot().builder();
 
         // add a new child "z"
         addChildWithBlobProperties(nodeStore, builder, "z", 5);
-        
+
         // add a new property value to existing child "a"
         addChildWithBlobProperties(nodeStore, builder, "a", 1);
 
@@ -114,38 +116,38 @@ public class CheckRepositoryTestBase {
         // get record number to corrupt (NODE record for "z")
         SegmentNodeState child = (SegmentNodeState) after.getChildNode("z");
         RecordId zRecordId = child.getRecordId();
-        
+
         // get record number to corrupt (NODE record for "a")
         child = (SegmentNodeState) after.getChildNode("a");
         RecordId aRecordId = child.getRecordId();
-        
+
         fileStore.close();
 
         corruptRecord(zRecordId, "data00001a.tar");
         corruptRecord(aRecordId, "data00001a.tar");
     }
-    
+
     protected void corruptPathFromCheckpoint() throws InvalidFileStoreVersionException, IOException {
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(temporaryFolder.getRoot()).withMaxFileSize(256)
-                .withSegmentCacheSize(64).build();
+            .withSegmentCacheSize(64).build();
 
         SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         SegmentNodeState cp1 = (SegmentNodeState) nodeStore.retrieve(checkpoints.iterator().next());
         RecordId bRecordId = ((SegmentNodeState) cp1.getChildNode("b")).getRecordId();
         fileStore.close();
-        
+
         corruptRecord(bRecordId, "data00000a.tar");
     }
-    
+
     private void corruptRecord(RecordId recordId, String tarFileName) throws FileNotFoundException, IOException {
         RandomAccessFile file = new RandomAccessFile(new File(temporaryFolder.getRoot(), tarFileName), "rw");
-        
+
         String segmentName = recordId.getSegmentId().toString();
         String crtEntryName = "";
         int entrySize = 0;
         long filePointer = 0;
-        
-        while(!crtEntryName.equals(segmentName)) {
+
+        while (!crtEntryName.equals(segmentName)) {
             filePointer = file.getFilePointer();
             // read entry header
             ByteBuffer entryHeader = ByteBuffer.allocate(HEADER_SIZE);
@@ -165,8 +167,9 @@ public class CheckRepositoryTestBase {
                 file.skipBytes(entrySize);
                 file.skipBytes(HEADER_SIZE - (entrySize % HEADER_SIZE));
             }
-        };
-        
+        }
+        ;
+
         // read actual segment
         ByteBuffer segmentBytes = ByteBuffer.allocate(entrySize);
         file.readFully(segmentBytes.array());
@@ -181,22 +184,22 @@ public class CheckRepositoryTestBase {
 
         Assert.assertEquals(recordId.getRecordNumber(), number);
         Assert.assertEquals(RecordType.NODE.ordinal(), type);
-        
+
         // read the offset of previous record to derive length of our record
         int prevSkip = 32 + segmentRefs * 16 + (recordId.getRecordNumber() - 1) * 9;
         int prevOffset = segmentBytes.getInt(prevSkip + 4 + 1);
-        
+
         int length = prevOffset - offset;
-        
+
         int realOffset = entrySize - (MAX_SEGMENT_SIZE - offset);
-        
+
         // write random bytes inside the NODE record to corrupt it
         Random r = new Random(10);
         byte[] bogusData = new byte[length];
         r.nextBytes(bogusData);
         file.seek(filePointer + HEADER_SIZE + realOffset);
         file.write(bogusData);
-        
+
         file.close();
     }
 
@@ -210,7 +213,7 @@ public class CheckRepositoryTestBase {
     }
 
     protected static void addChildWithBlobProperties(SegmentNodeStore nodeStore, NodeBuilder builder, String childName,
-            int propCount) throws IOException {
+        int propCount) throws IOException {
         NodeBuilder child = builder.child(childName);
         for (int i = 0; i < propCount; i++) {
             child.setProperty(childName + i, nodeStore.createBlob(randomStream(i, 2000)));
@@ -218,7 +221,7 @@ public class CheckRepositoryTestBase {
     }
 
     protected static void addChildWithProperties(SegmentNodeStore nodeStore, NodeBuilder builder, String childName,
-            int propCount) throws IOException {
+        int propCount) throws IOException {
         NodeBuilder child = builder.child(childName);
         for (int i = 0; i < propCount; i++) {
             child.setProperty(childName + i, childName + i);

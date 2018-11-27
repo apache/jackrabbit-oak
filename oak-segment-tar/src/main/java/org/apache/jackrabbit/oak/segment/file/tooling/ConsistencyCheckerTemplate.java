@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-abstract class ConsistencyCheckerTemplate {
+public abstract class ConsistencyCheckerTemplate {
 
     private static NodeState getDescendantOrNull(NodeState root, String path) {
         NodeState descendant = NodeStateUtils.getNode(root, path);
@@ -99,63 +99,63 @@ abstract class ConsistencyCheckerTemplate {
         }
     }
 
-    void onCheckRevision(String revision) {
+    protected void onCheckRevision(String revision) {
         // Do nothing.
     }
 
-    void onCheckHead() {
+    protected void onCheckHead() {
         // Do nothing.
     }
 
-    void onCheckChekpoints() {
+    protected  void onCheckChekpoints() {
         // Do nothing.
     }
 
-    void onCheckCheckpoint(String checkpoint) {
+    protected  void onCheckCheckpoint(String checkpoint) {
         // Do nothing.
     }
 
-    void onCheckpointNotFoundInRevision(String checkpoint) {
+    protected void onCheckpointNotFoundInRevision(String checkpoint) {
         // Do nothing.
     }
 
-    void onCheckRevisionError(String revision, Exception e) {
+    protected void onCheckRevisionError(String revision, Exception e) {
         // Do nothing.
     }
 
-    void onConsistentPath(String path) {
+    protected void onConsistentPath(String path) {
         // Do nothing.
     }
 
-    void onPathNotFound(String path) {
+    protected void onPathNotFound(String path) {
         // Do nothing.
     }
 
-    void onCheckTree(String path) {
+    protected void onCheckTree(String path) {
         // Do nothing.
     }
 
-    void onCheckTreeEnd() {
+    protected void onCheckTreeEnd() {
         // Do nothing.
     }
 
-    void onCheckNode(String path) {
+    protected void onCheckNode(String path) {
         // Do nothing.
     }
 
-    void onCheckProperty() {
+    protected void onCheckProperty() {
         // Do nothing.
     }
 
-    void onCheckPropertyEnd(String path, PropertyState property) {
+    protected void onCheckPropertyEnd(String path, PropertyState property) {
         // Do nothing.
     }
 
-    void onCheckNodeError(String path, Exception e) {
+    protected void onCheckNodeError(String path, Exception e) {
         // Do nothing.
     }
 
-    void onCheckTreeError(String path, Exception e) {
+    protected void onCheckTreeError(String path, Exception e) {
         // Do nothing.
     }
 

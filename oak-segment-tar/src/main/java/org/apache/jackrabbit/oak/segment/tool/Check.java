@@ -19,12 +19,32 @@ package org.apache.jackrabbit.oak.segment.tool;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.text.DateFormat.getDateTimeInstance;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.text.MessageFormat;
+import java.util.Date;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
+import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.JournalReader;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate.ConsistencyCheckResult;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyCheckerTemplate.Revision;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 
 /**
  * Perform a consistency check on an existing segment store.
@@ -205,6 +225,23 @@ public class Check {
 
     }
 
+    private static class StatisticsIOMonitor extends IOMonitorAdapter {
+
+        AtomicLong ops = new AtomicLong(0);
+
+        AtomicLong bytes = new AtomicLong(0);
+
+        AtomicLong time = new AtomicLong(0);
+
+        @Override
+        public void afterSegmentRead(File file, long msb, long lsb, int length, long elapsed) {
+            ops.incrementAndGet();
+            bytes.addAndGet(length);
+            time.addAndGet(elapsed);
+        }
+
+    }
+
     private final File path;
 
     private final String journal;
@@ -214,16 +251,22 @@ public class Check {
     private final boolean checkBinaries;
     
     private final boolean checkHead;
-    
-    private final Set<String> checkpoints;
+
+    private final Set<String> requestedCheckpoints;
     
     private final Set<String> filterPaths;
 
     private final boolean ioStatistics;
-    
-    private final PrintWriter outWriter;
-    
-    private final PrintWriter errWriter;
+
+    private final PrintWriter out;
+
+    private final PrintWriter err;
+
+    private int nodeCount;
+
+    private int propertyCount;
+
+    private long lastDebugEvent;
 
     private Check(Builder builder) {
         this.path = builder.path;
@@ -231,29 +274,239 @@ public class Check {
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
-        this.checkpoints = builder.checkpoints;
+        this.requestedCheckpoints = builder.checkpoints;
         this.filterPaths = builder.filterPaths;
         this.ioStatistics = builder.ioStatistics;
-        this.outWriter = builder.outWriter;
-        this.errWriter = builder.errWriter;
+        this.out = builder.outWriter;
+        this.err = builder.errWriter;
     }
 
     public int run() {
-        try (ConsistencyChecker checker = new ConsistencyChecker(path, debugInterval, ioStatistics, outWriter, errWriter)) {
-            checker.checkConsistency(
-                path,
-                journal,
-                checkBinaries,
-                checkHead,
-                checkpoints,
-                filterPaths,
-                ioStatistics
-            );
+        StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
+
+        FileStoreBuilder builder = fileStoreBuilder(path);
+
+        if (ioStatistics) {
+            builder.withIOMonitor(ioMonitor);
+        }
+
+        try (
+            ReadOnlyFileStore store = builder.buildReadOnly();
+            JournalReader journal = new JournalReader(new LocalJournalFile(path, this.journal))
+        ) {
+            run(store, journal);
+
+            if (ioStatistics) {
+                print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
+                print("[I/O] Segment read: Total size: {0} ({1} bytes)", humanReadableByteCount(ioMonitor.bytes.get()), ioMonitor.bytes.get());
+                print("[I/O] Segment read: Total time: {0} ns", ioMonitor.time.get());
+            }
+
             return 0;
         } catch (Exception e) {
-            e.printStackTrace(errWriter);
+            e.printStackTrace(err);
             return 1;
         }
+    }
+
+    private void run(ReadOnlyFileStore store, JournalReader journal) {
+        ConsistencyCheckerTemplate template = new ConsistencyCheckerTemplate() {
+
+            @Override
+            protected void onCheckRevision(String revision) {
+                print("\nChecking revision {0}", revision);
+            }
+
+            @Override
+            protected void onCheckHead() {
+                print("\nChecking head\n");
+            }
+
+            @Override
+            protected void onCheckChekpoints() {
+                print("\nChecking checkpoints");
+            }
+
+            @Override
+            protected void onCheckCheckpoint(String checkpoint) {
+                print("\nChecking checkpoint {0}", checkpoint);
+            }
+
+            @Override
+            protected void onCheckpointNotFoundInRevision(String checkpoint) {
+                printError("Checkpoint {0} not found in this revision!", checkpoint);
+            }
+
+            @Override
+            protected void onCheckRevisionError(String revision, Exception e) {
+                printError("Skipping invalid record id {0}: {1}", revision, e);
+            }
+
+            @Override
+            protected void onConsistentPath(String path) {
+                print("Path {0} is consistent", path);
+            }
+
+            @Override
+            protected void onPathNotFound(String path) {
+                printError("Path {0} not found", path);
+            }
+
+            @Override
+            protected void onCheckTree(String path) {
+                nodeCount = 0;
+                propertyCount = 0;
+                print("Checking {0}", path);
+            }
+
+            @Override
+            protected void onCheckTreeEnd() {
+                print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
+            }
+
+            @Override
+            protected void onCheckNode(String path) {
+                debug("Traversing {0}", path);
+                nodeCount++;
+            }
+
+            @Override
+            protected void onCheckProperty() {
+                propertyCount++;
+            }
+
+            @Override
+            protected void onCheckPropertyEnd(String path, PropertyState property) {
+                debug("Checked {0}/{1}", path, property);
+            }
+
+            @Override
+            protected void onCheckNodeError(String path, Exception e) {
+                printError("Error while traversing {0}: {1}", path, e);
+            }
+
+            @Override
+            protected void onCheckTreeError(String path, Exception e) {
+                printError("Error while traversing {0}: {1}", path, e.getMessage());
+            }
+
+        };
+
+        Set<String> checkpoints = requestedCheckpoints;
+
+        if (requestedCheckpoints.contains("all")) {
+            checkpoints = Sets.newLinkedHashSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
+        }
+
+        ConsistencyCheckResult result = template.checkConsistency(
+            store,
+            journal,
+            checkHead,
+            checkpoints,
+            filterPaths,
+            checkBinaries
+        );
+
+        print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
+
+        if (hasAnyRevision(result)) {
+            if (checkHead) {
+                print("\nHead");
+                for (Entry<String, Revision> e : result.getHeadRevisions().entrySet()) {
+                    printRevision(0, e.getKey(), e.getValue());
+                }
+            }
+            if (checkpoints.size() > 0) {
+                print("\nCheckpoints");
+                for (String checkpoint : result.getCheckpointRevisions().keySet()) {
+                    print("- {0}", checkpoint);
+                    for (Entry<String, Revision> e : result.getCheckpointRevisions().get(checkpoint).entrySet()) {
+                        printRevision(2, e.getKey(), e.getValue());
+                    }
+
+                }
+            }
+            print("\nOverall");
+            printOverallRevision(result.getOverallRevision());
+        } else {
+            print("No good revision found");
+        }
+    }
+
+    private void print(String format, Object... arguments) {
+        out.println(MessageFormat.format(format, arguments));
+    }
+
+    private void printError(String format, Object... args) {
+        err.println(MessageFormat.format(format, args));
+    }
+
+    private void debug(String format, Object... arg) {
+        if (debug()) {
+            print(format, arg);
+        }
+    }
+
+    private boolean debug() {
+        // Avoid calling System.currentTimeMillis(), which is slow on some systems.
+        if (debugInterval == Long.MAX_VALUE) {
+            return false;
+        }
+
+        if (debugInterval == 0) {
+            return true;
+        }
+
+        long t = System.currentTimeMillis();
+        if ((t - this.lastDebugEvent) / 1000 > debugInterval) {
+            this.lastDebugEvent = t;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private static boolean hasAnyRevision(ConsistencyCheckResult result) {
+        return hasAnyHeadRevision(result) || hasAnyCheckpointRevision(result);
+    }
+
+    private static boolean hasAnyHeadRevision(ConsistencyCheckResult result) {
+        return result.getHeadRevisions()
+            .values()
+            .stream()
+            .anyMatch(Objects::nonNull);
+    }
+
+    private static boolean hasAnyCheckpointRevision(ConsistencyCheckResult result) {
+        return result.getCheckpointRevisions()
+            .values()
+            .stream()
+            .flatMap(m -> m.values().stream())
+            .anyMatch(Objects::nonNull);
+    }
+
+    private void printRevision(int indent, String path, Revision revision) {
+        Optional<Revision> r = Optional.ofNullable(revision);
+        print(
+            "{0}Latest good revision for path {1} is {2} from {3}",
+            Strings.repeat(" ", indent),
+            path,
+            r.map(Revision::getRevision).orElse("none"),
+            r.map(Revision::getTimestamp).map(Check::timestampToString).orElse("unknown time")
+        );
+    }
+
+    private void printOverallRevision(Revision revision) {
+        Optional<Revision> r = Optional.ofNullable(revision);
+        print(
+            "Latest good revision for paths and checkpoints checked is {0} from {1}",
+            r.map(Revision::getRevision).orElse("none"),
+            r.map(Revision::getTimestamp).map(Check::timestampToString).orElse("unknown time")
+        );
+    }
+
+    private static String timestampToString(long timestamp) {
+        return getDateTimeInstance().format(new Date(timestamp));
     }
 
 }
