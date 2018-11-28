@@ -214,16 +214,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
 
                 @Override
                 public int read() {
-                    return readOrEnd();
-                }
-
-                @Override
-                public int read(@NotNull byte[] b, int off, int len) {
-                    return readOrEnd();
-                }
-
-                private int readOrEnd() {
-                    if (blocking.get()) {
+                    while (blocking.get()) {
                         if (!reading) {
                             readMonitor.enter();
                             try {
@@ -232,17 +223,15 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                                 readMonitor.leave();
                             }
                         }
-                        return 0;
-                    } else {
-                        return -1;
                     }
+                    return -1;
                 }
             };
         }
 
         @Override
         public long length() {
-            return 1;
+            return -1;
         }
     }
 
