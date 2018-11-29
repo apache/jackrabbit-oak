@@ -129,7 +129,7 @@ public class MigrationOptions {
         this.forceCheckpoints = args.hasOption(OptionParserFactory.FORCE_CHECKPOINTS);
 
         this.srcUser = args.getOption(OptionParserFactory.SRC_USER);
-        this.srcPassword = args.getOption(OptionParserFactory.SRC_USER);
+        this.srcPassword = args.getOption(OptionParserFactory.SRC_PASSWORD);
         this.dstUser = args.getOption(OptionParserFactory.DST_USER);
         this.dstPassword = args.getOption(OptionParserFactory.DST_PASSWORD);
 
