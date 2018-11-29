@@ -23,18 +23,17 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -71,14 +70,14 @@ public class Commit {
      * List of all node paths which have been modified in this commit. In addition to the nodes
      * which are actually changed it also contains there parent node paths
      */
-    private HashSet<String> modifiedNodes = new HashSet<String>();
+    private final HashSet<String> modifiedNodes = new HashSet<String>();
 
-    private HashSet<String> addedNodes = new HashSet<String>();
-    private HashSet<String> removedNodes = new HashSet<String>();
+    private final HashSet<String> addedNodes = new HashSet<String>();
+    private final HashSet<String> removedNodes = new HashSet<String>();
 
     /** Set of all nodes which have binary properties. **/
-    private HashSet<String> nodesWithBinaries = Sets.newHashSet();
-    private HashMap<String, String> bundledNodes = Maps.newHashMap();
+    private final HashSet<String> nodesWithBinaries = Sets.newHashSet();
+    private final HashMap<String, String> bundledNodes = Maps.newHashMap();
 
     /**
      * Create a new Commit.
@@ -96,10 +95,26 @@ public class Commit {
         this.baseRevision = baseRevision;
     }
 
+    Commit(@NotNull DocumentNodeStore nodeStore,
+           @NotNull Revision revision,
+           @Nullable RevisionVector baseRevision,
+           @NotNull Map<String, UpdateOp> operations,
+           @NotNull Set<String> addedNodes,
+           @NotNull Set<String> removedNodes,
+           @NotNull Set<String> nodesWithBinaries,
+           @NotNull Map<String, String> bundledNodes) {
+        this(nodeStore, revision, baseRevision);
+        this.operations.putAll(operations);
+        this.addedNodes.addAll(addedNodes);
+        this.removedNodes.addAll(removedNodes);
+        this.nodesWithBinaries.addAll(nodesWithBinaries);
+        this.bundledNodes.putAll(bundledNodes);
+    }
+
     UpdateOp getUpdateOperationForNode(String path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            op = createUpdateOp(path, revision, getBranch() != null);
+            op = createUpdateOp(path, revision, isBranchCommit());
             operations.put(path, op);
         }
         return op;
@@ -148,35 +163,6 @@ public class Commit {
     @NotNull
     Iterable<String> getModifiedPaths() {
         return modifiedNodes;
-    }
-
-    void updateProperty(String path, String propertyName, String value) {
-        UpdateOp op = getUpdateOperationForNode(path);
-        String key = Utils.escapePropertyName(propertyName);
-        op.setMapEntry(key, revision, value);
-    }
-
-    void addBundledNode(String path, String bundlingRootPath) {
-        bundledNodes.put(path, bundlingRootPath);
-    }
-
-    void markNodeHavingBinary(String path) {
-        this.nodesWithBinaries.add(path);
-    }
-
-    void addNode(DocumentNodeState n) {
-        String path = n.getPath();
-        if (operations.containsKey(path)) {
-            String msg = "Node already added: " + path;
-            LOG.error(msg);
-            throw new DocumentStoreException(msg);
-        }
-        UpdateOp op = n.asOperation(revision);
-        if (getBranch() != null) {
-            NodeDocument.setBranchCommit(op, revision);
-        }
-        operations.put(path, op);
-        addedNodes.add(path);
     }
 
     boolean isEmpty() {
@@ -713,6 +699,13 @@ public class Commit {
     }
 
     /**
+     * @return {@code true} if this is a branch commit.
+     */
+    private boolean isBranchCommit() {
+        return baseRevision != null && baseRevision.isBranch();
+    }
+
+    /**
      * Applies the lastRev updates to the {@link LastRevTracker} of the
      * DocumentNodeStore.
      *
@@ -827,16 +820,6 @@ public class Commit {
                 break;
             }
             path = PathUtils.getParentPath(path);
-        }
-    }
-
-    public void removeNode(String path, NodeState state) {
-        removedNodes.add(path);
-        UpdateOp op = getUpdateOperationForNode(path);
-        op.setDelete(true);
-        NodeDocument.setDeleted(op, revision, true);
-        for (PropertyState p : state.getProperties()) {
-            updateProperty(path, p.getName(), null);
         }
     }
 

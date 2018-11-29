@@ -80,10 +80,11 @@ public class CommitRootUpdateTest {
 
         throwAfterUpdate.set(true);
         boolean success = false;
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(changes -> {
+            changes.addNode("/foo/node");
+            changes.addNode("/bar/node");
+        }, ns.getHeadRevision(), null);
         try {
-            c.addNode(new DocumentNodeState(ns, "/foo/node", c.getBaseRevision()));
-            c.addNode(new DocumentNodeState(ns, "/bar/node", c.getBaseRevision()));
             c.apply();
             success = true;
         } finally {
@@ -136,9 +137,10 @@ public class CommitRootUpdateTest {
 
         throwAfterUpdate.set(true);
         boolean success = false;
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(
+                changes -> changes.updateProperty("/foo", "p", "v"),
+                ns.getHeadRevision(), null);
         try {
-            c.updateProperty("/foo", "p", "v");
             c.apply();
             success = true;
         } finally {

@@ -58,10 +58,10 @@ public class CommitTest {
         ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // this commit should fail
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(changes -> {
+            changes.addNode("/foo/baz");
+        }, ns.getHeadRevision(), null);
         try {
-            c.addNode(new DocumentNodeState(ns, "/foo/baz",
-                    new RevisionVector(c.getRevision())));
             UpdateOp op = c.getUpdateOperationForNode("/bar");
             op.setMapEntry("p", c.getRevision(), "v");
             try {
@@ -93,19 +93,17 @@ public class CommitTest {
         ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // this commit should fail
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(changes -> {
+            changes.addNode("/foo");
+        }, ns.getHeadRevision(), null);
         try {
-            c.addNode(new DocumentNodeState(ns, "/foo",
-                    new RevisionVector(c.getRevision())));
-            try {
-                c.apply();
-                ns.done(c, false, CommitInfo.EMPTY);
-                fail("commit must fail");
-            } catch (ConflictException e) {
-                // expected
-                assertTrue("Unexpected exception message: " + e.getMessage(),
-                        e.getMessage().contains("older than base"));
-            }
+            c.apply();
+            ns.done(c, false, CommitInfo.EMPTY);
+            fail("commit must fail");
+        } catch (ConflictException e) {
+            // expected
+            assertTrue("Unexpected exception message: " + e.getMessage(),
+                    e.getMessage().contains("older than base"));
         } finally {
             ns.canceled(c);
         }
@@ -118,9 +116,10 @@ public class CommitTest {
         DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
 
         // this branch commit must fail with a DocumentStoreException
-        Commit c = ns.newCommit(ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
+        Commit c = ns.newCommit(changes -> {
+            changes.removeNode("/foo", EMPTY_NODE);
+        }, ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
         try {
-            c.removeNode("/foo", EMPTY_NODE);
             try {
                 c.apply();
                 fail("commit must fail");
