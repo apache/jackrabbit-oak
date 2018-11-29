@@ -53,6 +53,14 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
+    public CrossMountReferenceValidatorProvider() {
+    }
+
+    public CrossMountReferenceValidatorProvider(MountInfoProvider mountInfoProvider, boolean failOnDetection) {
+        this.failOnDetection = failOnDetection;
+        this.mountInfoProvider = mountInfoProvider;
+    }
+
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config) {
         failOnDetection = PropertiesUtil.toBoolean(config.get(PROP_FAIL_ON_DETECTION), false);
