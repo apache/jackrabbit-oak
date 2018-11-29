@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-public abstract class ConsistencyChecker {
+public class ConsistencyChecker {
 
     private static NodeState getDescendantOrNull(NodeState root, String path) {
         NodeState descendant = NodeStateUtils.getNode(root, path);
@@ -321,6 +321,22 @@ public abstract class ConsistencyChecker {
             .stream()
             .flatMap(List::stream)
             .anyMatch(p -> p.journalEntry == null);
+    }
+
+    /**
+     * Check the consistency of a given subtree and returns the first
+     * inconsistent path. If provided, this method probes a set of inconsistent
+     * paths before performing a full traversal of the subtree.
+     *
+     * @param root           The root node of the subtree.
+     * @param corruptedPaths A set of possibly inconsistent paths.
+     * @param binaries       Whether to check binaries for consistency.
+     * @return The first inconsistent path or {@code null}. The path might be
+     * either one of the provided inconsistent paths or a new one discovered
+     * during a full traversal of the tree.
+     */
+    public String checkTreeConsistency(NodeState root, Set<String> corruptedPaths, boolean binaries) {
+        return checkTreeConsistency(root, "/", corruptedPaths, binaries);
     }
 
     public final ConsistencyCheckResult checkConsistency(

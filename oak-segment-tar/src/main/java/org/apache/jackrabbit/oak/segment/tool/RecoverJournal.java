@@ -34,14 +34,19 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
+import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class RecoverJournal {
 
@@ -98,13 +103,18 @@ public class RecoverJournal {
     }
 
     public int run() {
-        List<Entry> entries = new ArrayList<>();
+        List<Entry> entries;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore(path)) {
-            recoverEntries(store, entries);
+            entries = recoverEntries(store);
         } catch (Exception e) {
             out.println("Unable to recover the journal entries, aborting");
             e.printStackTrace(err);
+            return 1;
+        }
+
+        if (entries.size() == 0) {
+            out.println("No valid journal entries found, aborting");
             return 1;
         }
 
@@ -191,7 +201,9 @@ public class RecoverJournal {
 
     }
 
-    private void recoverEntries(ReadOnlyFileStore fileStore, List<Entry> entries) {
+    private List<Entry> recoverEntries(ReadOnlyFileStore fileStore) {
+        List<Entry> entries = new ArrayList<>();
+
         for (SegmentId segmentId : fileStore.getSegmentIds()) {
             try {
                 recoverEntries(fileStore, segmentId, entries);
@@ -229,6 +241,67 @@ public class RecoverJournal {
             int rightRecordNumber = right.recordId.getRecordNumber();
             return Integer.compare(rightRecordNumber, leftRecordNumber);
         });
+
+        // Filter out the most recent entries that are not valid for
+        // consistency. Make sure that the most recent entry is always
+        // consistent.
+
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        ConsistencyChecker checker = new ConsistencyChecker();
+        Set<String> corruptedPaths = new HashSet<>();
+
+        ListIterator<Entry> i = entries.listIterator(entries.size());
+
+        nextRevision:
+        while (i.hasPrevious()) {
+            Entry entry = i.previous();
+
+            fileStore.setRevision(entry.recordId.toString());
+
+            // If the head has a corrupted path, remove this revision and check
+            // the previous one. We don't even bother to check the checkpoints.
+
+            String badHeadPath = checker.checkTreeConsistency(nodeStore.getRoot(), corruptedPaths, true);
+
+            if (badHeadPath != null) {
+                out.printf("Skipping revision %s, corrupted path in head: %s\n", entry.recordId, badHeadPath);
+                corruptedPaths.add(badHeadPath);
+                i.remove();
+                continue;
+            }
+
+            // If one of the checkpoints is unreachable or has a corrupted path,
+            // we remove this revision and check the previous one. We stop
+            // checking checkpoints as soon as we find an inconsistent one.
+
+            for (String checkpoint : nodeStore.checkpoints()) {
+                NodeState root = nodeStore.retrieve(checkpoint);
+
+                if (root == null) {
+                    out.printf("Skipping revision %s, found unreachable checkpoint %s\n", entry.recordId, checkpoint);
+                    i.remove();
+                    continue nextRevision;
+                }
+
+                String badCheckpointPath = checker.checkTreeConsistency(root, corruptedPaths, true);
+
+                if (badCheckpointPath != null) {
+                    out.printf("Skipping revision %s, corrupted path in checkpoint %s: %s\n", entry.recordId, checkpoint, badCheckpointPath);
+                    corruptedPaths.add(badCheckpointPath);
+                    i.remove();
+                    continue nextRevision;
+                }
+            }
+
+            // We didn't find any corruption in the head or in the checkpoints,
+            // so we are at the most recent uncorrupted revision. We can skip
+            // checking the other revisions because the list of entries now ends
+            // with a usable revision.
+
+            break;
+        }
+
+        return entries;
     }
 
     private void recoverEntries(ReadOnlyFileStore fileStore, SegmentId segmentId, List<Entry> entries) {
