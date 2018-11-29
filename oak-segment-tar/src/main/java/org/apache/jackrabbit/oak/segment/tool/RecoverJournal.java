@@ -232,14 +232,14 @@ public class RecoverJournal {
                 return segmentIdComparison;
             }
 
-            // Records from the same segments are sorted in decreasing order
+            // Records from the same segments are sorted in increasing order
             // of their record number. This builds on the assumption that a
             // record with a higher record number was added after a record
             // with a lower one, and therefor is more recent.
 
             int leftRecordNumber = left.recordId.getRecordNumber();
             int rightRecordNumber = right.recordId.getRecordNumber();
-            return Integer.compare(rightRecordNumber, leftRecordNumber);
+            return Integer.compare(leftRecordNumber, rightRecordNumber);
         });
 
         // Filter out the most recent entries that are not valid for
