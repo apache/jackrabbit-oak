@@ -297,6 +297,14 @@ public abstract class ConsistencyChecker {
     }
 
     private boolean checkCheckpointConsistency(SegmentNodeStore store, String checkpoint, List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
+        boolean allConsistent = paths.stream().allMatch(p -> p.journalEntry != null);
+
+        if (allConsistent) {
+            return true;
+        }
+
+        onCheckCheckpoint(checkpoint);
+
         NodeState root = store.retrieve(checkpoint);
 
         if (root == null) {
