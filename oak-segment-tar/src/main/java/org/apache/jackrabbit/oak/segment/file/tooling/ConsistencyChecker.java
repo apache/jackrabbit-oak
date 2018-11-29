@@ -32,7 +32,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -70,33 +69,6 @@ public abstract class ConsistencyChecker {
             this.path = path;
         }
 
-    }
-
-    static class FoundRevision {
-
-        private final String path;
-
-        private final String revision;
-
-        private final Long timestamp;
-
-        private FoundRevision(String path, String revision, Long timestamp) {
-            this.path = path;
-            this.revision = revision;
-            this.timestamp = timestamp;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        public Optional<String> getRevision() {
-            return Optional.ofNullable(revision);
-        }
-
-        public Optional<Long> getTimestamp() {
-            return Optional.ofNullable(timestamp);
-        }
     }
 
     protected void onCheckRevision(String revision) {
@@ -440,26 +412,6 @@ public abstract class ConsistencyChecker {
             return null;
         }
         return new Revision(entry.getRevision(), entry.getTimestamp());
-    }
-
-    private List<FoundRevision> toFoundRevisionsList(List<PathToCheck> pathsToCheck) {
-        List<FoundRevision> foundRevisions = new ArrayList<>(pathsToCheck.size());
-        for (PathToCheck pathToCheck : pathsToCheck) {
-            if (pathToCheck.journalEntry == null) {
-                foundRevisions.add(new FoundRevision(pathToCheck.path, null, null));
-            } else {
-                foundRevisions.add(new FoundRevision(pathToCheck.path, pathToCheck.journalEntry.getRevision(), pathToCheck.journalEntry.getTimestamp()));
-            }
-        }
-        return foundRevisions;
-    }
-
-    private Map<String, List<FoundRevision>> toFoundRevisionsMap(Map<String, List<PathToCheck>> pathsToCheck) {
-        Map<String, List<FoundRevision>> foundRevisions = new HashMap<>();
-        for (Entry<String, List<PathToCheck>> entry : pathsToCheck.entrySet()) {
-            foundRevisions.put(entry.getKey(), toFoundRevisionsList(entry.getValue()));
-        }
-        return foundRevisions;
     }
 
     /**
