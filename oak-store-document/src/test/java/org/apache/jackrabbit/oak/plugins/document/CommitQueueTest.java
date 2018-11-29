@@ -95,7 +95,7 @@ public class CommitQueueTest {
                 public void run() {
                     try {
                         for (int i = 0; i < COMMITS_PER_WRITER; i++) {
-                            Commit commit = store.newCommit(null, null);
+                            Commit commit = store.newCommit(nop -> {}, null, null);
                             try {
                                 Thread.sleep(0, random.nextInt(1000));
                             } catch (InterruptedException e) {
@@ -189,7 +189,7 @@ public class CommitQueueTest {
         final DocumentNodeStore ds = builderProvider.newBuilder().getNodeStore();
 
         // simulate start of a branch commit
-        Commit c = ds.newCommit(ds.getHeadRevision().asBranchRevision(ds.getClusterId()), null);
+        Commit c = ds.newCommit(nop -> {}, ds.getHeadRevision().asBranchRevision(ds.getClusterId()), null);
 
         Thread t = new Thread(new Runnable() {
             @Override

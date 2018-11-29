@@ -254,10 +254,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         return lock;
     }
 
-    private interface Changes {
-        void with(Commit c);
-    }
-
     /**
      * Persists the changes between {@code toPersist} and {@code base}
      * to the underlying store.
@@ -278,9 +274,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             throws ConflictException, DocumentStoreException {
         return persist(new Changes() {
             @Override
-            public void with(Commit c) {
+            public void with(@NotNull CommitBuilder commitBuilder) {
                 toPersist.compareAgainstBaseState(base,
-                        new CommitDiff(store, c, store.getBlobSerializer()));
+                        new CommitDiff(store, commitBuilder, store.getBlobSerializer()));
             }
         }, base, info);
     }
@@ -303,10 +299,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                                       @NotNull CommitInfo info)
             throws ConflictException, DocumentStoreException {
         boolean success = false;
-        Commit c = store.newCommit(base.getRootRevision(), this);
+        Commit c = store.newCommit(op, base.getRootRevision(), this);
         RevisionVector rev;
         try {
-            op.with(c);
             if (c.isEmpty()) {
                 // no changes to persist. return base state and let
                 // finally clause cancel the commit

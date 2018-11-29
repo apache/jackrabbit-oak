@@ -27,7 +27,6 @@ import javax.sql.DataSource;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -207,13 +206,13 @@ public class DocumentMK {
     public String commit(String rootPath, String jsonDiff, String baseRevId,
             String message) throws DocumentStoreException {
         boolean success = false;
-        boolean isBranch;
+        RevisionVector baseRev = baseRevId != null ? RevisionVector.fromString(baseRevId) : nodeStore.getHeadRevision();
+        boolean isBranch = baseRev.isBranch();
         RevisionVector rev;
-        Commit commit = nodeStore.newCommit(baseRevId != null ? RevisionVector.fromString(baseRevId) : null, null);
+        Commit commit = nodeStore.newCommit(
+                changes -> parseJsonDiff(changes, jsonDiff, rootPath),
+                baseRev, null);
         try {
-            RevisionVector baseRev = commit.getBaseRevision();
-            isBranch = baseRev != null && baseRev.isBranch();
-            parseJsonDiff(commit, jsonDiff, rootPath);
             commit.apply();
             rev = nodeStore.done(commit, isBranch, CommitInfo.EMPTY);
             success = true;
@@ -312,7 +311,7 @@ public class DocumentMK {
 
     //------------------------------< internal >--------------------------------
 
-    private void parseJsonDiff(Commit commit, String json, String rootPath) {
+    private void parseJsonDiff(CommitBuilder commit, String json, String rootPath) {
         RevisionVector baseRev = commit.getBaseRevision();
         String baseRevId = baseRev != null ? baseRev.toString() : null;
         Set<String> added = Sets.newHashSet();
@@ -335,7 +334,6 @@ public class DocumentMK {
                     if (toRemove == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
-                    commit.removeNode(path, toRemove);
                     markAsDeleted(toRemove, commit, true);
                     break;
                 case '^':
@@ -389,7 +387,7 @@ public class DocumentMK {
         }
     }
 
-    private void parseAddNode(Commit commit, JsopReader t, String path) {
+    private void parseAddNode(CommitBuilder commit, JsopReader t, String path) {
         List<PropertyState> props = Lists.newArrayList();
         if (!t.matches('}')) {
             do {
@@ -410,15 +408,15 @@ public class DocumentMK {
         commit.addNode(n);
     }
 
-    private void copyNode(DocumentNodeState source, String targetPath, Commit commit) {
+    private void copyNode(DocumentNodeState source, String targetPath, CommitBuilder commit) {
         moveOrCopyNode(false, source, targetPath, commit);
     }
 
-    private void moveNode(DocumentNodeState source, String targetPath, Commit commit) {
+    private void moveNode(DocumentNodeState source, String targetPath, CommitBuilder commit) {
         moveOrCopyNode(true, source, targetPath, commit);
     }
 
-    private void markAsDeleted(DocumentNodeState node, Commit commit, boolean subTreeAlso) {
+    private void markAsDeleted(DocumentNodeState node, CommitBuilder commit, boolean subTreeAlso) {
         commit.removeNode(node.getPath(), node);
 
         if (subTreeAlso) {
@@ -432,7 +430,7 @@ public class DocumentMK {
     private void moveOrCopyNode(boolean move,
                                 DocumentNodeState source,
                                 String targetPath,
-                                Commit commit) {
+                                CommitBuilder commit) {
         RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
         DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision,
                 source.getProperties(), false, null);

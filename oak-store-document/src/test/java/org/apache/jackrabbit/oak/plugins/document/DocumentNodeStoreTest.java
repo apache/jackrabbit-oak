@@ -295,12 +295,11 @@ public class DocumentNodeStoreTest {
             @Override
             public void run() {
                 try {
-                    Revision r = store.newRevision();
-                    Commit c = new Commit(store, r, head);
-                    c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
-                    c.addNode(new DocumentNodeState(store, "/deletedNode", new RevisionVector(r)));
-                    c.updateProperty("/updateNode", "foo", "baz");
-                    c.apply();
+                    new CommitBuilder(store, store.newRevision(), head)
+                            .addNode("/newConflictingNode")
+                            .addNode("/deletedNode")
+                            .updateProperty("/updateNode", "foo", "baz")
+                            .build().apply();
                 } catch (Exception e) {
                     exceptions.add(e);
                 }
@@ -314,9 +313,10 @@ public class DocumentNodeStoreTest {
         created.acquireUninterruptibly();
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
-        Commit c = new Commit(store, r, head);
-        c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
-        c.addNode(new DocumentNodeState(store, "/newNonConflictingNode", new RevisionVector(r)));
+        Commit c = new CommitBuilder(store, r, head)
+                .addNode("/newConflictingNode")
+                .addNode("/newNonConflictingNode")
+                .build();
         c.apply();
         // allow writer to continue
         s.release();
@@ -2436,7 +2436,7 @@ public class DocumentNodeStoreTest {
         final List<Commit> commits = new ArrayList<Commit>();
         for (int i = 0; i < 10; i++) {
             Revision revision = ds.newRevision();
-            Commit commit = ds.newCommit(new RevisionVector(revision), ds.createBranch(root));
+            Commit commit = ds.newCommit(nop -> {}, new RevisionVector(revision), ds.createBranch(root));
             commits.add(commit);
             revisions.add(revision);
         }

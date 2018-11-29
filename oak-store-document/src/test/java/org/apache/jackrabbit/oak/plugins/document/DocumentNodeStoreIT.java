@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.Monitor;
 
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -35,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -63,6 +63,13 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     @After
     public void tearDown() {
         Revision.resetClockToDefault();
+        markDocumentsForCleanup();
+    }
+
+    private void markDocumentsForCleanup() {
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            removeMe.add(doc.getId());
+        }
     }
 
     @Test
@@ -82,6 +89,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 .setDocumentStore(docStore).setClusterId(1)
                 .setAsyncDelay(0).clock(clock)
                 .build();
+        removeMeClusterNodes.add("1");
         NodeBuilder builder1 = ns1.getRoot().builder();
         builder1.child("node");
         removeMe.add(getIdFromPath("/node"));
@@ -96,6 +104,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         DocumentNodeStore ns2 = new DocumentMK.Builder()
                 .setDocumentStore(docStore).setClusterId(2)
                 .setAsyncDelay(0).clock(clock).getNodeStore();
+        removeMeClusterNodes.add("2");
 
         NodeBuilder builder2 = ns2.getRoot().builder();
         builder2.child("node").child("child-a");
@@ -134,13 +143,13 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         ns2.dispose();
     }
 
-    @Ignore("OAK-7869")
     @Test
     public void blockingBlob() throws Exception {
         ExecutorService updateExecutor = newSingleThreadExecutor();
         ExecutorService commitExecutor = newSingleThreadExecutor();
         DocumentNodeStore store = builderProvider.newBuilder()
                 .setDocumentStore(ds).build();
+        removeMeClusterNodes.add("" + store.getClusterId());
         try {
 
             // A blob whose stream blocks on read

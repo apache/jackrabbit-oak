@@ -490,7 +490,7 @@ public final class DocumentNodeStore
 
     /**
      * A set of non-branch commit revisions that are currently in progress. A
-     * revision is added to this set when {@link #newTrunkCommit(RevisionVector)}
+     * revision is added to this set when {@link #newTrunkCommit(Changes, RevisionVector)}
      * is called and removed when the commit either:
      * <ul>
      *     <li>Succeeds with {@link #done(Commit, boolean, CommitInfo)}</li>
@@ -604,17 +604,17 @@ public final class DocumentNodeStore
         if (rootDoc == null) {
             // root node is missing: repository is not initialized
             Revision commitRev = newRevision();
-            Commit commit = new Commit(this, commitRev, null);
             RevisionVector head = new RevisionVector(commitRev);
-            DocumentNodeState n = new DocumentNodeState(this, "/", head);
-            commit.addNode(n);
+            Commit commit = new CommitBuilder(this, commitRev, null)
+                    .addNode("/")
+                    .build();
             try {
                 commit.applyToDocumentStore();
             } catch (ConflictException e) {
                 throw new IllegalStateException("Conflict while creating root document", e);
             }
             unsavedLastRevisions.put("/", commitRev);
-            sweepRevisions = sweepRevisions.pmax(new RevisionVector(commitRev));
+            sweepRevisions = sweepRevisions.pmax(head);
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
@@ -823,6 +823,7 @@ public final class DocumentNodeStore
      * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
      * depending on the result of the commit.
      *
+     * @param changes the changes to commit.
      * @param base the base revision for the commit or <code>null</code> if the
      *             commit should use the current head revision as base.
      * @param branch the branch instance if this is a branch commit. The life
@@ -833,15 +834,16 @@ public final class DocumentNodeStore
      * @return a new commit.
      */
     @NotNull
-    Commit newCommit(@Nullable RevisionVector base,
+    Commit newCommit(@NotNull Changes changes,
+                     @Nullable RevisionVector base,
                      @Nullable DocumentNodeStoreBranch branch) {
         if (base == null) {
             base = getHeadRevision();
         }
         if (base.isBranch()) {
-            return newBranchCommit(base, branch);
+            return newBranchCommit(changes, base, branch);
         } else {
-            return newTrunkCommit(base);
+            return newTrunkCommit(changes, base);
         }
     }
 
@@ -2380,7 +2382,7 @@ public final class DocumentNodeStore
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
-            Commit c = newTrunkCommit(getHeadRevision());
+            Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
@@ -2640,17 +2642,21 @@ public final class DocumentNodeStore
         setRoot(headRevision);
     }
 
-    @NotNull
-    private Commit newTrunkCommit(@NotNull RevisionVector base) {
+    private Commit newTrunkCommit(@NotNull Changes changes,
+                                  @NotNull RevisionVector base) {
         checkArgument(!checkNotNull(base).isBranch(),
                 "base must not be a branch revision: " + base);
+
+        // build commit before revision is created by the commit queue (OAK-7869)
+        CommitBuilder commitBuilder = new CommitBuilder(this, base);
+        changes.with(commitBuilder);
 
         boolean success = false;
         Commit c;
         backgroundOperationLock.readLock().lock();
         try {
             checkOpen();
-            c = new Commit(this, commitQueue.createRevision(), base);
+            c = commitBuilder.build(commitQueue.createRevision());
             inDoubtTrunkCommits.add(c.getRevision());
             success = true;
         } finally {
@@ -2662,13 +2668,14 @@ public final class DocumentNodeStore
     }
 
     @NotNull
-    private Commit newBranchCommit(@NotNull RevisionVector base,
+    private Commit newBranchCommit(@NotNull Changes changes,
+                                   @NotNull RevisionVector base,
                                    @Nullable DocumentNodeStoreBranch branch) {
         checkArgument(checkNotNull(base).isBranch(),
                 "base must be a branch revision: " + base);
 
         checkOpen();
-        Commit c = new Commit(this, newRevision(), base);
+        Revision commitRevision = newRevision();
         if (isDisableBranches()) {
             // Regular branch commits do not need to acquire the background
             // operation lock because the head is not updated and no pending
@@ -2677,7 +2684,7 @@ public final class DocumentNodeStore
             // must be acquired.
             backgroundOperationLock.readLock().lock();
         } else {
-            Revision rev = c.getRevision().asBranchRevision();
+            Revision rev = commitRevision.asBranchRevision();
             // remember branch commit
             Branch b = getBranches().getBranch(base);
             if (b == null) {
@@ -2691,7 +2698,9 @@ public final class DocumentNodeStore
                 b.addCommit(rev);
             }
         }
-        return c;
+        CommitBuilder commitBuilder = new CommitBuilder(this, commitRevision, base);
+        changes.with(commitBuilder);
+        return commitBuilder.build();
     }
 
     /**
