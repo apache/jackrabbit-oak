@@ -325,7 +325,7 @@ public abstract class ConsistencyChecker {
         return result;
     }
 
-    private boolean allPathsConsisten(List<PathToCheck> headPaths, Map<String, List<PathToCheck>> checkpointPaths) {
+    private boolean allPathsConsistent(List<PathToCheck> headPaths, Map<String, List<PathToCheck>> checkpointPaths) {
         for (PathToCheck path : headPaths) {
             if (path.journalEntry == null) {
                 return false;
@@ -407,7 +407,7 @@ public abstract class ConsistencyChecker {
                 // If every PathToCheck is assigned to a JournalEntry, stop
                 // looping through the journal.
 
-                if (allPathsConsisten(headPaths, checkpointPaths)) {
+                if (allPathsConsistent(headPaths, checkpointPaths)) {
                     break;
                 }
             } catch (IllegalArgumentException | SegmentNotFoundException e) {
