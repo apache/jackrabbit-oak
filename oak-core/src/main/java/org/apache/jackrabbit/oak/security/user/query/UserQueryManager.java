@@ -16,21 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -40,6 +36,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.user.DeclaredMembershipPredicate;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -51,6 +48,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 
 /**
  * Query manager for user specific searches.
@@ -109,9 +108,14 @@ public class UserQueryManager {
         } else {
             // filtering by group name included in query -> enforce offset and limit on the result set.
             Iterator<Authorizable> result = findAuthorizables(statement, Long.MAX_VALUE, 0, null);
-            Predicate<Authorizable> groupFilter = new GroupPredicate(userManager, groupId, builder.isDeclaredMembersOnly());
-            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(),
-                    Iterators.filter(result, groupFilter));
+            Predicate<Authorizable> filter;
+            if (builder.isDeclaredMembersOnly()) {
+                filter = new DeclaredMembershipPredicate(userManager, groupId);
+            } else {
+                filter = new GroupPredicate(userManager, groupId, false);
+
+            }
+            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), Iterators.filter(result, filter));
         }
     }
 
