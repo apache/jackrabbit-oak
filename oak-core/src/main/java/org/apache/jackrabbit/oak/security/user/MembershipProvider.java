@@ -223,6 +223,11 @@ class MembershipProvider extends AuthorizableBaseProvider {
         return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<String>());
     }
 
+    @NotNull
+    Iterator<String> getDeclaredMemberContentIDs(@NotNull Tree groupTree) {
+        return getDeclaredMemberReferenceIterator(groupTree);
+    }
+
     /**
      * Returns an iterator over all member paths of the given group.
      *
@@ -296,12 +301,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         }
 
         String contentId = getContentID(authorizableTree);
-        MemberReferenceIterator refs = new MemberReferenceIterator(groupTree) {
-            @Override
-            protected boolean hasProcessedReference(@NotNull String value) {
-                return true;
-            }
-        };
+        MemberReferenceIterator refs = getDeclaredMemberReferenceIterator(groupTree);
         return Iterators.contains(refs, contentId);
     }
 
@@ -380,6 +380,15 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         return writer.removeMembers(groupTree, memberIds);
+    }
+
+    private MemberReferenceIterator getDeclaredMemberReferenceIterator(@NotNull Tree groupTree) {
+        return new MemberReferenceIterator(groupTree) {
+            @Override
+            protected boolean hasProcessedReference(@NotNull String value) {
+                return true;
+            }
+        };
     }
 
     /**
