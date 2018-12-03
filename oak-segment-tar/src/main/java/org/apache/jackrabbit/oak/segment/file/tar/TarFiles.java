@@ -55,6 +55,8 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,6 +128,8 @@ public class TarFiles implements Closeable {
 
         private SegmentNodeStorePersistence persistence;
 
+        private CounterStats readerCountStats = NoopStats.INSTANCE;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -173,6 +177,11 @@ public class TarFiles implements Closeable {
 
         public Builder withPersistence(SegmentNodeStorePersistence persistence) {
             this.persistence = persistence;
+            return this;
+        }
+
+        public Builder withReaderCountStats(CounterStats readerCountStats) {
+            this.readerCountStats = readerCountStats;
             return this;
         }
 
@@ -329,9 +338,15 @@ public class TarFiles implements Closeable {
      */
     private volatile boolean shutdown;
 
+    /**
+     * Counter exposing the number of {@link TarReader} instances.
+     */
+    private final CounterStats readerCount;
+
     private TarFiles(Builder builder) throws IOException {
         maxFileSize = builder.maxFileSize;
         archiveManager = builder.buildArchiveManager();
+        readerCount = builder.readerCountStats;
 
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -350,6 +365,7 @@ public class TarFiles implements Closeable {
                 r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
             }
             readers = new Node(r, readers);
+            readerCount.inc();
         }
         if (builder.readOnly) {
             return;
@@ -441,6 +457,10 @@ public class TarFiles implements Closeable {
         return size;
     }
 
+    private static int getSize(Node head) {
+        return Iterables.size(iterable(head));
+    }
+
     public int readerCount() {
         Node head;
 
@@ -451,7 +471,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return Iterables.size(iterable(head));
+        return getSize(head);
     }
 
     /**
@@ -584,6 +604,7 @@ public class TarFiles implements Closeable {
             return;
         }
         readers = new Node(TarReader.open(writer.getFileName(), archiveManager), readers);
+        readerCount.inc();
         writer = newWriter;
     }
 
@@ -713,6 +734,7 @@ public class TarFiles implements Closeable {
             try {
                 if (readers == head) {
                     readers = swept;
+                    readerCount.dec(getSize(head) - getSize(swept));
                     break;
                 } else {
                     head = readers;

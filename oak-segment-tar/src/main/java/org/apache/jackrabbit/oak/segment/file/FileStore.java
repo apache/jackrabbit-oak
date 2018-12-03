@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.io.IOException;
@@ -53,6 +54,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.jackrabbit.oak.stats.TimerStats.Context;
 import org.jetbrains.annotations.NotNull;
@@ -63,10 +66,14 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore extends AbstractFileStore {
-
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
-
     private static final int MB = 1024 * 1024;
+
+    /**
+     * Name of the {@link CounterStats counter} exposing the number of {@code TarReader}
+     * instances in use by {@link TarFiles}.
+     */
+    private static final String TAR_READER_COUNT = "TAR_READER_COUNT";
 
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
@@ -125,18 +132,20 @@ public class FileStore extends AbstractFileStore {
 
         SegmentNodeStorePersistence persistence = builder.getPersistence();
         repositoryLock = persistence.lockRepository();
+        StatisticsProvider statsProvider = builder.getStatsProvider();
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
                 .withGeneration(() -> getGcGeneration().nonGC())
                 .withWriterPool()
                 .with(builder.getCacheManager()
-                        .withAccessTracking("WRITE", builder.getStatsProvider()))
+                        .withAccessTracking("WRITE", statsProvider))
                 .build(this);
 
         newManifestChecker(persistence, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
-        this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
+        this.stats = new FileStoreStats(statsProvider, this, 0);
 
+        CounterStats readerCountStats = statsProvider.getCounterStats(TAR_READER_COUNT, DEFAULT);
         TarFiles.Builder tarFilesBuilder = TarFiles.builder()
                 .withDirectory(directory)
                 .withMemoryMapping(memoryMapping)
@@ -144,7 +153,8 @@ public class FileStore extends AbstractFileStore {
                 .withIOMonitor(ioMonitor)
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
-                .withPersistence(builder.getPersistence());
+                .withPersistence(builder.getPersistence())
+                .withReaderCountStats(readerCountStats);
 
         this.tarFiles = tarFilesBuilder.build();
         long size = this.tarFiles.size();
@@ -173,7 +183,7 @@ public class FileStore extends AbstractFileStore {
             this::flush,
             generation ->
                 defaultSegmentWriterBuilder("c")
-                    .with(builder.getCacheManager().withAccessTracking("COMPACT", builder.getStatsProvider()))
+                    .with(builder.getCacheManager().withAccessTracking("COMPACT", statsProvider))
                     .withGeneration(generation)
                     .withoutWriterPool()
                     .build(this)
@@ -181,7 +191,7 @@ public class FileStore extends AbstractFileStore {
 
         this.snfeListener = builder.getSnfeListener();
 
-        TimerStats flushTimer = builder.getStatsProvider().getTimer("oak.segment.flush", METRICS_ONLY);
+        TimerStats flushTimer = statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);
         fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
             Context timer = flushTimer.time();
             try {
