@@ -687,11 +687,12 @@ public class TarFiles implements Closeable {
         Node closeables;
         long reclaimed;
 
+        Node swept;
         while (true) {
             closeables = null;
             reclaimed = 0;
 
-            Node swept = null;
+            swept = null;
 
             // The following loops creates a modified version of `readers` and
             // saves it into `swept`. Some TAR readers in `readers` have been
@@ -754,8 +755,6 @@ public class TarFiles implements Closeable {
             try {
                 if (readers == head) {
                     readers = swept;
-                    readerCount.dec(getSize(head) - getSize(swept));
-                    segmentCount.dec(getSegmentCount(head) - getSegmentCount(swept));
                     break;
                 } else {
                     head = readers;
@@ -764,6 +763,8 @@ public class TarFiles implements Closeable {
                 lock.writeLock().unlock();
             }
         }
+        readerCount.dec(getSize(head) - getSize(swept));
+        segmentCount.dec(getSegmentCount(head) - getSegmentCount(swept));
 
         result.reclaimedSize -= reclaimed;
 
