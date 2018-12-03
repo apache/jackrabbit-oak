@@ -228,6 +228,36 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
     }
 
     @Test
+    public void testUpdateRemovedNode() {
+        String id = Utils.getIdFromPath("testUpdateRemovedNode");
+        removeMe.add(id);
+
+        UpdateOp op = new UpdateOp(id, true);
+        assertNull(ds1.createOrUpdate(Collection.NODES, op));
+        // get it into the cache
+        NodeDocument n = ds1.find(Collection.NODES, id);
+        assertNotNull(n);
+
+        // delete it through the other instance
+        ds2.remove(Collection.NODES, Collections.singletonList(id));
+
+        // assume still in the cache?
+        NodeDocument n2 = ds1.find(Collection.NODES, id);
+        assertNotNull(n2);
+
+        // create-or-update should at least work after one retry
+        // see OAK-7953 - note that the retry shouldn't be needed; see OAK-7745
+        // for more information
+        try {
+            UpdateOp op2 = new UpdateOp(id, true);
+            assertNull(ds1.createOrUpdate(Collection.NODES, op2));
+        } catch (DocumentStoreException ex) {
+            UpdateOp op2 = new UpdateOp(id, true);
+            assertNull(ds1.createOrUpdate(Collection.NODES, op2));
+        }
+    }
+
+    @Test
     public void testUpdateOrCreateDeletedDocument() {
 
         String id = Utils.getIdFromPath("/foo");
