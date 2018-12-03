@@ -130,6 +130,8 @@ public class TarFiles implements Closeable {
 
         private CounterStats readerCountStats = NoopStats.INSTANCE;
 
+        private CounterStats segmentCountStats = NoopStats.INSTANCE;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -182,6 +184,11 @@ public class TarFiles implements Closeable {
 
         public Builder withReaderCountStats(CounterStats readerCountStats) {
             this.readerCountStats = readerCountStats;
+            return this;
+        }
+
+        public Builder withSegmentCountStats(CounterStats segmentCountStats) {
+            this.segmentCountStats = segmentCountStats;
             return this;
         }
 
@@ -343,10 +350,20 @@ public class TarFiles implements Closeable {
      */
     private final CounterStats readerCount;
 
+    /**
+     * Counter exposing the number of segments.
+     */
+    private final CounterStats segmentCount;
+
+    private static int getSegmentCount(TarReader reader) {
+        return reader.getEntries().length;
+    }
+
     private TarFiles(Builder builder) throws IOException {
         maxFileSize = builder.maxFileSize;
         archiveManager = builder.buildArchiveManager();
         readerCount = builder.readerCountStats;
+        segmentCount = builder.segmentCountStats;
 
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -364,6 +381,7 @@ public class TarFiles implements Closeable {
             } else {
                 r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
             }
+            segmentCount.inc(getSegmentCount(r));
             readers = new Node(r, readers);
             readerCount.inc();
         }
@@ -374,7 +392,7 @@ public class TarFiles implements Closeable {
         if (indices.length > 0) {
             writeNumber = indices[indices.length - 1] + 1;
         }
-        writer = new TarWriter(archiveManager, writeNumber);
+        writer = new TarWriter(archiveManager, writeNumber, segmentCount);
     }
 
     @Override
@@ -492,7 +510,7 @@ public class TarFiles implements Closeable {
         }
 
         for (TarReader reader : iterable(head)) {
-            count += reader.getEntries().length;
+            count += getSegmentCount(reader);
         }
         return count;
     }
@@ -603,7 +621,9 @@ public class TarFiles implements Closeable {
         if (newWriter == writer) {
             return;
         }
-        readers = new Node(TarReader.open(writer.getFileName(), archiveManager), readers);
+        TarReader reader = TarReader.open(writer.getFileName(), archiveManager);
+        readers = new Node(reader, readers);
+        segmentCount.inc(getSegmentCount(reader));
         readerCount.inc();
         writer = newWriter;
     }
@@ -735,6 +755,7 @@ public class TarFiles implements Closeable {
                 if (readers == head) {
                     readers = swept;
                     readerCount.dec(getSize(head) - getSize(swept));
+                    segmentCount.dec(getSegmentCount(head) - getSegmentCount(swept));
                     break;
                 } else {
                     head = readers;
@@ -756,6 +777,14 @@ public class TarFiles implements Closeable {
         }
 
         return result;
+    }
+
+    private static int getSegmentCount(Node head) {
+        int c = 0;
+        for (TarReader reader : iterable(head)) {
+            c += getSegmentCount(reader);
+        }
+        return c;
     }
 
     public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {

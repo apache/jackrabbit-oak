@@ -75,6 +75,11 @@ public class FileStore extends AbstractFileStore {
      */
     private static final String TAR_READER_COUNT = "TAR_READER_COUNT";
 
+    /**
+     * Name of the {@link CounterStats counter} exposing the number of segments.
+     */
+    private static final String SEGMENT_COUNT = "SEGMENT_COUNT";
+
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
             return new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
@@ -146,6 +151,7 @@ public class FileStore extends AbstractFileStore {
         this.stats = new FileStoreStats(statsProvider, this, 0);
 
         CounterStats readerCountStats = statsProvider.getCounterStats(TAR_READER_COUNT, DEFAULT);
+        CounterStats segmentCountStats = statsProvider.getCounterStats(SEGMENT_COUNT, DEFAULT);
         TarFiles.Builder tarFilesBuilder = TarFiles.builder()
                 .withDirectory(directory)
                 .withMemoryMapping(memoryMapping)
@@ -154,7 +160,8 @@ public class FileStore extends AbstractFileStore {
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .withPersistence(builder.getPersistence())
-                .withReaderCountStats(readerCountStats);
+                .withReaderCountStats(readerCountStats)
+                .withSegmentCountStats(segmentCountStats);
 
         this.tarFiles = tarFilesBuilder.build();
         long size = this.tarFiles.size();
