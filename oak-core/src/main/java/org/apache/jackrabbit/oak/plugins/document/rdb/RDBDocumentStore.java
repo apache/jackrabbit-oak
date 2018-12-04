@@ -1312,6 +1312,9 @@ public class RDBDocumentStore implements DocumentStore {
                                 // updated by a different instance, get a fresh one
                                 LOG.debug("suspect update from different instance (current modcount: {}), refetching: {}...",
                                         newmodcount, update.getId());
+                                if (collection == Collection.NODES) {
+                                    nodesCache.invalidate(update.getId());
+                                }
                                 oldDoc = readDocumentUncached(collection, update.getId(), null);
                                 if (oldDoc == null) {
                                     LOG.debug("after refetch: {} is gone", update.getId());
