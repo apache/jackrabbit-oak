@@ -188,7 +188,7 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
 
                 for (int i = 0; i < labelAndValues.length; i++) {
                     LabelAndValue lv = labelAndValues[i];
-                    long count = Math.floorDiv(lv.value.longValue() * accessibleCount, sampleSize);
+                    long count = lv.value.longValue() * accessibleCount / sampleSize;
                     if (count == 0) {
                         numZeros++;
                     }
