@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGener
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,13 +41,14 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Predicate;
-import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
+import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -305,7 +305,7 @@ public class TarReader implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file.
      */
-    ByteBuffer readEntry(long msb, long lsb) throws IOException {
+    Buffer readEntry(long msb, long lsb) throws IOException {
         return archive.readSegment(msb, lsb);
     }
 
@@ -586,7 +586,7 @@ public class TarReader implements Closeable {
      * @return The parsed graph, or {@code null} if one was not found.
      */
     Map<UUID, List<UUID>> getGraph() throws IOException {
-        ByteBuffer buffer = archive.getGraph();
+        Buffer buffer = archive.getGraph();
         if (buffer == null) {
             return null;
         } else {

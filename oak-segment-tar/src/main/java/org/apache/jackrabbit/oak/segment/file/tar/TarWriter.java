@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -39,6 +38,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -127,7 +127,7 @@ class TarWriter implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
      */
-    ByteBuffer readEntry(long msb, long lsb) throws IOException {
+    Buffer readEntry(long msb, long lsb) throws IOException {
         synchronized (this) {
             checkState(!closed);
         }
@@ -279,7 +279,7 @@ class TarWriter implements Closeable {
             graphSize += 16 * entry.getValue().size();
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(graphSize);
+        Buffer buffer = Buffer.allocate(graphSize);
 
         for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
             UUID from = entry.getKey();

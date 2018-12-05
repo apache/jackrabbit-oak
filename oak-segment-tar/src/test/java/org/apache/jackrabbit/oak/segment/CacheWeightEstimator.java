@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -337,7 +337,7 @@ public class CacheWeightEstimator {
         buffer[GC_FULL_GENERATION_OFFSET + 2] = (byte) (generation >> 8);
         buffer[GC_FULL_GENERATION_OFFSET + 3] = (byte) generation;
 
-        ByteBuffer data = ByteBuffer.wrap(buffer);
+        Buffer data = Buffer.wrap(buffer);
         SegmentId id = randomSegmentId(false);
         Segment segment = new Segment(store.getSegmentIdProvider(), store.getReader(), id, data);
 

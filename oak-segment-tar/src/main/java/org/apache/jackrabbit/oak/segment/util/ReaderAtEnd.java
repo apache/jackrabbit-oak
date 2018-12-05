@@ -18,7 +18,8 @@
 package org.apache.jackrabbit.oak.segment.util;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * Read raw data from the end of an underlying data source. The data source is
@@ -34,10 +35,10 @@ public interface ReaderAtEnd {
      *
      * @param whence The offset from the end of the data source.
      * @param amount The amount of data to read, in bytes.
-     * @return An instance of {@link ByteBuffer}.
+     * @return An instance of {@link Buffer}.
      * @throws IOException if an error occurs while reading from the underlying
      *                     data source.
      */
-    ByteBuffer readAtEnd(int whence, int amount) throws IOException;
+    Buffer readAtEnd(int whence, int amount) throws IOException;
 
 }

@@ -19,23 +19,12 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
-import static java.nio.ByteBuffer.wrap;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
-
-import org.apache.commons.io.filefilter.SuffixFileFilter;
-import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.segment.spi.persistence.Buffer.wrap;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -44,6 +33,17 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
+
+import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentTarManager implements SegmentArchiveManager {
 
@@ -219,7 +219,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
             }
 
             // The header checksum passes, so read the entry name and size
-            ByteBuffer buffer = wrap(header);
+            Buffer buffer = wrap(header);
             String name = readString(buffer, 100);
             buffer.position(124);
             int size = readNumber(buffer, 12);
@@ -247,7 +247,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
 
                     if (checksum != null) {
                         CRC32 crc = new CRC32();
-                        crc.update(data);
+                        crc.update(data, 0, data.length);
                         if (crc.getValue() != Long.parseLong(checksum, 16)) {
                             log.warn("Checksum mismatch in entry {} of tar file {}, skipping...",
                                     name, file);
@@ -270,7 +270,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
         }
     }
 
-    private static String readString(ByteBuffer buffer, int fieldSize) {
+    private static String readString(Buffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
         buffer.get(b);
         int n = 0;
@@ -280,7 +280,7 @@ public class SegmentTarManager implements SegmentArchiveManager {
         return new String(b, 0, n, UTF_8);
     }
 
-    private static int readNumber(ByteBuffer buffer, int fieldSize) {
+    private static int readNumber(Buffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
         buffer.get(b);
         int number = 0;

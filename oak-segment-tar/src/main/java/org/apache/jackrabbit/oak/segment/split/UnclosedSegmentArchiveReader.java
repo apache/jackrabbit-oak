@@ -16,28 +16,28 @@
  */
 package org.apache.jackrabbit.oak.segment.split;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
 
 class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
 
     private final SegmentArchiveReader delegate;
 
-    private static final ByteBuffer EMPTY_BINARY_REF = ByteBuffer.wrap(BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
+    private static final Buffer EMPTY_BINARY_REF = Buffer.wrap(BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter().write()).asReadOnlyBuffer();
 
     UnclosedSegmentArchiveReader(SegmentArchiveReader delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public @Nullable ByteBuffer readSegment(long msb, long lsb) throws IOException {
+    public @Nullable Buffer readSegment(long msb, long lsb) throws IOException {
         return delegate.readSegment(msb, lsb);
     }
 
@@ -52,7 +52,7 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public @Nullable ByteBuffer getGraph() throws IOException {
+    public @Nullable Buffer getGraph() throws IOException {
         return delegate.getGraph();
     }
 
@@ -62,8 +62,8 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public @NotNull ByteBuffer getBinaryReferences() throws IOException {
-        ByteBuffer buffer = delegate.getBinaryReferences();
+    public @NotNull Buffer getBinaryReferences() throws IOException {
+        Buffer buffer = delegate.getBinaryReferences();
         if (buffer == null) {
             return EMPTY_BINARY_REF;
         } else {

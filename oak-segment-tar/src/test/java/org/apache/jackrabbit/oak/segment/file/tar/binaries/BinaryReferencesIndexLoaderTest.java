@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,6 +28,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.Test;
 
 public class BinaryReferencesIndexLoaderTest {
@@ -41,17 +41,17 @@ public class BinaryReferencesIndexLoaderTest {
         return s.getBytes(Charsets.UTF_8);
     }
 
-    private static int checksum(ByteBuffer buffer) {
+    private static int checksum(Buffer buffer) {
         CRC32 checksum = new CRC32();
         int position = buffer.position();
-        checksum.update(buffer);
+        buffer.update(checksum);
         buffer.position(position);
         return (int) checksum.getValue();
     }
 
-    private static BinaryReferencesIndex loadIndex(ByteBuffer buffer) throws Exception {
-        ByteBuffer data = BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, length) -> {
-            ByteBuffer slice = buffer.duplicate();
+    private static BinaryReferencesIndex loadIndex(Buffer buffer) throws Exception {
+        Buffer data = BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, length) -> {
+            Buffer slice = buffer.duplicate();
             slice.position(slice.limit() - whence);
             slice.limit(slice.position() + length);
             return slice.slice();
@@ -61,7 +61,7 @@ public class BinaryReferencesIndexLoaderTest {
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testUnrecognizedMagicNumber() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+        Buffer buffer = Buffer.allocate(Integer.BYTES);
         try {
             loadIndex(buffer);
         } catch (InvalidBinaryReferencesIndexException e) {
@@ -72,7 +72,7 @@ public class BinaryReferencesIndexLoaderTest {
 
     @Test
     public void testLoadV1() throws Exception {
-        ByteBuffer entries = ByteBuffer.allocate(512)
+        Buffer entries = Buffer.allocate(512)
             // First generation
             .putInt(1)
             .putInt(2)
@@ -101,7 +101,7 @@ public class BinaryReferencesIndexLoaderTest {
             .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        ByteBuffer buffer = ByteBuffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV1.FOOTER_SIZE);
         buffer.duplicate()
             .put(entries.duplicate())
             .putInt(checksum(entries))
@@ -144,7 +144,7 @@ public class BinaryReferencesIndexLoaderTest {
 
     @Test
     public void testLoadV2() throws Exception {
-        ByteBuffer entries = ByteBuffer.allocate(512)
+        Buffer entries = Buffer.allocate(512)
             // First generation
             .putInt(1).putInt(2).put((byte) 0)
             .putInt(2)
@@ -173,7 +173,7 @@ public class BinaryReferencesIndexLoaderTest {
             .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        ByteBuffer buffer = ByteBuffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE);
         buffer.duplicate()
             .put(entries.duplicate())
             .putInt(checksum(entries))

@@ -29,7 +29,6 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -517,14 +517,14 @@ public class FileStore extends AbstractFileStore {
             Set<String> binaryReferences = null;
 
             if (id.isDataSegmentId()) {
-                ByteBuffer data;
+                Buffer data;
 
                 if (offset > 4096) {
-                    data = ByteBuffer.allocate(length);
+                    data = Buffer.allocate(length);
                     data.put(buffer, offset, length);
                     data.rewind();
                 } else {
-                    data = ByteBuffer.wrap(buffer, offset, length);
+                    data = Buffer.wrap(buffer, offset, length);
                 }
 
                 segment = new Segment(tracker, segmentReader, id, data);

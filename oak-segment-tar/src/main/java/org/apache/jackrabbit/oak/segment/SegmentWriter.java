@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,14 +65,14 @@ public interface SegmentWriter {
      * @throws IOException
      */
     @NotNull
-    RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes) throws IOException;
+    RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes) throws IOException;
 
     /**
      * Write a node state.
      * <p>
      * Equivalent to {@code writeNode(state, null)}
      *
-     * @see #writeNode(NodeState, ByteBuffer)
+     * @see #writeNode(NodeState, Buffer)
      */
     @NotNull
     default RecordId writeNode(@NotNull NodeState state) throws IOException {

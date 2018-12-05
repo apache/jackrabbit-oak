@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptySet;
-import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.segment.SegmentStream.BLOCK_SIZE;
 
 import java.io.InputStream;
 import java.util.List;
@@ -198,7 +198,7 @@ public class SegmentBlob extends Record implements Blob {
 
     private static String readShortBlobId(Segment segment, int recordNumber, byte head) {
         int length = (head & 0x0f) << 8 | (segment.readByte(recordNumber, 1) & 0xff);
-        return UTF_8.decode(segment.readBytes(recordNumber, 2, length)).toString();
+        return segment.readBytes(recordNumber, 2, length).decode(UTF_8).toString();
     }
 
     private static String readLongBlobId(Segment segment, int recordNumber) {

@@ -45,10 +45,10 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -317,12 +317,12 @@ public class SegmentCopy {
                 writeSegment(segmentEntry, archiveReader, archiveWriter);
             }
 
-            ByteBuffer binRefBuffer = archiveReader.getBinaryReferences();
+            Buffer binRefBuffer = archiveReader.getBinaryReferences();
             byte[] binRefData = fetchByteArray(binRefBuffer);
 
             archiveWriter.writeBinaryReferences(binRefData);
 
-            ByteBuffer graphBuffer = archiveReader.getGraph();
+            Buffer graphBuffer = archiveReader.getGraph();
             byte[] graphData = fetchByteArray(graphBuffer);
 
             archiveWriter.writeGraph(graphData);
@@ -344,7 +344,7 @@ public class SegmentCopy {
         int fullGeneration = segmentEntry.getFullGeneration();
         boolean isCompacted = segmentEntry.isCompacted();
 
-        ByteBuffer byteBuffer = archiveReader.readSegment(msb, lsb);
+        Buffer byteBuffer = archiveReader.readSegment(msb, lsb);
         byte[] data = fetchByteArray(byteBuffer);
 
         archiveWriter.writeSegment(msb, lsb, data, offset, size, generation, fullGeneration, isCompacted);

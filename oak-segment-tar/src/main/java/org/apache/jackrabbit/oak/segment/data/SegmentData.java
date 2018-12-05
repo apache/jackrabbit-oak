@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.segment.data;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * Access the data of a segment.
@@ -62,11 +63,11 @@ import java.nio.ByteBuffer;
  */
 public interface SegmentData {
 
-    static SegmentData newSegmentData(ByteBuffer buffer) {
+    static SegmentData newSegmentData(Buffer buffer) {
         return SegmentDataLoader.newSegmentData(buffer);
     }
 
-    static SegmentData newRawSegmentData(ByteBuffer buffer) {
+    static SegmentData newRawSegmentData(Buffer buffer) {
         return SegmentDataLoader.newRawSegmentData(buffer);
     }
 
@@ -108,7 +109,7 @@ public interface SegmentData {
 
     long readLong(int recordReferenceOffset);
 
-    ByteBuffer readBytes(int recordReferenceOffset, int size);
+    Buffer readBytes(int recordReferenceOffset, int size);
 
     int size();
 

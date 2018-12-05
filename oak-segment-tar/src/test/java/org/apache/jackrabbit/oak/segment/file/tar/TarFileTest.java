@@ -28,7 +28,6 @@ import static org.mockito.internal.util.collections.Sets.newSet;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,6 +37,7 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.junit.Before;
@@ -74,12 +74,12 @@ public class TarFileTest {
 
         try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
             writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
-            assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
+            assertEquals(Buffer.wrap(data), writer.readEntry(msb, lsb));
         }
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
             assertEquals(getWriteAndReadExpectedSize(), reader.size());
-            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
+            assertEquals(Buffer.wrap(data), reader.readEntry(msb, lsb));
         }
     }
 
