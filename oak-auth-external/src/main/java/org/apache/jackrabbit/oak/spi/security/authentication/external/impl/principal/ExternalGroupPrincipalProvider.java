@@ -70,7 +70,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the {@code PrincipalProvider} interface that exposes
- * 'external' principals of type {@link org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipal}. 'External'
+ * 'external' principals of type {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal}. 'External'
  * refers to the fact that these principals are defined and managed by an
  * {@link org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider}.
  *
@@ -267,7 +267,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     //------------------------------------------------------< inner classes >---
 
     /**
-     * Implementation of the {@link Group} interface representing external group
+     * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing external group
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
@@ -340,7 +340,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     /**
-     * {@link Group} principal iterator converting the query results of
+     * Principal iterator converting the query results of
      * {@link #findPrincipals(String, int)} and {@link #findPrincipals(int)}.
      * Since each result row provides the values of the {@code PropertyState},
      * which matched the query, this iterator needs to filter the individual

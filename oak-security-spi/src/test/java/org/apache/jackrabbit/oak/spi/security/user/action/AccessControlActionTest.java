@@ -41,7 +41,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@code AccessControlAction}.
  *
- * @see {@link org.apache.jackrabbit.oak.security.user.action.AccessControlActionTest} for integration tests include complete setup.
+ * @see {@code org.apache.jackrabbit.oak.security.user.action.AccessControlActionTest} for integration tests include complete setup.
  */
 public class AccessControlActionTest implements UserConstants {
 

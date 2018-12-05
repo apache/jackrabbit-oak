@@ -149,25 +149,16 @@ final class GlobPattern implements RestrictionPattern {
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * @see Object#hashCode()
-     */
     @Override
     public int hashCode() {
         return Objects.hashCode(path, restriction);
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         return path + " : " + restriction;
     }
 
-    /**
-     * @see Object#equals(Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {

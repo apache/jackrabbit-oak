@@ -70,13 +70,13 @@ public abstract class AbstractCredentials implements Credentials {
     }
     
     /**
-     * Returns the value of the named attribute as an <code>Object</code>, or
-     * <code>null</code> if no attribute of the given name exists.
+     * Returns the value of the named attribute as an {@code Object}, or
+     * {@code null} if no attribute of the given name exists.
      *
      * @param name
-     *            a <code>String</code> specifying the name of the attribute
-     * @return an <code>Object</code> containing the value of the attribute, or
-     *         <code>null</code> if the attribute does not exist
+     *            a {@code String} specifying the name of the attribute
+     * @return an {@code Object} containing the value of the attribute, or
+     *         {@code null} if the attribute does not exist
      */
     @Nullable
     public Object getAttribute(@NotNull String name) {
@@ -89,7 +89,7 @@ public abstract class AbstractCredentials implements Credentials {
      * Removes an attribute from this credentials instance.
      *
      * @param name
-     *            a <code>String</code> specifying the name of the attribute to
+     *            a {@code String} specifying the name of the attribute to
      *            remove
      */
     public void removeAttribute(@NotNull String name) {

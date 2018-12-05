@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be re-used by the
  * migration code.
  *
- * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHHOLD} before creating
+ * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHOLD} before creating
  * {@link #NT_REP_MEMBER_REFERENCES} sub nodes.
  *
  * Example Group with few members (irrelevant properties excluded):

@@ -59,9 +59,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     //------------------------------------------------------< Impersonation >---
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Impersonation#getImpersonators()
-     */
     @NotNull
     @Override
     public PrincipalIterator getImpersonators() throws RepositoryException {
@@ -83,9 +80,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Impersonation#grantImpersonation(Principal)
-     */
     @Override
     public boolean grantImpersonation(@NotNull Principal principal) throws RepositoryException {
         if (!isValidPrincipal(principal)) {
@@ -112,9 +106,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see Impersonation#revokeImpersonation(java.security.Principal)
-     */
     @Override
     public boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException {
         String pName = principal.getName();
@@ -131,9 +122,6 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see Impersonation#allows(javax.security.auth.Subject)
-     */
     @Override
     public boolean allows(@Nullable Subject subject) throws RepositoryException {
         if (subject == null) {
