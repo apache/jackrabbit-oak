@@ -195,7 +195,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return EMPTY;
                     } else {
-                        /**
+                        /*
                          * NOTE: may return wrong results in case of restrictions
                          * that would match the path of the versionable node
                          * (or item in the subtree) but that item no longer exists

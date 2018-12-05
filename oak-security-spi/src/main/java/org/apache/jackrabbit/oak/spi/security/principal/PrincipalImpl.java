@@ -40,7 +40,6 @@ public class PrincipalImpl implements JackrabbitPrincipal {
     //-------------------------------------------------------------< Object >---
     /**
      * Two principals are equal, if their names are.
-     * @see Object#equals(Object)
      */
     @Override
     public boolean equals(Object obj) {
@@ -55,16 +54,12 @@ public class PrincipalImpl implements JackrabbitPrincipal {
 
     /**
      * @return the hash code of the principals name.
-     * @see Object#hashCode()
      */
     @Override
     public int hashCode() {
         return name.hashCode();
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

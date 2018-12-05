@@ -25,7 +25,7 @@ import org.apache.directory.ldap.client.api.LdapConnectionValidator;
 public class UnboundConnectionValidator implements LdapConnectionValidator {
 
     /**
-     * Returns true if <code>connection</code> is connected
+     * Returns true if {@code connection} is connected
      *
      * @param connection The connection to validate
      * @return True, if the connection is still valid

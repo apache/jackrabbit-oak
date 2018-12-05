@@ -492,7 +492,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * Method that determines if the cleanup should run or not based on the
      * randomly generated token's first char, this decreases the chances to 1/8.
      *
-     * @param tkn
+     * @param token The target token
      * @return true if the cleanup should run
      */
     static boolean shouldRunCleanup(@NotNull String token) {

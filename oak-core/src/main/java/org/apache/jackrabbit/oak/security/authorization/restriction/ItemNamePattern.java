@@ -61,25 +61,16 @@ class ItemNamePattern implements RestrictionPattern {
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * @see Object#hashCode()
-     */
     @Override
     public int hashCode() {
         return names.hashCode();
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         return names.toString();
     }
 
-    /**
-     * @see Object#equals(Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {

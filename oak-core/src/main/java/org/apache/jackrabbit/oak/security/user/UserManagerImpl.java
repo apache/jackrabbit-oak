@@ -231,8 +231,6 @@ public class UserManagerImpl implements UserManager {
      * Always returns {@code false}. Any modifications made to this user
      * manager instance require a subsequent call to {@link javax.jcr.Session#save()}
      * in order to have the changes persisted.
-     *
-     * @see org.apache.jackrabbit.api.security.user.UserManager#isAutoSave()
      */
     @Override
     public boolean isAutoSave() {
@@ -242,8 +240,6 @@ public class UserManagerImpl implements UserManager {
     /**
      * Changing the auto-save behavior is not supported by this implementation
      * and this method always throws {@code UnsupportedRepositoryOperationException}
-     *
-     * @see UserManager#autoSave(boolean)
      */
     @Override
     public void autoSave(boolean enable) throws RepositoryException {
