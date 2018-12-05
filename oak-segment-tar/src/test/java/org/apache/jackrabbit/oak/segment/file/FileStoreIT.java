@@ -361,7 +361,14 @@ public class FileStoreIT {
 
                     private int readOrEnd() {
                         if (blocking.get()) {
-                            reading = true;
+                            if (!reading) {
+                                readMonitor.enter();
+                                try {
+                                    reading = true;
+                                } finally {
+                                    readMonitor.leave();
+                                }
+                            }
                             return 0;
                         } else {
                             return -1;
