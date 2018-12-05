@@ -306,6 +306,15 @@ public interface FulltextIndexConstants {
      */
     String PROP_SECURE_FACETS = "secure";
 
+    String PROP_SECURE_FACETS_VALUE_INSECURE = "insecure";
+    String PROP_SECURE_FACETS_VALUE_STATISTICAL = "statistical";
+    String PROP_SECURE_FACETS_VALUE_SECURE = "secure";
+    String PROP_SECURE_FACETS_VALUE_JVM_PARAM = "oak.facets.secure";
+
+    String STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM = "oak.facet.statistical.sampleSize";
+    String PROP_STATISTICAL_FACET_SAMPLE_SIZE = "sampleSize";
+    int STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT = 1000;
+
     /**
      * Optional (index definition) property indicating max number of facets that will be retrieved
      * in query
@@ -333,6 +342,13 @@ public interface FulltextIndexConstants {
      * Boolean property which signal FulltextIndexEditor to refresh the stored index definition
      */
     String PROP_REFRESH_DEFN = "refresh";
+
+    /**
+     * Long property that keep seed for random number generation. One example usage of this is
+     * to randomly sample query results to statistically check for ACLs to extrapolate facet
+     * counts
+     */
+    String PROP_RANDOM_SEED = "seed";
 
     /**
      * Boolean property to indicate that nodes nodetype matching indexRule name

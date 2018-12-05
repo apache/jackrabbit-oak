@@ -120,7 +120,6 @@ import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,7 +128,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -353,7 +351,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             long f = PERF_LOGGER.start();
                             if (facetProvider == null) {
                                 facetProvider = new LuceneFacetProvider(
-                                        FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets())
+                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
                                 );
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
