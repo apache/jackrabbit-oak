@@ -87,6 +87,9 @@ public class IndexImporter {
     }
 
     public void importIndex() throws IOException, CommitFailedException {
+        if (indexes.keySet().isEmpty()) {
+            log.warn("No indexes to import (possibly index definitions outside of a oak:index node?)");
+        }
         log.info("Proceeding to import {} indexes from {}", indexes.keySet(), indexDir.getAbsolutePath());
 
         //TODO Need to review it for idempotent design. A failure in any step should not
