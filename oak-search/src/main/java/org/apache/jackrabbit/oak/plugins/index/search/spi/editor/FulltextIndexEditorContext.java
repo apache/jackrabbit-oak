@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -44,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 
@@ -248,6 +251,16 @@ public abstract class FulltextIndexEditorContext<D> {
 
   private IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
       indexingContext, boolean asyncIndexing) {
+
+    // A good time to check and see if we want to inject our random
+    // seed - required due to OAK-7929 but could be useful otherwise too.
+    Long defRandom = getLongPropertyOrNull(definition.getProperty(PROP_RANDOM_SEED));
+    if (defRandom == null) {
+      long seed = UUID.randomUUID().getMostSignificantBits();
+      definition.setProperty(PROP_RANDOM_SEED, seed);
+      defRandom = seed;
+    }
+
     NodeState defnState = definition.getBaseState();
     if (asyncIndexing && !IndexDefinition.isDisableStoredIndexDefinition()){
       if (definition.getBoolean(PROP_REFRESH_DEFN)){
@@ -262,6 +275,17 @@ public abstract class FulltextIndexEditorContext<D> {
         definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
         log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
             "effective post reindexing", indexingContext.getIndexPath());
+      } else {
+        // This is neither reindex nor refresh. So, let's update cloned def with random seed
+        // if it doesn't match what's there in main definition
+        // Reindex would require another indexing cycle to update cloned def.
+        // Refresh would anyway is going to do a real clone so that's ok
+        NodeState clonedState = defnState.getChildNode(INDEX_DEFINITION_NODE);
+        Long clonedRandom = getLongPropertyOrNull(clonedState.getProperty(PROP_RANDOM_SEED));
+
+        if (clonedRandom == null || clonedRandom != defRandom) {
+          definition.getChildNode(INDEX_DEFINITION_NODE).setProperty(PROP_RANDOM_SEED, defRandom);
+        }
       }
     }
     return newDefinitionBuilder()
@@ -269,5 +293,20 @@ public abstract class FulltextIndexEditorContext<D> {
             .defn(defnState)
             .indexPath(indexingContext.getIndexPath())
             .build();
+  }
+
+  private Long getLongPropertyOrNull(PropertyState propertyState) {
+    Long ret = null;
+
+    if (propertyState != null) {
+      try {
+        ret = propertyState.getValue(Type.LONG);
+      } catch (Exception e) {
+        // It's ok to ignore the exception, but let's log it to help debugging.
+        log.debug("Error occurred while reading property as long.", e);
+      }
+    }
+
+    return ret;
   }
 }
