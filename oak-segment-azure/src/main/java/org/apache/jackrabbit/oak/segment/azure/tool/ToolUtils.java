@@ -24,12 +24,19 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -40,15 +47,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.text.MessageFormat;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * Utility class for common stuff pertaining to tooling.
@@ -164,7 +163,7 @@ public class ToolUtils {
         pw.println(MessageFormat.format(format, arg));
     }
 
-    public static byte[] fetchByteArray(ByteBuffer buffer) throws IOException {
+    public static byte[] fetchByteArray(Buffer buffer) throws IOException {
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
         return data;

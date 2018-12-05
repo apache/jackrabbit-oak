@@ -19,18 +19,18 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 
 import static org.junit.Assert.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.Test;
 
 public class IndexV2Test {
 
     @Test
     public void testGetUUIDs() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV2.SIZE);
+        Buffer buffer = Buffer.allocate(2 * IndexEntryV2.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0)
                 .putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1);
@@ -42,7 +42,7 @@ public class IndexV2Test {
 
     @Test
     public void testFindEntry() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(4 * IndexEntryV2.SIZE);
+        Buffer buffer = Buffer.allocate(4 * IndexEntryV2.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(1).putInt(0).putInt(0).putInt(0).putInt(0).put((byte) 0)
                 .putLong(1).putLong(3).putInt(0).putInt(0).putInt(0).putInt(0).put((byte) 0)
@@ -61,7 +61,7 @@ public class IndexV2Test {
 
     @Test
     public void testSize() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV2.SIZE);
+        Buffer buffer = Buffer.allocate(IndexEntryV2.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0);
         assertEquals(IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE, new IndexV2(buffer).size());
@@ -69,7 +69,7 @@ public class IndexV2Test {
 
     @Test
     public void testCount() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(2 * IndexEntryV2.SIZE);
+        Buffer buffer = Buffer.allocate(2 * IndexEntryV2.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0)
                 .putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1);
@@ -78,7 +78,7 @@ public class IndexV2Test {
 
     @Test
     public void testEntry() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(IndexEntryV2.SIZE);
+        Buffer buffer = Buffer.allocate(IndexEntryV2.SIZE);
         buffer.duplicate()
                 .putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 1);
         IndexEntryV2 entry = new IndexV2(buffer).entry(0);

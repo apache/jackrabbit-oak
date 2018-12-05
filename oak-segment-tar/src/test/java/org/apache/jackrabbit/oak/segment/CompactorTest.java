@@ -32,7 +32,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -178,6 +178,7 @@ public class CompactorTest {
     }
 
     private static class FailingSegmentWriter implements SegmentWriter {
+
         @NotNull
         private final SegmentWriter delegate;
 
@@ -208,13 +209,12 @@ public class CompactorTest {
 
         @NotNull
         @Override
-        public RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
-        throws IOException {
+        public RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes) throws IOException {
             if (state.hasChildNode(failOnName)) {
                 throw new IOException("Encountered node with name " + failOnName);
             }
-
             return delegate.writeNode(state, stableIdBytes);
         }
+
     }
 }

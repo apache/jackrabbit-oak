@@ -36,7 +36,6 @@ import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGener
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.segment.data.RecordIdData;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.data.StringData;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -179,9 +179,9 @@ public class Segment {
         this.reader = checkNotNull(reader);
         this.info = checkNotNull(info);
         if (id.isDataSegmentId()) {
-            this.data = newSegmentData(ByteBuffer.wrap(buffer));
+            this.data = newSegmentData(Buffer.wrap(buffer));
         } else {
-            this.data = newRawSegmentData(ByteBuffer.wrap(buffer));
+            this.data = newRawSegmentData(Buffer.wrap(buffer));
         }
         this.version = SegmentVersion.fromByte(buffer[3]);
         this.recordNumbers = recordNumbers;
@@ -192,7 +192,7 @@ public class Segment {
     public Segment(@NotNull SegmentIdProvider idProvider,
                    @NotNull SegmentReader reader,
                    @NotNull final SegmentId id,
-                   @NotNull final ByteBuffer data) {
+        @NotNull final Buffer data) {
         this.reader = checkNotNull(reader);
         this.id = checkNotNull(id);
         if (id.isDataSegmentId()) {
@@ -417,7 +417,7 @@ public class Segment {
         readBytes(recordNumber, position, length).get(buffer, offset, length);
     }
 
-    ByteBuffer readBytes(int recordNumber, int position, int length) {
+    Buffer readBytes(int recordNumber, int position, int length) {
         return data.readBytes(recordNumbers.getOffset(recordNumber) + position, length);
     }
 

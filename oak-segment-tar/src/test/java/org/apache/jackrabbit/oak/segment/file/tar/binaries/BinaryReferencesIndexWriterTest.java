@@ -23,13 +23,13 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
 import static org.junit.Assert.assertEquals;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.Test;
 
 public class BinaryReferencesIndexWriterTest {
@@ -53,7 +53,7 @@ public class BinaryReferencesIndexWriterTest {
 
         byte[] data = writer.write();
 
-        ByteBuffer buffer = loadBinaryReferencesIndex((whence, length) -> ByteBuffer.wrap(data, data.length - whence, length));
+        Buffer buffer = loadBinaryReferencesIndex((whence, length) -> Buffer.wrap(data, data.length - whence, length));
         BinaryReferencesIndex index = parseBinaryReferencesIndex(buffer);
 
         Generation g1 = new Generation(1, 2, false);

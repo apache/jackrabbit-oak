@@ -23,6 +23,12 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -42,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -49,13 +56,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
 
 public abstract class SegmentCopyTestBase {
     private static final String AZURE_DIRECTORY = "repository";
@@ -164,20 +164,20 @@ public abstract class SegmentCopyTestBase {
                 assertEquals(srcSegment.getFullGeneration(), destSegment.getFullGeneration());
                 assertEquals(srcSegment.getGeneration(), destSegment.getFullGeneration());
 
-                ByteBuffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
-                ByteBuffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
+                Buffer srcDataBuffer = srcArchiveReader.readSegment(srcSegment.getMsb(), srcSegment.getLsb());
+                Buffer destDataBuffer = destArchiveReader.readSegment(destSegment.getMsb(), destSegment.getLsb());
 
                 assertEquals(srcDataBuffer, destDataBuffer);
             }
 
-            ByteBuffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
-            ByteBuffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
+            Buffer srcBinRefBuffer = srcArchiveReader.getBinaryReferences();
+            Buffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
             assertEquals(srcBinRefBuffer, destBinRefBuffer);
 
             assertEquals(srcArchiveReader.hasGraph(), destArchiveReader.hasGraph());
 
-            ByteBuffer srcGraphBuffer = srcArchiveReader.getGraph();
-            ByteBuffer destGraphBuffer = destArchiveReader.getGraph();
+            Buffer srcGraphBuffer = srcArchiveReader.getGraph();
+            Buffer destGraphBuffer = destArchiveReader.getGraph();
             assertEquals(srcGraphBuffer, destGraphBuffer);
         }
     }

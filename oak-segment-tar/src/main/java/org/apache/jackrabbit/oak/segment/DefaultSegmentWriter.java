@@ -52,7 +52,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -68,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -185,7 +185,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
     @Override
     @NotNull
-    public RecordId writeNode(@NotNull final NodeState state, @Nullable final ByteBuffer stableIdBytes) throws IOException {
+    public RecordId writeNode(@NotNull final NodeState state, @Nullable final Buffer stableIdBytes) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
                 .writeNode(state, stableIdBytes);
     }
@@ -740,7 +740,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return tid;
         }
 
-        private RecordId writeNode(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        private RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
         throws IOException {
             RecordId compactedId = deduplicateNode(state);
 
@@ -767,7 +767,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
-        private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable ByteBuffer stableIdBytes)
+        private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
         throws IOException {
             ModifiedNodeState after = null;
 
@@ -873,7 +873,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             RecordId stableId;
             if (stableIdBytes != null) {
-                ByteBuffer buffer = stableIdBytes.duplicate();
+                Buffer buffer = stableIdBytes.duplicate();
                 byte[] bytes = new byte[buffer.remaining()];
                 buffer.get(bytes);
                 stableId = writeBlock(bytes, 0, bytes.length);

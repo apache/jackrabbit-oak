@@ -27,11 +27,11 @@ import static org.apache.jackrabbit.oak.stats.SimpleStats.Type.COUNTER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -84,7 +84,7 @@ public class SegmentBufferMonitorTest {
 
     @Test
     public void heapBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocate(42);
+        Buffer buffer = Buffer.allocate(42);
         segmentBufferMonitor.trackAllocation(buffer);
 
         assertEquals(0, stats.get(DIRECT_BUFFER_COUNT).getCount());
@@ -103,7 +103,7 @@ public class SegmentBufferMonitorTest {
 
     @Test
     public void directBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocateDirect(42);
+        Buffer buffer = Buffer.allocateDirect(42);
         segmentBufferMonitor.trackAllocation(buffer);
 
         assertEquals(1, stats.get(DIRECT_BUFFER_COUNT).getCount());

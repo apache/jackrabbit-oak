@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferF
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +39,7 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     static final boolean OFF_HEAP = getBoolean("access.off.heap");
@@ -70,17 +70,17 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
+    public Buffer readSegment(long msb, long lsb) throws IOException {
         AzureSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
         if (indexEntry == null) {
             return null;
         }
 
-        ByteBuffer buffer;
+        Buffer buffer;
         if (OFF_HEAP) {
-            buffer = ByteBuffer.allocateDirect(indexEntry.getLength());
+            buffer = Buffer.allocateDirect(indexEntry.getLength());
         } else {
-            buffer = ByteBuffer.allocate(indexEntry.getLength());
+            buffer = Buffer.allocate(indexEntry.getLength());
         }
         ioMonitor.beforeSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -101,8 +101,8 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer getGraph() throws IOException {
-        ByteBuffer graph = readBlob(getName() + ".gph");
+    public Buffer getGraph() throws IOException {
+        Buffer graph = readBlob(getName() + ".gph");
         hasGraph = graph != null;
         return graph;
     }
@@ -118,7 +118,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer getBinaryReferences() throws IOException {
+    public Buffer getBinaryReferences() throws IOException {
         return readBlob(getName() + ".brf");
     }
 
@@ -154,14 +154,14 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         }
     }
 
-    private ByteBuffer readBlob(String name) throws IOException {
+    private Buffer readBlob(String name) throws IOException {
         try {
             CloudBlockBlob blob = getBlob(name);
             if (!blob.exists()) {
                 return null;
             }
             long length = blob.getProperties().getLength();
-            ByteBuffer buffer = ByteBuffer.allocate((int) length);
+            Buffer buffer = Buffer.allocate((int) length);
             AzureUtilities.readBufferFully(blob, buffer);
             return buffer;
         } catch (StorageException e) {

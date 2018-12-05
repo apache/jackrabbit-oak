@@ -23,16 +23,16 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
-import java.nio.ByteBuffer;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * This class exposes {@link CounterStats} for allocations and de-allocations
- * of {@link ByteBuffer} instances:
+ * of {@link Buffer} instances:
  * <ul>
  *     <li>{@link #DIRECT_BUFFER_COUNT}: number of allocated direct byte
  *          buffers.</li>
@@ -44,7 +44,7 @@ import org.jetbrains.annotations.NotNull;
  *          heap byte buffers.</li>
  * </ul>
  * <p>
- * Users of this class call {@link #trackAllocation(ByteBuffer)} to update above statistics.
+ * Users of this class call {@link #trackAllocation(Buffer)} to update above statistics.
  */
 public class SegmentBufferMonitor {
 
@@ -72,7 +72,7 @@ public class SegmentBufferMonitor {
     private final Set<BufferReference> buffers = newConcurrentHashSet();
 
     @NotNull
-    private final ReferenceQueue<ByteBuffer> referenceQueue = new ReferenceQueue<>();
+    private final ReferenceQueue<Buffer> referenceQueue = new ReferenceQueue<>();
 
     @NotNull
     private final CounterStats directBufferCount;
@@ -98,12 +98,12 @@ public class SegmentBufferMonitor {
         heapBufferCapacity = statisticsProvider.getCounterStats(HEAP_BUFFER_CAPACITY, METRICS_ONLY);
     }
 
-    private static class BufferReference extends WeakReference<ByteBuffer> {
+    private static class BufferReference extends WeakReference<Buffer> {
         private final int capacity;
         private final boolean isDirect;
 
-        public BufferReference(@NotNull ByteBuffer buffer,
-                               @NotNull ReferenceQueue<ByteBuffer> queue) {
+        public BufferReference(@NotNull Buffer buffer,
+            @NotNull ReferenceQueue<Buffer> queue) {
             super(buffer, queue);
             this.capacity = buffer.capacity();
             this.isDirect = buffer.isDirect();
@@ -114,7 +114,7 @@ public class SegmentBufferMonitor {
      * Track the allocation of a {@code buffer} and update the exposed statistics.
      * @param buffer
      */
-    public void trackAllocation(@NotNull ByteBuffer buffer) {
+    public void trackAllocation(@NotNull Buffer buffer) {
         BufferReference reference = new BufferReference(buffer, referenceQueue);
         buffers.add(reference);
         allocated(reference);

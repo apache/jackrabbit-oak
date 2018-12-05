@@ -32,7 +32,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +43,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -121,7 +121,7 @@ public class TarFilesTest {
     }
 
     private byte[] readSegment(UUID id) {
-        ByteBuffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
         if (buffer == null) {
             return null;
         }
