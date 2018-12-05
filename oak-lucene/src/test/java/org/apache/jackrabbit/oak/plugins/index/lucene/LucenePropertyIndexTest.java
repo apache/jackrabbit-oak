@@ -48,6 +48,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE_SCOPE_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
@@ -2709,6 +2711,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
         idxb.build(idx);
+        idx.setProperty(PROP_RANDOM_SEED, new Random().nextLong());
         root.commit();
 
         AsyncIndexInfoService asyncService = new AsyncIndexInfoServiceImpl(nodeStore);
@@ -2852,6 +2855,124 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             baseline.clear();
             baseline.addAll(current);
         }
+    }
+
+    @Test
+    public void injectRandomSeedDuringReindex() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        // Push a change to get another indexing cycle run
+        root.getTree("/").addChild("force-index-run");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectRandomSeedDuringRefresh() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long seed = new Random().nextLong();
+
+        // Push a change to get another indexing cycle run
+        idx.setProperty(PROP_RANDOM_SEED, seed);
+        idx.setProperty(PROP_REFRESH_DEFN, true);
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed not updated", seed, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectRandomSeedDuringUpdate() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long seed = new Random().nextLong();
+
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, seed);
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed not updated", seed, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectGarbageSeed() throws Exception {
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long orignalSeed = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath())
+                .getProperty(PROP_RANDOM_SEED)
+                .getValue(Type.LONG);
+
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, "garbage");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertNotEquals("Random seed not updated", orignalSeed, defSeed);
+        assertNotEquals("Random seed updated to garbage", "garbage", defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectStringLongSeed() throws Exception {
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, "-12312");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed udpated to garbage", -12312, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths) {

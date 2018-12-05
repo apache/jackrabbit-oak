@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
@@ -247,7 +248,8 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean suggestAnalyzed;
 
-    private final boolean secureFacets;
+    private final SecureFacetConfiguration secureFacets;
+    private final long randomSeed;
 
     private final int numberOfTopFacets;
 
@@ -394,12 +396,21 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
         this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
+        {
+            PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
+            if (randomPS != null && randomPS.getType() == Type.LONG) {
+                randomSeed = randomPS.getValue(Type.LONG);
+            } else {
+                // create a random number
+                randomSeed = UUID.randomUUID().getMostSignificantBits();
+            }
+        }
         if (defn.hasChildNode(FACETS)) {
             NodeState facetsConfig =  defn.getChildNode(FACETS);
-            this.secureFacets = getOptionalValue(facetsConfig, PROP_SECURE_FACETS, true);
+            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
             this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
         } else {
-            this.secureFacets = true;
+            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
             this.numberOfTopFacets = DEFAULT_FACET_COUNT;
         }
 
@@ -889,7 +900,7 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return suggestAnalyzed;
     }
 
-    public boolean isSecureFacets() {
+    public SecureFacetConfiguration getSecureFacetConfiguration() {
         return secureFacets;
     }
 
@@ -1891,4 +1902,97 @@ public final class IndexDefinition implements Aggregate.AggregateMapper {
         return new PropertyDefinition(rule, name, builder.getNodeState());
     }
 
+    public static class SecureFacetConfiguration {
+        public enum MODE {
+            SECURE,
+            STATISTICAL,
+            INSECURE
+        }
+
+        private final long randomSeed;
+        private final MODE mode;
+        private final int statisticalFacetSampleSize;
+
+        SecureFacetConfiguration(long randomSeed, MODE mode, int statisticalFacetSampleSize) {
+            this.randomSeed = randomSeed;
+            this.mode = mode;
+            this.statisticalFacetSampleSize = statisticalFacetSampleSize;
+        }
+
+        public MODE getMode() {
+            return mode;
+        }
+
+        public int getStatisticalFacetSampleSize() {
+            return statisticalFacetSampleSize;
+        }
+
+        public long getRandomSeed() {
+            return randomSeed;
+        }
+
+        static SecureFacetConfiguration getInstance(long randomSeed, NodeState facetConfigRoot) {
+            if (facetConfigRoot == null) {
+                facetConfigRoot = EMPTY_NODE;
+            }
+
+            MODE mode = getMode(facetConfigRoot);
+            int statisticalFacetSampleSize;
+
+            if (mode == MODE.STATISTICAL) {
+                statisticalFacetSampleSize = getStatisticalFacetSampleSize(facetConfigRoot);
+            } else {
+                statisticalFacetSampleSize = -1;
+            }
+
+            return new SecureFacetConfiguration(randomSeed, mode, statisticalFacetSampleSize);
+        }
+
+        static MODE getMode(@NotNull final NodeState facetConfigRoot) {
+            PropertyState securePS = facetConfigRoot.getProperty(PROP_SECURE_FACETS);
+            String modeString;
+
+            if (securePS != null) {
+                if(securePS.getType() == Type.BOOLEAN) {
+                    // legacy secure config
+                    boolean secure = securePS.getValue(Type.BOOLEAN);
+                    return secure ? MODE.SECURE : MODE.INSECURE;
+                } else {
+                    modeString = securePS.getValue(Type.STRING);
+                }
+            } else {
+                // use "default" just as placeholder. default case would do the actual default eval
+                modeString = System.getProperty(PROP_SECURE_FACETS_VALUE_JVM_PARAM, "default");
+            }
+
+            switch (modeString) {
+                case PROP_SECURE_FACETS_VALUE_INSECURE:
+                    return MODE.INSECURE;
+                case PROP_SECURE_FACETS_VALUE_STATISTICAL:
+                    return MODE.STATISTICAL;
+                case PROP_SECURE_FACETS_VALUE_SECURE:
+                default:
+                    return MODE.SECURE;
+            }
+        }
+
+        static int getStatisticalFacetSampleSize(@NotNull final NodeState facetConfigRoot) {
+            int statisticalFacetSampleSize = Integer.getInteger(
+                    STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM,
+                    STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT);
+            int statisticalFacetSampleSizePV = getOptionalValue(facetConfigRoot,
+                    PROP_STATISTICAL_FACET_SAMPLE_SIZE,
+                    statisticalFacetSampleSize);
+
+            if (statisticalFacetSampleSizePV > 0) {
+                statisticalFacetSampleSize = statisticalFacetSampleSizePV;
+            }
+
+            if (statisticalFacetSampleSize < 0) {
+                statisticalFacetSampleSize = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+            }
+
+            return statisticalFacetSampleSize;
+        }
+    }
 }
