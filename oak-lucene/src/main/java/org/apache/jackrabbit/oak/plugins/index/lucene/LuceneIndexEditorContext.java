@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
@@ -42,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_REFRESH_DEFN;
 
 public class LuceneIndexEditorContext implements FacetsConfigProvider{
@@ -249,22 +252,60 @@ public class LuceneIndexEditorContext implements FacetsConfigProvider{
 
     private static IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
             indexingContext, boolean asyncIndexing) {
+
         NodeState defnState = definition.getBaseState();
-        if (asyncIndexing && !IndexDefinition.isDisableStoredIndexDefinition()){
-            if (definition.getBoolean(PROP_REFRESH_DEFN)){
-                definition.removeProperty(PROP_REFRESH_DEFN);
-                NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
-                definition.setChildNode(INDEX_DEFINITION_NODE, clonedState);
-                log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
-                if (log.isDebugEnabled()){
-                    log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
+        if (asyncIndexing) {
+            // A good time to check and see if we want to inject our random
+            // seed - required due to OAK-7929 but could be useful otherwise too.
+            Long defRandom = getLongPropertyOrNull(definition.getProperty(PROP_RANDOM_SEED));
+            if (defRandom == null) {
+                long seed = UUID.randomUUID().getMostSignificantBits();
+                definition.setProperty(PROP_RANDOM_SEED, seed);
+                defRandom = seed;
+            }
+
+            if (!IndexDefinition.isDisableStoredIndexDefinition()) {
+                if (definition.getBoolean(PROP_REFRESH_DEFN)) {
+                    definition.removeProperty(PROP_REFRESH_DEFN);
+                    NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
+                    definition.setChildNode(INDEX_DEFINITION_NODE, clonedState);
+                    log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
+                    }
+                } else if (!definition.hasChildNode(INDEX_DEFINITION_NODE)) {
+                    definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+                    log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
+                            "effective post reindexing", indexingContext.getIndexPath());
+                } else {
+                    // This is neither reindex nor refresh. So, let's update cloned def with random seed
+                    // if it doesn't match what's there in main definition
+                    // Reindex would require another indexing cycle to update cloned def.
+                    // Refresh would anyway is going to do a real clone so that's ok
+                    NodeState clonedState = defnState.getChildNode(INDEX_DEFINITION_NODE);
+                    Long clonedRandom = getLongPropertyOrNull(clonedState.getProperty(PROP_RANDOM_SEED));
+
+                    if (clonedRandom == null || clonedRandom != defRandom) {
+                        definition.getChildNode(INDEX_DEFINITION_NODE).setProperty(PROP_RANDOM_SEED, defRandom);
+                    }
                 }
-            } else if (!definition.hasChildNode(INDEX_DEFINITION_NODE)){
-                definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
-                log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
-                                "effective post reindexing", indexingContext.getIndexPath());
             }
         }
         return new IndexDefinition(root, defnState,indexingContext.getIndexPath());
+    }
+
+    private static Long getLongPropertyOrNull(PropertyState propertyState) {
+        Long ret = null;
+
+        if (propertyState != null) {
+            try {
+                ret = propertyState.getValue(Type.LONG);
+            } catch (Exception e) {
+                // It's ok to ignore the exception, but let's log it to help debugging.
+                log.debug("Error occurred while reading property as long.", e);
+            }
+        }
+
+        return ret;
     }
 }
