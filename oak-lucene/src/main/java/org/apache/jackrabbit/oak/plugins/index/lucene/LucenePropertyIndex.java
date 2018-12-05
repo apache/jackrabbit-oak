@@ -407,7 +407,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                             long f = PERF_LOGGER.start();
                             if (!facetsInitialized) {
-                                facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
+                                facets = FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
                                 facetsInitialized = true;
                             }
                             PERF_LOGGER.end(f, -1, "facets retrieved");
