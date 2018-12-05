@@ -30,6 +30,11 @@ import javax.annotation.Nonnull;
 interface WriteOperationHandler {
 
     /**
+     * @return the current generation of the store.
+     */
+    int getGeneration();
+
+    /**
      * A {@code WriteOperation} encapsulates an operation on a {@link SegmentWriter}.
      * Executing it performs the actual act of persisting changes to a
      * {@link SegmentBufferWriter}.
@@ -49,12 +54,14 @@ interface WriteOperationHandler {
 
     /**
      * Execute the passed {@code writeOperation} by passing it a {@link SegmentBufferWriter}.
+     * @param generation       the generation the changes should persisted with.
      * @param writeOperation  {@link WriteOperation} to execute
      * @return                {@code RecordId} that resulted from persisting the changes.
      * @throws IOException
      */
     @Nonnull
-    RecordId execute(@Nonnull WriteOperation writeOperation) throws IOException;
+    RecordId execute(int generation, @Nonnull WriteOperation writeOperation)
+    throws IOException;
 
     /**
      * Flush any pending changes on any {@link SegmentBufferWriter} managed by this instance.
