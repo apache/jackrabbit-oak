@@ -695,7 +695,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private final boolean isDefaultPaths;
 
         private DefaultReadPolicy(Set<String> readPaths) {
-            this.readPaths = readPaths.toArray(new String[readPaths.size()]);
+            this.readPaths = readPaths.toArray(new String[0]);
             altReadPaths = new String[readPaths.size()];
             int i = 0;
             for (String p : this.readPaths) {

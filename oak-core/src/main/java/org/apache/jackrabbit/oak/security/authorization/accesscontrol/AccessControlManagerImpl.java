@@ -142,7 +142,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (readPaths.contains(oakPath)) {
             policies.add(ReadPolicy.INSTANCE);
         }
-        return policies.toArray(new AccessControlPolicy[policies.size()]);
+        return policies.toArray(new AccessControlPolicy[0]);
     }
 
     @NotNull
@@ -173,7 +173,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (readPaths.contains(oakPath)) {
             effective.add(ReadPolicy.INSTANCE);
         }
-        return effective.toArray(new AccessControlPolicy[effective.size()]);
+        return effective.toArray(new AccessControlPolicy[0]);
     }
 
     @NotNull
@@ -431,7 +431,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 paths.add(path);
             }
         }
-        return effective.toArray(new AccessControlPolicy[effective.size()]);
+        return effective.toArray(new AccessControlPolicy[0]);
     }
 
     //--------------------------------------------------------< PolicyOwner >---
@@ -763,7 +763,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                     log.warn("Unable to get privilege with name : " + name, e);
                 }
             }
-            return privileges.toArray(new Privilege[privileges.size()]);
+            return privileges.toArray(new Privilege[0]);
         }
     }
 

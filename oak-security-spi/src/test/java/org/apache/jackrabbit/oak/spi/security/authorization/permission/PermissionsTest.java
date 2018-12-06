@@ -350,7 +350,7 @@ public class PermissionsTest {
         TreeLocation tl = TreeLocation.create(existingTree);
         long permissions = Permissions.NODE_TYPE_MANAGEMENT|Permissions.LOCK_MANAGEMENT|Permissions.VERSION_MANAGEMENT;
         Set<String> names = Permissions.getNames(permissions);
-        String jcrActions = Text.implode(names.toArray(new String[names.size()]), ",");
+        String jcrActions = Text.implode(names.toArray(new String[0]), ",");
         assertEquals(permissions, Permissions.getPermissions(jcrActions, tl, false));
     }
 

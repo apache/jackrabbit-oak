@@ -125,7 +125,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 }
                 oakPath = (PathUtils.denotesRoot(oakPath)) ? null : PathUtils.getAncestorPath(oakPath, 1);
             }
-            return effective.toArray(new AccessControlPolicy[effective.size()]);
+            return effective.toArray(new AccessControlPolicy[0]);
         } else {
             return new AccessControlPolicy[0];
         }

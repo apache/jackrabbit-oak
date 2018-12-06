@@ -302,7 +302,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
                     s.add(c);
                 }
             }
-            delegatees = (s.isEmpty()) ? null : s.toArray(new Context[s.size()]);
+            delegatees = (s.isEmpty()) ? null : s.toArray(new Context[0]);
         }
 
         private void add(@NotNull SecurityConfiguration configuration) {

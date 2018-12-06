@@ -103,7 +103,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         if (property != null) {
             if (property.isArray()) {
                 List<Value> vs = valueFactory.createValues(property);
-                values = vs.toArray(new Value[vs.size()]);
+                values = vs.toArray(new Value[0]);
             } else {
                 values = new Value[]{valueFactory.createValue(property)};
             }

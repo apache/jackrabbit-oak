@@ -217,7 +217,7 @@ public class DelegateeTest extends AbstractJmxTest {
         for (String id : TEST_IDS) {
                 externalIds.add(new ExternalIdentityRef(id, idp.getName()).getString());
         }
-        String[] result = delegatee.syncExternalUsers(externalIds.toArray(new String[externalIds.size()]));
+        String[] result = delegatee.syncExternalUsers(externalIds.toArray(new String[0]));
         assertResultMessages(result, ImmutableMap.of(
                 TestIdentityProvider.ID_TEST_USER, "ERR",
                 TestIdentityProvider.ID_SECOND_USER, "ERR",

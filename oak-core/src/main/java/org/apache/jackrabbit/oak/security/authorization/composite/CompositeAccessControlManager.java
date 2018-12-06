@@ -68,7 +68,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             privs.add(acMgr.getSupportedPrivileges(absPath));
         }
         Set<Privilege> s = privs.build();
-        return s.toArray(new Privilege[s.size()]);
+        return s.toArray(new Privilege[0]);
     }
 
     @Override
@@ -78,7 +78,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             policies.add(acMgr.getPolicies(absPath));
         }
         List<AccessControlPolicy> l = policies.build();
-        return l.toArray(new AccessControlPolicy[l.size()]);
+        return l.toArray(new AccessControlPolicy[0]);
     }
 
     @Override
@@ -88,7 +88,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             privs.add(acMgr.getEffectivePolicies(absPath));
         }
         List<AccessControlPolicy> l = privs.build();
-        return l.toArray(new AccessControlPolicy[l.size()]);
+        return l.toArray(new AccessControlPolicy[0]);
     }
 
     @Override
@@ -99,7 +99,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 l.add(acMgr.getApplicablePolicies(absPath));
             }
         }
-        return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[l.size()])));
+        return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[0])));
     }
 
     @Override
@@ -134,7 +134,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             }
         }
         List<JackrabbitAccessControlPolicy> l = policies.build();
-        return l.toArray(new JackrabbitAccessControlPolicy[l.size()]);
+        return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
     @Override
@@ -146,7 +146,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             }
         }
         List<JackrabbitAccessControlPolicy> l = privs.build();
-        return l.toArray(new JackrabbitAccessControlPolicy[l.size()]);
+        return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
     @Override
@@ -158,6 +158,6 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
             }
         }
         List<AccessControlPolicy> l = privs.build();
-        return l.toArray(new AccessControlPolicy[l.size()]);
+        return l.toArray(new AccessControlPolicy[0]);
     }
 }

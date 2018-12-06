@@ -28,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
 
 final class AuthorizationContext implements Context, AccessControlConstants, PermissionConstants {
 
-    private static final String[] NODE_NAMES = POLICY_NODE_NAMES.toArray(new String[POLICY_NODE_NAMES.size()]);
-    private static final String[] PROPERTY_NAMES = ACE_PROPERTY_NAMES.toArray(new String[ACE_PROPERTY_NAMES.size()]);
+    private static final String[] NODE_NAMES = POLICY_NODE_NAMES.toArray(new String[0]);
+    private static final String[] PROPERTY_NAMES = ACE_PROPERTY_NAMES.toArray(new String[0]);
     private static final String[] NT_NAMES = Iterables.toArray(Iterables.concat(AC_NODETYPE_NAMES, PERMISSION_NODETYPE_NAMES), String.class);
 
     private static final Context INSTANCE = new AuthorizationContext();

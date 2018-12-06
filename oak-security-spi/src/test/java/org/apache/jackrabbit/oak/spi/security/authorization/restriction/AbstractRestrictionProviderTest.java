@@ -222,7 +222,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         assertEquals(Type.NAMES, ps.getType());
 
         List<Value> vs = valueFactory.createValues(ps);
-        assertArrayEquals(nameValues, vs.toArray(new Value[vs.size()]));
+        assertArrayEquals(nameValues, vs.toArray(new Value[0]));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         assertEquals(Type.NAMES, ps.getType());
 
         List<Value> vs = valueFactory.createValues(ps);
-        assertArrayEquals(nameValues, vs.toArray(new Value[vs.size()]));
+        assertArrayEquals(nameValues, vs.toArray(new Value[0]));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         assertEquals(Type.NAMES, r.getProperty().getType());
 
         List<Value> vs = valueFactory.createValues(r.getProperty());
-        assertArrayEquals(new Value[] {nameValue}, vs.toArray(new Value[vs.size()]));
+        assertArrayEquals(new Value[] {nameValue}, vs.toArray(new Value[0]));
     }
 
     @Test
