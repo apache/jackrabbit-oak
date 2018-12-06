@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -119,7 +120,7 @@ public class ClearMembershipActionTest {
         }
 
         @Override
-        public Set<String> addMembers(String... strings) throws RepositoryException {
+        public Set<String> addMembers(@NotNull String... strings) throws RepositoryException {
             throw new UnsupportedOperationException();
         }
 
@@ -129,7 +130,7 @@ public class ClearMembershipActionTest {
         }
 
         @Override
-        public Set<String> removeMembers(String... strings) throws RepositoryException {
+        public Set<String> removeMembers(@NotNull String... strings) throws RepositoryException {
             throw new UnsupportedOperationException();
         }
 

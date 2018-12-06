@@ -289,7 +289,6 @@ public class DefaultSyncConfig {
          * @return {@code true} if dynamic group membership for external
          * user identities is turn on; {@code false} otherwise.
          */
-        @NotNull
         public boolean getDynamicMembership() {
             return dynamicMembership;
         }

@@ -253,8 +253,9 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
 
         //------------------------------------------------< RestrictionProvider >---
 
+        @NotNull
         @Override
-        public RestrictionPattern getPattern(String oakPath, Tree tree) {
+        public RestrictionPattern getPattern(String oakPath, @NotNull Tree tree) {
             if (oakPath != null) {
                 PropertyState property = tree.getProperty(RESTRICTION_NAME);
                 if (property != null) {
