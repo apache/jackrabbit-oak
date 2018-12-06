@@ -310,7 +310,6 @@ public class UserQueryManager {
         }
     }
 
-    @Nullable
     private static boolean isReserved(@NotNull String propName) {
         return UserConstants.GROUP_PROPERTY_NAMES.contains(propName) || UserConstants.USER_PROPERTY_NAMES.contains(propName);
     }

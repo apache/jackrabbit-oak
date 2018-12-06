@@ -291,13 +291,13 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
     }
 
     @Override
-    public long supportedPermissions(TreeLocation location, long permissions) {
+    public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
         return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
                 .supportedPermissions(location, permissions));
     }
 
     @Override
-    public long supportedPermissions(TreePermission treePermission, PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, @Nullable PropertyState property, long permissions) {
         return supportedPermissions((aggregatedPermissionProvider) -> aggregatedPermissionProvider
                 .supportedPermissions(treePermission, property, permissions));
     }

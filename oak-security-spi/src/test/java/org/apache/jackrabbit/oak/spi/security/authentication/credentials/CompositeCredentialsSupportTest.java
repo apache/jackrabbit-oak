@@ -25,6 +25,7 @@ import javax.jcr.SimpleCredentials;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -149,13 +150,14 @@ public class CompositeCredentialsSupportTest {
 
         private final Map<String, Object> attributes = new HashMap<String, Object>();
 
+        @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
             return ImmutableSet.of(TestCredentials.class);
         }
 
         @Override
-        public String getUserId(Credentials credentials) {
+        public String getUserId(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
                 return "Test1CredentialsSupport";
             } else {
@@ -163,8 +165,9 @@ public class CompositeCredentialsSupportTest {
             }
         }
 
+        @NotNull
         @Override
-        public Map<String, ?> getAttributes(Credentials credentials) {
+        public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
@@ -173,7 +176,7 @@ public class CompositeCredentialsSupportTest {
         }
 
         @Override
-        public boolean setAttributes(Credentials credentials, Map<String, ?> attributes) {
+        public boolean setAttributes(@NotNull Credentials credentials, @NotNull Map<String, ?> attributes) {
             if (credentials instanceof TestCredentials) {
                 this.attributes.putAll(attributes);
                 return true;
