@@ -102,7 +102,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     private ValueFactory vf = new ValueFactoryImpl(Mockito.mock(Root.class), NamePathMapper.DEFAULT);
 
-    private Tree getAceTree(Restriction... restrictions) throws Exception {
+    private Tree getAceTree(Restriction... restrictions) {
         Tree restrictionsTree = Mockito.mock(Tree.class);;
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
         when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
@@ -225,7 +225,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     }
 
     @Test
-    public void testReadRestrictions() throws Exception {
+    public void testReadRestrictions() {
         Tree aceTree = getAceTree(NT_PREFIXES_RESTRICTION, MANDATORY_BOOLEAN_RESTRICTION, UNKNOWN_RESTRICTION);
 
         Set<Restriction> restrictions = provider.readRestrictions("/test", aceTree);
@@ -306,13 +306,13 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     }
 
     @Test
-    public void testGetRestrictionPatternEmptyComposite() throws Exception {
+    public void testGetRestrictionPatternEmptyComposite() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance().getPattern("/test", ImmutableSet.of(GLOB_RESTRICTION)));
     }
 
 
     @Test
-    public void testGetRestrictionPatternSingleEmpty() throws Exception {
+    public void testGetRestrictionPatternSingleEmpty() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(new AbstractRestrictionProvider(ImmutableMap.of()) {
             @NotNull
             @Override
@@ -329,7 +329,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     }
 
     @Test
-    public void testGetRestrictionPatternAllEmpty() throws Exception {
+    public void testGetRestrictionPatternAllEmpty() {
         assertSame(RestrictionPattern.EMPTY, CompositeRestrictionProvider.newInstance(new AbstractRestrictionProvider(ImmutableMap.of()) {
             @NotNull
             @Override

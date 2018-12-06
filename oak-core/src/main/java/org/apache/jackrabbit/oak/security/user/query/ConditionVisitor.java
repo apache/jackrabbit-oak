@@ -20,7 +20,7 @@ import javax.jcr.RepositoryException;
 
 interface ConditionVisitor {
 
-    void visit(Condition.Node node) throws RepositoryException;
+    void visit(Condition.Node node);
 
     void visit(Condition.Property condition) throws RepositoryException;
 

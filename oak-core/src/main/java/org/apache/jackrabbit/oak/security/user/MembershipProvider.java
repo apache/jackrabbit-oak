@@ -340,7 +340,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the member was added
      * @throws RepositoryException if an error occurs
      */
-    boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) throws RepositoryException {
+    boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) {
         return writer.addMember(groupTree, getContentID(newMemberTree));
     }
 
@@ -351,7 +351,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param memberIds Map of 'contentId':'memberId' of all members to be added.
      * @return the set of member IDs that was not successfully processed.
      */
-    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         return writer.addMembers(groupTree, memberIds);
     }
 

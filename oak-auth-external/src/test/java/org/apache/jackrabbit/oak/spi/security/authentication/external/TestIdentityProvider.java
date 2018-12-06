@@ -148,7 +148,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     @NotNull
     @Override
-    public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
+    public Iterator<ExternalGroup> listGroups() {
         return externalGroups.values().iterator();
     }
 
@@ -249,7 +249,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         @Override
-        public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
+        public Iterable<ExternalIdentityRef> getDeclaredMembers() {
             return null;
         }
     }

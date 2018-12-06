@@ -163,7 +163,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
     }
 
     @Test
-    public void testReadVersionContentNoAccess() throws Exception {
+    public void testReadVersionContentNoAccess() {
         IdentifierManager idMgr = new IdentifierManager(testRoot);
 
         for (String path : noReadAccess) {

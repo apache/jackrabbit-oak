@@ -144,7 +144,7 @@ public class PropInfoTest {
     }
 
     @Test
-    public void testIsUnknownMultipleEmpty() throws Exception {
+    public void testIsUnknownMultipleEmpty() {
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, ImmutableList.of());
         assertFalse(propInfo.isUnknownMultiple());
     }

@@ -186,7 +186,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     @Override
-    public boolean logout() throws LoginException {
+    public boolean logout() {
         boolean success = false;
         if (!subject.getPrincipals().isEmpty() && !subject.getPublicCredentials(Credentials.class).isEmpty()) {
             // clear subject if not readonly

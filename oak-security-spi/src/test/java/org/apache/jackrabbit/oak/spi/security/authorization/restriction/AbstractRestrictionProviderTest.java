@@ -90,7 +90,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         };
     }
 
-    private Tree getAceTree(Restriction... restrictions) throws Exception {
+    private Tree getAceTree(Restriction... restrictions) {
         Tree restrictionsTree = Mockito.mock(Tree.class);;
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
         when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
@@ -111,7 +111,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
-    public void testGetSupportedRestrictions() throws Exception {
+    public void testGetSupportedRestrictions() {
         Set<RestrictionDefinition> defs = restrictionProvider.getSupportedRestrictions(testPath);
         assertNotNull(defs);
         assertEquals(supported.size(), defs.size());
@@ -121,7 +121,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
-    public void testGetSupportedRestrictionsForUnsupportedPath() throws Exception {
+    public void testGetSupportedRestrictionsForUnsupportedPath() {
         Set<RestrictionDefinition> defs = restrictionProvider.getSupportedRestrictions(unsupportedPath);
         assertNotNull(defs);
         assertTrue(defs.isEmpty());
@@ -285,7 +285,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
-    public void testReadRestrictionsForUnsupportedPath() throws Exception {
+    public void testReadRestrictionsForUnsupportedPath() {
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(unsupportedPath, getAceTree());
         assertTrue(restrictions.isEmpty());
     }

@@ -209,7 +209,7 @@ public class ConfigurationParametersTest {
     }
 
     @Test
-    public void testCollectionAsArray() throws Exception{
+    public void testCollectionAsArray() {
         String[] testArray = {"t"};
         ConfigurationParameters options = ConfigurationParameters.of("test", Arrays.asList(testArray));
         assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));

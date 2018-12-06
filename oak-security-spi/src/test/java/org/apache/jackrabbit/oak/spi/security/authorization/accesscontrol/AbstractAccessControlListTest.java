@@ -126,7 +126,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetNamePathMapper() throws Exception {
+    public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), createEmptyACL().getNamePathMapper());
         assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<JackrabbitAccessControlEntry>of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
@@ -185,7 +185,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testEmptyAcl() throws RepositoryException {
+    public void testEmptyAcl() {
         AbstractAccessControlList acl = createEmptyACL();
 
         assertNotNull(acl.getAccessControlEntries());
@@ -224,7 +224,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionNames() throws RepositoryException {
+    public void testGetRestrictionNames() {
         AbstractAccessControlList acl = createEmptyACL();
 
         String[] restrNames = acl.getRestrictionNames();
@@ -237,7 +237,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionType() throws RepositoryException {
+    public void testGetRestrictionType() {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
             int reqType = acl.getRestrictionType(getNamePathMapper().getJcrName(def.getName()));
@@ -248,7 +248,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionTypeForUnknownName() throws RepositoryException {
+    public void testGetRestrictionTypeForUnknownName() {
         AbstractAccessControlList acl = createEmptyACL();
         // for backwards compatibility getRestrictionType(String) must return
         // UNDEFINED for a unknown restriction name:
@@ -256,7 +256,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testIsMultiValueRestriction() throws RepositoryException {
+    public void testIsMultiValueRestriction() {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
             boolean isMv = acl.isMultiValueRestriction(getNamePathMapper().getJcrName(def.getName()));
@@ -266,7 +266,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testIsMultiValueRestrictionForUnknownName() throws RepositoryException {
+    public void testIsMultiValueRestrictionForUnknownName() {
         assertFalse(createEmptyACL().isMultiValueRestriction("unknownRestrictionName"));
     }
 }

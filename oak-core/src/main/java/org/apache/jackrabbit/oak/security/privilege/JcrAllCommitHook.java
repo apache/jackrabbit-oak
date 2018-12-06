@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -40,8 +39,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
     @NotNull
     @Override
     public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+            NodeState before, NodeState after, CommitInfo info) {
         NodeBuilder builder = after.builder();
         after.compareAgainstBaseState(before, new PrivilegeDiff(null, null, builder));
         return builder.getNodeState();

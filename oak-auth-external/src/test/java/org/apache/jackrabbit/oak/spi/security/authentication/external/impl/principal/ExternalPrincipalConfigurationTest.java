@@ -22,7 +22,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
 import com.google.common.collect.ImmutableMap;
@@ -37,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -66,7 +64,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
     }
 
-    private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) throws Exception {
+    private void assertIsEnabled(ExternalPrincipalConfiguration externalPrincipalConfiguration, boolean expected) {
         PrincipalProvider pp = externalPrincipalConfiguration.getPrincipalProvider(root, getNamePathMapper());
         assertEquals(expected, pp instanceof ExternalGroupPrincipalProvider);
     }
@@ -83,7 +81,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
-    public void testGetPrincipalProvider() throws Exception {
+    public void testGetPrincipalProvider() {
         PrincipalProvider pp = externalPrincipalConfiguration.getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertNotNull(pp);
         assertFalse(pp instanceof ExternalGroupPrincipalProvider);
@@ -153,7 +151,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
-    public void testGetValidatorsOmitIdProtection() throws Exception {
+    public void testGetValidatorsOmitIdProtection() {
         externalPrincipalConfiguration.setParameters(ConfigurationParameters.of(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, false));
         ContentSession cs = root.getContentSession();
 
@@ -187,7 +185,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
-    public void testAddingSyncHandler() throws Exception {
+    public void testAddingSyncHandler() {
         Map<String, Object> enableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
         Map<String, Object> disableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
 
@@ -206,7 +204,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
-    public void testAddingCustomSyncHandler() throws Exception {
+    public void testAddingCustomSyncHandler() {
         Map<String, Object> enableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
 
         SyncHandler sh = new TestSyncHandler();
@@ -219,7 +217,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Ignore("TODO: mock doesn't reflect property-changes on the registration.")
     @Test
-    public void testModifySyncHandler() throws Exception {
+    public void testModifySyncHandler() {
         Dictionary<String, Object> enableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         Dictionary<String, Object> disableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
@@ -237,7 +235,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
-    public void testRemoveSyncHandler() throws Exception {
+    public void testRemoveSyncHandler() {
         Dictionary<String, Object> enableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         Dictionary<String, Object> disableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
@@ -270,12 +268,12 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
         @NotNull
         @Override
-        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) throws SyncException {
+        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) {
             return new DefaultSyncContext(new DefaultSyncConfig(), idp, userManager, valueFactory);
         }
 
         @Override
-        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) throws RepositoryException {
+        public SyncedIdentity findIdentity(@NotNull UserManager userManager, @NotNull String id) {
             return null;
         }
 
@@ -286,7 +284,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
         @NotNull
         @Override
-        public Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) throws RepositoryException {
+        public Iterator<SyncedIdentity> listIdentities(@NotNull UserManager userManager) {
             return Collections.emptyIterator();
         }
     }

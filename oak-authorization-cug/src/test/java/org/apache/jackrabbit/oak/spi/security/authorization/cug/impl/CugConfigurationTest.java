@@ -199,7 +199,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     }
 
     @Test
-    public void testActivate() throws Exception {
+    public void testActivate() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.activate(ImmutableMap.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
@@ -209,7 +209,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     }
 
     @Test
-    public void testModified() throws Exception {
+    public void testModified() {
         CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
         cugConfiguration.modified(ImmutableMap.of(
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, new String[]{"/changed"}
@@ -217,7 +217,7 @@ public class CugConfigurationTest extends AbstractCugTest {
         assertSupportedPaths(cugConfiguration, "/changed");
     }
 
-    private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) throws Exception {
+    private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) {
         Set<String> expected = ImmutableSet.copyOf(paths);
         assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
     }

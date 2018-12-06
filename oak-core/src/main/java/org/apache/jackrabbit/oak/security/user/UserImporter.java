@@ -411,7 +411,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) throws RepositoryException {
+    public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) {
         checkState(currentMembership != null);
 
         String ntName = childInfo.getPrimaryTypeName();
@@ -435,12 +435,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @Override
-    public void endChildInfo() throws RepositoryException {
+    public void endChildInfo() {
         // nothing to do
     }
 
     @Override
-    public void end(@NotNull Tree protectedParent) throws RepositoryException {
+    public void end(@NotNull Tree protectedParent) {
         currentMembership = null;
     }
 
@@ -454,7 +454,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     }
 
     @NotNull
-    private PrincipalManager getPrincipalManager() throws RepositoryException {
+    private PrincipalManager getPrincipalManager() {
         return userManager.getPrincipalManager();
     }
 

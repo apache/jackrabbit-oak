@@ -54,7 +54,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
     //---------------------------------------------------< PrivilegeManager >---
     @Override
-    public Privilege[] getRegisteredPrivileges() throws RepositoryException {
+    public Privilege[] getRegisteredPrivileges() {
         Set<Privilege> privileges = new HashSet();
         for (PrivilegeDefinition def : getPrivilegeDefinitions()) {
             privileges.add(getPrivilege(def));

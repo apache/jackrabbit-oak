@@ -102,7 +102,7 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase 
      * Prepares the OSGi part with required services injected and configures
      * the factory in JAAS options which then delegates to ExternalLoginModuleFactory
      */
-    private void setUpJaasFactoryWithInjection() throws Exception{
+    private void setUpJaasFactoryWithInjection() {
         context.registerService(Repository.class, EasyMock.createMock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));

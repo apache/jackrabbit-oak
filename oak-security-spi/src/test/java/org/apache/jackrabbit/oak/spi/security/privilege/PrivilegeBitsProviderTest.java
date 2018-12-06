@@ -55,7 +55,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
     private PrivilegeBitsProvider bitsProvider;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         privTree = Mockito.mock(Tree.class);
 
         root = Mockito.mock(Root.class);

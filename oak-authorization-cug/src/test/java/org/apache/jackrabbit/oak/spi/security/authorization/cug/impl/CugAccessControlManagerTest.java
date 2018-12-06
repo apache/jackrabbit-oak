@@ -399,21 +399,21 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     }
 
     @Test
-    public void testGetApplicablePoliciesByPrincipal() throws Exception {
+    public void testGetApplicablePoliciesByPrincipal() {
         AccessControlPolicy[] applicable = cugAccessControlManager.getApplicablePolicies(EveryonePrincipal.getInstance());
         assertNotNull(applicable);
         assertEquals(0, applicable.length);
     }
 
     @Test
-    public void testGetPoliciesByPrincipal() throws Exception {
+    public void testGetPoliciesByPrincipal() {
         AccessControlPolicy[] applicable = cugAccessControlManager.getPolicies(EveryonePrincipal.getInstance());
         assertNotNull(applicable);
         assertEquals(0, applicable.length);
     }
 
     @Test
-    public void testGetEffectivePoliciesByPrincipal() throws Exception {
+    public void testGetEffectivePoliciesByPrincipal() {
         AccessControlPolicy[] applicable = cugAccessControlManager.getEffectivePolicies(ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
         assertNotNull(applicable);
         assertEquals(0, applicable.length);
