@@ -401,7 +401,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     }
 
     @Test
-    public void testSyncExternalNonExisting() throws Exception {
+    public void testSyncExternalNonExisting() {
         ExternalIdentityRef ref = new ExternalIdentityRef("nonExisting", idp.getName());
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
@@ -412,7 +412,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4346">OAK-4346</a>
      */
     @Test
-    public void testSyncExternalLocal() throws Exception {
+    public void testSyncExternalLocal() {
         ExternalIdentityRef ref = new ExternalIdentityRef(UserConstants.DEFAULT_ANONYMOUS_ID, null);
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
@@ -423,7 +423,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-4346">OAK-4346</a>
      */
     @Test
-    public void testSyncExternalForeign() throws Exception {
+    public void testSyncExternalForeign() {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, "anotherIDP");
 
         String[] result = syncMBean.syncExternalUsers(new String[]{ref.getString()});
@@ -434,14 +434,14 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     }
 
     @Test
-    public void testSyncExternalUserException() throws Exception {
+    public void testSyncExternalUserException() {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_EXCEPTION, idp.getName());
         String[] result = syncMBean.syncExternalUsers(new String[] {ref.getString()});
         assertResultMessages(result, TestIdentityProvider.ID_EXCEPTION, "ERR");
     }
 
     @Test
-    public void testSyncExternalUserThrowingHandler() throws Exception {
+    public void testSyncExternalUserThrowingHandler() {
         ExternalIdentityRef ref = new ExternalIdentityRef(TestIdentityProvider.ID_TEST_USER, idp.getName());
         String[] result = createThrowingSyncMBean(false).syncExternalUsers(new String[]{ref.getString()});
         assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "ERR");
@@ -451,7 +451,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
      * test users have never been synced before => result must be empty
      */
     @Test
-    public void testSyncAllUsersBefore() throws Exception {
+    public void testSyncAllUsersBefore() {
         String[] result = syncMBean.syncAllUsers(false);
         assertEquals(0, result.length);
     }
@@ -570,7 +570,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testSyncAllUsersThrowingHandler() throws Exception {
+    public void testSyncAllUsersThrowingHandler() {
         String[] result = createThrowingSyncMBean(false).syncAllUsers(false);
     }
 
@@ -771,7 +771,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         @NotNull
         @Override
-        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) throws SyncException {
+        public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager, @NotNull ValueFactory valueFactory) {
             return new DefaultSyncContext(syncConfig, idp, userManager, valueFactory) {
                 @NotNull
                 @Override

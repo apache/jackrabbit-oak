@@ -133,19 +133,19 @@ public class PasswordUtilTest {
     }
 
     @Test
-    public void testIsPlainTextPassword() throws Exception {
+    public void testIsPlainTextPassword() {
         for (String pw : plainPasswords) {
             assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
         }
     }
 
     @Test
-    public void testIsPlainTextForNull() throws Exception {
+    public void testIsPlainTextForNull() {
         assertTrue(PasswordUtil.isPlainTextPassword(null));
     }
 
     @Test
-    public void testIsPlainTextForPwHash() throws Exception {
+    public void testIsPlainTextForPwHash() {
         for (String pwHash : hashedPasswords.values()) {
             assertFalse(pwHash + " should not be plain text.", PasswordUtil.isPlainTextPassword(pwHash));
         }
@@ -173,7 +173,7 @@ public class PasswordUtilTest {
     }
 
     @Test
-    public void testIsNotSame() throws Exception {
+    public void testIsNotSame() {
         String previous = null;
         for (String pw : hashedPasswords.keySet()) {
             String pwHash = hashedPasswords.get(pw);

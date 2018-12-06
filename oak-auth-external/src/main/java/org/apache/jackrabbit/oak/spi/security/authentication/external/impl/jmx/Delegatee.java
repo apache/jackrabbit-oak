@@ -81,7 +81,7 @@ final class Delegatee {
     private SyncContext context;
 
     private Delegatee(@NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp,
-                      @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider, int batchSize) throws SyncException {
+                      @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider, int batchSize) {
         this.handler = handler;
         this.idp = idp;
 
@@ -117,12 +117,7 @@ final class Delegatee {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
 
-        try {
-            return new Delegatee(handler, idp, systemSession, securityProvider, batchSize);
-        } catch (SyncException e) {
-            close(systemSession);
-            throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
-        }
+        return new Delegatee(handler, idp, systemSession, securityProvider, batchSize);
     }
 
     private static void close(@NotNull ContentSession systemSession) {

@@ -161,22 +161,22 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testGetRoot() throws Exception {
+    public void testGetRoot() {
         assertSame(root, createAccessControlManager(root, getNamePathMapper()).getRoot());
     }
 
     @Test
-    public void testGetLatestRoot() throws Exception {
+    public void testGetLatestRoot() {
         assertNotSame(root, createAccessControlManager(root, getNamePathMapper()).getLatestRoot());
     }
 
     @Test
-    public void testGetNamePathMapper() throws Exception {
+    public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), createAccessControlManager(root, getNamePathMapper()).getNamePathMapper());
     }
 
     @Test
-    public void testGetPrivilegeManager() throws Exception {
+    public void testGetPrivilegeManager() {
         assertSame(privilegeManager, acMgr.getPrivilegeManager());
     }
 
@@ -257,7 +257,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testGetSupportedPrivilegesInvalidPath() throws Exception {
+    public void testGetSupportedPrivilegesInvalidPath() {
         for (String path : getInvalidPaths()) {
             try {
                 acMgr.getSupportedPrivileges(path);
@@ -315,7 +315,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testHasPrivilegesInvalidPaths() throws Exception {
+    public void testHasPrivilegesInvalidPaths() {
         for (String path : getInvalidPaths()) {
             try {
                 acMgr.hasPrivileges(path, testPrivileges);
@@ -337,7 +337,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testHasPrivilegesInvalidPathsEveryoneSet() throws Exception {
+    public void testHasPrivilegesInvalidPathsEveryoneSet() {
         for (String path : getInvalidPaths()) {
             try {
                 acMgr.hasPrivileges(path, ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()), testPrivileges);
@@ -375,7 +375,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
-    public void testGetPrivilegesInvalidPaths() throws Exception {
+    public void testGetPrivilegesInvalidPaths() {
         for (String path : getInvalidPaths()) {
             try {
                 acMgr.getPrivileges(path);

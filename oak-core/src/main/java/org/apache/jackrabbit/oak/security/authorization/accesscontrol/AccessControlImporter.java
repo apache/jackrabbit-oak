@@ -114,7 +114,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void processReferences() throws RepositoryException {
+    public void processReferences() {
         // nothing to do.
     }
 

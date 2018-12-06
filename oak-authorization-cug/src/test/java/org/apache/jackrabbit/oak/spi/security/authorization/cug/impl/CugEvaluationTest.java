@@ -104,7 +104,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testRead() throws Exception {
+    public void testRead() {
         List<String> noAccess = ImmutableList.of(
                 "/", UNSUPPORTED_PATH, /* no access */
                 "/content/a", "/content/a/b", "/content/aa/bb", /* granted by ace, denied by cug */
@@ -121,7 +121,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testReadAcl() throws Exception {
+    public void testReadAcl() {
         assertFalse(testRoot.getTree("/content/rep:policy").exists());
     }
 
@@ -138,7 +138,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testReadCug() throws Exception {
+    public void testReadCug() {
         List<String> noAccess = ImmutableList.of(
                 "/content/a/rep:cugPolicy", "/content/aa/bb/rep:cugPolicy", "/content2/rep:cugPolicy"
         );
@@ -233,7 +233,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testIsGrantedTestGroup() throws Exception {
+    public void testIsGrantedTestGroup() {
         // testGroup
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
 
@@ -247,7 +247,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testIsGrantedEveryone() throws Exception {
+    public void testIsGrantedEveryone() {
         // everyone
         PermissionProvider pp = createPermissionProvider(EveryonePrincipal.getInstance());
 
@@ -263,7 +263,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testIsGrantedTestGroupEveryone() throws Exception {
+    public void testIsGrantedTestGroupEveryone() {
         // testGroup + everyone
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal, EveryonePrincipal.getInstance());
 
@@ -291,7 +291,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testHasPrivilegesTestGroup() throws Exception {
+    public void testHasPrivilegesTestGroup() {
         // testGroup
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
 
@@ -305,7 +305,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testHasPrivilegesEveryone() throws Exception {
+    public void testHasPrivilegesEveryone() {
         // everyone
         PermissionProvider pp = createPermissionProvider(EveryonePrincipal.getInstance());
 
@@ -321,7 +321,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testHasPrivilegesTestGroupEveryone() throws Exception {
+    public void testHasPrivilegesTestGroupEveryone() {
         // testGroup + everyone
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal, EveryonePrincipal.getInstance());
 
@@ -349,7 +349,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testHasAllPrivileges() throws Exception {
+    public void testHasAllPrivileges() {
         // testGroup
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
 
@@ -376,7 +376,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testHasAllPrivilegesAdmin() throws Exception {
+    public void testHasAllPrivilegesAdmin() {
         PermissionProvider pp = createPermissionProvider(adminSession);
 
         assertTrue(pp.hasPrivileges(content, PrivilegeConstants.JCR_ALL));
@@ -385,7 +385,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testGetPrivilegesTestGroup() throws Exception {
+    public void testGetPrivilegesTestGroup() {
         Set<String> w_rac = ImmutableSet.of(PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
@@ -399,7 +399,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testGetPrivilegesEveryone() throws Exception {
+    public void testGetPrivilegesEveryone() {
         // everyone
         PermissionProvider pp = createPermissionProvider(EveryonePrincipal.getInstance());
 
@@ -410,7 +410,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     @Test
-    public void testGetPrivilegesTestGroupEveryone() throws Exception {
+    public void testGetPrivilegesTestGroupEveryone() {
         Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // testGroup + everyone

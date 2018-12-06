@@ -99,7 +99,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public Impersonation getImpersonation() throws RepositoryException {
+    public Impersonation getImpersonation() {
         return new ImpersonationImpl(this);
     }
 
@@ -146,12 +146,12 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public boolean isDisabled() throws RepositoryException {
+    public boolean isDisabled() {
         return getTree().hasProperty(REP_DISABLED);
     }
 
     @Override
-    public String getDisabledReason() throws RepositoryException {
+    public String getDisabledReason() {
         PropertyState disabled = getTree().getProperty(REP_DISABLED);
         if (disabled != null) {
             return disabled.getValue(STRING);

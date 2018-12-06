@@ -61,7 +61,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was added
      * @throws RepositoryException if an error occurs
      */
-    boolean addMember(Tree groupTree, String memberContentId) throws RepositoryException {
+    boolean addMember(Tree groupTree, String memberContentId) {
         Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
         m.put(memberContentId, "-");
         return addMembers(groupTree, m).isEmpty();
@@ -75,7 +75,7 @@ public class MembershipWriter {
      * @return the set of member IDs that was not successfully processed.
      * @throws RepositoryException if an error occurs
      */
-    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(

@@ -40,7 +40,7 @@ interface Condition {
             return pattern;
         }
 
-        public void accept(ConditionVisitor visitor) throws RepositoryException {
+        public void accept(ConditionVisitor visitor) {
             visitor.visit(this);
         }
     }

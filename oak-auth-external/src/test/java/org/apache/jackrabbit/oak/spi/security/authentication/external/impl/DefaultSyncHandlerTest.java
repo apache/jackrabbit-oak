@@ -98,7 +98,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     }
 
     @Test
-    public void testCreateContext() throws Exception {
+    public void testCreateContext() {
         SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
         assertTrue(ctx instanceof DefaultSyncContext);
     }
@@ -202,7 +202,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     }
 
     @Test
-    public void testRequiresSyncMissingExternalIDRef() throws Exception {
+    public void testRequiresSyncMissingExternalIDRef() {
         assertTrue(syncHandler.requiresSync(new DefaultSyncedIdentity(USER_ID, null, false, Long.MAX_VALUE)));
     }
 

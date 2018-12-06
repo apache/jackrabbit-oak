@@ -168,7 +168,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public void autoSave(boolean enable) throws RepositoryException {
+    public void autoSave(boolean enable) {
         autosave = enable;
     }
 

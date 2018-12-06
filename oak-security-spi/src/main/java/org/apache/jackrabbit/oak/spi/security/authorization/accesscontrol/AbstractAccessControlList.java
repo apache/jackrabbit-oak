@@ -79,7 +79,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     //--------------------------------------------------< AccessControlList >---
 
     @Override
-    public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
+    public AccessControlEntry[] getAccessControlEntries() {
         List<? extends JackrabbitAccessControlEntry> entries = getEntries();
         return entries.toArray(new JackrabbitAccessControlEntry[entries.size()]);
     }
@@ -103,7 +103,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
     @NotNull
     @Override
-    public String[] getRestrictionNames() throws RepositoryException {
+    public String[] getRestrictionNames() {
         Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(getOakPath());
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
@@ -115,7 +115,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public int getRestrictionType(String restrictionName) throws RepositoryException {
+    public int getRestrictionType(String restrictionName) {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {
@@ -128,7 +128,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public boolean isMultiValueRestriction(String restrictionName) throws RepositoryException {
+    public boolean isMultiValueRestriction(String restrictionName) {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {

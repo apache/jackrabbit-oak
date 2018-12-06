@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 
 import com.google.common.collect.Iterators;
@@ -57,7 +55,7 @@ public class ClearMembershipActionTest {
     private final TestGroup gr = new TestGroup();
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         action.init(securityProvider, ConfigurationParameters.EMPTY);
     }
 
@@ -95,47 +93,47 @@ public class ClearMembershipActionTest {
         Set<Authorizable> removed = new HashSet<>();
 
         @Override
-        public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
+        public Iterator<Authorizable> getDeclaredMembers() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Iterator<Authorizable> getMembers() throws RepositoryException {
+        public Iterator<Authorizable> getMembers() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException {
+        public boolean isDeclaredMember(Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean isMember(Authorizable authorizable) throws RepositoryException {
+        public boolean isMember(Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean addMember(Authorizable authorizable) throws RepositoryException {
+        public boolean addMember(Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Set<String> addMembers(@NotNull String... strings) throws RepositoryException {
+        public Set<String> addMembers(@NotNull String... strings) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean removeMember(Authorizable authorizable) throws RepositoryException {
+        public boolean removeMember(Authorizable authorizable) {
             return removed.add(authorizable);
         }
 
         @Override
-        public Set<String> removeMembers(@NotNull String... strings) throws RepositoryException {
+        public Set<String> removeMembers(@NotNull String... strings) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String getID() throws RepositoryException {
+        public String getID() {
             throw new UnsupportedOperationException();
         }
 
@@ -145,62 +143,62 @@ public class ClearMembershipActionTest {
         }
 
         @Override
-        public Principal getPrincipal() throws RepositoryException {
+        public Principal getPrincipal() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Iterator<Group> declaredMemberOf() throws RepositoryException {
+        public Iterator<Group> declaredMemberOf() {
             return Collections.emptyIterator();
         }
 
         @Override
-        public Iterator<Group> memberOf() throws RepositoryException {
+        public Iterator<Group> memberOf() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void remove() throws RepositoryException {
+        public void remove() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Iterator<String> getPropertyNames() throws RepositoryException {
+        public Iterator<String> getPropertyNames() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Iterator<String> getPropertyNames(String s) throws RepositoryException {
+        public Iterator<String> getPropertyNames(String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean hasProperty(String s) throws RepositoryException {
+        public boolean hasProperty(String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void setProperty(String s, Value value) throws RepositoryException {
+        public void setProperty(String s, Value value) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void setProperty(String s, Value[] values) throws RepositoryException {
+        public void setProperty(String s, Value[] values) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Value[] getProperty(String s) throws RepositoryException {
+        public Value[] getProperty(String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean removeProperty(String s) throws RepositoryException {
+        public boolean removeProperty(String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public String getPath() throws UnsupportedRepositoryOperationException, RepositoryException {
+        public String getPath() {
             throw new UnsupportedOperationException();
         }
     }

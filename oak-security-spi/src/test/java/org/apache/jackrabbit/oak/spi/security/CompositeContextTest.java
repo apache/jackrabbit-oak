@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 public class CompositeContextTest extends AbstractCompositeConfigurationTest {
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         compositeConfiguration = new CompositeConfiguration("test", Mockito.mock(SecurityProvider.class)) {};
     }
 

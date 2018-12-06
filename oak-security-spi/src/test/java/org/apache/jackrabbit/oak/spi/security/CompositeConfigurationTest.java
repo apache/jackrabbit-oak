@@ -51,7 +51,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     private static final String NAME = "test";
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         compositeConfiguration = new CompositeConfiguration("test", new SecurityProvider() {
             @NotNull
             @Override

@@ -52,7 +52,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private final UserImpl user;
     private final PrincipalManager principalManager;
 
-    ImpersonationImpl(@NotNull UserImpl user) throws RepositoryException {
+    ImpersonationImpl(@NotNull UserImpl user) {
         this.user = user;
         this.principalManager = user.getUserManager().getPrincipalManager();
     }
@@ -61,7 +61,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     @NotNull
     @Override
-    public PrincipalIterator getImpersonators() throws RepositoryException {
+    public PrincipalIterator getImpersonators() {
         Set<String> impersonators = getImpersonatorNames();
         if (impersonators.isEmpty()) {
             return PrincipalIteratorAdapter.EMPTY;
@@ -123,7 +123,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     @Override
-    public boolean allows(@Nullable Subject subject) throws RepositoryException {
+    public boolean allows(@Nullable Subject subject) {
         if (subject == null) {
             return false;
         }

@@ -44,26 +44,26 @@ public class AuthorizableTypeTest {
     }
 
     @Test
-    public void testGetType() throws Exception {
+    public void testGetType() {
         assertSame(AuthorizableType.USER, AuthorizableType.getType(UserManager.SEARCH_TYPE_USER));
         assertSame(AuthorizableType.GROUP, AuthorizableType.getType(UserManager.SEARCH_TYPE_GROUP));
         assertSame(AuthorizableType.AUTHORIZABLE, AuthorizableType.getType(UserManager.SEARCH_TYPE_AUTHORIZABLE));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testGetTypeIllegalSearchType() throws Exception {
+    public void testGetTypeIllegalSearchType() {
         AuthorizableType.getType(0);
     }
 
     @Test
-    public void testIsTypeUser() throws Exception {
+    public void testIsTypeUser() {
         assertFalse(AuthorizableType.USER.isType(null));
         assertTrue(AuthorizableType.USER.isType(user));
         assertFalse(AuthorizableType.USER.isType(gr));
     }
 
     @Test
-    public void testIsTypeGroup() throws Exception {
+    public void testIsTypeGroup() {
         assertFalse(AuthorizableType.GROUP.isType(null));
         assertFalse(AuthorizableType.GROUP.isType(user));
         assertTrue(AuthorizableType.GROUP.isType(gr));
@@ -71,7 +71,7 @@ public class AuthorizableTypeTest {
     }
 
     @Test
-    public void testIsTypeAuthorizable() throws Exception {
+    public void testIsTypeAuthorizable() {
         assertFalse(AuthorizableType.AUTHORIZABLE.isType(null));
         assertTrue(AuthorizableType.AUTHORIZABLE.isType(user));
         assertTrue(AuthorizableType.AUTHORIZABLE.isType(gr));

@@ -259,7 +259,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (externalUser == null) {
             // login attempt in this login module was not successful
             clearState();
@@ -283,7 +283,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean abort() throws LoginException {
+    public boolean abort() {
         clearState();
         // do we need to remove the user again, in case we created it during login() ?
         return true;

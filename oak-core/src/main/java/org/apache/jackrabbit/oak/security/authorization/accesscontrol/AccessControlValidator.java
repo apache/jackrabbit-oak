@@ -115,7 +115,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) throws CommitFailedException {
+    public void propertyDeleted(PropertyState before) {
         // nothing to do: mandatory properties will be enforced by node type validator
     }
 
@@ -136,7 +136,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     @Override
-    public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+    public Validator childNodeDeleted(String name, NodeState before) {
         // nothing to do
         return null;
     }

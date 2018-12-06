@@ -73,7 +73,7 @@ public class ACETest extends AbstractAccessControlTest {
         return createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, restrictions);
     }
 
-    private Restriction createRestriction(String name, String value) throws Exception {
+    private Restriction createRestriction(String name, String value) {
         return new RestrictionImpl(PropertyStates.createProperty(name, value), false);
     }
 
@@ -142,7 +142,7 @@ public class ACETest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testNullPrivileges() throws Exception {
+    public void testNullPrivileges() {
         try {
             new EmptyACE(null);
             fail("Privileges must not be null");
@@ -152,7 +152,7 @@ public class ACETest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testEmptyPrivileges() throws Exception {
+    public void testEmptyPrivileges() {
         try {
             new EmptyACE(PrivilegeBits.EMPTY);
             fail("Privileges must not be empty.");

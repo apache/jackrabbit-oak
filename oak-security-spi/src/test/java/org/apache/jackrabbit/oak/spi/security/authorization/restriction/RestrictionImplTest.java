@@ -44,7 +44,7 @@ public class RestrictionImplTest {
     private RestrictionImpl restriction;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         PropertyState property = createProperty(name, value, type);
         restriction = new RestrictionImpl(property, isMandatory);
     }

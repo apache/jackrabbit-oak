@@ -69,7 +69,7 @@ public class ExternalIdentityImporterTest {
             "   <sv:property sv:name=\"rep:lastSynced\" sv:type=\"Date\"><sv:value>2016-05-03T10:03:08.061+02:00</sv:value></sv:property>" +
             "</sv:node>";
 
-    private Repository createRepo() throws Exception {
+    private Repository createRepo() {
         SecurityProvider securityProvider = TestSecurityProvider.newTestSecurityProvider(ConfigurationParameters.EMPTY,
                 new ExternalPrincipalConfiguration());
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
@@ -81,7 +81,7 @@ public class ExternalIdentityImporterTest {
         return jcr.createRepository();
     }
 
-    private static void shutdown(Repository repo) throws Exception {
+    private static void shutdown(Repository repo) {
         if (repo != null && repo instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repo).shutdown();
         }

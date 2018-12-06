@@ -80,14 +80,14 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
-    public void testLogout() throws LoginException {
+    public void testLogout() {
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
 
         assertFalse(loginModule.logout());
     }
 
     @Test
-    public void testLogoutSuccess() throws LoginException {
+    public void testLogoutSuccess() {
         Subject subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(new TestCredentials()), ImmutableSet.of());
 
         AbstractLoginModule loginModule = new TestLoginModule(TestCredentials.class);
@@ -100,7 +100,7 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
-    public void testLogoutSuccess2() throws LoginException {
+    public void testLogoutSuccess2() {
         Subject subject = new Subject(true, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(new TestCredentials()), ImmutableSet.of());
 
         AbstractLoginModule loginModule = new TestLoginModule(TestCredentials.class);

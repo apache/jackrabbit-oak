@@ -411,7 +411,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     @NotNull
-    PrincipalManager getPrincipalManager() throws RepositoryException {
+    PrincipalManager getPrincipalManager() {
         return securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
     }
 

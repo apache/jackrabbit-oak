@@ -42,7 +42,7 @@ public class PasswordValidationActionTest {
     private User user;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         user = Mockito.mock(User.class);
         pwAction.init(securityProvider, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));

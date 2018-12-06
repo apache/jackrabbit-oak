@@ -323,7 +323,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#isGranted(org.apache.jackrabbit.oak.plugins.tree.TreeLocation, long)
      */
     @Test
-    public void testIsGrantedByLocation() throws Exception {
+    public void testIsGrantedByLocation() {
         for (String p : NOT_READABLE_PATHS) {
             TreeLocation location = TreeLocation.create(root, p);
             assertFalse(cugPermProvider.isGranted(location, Permissions.READ));

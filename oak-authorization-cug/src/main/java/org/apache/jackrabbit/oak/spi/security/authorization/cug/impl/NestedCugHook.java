@@ -21,7 +21,6 @@ import java.util.Set;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -62,7 +61,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
     //-------------------------------------------------< PostValidationHook >---
     @NotNull
     @Override
-    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) {
         NodeBuilder builder = after.builder();
         after.compareAgainstBaseState(before, new Diff(before, builder));
         deletedCUGs.clear();

@@ -72,7 +72,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginModuleTestBase {
     }
 
     @Test
-    public void testAddExternalPrincipalNames() throws Exception {
+    public void testAddExternalPrincipalNames() {
         Tree userTree = root.getTree(testUserPath);
         NodeUtil userNode = new NodeUtil(userTree);
         try {
@@ -302,7 +302,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginModuleTestBase {
     }
 
     @Test
-    public void testRemoveRepExternalId() throws Exception {
+    public void testRemoveRepExternalId() {
         try {
             root.getTree(externalUserPath).removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
             root.commit();

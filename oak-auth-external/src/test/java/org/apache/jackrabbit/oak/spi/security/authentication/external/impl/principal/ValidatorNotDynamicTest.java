@@ -83,7 +83,7 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
 
     @Override
     @Test
-    public void testRemoveRepExternalId() throws Exception {
+    public void testRemoveRepExternalId() {
         try {
             root.getTree(externalUserPath).removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
             root.commit();

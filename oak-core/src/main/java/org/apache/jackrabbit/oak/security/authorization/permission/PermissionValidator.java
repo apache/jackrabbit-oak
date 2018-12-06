@@ -148,7 +148,7 @@ class PermissionValidator extends DefaultValidator {
 
 
     @Override
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         Tree childBefore = parentBefore.getChild(name);
         Tree childAfter = parentAfter.getChild(name);
         return nextValidator(childBefore, childAfter, parentPermission.getChildPermission(name, before));

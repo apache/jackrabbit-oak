@@ -57,7 +57,7 @@ public interface SyncHandler {
     @NotNull
     SyncContext createContext(@NotNull ExternalIdentityProvider idp,
                               @NotNull UserManager userManager,
-                              @NotNull ValueFactory valueFactory) throws SyncException;
+                              @NotNull ValueFactory valueFactory);
 
     /**
      * Tries to find the identity with the given authorizable id or name.

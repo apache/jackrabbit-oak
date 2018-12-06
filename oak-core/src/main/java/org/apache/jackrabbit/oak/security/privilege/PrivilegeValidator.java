@@ -59,7 +59,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     //----------------------------------------------------------< Validator >---
     @Override
-    public void propertyAdded(PropertyState after) throws CommitFailedException {
+    public void propertyAdded(PropertyState after) {
         // no-op
     }
 

@@ -50,7 +50,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     private Privilege[] testPrivileges;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
     }
 

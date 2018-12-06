@@ -37,7 +37,7 @@ public class RestrictionDefinitionImplTest {
     private RestrictionDefinitionImpl definition;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         name = "test:defName";
         definition = new RestrictionDefinitionImpl(name, Type.NAME, true);
     }

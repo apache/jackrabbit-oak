@@ -32,7 +32,7 @@ import static org.junit.Assert.assertTrue;
 public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalAuthTest {
 
     @Test
-    public void testExternalIdIndexDefinition() throws Exception {
+    public void testExternalIdIndexDefinition() {
         Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
 
@@ -41,7 +41,7 @@ public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalA
     }
 
     @Test
-    public void testPrincipalNamesIndexDefinition() throws Exception {
+    public void testPrincipalNamesIndexDefinition() {
         Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
 
