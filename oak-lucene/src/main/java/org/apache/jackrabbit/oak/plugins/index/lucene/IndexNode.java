@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.Nullable;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -83,6 +84,8 @@ class IndexNode {
 
     private final IndexDefinition definition;
 
+    private final Closer closer;
+
     private final Directory directory;
 
     private final Directory suggestDirectory;
@@ -101,12 +104,17 @@ class IndexNode {
             throws IOException {
         this.name = name;
         this.definition = definition;
+        closer = Closer.create();
         this.directory = directory;
+        closer.register(this.directory);
         this.reader = DirectoryReader.open(directory);
+        closer.register(this.reader);
         this.searcher = new IndexSearcher(reader);
         this.suggestDirectory = suggestDirectory;
         if (suggestDirectory != null) {
+            //Directory is closed by AnalyzingInfixSuggester close call
             this.lookup = SuggestHelper.getLookup(suggestDirectory, definition.getAnalyzer());
+            closer.register(this.lookup);
         } else {
             this.lookup = null;
         }
@@ -155,11 +163,7 @@ class IndexNode {
             lock.writeLock().unlock();
         }
 
-        try {
-            reader.close();
-        } finally {
-            directory.close();
-        }
+        closer.close();
     }
 
 }

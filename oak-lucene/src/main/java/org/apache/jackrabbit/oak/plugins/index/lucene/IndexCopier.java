@@ -39,6 +39,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -305,6 +306,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         private final Directory remote;
         private final Directory local;
         private final String indexPath;
+        private final AtomicBoolean closed = new AtomicBoolean();
 
         private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
         /**
@@ -510,6 +512,9 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
          */
         @Override
         public void close() throws IOException {
+            if (!closed.compareAndSet(false, true)) {
+                return;
+            }
             //Always remove old index file on close as it ensures that
             //no other IndexSearcher are opened with previous revision of Index due to
             //way IndexTracker closes IndexNode. At max there would be only two IndexNode
