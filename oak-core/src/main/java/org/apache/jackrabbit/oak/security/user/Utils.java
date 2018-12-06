@@ -81,18 +81,10 @@ final class Utils {
     }
 
     static boolean canHavePasswordExpired(@NotNull String userId, @NotNull ConfigurationParameters config) {
-        if (UserUtil.isAdmin(config, userId) && !config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false)) {
-            return false;
-        } else {
-            return true;
-        }
+        return !UserUtil.isAdmin(config, userId) || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
     }
 
     static boolean canHavePasswordExpired(@NotNull User user, @NotNull ConfigurationParameters config) {
-        if (user.isAdmin() && !config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false)) {
-            return false;
-        } else {
-            return true;
-        }
+        return !user.isAdmin() || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
     }
 }
