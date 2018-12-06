@@ -208,7 +208,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
             }
         }
 
-        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[declaredNames.size()]));
+        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[0]));
         if (!newBits.equals(aggrBits)) {
             throw new CommitFailedException(CONSTRAINT, 53, "Invalid privilege bits for aggregated privilege definition.");
         }

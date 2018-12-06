@@ -68,7 +68,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
                                 @NotNull Context acContext, @NotNull CompositionType compositionType,
                                 @NotNull RootProvider rootProvider, @NotNull TreeProvider treeProvider) {
         this.root = root;
-        this.pps = pps.toArray(new AggregatedPermissionProvider[pps.size()]);
+        this.pps = pps.toArray(new AggregatedPermissionProvider[0]);
         this.ctx = acContext;
         this.compositionType = compositionType;
         this.rootProvider = rootProvider;
@@ -138,7 +138,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
                 Set<String> supportedNames = privilegeBitsProvider.getPrivilegeNames(supported);
                 if (compositionType == AND) {
                     hasPrivileges = aggregatedPermissionProvider.hasPrivileges(immutableTree,
-                            supportedNames.toArray(new String[supportedNames.size()]));
+                            supportedNames.toArray(new String[0]));
                     if (!hasPrivileges) {
                         return false;
                     }

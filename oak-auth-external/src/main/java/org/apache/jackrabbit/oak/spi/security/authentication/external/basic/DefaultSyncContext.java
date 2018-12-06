@@ -744,7 +744,7 @@ public class DefaultSyncContext implements SyncContext {
                 values.add(v);
             }
         }
-        return values.toArray(new Value[values.size()]);
+        return values.toArray(new Value[0]);
     }
 
     /**

@@ -221,7 +221,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             for (String name : pNames) {
                 privileges.add(privilegeManager.getPrivilege(namePathMapper.getJcrName(name)));
             }
-            return privileges.toArray(new Privilege[privileges.size()]);
+            return privileges.toArray(new Privilege[0]);
         }
     }
 
@@ -246,7 +246,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             for (Privilege privilege : privileges) {
                 privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
             }
-            return provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+            return provider.hasPrivileges(tree, privilegeNames.toArray(new String[0]));
         }
     }
 }

@@ -151,7 +151,7 @@ final class Delegatee {
             results = syncUser(userId, false, results, list);
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     /**
@@ -174,7 +174,7 @@ final class Delegatee {
                 }
             }
             commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[list.size()]);
+            return list.toArray(new String[0]);
         } catch (RepositoryException e) {
             throw new IllegalStateException("Error retrieving users for syncing", e);
         }
@@ -211,7 +211,7 @@ final class Delegatee {
             }
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     /**
@@ -229,7 +229,7 @@ final class Delegatee {
                 results = syncUser(user, results, list);
             }
             commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[list.size()]);
+            return list.toArray(new String[0]);
         } catch (ExternalIdentityException e) {
             throw new SyncRuntimeException("Unable to retrieve external users", e);
         }
@@ -258,7 +258,7 @@ final class Delegatee {
             results = syncUser(userId, true, results, list);
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     //------------------------------------------------------------< private >---

@@ -206,7 +206,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
         syncConfig.group().setExpirationTime(Long.MAX_VALUE);
 
         // force group sync is true by default => exp time is ignored
-        String[] result = syncMBean.syncUsers(expected.keySet().toArray(new String[expected.size()]), false);
+        String[] result = syncMBean.syncUsers(expected.keySet().toArray(new String[0]), false);
         assertResultMessages(result, expected);
     }
 

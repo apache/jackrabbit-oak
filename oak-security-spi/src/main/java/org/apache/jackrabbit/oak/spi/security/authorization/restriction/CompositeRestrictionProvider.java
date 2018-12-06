@@ -44,7 +44,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     private final RestrictionProvider[] providers;
 
     private CompositeRestrictionProvider(@NotNull Collection<? extends RestrictionProvider> providers) {
-        this.providers = providers.toArray(new RestrictionProvider[providers.size()]);
+        this.providers = providers.toArray(new RestrictionProvider[0]);
     }
 
     public static RestrictionProvider newInstance(@NotNull RestrictionProvider... providers) {

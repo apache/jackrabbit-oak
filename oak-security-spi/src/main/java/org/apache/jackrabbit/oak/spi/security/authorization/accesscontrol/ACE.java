@@ -129,7 +129,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
                 List<Value> values = valueFactory.createValues(restriction.getProperty());
-                return values.toArray(new Value[values.size()]);
+                return values.toArray(new Value[0]);
             }
         }
         return null;

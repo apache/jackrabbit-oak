@@ -155,7 +155,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(r200second, ConfigurationParameters.of(Constants.SERVICE_RANKING, 200));
 
         List l = getConfigurations();
-        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r150, r100, r50, rUndef}, l.toArray(new SecurityConfiguration[l.size()]));
+        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r150, r100, r50, rUndef}, l.toArray(new SecurityConfiguration[0]));
 
         // remove and add new
         removeConfiguration(r150);
@@ -166,7 +166,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         compositeConfiguration.addConfiguration(r75, ConfigurationParameters.of(Constants.SERVICE_RANKING, 75));
 
         l = getConfigurations();
-        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r75, rUndef}, l.toArray(new SecurityConfiguration[l.size()]));
+        assertArrayEquals(new SecurityConfiguration[]{r200, r200second, r75, rUndef}, l.toArray(new SecurityConfiguration[0]));
     }
 
     @Test

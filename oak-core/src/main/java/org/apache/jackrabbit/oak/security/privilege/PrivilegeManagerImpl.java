@@ -59,7 +59,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         for (PrivilegeDefinition def : getPrivilegeDefinitions()) {
             privileges.add(getPrivilege(def));
         }
-        return privileges.toArray(new Privilege[privileges.size()]);
+        return privileges.toArray(new Privilege[0]);
     }
 
     @Override
@@ -131,7 +131,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     private PrivilegeDefinition[] getPrivilegeDefinitions() {
         Map<String, PrivilegeDefinition> definitions = getReader().readDefinitions();
-        return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
+        return definitions.values().toArray(new PrivilegeDefinition[0]);
     }
 
     @Nullable
@@ -189,7 +189,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
                     log.warn("Invalid privilege '{}' in declared aggregates of '{}'", oakName, getName());
                 }
             }
-            return declaredAggregates.toArray(new Privilege[declaredAggregates.size()]);
+            return declaredAggregates.toArray(new Privilege[0]);
         }
 
         @Override
@@ -201,7 +201,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
                     aggr.addAll(Arrays.asList(decl.getAggregatePrivileges()));
                 }
             }
-            return aggr.toArray(new Privilege[aggr.size()]);
+            return aggr.toArray(new Privilege[0]);
         }
 
         //---------------------------------------------------------< Object >---

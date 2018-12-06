@@ -52,7 +52,7 @@ public class AuthInfoImplTest {
     @Test
     public void testGetAttributeNames() {
         String[] attrNames = authInfo.getAttributeNames();
-        assertArrayEquals(ATTRIBUTES.keySet().toArray(new String[ATTRIBUTES.size()]), attrNames);
+        assertArrayEquals(ATTRIBUTES.keySet().toArray(new String[0]), attrNames);
     }
 
     @Test
