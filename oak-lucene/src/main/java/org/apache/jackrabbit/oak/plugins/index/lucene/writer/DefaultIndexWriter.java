@@ -26,6 +26,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -176,20 +177,23 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime,
         @Nullable GarbageCollectableBlobStore blobStore) throws IOException {
+        final Closer closer = Closer.create();
+
         NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-        DirectoryReader reader = DirectoryReader.open(writer, false);
+        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
         final OakDirectory suggestDirectory =
             new OakDirectory(definitionBuilder, suggestDirName, definition, false, blobStore);
+        // updateSuggester would close the directory (directly or via lookup)
+        // closer.register(suggestDirectory);
         boolean updated = false;
         try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
+            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(currentTime), Type.DATE);
         } catch (Throwable e) {
             log.warn("could not update suggester", e);
         } finally {
             updated = suggestDirectory.isDirty();
-            suggestDirectory.close();
-            reader.close();
+            closer.close();
         }
         return updated;
     }
