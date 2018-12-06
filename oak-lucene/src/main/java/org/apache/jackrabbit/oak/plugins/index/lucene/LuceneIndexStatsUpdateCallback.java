@@ -71,7 +71,7 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
 
             log.debug("{} stats updated; docCount {}, size {}", indexPath, docCount, indexSize);
         } catch (IOException e) {
-            log.warn("could not update no_docs/index_size stats for index at {}", indexPath, e);
+            log.debug("could not update no_docs/index_size stats for index at {}", indexPath, e);
         }
     }
 }
