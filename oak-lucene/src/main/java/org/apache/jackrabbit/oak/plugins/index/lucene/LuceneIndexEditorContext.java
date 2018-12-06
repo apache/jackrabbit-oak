@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.io.Closer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -303,19 +304,21 @@ public class LuceneIndexEditorContext {
      * @return {@link Calendar} object representing the lastUpdated value written by suggestions
      */
     private Calendar updateSuggester(Analyzer analyzer) throws IOException {
+        final Closer closer = Closer.create();
+
         Calendar ret = null;
         NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
-        DirectoryReader reader = DirectoryReader.open(writer, false);
+        DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
         final OakDirectory suggestDirectory = new OakDirectory(definitionBuilder, ":suggest-data", definition, false);
+        // updateSuggester would close the directory (directly or via lookup)
         try {
-            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader);
+            SuggestHelper.updateSuggester(suggestDirectory, analyzer, reader, closer);
             ret = getCalendar();
             suggesterStatus.setProperty("lastUpdated", ISO8601.format(ret), Type.DATE);
         } catch (Throwable e) {
             log.warn("could not update suggester", e);
         } finally {
-            suggestDirectory.close();
-            reader.close();
+            closer.close();
         }
 
         return ret;
