@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -89,13 +88,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Override
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
-        Iterator<Restriction> it = Sets.newHashSet(restrictions).iterator();
-        while (it.hasNext()) {
-            Restriction r = it.next();
-            if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
-                it.remove();
-            }
-        }
+        Sets.newHashSet(restrictions).removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
         base.writeRestrictions(oakPath, aceTree, restrictions);
     }
 

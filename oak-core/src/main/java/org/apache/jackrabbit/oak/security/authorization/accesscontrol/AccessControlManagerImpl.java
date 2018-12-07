@@ -272,13 +272,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 // the node-based policy (see above for adding entries without
                 // this special restriction).
                 Set<Restriction> rstr = Sets.newHashSet(ace.getRestrictions());
-                Iterator<Restriction> it = rstr.iterator();
-                while (it.hasNext()) {
-                    Restriction r = it.next();
-                    if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
-                        it.remove();
-                    }
-                }
+                rstr.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
                 acl.removeAccessControlEntry(new Entry(ace.getPrincipal(), ace.getPrivilegeBits(), ace.isAllow(), rstr, getNamePathMapper()));
                 setNodeBasedAcl(path, tree, acl);
             } else {
