@@ -1081,6 +1081,9 @@ public class RDBDocumentStore implements DocumentStore {
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
+                                if (collection == Collection.NODES) {
+                                    nodesCache.invalidate(update.getId());
+                                }
                                 oldDoc = readDocumentUncached(collection, update.getId(), null);
                             }
                         }
