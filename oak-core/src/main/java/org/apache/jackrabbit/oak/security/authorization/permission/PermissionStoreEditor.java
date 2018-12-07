@@ -89,11 +89,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 AcEntry entry = (privilegeBits.equals(jcrAll)) ?
                         new JcrAllAcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions) :
                         new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
-                List<AcEntry> list = entries.get(entry.principalName);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    entries.put(entry.principalName, list);
-                }
+                List<AcEntry> list = entries.computeIfAbsent(entry.principalName, k -> new ArrayList<>());
                 list.add(entry);
                 index++;
             }
