@@ -317,7 +317,7 @@ public class DefaultSyncConfigImpl extends DefaultSyncConfig {
      * @return the mapping map
      */
     private static Map<String, String> createMapping(@NotNull String[] patterns) {
-        Map<String, String> mapping = new HashMap<String, String>();
+        Map<String, String> mapping = new HashMap<>();
         for (String pattern: patterns) {
             int idx = pattern.indexOf('=');
             if (idx > 0) {

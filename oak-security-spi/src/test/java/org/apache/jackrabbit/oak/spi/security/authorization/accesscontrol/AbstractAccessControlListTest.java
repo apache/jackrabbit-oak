@@ -136,7 +136,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         NamePathMapper npMapper = mockNamePathMapper(getTestPath());
 
         // map of jcr-path to standard jcr-path
-        Map<String, String> paths = new HashMap<String, String>();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");
@@ -154,7 +154,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         NamePathMapper npMapper = mockNamePathMapper(getTestPath());
 
         // map of jcr-path to oak path
-        Map<String, String> paths = new HashMap<String, String>();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");

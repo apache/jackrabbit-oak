@@ -500,7 +500,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
     @Test
     public void testRetain() {
         PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
-        List<PrivilegeBits> pbs = new ArrayList<PrivilegeBits>();
+        List<PrivilegeBits> pbs = new ArrayList<>();
         pbs.add(pb);
         Random random = new Random();
 
@@ -706,7 +706,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
     public void testCalculatePermissions() {
         PrivilegeBitsProvider provider = new PrivilegeBitsProvider(Mockito.mock(Root.class));
 
-        Map<PrivilegeBits, Long> simple = new HashMap<PrivilegeBits, Long>();
+        Map<PrivilegeBits, Long> simple = new HashMap<>();
         simple.put(PrivilegeBits.EMPTY, Permissions.NO_PERMISSION);
         simple.put(provider.getBits(JCR_READ), Permissions.READ);
         simple.put(provider.getBits(JCR_LOCK_MANAGEMENT), Permissions.LOCK_MANAGEMENT);

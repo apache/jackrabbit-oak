@@ -62,7 +62,7 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
         Map<String, Object> m = ImmutableMap.<String, Object>of("principalNames", principalNames);
         activate(m);
 
-        Set<Principal> all = new HashSet<Principal>();
+        Set<Principal> all = new HashSet<>();
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
             assertTrue(exclude.isExcluded(ImmutableSet.of(p)));

@@ -86,7 +86,7 @@ final class PasswordHistory implements UserConstants {
             PropertyState historyProp = passwordTree.getProperty(UserConstants.REP_PWD_HISTORY);
 
             // insert the current (old) password at the beginning of the password history
-            List<String> historyEntries = (historyProp == null) ? new ArrayList<String>() : Lists.newArrayList(historyProp.getValue(Type.STRINGS));
+            List<String> historyEntries = (historyProp == null) ? new ArrayList<>() : Lists.newArrayList(historyProp.getValue(Type.STRINGS));
             historyEntries.add(0, currentPasswordHash);
 
             /* remove oldest history entries exceeding configured history max size (e.g. after

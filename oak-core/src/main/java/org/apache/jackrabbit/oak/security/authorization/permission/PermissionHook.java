@@ -77,8 +77,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private TypePredicate isACE;
     private TypePredicate isGrantACE;
 
-    private Map<String, PermissionStoreEditor> modified = new HashMap<String, PermissionStoreEditor>();
-    private Map<String, PermissionStoreEditor> deleted = new HashMap<String, PermissionStoreEditor>();
+    private Map<String, PermissionStoreEditor> modified = new HashMap<>();
+    private Map<String, PermissionStoreEditor> deleted = new HashMap<>();
 
     public PermissionHook(@NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider,
                           @NotNull MountInfoProvider mountInfoProvider, @NotNull RootProvider rootProvider,

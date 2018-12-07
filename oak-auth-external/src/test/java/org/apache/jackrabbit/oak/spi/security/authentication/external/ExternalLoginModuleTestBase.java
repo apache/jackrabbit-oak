@@ -42,7 +42,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTe
     private Registration testIdpReg;
     private Registration syncHandlerReg;
 
-    protected final HashMap<String, Object> options = new HashMap<String, Object>();
+    protected final HashMap<String, Object> options = new HashMap<>();
 
     protected Whiteboard whiteboard;
 

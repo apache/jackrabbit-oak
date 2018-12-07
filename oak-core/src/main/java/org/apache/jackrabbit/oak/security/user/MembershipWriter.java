@@ -83,7 +83,7 @@ public class MembershipWriter {
                 membersList.getChildren().iterator()
         );
 
-        Set<String> failed = new HashSet<String>(memberIds.size());
+        Set<String> failed = new HashSet<>(memberIds.size());
         int bestCount = membershipSizeThreshold;
         PropertyState bestProperty = null;
         Tree bestTree = null;
@@ -137,7 +137,7 @@ public class MembershipWriter {
             // for simplicity this is achieved by introducing new tree(s)
             if ((propCnt + memberIds.size()) > membershipSizeThreshold) {
                 while (!memberIds.isEmpty()) {
-                    Set<String> s = new HashSet<String>();
+                    Set<String> s = new HashSet<>();
                     Iterator<String> it = memberIds.keySet().iterator();
                     while (propCnt < membershipSizeThreshold && it.hasNext()) {
                         s.add(it.next());

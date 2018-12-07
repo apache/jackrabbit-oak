@@ -135,7 +135,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
         AccessControlPolicy policy = createACL(oakPath, tree, false);
 
-        List<AccessControlPolicy> policies = new ArrayList<AccessControlPolicy>(2);
+        List<AccessControlPolicy> policies = new ArrayList<>(2);
         if (policy != null) {
             policies.add(policy);
         }
@@ -154,7 +154,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root r = getRoot().getContentSession().getLatestRoot();
         tree = r.getTree(tree.getPath());
 
-        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+        List<AccessControlPolicy> effective = new ArrayList<>();
         AccessControlPolicy policy = createACL(oakPath, tree, true);
         if (policy != null) {
             effective.add(policy);
@@ -492,7 +492,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (accessControlledTree.exists() && Util.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
             Tree aclTree = accessControlledTree.getChild(aclName);
             if (aclTree.exists()) {
-                List<ACE> entries = new ArrayList<ACE>();
+                List<ACE> entries = new ArrayList<>();
                 for (Tree child : aclTree.getChildren()) {
                     if (Util.isACE(child, ntMgr)) {
                         ACE ace = createACE(oakPath, child, restrictionProvider);
@@ -517,7 +517,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root root = getRoot();
         Result aceResult = searchAces(Collections.<Principal>singleton(principal), root);
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider);
-        List<ACE> entries = new ArrayList<ACE>();
+        List<ACE> entries = new ArrayList<>();
         for (ResultRow row : aceResult.getRows()) {
             Tree aceTree = root.getTree(row.getPath());
             if (Util.isACE(aceTree, ntMgr)) {
@@ -749,7 +749,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         @Override
         public Privilege[] getPrivileges() {
-            Set<Privilege> privileges = new HashSet<Privilege>();
+            Set<Privilege> privileges = new HashSet<>();
             for (String name : bitsProvider.getPrivilegeNames(getPrivilegeBits())) {
                 try {
                     privileges.add(getPrivilegeManager().getPrivilege(name));

@@ -374,7 +374,7 @@ public class PermissionsTest {
     @Test
     public void testGetPermissionsFromJackrabbitActions() {
         TreeLocation tl = TreeLocation.create(existingTree);
-        Map<String, Long> map = new HashMap<String, Long>();
+        Map<String, Long> map = new HashMap<>();
         map.put(Session.ACTION_ADD_NODE, Permissions.ADD_NODE);
         map.put(JackrabbitSession.ACTION_ADD_PROPERTY, Permissions.ADD_PROPERTY);
         map.put(JackrabbitSession.ACTION_MODIFY_PROPERTY, Permissions.MODIFY_PROPERTY);
@@ -395,7 +395,7 @@ public class PermissionsTest {
     @Test
     public void testGetPermissionsOnAccessControlledNode() {
         TreeLocation tl = createNonExistingTreeLocation(PathUtils.ROOT_PATH + AccessControlConstants.REP_POLICY);
-        Map<String, Long> map = new HashMap<String, Long>();
+        Map<String, Long> map = new HashMap<>();
 
         // read -> mapped to read-access-control
         map.put(Session.ACTION_READ, Permissions.READ_ACCESS_CONTROL);

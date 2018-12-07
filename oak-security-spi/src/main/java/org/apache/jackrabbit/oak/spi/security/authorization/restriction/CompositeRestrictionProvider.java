@@ -102,7 +102,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     @Override
     public void validateRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) throws RepositoryException {
         Map<String,RestrictionDefinition> supported = getSupported(oakPath);
-        Set<String> rNames = new HashSet<String>();
+        Set<String> rNames = new HashSet<>();
         for (Restriction r : readRestrictions(oakPath, aceTree)) {
             String name = getName(r);
             rNames.add(name);
@@ -133,7 +133,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     @NotNull
     @Override
     public RestrictionPattern getPattern(@Nullable String oakPath, @NotNull Set<Restriction> restrictions) {
-        List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>();
+        List<RestrictionPattern> patterns = new ArrayList<>();
         for (RestrictionProvider rp : providers) {
             RestrictionPattern pattern = rp.getPattern(oakPath, restrictions);
             if (pattern != RestrictionPattern.EMPTY) {
@@ -156,7 +156,7 @@ public final class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     private Map<String, RestrictionDefinition> getSupported(@Nullable String oakPath) {
-        Map<String, RestrictionDefinition> supported = new HashMap<String, RestrictionDefinition>();
+        Map<String, RestrictionDefinition> supported = new HashMap<>();
         for (RestrictionProvider rp : providers) {
             for (RestrictionDefinition rd : rp.getSupportedRestrictions(oakPath)) {
                 supported.put(rd.getName(), rd);

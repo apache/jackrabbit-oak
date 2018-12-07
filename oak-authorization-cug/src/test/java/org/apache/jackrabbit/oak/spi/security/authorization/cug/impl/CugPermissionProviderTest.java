@@ -55,7 +55,7 @@ import static org.junit.Assert.fail;
 
 public class CugPermissionProviderTest extends AbstractCugTest implements NodeTypeConstants {
 
-    private static final Map<String, Boolean> PATH_INCUG_MAP = new HashMap<String, Boolean>();
+    private static final Map<String, Boolean> PATH_INCUG_MAP = new HashMap<>();
     static {
         PATH_INCUG_MAP.put(SUPPORTED_PATH, false);
         PATH_INCUG_MAP.put("/content/a", true);
@@ -275,7 +275,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
     public void testSupportedPermissionsByTreePermission() {
         TreePermission rootTp = cugPermProvider.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
 
-        Map<TreePermission, Boolean> tpMap = new HashMap<TreePermission, Boolean>();
+        Map<TreePermission, Boolean> tpMap = new HashMap<>();
 
         TreePermission contentTp = cugPermProvider.getTreePermission(root.getTree(SUPPORTED_PATH), rootTp);
         tpMap.put(contentTp, false);

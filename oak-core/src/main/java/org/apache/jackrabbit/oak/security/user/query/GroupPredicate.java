@@ -38,7 +38,7 @@ class GroupPredicate implements Predicate<Authorizable> {
     static final Logger log = LoggerFactory.getLogger(GroupPredicate.class);
 
     private final Iterator<Authorizable> membersIterator;
-    private final Set<String> memberIds = new HashSet<String>();
+    private final Set<String> memberIds = new HashSet<>();
 
     GroupPredicate(UserManager userManager, String groupId, boolean declaredMembersOnly) throws RepositoryException {
         Authorizable authorizable = userManager.getAuthorizable(groupId);

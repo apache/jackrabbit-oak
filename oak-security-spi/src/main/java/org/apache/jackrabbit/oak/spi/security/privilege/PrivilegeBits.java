@@ -70,7 +70,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     private static final Map<Long, String> BUILT_IN_BITS;
 
     static {
-        Map<String, PrivilegeBits> privs = new HashMap<String, PrivilegeBits>();
+        Map<String, PrivilegeBits> privs = new HashMap<>();
         privs.put(REP_READ_NODES, getInstance(READ_NODES));
         privs.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
         privs.put(REP_ADD_PROPERTIES, getInstance(ADD_PROPERTIES));

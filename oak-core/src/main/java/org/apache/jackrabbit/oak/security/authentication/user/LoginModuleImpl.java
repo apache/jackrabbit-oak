@@ -101,7 +101,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
-    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<Class>(3);
+    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<>(3);
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
@@ -263,7 +263,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         } else {
             creds = credentials;
         }
-        Map<String, Object> attributes = new HashMap<String, Object>();
+        Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
             for (Object key : ((Map) shared).keySet()) {

@@ -135,7 +135,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     private static List<String> getInvalidPaths() {
-        List<String> invalid = new ArrayList<String>();
+        List<String> invalid = new ArrayList<>();
         invalid.add("");
         invalid.add("../../jcr:testRoot");
         invalid.add("jcr:testRoot");

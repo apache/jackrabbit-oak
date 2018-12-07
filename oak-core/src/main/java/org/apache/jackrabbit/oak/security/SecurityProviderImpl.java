@@ -141,7 +141,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        Set<SecurityConfiguration> scs = new HashSet<SecurityConfiguration>();
+        Set<SecurityConfiguration> scs = new HashSet<>();
         scs.add(authenticationConfiguration);
         scs.add(authorizationConfiguration);
         scs.add(userConfiguration);

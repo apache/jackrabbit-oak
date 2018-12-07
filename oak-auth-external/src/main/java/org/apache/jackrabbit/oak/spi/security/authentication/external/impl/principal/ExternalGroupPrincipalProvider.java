@@ -354,7 +354,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      */
     private final class GroupPrincipalIterator extends AbstractLazyIterator<Principal> {
 
-        private final Set<String> processed = new HashSet<String>();
+        private final Set<String> processed = new HashSet<>();
 
         private final String queryString;
         private final Iterator<? extends ResultRow> rows;
@@ -443,7 +443,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
         private AutoMembershipPrincipals(@NotNull Map<String, String[]> autoMembershipMapping) {
             this.autoMembershipMapping = autoMembershipMapping;
-            this.principalMap = new ConcurrentHashMap<String, Set<Principal>>(autoMembershipMapping.size());
+            this.principalMap = new ConcurrentHashMap<>(autoMembershipMapping.size());
         }
 
         @NotNull

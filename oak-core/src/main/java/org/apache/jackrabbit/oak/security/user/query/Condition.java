@@ -158,7 +158,7 @@ interface Condition {
     //-------------------------------------------------< Compound Condition >---
     abstract class Compound implements Condition, Iterable<Condition> {
 
-        private final List<Condition> conditions = new ArrayList<Condition>();
+        private final List<Condition> conditions = new ArrayList<>();
 
         public Compound(Condition condition1, Condition condition2) {
             conditions.add(condition1);

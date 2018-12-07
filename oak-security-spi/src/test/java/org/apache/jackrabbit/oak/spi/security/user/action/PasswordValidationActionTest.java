@@ -71,7 +71,7 @@ public class PasswordValidationActionTest {
 
     @Test
     public void testPasswordValidationActionInvalid() throws Exception {
-        List<String> invalid = new ArrayList<String>();
+        List<String> invalid = new ArrayList<>();
         invalid.add("pw1");
         invalid.add("only6C");
         invalid.add("12345678");

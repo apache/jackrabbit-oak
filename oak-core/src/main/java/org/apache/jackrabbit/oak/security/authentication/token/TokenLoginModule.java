@@ -249,7 +249,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Nullable
     private static AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
         if (tokenInfo != null) {
-            Map<String, Object> attributes = new HashMap<String, Object>();
+            Map<String, Object> attributes = new HashMap<>();
             Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();
             for (String attrName : publicAttributes.keySet()) {
                 attributes.put(attrName, publicAttributes.get(attrName));

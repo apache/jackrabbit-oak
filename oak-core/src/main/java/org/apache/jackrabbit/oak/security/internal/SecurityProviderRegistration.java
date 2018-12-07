@@ -462,7 +462,7 @@ public class SecurityProviderRegistration {
 
         // Register the SecurityProvider.
 
-        Dictionary<String, Object> properties = new Hashtable<String, Object>();
+        Dictionary<String, Object> properties = new Hashtable<>();
 
         properties.put("type", "default");
 

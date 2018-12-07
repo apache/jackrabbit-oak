@@ -48,8 +48,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeBitsProvider.class);
 
-    private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<PrivilegeBits, Set<String>>();
-    private final Map<String, Set<String>> aggregation = new HashMap<String, Set<String>>();
+    private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<>();
+    private final Map<String, Set<String>> aggregation = new HashMap<>();
 
     private final Root root;
 
@@ -174,8 +174,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (bitsToNames.containsKey(pb)) {
                 privilegeNames = bitsToNames.get(pb);
             } else {
-                privilegeNames = new HashSet<String>();
-                Set<String> aggregates = new HashSet<String>();
+                privilegeNames = new HashSet<>();
+                Set<String> aggregates = new HashSet<>();
                 for (Tree child : privilegesTree.getChildren()) {
                     PrivilegeBits bits = PrivilegeBits.getInstance(child);
                     if (pb.includes(bits)) {

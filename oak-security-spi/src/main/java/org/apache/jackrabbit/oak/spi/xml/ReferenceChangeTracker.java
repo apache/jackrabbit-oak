@@ -35,12 +35,12 @@ public class ReferenceChangeTracker {
     /**
      * mapping from original uuid to new uuid of mix:referenceable nodes
      */
-    private final Map<String, String> uuidMap = new HashMap<String, String>();
+    private final Map<String, String> uuidMap = new HashMap<>();
 
     /**
      * list of processed reference properties that might need correcting
      */
-    private final List<Object> references = new ArrayList<Object>();
+    private final List<Object> references = new ArrayList<>();
 
     /**
      * Returns the new node id to which {@code oldUUID} has been mapped
