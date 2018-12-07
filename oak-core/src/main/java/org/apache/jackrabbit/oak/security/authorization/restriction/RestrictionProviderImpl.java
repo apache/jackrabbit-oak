@@ -86,7 +86,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         if (oakPath == null) {
             return RestrictionPattern.EMPTY;
         } else {
-            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(NUMBER_OF_DEFINITIONS);
+            List<RestrictionPattern> patterns = new ArrayList<>(NUMBER_OF_DEFINITIONS);
             PropertyState glob = tree.getProperty(REP_GLOB);
             if (glob != null) {
                 patterns.add(GlobPattern.create(oakPath, glob.getValue(Type.STRING)));
@@ -114,7 +114,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         if (oakPath == null || restrictions.isEmpty()) {
             return RestrictionPattern.EMPTY;
         } else {
-            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(NUMBER_OF_DEFINITIONS);
+            List<RestrictionPattern> patterns = new ArrayList<>(NUMBER_OF_DEFINITIONS);
             for (Restriction r : restrictions) {
                 String name = r.getDefinition().getName();
                 if (REP_GLOB.equals(name)) {

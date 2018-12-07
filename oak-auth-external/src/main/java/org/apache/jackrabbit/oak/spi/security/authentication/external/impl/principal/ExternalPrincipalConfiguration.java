@@ -260,7 +260,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
      */
     private static final class SyncHandlerMappingTracker extends ServiceTracker {
 
-        private Map<ServiceReference, String[]> referenceMap = new HashMap<ServiceReference, String[]>();
+        private Map<ServiceReference, String[]> referenceMap = new HashMap<>();
 
         public SyncHandlerMappingTracker(@NotNull BundleContext context) {
             super(context, SyncHandlerMapping.class.getName(), null);

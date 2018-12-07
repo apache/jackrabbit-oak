@@ -150,7 +150,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      * memberships during processing. if both would be handled only via the reference tracker {@link Membership#process()}
      * would remove the members from the property importer.
      */
-    private Map<String, Membership> memberships = new HashMap<String, Membership>();
+    private Map<String, Membership> memberships = new HashMap<>();
 
     /**
      * Temporary store for the pw an imported new user to be able to call
@@ -161,7 +161,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     /**
      * Remember all new principals for impersonation handling.
      */
-    private Map<String, Principal> principals = new HashMap<String, Principal>();
+    private Map<String, Principal> principals = new HashMap<>();
 
     UserImporter(ConfigurationParameters config) {
         importBehavior = UserUtil.getImportBehavior(config);
@@ -267,7 +267,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
              of impersonators
              */
                 if (principals == null) {
-                    principals = new HashMap<String, Principal>();
+                    principals = new HashMap<>();
                 }
                 principals.put(principalName, a.getPrincipal());
 
@@ -370,7 +370,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
         memberships.clear();
 
-        List<Object> processed = new ArrayList<Object>();
+        List<Object> processed = new ArrayList<>();
         for (Iterator<Object> it = referenceTracker.getProcessedReferences(); it.hasNext(); ) {
             Object reference = it.next();
             if (reference instanceof Membership) {
@@ -558,7 +558,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
         private final String authorizablePath;
 
-        private final Set<String> members = new TreeSet<String>();
+        private final Set<String> members = new TreeSet<>();
 
         Membership(String authorizablePath) {
             this.authorizablePath = authorizablePath;
@@ -582,7 +582,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             Group gr = (Group) a;
 
             // 1. collect members to add and to remove.
-            Map<String, Authorizable> toRemove = new HashMap<String, Authorizable>();
+            Map<String, Authorizable> toRemove = new HashMap<>();
             for (Iterator<Authorizable> declMembers = gr.getDeclaredMembers(); declMembers.hasNext(); ) {
                 Authorizable dm = declMembers.next();
                 toRemove.put(dm.getID(), dm);
@@ -660,7 +660,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     private final class Impersonators {
 
         private final String userPath;
-        private final Set<String> principalNames = new HashSet<String>();
+        private final Set<String> principalNames = new HashSet<>();
 
         private Impersonators(String userPath, List<? extends TextValue> values) {
             this.userPath = userPath;
@@ -678,13 +678,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             Impersonation imp = checkNotNull(((User) a).getImpersonation());
 
             // 1. collect principals to add and to remove.
-            Map<String, Principal> toRemove = new HashMap<String, Principal>();
+            Map<String, Principal> toRemove = new HashMap<>();
             for (PrincipalIterator pit = imp.getImpersonators(); pit.hasNext(); ) {
                 Principal p = pit.nextPrincipal();
                 toRemove.put(p.getName(), p);
             }
 
-            List<String> toAdd = new ArrayList<String>();
+            List<String> toAdd = new ArrayList<>();
             for (final String principalName : principalNames) {
                 if (toRemove.remove(principalName) == null) {
                     // add it to the list of new impersonators to be added.
@@ -699,7 +699,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                     handleFailure("Failed to revoke impersonation for " + principalName + " on " + a);
                 }
             }
-            List<String> nonExisting = new ArrayList<String>();
+            List<String> nonExisting = new ArrayList<>();
             for (String principalName : toAdd) {
                 Principal principal = (principals.containsKey(principalName)) ?
                         principals.get(principalName) :

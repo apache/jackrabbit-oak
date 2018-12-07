@@ -69,7 +69,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         TreeLocation location = getLocation(tree, oakPath);
         Tree parent = location.getTree();
         if (parent != null && Text.isDescendantOrEqual(tree.getPath(), parent.getPath())) {
-            List<String> l = new ArrayList<String>();
+            List<String> l = new ArrayList<>();
             for (PropertyState property : parent.getProperties()) {
                 String propName = property.getName();
                 if (isAuthorizableProperty(tree, location.getChild(propName), false)) {

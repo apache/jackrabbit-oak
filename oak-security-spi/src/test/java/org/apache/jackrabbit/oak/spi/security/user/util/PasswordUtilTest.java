@@ -54,7 +54,7 @@ public class PasswordUtilTest {
                 "p{SHA-256}w",
                 "");
 
-        hashedPasswords = new HashMap<String, String>();
+        hashedPasswords = new HashMap<>();
         for (String pw : plainPasswords) {
             hashedPasswords.put(pw, PasswordUtil.buildPasswordHash(pw));
         }
@@ -67,7 +67,7 @@ public class PasswordUtilTest {
             assertFalse(pw.equals(pwHash));
         }
 
-        List<Integer[]> l = new ArrayList<Integer[]>();
+        List<Integer[]> l = new ArrayList<>();
         l.add(new Integer[] {0, 1000});
         l.add(new Integer[] {1, 10});
         l.add(new Integer[] {8, 50});
@@ -86,7 +86,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testBuildPasswordHashInvalidAlgorithm() throws Exception {
-        List<String> invalidAlgorithms = new ArrayList<String>();
+        List<String> invalidAlgorithms = new ArrayList<>();
         invalidAlgorithms.add("");
         invalidAlgorithms.add("+");
         invalidAlgorithms.add("invalid");

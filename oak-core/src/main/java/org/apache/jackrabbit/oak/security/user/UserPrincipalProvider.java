@@ -128,7 +128,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         Tree tree = userProvider.getAuthorizable(userID);
         if (tree != null && UserUtil.isType(tree, AuthorizableType.USER)) {
             Principal userPrincipal = createUserPrincipal(userID, tree);

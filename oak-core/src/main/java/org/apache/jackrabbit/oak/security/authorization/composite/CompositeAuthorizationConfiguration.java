@@ -146,7 +146,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: return RestrictionProvider.EMPTY;
             case 1: return configurations.get(0).getRestrictionProvider();
             default:
-                List<RestrictionProvider> rps = new ArrayList<RestrictionProvider>(configurations.size());
+                List<RestrictionProvider> rps = new ArrayList<>(configurations.size());
                 for (AuthorizationConfiguration c : configurations) {
                     RestrictionProvider rp = c.getRestrictionProvider();
                     if (RestrictionProvider.EMPTY != rp) {

@@ -135,7 +135,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @NotNull
     Iterator<String> getMembership(@NotNull Tree authorizableTree, final boolean includeInherited) {
-        return getMembership(authorizableTree, includeInherited, new HashSet<String>());
+        return getMembership(authorizableTree, includeInherited, new HashSet<>());
     }
 
     /**
@@ -220,7 +220,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @NotNull
     Iterator<String> getMembers(@NotNull Tree groupTree, boolean includeInherited) {
-        return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<String>());
+        return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<>());
     }
 
     @NotNull
@@ -482,7 +482,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
          */
         protected void remember(@NotNull Tree groupTree) {
             if (groupTrees == null) {
-                groupTrees = new ArrayList<Tree>();
+                groupTrees = new ArrayList<>();
             }
             groupTrees.add(groupTree);
         }

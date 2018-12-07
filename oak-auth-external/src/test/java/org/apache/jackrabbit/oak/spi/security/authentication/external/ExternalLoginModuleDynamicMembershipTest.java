@@ -91,10 +91,10 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
         try {
             cs = login(new SimpleCredentials(USER_ID, new char[0]));
 
-            Set<String> expectedExternal = new HashSet<String>();
+            Set<String> expectedExternal = new HashSet<>();
             calcExpectedPrincipalNames(idp.getUser(USER_ID), syncConfig.user().getMembershipNestingDepth(), expectedExternal);
 
-            Set<Principal> principals = new HashSet<Principal>(cs.getAuthInfo().getPrincipals());
+            Set<Principal> principals = new HashSet<>(cs.getAuthInfo().getPrincipals());
 
             root.refresh();
             PrincipalManager principalManager = getPrincipalManager(root);

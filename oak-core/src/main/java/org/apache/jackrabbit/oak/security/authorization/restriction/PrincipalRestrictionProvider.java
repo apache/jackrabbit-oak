@@ -55,7 +55,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
-        Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
+        Set<RestrictionDefinition> definitions = new HashSet<>(base.getSupportedRestrictions(oakPath));
         definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true));
         return definitions;
     }
@@ -79,7 +79,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
-        Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
+        Set<Restriction> restrictions = new HashSet<>(base.readRestrictions(oakPath, aceTree));
         String value = (oakPath == null) ? "" : oakPath;
         PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
         restrictions.add(new RestrictionImpl(nodePathProp, true));

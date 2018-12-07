@@ -81,7 +81,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @NotNull
     public static ConfigurationParameters of(@NotNull ConfigurationParameters... params) {
-        Map<String, Object> m = new HashMap<String, Object>();
+        Map<String, Object> m = new HashMap<>();
         for (ConfigurationParameters cp : params) {
             if (cp != null) {
                 m.putAll(cp.options);
@@ -100,7 +100,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (properties.isEmpty()) {
             return EMPTY;
         }
-        Map<String, Object> options = new HashMap<String, Object>(properties.size());
+        Map<String, Object> options = new HashMap<>(properties.size());
         for (Object name : properties.keySet()) {
             final String key = name.toString();
             options.put(key, properties.get(key));
@@ -118,7 +118,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (properties.isEmpty()) {
             return EMPTY;
         }
-        Map<String, Object> options = new HashMap<String, Object>(properties.size());
+        Map<String, Object> options = new HashMap<>(properties.size());
         for (Enumeration<String> keys = properties.keys(); keys.hasMoreElements();) {
             String key = keys.nextElement();
             options.put(key, properties.get(key));
@@ -139,7 +139,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (map instanceof ConfigurationParameters) {
             return (ConfigurationParameters) map;
         }
-        Map<String, Object> options = new HashMap<String, Object>(map.size());
+        Map<String, Object> options = new HashMap<>(map.size());
         for (Map.Entry<?,?> e : map.entrySet()) {
             options.put(String.valueOf(e.getKey()), e.getValue());
         }

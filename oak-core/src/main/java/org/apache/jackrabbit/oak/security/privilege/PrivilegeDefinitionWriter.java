@@ -150,7 +150,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     }
 
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {
-        Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
+        Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<>();
         for (String privilegeName : NON_AGGREGATE_PRIVILEGES) {
             PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, null);
             definitions.put(privilegeName, def);

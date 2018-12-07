@@ -148,7 +148,7 @@ public class CompositeCredentialsSupportTest {
 
     private static final class TestCredentialsSupport implements CredentialsSupport {
 
-        private final Map<String, Object> attributes = new HashMap<String, Object>();
+        private final Map<String, Object> attributes = new HashMap<>();
 
         @NotNull
         @Override

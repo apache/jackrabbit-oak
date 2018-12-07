@@ -47,7 +47,7 @@ public class PrincipalImplTest {
 
     @Test
     public void testEquals() {
-        List<Principal> principals = new ArrayList<Principal>();
+        List<Principal> principals = new ArrayList<>();
         principals.add(new PrincipalImpl("name"));
         principals.add(new TestPrincipal("name"));
         principals.add(new JackrabbitPrincipal() {
@@ -64,7 +64,7 @@ public class PrincipalImplTest {
 
     @Test
     public void testNotEquals() {
-        List<Principal> principals = new ArrayList<Principal>();
+        List<Principal> principals = new ArrayList<>();
         principals.add(new PrincipalImpl("otherName"));
         principals.add(new Principal() {
             @Override

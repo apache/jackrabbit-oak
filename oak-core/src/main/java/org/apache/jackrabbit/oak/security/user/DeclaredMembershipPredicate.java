@@ -39,7 +39,7 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
 
     private final MembershipProvider membershipProvider;
     private final Iterator<String> contentIdIterator;
-    private final Set<String> declaredMemberContentIds = new HashSet<String>();
+    private final Set<String> declaredMemberContentIds = new HashSet<>();
 
     public DeclaredMembershipPredicate(UserManagerImpl userManager, String groupId) {
         this.membershipProvider = userManager.getMembershipProvider();

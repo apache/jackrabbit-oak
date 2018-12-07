@@ -87,7 +87,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Set<Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         for (PrincipalProvider provider : providers) {
             principals.addAll(provider.getPrincipals(userID));
         }

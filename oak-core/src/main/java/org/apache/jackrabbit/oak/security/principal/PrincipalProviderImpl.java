@@ -93,7 +93,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
     @NotNull
     @Override
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         try {
             Authorizable authorizable = userManager.getAuthorizable(userID);
             if (authorizable != null && !authorizable.isGroup()) {

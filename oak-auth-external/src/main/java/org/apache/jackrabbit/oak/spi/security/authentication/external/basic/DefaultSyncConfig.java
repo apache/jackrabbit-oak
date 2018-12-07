@@ -150,7 +150,7 @@ public class DefaultSyncConfig {
          */
         @NotNull
         public Authorizable setAutoMembership(@NotNull String ... autoMembership) {
-            this.autoMembership = new HashSet<String>();
+            this.autoMembership = new HashSet<>();
             for (String groupName: autoMembership) {
                 if (groupName != null && !groupName.trim().isEmpty()) {
                     this.autoMembership.add(groupName.trim());

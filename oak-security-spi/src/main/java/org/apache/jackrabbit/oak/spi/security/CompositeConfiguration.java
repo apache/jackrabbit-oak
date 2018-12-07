@@ -69,7 +69,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
      */
     private static final int NO_RANKING = Integer.MIN_VALUE;
 
-    private final List<T> configurations = new CopyOnWriteArrayList<T>();
+    private final List<T> configurations = new CopyOnWriteArrayList<>();
 
     private final Ranking rankings = new Ranking();
 

@@ -99,8 +99,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         // setup
         this.store = store;
-        Set<String> userNames = new HashSet<String>(principals.size());
-        Set<String> groupNames = new HashSet<String>(principals.size());
+        Set<String> userNames = new HashSet<>(principals.size());
+        Set<String> groupNames = new HashSet<>(principals.size());
         for (Principal principal : principals) {
             if (GroupPrincipals.isGroup(principal)) {
                 groupNames.add(principal.getName());
@@ -239,7 +239,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @NotNull
     private TreePermission buildParentPermission(@NotNull Tree tree) {
-        List<Tree> trees = new ArrayList<Tree>();
+        List<Tree> trees = new ArrayList<>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
             trees.add(0, tree);

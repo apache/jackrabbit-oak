@@ -66,7 +66,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         if (impersonators.isEmpty()) {
             return PrincipalIteratorAdapter.EMPTY;
         } else {
-            Set<Principal> s = new HashSet<Principal>();
+            Set<Principal> s = new HashSet<>();
             for (final String pName : impersonators) {
                 Principal p = principalManager.getPrincipal(pName);
                 if (p == null) {
@@ -128,7 +128,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             return false;
         }
 
-        Set<String> principalNames = new HashSet<String>();
+        Set<String> principalNames = new HashSet<>();
         for (Principal principal : subject.getPrincipals()) {
             principalNames.add(principal.getName());
         }
@@ -154,7 +154,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     @NotNull
     private Set<String> getImpersonatorNames(@NotNull Tree userTree) {
-        Set<String> princNames = new HashSet<String>();
+        Set<String> princNames = new HashSet<>();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         if (impersonators != null) {
             for (String v : impersonators.getValue(STRINGS)) {

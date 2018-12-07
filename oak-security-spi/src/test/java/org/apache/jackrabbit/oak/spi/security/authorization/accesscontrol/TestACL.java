@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class TestACL extends AbstractAccessControlList {
 
-    private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
+    private final List<JackrabbitAccessControlEntry> entries = new ArrayList<>();
     private final RestrictionProvider restrictionProvider;
 
     public TestACL(@Nullable String jcrPath,

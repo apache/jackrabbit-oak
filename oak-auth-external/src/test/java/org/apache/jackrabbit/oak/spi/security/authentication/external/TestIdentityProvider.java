@@ -40,8 +40,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
     public static final String DEFAULT_IDP_NAME = "test";
 
-    private final Map<String, ExternalGroup> externalGroups = new HashMap<String, ExternalGroup>();
-    private final Map<String, ExternalUser> externalUsers = new HashMap<String, ExternalUser>();
+    private final Map<String, ExternalGroup> externalGroups = new HashMap<>();
+    private final Map<String, ExternalUser> externalUsers = new HashMap<>();
 
     private final String idpName;
 
@@ -158,8 +158,8 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         private final String principalName;
         private final ExternalIdentityRef id;
 
-        private final Set<ExternalIdentityRef> groups = new HashSet<ExternalIdentityRef>();
-        private final Map<String, Object> props = new HashMap<String, Object>();
+        private final Set<ExternalIdentityRef> groups = new HashSet<>();
+        private final Map<String, Object> props = new HashMap<>();
 
         public TestIdentity() {
             this("externalId", "principalName", DEFAULT_IDP_NAME);

@@ -238,7 +238,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     }
 
     private static Set<String> resolveAggregates(Set<String> declared, Map<String, PrivilegeDefinition> definitions) throws CommitFailedException {
-        Set<String> aggregateNames = new HashSet<String>();
+        Set<String> aggregateNames = new HashSet<>();
         for (String name : declared) {
             PrivilegeDefinition d = definitions.get(name);
             if (d == null) {

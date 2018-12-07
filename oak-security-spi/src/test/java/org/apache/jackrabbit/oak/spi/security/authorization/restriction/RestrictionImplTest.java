@@ -153,7 +153,7 @@ public class RestrictionImplTest {
 
     @Test
     public void testNotSameHashCode() {
-        List<Restriction> rs = new ArrayList<Restriction>();
+        List<Restriction> rs = new ArrayList<>();
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status

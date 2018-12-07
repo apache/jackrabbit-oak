@@ -82,7 +82,7 @@ public class RestrictionDefinitionImplTest {
 
     @Test
     public void testNotEqual() {
-        List<RestrictionDefinition> defs = new ArrayList<RestrictionDefinition>();
+        List<RestrictionDefinition> defs = new ArrayList<>();
         // - different type
         defs.add(new RestrictionDefinitionImpl(name, Type.STRING, true));
         // - different name
